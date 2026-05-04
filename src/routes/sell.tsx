@@ -319,13 +319,25 @@ function Sell() {
           <div className="space-y-3">
             <div className="flex gap-2">
               <input className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <button type="button" onClick={() => setScanning(true)}
+                className="flex items-center gap-1 rounded-xl bg-primary px-3 py-3 text-xs font-bold text-primary-foreground"
+                title="Scan card with camera (same engine as Vault)">
+                <Camera className="h-3.5 w-3.5" /> Scan
+              </button>
               <button type="button" onClick={aiIdentify} disabled={identifying}
                 className="rounded-xl bg-accent px-3 py-3 text-xs font-bold text-accent-foreground disabled:opacity-50">
                 {identifying ? "…" : "✨ AI ID"}
               </button>
             </div>
+            <p className="-mt-1 text-[10px] text-muted-foreground">
+              Tap <b>Scan</b> to identify by photo (same as your Vault), or type a name + tap <b>AI ID</b>. Pricing adjusts for condition automatically.
+            </p>
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Card number (optional, e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+            <div className="grid grid-cols-3 gap-2">
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="# (e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Front photo URL *" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Back photo URL *" value={backImageUrl} onChange={(e) => setBackImageUrl(e.target.value)} />
