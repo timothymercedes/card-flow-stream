@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
+import { HlsPlayer } from "@/components/HlsPlayer";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -433,7 +434,9 @@ function LiveDetail() {
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {/* Full-screen video */}
       <div className="absolute inset-0">
-        {isSeller ? (
+        {usingObs ? (
+          <HlsPlayer src={stream.cf_playback_hls} className="h-full w-full object-cover" autoPlay muted={isSeller} />
+        ) : isSeller ? (
           <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 via-black to-live/30">
