@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Gift, X, Sparkles, Users, Trophy, Truck, Loader2, Check } from "lucide-react";
+import { Confetti } from "@/components/Confetti";
 
 type Giveaway = {
   id: string;
