@@ -22,6 +22,9 @@ function Sell() {
   const [startingBid, setStartingBid] = useState("1");
   const [timerMin, setTimerMin] = useState("10");
   const [minIncrement, setMinIncrement] = useState("1");
+  const [defaultCondition, setDefaultCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM");
+  const [quickStart, setQuickStart] = useState(true);
+  const [defaultTimerSec, setDefaultTimerSec] = useState("30");
 
   // Listing form
   const [title, setTitle] = useState("");
