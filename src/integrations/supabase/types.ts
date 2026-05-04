@@ -214,10 +214,13 @@ export type Database = {
           code: string
           created_at: string
           drawn_at: string | null
+          duration_sec: number
           eligibility: string
+          ends_at: string | null
           id: string
           opened_at: string
           prize_label: string
+          quantity: number
           seller_id: string
           shipping_covered: boolean
           status: string
@@ -232,10 +235,13 @@ export type Database = {
           code: string
           created_at?: string
           drawn_at?: string | null
+          duration_sec?: number
           eligibility?: string
+          ends_at?: string | null
           id?: string
           opened_at?: string
           prize_label: string
+          quantity?: number
           seller_id: string
           shipping_covered?: boolean
           status?: string
@@ -250,10 +256,13 @@ export type Database = {
           code?: string
           created_at?: string
           drawn_at?: string | null
+          duration_sec?: number
           eligibility?: string
+          ends_at?: string | null
           id?: string
           opened_at?: string
           prize_label?: string
+          quantity?: number
           seller_id?: string
           shipping_covered?: boolean
           status?: string

@@ -103,6 +103,9 @@ function LiveDetail() {
   const [isPastBuyer, setIsPastBuyer] = useState(false);
   // 🆕 Currency display preference (per-viewer)
   const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
+  // 🆕 Live presence — viewer count + "joined the live" announcements
+  const [viewerCount, setViewerCount] = useState(0);
+  const announcedJoinsRef = useRef<Set<string>>(new Set());
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
@@ -186,7 +189,34 @@ function LiveDetail() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-  // 🆕 Load viewer's preferred currency
+  // 🆕 Presence — count viewers + announce joins to chat
+  useEffect(() => {
+    if (!id) return;
+    const myKey = user?.id || `guest-${Math.random().toString(36).slice(2, 10)}`;
+    const myName = profile?.username || "viewer";
+    const ch = supabase.channel(`presence-${id}`, { config: { presence: { key: myKey } } });
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState() as Record<string, any[]>;
+      setViewerCount(Object.keys(state).length);
+    });
+    ch.on("presence", { event: "join" }, ({ key, newPresences }) => {
+      if (key === myKey) return;
+      if (announcedJoinsRef.current.has(key)) return;
+      announcedJoinsRef.current.add(key);
+      const u = (newPresences?.[0] as any)?.username || "viewer";
+      // Only announce signed-in users (skip generic guests)
+      if (!String(key).startsWith("guest-")) {
+        sendMsg(`👋 @${u} has joined the live`, true);
+      }
+    });
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await ch.track({ username: myName, joined_at: Date.now() });
+      }
+    });
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id, profile?.username]);
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("preferred_currency").eq("id", user.id).maybeSingle()
@@ -1136,8 +1166,15 @@ function LiveDetail() {
       {/* Top bar */}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4" /></Link>
-        <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
-          {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
+        <div className="flex items-center gap-1.5">
+          <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
+            {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
+          </div>
+          {!ended && (
+            <div className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur" title="Viewers in the live">
+              <Users className="h-3 w-3" /> {viewerCount.toLocaleString()}
+            </div>
+          )}
         </div>
         <div className="flex gap-1">
           <button onClick={() => setShareOpen(true)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Share2 className="h-4 w-4" /></button>
@@ -1168,39 +1205,51 @@ function LiveDetail() {
         </div>
       </div>
 
-      {/* 🆕 Always-visible auction timer (regardless of pin state); shows READY when no round is live */}
-      {!ended && (
-        <div className="pointer-events-none absolute left-1/2 top-14 z-20 -translate-x-1/2">
-          {auctionLive ? (
-            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-extrabold tabular-nums shadow-2xl ring-2 transition ${
-              stream.sudden_death_active
-                ? "bg-red-600 text-white ring-red-300 animate-pulse"
-                : snipeFlash
-                  ? "bg-yellow-400 text-black ring-yellow-200 scale-110"
-                  : remaining <= 5000
-                    ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
-                    : "bg-live text-live-foreground ring-white/30"
-            }`}>
-              {stream.sudden_death_active ? <Zap className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
-              <span>{fmtRemaining(remaining)}</span>
-              {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
-                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">+{stream.snipe_extends}/3 OT</span>
-              )}
-              {stream.sudden_death_active && (
-                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">Sudden Death</span>
-              )}
-              {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && (
-                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
-              <Timer className="h-3.5 w-3.5 opacity-70" />
-              <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* 🆕 Always-visible auction timer.
+          When ≤5s remain (or sudden death), it bursts to the center of the screen and grows huge.
+          When the round ends it animates back to its top-pill spot. */}
+      {!ended && (() => {
+        const dramatic = auctionLive && (remaining <= 5000 || stream.sudden_death_active);
+        const wrapPos = dramatic
+          ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          : "left-1/2 top-14 -translate-x-1/2";
+        return (
+          <div className={`pointer-events-none absolute z-30 ${wrapPos} transition-all duration-500 ease-out`}>
+            {auctionLive ? (
+              <div className={`flex items-center gap-2 rounded-full font-extrabold tabular-nums shadow-2xl ring-2 transition-all duration-500 ease-out ${
+                dramatic ? "px-8 py-5 text-6xl ring-4 scale-100" : "px-3 py-1.5 text-base"
+              } ${
+                stream.sudden_death_active
+                  ? "bg-red-600 text-white ring-red-300 animate-pulse"
+                  : snipeFlash
+                    ? "bg-yellow-400 text-black ring-yellow-200"
+                    : remaining <= 5000
+                      ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
+                      : "bg-live text-live-foreground ring-white/30"
+              }`}>
+                {stream.sudden_death_active
+                  ? <Zap className={dramatic ? "h-12 w-12" : "h-4 w-4"} />
+                  : <Timer className={dramatic ? "h-12 w-12" : "h-4 w-4"} />}
+                <span>{fmtRemaining(remaining)}</span>
+                {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
+                  <span className={`rounded bg-black/30 ${dramatic ? "px-2 py-1 text-sm" : "ml-1 px-1.5 py-0.5 text-[9px]"}`}>+{stream.snipe_extends}/3 OT</span>
+                )}
+                {stream.sudden_death_active && (
+                  <span className={`rounded bg-black/30 uppercase tracking-wider ${dramatic ? "px-3 py-1 text-base" : "ml-1 px-1.5 py-0.5 text-[9px]"}`}>Sudden Death</span>
+                )}
+                {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && !dramatic && (
+                  <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
+                <Timer className="h-3.5 w-3.5 opacity-70" />
+                <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
@@ -1518,7 +1567,7 @@ function LiveDetail() {
             onClick={() => setShowGiveaway(true)}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
           >
-            <Gift className="h-4 w-4" /> Open Giveaway
+            <Gift className="h-4 w-4" /> Open Appreciation Gift
           </button>
         )}
 
@@ -1578,7 +1627,7 @@ function LiveDetail() {
               <RotateCw className="h-3.5 w-3.5" /> Wheel
             </button>
             <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-xs font-bold text-white">
-              <Gift className="h-3.5 w-3.5" /> Giveaway
+              <Gift className="h-3.5 w-3.5" /> Appreciation Gift
             </button>
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
