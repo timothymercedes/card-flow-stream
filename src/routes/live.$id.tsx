@@ -477,7 +477,7 @@ function LiveDetail() {
       )}
 
       {/* Auction notification feed (separate from chat, pinnable) */}
-      {pinned && messages.some((m) => m.is_system) && (
+      {pinned && messages.some((m) => m.is_system && !hiddenSysIds.has(m.id)) && (
         <div className="pointer-events-none absolute right-3 top-32 z-10 flex max-h-[28vh] w-56 flex-col items-end gap-1 overflow-hidden">
           {messages.filter((m) => m.is_system && !hiddenSysIds.has(m.id)).slice(-5).map((m) => (
             <div key={m.id} className="rounded-lg bg-primary/60 px-2.5 py-1 text-[11px] text-white backdrop-blur">
