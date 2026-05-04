@@ -596,6 +596,7 @@ function LiveDetail() {
   async function buyNowSnipe() {
     if (!user || !profile || !stream?.snipe_price) return;
     if (isSeller) return;
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!auctionLive) return toast.error("No active auction");
     const price = Number(stream.snipe_price);
     // Force win: set bid to snipe price + bidder = me, then end immediately
