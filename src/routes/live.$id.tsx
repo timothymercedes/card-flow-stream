@@ -53,7 +53,7 @@ function LiveDetail() {
   // Settings form state (seller)
   const [editDesc, setEditDesc] = useState("");
   const [editStartPrice, setEditStartPrice] = useState("");
-  const [editTimerSec, setEditTimerSec] = useState("60");
+  const [editTimerSec, setEditTimerSec] = useState("30");
   const [editShipPrice, setEditShipPrice] = useState("");
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
 
