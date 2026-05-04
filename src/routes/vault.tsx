@@ -52,10 +52,24 @@ function Vault() {
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("vault_cards").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const [{ data }, { data: vs }] = await Promise.all([
+      supabase.from("vault_cards").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("vault_settings").select("visibility").eq("user_id", user.id).maybeSingle(),
+    ]);
     setCards((data || []) as Card[]);
+    if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
   }
   useEffect(() => { load(); }, [user]);
+
+  async function updateVaultVisibility(v: Visibility) {
+    if (!user) return;
+    setVaultVisibility(v);
+    setSavingVis(true);
+    const { error } = await supabase.from("vault_settings").upsert({ user_id: user.id, visibility: v, updated_at: new Date().toISOString() });
+    setSavingVis(false);
+    if (error) toast.error(error.message);
+    else toast.success(v === "private" ? "Vault is private" : `Vault visible to ${v}`);
+  }
 
   const totalValue = useMemo(
     () => cards.reduce((s, c) => s + Number(c.estimated_value || 0), 0),
