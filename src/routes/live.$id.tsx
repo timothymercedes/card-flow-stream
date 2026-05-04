@@ -85,6 +85,16 @@ function LiveDetail() {
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
   const [drawAnim, setDrawAnim] = useState(false);
+  // 🆕 Per-slot character/team labels (host edits before opening claims)
+  const [breakCharacters, setBreakCharacters] = useState<string[]>(
+    Array.from({ length: 20 }, (_, i) => `Character ${i + 1}`),
+  );
+  // 🆕 Voice trigger phrase
+  const [voiceListening, setVoiceListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  // 🆕 Break-reveal wheel animation state
+  const [breakWheelAngle, setBreakWheelAngle] = useState(0);
+  const breakWheelRafRef = useRef<number | null>(null);
 
   // 🆕 Giveaway
   const [showGiveaway, setShowGiveaway] = useState(false);
