@@ -22,6 +22,9 @@ function Sell() {
   const [startingBid, setStartingBid] = useState("1");
   const [timerMin, setTimerMin] = useState("10");
   const [minIncrement, setMinIncrement] = useState("1");
+  const [defaultCondition, setDefaultCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM");
+  const [quickStart, setQuickStart] = useState(true);
+  const [defaultTimerSec, setDefaultTimerSec] = useState("30");
 
   // Listing form
   const [title, setTitle] = useState("");
@@ -82,6 +85,10 @@ function Sell() {
       is_active: true,
       started_at: new Date().toISOString(),
       ends_at,
+      quick_start_enabled: quickStart,
+      default_timer_sec: Number(defaultTimerSec) || 30,
+      default_starting_bid: Number(startingBid) || 1,
+      default_condition: defaultCondition,
     }).select().single();
     if (error) return toast.error(error.message);
     nav({ to: "/live/$id", params: { id: data.id } });
@@ -142,6 +149,30 @@ function Sell() {
                 <input type="number" min="1" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Min bid increment ($)" value={minIncrement} onChange={(e) => setMinIncrement(e.target.value)} />
               </div>
             )}
+            <div className="rounded-xl bg-card p-3 space-y-2">
+              <label className="flex items-center justify-between text-xs font-semibold">
+                <span>⚡ Scan-to-start (run bids hands-free)</span>
+                <input type="checkbox" checked={quickStart} onChange={(e) => setQuickStart(e.target.checked)} className="h-4 w-4" />
+              </label>
+              <p className="text-[10px] text-muted-foreground">When ON: scanning a card during the live stream instantly starts an auction with the defaults below — no need to press Start each time.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[10px] text-muted-foreground">
+                  Default timer
+                  <select value={defaultTimerSec} onChange={(e) => setDefaultTimerSec(e.target.value)} className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm">
+                    {["5","10","15","20","30","60"].map((s) => <option key={s} value={s}>{s}s</option>)}
+                  </select>
+                </label>
+                <label className="text-[10px] text-muted-foreground">
+                  Default condition
+                  <div className="mt-1 grid grid-cols-4 gap-1">
+                    {(["NM","LP","MP","Damaged"] as const).map((c) => (
+                      <button key={c} type="button" onClick={() => setDefaultCondition(c)}
+                        className={`rounded px-1 py-1 text-[10px] font-bold ${defaultCondition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
+                    ))}
+                  </div>
+                </label>
+              </div>
+            </div>
             <button onClick={startLive} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
