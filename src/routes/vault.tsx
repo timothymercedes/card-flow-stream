@@ -111,16 +111,30 @@ function Vault() {
   }
   async function saveEdit() {
     if (!editing) return;
+    // estimated_value is auto-managed by TCG; do not allow manual edit
     const { error } = await supabase.from("vault_cards").update({
       name: editing.name, category: editing.category, image_url: editing.image_url,
       description: editing.description,
-      estimated_value: Number(editing.estimated_value) || 0,
       price: editing.price != null ? Number(editing.price) : null,
+      tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null,
+      condition: editing.condition || null,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
     toast.success("Saved");
     setEditing(null);
     load();
+  }
+
+  async function refreshValue(card: Card) {
+    try {
+      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`].filter(Boolean).join(" ");
+      const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      const v = Number(data?.estimated_value);
+      if (!isFinite(v) || v <= 0) return toast.error("Couldn't get a price");
+      await supabase.from("vault_cards").update({ estimated_value: v, last_valued_at: new Date().toISOString() }).eq("id", card.id);
+      toast.success(`Updated to $${v}`);
+      load();
+    } catch (e: any) { toast.error(e?.message || "Refresh failed"); }
   }
 
   function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
@@ -131,11 +145,11 @@ function Vault() {
 
   async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number }) {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
-    // Pick a primary type for required fields
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
+    const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user!.id, title: card.name,
-      description: card.description || `From my vault — ${card.category || "Trading Card"}`,
+      description: (card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc,
       image_url: card.image_url,
       listing_type: primary,
       is_auction: opts.auction,
@@ -144,6 +158,9 @@ function Vault() {
       starting_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       current_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       auction_ends_at: opts.auction ? new Date(Date.now() + opts.days * 24 * 60 * 60 * 1000).toISOString() : null,
+      condition: card.condition || null,
+      tcg_number: card.tcg_number || null,
+      tcg_set: card.tcg_set || null,
     }).select().single();
     if (error) return toast.error(error.message);
     toast.success("Listed!");
