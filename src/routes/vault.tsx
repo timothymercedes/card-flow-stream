@@ -160,6 +160,7 @@ function Vault() {
       price: price ? Number(price) : null,
       tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
+      visibility,
       last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
