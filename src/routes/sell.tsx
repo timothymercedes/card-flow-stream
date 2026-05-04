@@ -19,6 +19,8 @@ function Sell() {
   const [streamDesc, setStreamDesc] = useState("");
   const [streamType, setStreamType] = useState<ListingType>("auction");
   const [startingBid, setStartingBid] = useState("1");
+  const [timerMin, setTimerMin] = useState("10");
+  const [minIncrement, setMinIncrement] = useState("1");
 
   // Listing form
   const [title, setTitle] = useState("");
