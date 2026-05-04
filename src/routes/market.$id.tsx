@@ -117,6 +117,7 @@ function ListingDetail() {
 
   async function buyNow() {
     if (!profile) return toast.error("Sign in first");
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     setShowShip(true);
   }
 
