@@ -298,12 +298,28 @@ function Vault() {
               <span className="text-[10px] text-muted-foreground">Change image</span>
               <input type="file" accept="image/*" onChange={(e) => handleFile(e, (v) => setEditing({ ...editing, image_url: v }))} className="block w-full text-xs" />
             </label>
-            <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Name" />
+            <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="TCG card name" />
+            <div className="grid grid-cols-2 gap-2">
+              <input value={editing.tcg_number || ""} onChange={(e) => setEditing({ ...editing, tcg_number: e.target.value })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card #" />
+              <input value={editing.tcg_set || ""} onChange={(e) => setEditing({ ...editing, tcg_set: e.target.value })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set" />
+            </div>
             <input value={editing.category || ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category" />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Condition</p>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
+                  <button key={c} type="button" onClick={() => setEditing({ ...editing, condition: c })}
+                    className={`rounded-lg px-2 py-1.5 text-xs font-bold ${editing.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
+                ))}
+              </div>
+            </div>
             <textarea rows={2} value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" />
             <div className="grid grid-cols-2 gap-2">
-              <input type="number" min="0" step="0.01" value={editing.estimated_value ?? 0} onChange={(e) => setEditing({ ...editing, estimated_value: Number(e.target.value) })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Est. value ($)" />
-              <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My price ($)" />
+              <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs">
+                <p className="text-[9px] uppercase text-muted-foreground">Value (auto, TCG)</p>
+                <p className="font-bold">${Number(editing.estimated_value || 0).toFixed(2)}</p>
+              </div>
+              <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" />
             </div>
             <button onClick={saveEdit} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save changes</button>
           </div>
