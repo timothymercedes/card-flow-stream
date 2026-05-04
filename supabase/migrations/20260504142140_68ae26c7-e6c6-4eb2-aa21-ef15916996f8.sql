@@ -1,0 +1,1 @@
+GRANT SELECT (shipping_cap) ON public.profiles TO anon, authenticated;
