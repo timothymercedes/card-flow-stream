@@ -169,20 +169,39 @@ function Sell() {
     nav({ to: "/market" });
   }
 
-  // 🆕 AI identify — uses the title (or description) to guess card name + suggested price
+  // 🆕 AI identify — same flow as the Vault: identifies the card, fills in details,
+  // suggests a price for the selected condition, and (if no front photo yet) auto-generates one.
   async function aiIdentify() {
-    const q = title.trim() || desc.trim();
-    if (!q) return toast.error("Type a card name or description first");
+    const q = title.trim() || desc.trim() || tcgNumber.trim();
+    if (!q) return toast.error("Type a card name, number, or description first");
     setIdentifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      const { data, error } = await supabase.functions.invoke("identify-card", {
+        body: { query: [q, tcgNumber && `#${tcgNumber}`].filter(Boolean).join(" ") },
+      });
       if (error) throw error;
       const d: any = data || {};
       if (d.name) setTitle(d.name);
       if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
-      const cond = d.condition_prices?.[condition];
-      if (cond && !buyNowPrice) setBuyNowPrice(String(cond));
-      toast.success(`Identified: ${d.name || q}`);
+      // Build a richer description if the user hasn't typed one.
+      if (!desc.trim()) {
+        const parts = [d.category, d.set, d.year && `(${d.year})`, d.tcg_number && `#${d.tcg_number}`].filter(Boolean);
+        if (parts.length) setDesc(parts.join(" • "));
+      }
+      // Suggest a buy-now price for the chosen condition from condition_prices map (NM/LP/MP/Damaged).
+      const cp = d.condition_prices || {};
+      const suggested = Number(cp[condition]) || Number(d.estimated_value) || 0;
+      if (suggested && !buyNowPrice) setBuyNowPrice(String(suggested));
+      // Auto-generate a front image if missing.
+      if (!imageUrl) {
+        try {
+          const { data: img } = await supabase.functions.invoke("generate-card-image", {
+            body: { name: d.name || title, category: d.category, set: d.set, year: d.year, tcg_number: d.tcg_number || tcgNumber },
+          });
+          if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
+        } catch { /* ignore */ }
+      }
+      toast.success(`Identified: ${d.name || q}${d.set ? ` • ${d.set}` : ""}`);
     } catch (e: any) {
       toast.error(e.message || "Identify failed");
     } finally {
