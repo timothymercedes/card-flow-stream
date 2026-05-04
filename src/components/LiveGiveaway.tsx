@@ -173,31 +173,58 @@ export function LiveGiveaway({
     const code = draftCode.trim().toUpperCase().replace(/[^A-Z]/g, "");
     if (!prize) return toast.error("Add a prize label");
     if (code.length < 2 || code.length > 5) return toast.error("Code must be 2–5 letters");
+    const dur = Math.max(15, Math.min(600, Math.floor(draftDuration || 60)));
+    const qty = Math.max(1, Math.min(50, Math.floor(draftQuantity || 1)));
+    const ends = new Date(Date.now() + dur * 1000).toISOString();
     const { error } = await supabase.from("giveaways").insert({
       stream_id: streamId, seller_id: userId,
       prize_label: prize, code, eligibility: draftEligibility,
+      duration_sec: dur, ends_at: ends, quantity: qty,
+      title: "Appreciation Gift",
     });
     if (error) return toast.error(error.message);
     setHostOpenComposer(false);
     setDraftPrize(""); setDraftCode(suggestCode());
-    toast.success("Giveaway opened — viewers can enter now");
+    toast.success(`Appreciation Gift opened — ${dur}s · ${qty} winner${qty > 1 ? "s" : ""}`);
   }
 
   async function startDraw() {
     if (!isSeller || !giveaway) return;
     if (entries.length === 0) return toast.error("No entries yet");
     await supabase.from("giveaways").update({ status: "drawing", closed_at: new Date().toISOString() }).eq("id", giveaway.id);
-    // Show ~3s reel then commit a winner.
+    // Show ~3s reel then pick N winners.
     setTimeout(async () => {
-      const pick = entries[Math.floor(Math.random() * entries.length)];
+      const qty = Math.max(1, Math.min(entries.length, Number(giveaway.quantity || 1)));
+      const pool = [...entries];
+      const picks: typeof entries = [];
+      for (let i = 0; i < qty && pool.length > 0; i++) {
+        const idx = Math.floor(Math.random() * pool.length);
+        picks.push(pool.splice(idx, 1)[0]);
+      }
+      const winnerNames = picks.map((p) => p.username).join(", @");
       await supabase.from("giveaways").update({
         status: "complete",
-        winner_id: pick.user_id,
-        winner_username: pick.username,
+        winner_id: picks[0]?.user_id || null,
+        winner_username: winnerNames,
         drawn_at: new Date().toISOString(),
       }).eq("id", giveaway.id);
     }, 3000);
   }
+
+  // 🆕 Auto-draw when the host's timer expires (host's tab triggers it)
+  useEffect(() => {
+    if (!isSeller || !giveaway) return;
+    if (giveaway.status !== "open") return;
+    if (!giveaway.ends_at) return;
+    if (remainingMs > 0) return;
+    if (entries.length === 0) {
+      // Auto-close with no winner
+      supabase.from("giveaways").update({ status: "complete", closed_at: new Date().toISOString() }).eq("id", giveaway.id);
+      return;
+    }
+    startDraw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSeller, giveaway?.id, giveaway?.status, giveaway?.ends_at, remainingMs, entries.length]);
 
   async function clearGiveaway() {
     if (!isSeller || !giveaway) return;
