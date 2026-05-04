@@ -122,6 +122,20 @@ function ListingDetail() {
     load();
   }
 
+  async function declineTopBidBelowReserve() {
+    if (!listing) return;
+    await supabase.from("listings").update({ auction_status: "declined_below_reserve" }).eq("id", id);
+    if (listing.top_bidder_id) {
+      await supabase.from("notifications").insert({
+        user_id: listing.top_bidder_id, type: "bid",
+        body: `Seller declined your $${listing.current_bid} bid on "${listing.title}" — reserve not met`,
+        link: `/market/${id}`,
+      });
+    }
+    toast.success("Bid declined");
+    load();
+  }
+
   if (!listing) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const isSeller = user?.id === listing.seller_id;
