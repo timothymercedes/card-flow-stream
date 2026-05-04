@@ -331,33 +331,66 @@ function Vault() {
         </div>
       </div>
 
-      {/* Card action sheet */}
+      {/* Card expanded view */}
       {actionFor && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setActionFor(null)}>
-          <div className="w-full max-w-sm space-y-2 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <p className="font-bold">{actionFor.name}</p>
-              <button onClick={() => setActionFor(null)}><X className="h-4 w-4" /></button>
+        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/80 p-4 sm:items-center" onClick={() => setActionFor(null)}>
+          <div className="my-4 w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-lg font-bold leading-tight">{actionFor.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {[actionFor.category, actionFor.tcg_set, actionFor.tcg_year, actionFor.tcg_number && `#${actionFor.tcg_number}`].filter(Boolean).join(" • ") || "—"}
+                </p>
+              </div>
+              <button onClick={() => setActionFor(null)} aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
-            {actionFor.image_url && <img src={actionFor.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
-            <p className="text-xs text-muted-foreground">
-              {actionFor.category || "—"}
-              {actionFor.tcg_number && ` • #${actionFor.tcg_number}`}
-              {actionFor.condition && ` • ${actionFor.condition}`}
-              {` • Est. $${Number(actionFor.estimated_value || 0).toFixed(2)}`}
-            </p>
-            <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
+                {actionFor.image_url
+                  ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                  : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Back</p>
+                {actionFor.back_image_url
+                  ? <img src={actionFor.back_image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt="" />
+                  : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-center text-[10px] text-muted-foreground">No back photo<br/>(needed to sell)</div>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
+                <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value || 0).toFixed(2)}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[9px] uppercase text-muted-foreground">Condition</p>
+                <p className="text-base font-bold">{actionFor.condition || "—"}</p>
+              </div>
+            </div>
+
+            {actionFor.description && (
+              <div className="rounded-lg bg-muted/40 p-2 text-xs">
+                <p className="text-[9px] uppercase text-muted-foreground">Description</p>
+                <p className="mt-0.5 whitespace-pre-wrap">{actionFor.description}</p>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground">Visible to: <span className="font-semibold capitalize">{actionFor.visibility || "private"}</span></p>
+
+            <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
             </button>
-            <button onClick={() => refreshValue(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-foreground">
-              <DollarSign className="h-4 w-4" /> Refresh value (TCG)
-            </button>
-            <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
-              <Pencil className="h-4 w-4" /> Edit
-            </button>
-            <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
-              <Trash2 className="h-4 w-4" /> Delete
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
+                <Pencil className="h-4 w-4" /> Edit
+              </button>
+              <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
