@@ -16,6 +16,7 @@ function Messages() {
   const [requests, setRequests] = useState<any[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   async function load() {
     if (!user) return;
