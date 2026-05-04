@@ -1084,11 +1084,11 @@ function LiveDetail() {
               if (m) { setTagOpen(true); searchUsers(m[1], setTagResults); }
               else { setTagOpen(false); setTagResults([]); }
             }}
-            placeholder={user ? "Say something... use @ to tag" : "Sign in to chat"}
-            disabled={!user}
+            placeholder={!user ? "Sign in to chat" : meBlocked ? "🚫 You're muted in this stream" : "Say something... use @ to tag"}
+            disabled={!user || meBlocked}
             className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
           />
-          <button type="submit" className="rounded-full bg-primary p-2.5 text-primary-foreground"><Send className="h-4 w-4" /></button>
+          <button type="submit" disabled={meBlocked} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
       </div>
 
