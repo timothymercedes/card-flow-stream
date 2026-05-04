@@ -188,6 +188,7 @@ export type Database = {
           price: number | null
           reserve_price: number | null
           seller_id: string
+          shipping_price: number | null
           starting_bid: number | null
           tcg_number: string | null
           tcg_set: string | null
@@ -212,6 +213,7 @@ export type Database = {
           price?: number | null
           reserve_price?: number | null
           seller_id: string
+          shipping_price?: number | null
           starting_bid?: number | null
           tcg_number?: string | null
           tcg_set?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           price?: number | null
           reserve_price?: number | null
           seller_id?: string
+          shipping_price?: number | null
           starting_bid?: number | null
           tcg_number?: string | null
           tcg_set?: string | null
@@ -497,6 +500,8 @@ export type Database = {
           item_image_url: string | null
           listing_id: string | null
           order_group_id: string | null
+          paid_at: string | null
+          payment_status: string
           seller_id: string
           ship_address: string
           ship_city: string
@@ -509,6 +514,7 @@ export type Database = {
           stream_id: string | null
           title: string
           tracking_number: string | null
+          tracking_url: string | null
         }
         Insert: {
           amount: number
@@ -523,6 +529,8 @@ export type Database = {
           item_image_url?: string | null
           listing_id?: string | null
           order_group_id?: string | null
+          paid_at?: string | null
+          payment_status?: string
           seller_id: string
           ship_address: string
           ship_city: string
@@ -535,6 +543,7 @@ export type Database = {
           stream_id?: string | null
           title: string
           tracking_number?: string | null
+          tracking_url?: string | null
         }
         Update: {
           amount?: number
@@ -549,6 +558,8 @@ export type Database = {
           item_image_url?: string | null
           listing_id?: string | null
           order_group_id?: string | null
+          paid_at?: string | null
+          payment_status?: string
           seller_id?: string
           ship_address?: string
           ship_city?: string
@@ -561,6 +572,7 @@ export type Database = {
           stream_id?: string | null
           title?: string
           tracking_number?: string | null
+          tracking_url?: string | null
         }
         Relationships: [
           {
@@ -724,6 +736,8 @@ export type Database = {
           id_status: string
           is_seller: boolean
           phone: string | null
+          phone_verified: boolean
+          phone_verified_at: string | null
           public_id: string | null
           seller_status: string
           username: string
@@ -743,6 +757,8 @@ export type Database = {
           id_status?: string
           is_seller?: boolean
           phone?: string | null
+          phone_verified?: boolean
+          phone_verified_at?: string | null
           public_id?: string | null
           seller_status?: string
           username: string
@@ -762,6 +778,8 @@ export type Database = {
           id_status?: string
           is_seller?: boolean
           phone?: string | null
+          phone_verified?: boolean
+          phone_verified_at?: string | null
           public_id?: string | null
           seller_status?: string
           username?: string
