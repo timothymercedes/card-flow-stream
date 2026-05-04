@@ -937,9 +937,20 @@ function LiveDetail() {
                 );
               }
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
+              const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
-                <div key={m.id} className="max-w-[85%] rounded-lg bg-black/50 px-2.5 py-1 text-xs backdrop-blur">
-                  <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
+                <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50"}`}>
+                  {isStaff && m.user_id && m.user_id !== user?.id && m.user_id !== stream.seller_id ? (
+                    <button
+                      onClick={() => setChatActionMenu({ userId: m.user_id, username: m.username })}
+                      className="mr-1 font-semibold text-live-foreground hover:underline"
+                      title="Mod actions"
+                    >
+                      @{m.username}:
+                    </button>
+                  ) : (
+                    <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
+                  )}
                   <span>
                     {parts.map((p, i) => p.startsWith("@") ? (
                       <Link key={i} to="/seller/$username" params={{ username: p.slice(1) }} className="font-semibold text-primary hover:underline">{p}</Link>
