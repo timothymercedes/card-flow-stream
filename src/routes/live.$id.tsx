@@ -1346,6 +1346,9 @@ function LiveDetail() {
             <button onClick={() => setShowWheelEditor(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2.5 text-xs font-bold text-white">
               <RotateCw className="h-3.5 w-3.5" /> Wheel
             </button>
+            <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-xs font-bold text-white">
+              <Gift className="h-3.5 w-3.5" /> Giveaway
+            </button>
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
             </button>
