@@ -235,8 +235,9 @@ function LiveDetail() {
     supabase.from("follows").select("follower_id", { count: "exact", head: true })
       .eq("follower_id", user.id).eq("followee_id", stream.seller_id)
       .then(({ count }) => setIsFollowingHost((count ?? 0) > 0));
+    // 🆕 "Past buyers" = bought in THIS stream only (not across all past streams)
     supabase.from("orders").select("id", { count: "exact", head: true })
-      .eq("buyer_id", user.id).eq("seller_id", stream.seller_id)
+      .eq("buyer_id", user.id).eq("seller_id", stream.seller_id).eq("stream_id", id)
       .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
   }, [user?.id, stream?.seller_id]);
 
