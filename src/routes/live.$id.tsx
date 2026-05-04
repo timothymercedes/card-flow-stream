@@ -1546,35 +1546,46 @@ function LiveDetail() {
         <GiveawayChip streamId={id} />
       </div>
 
-      {/* Chat overlay — narrower so it doesn't span across the stream; scrollable up/down */}
+      {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
+      {(() => {
+        const annMsgs = messages.filter((m) => m.is_announcement && !dismissedAnnouncementIds.has(m.id) && !(/Appreciation Gift opened/i.test(String(m.content || "")) && giveawayStatus && giveawayStatus !== "open"));
+        if (annMsgs.length === 0) return null;
+        const giveawayEndsAt = activeGiveaway?.status === "open" && activeGiveaway?.ends_at ? new Date(activeGiveaway.ends_at).getTime() : 0;
+        return (
+          <div className="pointer-events-none absolute left-2 right-14 top-16 z-20 flex flex-col items-stretch gap-1">
+            {annMsgs.slice(-3).map((m) => {
+              const isGiveawayOpenAnn = /Appreciation Gift opened/i.test(String(m.content || ""));
+              const secsLeft = isGiveawayOpenAnn && giveawayEndsAt ? Math.max(0, Math.ceil((giveawayEndsAt - now) / 1000)) : 0;
+              return (
+                <div key={m.id} className="pointer-events-auto relative rounded-lg border border-accent/60 bg-gradient-to-r from-accent/70 to-primary/70 py-1.5 pl-3 pr-7 text-[11px] font-bold text-white shadow-lg backdrop-blur">
+                  <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
+                  @{m.username}: {m.content.replace(/^📢\s*/, "")}
+                  {isGiveawayOpenAnn && secsLeft > 0 && (
+                    <span className="ml-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] tabular-nums">⏱ {secsLeft}s</span>
+                  )}
+                  <button
+                    onClick={() => setDismissedAnnouncementIds((s) => new Set(s).add(m.id))}
+                    className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white/90 hover:bg-black"
+                    title="Dismiss"
+                    aria-label="Dismiss announcement"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* Chat overlay — narrower so it doesn't span across the stream; near-invisible scrollbar */}
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="absolute bottom-40 left-2 z-10 max-h-[28vh] w-[62%] max-w-xs overflow-y-auto overscroll-contain pb-2 pr-1"
+          className="chat-scroll absolute bottom-40 left-2 z-10 max-h-[28vh] w-[62%] max-w-xs overflow-y-auto overscroll-contain pb-2 pr-1"
         >
           <div className="flex flex-col items-start gap-1">
-            {messages.filter((m) => !m.is_system || m.is_announcement).map((m) => {
-              if (m.is_announcement) {
-                // Hide if viewer dismissed it
-                if (dismissedAnnouncementIds.has(m.id)) return null;
-                // Auto-hide the giveaway "opened" announcement once a winner is decided / it's no longer open
-                const isGiveawayOpenAnn = /Appreciation Gift opened/i.test(String(m.content || ""));
-                if (isGiveawayOpenAnn && giveawayStatus && giveawayStatus !== "open") return null;
-                return (
-                  <div key={m.id} className="relative w-full rounded-lg border border-accent/60 bg-gradient-to-r from-accent/40 to-primary/40 py-1.5 pl-3 pr-7 text-[11px] font-bold text-white shadow backdrop-blur">
-                    <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
-                    @{m.username}: {m.content.replace(/^📢\s*/, "")}
-                    <button
-                      onClick={() => setDismissedAnnouncementIds((s) => new Set(s).add(m.id))}
-                      className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white/90 hover:bg-black"
-                      title="Dismiss"
-                      aria-label="Dismiss announcement"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                );
-              }
+            {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
