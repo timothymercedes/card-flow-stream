@@ -903,6 +903,121 @@ function LiveDetail() {
           </div>
         </div>
       )}
+
+      {/* AI HYPE overlay — 5s card details (NEVER price) */}
+      {hypeCard && (
+        <div className="pointer-events-none absolute left-1/2 top-24 z-30 w-[88%] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top">
+          <div className="flex gap-3 rounded-2xl border border-primary/40 bg-black/75 p-3 shadow-2xl backdrop-blur">
+            <img src={hypeCard.image} alt={hypeCard.name} className="h-20 w-16 shrink-0 rounded-lg object-cover" />
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                <Sparkles className="h-3 w-3" /> AI Spotted
+              </p>
+              <p className="truncate text-sm font-extrabold text-white">{hypeCard.name}</p>
+              <p className="truncate text-[11px] text-white/70">{hypeCard.category}{hypeCard.set_guess ? ` · ${hypeCard.set_guess}` : ""}</p>
+              <span className="mt-1 inline-block rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">{hypeCard.rarity_vibe}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement composer (host & mods) */}
+      {annOpen && isStaff && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setAnnOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Megaphone className="h-4 w-4 text-accent" /> Announcement</p>
+              <button onClick={() => setAnnOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">Pinned highlight in the live chat — visible to everyone.</p>
+            <textarea
+              value={annText}
+              onChange={(e) => setAnnText(e.target.value)}
+              maxLength={200}
+              rows={3}
+              placeholder='e.g. "Combined shipping at $10 max — keep stacking!"'
+              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <p className="mb-2 text-right text-[10px] text-muted-foreground">{annText.length}/200</p>
+            <button onClick={postAnnouncement} disabled={!annText.trim()} className="w-full rounded-lg bg-accent py-2.5 text-sm font-bold text-accent-foreground disabled:opacity-50">
+              Post Announcement
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mod panel — host adds/removes mods, host+mods chat privately */}
+      {showModPanel && isStaff && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowModPanel(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="flex w-full max-w-sm flex-col rounded-2xl bg-card text-foreground shadow-2xl" style={{ maxHeight: "85vh" }}>
+            <div className="flex items-center justify-between border-b border-border p-3">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Shield className="h-4 w-4 text-primary" /> Mod Channel</p>
+              <button onClick={() => setShowModPanel(false)}><X className="h-4 w-4" /></button>
+            </div>
+
+            {/* Host-only: add mods */}
+            {isSeller && (
+              <div className="border-b border-border p-3">
+                <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Add a moderator</p>
+                <input
+                  value={modSearchQ}
+                  onChange={(e) => { setModSearchQ(e.target.value); searchUsers(e.target.value, setModSearchRes); }}
+                  placeholder="Search by username"
+                  className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                />
+                {modSearchRes.length > 0 && (
+                  <div className="mt-1 max-h-32 overflow-y-auto rounded-lg border border-border">
+                    {modSearchRes.map((u) => (
+                      <button key={u.id} onClick={() => addModBySearch(u)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-muted">
+                        <span>@{u.username}</span>
+                        <ShieldPlus className="h-3.5 w-3.5 text-primary" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {mods.length > 0 && (
+                  <div className="mt-2">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Active mods</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {mods.map((m) => (
+                        <span key={m.id} className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                          @{m.mod_username}
+                          <button onClick={() => removeMod(m.id)} className="opacity-60 hover:opacity-100"><Trash2 className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Private mod chat */}
+            <div className="flex-1 overflow-y-auto p-3">
+              <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">Private — host & mods only</p>
+              {modChat.length === 0 && <p className="text-center text-[11px] text-muted-foreground">No messages yet. Coordinate with your mods here.</p>}
+              <div className="space-y-1.5">
+                {modChat.map((m) => (
+                  <div key={m.id} className="rounded-lg bg-muted px-2.5 py-1.5 text-xs">
+                    <span className="mr-1 font-semibold text-primary">@{m.username}:</span>{m.content}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); sendModMsg(); }} className="flex gap-1.5 border-t border-border p-2">
+              <input
+                value={modInput}
+                onChange={(e) => setModInput(e.target.value)}
+                placeholder="Message your mod team..."
+                className="flex-1 rounded-full bg-input px-3 py-1.5 text-xs outline-none"
+              />
+              <button type="submit" className="rounded-full bg-primary p-2 text-primary-foreground"><Send className="h-3.5 w-3.5" /></button>
+            </form>
+            <button onClick={() => { setShowModPanel(false); setAnnOpen(true); }} className="m-2 mt-0 rounded-lg bg-accent py-2 text-xs font-bold text-accent-foreground">
+              <Megaphone className="mr-1 inline h-3.5 w-3.5" /> Post public announcement
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
