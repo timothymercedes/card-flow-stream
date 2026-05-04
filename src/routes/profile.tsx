@@ -151,6 +151,18 @@ function Profile() {
         </section>
 
         <section className="rounded-xl bg-card p-4 space-y-2">
+          <p className="flex items-center gap-2 text-sm font-bold"><Fingerprint className="h-4 w-4" /> Face ID / Passkey Login</p>
+          <p className="text-[11px] text-muted-foreground">Add a passkey on this device so you can sign in with Face ID, Touch ID, or Windows Hello — no password.</p>
+          <button onClick={async () => {
+            try {
+              const opts = await startPasskeyRegistration({ data: { userId: user.id, username: p.username } });
+              const att = await startRegistration({ optionsJSON: opts as any });
+              await finishPasskeyRegistration({ data: { userId: user.id, response: att, label: navigator.userAgent.slice(0, 40) } });
+              toast.success("Passkey added — try it next time you sign in");
+            } catch (e: any) { toast.error(e?.message || "Couldn't add passkey"); }
+          }} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Add Passkey on this device</button>
+        </section>
+        <section className="rounded-xl bg-card p-4 space-y-2">
           <p className="text-sm font-bold">Sell on Pull Bid</p>
           <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Requires verified ID + mailing address. Admin reviews each application.</p>
           {p.seller_status === "approved" ? (
