@@ -1605,11 +1605,11 @@ function LiveDetail() {
         );
       })()}
 
-      {/* Chat overlay — narrower so it doesn't span across the stream; near-invisible scrollbar */}
+      {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="chat-scroll absolute bottom-40 left-2 z-10 max-h-[28vh] w-[62%] max-w-xs overflow-y-auto overscroll-contain pb-2 pr-1"
+          className="chat-scroll absolute bottom-28 left-2 z-10 max-h-[20vh] w-[58%] max-w-[16rem] overflow-y-auto overscroll-contain pb-1 pr-1"
         >
           <div className="flex flex-col items-start gap-1">
             {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
