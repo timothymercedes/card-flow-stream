@@ -167,6 +167,43 @@ function Messages() {
           </>
         )}
       </div>
+
+      {composeOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setComposeOpen(false)}>
+          <div className="w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-bold">New message</p>
+              <button onClick={() => setComposeOpen(false)}><XIcon className="h-4 w-4" /></button>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by username..."
+                className="w-full rounded-xl bg-input py-2 pl-9 pr-3 text-sm outline-none"
+              />
+            </div>
+            <div className="max-h-72 space-y-1 overflow-y-auto">
+              {query.trim() && results.length === 0 && (
+                <p className="py-6 text-center text-xs text-muted-foreground">No users found</p>
+              )}
+              {results.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => { sendRequest(p.id, p.username); setComposeOpen(false); }}
+                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                >
+                  <span>@{p.username}</span>
+                  <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">Send Request</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
+
