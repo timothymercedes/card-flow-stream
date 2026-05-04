@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Package, Truck, CheckCircle2, CreditCard, Clock } from "lucide-react";
+import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
@@ -34,16 +34,41 @@ function PayBadge({ s }: { s: string }) {
 }
 
 function Orders() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [paying, setPaying] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Record<string, any>>({});
+  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string }>>({});
 
   async function load() {
     if (!user) return;
     const { data } = await supabase.from("orders").select("*").eq("buyer_id", user.id).order("created_at", { ascending: false });
     setOrders(data || []);
+    const ids = (data || []).map((o: any) => o.id);
+    if (ids.length) {
+      const { data: revs } = await supabase.from("seller_reviews").select("*").in("order_id", ids).eq("buyer_id", user.id);
+      const map: Record<string, any> = {};
+      (revs || []).forEach((r) => { map[r.order_id] = r; });
+      setReviews(map);
+    }
   }
   useEffect(() => { load(); }, [user]);
+
+  async function submitReview(o: any) {
+    const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "" };
+    const { error } = await supabase.from("seller_reviews").insert({
+      order_id: o.id,
+      seller_id: o.seller_id,
+      buyer_id: user!.id,
+      buyer_username: profile?.username || "buyer",
+      rating: f.rating,
+      shipping_rating: f.shipping_rating,
+      comment: f.comment || null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Review submitted");
+    load();
+  }
 
   async function payNow(o: any) {
     if (PAYMENTS_SAFE_MODE) {
@@ -131,6 +156,53 @@ function Orders() {
                 )}
                 {pay === "paid" && o.status === "shipped" && (
                   <button onClick={() => deliver(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
+                )}
+                {o.status === "delivered" && (
+                  reviews[o.id] ? (
+                    <div className="mt-2 rounded-lg bg-muted/40 p-2 text-[11px]">
+                      <p className="font-semibold">Your review</p>
+                      <div className="mt-1 flex gap-3">
+                        <span className="inline-flex items-center gap-0.5">
+                          {[1,2,3,4,5].map((i) => <Star key={i} className={`h-3 w-3 ${i <= reviews[o.id].rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />)}
+                          <span className="ml-1">overall</span>
+                        </span>
+                        <span className="inline-flex items-center gap-0.5">
+                          {[1,2,3,4,5].map((i) => <Star key={i} className={`h-3 w-3 ${i <= reviews[o.id].shipping_rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />)}
+                          <span className="ml-1">shipping</span>
+                        </span>
+                      </div>
+                      {reviews[o.id].comment && <p className="mt-1 text-muted-foreground">"{reviews[o.id].comment}"</p>}
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2 rounded-lg bg-muted/40 p-2">
+                      <p className="text-[11px] font-semibold">Rate this seller</p>
+                      {(["rating", "shipping_rating"] as const).map((k) => (
+                        <div key={k} className="flex items-center gap-2">
+                          <span className="w-16 text-[10px] text-muted-foreground">{k === "rating" ? "Overall" : "Shipping"}</span>
+                          {[1,2,3,4,5].map((i) => {
+                            const cur = reviewForm[o.id]?.[k] ?? 5;
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "" }, ...(reviewForm[o.id] || {}), [k]: i } })}
+                                aria-label={`${i} stars`}
+                              >
+                                <Star className={`h-4 w-4 ${i <= cur ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                      <input
+                        type="text"
+                        placeholder="Optional comment (how was the shipping & item?)"
+                        value={reviewForm[o.id]?.comment || ""}
+                        onChange={(e) => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "" }, ...(reviewForm[o.id] || {}), comment: e.target.value } })}
+                        className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                      />
+                      <button onClick={() => submitReview(o)} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Submit review</button>
+                    </div>
+                  )
                 )}
               </div>
             );

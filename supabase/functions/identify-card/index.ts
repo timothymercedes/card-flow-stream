@@ -34,8 +34,16 @@ Always provide best-guess numeric values — never null, never zero. If totally 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { query } = await req.json();
+    const { query, language } = await req.json();
     if (!query) return new Response(JSON.stringify({ error: "Missing query" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const langMap: Record<string, string> = {
+      en: "English", jp: "Japanese (日本語)", kr: "Korean (한국어)",
+      zh: "Chinese (中文)", de: "German", fr: "French", es: "Spanish",
+      it: "Italian", pt: "Portuguese", ru: "Russian",
+    };
+    const langHint = language && langMap[language]
+      ? `\n\nThe user is searching for the ${langMap[language]} printing of this card. If a localized version exists in that language, identify THAT specific printing (note the language in the set name e.g. "Base Set (Japanese)") and return prices for that market.`
+      : "";
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -45,7 +53,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: SYSTEM + langHint },
           { role: "user", content: `Identify and price: ${query}` },
         ],
         response_format: { type: "json_object" },

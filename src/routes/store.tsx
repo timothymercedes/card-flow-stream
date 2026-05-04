@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Package, Truck, CheckCircle2 } from "lucide-react";
+import { Package, Truck, CheckCircle2, Star, Store as StoreIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/store")({ component: MyStore });
@@ -19,17 +19,25 @@ function StatusIcon({ s }: { s: string }) {
 function MyStore() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [carrier, setCarrier] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"to_ship" | "in_transit" | "delivered">("to_ship");
+  const [tab, setTab] = useState<"listings" | "to_ship" | "in_transit" | "delivered" | "reviews">("listings");
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
-    setOrders(data || []);
-    const { data: prof } = await supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle();
-    setPayoutStatus((prof as any)?.stripe_onboarding_status || "not_started");
+    const [ord, list, revs, prof] = await Promise.all([
+      supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("seller_reviews").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle(),
+    ]);
+    setOrders(ord.data || []);
+    setListings(list.data || []);
+    setReviews(revs.data || []);
+    setPayoutStatus((prof.data as any)?.stripe_onboarding_status || "not_started");
   }
   useEffect(() => { load(); }, [user]);
 
@@ -65,8 +73,26 @@ function MyStore() {
   const filtered = orders.filter((o) =>
     tab === "to_ship" ? o.status === "pending" :
     tab === "in_transit" ? o.status === "shipped" :
-    o.status === "delivered"
+    tab === "delivered" ? o.status === "delivered" :
+    false
   );
+
+  const reviewStats = useMemo(() => {
+    if (!reviews.length) return { count: 0, avg: 0, ship: 0 };
+    const avg = reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / reviews.length;
+    const ship = reviews.reduce((s, r) => s + Number(r.shipping_rating || 0), 0) / reviews.length;
+    return { count: reviews.length, avg, ship };
+  }, [reviews]);
+
+  function Stars({ n, size = 12 }: { n: number; size?: number }) {
+    return (
+      <span className="inline-flex">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Star key={i} style={{ width: size, height: size }} className={i <= Math.round(n) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"} />
+        ))}
+      </span>
+    );
+  }
 
   if (!user) return (
     <AppShell>
@@ -116,16 +142,86 @@ function MyStore() {
           </div>
         </div>
 
-        <div className="mb-3 flex gap-1 rounded-lg bg-muted p-1">
+        {/* Reputation summary */}
+        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-card p-3">
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Seller rating</p>
+            <div className="mt-1 flex items-center gap-1">
+              <Stars n={reviewStats.avg} />
+              <span className="text-sm font-bold">{reviewStats.avg ? reviewStats.avg.toFixed(1) : "—"}</span>
+              <span className="text-[10px] text-muted-foreground">({reviewStats.count})</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Shipping</p>
+            <div className="mt-1 flex items-center gap-1">
+              <Stars n={reviewStats.ship} />
+              <span className="text-sm font-bold">{reviewStats.ship ? reviewStats.ship.toFixed(1) : "—"}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-3 flex gap-1 overflow-x-auto rounded-lg bg-muted p-1">
           {([
+            { k: "listings", l: "Listings" },
             { k: "to_ship", l: "To Ship" },
             { k: "in_transit", l: "In Transit" },
-            { k: "delivered", l: "Delivered" },
+            { k: "delivered", l: "Sold" },
+            { k: "reviews", l: "Reviews" },
           ] as const).map((t) => (
-            <button key={t.k} onClick={() => setTab(t.k)} className={`flex-1 rounded-md py-1.5 text-xs font-semibold ${tab === t.k ? "bg-background shadow" : "text-muted-foreground"}`}>{t.l}</button>
+            <button key={t.k} onClick={() => setTab(t.k)} className={`flex-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-semibold ${tab === t.k ? "bg-background shadow" : "text-muted-foreground"}`}>{t.l}</button>
           ))}
         </div>
 
+        {/* LISTINGS TAB */}
+        {tab === "listings" && (
+          <div className="space-y-3">
+            {listings.length === 0 && (
+              <div className="rounded-xl bg-card p-6 text-center">
+                <StoreIcon className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="mt-2 text-sm font-semibold">No listings yet</p>
+                <Link to="/sell" className="mt-3 inline-block rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground">Create a listing</Link>
+              </div>
+            )}
+            {listings.map((l) => (
+              <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="flex items-start gap-3 rounded-xl bg-card p-3">
+                {l.image_url && <img src={l.image_url} alt={l.title} className="h-16 w-16 rounded-lg object-cover" />}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{l.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {l.is_auction ? `Auction · current bid $${Number(l.current_bid || 0).toFixed(2)}` : `Buy Now · $${Number(l.price || 0).toFixed(2)}`}
+                    {l.shipping_price ? ` · +$${Number(l.shipping_price).toFixed(2)} ship` : ""}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground capitalize">{l.auction_status || "active"}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* REVIEWS TAB */}
+        {tab === "reviews" && (
+          <div className="space-y-3">
+            {reviews.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No reviews yet — buyers can leave one once an order is delivered.</p>}
+            {reviews.map((r) => (
+              <div key={r.id} className="rounded-xl bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold">@{r.buyer_username}</p>
+                  <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-3 text-[11px]">
+                  <span className="flex items-center gap-1"><Stars n={r.rating} /> overall</span>
+                  <span className="flex items-center gap-1"><Stars n={r.shipping_rating} /> shipping</span>
+                </div>
+                {r.comment && <p className="mt-1 text-xs text-muted-foreground">{r.comment}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ORDER TABS (to_ship / in_transit / delivered) */}
+        {(tab === "to_ship" || tab === "in_transit" || tab === "delivered") && (
+          <>
         {filtered.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Nothing here</p>}
         <div className="space-y-3">
           {filtered.map((o) => {
@@ -174,6 +270,8 @@ function MyStore() {
             );
           })}
         </div>
+          </>
+        )}
       </div>
     </AppShell>
   );

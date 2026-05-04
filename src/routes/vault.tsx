@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -34,6 +34,16 @@ function Vault() {
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
   const [query, setQuery] = useState("");
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
+
+  const LANGUAGES = [
+    { v: "en", l: "EN" }, { v: "jp", l: "日本語" }, { v: "kr", l: "한국어" },
+    { v: "zh", l: "中文" }, { v: "de", l: "DE" }, { v: "fr", l: "FR" },
+    { v: "es", l: "ES" }, { v: "it", l: "IT" }, { v: "pt", l: "PT" }, { v: "ru", l: "RU" },
+  ] as const;
+  const [language, setLanguage] = useState<string>("en");
 
   // add form
   const [name, setName] = useState("");
@@ -87,6 +97,44 @@ function Vault() {
     );
   }, [cards, query]);
 
+  // Predictive suggestions for the search box (from existing vault metadata)
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const pool = new Set<string>();
+    cards.forEach((c) => {
+      [c.name, c.tcg_set, c.category, c.tcg_number].forEach((v) => {
+        if (v && String(v).toLowerCase().startsWith(q) && String(v).toLowerCase() !== q) {
+          pool.add(String(v));
+        }
+      });
+    });
+    return Array.from(pool).slice(0, 6);
+  }, [cards, query]);
+
+  function startVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { toast.error("Voice search not supported in this browser"); return; }
+    const rec = new SR();
+    const langTag: Record<string, string> = { en: "en-US", jp: "ja-JP", kr: "ko-KR", zh: "zh-CN", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT", pt: "pt-PT", ru: "ru-RU" };
+    rec.lang = langTag[language] || "en-US";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (e: any) => {
+      const txt = Array.from(e.results).map((r: any) => r[0].transcript).join("");
+      setQuery(txt);
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
+  function stopVoice() {
+    try { recognitionRef.current?.stop?.(); } catch {/* */}
+    setListening(false);
+  }
+
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
@@ -121,7 +169,7 @@ function Vault() {
     setIdentifying(true);
     try {
       const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
-      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q, language } });
       if (error) throw error;
       if (data?.name) setName(data.name);
       if (data?.category && !category) setCategory(data.category);
@@ -156,7 +204,7 @@ function Vault() {
     if (!value) {
       try {
         const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
-        const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+        const { data } = await supabase.functions.invoke("identify-card", { body: { query: q, language } });
         if (data) {
           cp = data.condition_prices || null;
           const base = Number(data.estimated_value) || 0;
@@ -186,6 +234,7 @@ function Vault() {
       price: price ? Number(price) : null,
       tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
+      language,
       last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
@@ -330,7 +379,17 @@ function Vault() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">Front photo required to add. Back photo required to sell.</p>
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, LeBron Rookie)" value={name} onChange={(e) => setName(e.target.value)} />
+            <div>
+              <p className="mb-1 text-[10px] text-muted-foreground">Card language (helps pull the right printing)</p>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full rounded-lg bg-input px-3 py-2 text-sm"
+              >
+                {LANGUAGES.map((l) => <option key={l.v} value={l.v}>{l.l}</option>)}
+              </select>
+            </div>
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, リザードン, 리자몽)" value={name} onChange={(e) => setName(e.target.value)} />
             <div className="grid grid-cols-3 gap-2">
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card #" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
@@ -367,16 +426,40 @@ function Vault() {
 
         {/* Search */}
         {cards.length > 0 && (
-          <div className="mb-3 flex items-center gap-2 rounded-xl bg-input px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, set, year, or card #"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-            {query && (
-              <button onClick={() => setQuery("")} aria-label="Clear search"><X className="h-4 w-4 text-muted-foreground" /></button>
+          <div className="relative mb-3">
+            <div className="flex items-center gap-2 rounded-xl bg-input px-3 py-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setShowSuggest(true); }}
+                onFocus={() => setShowSuggest(true)}
+                onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+                placeholder="Search by name, set, year, or card #"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              {query && (
+                <button onClick={() => setQuery("")} aria-label="Clear search"><X className="h-4 w-4 text-muted-foreground" /></button>
+              )}
+              <button
+                onClick={listening ? stopVoice : startVoice}
+                aria-label={listening ? "Stop voice" : "Voice search"}
+                className={`rounded-full p-1 ${listening ? "bg-destructive text-destructive-foreground animate-pulse" : "bg-muted text-muted-foreground"}`}
+              >
+                {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            {showSuggest && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onMouseDown={(e) => { e.preventDefault(); setQuery(s); setShowSuggest(false); }}
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                  >
+                    <Search className="mr-2 inline h-3 w-3 text-muted-foreground" />{s}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         )}

@@ -879,6 +879,42 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_reviews: {
+        Row: {
+          buyer_id: string
+          buyer_username: string
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          seller_id: string
+          shipping_rating: number
+        }
+        Insert: {
+          buyer_id: string
+          buyer_username: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rating: number
+          seller_id: string
+          shipping_rating: number
+        }
+        Update: {
+          buyer_id?: string
+          buyer_username?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          seller_id?: string
+          shipping_rating?: number
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           avatar_url: string | null
@@ -983,6 +1019,7 @@ export type Database = {
           estimated_value: number | null
           id: string
           image_url: string | null
+          language: string | null
           last_valued_at: string | null
           name: string
           price: number | null
@@ -1002,6 +1039,7 @@ export type Database = {
           estimated_value?: number | null
           id?: string
           image_url?: string | null
+          language?: string | null
           last_valued_at?: string | null
           name: string
           price?: number | null
@@ -1021,6 +1059,7 @@ export type Database = {
           estimated_value?: number | null
           id?: string
           image_url?: string | null
+          language?: string | null
           last_valued_at?: string | null
           name?: string
           price?: number | null
