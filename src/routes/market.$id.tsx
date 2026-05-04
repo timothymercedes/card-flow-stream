@@ -30,6 +30,14 @@ function ListingDetail() {
   const [bidAmt, setBidAmt] = useState("");
   const [offerAmt, setOfferAmt] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [unpaidOrders, setUnpaidOrders] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnpaidOrders(0); return; }
+    supabase.from("orders").select("id", { count: "exact", head: true })
+      .eq("buyer_id", user.id).eq("payment_status", "awaiting_payment")
+      .then(({ count }) => setUnpaidOrders(count ?? 0));
+  }, [user?.id]);
 
   // shipping
   const [showShip, setShowShip] = useState(false);
@@ -78,6 +86,7 @@ function ListingDetail() {
 
   async function placeBid() {
     if (!profile) return toast.error("Sign in first");
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding"); nav({ to: "/orders" }); return; }
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
     if (listing.auction_ends_at && new Date(listing.auction_ends_at).getTime() <= Date.now()) return toast.error("Auction ended");
@@ -108,6 +117,7 @@ function ListingDetail() {
 
   async function buyNow() {
     if (!profile) return toast.error("Sign in first");
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     setShowShip(true);
   }
 

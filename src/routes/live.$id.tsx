@@ -234,6 +234,21 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
+  // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
+  const [unpaidOrders, setUnpaidOrders] = useState(0);
+  useEffect(() => {
+    if (!user) { setUnpaidOrders(0); return; }
+    const refresh = () =>
+      supabase.from("orders").select("id", { count: "exact", head: true })
+        .eq("buyer_id", user.id).eq("payment_status", "awaiting_payment")
+        .then(({ count }) => setUnpaidOrders(count ?? 0));
+    refresh();
+    const ch = supabase.channel(`unpaid-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
+
   // 🆕 For Giveaway eligibility — does the current viewer follow the host / has bought from them?
   useEffect(() => {
     if (!user || !stream?.seller_id || user.id === stream.seller_id) {
@@ -519,6 +534,7 @@ function LiveDetail() {
   async function placeBidAmount(amount: number) {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding again"); nav({ to: "/orders" }); return; }
     if (meBlocked) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
@@ -580,6 +596,7 @@ function LiveDetail() {
   async function buyNowSnipe() {
     if (!user || !profile || !stream?.snipe_price) return;
     if (isSeller) return;
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!auctionLive) return toast.error("No active auction");
     const price = Number(stream.snipe_price);
     // Force win: set bid to snipe price + bidder = me, then end immediately
@@ -630,6 +647,7 @@ function LiveDetail() {
   async function claimBreakSlotNumber(slotNumber: number) {
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before claiming"); nav({ to: "/orders" }); return; }
     const taken = breakSlots.some((s) => s.slot_number === slotNumber);
     if (taken) return toast.error("That slot is already taken");
     const price = Number(breakPrice) || 10;
