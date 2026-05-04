@@ -101,8 +101,9 @@ function LiveDetail() {
   // 🆕 Giveaway
   const [showGiveaway, setShowGiveaway] = useState(false);
   const [giveawayComposer, setGiveawayComposer] = useState(false);
-  // Track latest giveaway status so we can auto-hide its chat announcement once a winner is decided.
-  const [giveawayStatus, setGiveawayStatus] = useState<string | null>(null);
+  // Track latest giveaway so we can live-tick its announcement and auto-hide it once a winner is decided.
+  const [activeGiveaway, setActiveGiveaway] = useState<any>(null);
+  const giveawayStatus = activeGiveaway?.status ?? null;
   // Per-viewer dismissed announcements (ids the viewer tapped X on)
   const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<Set<string>>(new Set());
   const [isFollowingHost, setIsFollowingHost] = useState(false);
