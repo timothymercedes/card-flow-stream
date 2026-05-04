@@ -2,12 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2, Zap, Users, Dice5, Globe, VolumeX, Ban, Clock as ClockIcon, RotateCw, Plus, Lock, Shuffle, Unlock, Check } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2, Zap, Users, Dice5, Globe, VolumeX, Ban, Clock as ClockIcon, RotateCw, Plus, Lock, Shuffle, Unlock, Check, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
+import { LiveGiveaway } from "@/components/LiveGiveaway";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -77,12 +78,19 @@ function LiveDetail() {
   // 🆕 Chat moderation actions
   const [chatActions, setChatActions] = useState<any[]>([]);
   const [chatActionMenu, setChatActionMenu] = useState<{ userId: string; username: string } | null>(null);
-  // 🆕 Mystery break (team draw)
+  // 🆕 Mystery break (numbered slots 1..N)
   const [breakSlots, setBreakSlots] = useState<any[]>([]);
   const [showBreakPanel, setShowBreakPanel] = useState(false);
-  const [breakTeamsInput, setBreakTeamsInput] = useState("");
+  const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
+  const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
   const [drawAnim, setDrawAnim] = useState(false);
+
+  // 🆕 Giveaway
+  const [showGiveaway, setShowGiveaway] = useState(false);
+  const [giveawayComposer, setGiveawayComposer] = useState(false);
+  const [isFollowingHost, setIsFollowingHost] = useState(false);
+  const [isPastBuyer, setIsPastBuyer] = useState(false);
   // 🆕 Currency display preference (per-viewer)
   const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
@@ -121,6 +129,8 @@ function LiveDetail() {
         setEditStartPrice(String(data.starting_bid || 1));
         setEditShipPrice(String(data.shipping_price || 0));
         setEditShipMethod(data.shipping_method || "USPS Ground");
+        if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
+        if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
         if (sp?.username) setSellerUsername(sp.username);
       }
@@ -161,6 +171,19 @@ function LiveDetail() {
     supabase.from("profiles").select("preferred_currency").eq("id", user.id).maybeSingle()
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
+
+  // 🆕 For Giveaway eligibility — does the current viewer follow the host / has bought from them?
+  useEffect(() => {
+    if (!user || !stream?.seller_id || user.id === stream.seller_id) {
+      setIsFollowingHost(false); setIsPastBuyer(false); return;
+    }
+    supabase.from("follows").select("follower_id", { count: "exact", head: true })
+      .eq("follower_id", user.id).eq("followee_id", stream.seller_id)
+      .then(({ count }) => setIsFollowingHost((count ?? 0) > 0));
+    supabase.from("orders").select("id", { count: "exact", head: true })
+      .eq("buyer_id", user.id).eq("seller_id", stream.seller_id)
+      .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
+  }, [user?.id, stream?.seller_id]);
 
   // Load mod chat once user is known to be staff
   useEffect(() => {
@@ -436,55 +459,51 @@ function LiveDetail() {
     setChatActionMenu(null);
   }
 
-  // 🆕 Mystery break: random team draw across paid slots
+  // 🆕 Mystery break: numbered slots (1..N). Buyers claim a number, host runs a randomized "spin" reveal at the end.
   async function startBreakMode() {
     if (!isSeller) return;
-    const teams = breakTeamsInput.split(",").map((s) => s.trim()).filter(Boolean);
-    if (teams.length < 2) return toast.error("List at least 2 teams (comma-separated)");
+    const count = Math.max(2, Math.min(50, Number(breakSlotCount) || 0));
+    if (count < 2) return toast.error("Pick 2–50 slots");
+    const price = Math.max(1, Number(breakPrice) || 0);
     await supabase.from("live_streams").update({
       break_mode: "open",
-      break_teams: teams,
+      break_slot_count: count,
+      break_slot_prefix: breakPrefix.trim() || null,
+      // store as a numeric-label list so existing UI (break_teams) stays compatible for fallback
+      break_teams: Array.from({ length: count }, (_, i) => `${(breakPrefix.trim() || "#")}${i + 1}`),
     }).eq("id", id);
-    setShowBreakPanel(false);
-    await sendMsg(`🎲 BREAK OPEN — ${teams.length} teams, $${breakPrice}/slot. Hit "Claim Slot" below!`, true);
+    await sendMsg(`🎲 BREAK OPEN — ${count} slots, $${price} each. Tap a number below to claim!`, true);
     toast.success("Break opened");
   }
 
-  async function claimBreakSlot() {
-    if (!user || !profile || !stream?.break_teams) return;
+  async function claimBreakSlotNumber(slotNumber: number) {
+    if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
+    const taken = breakSlots.some((s) => s.slot_number === slotNumber);
+    if (taken) return toast.error("That slot is already taken");
     const price = Number(breakPrice) || 10;
     const { error } = await supabase.from("break_slots").insert({
       stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
+      slot_number: slotNumber,
     });
-    if (error) return toast.error(error.message);
-    await sendMsg(`🎟️ @${profile.username} claimed a break slot ($${price})`, true);
-    toast.success("Slot claimed — wait for the draw!");
+    if (error) {
+      // unique-violation on (stream_id, slot_number)
+      if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
+      return toast.error(error.message);
+    }
+    await sendMsg(`🎟️ @${profile.username} grabbed slot #${slotNumber} ($${price})`, true);
+    toast.success(`Slot #${slotNumber} is yours!`);
   }
 
-  async function drawBreakTeams() {
-    if (!isSeller || !stream?.break_teams) return;
-    const teams = [...(stream.break_teams as string[])];
-    const slots = breakSlots.filter((s) => !s.team_label);
-    if (slots.length === 0) return toast.error("No unassigned slots");
+  async function closeBreakClaims() {
+    if (!isSeller) return;
     setDrawAnim(true);
-    // Fisher-Yates on teams; assign one team per slot (cycle if more slots than teams)
-    for (let i = teams.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [teams[i], teams[j]] = [teams[j], teams[i]];
-    }
     setTimeout(async () => {
-      for (let i = 0; i < slots.length; i++) {
-        const team = teams[i % teams.length];
-        await supabase.from("break_slots").update({
-          team_label: team, assigned_at: new Date().toISOString(),
-        }).eq("id", slots[i].id);
-        await sendMsg(`🎉 @${slots[i].buyer_username} pulled ${team}!`, true);
-      }
       await supabase.from("live_streams").update({ break_mode: "closed" }).eq("id", id);
       setDrawAnim(false);
-      toast.success("Teams drawn!");
-    }, 2200);
+      await sendMsg(`🔒 Break claims closed — ${breakSlots.length} slots taken.`, true);
+      toast.success("Claims closed");
+    }, 1500);
   }
 
   async function setSnipePriceNow() {
@@ -1210,14 +1229,54 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — Claim Slot for buyers */}
-        {!isSeller && stream.break_mode === "open" && (
-          <button
-            onClick={claimBreakSlot}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
-          >
-            <Dice5 className="h-4 w-4" /> Claim Mystery Break Slot · ${breakPrice}
-          </button>
+        {/* 🆕 Mystery break — numbered slot grid for buyers */}
+        {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
+          <div className="rounded-xl bg-gradient-to-br from-pink-500/15 via-purple-500/15 to-indigo-500/15 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-xs font-extrabold text-white">
+                <Dice5 className="h-4 w-4 text-pink-300" /> Mystery Break · ${breakPrice}/slot
+              </p>
+              <span className="text-[10px] text-white/60">
+                {breakSlots.length}/{stream.break_slot_count} taken
+              </span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
+                const taken = breakSlots.find((s) => s.slot_number === n);
+                const mine = taken && taken.buyer_id === user?.id;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => !taken && claimBreakSlotNumber(n)}
+                    disabled={!!taken}
+                    title={taken ? `@${taken.buyer_username}` : `Claim #${n}`}
+                    className={`aspect-square rounded-lg text-xs font-extrabold transition ${
+                      mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
+                      taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
+                      "bg-white text-black active:scale-95 hover:bg-pink-200"
+                    }`}
+                  >
+                    {stream.break_slot_prefix || "#"}{n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Mystery break results — shown after host closes claims */}
+        {!isSeller && stream.break_mode === "closed" && breakSlots.length > 0 && (
+          <div className="rounded-xl bg-card/40 p-3 text-xs">
+            <p className="mb-1 font-bold text-white">🎲 Mystery Break results</p>
+            <div className="grid grid-cols-2 gap-1">
+              {[...breakSlots].sort((a, b) => (a.slot_number || 0) - (b.slot_number || 0)).map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded bg-white/5 px-2 py-1">
+                  <span className="font-bold text-pink-300">{stream.break_slot_prefix || "#"}{s.slot_number}</span>
+                  <span className="truncate text-white/80">@{s.buyer_username}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* 🆕 Spin Wheel — visible to viewers whenever a wheel exists */}
@@ -1229,6 +1288,16 @@ function LiveDetail() {
             <RotateCw className={`h-4 w-4 ${wheel.is_spinning ? "animate-spin" : ""}`} />
             {wheel.is_spinning ? "Spinning live…" : "Open Spin Wheel"}
             <span className="ml-1 text-[10px] font-semibold opacity-80">{wheelSlots.filter((s)=>s.is_active).length} prizes</span>
+          </button>
+        )}
+
+        {/* 🆕 Giveaway — viewer entry button */}
+        {!isSeller && (
+          <button
+            onClick={() => setShowGiveaway(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+          >
+            <Gift className="h-4 w-4" /> Open Giveaway
           </button>
         )}
 
@@ -1286,6 +1355,9 @@ function LiveDetail() {
             </button>
             <button onClick={() => setShowWheelEditor(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2.5 text-xs font-bold text-white">
               <RotateCw className="h-3.5 w-3.5" /> Wheel
+            </button>
+            <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-xs font-bold text-white">
+              <Gift className="h-3.5 w-3.5" /> Giveaway
             </button>
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
@@ -1563,40 +1635,49 @@ function LiveDetail() {
               <button onClick={() => setShowBreakPanel(false)}><X className="h-4 w-4" /></button>
             </div>
             <p className="mb-2 text-[11px] text-muted-foreground">
-              List teams (or any labels) — buyers claim a slot, then you tap "Draw" to randomly assign.
-              Hits the Whatnot use-case, but with a fair on-screen shuffle anim.
+              Pick how many slots (1–50). Buyers tap a number to claim it. When you're ready, close claims to lock the board — or roll an auction per slot.
             </p>
-            <input
-              value={breakTeamsInput}
-              onChange={(e) => setBreakTeamsInput(e.target.value)}
-              placeholder="e.g. Lakers, Warriors, Celtics, Heat..."
-              className="mb-2 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
-            />
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">Price/slot $</span>
-              <input
-                type="number" min="1" value={breakPrice} onChange={(e) => setBreakPrice(e.target.value)}
-                className="w-20 rounded-lg bg-input px-2 py-1 text-xs outline-none"
-              />
+            <div className="mb-2 grid grid-cols-2 gap-2">
+              <label className="text-[11px] text-muted-foreground">
+                Slot count
+                <input type="number" min="2" max="50" value={breakSlotCount}
+                  onChange={(e) => setBreakSlotCount(e.target.value)}
+                  disabled={stream.break_mode === "open"}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none disabled:opacity-50" />
+              </label>
+              <label className="text-[11px] text-muted-foreground">
+                Price/slot $
+                <input type="number" min="1" value={breakPrice}
+                  onChange={(e) => setBreakPrice(e.target.value)}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
+              </label>
             </div>
+            <label className="mb-3 block text-[11px] text-muted-foreground">
+              Label prefix (optional)
+              <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 8))}
+                disabled={stream.break_mode === "open"}
+                placeholder='e.g. "Box" → Box1, Box2…'
+                className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
+            </label>
+
             {stream.break_mode === "open" ? (
               <>
                 <div className="mb-2 max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <p className="mb-1 font-semibold">Slots claimed: {breakSlots.length}</p>
-                  {breakSlots.map((s) => (
+                  <p className="mb-1 font-semibold">Claimed: {breakSlots.length}/{stream.break_slot_count}</p>
+                  {[...breakSlots].sort((a, b) => (a.slot_number || 0) - (b.slot_number || 0)).map((s) => (
                     <div key={s.id} className="flex items-center justify-between py-0.5">
+                      <span className="font-bold text-primary">{stream.break_slot_prefix || "#"}{s.slot_number}</span>
                       <span>@{s.buyer_username}</span>
-                      <span className="font-bold text-primary">{s.team_label || "—"}</span>
                     </div>
                   ))}
                   {breakSlots.length === 0 && <p className="text-muted-foreground">Waiting for buyers to claim…</p>}
                 </div>
                 <button
-                  onClick={drawBreakTeams}
-                  disabled={drawAnim || breakSlots.length === 0}
+                  onClick={closeBreakClaims}
+                  disabled={drawAnim}
                   className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
                 >
-                  {drawAnim ? "🎲 Shuffling…" : "🎲 Draw teams now"}
+                  {drawAnim ? "Locking…" : "🔒 Close claims"}
                 </button>
               </>
             ) : (
@@ -1792,6 +1873,20 @@ function LiveDetail() {
           </div>
         </div>
       )}
+
+      {/* 🆕 Lucky Letter Drop — Giveaway overlay */}
+      <LiveGiveaway
+        streamId={id}
+        isSeller={isSeller}
+        userId={user?.id || null}
+        username={profile?.username || null}
+        isFollower={isFollowingHost}
+        isBuyer={isPastBuyer}
+        open={showGiveaway}
+        onClose={() => { setShowGiveaway(false); setGiveawayComposer(false); }}
+        hostOpenComposer={giveawayComposer}
+        setHostOpenComposer={setGiveawayComposer}
+      />
     </div>
   );
 }
