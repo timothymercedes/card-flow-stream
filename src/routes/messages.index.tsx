@@ -119,7 +119,15 @@ function Messages() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-4 text-2xl font-bold">Messages</h1>
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Messages</h1>
+          <button
+            onClick={() => { setComposeOpen(true); setQuery(""); setResults([]); }}
+            className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
+          >
+            <PenSquare className="h-3.5 w-3.5" /> Compose
+          </button>
+        </div>
         <div className="mb-3 flex rounded-xl bg-card p-1">
           <button onClick={() => setTab("chats")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "chats" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Chats</button>
           <button onClick={() => setTab("requests")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "requests" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
@@ -127,20 +135,6 @@ function Messages() {
           </button>
         </div>
 
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a user to message..." className="w-full rounded-xl bg-input py-2 pl-9 pr-3 text-sm outline-none" />
-        </div>
-        {results.length > 0 && (
-          <div className="mb-4 space-y-1 rounded-xl bg-card p-2">
-            {results.map((p) => (
-              <button key={p.id} onClick={() => sendRequest(p.id, p.username)} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
-                <span>@{p.username}</span>
-                <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">Send Request</span>
-              </button>
-            ))}
-          </div>
-        )}
 
         {tab === "chats" ? (
           <>
