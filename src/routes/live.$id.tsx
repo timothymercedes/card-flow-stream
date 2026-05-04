@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2 } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -26,6 +26,7 @@ function LiveDetail() {
   const nav = useNavigate();
   const { user, profile } = useAuth();
   const [stream, setStream] = useState<any>(null);
+  const [sellerUsername, setSellerUsername] = useState<string>("");
   const [allStreams, setAllStreams] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
@@ -42,6 +43,11 @@ function LiveDetail() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUsers, setShareUsers] = useState<any[]>([]);
   const [shareQuery, setShareQuery] = useState("");
+  const [shoutoutOpen, setShoutoutOpen] = useState(false);
+  const [shoutoutMsg, setShoutoutMsg] = useState("");
+  const [shoutoutAmt, setShoutoutAmt] = useState(5);
+  const [shoutouts, setShoutouts] = useState<any[]>([]);
+  const [mySpent, setMySpent] = useState(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
@@ -64,20 +70,24 @@ function LiveDetail() {
   }, [id]);
 
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(({ data }) => {
+    supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(async ({ data }) => {
       setStream(data);
       if (data) {
         setEditDesc(data.item_description || "");
         setEditStartPrice(String(data.starting_bid || 1));
         setEditShipPrice(String(data.shipping_price || 0));
         setEditShipMethod(data.shipping_method || "USPS Ground");
+        const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
+        if (sp?.username) setSellerUsername(sp.username);
       }
     });
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
+    supabase.from("stream_shoutouts").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setShoutouts(data || []));
 
     const ch = supabase.channel(`live-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` }, (p) => setMessages((m) => [...m, p.new]))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => setStream(p.new))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${id}` }, (p) => setShoutouts((s) => [p.new, ...s]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
@@ -233,6 +243,37 @@ function LiveDetail() {
     if (!q.trim()) return setter([]);
     const { data } = await supabase.from("profiles").select("id,username,avatar_url").ilike("username", `%${q}%`).limit(8);
     setter(data || []);
+  }
+
+  // Compute how much current viewer already spent on shout-outs in this stream
+  useEffect(() => {
+    if (!user) { setMySpent(0); return; }
+    const total = shoutouts.filter((s) => s.buyer_id === user.id).reduce((a, b) => a + Number(b.amount || 0), 0);
+    setMySpent(total);
+  }, [shoutouts, user]);
+
+  async function sendShoutout() {
+    if (!user || !profile) return toast.error("Sign in to send a shout-out");
+    if (isSeller) return toast.error("Sellers can't shout out themselves");
+    const msg = shoutoutMsg.trim();
+    if (!msg) return toast.error("Tell the seller what to shout!");
+    if (msg.length > 140) return toast.error("Keep it under 140 chars");
+    const amt = Math.max(5, Math.min(50, Number(shoutoutAmt) || 5));
+    const remaining = 50 - mySpent;
+    if (amt > remaining) return toast.error(`You have $${remaining} shout-out budget left for this stream`);
+    const { error } = await supabase.from("stream_shoutouts").insert({
+      stream_id: id, seller_id: stream.seller_id, buyer_id: user.id,
+      buyer_username: profile.username, message: msg, amount: amt,
+    });
+    if (error) return toast.error(error.message);
+    await sendMsg(`📣 @${profile.username} sent a $${amt} shout-out: "${msg}"`, true);
+    await supabase.from("notifications").insert({
+      user_id: stream.seller_id, type: "shoutout",
+      body: `📣 @${profile.username} ($${amt}): "${msg}"`,
+      link: `/live/${id}`,
+    });
+    toast.success("Shout-out sent! (safe mode — no real charge)");
+    setShoutoutOpen(false); setShoutoutMsg(""); setShoutoutAmt(5);
   }
 
   async function finalizeAuctionRound() {
@@ -426,7 +467,12 @@ function LiveDetail() {
       {pinned && (
         <div className="absolute left-3 right-3 top-14 z-10">
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
-            <p className="flex-1 truncate text-sm font-semibold">{stream.title}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{stream.title}</p>
+              {sellerUsername && (
+                <Link to="/seller/$username" params={{ username: sellerUsername }} className="text-[10px] font-semibold text-primary hover:underline">@{sellerUsername} · view store</Link>
+              )}
+            </div>
             {stream.current_condition && (
               <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">{stream.current_condition}</span>
             )}
@@ -520,7 +566,7 @@ function LiveDetail() {
                   <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
                   <span>
                     {parts.map((p, i) => p.startsWith("@") ? (
-                      <Link key={i} to="/profile" className="font-semibold text-primary hover:underline">{p}</Link>
+                      <Link key={i} to="/seller/$username" params={{ username: p.slice(1) }} className="font-semibold text-primary hover:underline">{p}</Link>
                     ) : <span key={i}>{p}</span>)}
                   </span>
                 </div>
@@ -545,15 +591,29 @@ function LiveDetail() {
         </div>
 
         {!isSeller && (
-          <button
-            onPointerDown={bidDisabled ? undefined : startHold}
-            disabled={bidDisabled}
-            className="w-full select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-          >
-            {bidDisabled
-              ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
-              : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onPointerDown={bidDisabled ? undefined : startHold}
+              disabled={bidDisabled}
+              className="flex-1 select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            >
+              {bidDisabled
+                ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
+            </button>
+            {!ended && (
+              <button
+                onClick={() => user ? setShoutoutOpen(true) : toast.error("Sign in to shout out")}
+                disabled={mySpent >= 50}
+                title={mySpent >= 50 ? "$50 cap reached for this stream" : "Send a shout-out"}
+                className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-accent px-3 py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98] disabled:opacity-50"
+              >
+                <Megaphone className="h-4 w-4" />
+                Shout
+                <span className="text-[8px] opacity-70">${50 - mySpent} left</span>
+              </button>
+            )}
+          </div>
         )}
         {isSeller && !ended && (
           <div className="flex flex-wrap gap-2">
@@ -638,6 +698,58 @@ function LiveDetail() {
       )}
 
       {scanning && <CardScanner onResult={onScanResult} onClose={() => setScanning(false)} />}
+
+      {/* Shout-Out modal */}
+      {shoutoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShoutoutOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Megaphone className="h-4 w-4 text-primary" /> Send a Shout-Out</p>
+              <button onClick={() => setShoutoutOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              Tip the seller and tell them what to shout. Make it fun! 🎉<br />
+              You've spent <span className="font-semibold text-foreground">${mySpent}</span> · <span className="font-semibold text-foreground">${50 - mySpent}</span> left this stream.
+            </p>
+            <textarea
+              value={shoutoutMsg}
+              onChange={(e) => setShoutoutMsg(e.target.value)}
+              maxLength={140}
+              rows={2}
+              placeholder='e.g. "Shout out to my friend Mike!" or "Say hi to Tokyo!"'
+              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <p className="mb-2 text-right text-[10px] text-muted-foreground">{shoutoutMsg.length}/140</p>
+
+            <p className="mb-1 text-xs font-semibold">Amount: <span className="text-primary">${shoutoutAmt}</span></p>
+            <input
+              type="range" min={5} max={Math.max(5, Math.min(50, 50 - mySpent))} step={1}
+              value={shoutoutAmt}
+              onChange={(e) => setShoutoutAmt(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+            <div className="mt-1 mb-3 flex justify-between text-[10px] text-muted-foreground">
+              <span>$5</span><span>$25</span><span>$50</span>
+            </div>
+            <div className="mb-3 grid grid-cols-4 gap-1.5">
+              {[5, 10, 25, 50].map((v) => {
+                const disabled = v > (50 - mySpent);
+                return (
+                  <button key={v} disabled={disabled}
+                    onClick={() => setShoutoutAmt(v)}
+                    className={`rounded-lg py-1.5 text-xs font-bold ${shoutoutAmt === v ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"} disabled:opacity-30`}>
+                    ${v}
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={sendShoutout} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+              Send ${shoutoutAmt} Shout-Out (safe mode)
+            </button>
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">No real charge yet — payments turn on later.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

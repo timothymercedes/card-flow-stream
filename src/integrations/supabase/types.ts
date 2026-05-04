@@ -987,6 +987,45 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_shoutouts: {
+        Row: {
+          amount: number
+          buyer_id: string
+          buyer_username: string
+          created_at: string
+          id: string
+          message: string
+          paid_at: string | null
+          seller_id: string
+          status: string
+          stream_id: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          buyer_username: string
+          created_at?: string
+          id?: string
+          message: string
+          paid_at?: string | null
+          seller_id: string
+          status?: string
+          stream_id: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          buyer_username?: string
+          created_at?: string
+          id?: string
+          message?: string
+          paid_at?: string | null
+          seller_id?: string
+          status?: string
+          stream_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
