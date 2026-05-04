@@ -40,6 +40,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_announcement: boolean
+          is_hype: boolean
           is_system: boolean
           stream_id: string
           user_id: string | null
@@ -49,6 +51,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_announcement?: boolean
+          is_hype?: boolean
           is_system?: boolean
           stream_id: string
           user_id?: string | null
@@ -58,6 +62,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_announcement?: boolean
+          is_hype?: boolean
           is_system?: boolean
           stream_id?: string
           user_id?: string | null
@@ -767,6 +773,7 @@ export type Database = {
           phone_verified_at: string | null
           public_id: string | null
           seller_status: string
+          shipping_cap: number | null
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
           stripe_onboarding_status: string
@@ -792,6 +799,7 @@ export type Database = {
           phone_verified_at?: string | null
           public_id?: string | null
           seller_status?: string
+          shipping_cap?: number | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
@@ -817,6 +825,7 @@ export type Database = {
           phone_verified_at?: string | null
           public_id?: string | null
           seller_status?: string
+          shipping_cap?: number | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
@@ -1002,6 +1011,60 @@ export type Database = {
           story_id?: string
           viewed_at?: string
           viewer_id?: string
+        }
+        Relationships: []
+      }
+      stream_mod_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          stream_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      stream_moderators: {
+        Row: {
+          created_at: string
+          host_id: string
+          id: string
+          mod_user_id: string
+          mod_username: string
+          stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          id?: string
+          mod_user_id: string
+          mod_username: string
+          stream_id: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          id?: string
+          mod_user_id?: string
+          mod_username?: string
+          stream_id?: string
         }
         Relationships: []
       }
@@ -1216,6 +1279,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_stream_staff: {
+        Args: { _stream_id: string; _user: string }
         Returns: boolean
       }
     }

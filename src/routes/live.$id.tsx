@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 import { HlsPlayer } from "@/components/HlsPlayer";
@@ -57,6 +57,20 @@ function LiveDetail() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
+  // Mods, mod-chat, announcements, AI hype overlay
+  const [mods, setMods] = useState<any[]>([]);
+  const [modChat, setModChat] = useState<any[]>([]);
+  const [showModPanel, setShowModPanel] = useState(false);
+  const [modSearchQ, setModSearchQ] = useState("");
+  const [modSearchRes, setModSearchRes] = useState<any[]>([]);
+  const [modInput, setModInput] = useState("");
+  const [annOpen, setAnnOpen] = useState(false);
+  const [annText, setAnnText] = useState("");
+  const [hypeCard, setHypeCard] = useState<{ name: string; category: string; set_guess: string; rarity_vibe: string; image: string } | null>(null);
+
+  const isMod = !!user && mods.some((m) => m.mod_user_id === user.id);
+  const isStaff = !!user && (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
+
   const isSeller = !!user && stream && user.id === stream.seller_id;
 
   // Settings form state (seller)
@@ -84,14 +98,31 @@ function LiveDetail() {
     });
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
     supabase.from("stream_shoutouts").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setShoutouts(data || []));
+    supabase.from("stream_moderators").select("*").eq("stream_id", id).then(({ data }) => setMods(data || []));
 
     const ch = supabase.channel(`live-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` }, (p) => setMessages((m) => [...m, p.new]))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => setStream(p.new))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${id}` }, (p) => setShoutouts((s) => [p.new, ...s]))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => [...m, p.new]))
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => m.filter((x) => x.id !== (p.old as any).id)))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_mod_messages", filter: `stream_id=eq.${id}` }, (p) => setModChat((m) => [...m, p.new]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  // Load mod chat once user is known to be staff
+  useEffect(() => {
+    if (!isStaff) { setModChat([]); return; }
+    supabase.from("stream_mod_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setModChat(data || []));
+  }, [isStaff, id]);
+
+  // Auto-hide AI hype overlay after 5s
+  useEffect(() => {
+    if (!hypeCard) return;
+    const t = setTimeout(() => setHypeCard(null), 5000);
+    return () => clearTimeout(t);
+  }, [hypeCard]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
@@ -164,12 +195,53 @@ function LiveDetail() {
     } catch (e) { console.error(e); return null; }
   }
 
-  async function sendMsg(content: string, isSystem = false) {
+  async function sendMsg(content: string, isSystem = false, opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string } = {}) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
     if (!content.trim()) return;
     await supabase.from("chat_messages").insert({
-      stream_id: id, user_id: profile?.id || user?.id, username: isSystem ? "AI" : profile?.username || "guest", content, is_system: isSystem,
+      stream_id: id,
+      user_id: profile?.id || user?.id,
+      username: opts.usernameOverride || (isSystem ? "AI" : profile?.username || "guest"),
+      content,
+      is_system: isSystem,
+      is_announcement: !!opts.isAnnouncement,
+      is_hype: !!opts.isHype,
     });
+  }
+
+  // ---- Mod management ----
+  async function addModBySearch(u: { id: string; username: string }) {
+    if (!isSeller || !user) return;
+    if (u.id === user.id) return toast.error("You're already the host");
+    const { error } = await supabase.from("stream_moderators").insert({
+      stream_id: id, host_id: user.id, mod_user_id: u.id, mod_username: u.username,
+    });
+    if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({
+      user_id: u.id, type: "mod_added", body: `🛡️ You're now a mod for "${stream.title}"`, link: `/live/${id}`,
+    });
+    toast.success(`@${u.username} added as mod`);
+    setModSearchQ(""); setModSearchRes([]);
+  }
+  async function removeMod(modId: string) {
+    if (!isSeller) return;
+    await supabase.from("stream_moderators").delete().eq("id", modId);
+  }
+  async function sendModMsg() {
+    if (!isStaff || !user || !profile) return;
+    const t = modInput.trim(); if (!t) return;
+    const { error } = await supabase.from("stream_mod_messages").insert({
+      stream_id: id, user_id: user.id, username: profile.username, content: t,
+    });
+    if (error) return toast.error(error.message);
+    setModInput("");
+  }
+  async function postAnnouncement() {
+    if (!isStaff || !user || !profile) return;
+    const t = annText.trim(); if (!t) return;
+    await sendMsg(`📢 ${t}`, false, { isAnnouncement: true });
+    setAnnText(""); setAnnOpen(false);
+    toast.success("Announcement posted");
   }
 
   async function handleSend(e: React.FormEvent) {
@@ -352,15 +424,38 @@ function LiveDetail() {
     nav({ to: "/store" });
   }
 
-  function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
+  async function onScanResult(r: { name: string; category: string; trend: string; image: string; language?: string }) {
     setScanning(false);
     if (!isSeller) return;
     const useQuick = !!stream.quick_start_enabled && !auctionLive;
     const start = Number(stream.default_starting_bid || editStartPrice || 1);
     const sec = Number(stream.default_timer_sec || editTimerSec || 30);
     const cond = stream.default_condition || null;
+
+    // Get HYPE-only AI blurb (NEVER prices) for live streams
+    let hypeName = r.name;
+    let hypeCategory = r.category;
+    let hypeSet = "";
+    let hypeVibe = r.trend || "Solid Pickup 💪";
+    let hypeLines: string[] = [];
+    try {
+      const { data: hype, error: hypeErr } = await supabase.functions.invoke("live-card-hype", {
+        body: { image: r.image, language: r.language },
+      });
+      if (!hypeErr && hype) {
+        hypeName = hype.name || hypeName;
+        hypeCategory = hype.category || hypeCategory;
+        hypeSet = hype.set_guess || "";
+        hypeVibe = hype.rarity_vibe || hypeVibe;
+        hypeLines = Array.isArray(hype.hype_lines) ? hype.hype_lines : [];
+      }
+    } catch {/* fall back to scan */}
+
+    // Show 5-second card overlay (price-free)
+    setHypeCard({ name: hypeName, category: hypeCategory, set_guess: hypeSet, rarity_vibe: hypeVibe, image: r.image });
+
     const update: any = {
-      current_item: r.name,
+      current_item: hypeName,
       current_bid: start,
       current_bidder_id: null,
       item_image_url: r.image,
@@ -375,7 +470,15 @@ function LiveDetail() {
       endedRef.current = false; snapshotRef.current = false;
     }
     supabase.from("live_streams").update(update).eq("id", id);
-    sendMsg(useQuick ? `▶️ ${r.name}${cond ? ` [${cond}]` : ""} — ${sec}s, $${start}` : `${r.name} — ${r.trend}`, true);
+
+    // Post hype to chat as AI hype messages (no price)
+    if (useQuick) {
+      sendMsg(`▶️ ${hypeName}${cond ? ` [${cond}]` : ""} — ${sec}s round`, true);
+    }
+    sendMsg(`${hypeName} — ${hypeVibe}`, true, { isHype: true });
+    for (const line of hypeLines.slice(0, 2)) {
+      sendMsg(line, true, { isHype: true });
+    }
     toast.success(useQuick ? "Auction auto-started" : "Card scanned");
   }
 
@@ -453,6 +556,19 @@ function LiveDetail() {
         </div>
         <div className="flex gap-1">
           <button onClick={() => setShareOpen(true)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Share2 className="h-4 w-4" /></button>
+          {isStaff && !ended && (
+            <button onClick={() => setAnnOpen(true)} className="rounded-full bg-accent/80 p-2 backdrop-blur" title="Post announcement">
+              <Megaphone className="h-4 w-4" />
+            </button>
+          )}
+          {isStaff && !ended && (
+            <button onClick={() => setShowModPanel((v) => !v)} className="relative rounded-full bg-primary/80 p-2 backdrop-blur" title="Mod panel">
+              <Shield className="h-4 w-4" />
+              {modChat.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-live" />
+              )}
+            </button>
+          )}
           {(auctionLive || stream.current_item) && (
             <button onClick={() => setPinned((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
@@ -588,7 +704,15 @@ function LiveDetail() {
       {showChat && (
         <div ref={chatScrollRef} className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto overscroll-contain px-3 pb-2">
           <div className="flex flex-col items-start gap-1.5">
-            {messages.filter((m) => !m.is_system).map((m) => {
+            {messages.filter((m) => !m.is_system || m.is_announcement).map((m) => {
+              if (m.is_announcement) {
+                return (
+                  <div key={m.id} className="w-full rounded-lg border border-accent/60 bg-gradient-to-r from-accent/40 to-primary/40 px-3 py-1.5 text-xs font-bold text-white shadow backdrop-blur">
+                    <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
+                    @{m.username}: {m.content.replace(/^📢\s*/, "")}
+                  </div>
+                );
+              }
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               return (
                 <div key={m.id} className="max-w-[85%] rounded-lg bg-black/50 px-2.5 py-1 text-xs backdrop-blur">
@@ -776,6 +900,121 @@ function LiveDetail() {
               Send ${shoutoutAmt} Shout-Out (safe mode)
             </button>
             <p className="mt-2 text-center text-[10px] text-muted-foreground">No real charge yet — payments turn on later.</p>
+          </div>
+        </div>
+      )}
+
+      {/* AI HYPE overlay — 5s card details (NEVER price) */}
+      {hypeCard && (
+        <div className="pointer-events-none absolute left-1/2 top-24 z-30 w-[88%] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top">
+          <div className="flex gap-3 rounded-2xl border border-primary/40 bg-black/75 p-3 shadow-2xl backdrop-blur">
+            <img src={hypeCard.image} alt={hypeCard.name} className="h-20 w-16 shrink-0 rounded-lg object-cover" />
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                <Sparkles className="h-3 w-3" /> AI Spotted
+              </p>
+              <p className="truncate text-sm font-extrabold text-white">{hypeCard.name}</p>
+              <p className="truncate text-[11px] text-white/70">{hypeCard.category}{hypeCard.set_guess ? ` · ${hypeCard.set_guess}` : ""}</p>
+              <span className="mt-1 inline-block rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">{hypeCard.rarity_vibe}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement composer (host & mods) */}
+      {annOpen && isStaff && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setAnnOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Megaphone className="h-4 w-4 text-accent" /> Announcement</p>
+              <button onClick={() => setAnnOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">Pinned highlight in the live chat — visible to everyone.</p>
+            <textarea
+              value={annText}
+              onChange={(e) => setAnnText(e.target.value)}
+              maxLength={200}
+              rows={3}
+              placeholder='e.g. "Combined shipping at $10 max — keep stacking!"'
+              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <p className="mb-2 text-right text-[10px] text-muted-foreground">{annText.length}/200</p>
+            <button onClick={postAnnouncement} disabled={!annText.trim()} className="w-full rounded-lg bg-accent py-2.5 text-sm font-bold text-accent-foreground disabled:opacity-50">
+              Post Announcement
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mod panel — host adds/removes mods, host+mods chat privately */}
+      {showModPanel && isStaff && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowModPanel(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="flex w-full max-w-sm flex-col rounded-2xl bg-card text-foreground shadow-2xl" style={{ maxHeight: "85vh" }}>
+            <div className="flex items-center justify-between border-b border-border p-3">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Shield className="h-4 w-4 text-primary" /> Mod Channel</p>
+              <button onClick={() => setShowModPanel(false)}><X className="h-4 w-4" /></button>
+            </div>
+
+            {/* Host-only: add mods */}
+            {isSeller && (
+              <div className="border-b border-border p-3">
+                <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Add a moderator</p>
+                <input
+                  value={modSearchQ}
+                  onChange={(e) => { setModSearchQ(e.target.value); searchUsers(e.target.value, setModSearchRes); }}
+                  placeholder="Search by username"
+                  className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                />
+                {modSearchRes.length > 0 && (
+                  <div className="mt-1 max-h-32 overflow-y-auto rounded-lg border border-border">
+                    {modSearchRes.map((u) => (
+                      <button key={u.id} onClick={() => addModBySearch(u)} className="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs hover:bg-muted">
+                        <span>@{u.username}</span>
+                        <ShieldPlus className="h-3.5 w-3.5 text-primary" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {mods.length > 0 && (
+                  <div className="mt-2">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Active mods</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {mods.map((m) => (
+                        <span key={m.id} className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                          @{m.mod_username}
+                          <button onClick={() => removeMod(m.id)} className="opacity-60 hover:opacity-100"><Trash2 className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Private mod chat */}
+            <div className="flex-1 overflow-y-auto p-3">
+              <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">Private — host & mods only</p>
+              {modChat.length === 0 && <p className="text-center text-[11px] text-muted-foreground">No messages yet. Coordinate with your mods here.</p>}
+              <div className="space-y-1.5">
+                {modChat.map((m) => (
+                  <div key={m.id} className="rounded-lg bg-muted px-2.5 py-1.5 text-xs">
+                    <span className="mr-1 font-semibold text-primary">@{m.username}:</span>{m.content}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); sendModMsg(); }} className="flex gap-1.5 border-t border-border p-2">
+              <input
+                value={modInput}
+                onChange={(e) => setModInput(e.target.value)}
+                placeholder="Message your mod team..."
+                className="flex-1 rounded-full bg-input px-3 py-1.5 text-xs outline-none"
+              />
+              <button type="submit" className="rounded-full bg-primary p-2 text-primary-foreground"><Send className="h-3.5 w-3.5" /></button>
+            </form>
+            <button onClick={() => { setShowModPanel(false); setAnnOpen(true); }} className="m-2 mt-0 rounded-lg bg-accent py-2 text-xs font-bold text-accent-foreground">
+              <Megaphone className="mr-1 inline h-3.5 w-3.5" /> Post public announcement
+            </button>
           </div>
         </div>
       )}

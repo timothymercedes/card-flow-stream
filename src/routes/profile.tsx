@@ -83,6 +83,7 @@ function Profile() {
       address_line1: p.address_line1, address_city: p.address_city,
       address_state: p.address_state, address_zip: p.address_zip,
       address_country: p.address_country || "US",
+      shipping_cap: p.shipping_cap === "" || p.shipping_cap == null ? null : Number(p.shipping_cap),
     }).eq("id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -251,6 +252,23 @@ function Profile() {
             <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-600">Application pending review</p>
           ) : (
             <button onClick={applyToSell} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Apply to Sell</button>
+          )}
+          {p.seller_status === "approved" && (
+            <div className="mt-2 rounded-lg border border-border p-3">
+              <p className="mb-1 text-xs font-semibold">Combined-shipping cap (per buyer, per checkout)</p>
+              <p className="mb-2 text-[11px] text-muted-foreground">When a buyer orders multiple items from you in one checkout, total shipping for your items will never exceed this cap. Leave blank for no cap.</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">$</span>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={p.shipping_cap ?? ""}
+                  onChange={(e) => setP({ ...p, shipping_cap: e.target.value })}
+                  placeholder="e.g. 10"
+                  className="w-32 rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                />
+                <span className="text-[11px] text-muted-foreground">max total / checkout</span>
+              </div>
+            </div>
           )}
         </section>
 
