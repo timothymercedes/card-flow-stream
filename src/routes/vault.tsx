@@ -29,6 +29,7 @@ function Vault() {
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
+  const [genBusy, setGenBusy] = useState<string | null>(null);
 
   // add form
   const [name, setName] = useState("");
