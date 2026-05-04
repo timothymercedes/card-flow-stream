@@ -423,6 +423,9 @@ function LiveDetail() {
         <div className="absolute left-3 right-3 top-14 z-10">
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <p className="flex-1 truncate text-sm font-semibold">{stream.title}</p>
+            {stream.current_condition && (
+              <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">{stream.current_condition}</span>
+            )}
             {auctionLive && (
               <div className="flex shrink-0 items-center gap-1 rounded-md bg-live px-2 py-1 text-sm font-extrabold tabular-nums text-live-foreground">
                 <Timer className="h-4 w-4" /> {fmtRemaining(remaining)}
