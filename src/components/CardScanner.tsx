@@ -56,13 +56,18 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
     setScanning(true);
     try {
       const v = videoRef.current;
+      // Downscale to max 800px on long side — much smaller payload, ID accuracy unaffected.
+      const srcW = v.videoWidth || 640;
+      const srcH = v.videoHeight || 480;
+      const MAX = 800;
+      const scale = Math.min(1, MAX / Math.max(srcW, srcH));
       const canvas = document.createElement("canvas");
-      canvas.width = v.videoWidth || 640;
-      canvas.height = v.videoHeight || 480;
+      canvas.width = Math.round(srcW * scale);
+      canvas.height = Math.round(srcH * scale);
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas error");
       ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
 
       const { data, error } = await supabase.functions.invoke("scan-card", {
         body: { image: dataUrl, language: language === "auto" ? undefined : language },
