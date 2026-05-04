@@ -34,38 +34,38 @@
 
 :root {
   --radius: 0.875rem;
-  /* PullBid Live theme — black + gold + silver */
-  --background: oklch(0.13 0.005 60);
-  --foreground: oklch(0.98 0.005 90);
-  --card: oklch(0.18 0.008 70);
-  --card-foreground: oklch(0.98 0.005 90);
-  --popover: oklch(0.18 0.008 70);
-  --popover-foreground: oklch(0.98 0.005 90);
-  /* Gold primary */
-  --primary: oklch(0.78 0.16 85);
-  --primary-foreground: oklch(0.15 0.01 60);
-  --primary-glow: oklch(0.86 0.18 90);
-  /* Silver secondary */
-  --secondary: oklch(0.78 0.005 90);
-  --secondary-foreground: oklch(0.15 0.01 60);
-  --muted: oklch(0.22 0.008 70);
-  --muted-foreground: oklch(0.7 0.01 80);
-  --accent: oklch(0.3 0.04 80);
-  --accent-foreground: oklch(0.98 0.005 90);
+  /* PullBid Live theme — deep navy + emerald */
+  --background: oklch(0.16 0.02 250);
+  --foreground: oklch(0.98 0.005 240);
+  --card: oklch(0.21 0.025 250);
+  --card-foreground: oklch(0.98 0.005 240);
+  --popover: oklch(0.21 0.025 250);
+  --popover-foreground: oklch(0.98 0.005 240);
+  /* Emerald primary */
+  --primary: oklch(0.72 0.17 165);
+  --primary-foreground: oklch(0.13 0.02 250);
+  --primary-glow: oklch(0.82 0.16 170);
+  /* Cool slate secondary */
+  --secondary: oklch(0.78 0.02 240);
+  --secondary-foreground: oklch(0.13 0.02 250);
+  --muted: oklch(0.25 0.02 250);
+  --muted-foreground: oklch(0.72 0.02 240);
+  --accent: oklch(0.32 0.05 220);
+  --accent-foreground: oklch(0.98 0.005 240);
   --destructive: oklch(0.62 0.24 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.04 80);
-  --input: oklch(0.22 0.01 70);
-  --ring: oklch(0.78 0.16 85);
+  --border: oklch(0.3 0.03 240);
+  --input: oklch(0.25 0.02 250);
+  --ring: oklch(0.72 0.17 165);
   --live: oklch(0.65 0.25 25);
   --live-foreground: oklch(0.99 0 0);
-  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.16 85), oklch(0.86 0.18 90));
-  --shadow-gold: 0 10px 30px -10px color-mix(in oklab, oklch(0.78 0.16 85) 40%, transparent);
+  --gradient-primary: linear-gradient(135deg, oklch(0.72 0.17 165), oklch(0.82 0.16 170));
+  --shadow-primary: 0 10px 30px -10px color-mix(in oklab, oklch(0.72 0.17 165) 40%, transparent);
 }
 
 .dark {
-  --background: oklch(0.13 0.005 60);
-  --foreground: oklch(0.98 0.005 90);
+  --background: oklch(0.16 0.02 250);
+  --foreground: oklch(0.98 0.005 240);
 }
 
 @layer base {

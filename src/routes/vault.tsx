@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Sparkles, Loader2 } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
 type Condition = "NM" | "LP" | "MP" | "Damaged";
+type Visibility = "private" | "followers" | "friends" | "public";
 type ConditionPrices = { NM?: number; LP?: number; MP?: number; Damaged?: number };
 type Card = {
   id: string; user_id: string; name: string; category: string | null;
@@ -18,6 +19,7 @@ type Card = {
   tcg_number?: string | null; tcg_set?: string | null; tcg_year?: string | null;
   condition?: Condition | null;
   condition_prices?: ConditionPrices | null;
+  visibility?: Visibility | null;
 };
 
 function Vault() {
@@ -29,7 +31,7 @@ function Vault() {
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
-  const [genBusy, setGenBusy] = useState<string | null>(null);
+  
 
   // add form
   const [name, setName] = useState("");
@@ -44,22 +46,13 @@ function Vault() {
   const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
+  const [visibility, setVisibility] = useState<Visibility>("private");
   const [identifying, setIdentifying] = useState(false);
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("vault_cards").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase.from("vault_cards").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setCards((data || []) as Card[]);
-    // Fire-and-forget on-open refresh of stale values (>20h old)
-    const stale = (data || []).some((c: any) => !c.last_valued_at || (Date.now() - new Date(c.last_valued_at).getTime()) > 20 * 60 * 60 * 1000);
-    if (stale) {
-      fetch("/api/public/hooks/refresh-vault-values", { method: "POST" })
-        .then((r) => r.ok && setTimeout(async () => {
-          const { data: fresh } = await supabase.from("vault_cards").select("*").order("created_at", { ascending: false });
-          if (fresh) setCards(fresh as Card[]);
-        }, 1500))
-        .catch(() => {});
-    }
   }
   useEffect(() => { load(); }, [user]);
 
@@ -71,7 +64,7 @@ function Vault() {
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
-    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
+    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM"); setVisibility("private");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -167,6 +160,7 @@ function Vault() {
       price: price ? Number(price) : null,
       tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
+      visibility,
       last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
@@ -191,32 +185,13 @@ function Vault() {
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
+      visibility: editing.visibility || "private",
       estimated_value: newValue,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
     toast.success("Saved");
     setEditing(null);
     load();
-  }
-
-  async function refreshValue(card: Card) {
-    try {
-      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`, card.tcg_year && `year: ${card.tcg_year}`].filter(Boolean).join(" ");
-      const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
-      const base = Number(data?.estimated_value);
-      if (!isFinite(base) || base <= 0) return toast.error("Couldn't get a price");
-      const cp: ConditionPrices | null = data?.condition_prices || null;
-      const v = priceFor((card.condition || "NM") as Condition, base, cp);
-      await supabase.from("vault_cards").update({
-        estimated_value: v, condition_prices: cp as any,
-        tcg_set: card.tcg_set || data?.set || null,
-        tcg_year: card.tcg_year || (data?.year ? String(data.year) : null),
-        tcg_number: card.tcg_number || data?.tcg_number || null,
-        last_valued_at: new Date().toISOString(),
-      }).eq("id", card.id);
-      toast.success(`Updated to $${v}`);
-      load();
-    } catch (e: any) { toast.error(e?.message || "Refresh failed"); }
   }
 
   function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
@@ -319,6 +294,20 @@ function Vault() {
                 ))}
               </div>
             </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Who can see this card</p>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {([
+                  { v: "private", l: "Only me" },
+                  { v: "friends", l: "Close friends" },
+                  { v: "followers", l: "Followers" },
+                  { v: "public", l: "Public" },
+                ] as const).map(({ v, l }) => (
+                  <button key={v} type="button" onClick={() => setVisibility(v)}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-semibold ${visibility === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{l}</button>
+                ))}
+              </div>
+            </div>
             <textarea rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs">
@@ -357,33 +346,66 @@ function Vault() {
         </div>
       </div>
 
-      {/* Card action sheet */}
+      {/* Card expanded view */}
       {actionFor && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setActionFor(null)}>
-          <div className="w-full max-w-sm space-y-2 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <p className="font-bold">{actionFor.name}</p>
-              <button onClick={() => setActionFor(null)}><X className="h-4 w-4" /></button>
+        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/80 p-4 sm:items-center" onClick={() => setActionFor(null)}>
+          <div className="my-4 w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-lg font-bold leading-tight">{actionFor.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {[actionFor.category, actionFor.tcg_set, actionFor.tcg_year, actionFor.tcg_number && `#${actionFor.tcg_number}`].filter(Boolean).join(" • ") || "—"}
+                </p>
+              </div>
+              <button onClick={() => setActionFor(null)} aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
-            {actionFor.image_url && <img src={actionFor.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
-            <p className="text-xs text-muted-foreground">
-              {actionFor.category || "—"}
-              {actionFor.tcg_number && ` • #${actionFor.tcg_number}`}
-              {actionFor.condition && ` • ${actionFor.condition}`}
-              {` • Est. $${Number(actionFor.estimated_value || 0).toFixed(2)}`}
-            </p>
-            <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
+                {actionFor.image_url
+                  ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                  : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Back</p>
+                {actionFor.back_image_url
+                  ? <img src={actionFor.back_image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt="" />
+                  : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-center text-[10px] text-muted-foreground">No back photo<br/>(needed to sell)</div>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
+                <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value || 0).toFixed(2)}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[9px] uppercase text-muted-foreground">Condition</p>
+                <p className="text-base font-bold">{actionFor.condition || "—"}</p>
+              </div>
+            </div>
+
+            {actionFor.description && (
+              <div className="rounded-lg bg-muted/40 p-2 text-xs">
+                <p className="text-[9px] uppercase text-muted-foreground">Description</p>
+                <p className="mt-0.5 whitespace-pre-wrap">{actionFor.description}</p>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground">Visible to: <span className="font-semibold capitalize">{actionFor.visibility || "private"}</span></p>
+
+            <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
             </button>
-            <button onClick={() => refreshValue(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-foreground">
-              <DollarSign className="h-4 w-4" /> Refresh value (TCG)
-            </button>
-            <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
-              <Pencil className="h-4 w-4" /> Edit
-            </button>
-            <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
-              <Trash2 className="h-4 w-4" /> Delete
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
+                <Pencil className="h-4 w-4" /> Edit
+              </button>
+              <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -413,6 +435,20 @@ function Vault() {
                 {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
                   <button key={c} type="button" onClick={() => setEditing({ ...editing, condition: c })}
                     className={`rounded-lg px-2 py-1.5 text-xs font-bold ${editing.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Who can see this card</p>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {([
+                  { v: "private", l: "Only me" },
+                  { v: "friends", l: "Friends" },
+                  { v: "followers", l: "Followers" },
+                  { v: "public", l: "Public" },
+                ] as const).map(({ v, l }) => (
+                  <button key={v} type="button" onClick={() => setEditing({ ...editing, visibility: v })}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-semibold ${(editing.visibility || "private") === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{l}</button>
                 ))}
               </div>
             </div>

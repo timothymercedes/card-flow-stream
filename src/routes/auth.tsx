@@ -78,7 +78,7 @@ function Auth() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-background px-6">
       <div className="mb-8 text-center">
-        <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_rgba(212,175,55,0.35)]" />
+        <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_oklch(0.72_0.17_165/0.35)]" />
         <p className="mt-1 text-sm text-muted-foreground">{mode === "signin" ? "Welcome back" : "Create your account"}</p>
       </div>
       <form onSubmit={submit} className="space-y-3">
