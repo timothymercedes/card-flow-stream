@@ -360,9 +360,24 @@ function LiveDetail() {
     if (winnerId) {
       const { data: p } = await supabase.from("profiles").select("username, address_line1, address_city, address_state, address_zip, address_country, full_name").eq("id", winnerId).maybeSingle();
       const winnerUsername = p?.username || "buyer";
+      // Bid number for THIS sale on the stream — only increments when an item sells
+      const nextRound = Number(stream.round_number || 0) + 1;
+      const itemName = stream.current_item || stream.title;
+      const labeledTitle = `Bid #${nextRound} — ${itemName}`;
+      // Pull seller's combined-shipping cap (per buyer, per checkout)
+      const { data: sp } = await supabase.from("profiles").select("shipping_cap").eq("id", stream.seller_id).maybeSingle();
+      const cap = sp?.shipping_cap == null ? null : Number(sp.shipping_cap);
+      const rawShip = Number(stream.shipping_price || 0);
+      // Sum shipping already on this buyer's open orders from this seller — apply cap
+      const { data: openOrders } = await supabase.from("orders")
+        .select("amount, listing_id, stream_id")
+        .eq("buyer_id", winnerId).eq("seller_id", stream.seller_id)
+        .eq("payment_status", "awaiting_payment");
+      const priorShip = (openOrders || []).reduce((a: number, _o: any) => a, 0);
+      const shipForThis = cap != null ? Math.max(0, Math.min(rawShip, cap - priorShip)) : rawShip;
       await supabase.from("receipts").insert({
         stream_id: id, buyer_id: winnerId, seller_id: stream.seller_id,
-        item_name: stream.current_item || stream.title,
+        item_name: labeledTitle,
         item_image_url: snapshot || null,
         amount: winningBid,
       });
@@ -370,9 +385,9 @@ function LiveDetail() {
       // SAFE MODE: order starts as awaiting_payment — buyer must click "Pay Now" later
       await supabase.from("orders").insert({
         buyer_id: winnerId, seller_id: stream.seller_id,
-        title: stream.current_item || stream.title,
+        title: labeledTitle,
         description: stream.item_description || null,
-        amount: winningBid + Number(stream.shipping_price || 0),
+        amount: winningBid + shipForThis,
         item_image_url: snapshot || null,
         stream_id: id,
         condition: stream.current_condition || null,
@@ -387,12 +402,13 @@ function LiveDetail() {
       });
       await supabase.from("notifications").insert({
         user_id: winnerId, type: "won",
-        body: `🎉 You won "${stream.current_item || stream.title}" for $${winningBid}`,
+        body: `🎉 You won Bid #${nextRound} "${itemName}" for $${winningBid}`,
         link: `/orders`,
       });
-      await sendMsg(`🏆 Now owned by @${winnerUsername} — $${winningBid}`, true);
+      await sendMsg(`🏆 Bid #${nextRound} — "${itemName}" sold to @${winnerUsername} for $${winningBid}`, true);
       await supabase.from("live_streams").update({
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
+        round_number: nextRound,
       }).eq("id", id);
       // Clear winner banner + ends_at after 5s
       setTimeout(async () => {
