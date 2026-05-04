@@ -1849,6 +1849,63 @@ function LiveDetail() {
         </div>
       )}
 
+      {/* 🆕 BREAK REVEAL WHEEL — fullscreen, fun, visible to ALL viewers */}
+      {(stream.break_wheel_spinning || stream.break_wheel_last_winner_username) && (() => {
+        const claimed = [...breakSlots].filter((s) => s.slot_number != null).sort((a, b) => a.slot_number - b.slot_number);
+        if (claimed.length === 0) return null;
+        const palette = ["#ec4899","#7c3aed","#f59e0b","#10b981","#3b82f6","#ef4444","#06b6d4","#a855f7","#14b8a6","#f97316"];
+        const wheelSlots: WheelSlot[] = claimed.map((s, i) => ({
+          id: String(s.slot_number),
+          label: s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`,
+          weight: 1,
+          color: palette[i % palette.length],
+          is_active: true,
+        }));
+        const targetId = stream.break_wheel_target_slot != null ? String(stream.break_wheel_target_slot) : null;
+        const startedAt = stream.break_wheel_started_at ? new Date(stream.break_wheel_started_at).getTime() : null;
+        const finishAt = stream.break_wheel_ends_at ? new Date(stream.break_wheel_ends_at).getTime() : null;
+        const winnerLabel = stream.break_wheel_last_winner_label;
+        const winnerUser = stream.break_wheel_last_winner_username;
+        return (
+          <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-gradient-to-br from-purple-900/95 via-black/90 to-pink-900/95 p-4 backdrop-blur-sm animate-in fade-in">
+            {isSeller && !stream.break_wheel_spinning && (
+              <button
+                onClick={async () => {
+                  await supabase.from("live_streams").update({
+                    break_wheel_last_winner_username: null,
+                    break_wheel_last_winner_label: null,
+                    break_wheel_target_slot: null,
+                  }).eq("id", id);
+                }}
+                className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white"
+              ><X className="h-5 w-5" /></button>
+            )}
+            <p className="mb-1 flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-amber-300">
+              <Dice5 className="h-3.5 w-3.5" /> Mystery Break Reveal
+            </p>
+            <p className="mb-4 text-[11px] text-white/70">{claimed.length} contenders · the wheel decides</p>
+            <SpinWheel
+              slots={wheelSlots}
+              spinning={!!stream.break_wheel_spinning}
+              targetSlotId={targetId}
+              startedAt={startedAt}
+              finishAt={finishAt}
+              size={Math.min(360, typeof window !== "undefined" ? Math.min(window.innerWidth, window.innerHeight) - 180 : 320)}
+            />
+            {!stream.break_wheel_spinning && winnerLabel && winnerUser && (
+              <div className="mt-6 w-full max-w-sm rounded-2xl bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 p-4 text-center shadow-2xl ring-2 ring-white/30 animate-in zoom-in">
+                <Trophy className="mx-auto h-8 w-8 text-white" />
+                <p className="mt-1 text-lg font-extrabold tracking-tight text-white">{winnerLabel}</p>
+                <p className="text-sm font-bold text-white/90">goes to @{winnerUser} 🎉</p>
+              </div>
+            )}
+            {stream.break_wheel_spinning && (
+              <p className="mt-4 animate-pulse text-sm font-bold text-amber-200">🎡 Spinning…</p>
+            )}
+          </div>
+        );
+      })()}
+
       {/* 🆕 Spin Wheel — fullscreen overlay (visible to ALL viewers when open) */}
       {showWheelOverlay && wheel && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
