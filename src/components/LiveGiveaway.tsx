@@ -37,6 +37,10 @@ type Props = {
   // Whether the current viewer follows the seller / has bought from them.
   isFollower: boolean;
   isBuyer: boolean;
+  // 🆕 Seller id so we can auto-follow when joining a followers-only giveaway.
+  sellerId: string | null;
+  // 🆕 Notify parent when the viewer follows (so parent can refresh isFollower).
+  onFollowed?: () => void;
   open: boolean;
   onClose: () => void;
   // Called by the Live page when the host wants to open a draft form.
@@ -54,7 +58,7 @@ function suggestCode(): string {
 
 export function LiveGiveaway({
   streamId, isSeller, userId, username,
-  isFollower, isBuyer,
+  isFollower, isBuyer, sellerId, onFollowed,
   open, onClose, hostOpenComposer, setHostOpenComposer,
 }: Props) {
   const [giveaway, setGiveaway] = useState<Giveaway | null>(null);
