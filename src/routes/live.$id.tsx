@@ -78,12 +78,19 @@ function LiveDetail() {
   // 🆕 Chat moderation actions
   const [chatActions, setChatActions] = useState<any[]>([]);
   const [chatActionMenu, setChatActionMenu] = useState<{ userId: string; username: string } | null>(null);
-  // 🆕 Mystery break (team draw)
+  // 🆕 Mystery break (numbered slots 1..N)
   const [breakSlots, setBreakSlots] = useState<any[]>([]);
   const [showBreakPanel, setShowBreakPanel] = useState(false);
-  const [breakTeamsInput, setBreakTeamsInput] = useState("");
+  const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
+  const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
   const [drawAnim, setDrawAnim] = useState(false);
+
+  // 🆕 Giveaway
+  const [showGiveaway, setShowGiveaway] = useState(false);
+  const [giveawayComposer, setGiveawayComposer] = useState(false);
+  const [isFollowingHost, setIsFollowingHost] = useState(false);
+  const [isPastBuyer, setIsPastBuyer] = useState(false);
   // 🆕 Currency display preference (per-viewer)
   const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
