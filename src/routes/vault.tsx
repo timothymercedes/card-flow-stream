@@ -246,7 +246,9 @@ function Vault() {
               </div>
               <div className="p-2">
                 <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
-                <p className="text-[10px] text-muted-foreground">{c.category || "—"}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {c.category || "—"}{c.condition && ` • ${c.condition}`}
+                </p>
                 <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value || 0).toFixed(2)}</p>
               </div>
             </button>
