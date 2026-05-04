@@ -9,38 +9,194 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VaultRouteImport } from './routes/vault'
+import { Route as SellRouteImport } from './routes/sell'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as FeedRouteImport } from './routes/feed'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MarketIndexRouteImport } from './routes/market.index'
+import { Route as LiveIndexRouteImport } from './routes/live.index'
+import { Route as MarketIdRouteImport } from './routes/market.$id'
+import { Route as LiveIdRouteImport } from './routes/live.$id'
 
+const VaultRoute = VaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellRoute = SellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketIndexRoute = MarketIndexRouteImport.update({
+  id: '/market/',
+  path: '/market/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveIndexRoute = LiveIndexRouteImport.update({
+  id: '/live/',
+  path: '/live/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketIdRoute = MarketIdRouteImport.update({
+  id: '/market/$id',
+  path: '/market/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveIdRoute = LiveIdRouteImport.update({
+  id: '/live/$id',
+  path: '/live/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/feed': typeof FeedRoute
+  '/profile': typeof ProfileRoute
+  '/sell': typeof SellRoute
+  '/vault': typeof VaultRoute
+  '/live/$id': typeof LiveIdRoute
+  '/market/$id': typeof MarketIdRoute
+  '/live/': typeof LiveIndexRoute
+  '/market/': typeof MarketIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/feed': typeof FeedRoute
+  '/profile': typeof ProfileRoute
+  '/sell': typeof SellRoute
+  '/vault': typeof VaultRoute
+  '/live/$id': typeof LiveIdRoute
+  '/market/$id': typeof MarketIdRoute
+  '/live': typeof LiveIndexRoute
+  '/market': typeof MarketIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/feed': typeof FeedRoute
+  '/profile': typeof ProfileRoute
+  '/sell': typeof SellRoute
+  '/vault': typeof VaultRoute
+  '/live/$id': typeof LiveIdRoute
+  '/market/$id': typeof MarketIdRoute
+  '/live/': typeof LiveIndexRoute
+  '/market/': typeof MarketIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/feed'
+    | '/profile'
+    | '/sell'
+    | '/vault'
+    | '/live/$id'
+    | '/market/$id'
+    | '/live/'
+    | '/market/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/feed'
+    | '/profile'
+    | '/sell'
+    | '/vault'
+    | '/live/$id'
+    | '/market/$id'
+    | '/live'
+    | '/market'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/feed'
+    | '/profile'
+    | '/sell'
+    | '/vault'
+    | '/live/$id'
+    | '/market/$id'
+    | '/live/'
+    | '/market/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  FeedRoute: typeof FeedRoute
+  ProfileRoute: typeof ProfileRoute
+  SellRoute: typeof SellRoute
+  VaultRoute: typeof VaultRoute
+  LiveIdRoute: typeof LiveIdRoute
+  MarketIdRoute: typeof MarketIdRoute
+  LiveIndexRoute: typeof LiveIndexRoute
+  MarketIndexRoute: typeof MarketIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vault': {
+      id: '/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell': {
+      id: '/sell'
+      path: '/sell'
+      fullPath: '/sell'
+      preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,21 +204,49 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/market/': {
+      id: '/market/'
+      path: '/market'
+      fullPath: '/market/'
+      preLoaderRoute: typeof MarketIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/': {
+      id: '/live/'
+      path: '/live'
+      fullPath: '/live/'
+      preLoaderRoute: typeof LiveIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/market/$id': {
+      id: '/market/$id'
+      path: '/market/$id'
+      fullPath: '/market/$id'
+      preLoaderRoute: typeof MarketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/$id': {
+      id: '/live/$id'
+      path: '/live/$id'
+      fullPath: '/live/$id'
+      preLoaderRoute: typeof LiveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  FeedRoute: FeedRoute,
+  ProfileRoute: ProfileRoute,
+  SellRoute: SellRoute,
+  VaultRoute: VaultRoute,
+  LiveIdRoute: LiveIdRoute,
+  MarketIdRoute: MarketIdRoute,
+  LiveIndexRoute: LiveIndexRoute,
+  MarketIndexRoute: MarketIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
