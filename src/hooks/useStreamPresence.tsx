@@ -56,7 +56,7 @@ export function useStreamPresence(streamId: string | null, userId: string | null
       if (!cancelled) setViewers((data as any) || []);
     }
     load();
-    const ch = supabase.channel(`presence-${streamId}`)
+    const ch = supabase.channel(`presence-db-${streamId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` }, load)
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
