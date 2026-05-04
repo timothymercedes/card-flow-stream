@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      break_slots: {
+        Row: {
+          amount: number
+          assigned_at: string | null
+          buyer_id: string
+          buyer_username: string
+          created_at: string
+          id: string
+          stream_id: string
+          team_label: string | null
+        }
+        Insert: {
+          amount: number
+          assigned_at?: string | null
+          buyer_id: string
+          buyer_username: string
+          created_at?: string
+          id?: string
+          stream_id: string
+          team_label?: string | null
+        }
+        Update: {
+          amount?: number
+          assigned_at?: string | null
+          buyer_id?: string
+          buyer_username?: string
+          created_at?: string
+          id?: string
+          stream_id?: string
+          team_label?: string | null
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -267,6 +300,8 @@ export type Database = {
       }
       live_streams: {
         Row: {
+          break_mode: string | null
+          break_teams: Json | null
           cf_live_input_id: string | null
           cf_playback_hls: string | null
           cf_rtmps_url: string | null
@@ -299,6 +334,8 @@ export type Database = {
           seller_id: string
           shipping_method: string | null
           shipping_price: number | null
+          snipe_extends: number
+          snipe_price: number | null
           started_at: string | null
           starting_bid: number
           status: string
@@ -309,6 +346,8 @@ export type Database = {
           winning_bid: number | null
         }
         Insert: {
+          break_mode?: string | null
+          break_teams?: Json | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
           cf_rtmps_url?: string | null
@@ -341,6 +380,8 @@ export type Database = {
           seller_id: string
           shipping_method?: string | null
           shipping_price?: number | null
+          snipe_extends?: number
+          snipe_price?: number | null
           started_at?: string | null
           starting_bid?: number
           status?: string
@@ -351,6 +392,8 @@ export type Database = {
           winning_bid?: number | null
         }
         Update: {
+          break_mode?: string | null
+          break_teams?: Json | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
           cf_rtmps_url?: string | null
@@ -383,6 +426,8 @@ export type Database = {
           seller_id?: string
           shipping_method?: string | null
           shipping_price?: number | null
+          snipe_extends?: number
+          snipe_price?: number | null
           started_at?: string | null
           starting_bid?: number
           status?: string
@@ -774,6 +819,7 @@ export type Database = {
           phone: string | null
           phone_verified: boolean
           phone_verified_at: string | null
+          preferred_currency: string | null
           public_id: string | null
           seller_status: string
           shipping_cap: number | null
@@ -800,6 +846,7 @@ export type Database = {
           phone?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
+          preferred_currency?: string | null
           public_id?: string | null
           seller_status?: string
           shipping_cap?: number | null
@@ -826,6 +873,7 @@ export type Database = {
           phone?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
+          preferred_currency?: string | null
           public_id?: string | null
           seller_status?: string
           shipping_cap?: number | null
@@ -834,6 +882,33 @@ export type Database = {
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
           username?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1014,6 +1089,39 @@ export type Database = {
           story_id?: string
           viewed_at?: string
           viewer_id?: string
+        }
+        Relationships: []
+      }
+      stream_chat_actions: {
+        Row: {
+          action: string
+          by_user_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          stream_id: string
+          target_user_id: string
+          target_username: string
+        }
+        Insert: {
+          action: string
+          by_user_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          stream_id: string
+          target_user_id: string
+          target_username: string
+        }
+        Update: {
+          action?: string
+          by_user_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          stream_id?: string
+          target_user_id?: string
+          target_username?: string
         }
         Relationships: []
       }

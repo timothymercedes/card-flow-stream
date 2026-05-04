@@ -2,10 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2 } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2, Zap, Users, Dice5, Globe, VolumeX, Ban, Clock as ClockIcon } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 import { HlsPlayer } from "@/components/HlsPlayer";
+import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -68,6 +69,23 @@ function LiveDetail() {
   const [annText, setAnnText] = useState("");
   const [hypeCard, setHypeCard] = useState<{ name: string; category: string; set_guess: string; rarity_vibe: string; image: string } | null>(null);
 
+  // 🆕 Anti-snipe banner
+  const [snipeFlash, setSnipeFlash] = useState(false);
+  // 🆕 Snipe / buy-now-during-live
+  const [snipePriceInput, setSnipePriceInput] = useState("");
+  // 🆕 Chat moderation actions
+  const [chatActions, setChatActions] = useState<any[]>([]);
+  const [chatActionMenu, setChatActionMenu] = useState<{ userId: string; username: string } | null>(null);
+  // 🆕 Mystery break (team draw)
+  const [breakSlots, setBreakSlots] = useState<any[]>([]);
+  const [showBreakPanel, setShowBreakPanel] = useState(false);
+  const [breakTeamsInput, setBreakTeamsInput] = useState("");
+  const [breakPrice, setBreakPrice] = useState("10");
+  const [drawAnim, setDrawAnim] = useState(false);
+  // 🆕 Currency display preference (per-viewer)
+  const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
+  const { fmt: fmtMoney } = useCurrency(viewerCurrency);
+
   const isMod = !!user && mods.some((m) => m.mod_user_id === user.id);
   const isStaff = !!user && (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
 
@@ -99,17 +117,39 @@ function LiveDetail() {
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
     supabase.from("stream_shoutouts").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setShoutouts(data || []));
     supabase.from("stream_moderators").select("*").eq("stream_id", id).then(({ data }) => setMods(data || []));
+    supabase.from("stream_chat_actions").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setChatActions(data || []));
+    supabase.from("break_slots").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setBreakSlots(data || []));
 
     const ch = supabase.channel(`live-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` }, (p) => setMessages((m) => [...m, p.new]))
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => setStream(p.new))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => {
+        const next = p.new as any;
+        // 🆕 Detect anti-snipe extension to flash UI
+        setStream((prev: any) => {
+          if (prev && next.snipe_extends > (prev.snipe_extends || 0)) {
+            setSnipeFlash(true);
+            setTimeout(() => setSnipeFlash(false), 1500);
+          }
+          return next;
+        });
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${id}` }, (p) => setShoutouts((s) => [p.new, ...s]))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => [...m, p.new]))
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => m.filter((x) => x.id !== (p.old as any).id)))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_mod_messages", filter: `stream_id=eq.${id}` }, (p) => setModChat((m) => [...m, p.new]))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_chat_actions", filter: `stream_id=eq.${id}` }, (p) => setChatActions((a) => [p.new, ...a]))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => [...s, p.new]))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => s.map((x) => x.id === (p.new as any).id ? p.new : x)))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  // 🆕 Load viewer's preferred currency
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("preferred_currency").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
+  }, [user?.id]);
 
   // Load mod chat once user is known to be staff
   useEffect(() => {
@@ -244,22 +284,63 @@ function LiveDetail() {
     toast.success("Announcement posted");
   }
 
+  // 🆕 Compute who is currently muted/banned in chat (latest action wins per user)
+  const chatBlockSet = useMemo(() => {
+    const latest: Record<string, any> = {};
+    for (const a of [...chatActions].sort((x, y) => +new Date(x.created_at) - +new Date(y.created_at))) {
+      latest[a.target_user_id] = a;
+    }
+    const blocked = new Set<string>();
+    for (const [uid, a] of Object.entries(latest)) {
+      if (a.action === "ban" || a.action === "mute") blocked.add(uid);
+      if (a.action === "timeout" && a.expires_at && +new Date(a.expires_at) > Date.now()) blocked.add(uid);
+      if (a.action === "unmute" || a.action === "unban") blocked.delete(uid);
+    }
+    return blocked;
+  }, [chatActions]);
+  const meBlocked = !!user && chatBlockSet.has(user.id);
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
+    if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
     await sendMsg(input);
     setInput("");
   }
 
+  // 🆕 Anti-snipe: if a bid lands in the final 3s, extend the timer by +5s.
+  // Different from Whatnot's flat 10s/15s — we use a 3s/5s nibble that
+  // resets snappily and shows a fun "⚡ +5s OVERTIME" flash.
   async function placeBidAmount(amount: number) {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
+    if (meBlocked) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
     const cur = Number(stream.current_bid || 0);
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
     const prevBidder = stream.current_bidder_id;
-    const { error } = await supabase.from("live_streams").update({ current_bid: amount, current_bidder_id: user.id }).eq("id", id);
+
+    const update: any = { current_bid: amount, current_bidder_id: user.id };
+    const remainingMs = stream.ends_at ? new Date(stream.ends_at).getTime() - Date.now() : 0;
+    let extended = false;
+    if (remainingMs > 0 && remainingMs <= 3000) {
+      // Add 5s + 1 to extends counter
+      const newEnd = new Date(Date.now() + 5000 + Math.max(remainingMs - 0, 0)).toISOString();
+      // Simpler: ensure at least 5s left from now
+      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 5000).toISOString();
+      update.snipe_extends = Number(stream.snipe_extends || 0) + 1;
+      extended = true;
+    }
+
+    const { error } = await supabase.from("live_streams").update(update).eq("id", id);
     if (error) return toast.error(error.message);
+
+    if (extended) {
+      // Reset auto-end + snapshot guards so the new countdown can re-trigger
+      endedRef.current = false;
+      snapshotRef.current = false;
+      await sendMsg(`⚡ OVERTIME +5s — @${profile.username} struck in the final 3s!`, true);
+    }
     await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
     if (stream.seller_id !== user.id) {
       await supabase.from("notifications").insert({ user_id: stream.seller_id, type: "bid", body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`, link: `/live/${id}` });
@@ -269,6 +350,104 @@ function LiveDetail() {
     }
     // Notify the new top bidder they're winning
     await supabase.from("notifications").insert({ user_id: user.id, type: "winning", body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`, link: `/live/${id}` });
+  }
+
+  // 🆕 Buy-now snipe: instantly win at the host's snipe price
+  async function buyNowSnipe() {
+    if (!user || !profile || !stream?.snipe_price) return;
+    if (isSeller) return;
+    if (!auctionLive) return toast.error("No active auction");
+    const price = Number(stream.snipe_price);
+    // Force win: set bid to snipe price + bidder = me, then end immediately
+    const { error } = await supabase.from("live_streams").update({
+      current_bid: price, current_bidder_id: user.id,
+      ends_at: new Date(Date.now() + 1500).toISOString(),
+      snipe_price: null,
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    endedRef.current = false; snapshotRef.current = false;
+    await sendMsg(`💥 SNIPE! @${profile.username} hit Buy-Now for $${price} — instant win!`, true);
+  }
+
+  // 🆕 Mod chat action — mute/timeout/ban/unblock
+  async function chatAction(target: { userId: string; username: string }, action: "mute" | "timeout" | "ban" | "unmute" | "unban", minutes = 5) {
+    if (!isStaff || !user) return;
+    const expires_at = action === "timeout" ? new Date(Date.now() + minutes * 60_000).toISOString() : null;
+    const { error } = await supabase.from("stream_chat_actions").insert({
+      stream_id: id, target_user_id: target.userId, target_username: target.username,
+      action, by_user_id: user.id, expires_at,
+    });
+    if (error) return toast.error(error.message);
+    const labels: Record<string, string> = { mute: "muted 🔇", timeout: `timed out for ${minutes}m ⏱️`, ban: "banned 🚫", unmute: "unmuted ✅", unban: "unbanned ✅" };
+    toast.success(`@${target.username} ${labels[action]}`);
+    setChatActionMenu(null);
+  }
+
+  // 🆕 Mystery break: random team draw across paid slots
+  async function startBreakMode() {
+    if (!isSeller) return;
+    const teams = breakTeamsInput.split(",").map((s) => s.trim()).filter(Boolean);
+    if (teams.length < 2) return toast.error("List at least 2 teams (comma-separated)");
+    await supabase.from("live_streams").update({
+      break_mode: "open",
+      break_teams: teams,
+    }).eq("id", id);
+    setShowBreakPanel(false);
+    await sendMsg(`🎲 BREAK OPEN — ${teams.length} teams, $${breakPrice}/slot. Hit "Claim Slot" below!`, true);
+    toast.success("Break opened");
+  }
+
+  async function claimBreakSlot() {
+    if (!user || !profile || !stream?.break_teams) return;
+    if (isSeller) return toast.error("Host can't claim slots");
+    const price = Number(breakPrice) || 10;
+    const { error } = await supabase.from("break_slots").insert({
+      stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
+    });
+    if (error) return toast.error(error.message);
+    await sendMsg(`🎟️ @${profile.username} claimed a break slot ($${price})`, true);
+    toast.success("Slot claimed — wait for the draw!");
+  }
+
+  async function drawBreakTeams() {
+    if (!isSeller || !stream?.break_teams) return;
+    const teams = [...(stream.break_teams as string[])];
+    const slots = breakSlots.filter((s) => !s.team_label);
+    if (slots.length === 0) return toast.error("No unassigned slots");
+    setDrawAnim(true);
+    // Fisher-Yates on teams; assign one team per slot (cycle if more slots than teams)
+    for (let i = teams.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [teams[i], teams[j]] = [teams[j], teams[i]];
+    }
+    setTimeout(async () => {
+      for (let i = 0; i < slots.length; i++) {
+        const team = teams[i % teams.length];
+        await supabase.from("break_slots").update({
+          team_label: team, assigned_at: new Date().toISOString(),
+        }).eq("id", slots[i].id);
+        await sendMsg(`🎉 @${slots[i].buyer_username} pulled ${team}!`, true);
+      }
+      await supabase.from("live_streams").update({ break_mode: "closed" }).eq("id", id);
+      setDrawAnim(false);
+      toast.success("Teams drawn!");
+    }, 2200);
+  }
+
+  async function setSnipePriceNow() {
+    if (!isSeller) return;
+    const v = Number(snipePriceInput);
+    if (!v || v <= Number(stream.current_bid || 0)) return toast.error("Snipe price must be above current bid");
+    await supabase.from("live_streams").update({ snipe_price: v }).eq("id", id);
+    await sendMsg(`💸 Buy-Now SNIPE set at $${v} — first to hit it wins instantly!`, true);
+    setSnipePriceInput("");
+    toast.success("Snipe price set");
+  }
+
+  async function saveCurrencyPref(c: Currency) {
+    setViewerCurrency(c);
+    if (!user) return;
+    await supabase.from("profiles").update({ preferred_currency: c }).eq("id", user.id);
   }
 
   async function startAuction() {
@@ -289,6 +468,8 @@ function LiveDetail() {
       winner_id: null,
       winning_bid: null,
       winner_username: null,
+      snipe_extends: 0,
+      snipe_price: null,
     }).eq("id", id);
     endedRef.current = false;
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}`, true);
@@ -483,6 +664,7 @@ function LiveDetail() {
       update.starting_bid = start;
       update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
       update.winner_id = null; update.winning_bid = null; update.winner_username = null;
+      update.snipe_extends = 0; update.snipe_price = null;
       endedRef.current = false; snapshotRef.current = false;
     }
     supabase.from("live_streams").update(update).eq("id", id);
@@ -613,22 +795,47 @@ function LiveDetail() {
               <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">{stream.current_condition}</span>
             )}
             {auctionLive && (
-              <div className="flex shrink-0 items-center gap-1 rounded-md bg-live px-2 py-1 text-sm font-extrabold tabular-nums text-live-foreground">
+              <div className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-extrabold tabular-nums transition ${snipeFlash ? "bg-yellow-400 text-black scale-110 ring-2 ring-yellow-200" : "bg-live text-live-foreground"}`}>
                 <Timer className="h-4 w-4" /> {fmtRemaining(remaining)}
+                {Number(stream.snipe_extends || 0) > 0 && (
+                  <span className="ml-1 rounded bg-black/30 px-1 text-[9px]">+{stream.snipe_extends}× OT</span>
+                )}
               </div>
             )}
           </div>
+          {snipeFlash && (
+            <div className="mt-1 animate-in zoom-in rounded-lg bg-yellow-400 px-3 py-1.5 text-center text-xs font-extrabold tracking-wide text-black shadow-lg">
+              ⚡ OVERTIME +5s — last-second strike!
+            </div>
+          )}
           {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
           {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
-              📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
+              📦 {stream.shipping_method || "Shipping"} — {fmtMoney(Number(stream.shipping_price || 0))}
             </p>
           ) : null}
-          {auctionLive && stream.current_bidder_id && (
-            <p className="mt-1 inline-block rounded-lg bg-primary/60 px-3 py-1 text-[10px] font-bold backdrop-blur">
-              🥇 Winning: bid ${Number(stream.current_bid || 0).toFixed(0)}
+          {auctionLive && stream.snipe_price && (
+            <p className="mt-1 inline-block rounded-lg bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold text-black backdrop-blur">
+              💸 SNIPE: hit {fmtMoney(Number(stream.snipe_price))} to win NOW
             </p>
           )}
+          {auctionLive && stream.current_bidder_id && (
+            <p className="mt-1 inline-block rounded-lg bg-primary/60 px-3 py-1 text-[10px] font-bold backdrop-blur">
+              🥇 Winning bid: {fmtMoney(Number(stream.current_bid || 0))}
+            </p>
+          )}
+          {/* 🆕 Currency selector */}
+          <div className="mt-1 flex items-center gap-1">
+            <Globe className="h-3 w-3 opacity-60" />
+            <select
+              value={viewerCurrency}
+              onChange={(e) => saveCurrencyPref(e.target.value as Currency)}
+              className="rounded bg-black/40 px-1.5 py-0.5 text-[10px] outline-none backdrop-blur"
+              title="Display currency (charges always in USD)"
+            >
+              {SUPPORTED_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
       )}
 
@@ -730,9 +937,20 @@ function LiveDetail() {
                 );
               }
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
+              const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
-                <div key={m.id} className="max-w-[85%] rounded-lg bg-black/50 px-2.5 py-1 text-xs backdrop-blur">
-                  <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
+                <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50"}`}>
+                  {isStaff && m.user_id && m.user_id !== user?.id && m.user_id !== stream.seller_id ? (
+                    <button
+                      onClick={() => setChatActionMenu({ userId: m.user_id, username: m.username })}
+                      className="mr-1 font-semibold text-live-foreground hover:underline"
+                      title="Mod actions"
+                    >
+                      @{m.username}:
+                    </button>
+                  ) : (
+                    <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
+                  )}
                   <span>
                     {parts.map((p, i) => p.startsWith("@") ? (
                       <Link key={i} to="/seller/$username" params={{ username: p.slice(1) }} className="font-semibold text-primary hover:underline">{p}</Link>
@@ -758,20 +976,41 @@ function LiveDetail() {
           </div>
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
-            <p className="text-2xl font-bold text-primary">${Number(stream.current_bid || 0).toFixed(0)}</p>
+            <p className="text-2xl font-bold text-primary">{fmtMoney(Number(stream.current_bid || 0))}</p>
           </div>
         </div>
+
+        {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
+        {!isSeller && auctionLive && stream.snipe_price && !meBlocked && (
+          <button
+            onClick={buyNowSnipe}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-2.5 text-sm font-extrabold text-black shadow-lg ring-2 ring-yellow-200 active:scale-[0.98]"
+          >
+            <Zap className="h-4 w-4" /> SNIPE Buy-Now {fmtMoney(Number(stream.snipe_price))}
+          </button>
+        )}
+
+        {/* 🆕 Mystery break — Claim Slot for buyers */}
+        {!isSeller && stream.break_mode === "open" && (
+          <button
+            onClick={claimBreakSlot}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+          >
+            <Dice5 className="h-4 w-4" /> Claim Mystery Break Slot · ${breakPrice}
+          </button>
+        )}
 
         {!isSeller && (
           <div className="flex gap-2">
             <button
-              onPointerDown={bidDisabled ? undefined : startHold}
-              disabled={bidDisabled}
+              onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
+              disabled={bidDisabled || meBlocked}
               className="flex-1 select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             >
-              {bidDisabled
-                ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
-                : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
+              {meBlocked ? "🚫 You're muted/banned"
+                : bidDisabled
+                  ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                  : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
             </button>
             {!ended && (
               <button
@@ -797,6 +1036,22 @@ function LiveDetail() {
                 <Play className="h-3.5 w-3.5" /> Start Auction
               </button>
             )}
+            {/* 🆕 Snipe price quick-set for hosts during a live auction */}
+            {auctionLive && (
+              <div className="flex flex-1 items-center gap-1 rounded-xl bg-yellow-500/20 px-2 py-1">
+                <Zap className="h-3.5 w-3.5 text-yellow-300" />
+                <input
+                  type="number" min="1" inputMode="decimal"
+                  value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
+                  placeholder="Snipe $"
+                  className="w-16 bg-transparent text-xs text-yellow-100 outline-none placeholder:text-yellow-200/50"
+                />
+                <button onClick={setSnipePriceNow} className="rounded-md bg-yellow-400 px-2 py-1 text-[10px] font-bold text-black">Set</button>
+              </div>
+            )}
+            <button onClick={() => setShowBreakPanel(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2.5 text-xs font-bold text-white">
+              <Dice5 className="h-3.5 w-3.5" /> Break
+            </button>
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
             </button>
@@ -829,11 +1084,11 @@ function LiveDetail() {
               if (m) { setTagOpen(true); searchUsers(m[1], setTagResults); }
               else { setTagOpen(false); setTagResults([]); }
             }}
-            placeholder={user ? "Say something... use @ to tag" : "Sign in to chat"}
-            disabled={!user}
+            placeholder={!user ? "Sign in to chat" : meBlocked ? "🚫 You're muted in this stream" : "Say something... use @ to tag"}
+            disabled={!user || meBlocked}
             className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
           />
-          <button type="submit" className="rounded-full bg-primary p-2.5 text-primary-foreground"><Send className="h-4 w-4" /></button>
+          <button type="submit" disabled={meBlocked} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
       </div>
 
@@ -1034,6 +1289,97 @@ function LiveDetail() {
             <button onClick={() => { setShowModPanel(false); setAnnOpen(true); }} className="m-2 mt-0 rounded-lg bg-accent py-2 text-xs font-bold text-accent-foreground">
               <Megaphone className="mr-1 inline h-3.5 w-3.5" /> Post public announcement
             </button>
+          </div>
+        </div>
+      )}
+      {/* 🆕 Chat-action menu (mod taps a username) */}
+      {chatActionMenu && isStaff && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setChatActionMenu(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-bold">Mod actions · @{chatActionMenu.username}</p>
+              <button onClick={() => setChatActionMenu(null)}><X className="h-4 w-4" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => chatAction(chatActionMenu, "mute")} className="flex items-center justify-center gap-1 rounded-lg bg-amber-500/20 py-2 text-xs font-bold text-amber-300">
+                <VolumeX className="h-3.5 w-3.5" /> Mute
+              </button>
+              <button onClick={() => chatAction(chatActionMenu, "timeout", 5)} className="flex items-center justify-center gap-1 rounded-lg bg-amber-600/20 py-2 text-xs font-bold text-amber-200">
+                <ClockIcon className="h-3.5 w-3.5" /> 5m timeout
+              </button>
+              <button onClick={() => chatAction(chatActionMenu, "ban")} className="flex items-center justify-center gap-1 rounded-lg bg-red-500/20 py-2 text-xs font-bold text-red-300">
+                <Ban className="h-3.5 w-3.5" /> Ban
+              </button>
+              <button onClick={() => chatAction(chatActionMenu, "unmute")} className="flex items-center justify-center gap-1 rounded-lg bg-primary/20 py-2 text-xs font-bold text-primary">
+                ✅ Lift mute/ban
+              </button>
+            </div>
+            <p className="mt-3 text-[10px] text-muted-foreground">Mute hides their chat & blocks bidding. Timeout expires automatically.</p>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Mystery Break panel (host opens, sets teams + price) */}
+      {showBreakPanel && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowBreakPanel(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Dice5 className="h-4 w-4 text-primary" /> Mystery Break</p>
+              <button onClick={() => setShowBreakPanel(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              List teams (or any labels) — buyers claim a slot, then you tap "Draw" to randomly assign.
+              Hits the Whatnot use-case, but with a fair on-screen shuffle anim.
+            </p>
+            <input
+              value={breakTeamsInput}
+              onChange={(e) => setBreakTeamsInput(e.target.value)}
+              placeholder="e.g. Lakers, Warriors, Celtics, Heat..."
+              className="mb-2 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Price/slot $</span>
+              <input
+                type="number" min="1" value={breakPrice} onChange={(e) => setBreakPrice(e.target.value)}
+                className="w-20 rounded-lg bg-input px-2 py-1 text-xs outline-none"
+              />
+            </div>
+            {stream.break_mode === "open" ? (
+              <>
+                <div className="mb-2 max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-2 text-[11px]">
+                  <p className="mb-1 font-semibold">Slots claimed: {breakSlots.length}</p>
+                  {breakSlots.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between py-0.5">
+                      <span>@{s.buyer_username}</span>
+                      <span className="font-bold text-primary">{s.team_label || "—"}</span>
+                    </div>
+                  ))}
+                  {breakSlots.length === 0 && <p className="text-muted-foreground">Waiting for buyers to claim…</p>}
+                </div>
+                <button
+                  onClick={drawBreakTeams}
+                  disabled={drawAnim || breakSlots.length === 0}
+                  className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
+                >
+                  {drawAnim ? "🎲 Shuffling…" : "🎲 Draw teams now"}
+                </button>
+              </>
+            ) : (
+              <button onClick={startBreakMode} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+                <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Live break-draw celebration overlay */}
+      {drawAnim && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur">
+          <div className="animate-in zoom-in text-center">
+            <Dice5 className="mx-auto h-16 w-16 animate-spin text-yellow-300" />
+            <p className="mt-3 text-2xl font-extrabold tracking-wider text-white">SHUFFLING TEAMS…</p>
+            <p className="mt-1 text-sm text-white/70">Random fair draw in progress</p>
           </div>
         </div>
       )}
