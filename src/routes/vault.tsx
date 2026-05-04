@@ -58,11 +58,27 @@ function Vault() {
 
   async function add() {
     if (!name.trim()) return toast.error("Card name required");
+    let identified = { name, category: category || "Trading Card", estimated_value: Number(estValue) || 0 };
+    // If user typed but didn't scan/value, try TCG identification + valuation via AI
+    if (!estValue || !category) {
+      try {
+        const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: name } });
+        if (!error && data) {
+          identified = {
+            name: data.name || name,
+            category: category || data.category || "Trading Card",
+            estimated_value: Number(estValue) || Number(data.estimated_value) || 0,
+          };
+          toast.success(`Identified: ${identified.name} (~$${identified.estimated_value})`);
+        }
+      } catch {/* ignore */}
+    }
     const { error } = await supabase.from("vault_cards").insert({
-      user_id: user!.id, name, category: category || null, image_url: imageUrl || null,
+      user_id: user!.id, name: identified.name, category: identified.category, image_url: imageUrl || null,
       description: description || null,
-      estimated_value: Number(estValue) || 0,
+      estimated_value: identified.estimated_value,
       price: price ? Number(price) : null,
+      last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
     resetForm(); setShowAdd(false);
