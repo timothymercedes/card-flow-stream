@@ -35,6 +35,8 @@ function LiveDetail() {
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [pinned, setPinned] = useState(true);
+  const [hiddenSysIds, setHiddenSysIds] = useState<Set<string>>(new Set());
+  const snapshotRef = useRef(false);
   const [tagOpen, setTagOpen] = useState(false);
   const [tagResults, setTagResults] = useState<any[]>([]);
   const [shareOpen, setShareOpen] = useState(false);
@@ -102,15 +104,53 @@ function LiveDetail() {
   const auctionLive = !!stream?.ends_at && remaining > 0 && stream?.status === "live";
   const auctionFinished = !!stream?.ends_at && remaining <= 0;
 
-  // Auto-end auction round when timer hits 0 (seller drives this)
+  // Auto-end auction round when timer hits 0 (seller drives this); snapshot at T-2s
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || !stream.ends_at) return;
+    if (!snapshotRef.current && remaining > 0 && remaining <= 2000) {
+      snapshotRef.current = true;
+      captureSnapshot();
+    }
     if (endedRef.current) return;
     if (remaining <= 0) {
       endedRef.current = true;
       finalizeAuctionRound();
     }
   }, [remaining, isSeller, stream?.status]);
+
+  // Auto-hide system notifications after 5s
+  useEffect(() => {
+    const sysMsgs = messages.filter((m) => m.is_system && !hiddenSysIds.has(m.id));
+    const timers = sysMsgs.map((m) => {
+      const age = Date.now() - new Date(m.created_at).getTime();
+      const remain = Math.max(0, 5000 - age);
+      return setTimeout(() => {
+        setHiddenSysIds((s) => new Set(s).add(m.id));
+      }, remain);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [messages]);
+
+  async function captureSnapshot(): Promise<string | null> {
+    try {
+      const v = videoRef.current;
+      if (!v || !v.videoWidth) return null;
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(v, 0, 0);
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.85));
+      if (!blob) return null;
+      const path = `${user!.id}/${id}-${Date.now()}.jpg`;
+      const { error } = await supabase.storage.from("order-snapshots").upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) { console.error(error); return null; }
+      const { data: pub } = supabase.storage.from("order-snapshots").getPublicUrl(path);
+      const url = pub.publicUrl;
+      await supabase.from("live_streams").update({ item_image_url: url }).eq("id", id);
+      return url;
+    } catch (e) { console.error(e); return null; }
+  }
 
   async function sendMsg(content: string, isSystem = false) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
@@ -199,15 +239,32 @@ function LiveDetail() {
     if (!stream) return;
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
-    let winnerUsername: string | null = null;
+    // Ensure we have a snapshot if not already captured
+    let snapshot = stream.item_image_url;
+    if (!snapshot && isSeller) snapshot = await captureSnapshot();
     if (winnerId) {
-      const { data: p } = await supabase.from("profiles").select("username").eq("id", winnerId).maybeSingle();
-      winnerUsername = p?.username || "buyer";
+      const { data: p } = await supabase.from("profiles").select("username, address_line1, address_city, address_state, address_zip, address_country, full_name").eq("id", winnerId).maybeSingle();
+      const winnerUsername = p?.username || "buyer";
       await supabase.from("receipts").insert({
         stream_id: id, buyer_id: winnerId, seller_id: stream.seller_id,
         item_name: stream.current_item || stream.title,
-        item_image_url: stream.item_image_url || null,
+        item_image_url: snapshot || null,
         amount: winningBid,
+      });
+      // Create order so it appears in buyer's "My Orders" and seller's "My Store"
+      await supabase.from("orders").insert({
+        buyer_id: winnerId, seller_id: stream.seller_id,
+        title: stream.current_item || stream.title,
+        description: stream.item_description || null,
+        amount: winningBid + Number(stream.shipping_price || 0),
+        item_image_url: snapshot || null,
+        stream_id: id,
+        ship_name: p?.full_name || winnerUsername,
+        ship_address: p?.address_line1 || "",
+        ship_city: p?.address_city || "",
+        ship_state: p?.address_state || "",
+        ship_zip: p?.address_zip || "",
+        ship_country: p?.address_country || "US",
       });
       await supabase.from("notifications").insert({
         user_id: winnerId, type: "won",
@@ -218,11 +275,20 @@ function LiveDetail() {
       await supabase.from("live_streams").update({
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
       }).eq("id", id);
+      // Clear winner banner + ends_at after 5s
+      setTimeout(async () => {
+        await supabase.from("live_streams").update({
+          ends_at: null, winner_id: null, winning_bid: null, winner_username: null, current_bidder_id: null,
+        }).eq("id", id);
+        endedRef.current = false;
+        snapshotRef.current = false;
+      }, 5000);
     } else {
-      // No bid: clear the ended auction state after 5s so the banner disappears
+      // No winner: silently clear after 5s, no banner/notif
       setTimeout(async () => {
         await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
         endedRef.current = false;
+        snapshotRef.current = false;
       }, 5000);
     }
   }
@@ -318,15 +384,8 @@ function LiveDetail() {
       {/* Top bar */}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4" /></Link>
-        <div className="flex items-center gap-2">
-          <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
-            {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
-          </div>
-          {auctionLive && (
-            <div className="flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold backdrop-blur">
-              <Timer className="h-3 w-3" /> {fmtRemaining(remaining)}
-            </div>
-          )}
+        <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
+          {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
         </div>
         <div className="flex gap-1">
           <button onClick={() => setShareOpen(true)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Share2 className="h-4 w-4" /></button>
@@ -347,7 +406,14 @@ function LiveDetail() {
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
         <div className="absolute left-3 right-3 top-14 z-10">
-          <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
+          <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
+            <p className="flex-1 truncate text-sm font-semibold">{stream.title}</p>
+            {auctionLive && (
+              <div className="flex shrink-0 items-center gap-1 rounded-md bg-live px-2 py-1 text-sm font-extrabold tabular-nums text-live-foreground">
+                <Timer className="h-4 w-4" /> {fmtRemaining(remaining)}
+              </div>
+            )}
+          </div>
           {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
           {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
@@ -411,9 +477,9 @@ function LiveDetail() {
       )}
 
       {/* Auction notification feed (separate from chat, pinnable) */}
-      {pinned && messages.some((m) => m.is_system) && (
+      {pinned && messages.some((m) => m.is_system && !hiddenSysIds.has(m.id)) && (
         <div className="pointer-events-none absolute right-3 top-32 z-10 flex max-h-[28vh] w-56 flex-col items-end gap-1 overflow-hidden">
-          {messages.filter((m) => m.is_system).slice(-5).map((m) => (
+          {messages.filter((m) => m.is_system && !hiddenSysIds.has(m.id)).slice(-5).map((m) => (
             <div key={m.id} className="rounded-lg bg-primary/60 px-2.5 py-1 text-[11px] text-white backdrop-blur">
               <Sparkles className="mr-1 inline h-3 w-3" />{m.content}
             </div>

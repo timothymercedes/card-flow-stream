@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Package, Truck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/orders")({ component: Orders });
+export const Route = createFileRoute("/store")({ component: MyStore });
 
 function StatusIcon({ s }: { s: string }) {
   if (s === "delivered") return <CheckCircle2 className="h-4 w-4 text-primary" />;
@@ -14,29 +14,33 @@ function StatusIcon({ s }: { s: string }) {
   return <Package className="h-4 w-4 text-muted-foreground" />;
 }
 
-function Orders() {
+function MyStore() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
+  const [tracking, setTracking] = useState<Record<string, string>>({});
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("orders").select("*").eq("buyer_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
     setOrders(data || []);
   }
   useEffect(() => { load(); }, [user]);
 
-  async function deliver(o: any) {
-    const { error } = await supabase.from("orders").update({ status: "delivered", delivered_at: new Date().toISOString() }).eq("id", o.id);
+  async function ship(o: any) {
+    const tn = tracking[o.id];
+    if (!tn) return toast.error("Add tracking number");
+    const { error } = await supabase.from("orders").update({ status: "shipped", tracking_number: tn, shipped_at: new Date().toISOString() }).eq("id", o.id);
     if (error) return toast.error(error.message);
-    toast.success("Marked delivered");
+    await supabase.from("notifications").insert({ user_id: o.buyer_id, type: "order", body: `Your "${o.title}" shipped — ${tn}`, link: "/orders" });
+    toast.success("Marked shipped");
     load();
   }
 
   if (!user) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
-        <h1 className="text-xl font-bold">My Orders</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Sign in to view your orders.</p>
+        <h1 className="text-xl font-bold">My Store</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Sign in to view items you've sold.</p>
         <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Sign In</Link>
       </div>
     </AppShell>
@@ -45,9 +49,9 @@ function Orders() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-1 text-2xl font-bold">My Orders</h1>
-        <p className="mb-4 text-xs text-muted-foreground">Items you've purchased</p>
-        {orders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No orders yet</p>}
+        <h1 className="mb-1 text-2xl font-bold">My Store</h1>
+        <p className="mb-4 text-xs text-muted-foreground">Items you've sold via live or marketplace</p>
+        {orders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No sales yet</p>}
         <div className="space-y-3">
           {orders.map((o) => (
             <div key={o.id} className="rounded-xl bg-card p-3">
@@ -64,8 +68,11 @@ function Orders() {
               </div>
               <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
               {o.tracking_number && <p className="text-[11px] text-primary">Tracking: {o.tracking_number}</p>}
-              {o.status === "shipped" && (
-                <button onClick={() => deliver(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
+              {o.status === "pending" && (
+                <div className="mt-2 flex gap-2">
+                  <input value={tracking[o.id] || ""} onChange={(e) => setTracking({ ...tracking, [o.id]: e.target.value })} placeholder="Tracking #" className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+                  <button onClick={() => ship(o)} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Ship</button>
+                </div>
               )}
             </div>
           ))}

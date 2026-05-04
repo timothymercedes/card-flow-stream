@@ -13,6 +13,7 @@ function Sell() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
   const [tab, setTab] = useState<"live" | "listing">("live");
+  const [sellerStatus, setSellerStatus] = useState<string | null>(null);
 
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
@@ -31,6 +32,11 @@ function Sell() {
   const [acceptsOffers, setAcceptsOffers] = useState(false);
   const [auctionDays, setAuctionDays] = useState("3");
 
+  // Load seller status
+  if (user && sellerStatus === null) {
+    supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle().then(({ data }) => setSellerStatus((data as any)?.seller_status || "none"));
+  }
+
   if (!user) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
@@ -41,9 +47,22 @@ function Sell() {
     </AppShell>
   );
 
+  if (sellerStatus && sellerStatus !== "approved") return (
+    <AppShell>
+      <div className="px-6 py-16 text-center">
+        <h1 className="text-xl font-bold">Seller application required</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {sellerStatus === "pending" ? "Your application is awaiting admin approval." : "Apply to sell from your profile (verified ID + mailing address required)."}
+        </p>
+        <Link to="/profile" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Go to Profile</Link>
+      </div>
+    </AppShell>
+  );
+
   async function ensureSeller() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
+
 
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");

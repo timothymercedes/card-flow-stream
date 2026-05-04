@@ -388,7 +388,9 @@ export type Database = {
           carrier: string | null
           created_at: string
           delivered_at: string | null
+          description: string | null
           id: string
+          item_image_url: string | null
           listing_id: string | null
           seller_id: string
           ship_address: string
@@ -399,6 +401,7 @@ export type Database = {
           ship_zip: string
           shipped_at: string | null
           status: string
+          stream_id: string | null
           title: string
           tracking_number: string | null
         }
@@ -408,7 +411,9 @@ export type Database = {
           carrier?: string | null
           created_at?: string
           delivered_at?: string | null
+          description?: string | null
           id?: string
+          item_image_url?: string | null
           listing_id?: string | null
           seller_id: string
           ship_address: string
@@ -419,6 +424,7 @@ export type Database = {
           ship_zip: string
           shipped_at?: string | null
           status?: string
+          stream_id?: string | null
           title: string
           tracking_number?: string | null
         }
@@ -428,7 +434,9 @@ export type Database = {
           carrier?: string | null
           created_at?: string
           delivered_at?: string | null
+          description?: string | null
           id?: string
+          item_image_url?: string | null
           listing_id?: string | null
           seller_id?: string
           ship_address?: string
@@ -439,6 +447,7 @@ export type Database = {
           ship_zip?: string
           shipped_at?: string | null
           status?: string
+          stream_id?: string | null
           title?: string
           tracking_number?: string | null
         }
@@ -551,24 +560,57 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_city: string | null
+          address_country: string | null
+          address_line1: string | null
+          address_state: string | null
+          address_zip: string | null
           avatar_url: string | null
+          buyer_verified: boolean
           created_at: string
+          full_name: string | null
           id: string
+          id_document_url: string | null
+          id_status: string
           is_seller: boolean
+          phone: string | null
+          seller_status: string
           username: string
         }
         Insert: {
+          address_city?: string | null
+          address_country?: string | null
+          address_line1?: string | null
+          address_state?: string | null
+          address_zip?: string | null
           avatar_url?: string | null
+          buyer_verified?: boolean
           created_at?: string
+          full_name?: string | null
           id: string
+          id_document_url?: string | null
+          id_status?: string
           is_seller?: boolean
+          phone?: string | null
+          seller_status?: string
           username: string
         }
         Update: {
+          address_city?: string | null
+          address_country?: string | null
+          address_line1?: string | null
+          address_state?: string | null
+          address_zip?: string | null
           avatar_url?: string | null
+          buyer_verified?: boolean
           created_at?: string
+          full_name?: string | null
           id?: string
+          id_document_url?: string | null
+          id_status?: string
           is_seller?: boolean
+          phone?: string | null
+          seller_status?: string
           username?: string
         }
         Relationships: []
