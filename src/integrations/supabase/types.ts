@@ -14,7 +14,282 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_system: boolean
+          stream_id: string
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          stream_id: string
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          stream_id?: string
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_bids: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_bids_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_bids_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          created_at: string
+          current_bid: number | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_auction: boolean
+          price: number | null
+          seller_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          current_bid?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_auction?: boolean
+          price?: number | null
+          seller_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          current_bid?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_auction?: boolean
+          price?: number | null
+          seller_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_streams: {
+        Row: {
+          created_at: string
+          current_bid: number
+          current_bidder_id: string | null
+          current_item: string | null
+          id: string
+          is_active: boolean
+          seller_id: string
+          thumbnail_url: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          current_bid?: number
+          current_bidder_id?: string | null
+          current_item?: string | null
+          id?: string
+          is_active?: boolean
+          seller_id: string
+          thumbnail_url?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          current_bid?: number
+          current_bidder_id?: string | null
+          current_item?: string | null
+          id?: string
+          is_active?: boolean
+          seller_id?: string
+          thumbnail_url?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_streams_current_bidder_id_fkey"
+            columns: ["current_bidder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_streams_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          image_url: string | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          caption: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          is_seller: boolean
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          is_seller?: boolean
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_seller?: boolean
+          username?: string
+        }
+        Relationships: []
+      }
+      vault_cards: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
