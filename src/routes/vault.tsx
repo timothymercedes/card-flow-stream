@@ -10,12 +10,14 @@ import { CardScanner } from "@/components/CardScanner";
 export const Route = createFileRoute("/vault")({ component: Vault });
 
 type Condition = "NM" | "LP" | "MP" | "Damaged";
+type ConditionPrices = { NM?: number; LP?: number; MP?: number; Damaged?: number };
 type Card = {
   id: string; user_id: string; name: string; category: string | null;
-  image_url: string | null; description: string | null;
+  image_url: string | null; back_image_url?: string | null; description: string | null;
   estimated_value: number | null; price: number | null;
-  tcg_number?: string | null; tcg_set?: string | null;
+  tcg_number?: string | null; tcg_set?: string | null; tcg_year?: string | null;
   condition?: Condition | null;
+  condition_prices?: ConditionPrices | null;
 };
 
 function Vault() {
@@ -32,10 +34,13 @@ function Vault() {
   const [name, setName] = useState("");
   const [tcgNumber, setTcgNumber] = useState("");
   const [tcgSet, setTcgSet] = useState("");
+  const [tcgYear, setTcgYear] = useState("");
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [backImageUrl, setBackImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [estValue, setEstValue] = useState(""); // auto-filled, read-only
+  const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
   const [identifying, setIdentifying] = useState(false);
@@ -63,8 +68,9 @@ function Vault() {
   );
 
   function resetForm() {
-    setName(""); setTcgNumber(""); setTcgSet(""); setCategory(""); setImageUrl("");
-    setDescription(""); setEstValue(""); setPrice(""); setCondition("NM");
+    setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
+    setImageUrl(""); setBackImageUrl("");
+    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -75,17 +81,38 @@ function Vault() {
     reader.readAsDataURL(f);
   }
 
+  function priceFor(cond: Condition, base: number, cp: ConditionPrices | null | undefined): number {
+    if (cp && cp[cond] && Number(cp[cond])) return Number(cp[cond]);
+    const mult = cond === "NM" ? 1 : cond === "LP" ? 0.85 : cond === "MP" ? 0.6 : 0.25;
+    return Math.max(0.5, Math.round(base * mult * 100) / 100);
+  }
+
+  // Auto-update displayed value when condition changes (uses condition_prices map)
+  useEffect(() => {
+    if (!condPrices) return;
+    const base = Number(condPrices.NM) || 0;
+    if (!base) return;
+    setEstValue(String(priceFor(condition, base, condPrices)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [condition, condPrices]);
+
   async function identifyNow() {
     if (!name.trim()) return toast.error("Enter a card name first");
     setIdentifying(true);
     try {
-      const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`].filter(Boolean).join(" ");
+      const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
       const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
       if (error) throw error;
       if (data?.name) setName(data.name);
       if (data?.category && !category) setCategory(data.category);
-      if (data?.estimated_value) setEstValue(String(data.estimated_value));
-      toast.success(`Identified: ${data?.name || name} ~$${data?.estimated_value || "?"}`);
+      if (data?.set && !tcgSet) setTcgSet(data.set);
+      if (data?.year && !tcgYear) setTcgYear(String(data.year));
+      if (data?.tcg_number && !tcgNumber) setTcgNumber(data.tcg_number);
+      const cp: ConditionPrices | null = data?.condition_prices || null;
+      setCondPrices(cp);
+      const base = Number(data?.estimated_value) || 0;
+      if (base) setEstValue(String(priceFor(condition, base, cp)));
+      toast.success(`Identified: ${data?.name || name} • ${data?.set || ""} ${data?.year || ""}`);
     } catch (e: any) { toast.error(e?.message || "Identification failed"); }
     finally { setIdentifying(false); }
   }
@@ -94,20 +121,32 @@ function Vault() {
     if (!name.trim()) return toast.error("Card name required");
     let value = Number(estValue) || 0;
     let cat = category;
+    let cp: ConditionPrices | null = condPrices;
+    let setName2 = tcgSet, year2 = tcgYear, num2 = tcgNumber;
     // If value is missing, auto-identify (value cannot be edited manually)
     if (!value) {
       try {
-        const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`].filter(Boolean).join(" ");
+        const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
         const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
-        if (data) { value = Number(data.estimated_value) || 0; cat = cat || data.category || "Trading Card"; }
+        if (data) {
+          cp = data.condition_prices || null;
+          const base = Number(data.estimated_value) || 0;
+          value = priceFor(condition, base, cp);
+          cat = cat || data.category || "Trading Card";
+          setName2 = setName2 || data.set || "";
+          year2 = year2 || (data.year ? String(data.year) : "");
+          num2 = num2 || data.tcg_number || "";
+        }
       } catch {/* ignore */}
     }
     const { error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name, category: cat || "Trading Card",
-      image_url: imageUrl || null, description: description || null,
+      image_url: imageUrl || null, back_image_url: backImageUrl || null,
+      description: description || null,
       estimated_value: value,
+      condition_prices: cp as any,
       price: price ? Number(price) : null,
-      tcg_number: tcgNumber || null, tcg_set: tcgSet || null,
+      tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
       last_valued_at: new Date().toISOString(),
     });
@@ -121,13 +160,19 @@ function Vault() {
   }
   async function saveEdit() {
     if (!editing) return;
-    // estimated_value is auto-managed by TCG; do not allow manual edit
+    // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
+    let newValue = editing.estimated_value;
+    if (editing.condition_prices) {
+      newValue = priceFor((editing.condition || "NM") as Condition, Number(editing.condition_prices.NM || editing.estimated_value || 0), editing.condition_prices);
+    }
     const { error } = await supabase.from("vault_cards").update({
       name: editing.name, category: editing.category, image_url: editing.image_url,
+      back_image_url: editing.back_image_url || null,
       description: editing.description,
       price: editing.price != null ? Number(editing.price) : null,
-      tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null,
+      tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
+      estimated_value: newValue,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
     toast.success("Saved");
@@ -137,11 +182,19 @@ function Vault() {
 
   async function refreshValue(card: Card) {
     try {
-      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`].filter(Boolean).join(" ");
+      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`, card.tcg_year && `year: ${card.tcg_year}`].filter(Boolean).join(" ");
       const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
-      const v = Number(data?.estimated_value);
-      if (!isFinite(v) || v <= 0) return toast.error("Couldn't get a price");
-      await supabase.from("vault_cards").update({ estimated_value: v, last_valued_at: new Date().toISOString() }).eq("id", card.id);
+      const base = Number(data?.estimated_value);
+      if (!isFinite(base) || base <= 0) return toast.error("Couldn't get a price");
+      const cp: ConditionPrices | null = data?.condition_prices || null;
+      const v = priceFor((card.condition || "NM") as Condition, base, cp);
+      await supabase.from("vault_cards").update({
+        estimated_value: v, condition_prices: cp as any,
+        tcg_set: card.tcg_set || data?.set || null,
+        tcg_year: card.tcg_year || (data?.year ? String(data.year) : null),
+        tcg_number: card.tcg_number || data?.tcg_number || null,
+        last_valued_at: new Date().toISOString(),
+      }).eq("id", card.id);
       toast.success(`Updated to $${v}`);
       load();
     } catch (e: any) { toast.error(e?.message || "Refresh failed"); }
@@ -153,7 +206,10 @@ function Vault() {
     toast.success(`Identified: ${r.name}`);
   }
 
-  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) {
+  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) {
+    if (!card.image_url) return toast.error("Front photo required");
+    const back = card.back_image_url || opts.backImage;
+    if (!back) return toast.error("Back photo required to sell");
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
@@ -161,6 +217,7 @@ function Vault() {
       seller_id: user!.id, title: card.name,
       description: (card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc,
       image_url: card.image_url,
+      back_image_url: back,
       listing_type: primary,
       is_auction: opts.auction,
       accepts_offers: opts.offer,
@@ -172,8 +229,13 @@ function Vault() {
       condition: card.condition || null,
       tcg_number: card.tcg_number || null,
       tcg_set: card.tcg_set || null,
+      tcg_year: card.tcg_year || null,
     }).select().single();
     if (error) return toast.error(error.message);
+    // Persist back image to vault if newly captured
+    if (!card.back_image_url && opts.backImage) {
+      await supabase.from("vault_cards").update({ back_image_url: opts.backImage }).eq("id", card.id);
+    }
     toast.success("Listed!");
     setSelling(null);
     nav({ to: "/market/$id", params: { id: data.id } });
@@ -209,15 +271,24 @@ function Vault() {
 
         {showAdd && (
           <div className="mb-4 space-y-2 rounded-xl bg-card p-3">
-            {imageUrl && <img src={imageUrl} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
-            <label className="block">
-              <span className="text-[10px] text-muted-foreground">Image</span>
-              <input type="file" accept="image/*" onChange={(e) => handleFile(e, setImageUrl)} className="block w-full text-xs" />
-            </label>
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="TCG card name (e.g., Charizard VMAX)" value={name} onChange={(e) => setName(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card # (e.g., 020/189)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
-              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set (e.g., Darkness Ablaze)" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+              <div>
+                <p className="text-[10px] text-muted-foreground">Front photo</p>
+                {imageUrl && <img src={imageUrl} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" />}
+                <input type="file" accept="image/*" onChange={(e) => handleFile(e, setImageUrl)} className="mt-1 block w-full text-[10px]" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Back photo</p>
+                {backImageUrl && <img src={backImageUrl} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" />}
+                <input type="file" accept="image/*" onChange={(e) => handleFile(e, setBackImageUrl)} className="mt-1 block w-full text-[10px]" />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Front photo required to add. Back photo required to sell.</p>
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, LeBron Rookie)" value={name} onChange={(e) => setName(e.target.value)} />
+            <div className="grid grid-cols-3 gap-2">
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card #" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
             </div>
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
             <div>
@@ -350,7 +421,7 @@ function Vault() {
 function SellModal({ card, onClose, onSubmit }: {
   card: Card;
   onClose: () => void;
-  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) => void;
+  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) => void;
 }) {
   const [buyNow, setBuyNow] = useState(true);
   const [auction, setAuction] = useState(false);
@@ -358,6 +429,15 @@ function SellModal({ card, onClose, onSubmit }: {
   const [days, setDays] = useState(3);
   const [price, setPrice] = useState(String(card.price ?? card.estimated_value ?? 1));
   const [reserve, setReserve] = useState("");
+  const [backImage, setBackImage] = useState<string>(card.back_image_url || "");
+
+  function onBackFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => setBackImage(String(r.result));
+    r.readAsDataURL(f);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={onClose}>
@@ -366,6 +446,19 @@ function SellModal({ card, onClose, onSubmit }: {
           <p className="font-bold">Sell "{card.name}"</p>
           <button onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Front</p>
+            {card.image_url ? <img src={card.image_url} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <p className="text-[10px] text-destructive">Missing</p>}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Back {backImage ? "" : "(required)"}</p>
+            {backImage ? <img src={backImage} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <div className="mt-1 flex h-24 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No back photo</div>}
+            <input type="file" accept="image/*" onChange={onBackFile} className="mt-1 block w-full text-[10px]" />
+          </div>
+        </div>
+
         <p className="text-[11px] text-muted-foreground">Choose one or more listing options</p>
         <div className="space-y-2">
           <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
@@ -402,8 +495,10 @@ function SellModal({ card, onClose, onSubmit }: {
         </div>
         <button
           onClick={() => {
+            if (!card.image_url) return toast.error("Front photo required");
+            if (!backImage) return toast.error("Back photo required");
             if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
-            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0, reserve: reserve ? Number(reserve) : undefined });
+            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0, reserve: reserve ? Number(reserve) : undefined, backImage });
           }}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >
