@@ -1291,6 +1291,41 @@ function LiveDetail() {
               <input type="number" min="0" step="0.01" value={editShipPrice} onChange={(e) => setEditShipPrice(e.target.value)} placeholder="Shipping ($)" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
               <input value={editShipMethod} onChange={(e) => setEditShipMethod(e.target.value)} placeholder="Method" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
             </div>
+
+            {/* 🆕 Quantity — runs N back-to-back identical auctions */}
+            <label className="block text-[11px] text-muted-foreground">
+              Quantity (back-to-back rounds)
+              <div className="mt-1 flex items-center gap-2">
+                <input type="number" min="1" max="99" value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                  className="w-20 rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
+                <span className="text-[10px] text-muted-foreground">After each win, the next round auto-starts with the same settings.</span>
+              </div>
+              {Number((stream as any).quick_start_remaining || 0) > 0 && (
+                <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} round(s) queued</p>
+              )}
+            </label>
+
+            {/* 🆕 Voice trigger toggle + phrase */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-bold">
+                <span className="flex items-center gap-1.5">
+                  🎙️ Voice trigger
+                  {voiceListening && <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">LISTENING</span>}
+                </span>
+                <input type="checkbox" checked={editVoiceEnabled}
+                  onChange={(e) => setEditVoiceEnabled(e.target.checked)} className="h-4 w-4" />
+              </label>
+              <p className="mt-1 text-[10px] text-muted-foreground">Say the phrase below to auto-start the next auction round (hands-free).</p>
+              <input value={editVoicePhrase}
+                onChange={(e) => setEditVoicePhrase(e.target.value)}
+                placeholder='e.g. "next" or "go go go"'
+                className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none" />
+              <button onClick={saveAuctionDefaults} className="mt-2 w-full rounded-md bg-card-foreground/10 py-1.5 text-[11px] font-bold">
+                💾 Save voice & quantity
+              </button>
+            </div>
+
             <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
