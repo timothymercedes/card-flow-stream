@@ -20,6 +20,7 @@ function MyStore() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
+  const [carrier, setCarrier] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"to_ship" | "in_transit" | "delivered">("to_ship");
 
   async function load() {
@@ -32,7 +33,13 @@ function MyStore() {
   async function ship(o: any) {
     const tn = tracking[o.id];
     if (!tn) return toast.error("Add tracking number");
-    const { error } = await supabase.from("orders").update({ status: "shipped", tracking_number: tn, shipped_at: new Date().toISOString() }).eq("id", o.id);
+    const c = carrier[o.id] || null;
+    const { error } = await supabase.from("orders").update({
+      status: "shipped",
+      tracking_number: tn,
+      carrier: c,
+      shipped_at: new Date().toISOString(),
+    }).eq("id", o.id);
     if (error) return toast.error(error.message);
     await supabase.from("notifications").insert({ user_id: o.buyer_id, type: "order", body: `Your "${o.title}" shipped — ${tn}`, link: "/orders" });
     toast.success("Marked shipped");
@@ -116,16 +123,28 @@ function MyStore() {
                     <p className="text-xs font-semibold text-primary">${amount.toFixed(2)}</p>
                     <p className="text-[10px] text-muted-foreground">Fee ${fee.toFixed(2)} · Net <span className="font-bold text-primary">${net.toFixed(2)}</span></p>
                   </div>
-                  <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold capitalize">
-                    <StatusIcon s={o.status} /> {o.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold capitalize">
+                      <StatusIcon s={o.status} /> {o.status}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${o.payment_status === "paid" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"}`}>
+                      {o.payment_status === "paid" ? "Paid" : "Awaiting Payment"}
+                    </span>
+                  </div>
                 </div>
                 <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
-                {o.tracking_number && <p className="text-[11px] text-primary">Tracking: {o.tracking_number}</p>}
-                {o.status === "pending" && (
-                  <div className="mt-2 flex gap-2">
-                    <input value={tracking[o.id] || ""} onChange={(e) => setTracking({ ...tracking, [o.id]: e.target.value })} placeholder="Tracking #" className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none" />
-                    <button onClick={() => ship(o)} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Ship</button>
+                {o.tracking_number && <p className="text-[11px] text-primary">Tracking: {o.tracking_number}{o.carrier && ` · ${o.carrier}`}</p>}
+                {o.status === "pending" && o.payment_status !== "paid" && (
+                  <p className="mt-2 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-300">Waiting for buyer to pay before you can ship.</p>
+                )}
+                {o.status === "pending" && o.payment_status === "paid" && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex gap-2">
+                      <input value={tracking[o.id] || ""} onChange={(e) => setTracking({ ...tracking, [o.id]: e.target.value })} placeholder="Tracking #" className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+                      <input value={carrier[o.id] || ""} onChange={(e) => setCarrier({ ...carrier, [o.id]: e.target.value })} placeholder="Carrier" className="w-24 rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+                    </div>
+                    <button onClick={() => ship(o)} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark as Shipped</button>
+                    <p className="text-[10px] text-muted-foreground">📦 Real label generation will be enabled later.</p>
                   </div>
                 )}
                 {o.status === "shipped" && (

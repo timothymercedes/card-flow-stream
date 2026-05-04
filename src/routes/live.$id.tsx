@@ -252,6 +252,7 @@ function LiveDetail() {
         amount: winningBid,
       });
       // Create order so it appears in buyer's "My Orders" and seller's "My Store"
+      // SAFE MODE: order starts as awaiting_payment — buyer must click "Pay Now" later
       await supabase.from("orders").insert({
         buyer_id: winnerId, seller_id: stream.seller_id,
         title: stream.current_item || stream.title,
@@ -260,6 +261,8 @@ function LiveDetail() {
         item_image_url: snapshot || null,
         stream_id: id,
         condition: stream.current_condition || null,
+        status: "pending",
+        payment_status: "awaiting_payment",
         ship_name: p?.full_name || winnerUsername,
         ship_address: p?.address_line1 || "",
         ship_city: p?.address_city || "",

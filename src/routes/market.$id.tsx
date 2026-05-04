@@ -116,6 +116,8 @@ function ListingDetail() {
     const { error } = await supabase.from("orders").insert({
       listing_id: id, buyer_id: profile!.id, seller_id: listing.seller_id,
       title: listing.title, amount,
+      status: "pending",
+      payment_status: "awaiting_payment",
       ship_name: ship.name, ship_address: ship.address, ship_city: ship.city, ship_state: ship.state, ship_zip: ship.zip, ship_country: ship.country,
     });
     if (error) return toast.error(error.message);

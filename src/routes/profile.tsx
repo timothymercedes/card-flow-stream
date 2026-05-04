@@ -2,11 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint, Phone, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
+
+// SAFE MODE: skip real SMS; auto-accept any 6-digit code.
+// When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
+const SMS_SAFE_MODE = true;
 
 export const Route = createFileRoute("/profile")({ component: Profile });
 
@@ -28,10 +32,48 @@ function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
   }, [user]);
+
+  async function sendOtp() {
+    if (!p?.phone || p.phone.length < 7) return toast.error("Enter a valid phone number");
+    setOtpLoading(true);
+    if (SMS_SAFE_MODE) {
+      // No real SMS sent — UX placeholder. Use any 6-digit code to verify.
+      await new Promise((r) => setTimeout(r, 500));
+      setOtpSent(true);
+      setOtpLoading(false);
+      toast.success("Safe mode: enter any 6-digit code to verify");
+      return;
+    }
+    // TODO: call server function that uses Twilio Verify to send the code.
+    setOtpLoading(false);
+  }
+
+  async function verifyOtp() {
+    if (otpCode.length !== 6) return toast.error("Enter the 6-digit code");
+    setOtpLoading(true);
+    if (SMS_SAFE_MODE) {
+      const { error } = await supabase.from("profiles").update({
+        phone_verified: true, phone_verified_at: new Date().toISOString(),
+      }).eq("id", user!.id);
+      setOtpLoading(false);
+      if (error) return toast.error(error.message);
+      setP({ ...p, phone_verified: true });
+      setOtpSent(false);
+      setOtpCode("");
+      toast.success("Phone verified");
+      return;
+    }
+    // TODO: call server function that checks the OTP via Twilio Verify.
+    setOtpLoading(false);
+  }
 
   async function save() {
     if (!user) return;
@@ -119,6 +161,7 @@ function Profile() {
             {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">User ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
             <div className="mt-1 flex flex-wrap gap-1">
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
+              <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
               <Badge status={p.id_status || "none"} label="ID" />
               <Badge status={p.seller_status || "none"} label="Seller" />
             </div>
@@ -128,7 +171,44 @@ function Profile() {
         <section className="rounded-xl bg-card p-4 space-y-2">
           <p className="text-sm font-bold">Contact & Mailing</p>
           <input value={p.full_name || ""} onChange={(e) => setP({ ...p, full_name: e.target.value })} placeholder="Full name" className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
-          <input value={p.phone || ""} onChange={(e) => setP({ ...p, phone: e.target.value })} placeholder="Phone" className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+          <div className="space-y-1.5">
+            <div className="flex gap-2">
+              <input
+                value={p.phone || ""}
+                onChange={(e) => { setP({ ...p, phone: e.target.value, phone_verified: false }); setOtpSent(false); }}
+                placeholder="Phone"
+                className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none"
+              />
+              {p.phone_verified ? (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-primary/15 px-2 text-[10px] font-bold text-primary">
+                  <CheckCircle2 className="h-3 w-3" /> Verified
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={otpLoading || !p.phone}
+                  className="rounded-lg bg-primary px-3 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  <Phone className="mr-1 inline h-3 w-3" />Verify
+                </button>
+              )}
+            </div>
+            {otpSent && !p.phone_verified && (
+              <div className="flex gap-2">
+                <input
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="6-digit code"
+                  className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                />
+                <button onClick={verifyOtp} disabled={otpLoading} className="rounded-lg bg-primary px-3 text-[11px] font-bold text-primary-foreground disabled:opacity-50">Confirm</button>
+              </div>
+            )}
+            {SMS_SAFE_MODE && !p.phone_verified && (
+              <p className="text-[10px] text-muted-foreground">🔒 Safe mode: real SMS isn't sent yet. Any 6-digit code works for now.</p>
+            )}
+          </div>
           <input value={p.address_line1 || ""} onChange={(e) => setP({ ...p, address_line1: e.target.value })} placeholder="Street address" className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
           <div className="grid grid-cols-3 gap-2">
             <input value={p.address_city || ""} onChange={(e) => setP({ ...p, address_city: e.target.value })} placeholder="City" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
