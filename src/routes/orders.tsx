@@ -197,7 +197,7 @@ function Orders() {
                         type="text"
                         placeholder="Optional comment (how was the shipping & item?)"
                         value={reviewForm[o.id]?.comment || ""}
-                        onChange={(e) => setReviewForm({ ...reviewForm, [o.id]: { rating: 5, shipping_rating: 5, ...reviewForm[o.id], comment: e.target.value } })}
+                        onChange={(e) => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "" }, ...(reviewForm[o.id] || {}), comment: e.target.value } })}
                         className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
                       />
                       <button onClick={() => submitReview(o)} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Submit review</button>
