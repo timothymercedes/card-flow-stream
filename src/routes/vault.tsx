@@ -166,7 +166,7 @@ function Vault() {
     if (!value) {
       try {
         const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
-        const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+        const { data } = await supabase.functions.invoke("identify-card", { body: { query: q, language } });
         if (data) {
           cp = data.condition_prices || null;
           const base = Number(data.estimated_value) || 0;
