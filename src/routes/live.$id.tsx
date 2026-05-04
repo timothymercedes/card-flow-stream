@@ -35,6 +35,8 @@ function LiveDetail() {
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [pinned, setPinned] = useState(true);
+  const [hiddenSysIds, setHiddenSysIds] = useState<Set<string>>(new Set());
+  const snapshotRef = useRef(false);
   const [tagOpen, setTagOpen] = useState(false);
   const [tagResults, setTagResults] = useState<any[]>([]);
   const [shareOpen, setShareOpen] = useState(false);
