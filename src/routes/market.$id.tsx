@@ -29,6 +29,7 @@ function ListingDetail() {
   const [offers, setOffers] = useState<any[]>([]);
   const [bidAmt, setBidAmt] = useState("");
   const [offerAmt, setOfferAmt] = useState("");
+  const [now, setNow] = useState(Date.now());
 
   // shipping
   const [showShip, setShowShip] = useState(false);
@@ -49,13 +50,18 @@ function ListingDetail() {
     }
   }
   useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   async function placeBid() {
     if (!profile) return toast.error("Sign in first");
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
+    if (listing.auction_ends_at && new Date(listing.auction_ends_at).getTime() <= Date.now()) return toast.error("Auction ended");
     await supabase.from("listing_bids").insert({ listing_id: id, user_id: profile.id, username: profile.username, amount: amt });
-    await supabase.from("listings").update({ current_bid: amt }).eq("id", id);
+    await supabase.from("listings").update({ current_bid: amt, top_bidder_id: profile.id }).eq("id", id);
     await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "bid", body: `@${profile.username} bid $${amt} on "${listing.title}"`, link: `/market/${id}` });
     setBidAmt(""); load(); toast.success("Bid placed");
   }
@@ -63,10 +69,18 @@ function ListingDetail() {
   async function makeOffer() {
     if (!profile) return toast.error("Sign in first");
     const amt = Number(offerAmt);
-    if (!amt) return toast.error("Enter an amount");
-    await supabase.from("offers").insert({
+    if (!amt || amt <= 1) return toast.error("Offer must be more than $1");
+    // Dedupe: same buyer can't repeat the same exact amount that's still pending
+    const dup = offers.find((o) => o.buyer_id === profile.id && Number(o.amount) === amt && o.status === "pending");
+    if (dup) return toast.error("You already offered that amount");
+    const { error } = await supabase.from("offers").insert({
       listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
     });
+    if (error) {
+      if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
+      if (error.code === "23505") return toast.error("You already offered that amount");
+      return toast.error(error.message);
+    }
     await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "offer", body: `@${profile.username} offered $${amt} on "${listing.title}"`, link: `/market/${id}` });
     setOfferAmt(""); load(); toast.success("Offer sent");
   }
