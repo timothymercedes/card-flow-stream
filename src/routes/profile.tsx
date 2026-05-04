@@ -137,12 +137,29 @@ function Profile() {
 
   async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file || !user) return;
+    if (file.size > 8 * 1024 * 1024) return toast.error("Image must be under 8MB");
     setUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (error) { setUploading(false); return toast.error(error.message); }
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+
+    // 🆕 AI moderation — block obviously inappropriate avatars before they go live.
+    try {
+      const { data: mod } = await supabase.functions.invoke("moderate-image", {
+        body: { image_url: data.publicUrl },
+      });
+      if (mod && mod.allowed === false) {
+        // Remove the offending file so it isn't publicly accessible.
+        await supabase.storage.from("avatars").remove([path]);
+        setUploading(false);
+        return toast.error(`Avatar rejected: ${mod.reason || "not appropriate for a public profile"}`);
+      }
+    } catch {
+      // Fail-open: if moderation can't run we still let the upload through.
+    }
+
     await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
     setP((x: any) => ({ ...x, avatar_url: data.publicUrl }));
     setUploading(false);
