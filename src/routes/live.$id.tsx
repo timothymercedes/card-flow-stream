@@ -1354,13 +1354,23 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Winner banner — prominent popup at the top once auction ends with a winner */}
+      {/* Winner banner — branded slam-in with shine + confetti rain */}
       {(auctionFinished || ended) && stream.winner_username && pinned && (
-        <div className="absolute left-1/2 top-20 z-30 w-[92%] max-w-md -translate-x-1/2 rounded-2xl bg-gradient-to-r from-primary to-accent p-4 text-center shadow-2xl ring-2 ring-white/40 backdrop-blur animate-in fade-in zoom-in">
-          <Trophy className="mx-auto h-7 w-7" />
-          <p className="mt-1 text-base font-extrabold tracking-tight">🎉 @{stream.winner_username} owns this item!</p>
-          <p className="text-xs opacity-90">Winning bid: ${Number(stream.winning_bid || 0).toFixed(2)}</p>
-        </div>
+        <>
+          <Confetti count={70} durationMs={2400} />
+          <div className="owned-slam absolute left-1/2 top-20 z-30 w-[92%] max-w-md -translate-x-1/2">
+            <div className="owned-glow rounded-2xl bg-card/80 p-[2px] backdrop-blur">
+              <div className="rounded-2xl bg-gradient-to-br from-primary/95 via-primary to-accent p-4 text-center text-primary-foreground ring-1 ring-white/30">
+                <Trophy className="winner-burst mx-auto h-9 w-9 drop-shadow" />
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Now Owned By</p>
+                <p className="mt-0.5 winner-shine bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+                  @{stream.winner_username}
+                </p>
+                <p className="text-xs font-semibold opacity-90">Winning bid: {fmtMoney(Number(stream.winning_bid || 0))}</p>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Stream switcher */}
