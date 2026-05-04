@@ -174,56 +174,68 @@ export type Database = {
         Row: {
           accepts_offers: boolean
           auction_ends_at: string | null
+          auction_status: string
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
           description: string | null
+          expires_at: string
           id: string
           image_url: string | null
           is_auction: boolean
           listing_type: string
           price: number | null
+          reserve_price: number | null
           seller_id: string
           starting_bid: number | null
           tcg_number: string | null
           tcg_set: string | null
           title: string
+          top_bidder_id: string | null
         }
         Insert: {
           accepts_offers?: boolean
           auction_ends_at?: string | null
+          auction_status?: string
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
           description?: string | null
+          expires_at?: string
           id?: string
           image_url?: string | null
           is_auction?: boolean
           listing_type?: string
           price?: number | null
+          reserve_price?: number | null
           seller_id: string
           starting_bid?: number | null
           tcg_number?: string | null
           tcg_set?: string | null
           title: string
+          top_bidder_id?: string | null
         }
         Update: {
           accepts_offers?: boolean
           auction_ends_at?: string | null
+          auction_status?: string
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
           description?: string | null
+          expires_at?: string
           id?: string
           image_url?: string | null
           is_auction?: boolean
           listing_type?: string
           price?: number | null
+          reserve_price?: number | null
           seller_id?: string
           starting_bid?: number | null
           tcg_number?: string | null
           tcg_set?: string | null
           title?: string
+          top_bidder_id?: string | null
         }
         Relationships: [
           {
@@ -427,6 +439,7 @@ export type Database = {
           buyer_id: string
           buyer_username: string
           created_at: string
+          expires_at: string
           id: string
           listing_id: string
           seller_id: string
@@ -437,6 +450,7 @@ export type Database = {
           buyer_id: string
           buyer_username: string
           created_at?: string
+          expires_at?: string
           id?: string
           listing_id: string
           seller_id: string
@@ -447,6 +461,7 @@ export type Database = {
           buyer_id?: string
           buyer_username?: string
           created_at?: string
+          expires_at?: string
           id?: string
           listing_id?: string
           seller_id?: string
