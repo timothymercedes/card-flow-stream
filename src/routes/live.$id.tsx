@@ -383,9 +383,8 @@ function LiveDetail() {
     setInput("");
   }
 
-  // 🆕 Anti-snipe: if a bid lands in the final 3s, extend the timer by +5s.
-  // Different from Whatnot's flat 10s/15s — we use a 3s/5s nibble that
-  // resets snappily and shows a fun "⚡ +5s OVERTIME" flash.
+  // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
+  // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
@@ -398,24 +397,42 @@ function LiveDetail() {
 
     const update: any = { current_bid: amount, current_bidder_id: user.id };
     const remainingMs = stream.ends_at ? new Date(stream.ends_at).getTime() - Date.now() : 0;
+    const exts = Number(stream.snipe_extends || 0);
+    const inSuddenDeath = !!stream.sudden_death_active;
     let extended = false;
-    if (remainingMs > 0 && remainingMs <= 3000) {
-      // Add 5s + 1 to extends counter
-      const newEnd = new Date(Date.now() + 5000 + Math.max(remainingMs - 0, 0)).toISOString();
-      // Simpler: ensure at least 5s left from now
-      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 5000).toISOString();
-      update.snipe_extends = Number(stream.snipe_extends || 0) + 1;
+    let suddenDeathWin = false;
+
+    if (inSuddenDeath) {
+      // 💀 Sudden death — bid wins instantly, end timer in 1.2s for drama.
+      update.ends_at = new Date(Date.now() + 1200).toISOString();
+      update.sudden_death_active = false;
+      suddenDeathWin = true;
+    } else if (remainingMs > 0 && remainingMs <= 3000) {
+      // Add +3s and bump extension counter
+      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 3000).toISOString();
+      update.snipe_extends = exts + 1;
       extended = true;
+      // After the 3rd extension we arm sudden death for the NEXT bid
+      if (exts + 1 >= 3) update.sudden_death_active = true;
     }
 
     const { error } = await supabase.from("live_streams").update(update).eq("id", id);
     if (error) return toast.error(error.message);
 
     if (extended) {
-      // Reset auto-end + snapshot guards so the new countdown can re-trigger
       endedRef.current = false;
       snapshotRef.current = false;
-      await sendMsg(`⚡ OVERTIME +5s — @${profile.username} struck in the final 3s!`, true);
+      const willArm = exts + 1 >= 3;
+      await sendMsg(
+        willArm
+          ? `💀 SUDDEN DEATH ARMED — next bid INSTANTLY wins! (@${profile.username} forced it)`
+          : `⚡ OVERTIME +3s — @${profile.username} struck in the final 3s! (${exts + 1}/3)`,
+        true,
+      );
+    }
+    if (suddenDeathWin) {
+      endedRef.current = false; snapshotRef.current = false;
+      await sendMsg(`💥 SUDDEN-DEATH WIN — @${profile.username} took it for $${amount}!`, true);
     }
     await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
     if (stream.seller_id !== user.id) {
