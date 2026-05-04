@@ -129,6 +129,14 @@ function Profile() {
     if (!user) return;
     if (!p?.id_document_url) return toast.error("Upload your ID first");
     if (!p?.address_line1) return toast.error("Add your mailing address first");
+    const confirmed = window.confirm(
+      "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
+    );
+    if (confirmed) { window.open("/legal/seller-agreement", "_blank"); return; }
+    await supabase.from("legal_acceptances").insert({
+      user_id: user.id, document_type: "seller_agreement", version: "1.0",
+      user_agent: navigator.userAgent.slice(0, 200),
+    });
     await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id);
     setP({ ...p, seller_status: "pending" });
     toast.success("Application submitted — awaiting admin approval");
