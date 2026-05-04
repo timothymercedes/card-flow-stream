@@ -135,6 +135,7 @@ export type Database = {
         Row: {
           accepts_offers: boolean
           auction_ends_at: string | null
+          condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
           description: string | null
@@ -145,11 +146,14 @@ export type Database = {
           price: number | null
           seller_id: string
           starting_bid: number | null
+          tcg_number: string | null
+          tcg_set: string | null
           title: string
         }
         Insert: {
           accepts_offers?: boolean
           auction_ends_at?: string | null
+          condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
           description?: string | null
@@ -160,11 +164,14 @@ export type Database = {
           price?: number | null
           seller_id: string
           starting_bid?: number | null
+          tcg_number?: string | null
+          tcg_set?: string | null
           title: string
         }
         Update: {
           accepts_offers?: boolean
           auction_ends_at?: string | null
+          condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
           description?: string | null
@@ -175,6 +182,8 @@ export type Database = {
           price?: number | null
           seller_id?: string
           starting_bid?: number | null
+          tcg_number?: string | null
+          tcg_set?: string | null
           title?: string
         }
         Relationships: [
@@ -192,7 +201,17 @@ export type Database = {
           created_at: string
           current_bid: number
           current_bidder_id: string | null
+          current_condition:
+            | Database["public"]["Enums"]["card_condition"]
+            | null
           current_item: string | null
+          current_tcg_number: string | null
+          current_tcg_set: string | null
+          default_condition:
+            | Database["public"]["Enums"]["card_condition"]
+            | null
+          default_starting_bid: number
+          default_timer_sec: number
           ended_at: string | null
           ends_at: string | null
           id: string
@@ -201,6 +220,7 @@ export type Database = {
           item_image_url: string | null
           listing_type: string
           min_bid_increment: number
+          quick_start_enabled: boolean
           seller_id: string
           shipping_method: string | null
           shipping_price: number | null
@@ -217,7 +237,17 @@ export type Database = {
           created_at?: string
           current_bid?: number
           current_bidder_id?: string | null
+          current_condition?:
+            | Database["public"]["Enums"]["card_condition"]
+            | null
           current_item?: string | null
+          current_tcg_number?: string | null
+          current_tcg_set?: string | null
+          default_condition?:
+            | Database["public"]["Enums"]["card_condition"]
+            | null
+          default_starting_bid?: number
+          default_timer_sec?: number
           ended_at?: string | null
           ends_at?: string | null
           id?: string
@@ -226,6 +256,7 @@ export type Database = {
           item_image_url?: string | null
           listing_type?: string
           min_bid_increment?: number
+          quick_start_enabled?: boolean
           seller_id: string
           shipping_method?: string | null
           shipping_price?: number | null
@@ -242,7 +273,17 @@ export type Database = {
           created_at?: string
           current_bid?: number
           current_bidder_id?: string | null
+          current_condition?:
+            | Database["public"]["Enums"]["card_condition"]
+            | null
           current_item?: string | null
+          current_tcg_number?: string | null
+          current_tcg_set?: string | null
+          default_condition?:
+            | Database["public"]["Enums"]["card_condition"]
+            | null
+          default_starting_bid?: number
+          default_timer_sec?: number
           ended_at?: string | null
           ends_at?: string | null
           id?: string
@@ -251,6 +292,7 @@ export type Database = {
           item_image_url?: string | null
           listing_type?: string
           min_bid_increment?: number
+          quick_start_enabled?: boolean
           seller_id?: string
           shipping_method?: string | null
           shipping_price?: number | null
@@ -387,6 +429,7 @@ export type Database = {
           buyer_id: string
           carrier: string | null
           commission_rate: number
+          condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           delivered_at: string | null
           description: string | null
@@ -411,6 +454,7 @@ export type Database = {
           buyer_id: string
           carrier?: string | null
           commission_rate?: number
+          condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           delivered_at?: string | null
           description?: string | null
@@ -435,6 +479,7 @@ export type Database = {
           buyer_id?: string
           carrier?: string | null
           commission_rate?: number
+          condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           delivered_at?: string | null
           description?: string | null
@@ -681,6 +726,7 @@ export type Database = {
       vault_cards: {
         Row: {
           category: string | null
+          condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           description: string | null
           estimated_value: number | null
@@ -689,10 +735,13 @@ export type Database = {
           last_valued_at: string | null
           name: string
           price: number | null
+          tcg_number: string | null
+          tcg_set: string | null
           user_id: string
         }
         Insert: {
           category?: string | null
+          condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           description?: string | null
           estimated_value?: number | null
@@ -701,10 +750,13 @@ export type Database = {
           last_valued_at?: string | null
           name: string
           price?: number | null
+          tcg_number?: string | null
+          tcg_set?: string | null
           user_id: string
         }
         Update: {
           category?: string | null
+          condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           description?: string | null
           estimated_value?: number | null
@@ -713,6 +765,8 @@ export type Database = {
           last_valued_at?: string | null
           name?: string
           price?: number | null
+          tcg_number?: string | null
+          tcg_set?: string | null
           user_id?: string
         }
         Relationships: [
@@ -724,6 +778,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webauthn_credentials: {
+        Row: {
+          counter: number
+          created_at: string
+          credential_id: string
+          id: string
+          label: string | null
+          last_used_at: string | null
+          public_key: string
+          transports: string | null
+          user_id: string
+        }
+        Insert: {
+          counter?: number
+          created_at?: string
+          credential_id: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          public_key: string
+          transports?: string | null
+          user_id: string
+        }
+        Update: {
+          counter?: number
+          created_at?: string
+          credential_id?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          public_key?: string
+          transports?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -741,6 +831,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      card_condition: "NM" | "LP" | "MP" | "Damaged"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -869,6 +960,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      card_condition: ["NM", "LP", "MP", "Damaged"],
     },
   },
 } as const
