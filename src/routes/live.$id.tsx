@@ -1892,40 +1892,44 @@ function LiveDetail() {
           </>
         )}
         {isSeller && !ended && (
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setScanning(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-semibold text-accent-foreground">
-              <Camera className="h-3.5 w-3.5" /> Scan
-            </button>
-            {!auctionLive && (
-              <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground">
-                <Play className="h-3.5 w-3.5" /> Start Auction
+          <div className="space-y-1.5">
+            {/* Primary action row — Start auction OR snipe input + End live */}
+            <div className="flex items-stretch gap-1.5">
+              {!auctionLive ? (
+                <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-lg active:scale-[0.98]">
+                  <Play className="h-4 w-4" /> Start Auction
+                </button>
+              ) : (
+                <div className="flex flex-1 items-center gap-1 rounded-xl bg-yellow-500/20 px-2 ring-1 ring-yellow-400/40">
+                  <Zap className="h-3.5 w-3.5 shrink-0 text-yellow-300" />
+                  <input
+                    type="number" min="1" inputMode="decimal"
+                    value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
+                    placeholder="Snipe $"
+                    className="w-full min-w-0 bg-transparent text-xs text-yellow-100 outline-none placeholder:text-yellow-200/50"
+                  />
+                  <button onClick={setSnipePriceNow} className="shrink-0 rounded-md bg-yellow-400 px-2 py-1 text-[10px] font-bold text-black">Set</button>
+                </div>
+              )}
+              <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-xl bg-live px-3 py-2.5 text-xs font-bold text-live-foreground active:scale-[0.98]">
+                <Square className="h-3.5 w-3.5" /> End Live
               </button>
-            )}
-            {/* 🆕 Snipe price quick-set for hosts during a live auction */}
-            {auctionLive && (
-              <div className="flex flex-1 items-center gap-1 rounded-xl bg-yellow-500/20 px-2 py-1">
-                <Zap className="h-3.5 w-3.5 text-yellow-300" />
-                <input
-                  type="number" min="1" inputMode="decimal"
-                  value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
-                  placeholder="Snipe $"
-                  className="w-16 bg-transparent text-xs text-yellow-100 outline-none placeholder:text-yellow-200/50"
-                />
-                <button onClick={setSnipePriceNow} className="rounded-md bg-yellow-400 px-2 py-1 text-[10px] font-bold text-black">Set</button>
-              </div>
-            )}
-            <button onClick={() => setShowBreakPanel(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2.5 text-xs font-bold text-white">
-              <Dice5 className="h-3.5 w-3.5" /> Break
-            </button>
-            <button onClick={() => setShowWheelEditor(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2.5 text-xs font-bold text-white">
-              <RotateCw className="h-3.5 w-3.5" /> Wheel
-            </button>
-            <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-xs font-bold text-white">
-              <Gift className="h-3.5 w-3.5" /> Appreciation Gift
-            </button>
-            <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
-              <Square className="h-3.5 w-3.5" /> End Live
-            </button>
+            </div>
+            {/* Secondary tools row — even-width grid, never overlaps */}
+            <div className="grid grid-cols-4 gap-1.5">
+              <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98]">
+                <Camera className="h-3.5 w-3.5" /> Scan
+              </button>
+              <button onClick={() => setShowBreakPanel(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
+                <Dice5 className="h-3.5 w-3.5" /> Break
+              </button>
+              <button onClick={() => setShowWheelEditor(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
+                <RotateCw className="h-3.5 w-3.5" /> Wheel
+              </button>
+              <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
+                <Gift className="h-3.5 w-3.5" /> Gift
+              </button>
+            </div>
           </div>
         )}
         {ended && (
