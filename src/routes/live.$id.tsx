@@ -1374,7 +1374,7 @@ function LiveDetail() {
 
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
-        <div className={`absolute left-3 right-3 z-10 ${auctionLive ? "top-28" : "top-14"}`}>
+        <div className={`absolute left-3 right-3 z-10 md:right-[19rem] ${auctionLive ? "top-28" : "top-14"}`}>
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
