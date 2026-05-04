@@ -79,10 +79,12 @@ function LiveDetail() {
       }
     });
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
+    supabase.from("stream_shoutouts").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setShoutouts(data || []));
 
     const ch = supabase.channel(`live-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` }, (p) => setMessages((m) => [...m, p.new]))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => setStream(p.new))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${id}` }, (p) => setShoutouts((s) => [p.new, ...s]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
