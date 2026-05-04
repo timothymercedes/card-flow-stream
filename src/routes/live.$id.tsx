@@ -296,18 +296,18 @@ function LiveDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // 🆕 Track latest giveaway status so we can hide its chat announcement once decided.
+  // 🆕 Track latest giveaway (status + ends_at) so the announcement bubble can tick live and auto-hide.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from("giveaways")
-        .select("status")
+        .select("*")
         .eq("stream_id", id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!cancelled) setGiveawayStatus((data?.status as string) || null);
+      if (!cancelled) setActiveGiveaway(data || null);
     }
     load();
     const ch = supabase
@@ -315,7 +315,7 @@ function LiveDetail() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "giveaways", filter: `stream_id=eq.${id}` },
-        (p) => setGiveawayStatus(((p.new as any)?.status ?? (p.old as any)?.status) || null),
+        (p) => setActiveGiveaway((p.new as any) || (p.old as any) || null),
       )
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
