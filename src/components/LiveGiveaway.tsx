@@ -337,7 +337,7 @@ export function LiveGiveaway({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
-      <button onClick={onClose} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white"><X className="h-5 w-5" /></button>
+      <button onClick={() => { setExpandToFull(false); onClose(); }} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white"><X className="h-5 w-5" /></button>
 
       <div className="w-full max-w-md">
         <p className="mb-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
