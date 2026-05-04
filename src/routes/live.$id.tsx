@@ -631,28 +631,46 @@ function LiveDetail() {
   // then announces "Character → @user" once it lands.
   async function spinBreakWheel() {
     if (!isSeller) return;
+    // 🆕 If anyone has claimed: pick from claimed buyers.
+    // If nobody has claimed yet: pick from the configured characters (so host can preview/spin a fun wheel during the live).
     const claimed = breakSlots.filter((s) => s.slot_number != null);
-    if (claimed.length === 0) return toast.error("No slots claimed yet");
-    const winner = claimed[Math.floor(Math.random() * claimed.length)];
+    let winnerSlotNumber: number;
+    let winnerUsername: string;
+    let winnerLabel: string;
+    if (claimed.length > 0) {
+      const w = claimed[Math.floor(Math.random() * claimed.length)];
+      winnerSlotNumber = w.slot_number!;
+      winnerUsername = w.buyer_username;
+      winnerLabel = w.character_label || `${stream.break_slot_prefix || "#"}${w.slot_number}`;
+    } else {
+      const chars: string[] = Array.isArray(stream.break_characters) ? stream.break_characters : [];
+      const total = chars.length || Number(stream.break_slot_count) || 0;
+      if (total < 2) return toast.error("Set up at least 2 characters first");
+      const idx = Math.floor(Math.random() * total);
+      winnerSlotNumber = idx + 1;
+      winnerUsername = "—";
+      winnerLabel = chars[idx] || `${stream.break_slot_prefix || "#"}${idx + 1}`;
+    }
     const startedAt = new Date();
     const endsAt = new Date(Date.now() + 6500);
     await supabase.from("live_streams").update({
       break_wheel_spinning: true,
       break_wheel_started_at: startedAt.toISOString(),
       break_wheel_ends_at: endsAt.toISOString(),
-      break_wheel_target_slot: winner.slot_number,
+      break_wheel_target_slot: winnerSlotNumber,
       break_wheel_last_winner_username: null,
       break_wheel_last_winner_label: null,
     }).eq("id", id);
     await sendMsg(`🎡 BREAK REVEAL spinning…`, true);
     setTimeout(async () => {
-      const label = winner.character_label || `${stream.break_slot_prefix || "#"}${winner.slot_number}`;
       await supabase.from("live_streams").update({
         break_wheel_spinning: false,
-        break_wheel_last_winner_username: winner.buyer_username,
-        break_wheel_last_winner_label: label,
+        break_wheel_last_winner_username: winnerUsername,
+        break_wheel_last_winner_label: winnerLabel,
       }).eq("id", id);
-      await sendMsg(`🏆 BREAK WIN — ${label} goes to @${winner.buyer_username}!`, true);
+      await sendMsg(claimed.length > 0
+        ? `🏆 BREAK WIN — ${winnerLabel} goes to @${winnerUsername}!`
+        : `🎡 Test spin landed on ${winnerLabel} (no claims yet)`, true);
     }, 6600);
   }
 
