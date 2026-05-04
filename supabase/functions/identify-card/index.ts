@@ -51,10 +51,11 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        // Pro model gives MUCH better card identification + pricing accuracy.
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: SYSTEM + langHint },
-          { role: "user", content: `Identify and price: ${query}` },
+          { role: "user", content: `Identify and price this trading card. Be precise — match the EXACT printing the user describes (set, year, card number). If the query mentions a specific set or number, prefer that printing. Query: ${query}` },
         ],
         response_format: { type: "json_object" },
       }),

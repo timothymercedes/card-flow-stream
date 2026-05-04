@@ -1,13 +1,25 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { CardScanner } from "@/components/CardScanner";
 import { toast } from "sonner";
-import { Radio } from "lucide-react";
+import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
+
+type Condition = "NM" | "LP" | "MP" | "Damaged";
+type ConditionPrices = { NM?: number; LP?: number; MP?: number; Damaged?: number };
+
+// Same condition-based pricing helper used by the Vault, so listing
+// prices and vault prices stay in sync regardless of where AI ID runs.
+function priceFor(cond: Condition, base: number, cp: ConditionPrices | null | undefined): number {
+  if (cp && cp[cond] && Number(cp[cond])) return Number(cp[cond]);
+  const mult = cond === "NM" ? 1 : cond === "LP" ? 0.85 : cond === "MP" ? 0.6 : 0.25;
+  return Math.max(0.5, Math.round(base * mult * 100) / 100);
+}
 
 function Sell() {
   const { user, profile } = useAuth();
@@ -37,8 +49,12 @@ function Sell() {
   const [imageUrl, setImageUrl] = useState("");
   const [backImageUrl, setBackImageUrl] = useState(""); // 🆕 back of card (required)
   const [tcgNumber, setTcgNumber] = useState("");        // 🆕 card number (optional)
-  const [condition, setCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM"); // 🆕 required
+  const [tcgSet, setTcgSet] = useState("");               // 🆕 from AI ID
+  const [tcgYear, setTcgYear] = useState("");             // 🆕 from AI ID
+  const [condition, setCondition] = useState<Condition>("NM"); // 🆕 required
+  const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null); // 🆕 from AI ID
   const [identifying, setIdentifying] = useState(false); // 🆕 AI identify in-flight
+  const [scanning, setScanning] = useState(false);       // 🆕 image scan modal
   const [enableBuyNow, setEnableBuyNow] = useState(true);
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
@@ -169,45 +185,71 @@ function Sell() {
     nav({ to: "/market" });
   }
 
-  // 🆕 AI identify — same flow as the Vault: identifies the card, fills in details,
-  // suggests a price for the selected condition, and (if no front photo yet) auto-generates one.
+  // 🆕 AI identify (TEXT) — same flow as the Vault. Stores condition_prices so
+  // the buy-now price auto-recomputes when the seller switches condition.
   async function aiIdentify() {
     const q = title.trim() || desc.trim() || tcgNumber.trim();
     if (!q) return toast.error("Type a card name, number, or description first");
     setIdentifying(true);
     try {
       const { data, error } = await supabase.functions.invoke("identify-card", {
-        body: { query: [q, tcgNumber && `#${tcgNumber}`].filter(Boolean).join(" ") },
+        body: { query: [q, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ") },
       });
       if (error) throw error;
-      const d: any = data || {};
-      if (d.name) setTitle(d.name);
-      if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
-      // Build a richer description if the user hasn't typed one.
-      if (!desc.trim()) {
-        const parts = [d.category, d.set, d.year && `(${d.year})`, d.tcg_number && `#${d.tcg_number}`].filter(Boolean);
-        if (parts.length) setDesc(parts.join(" • "));
-      }
-      // Suggest a buy-now price for the chosen condition from condition_prices map (NM/LP/MP/Damaged).
-      const cp = d.condition_prices || {};
-      const suggested = Number(cp[condition]) || Number(d.estimated_value) || 0;
-      if (suggested && !buyNowPrice) setBuyNowPrice(String(suggested));
-      // Auto-generate a front image if missing.
-      if (!imageUrl) {
-        try {
-          const { data: img } = await supabase.functions.invoke("generate-card-image", {
-            body: { name: d.name || title, category: d.category, set: d.set, year: d.year, tcg_number: d.tcg_number || tcgNumber },
-          });
-          if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
-        } catch { /* ignore */ }
-      }
-      toast.success(`Identified: ${d.name || q}${d.set ? ` • ${d.set}` : ""}`);
+      applyIdResult(data);
+      toast.success(`Identified: ${data?.name || q}${data?.set ? ` • ${data.set}` : ""}`);
     } catch (e: any) {
       toast.error(e.message || "Identify failed");
     } finally {
       setIdentifying(false);
     }
   }
+
+  // 🆕 IMAGE-based identify — same engine as the Vault scanner. The seller
+  // snaps the card with their camera; we run scan-card and apply the result.
+  function onScanResult(r: { name: string; category: string; trend: string; image: string;
+                            set?: string; year?: string; tcg_number?: string;
+                            estimated_value?: number; condition_prices?: ConditionPrices }) {
+    if (!imageUrl) setImageUrl(r.image); // captured photo becomes the front image
+    applyIdResult(r);
+    setScanning(false);
+    toast.success(`Identified: ${r.name}`);
+  }
+
+  // Shared "apply identification result to the form" used by both text & image flows.
+  async function applyIdResult(d: any) {
+    if (!d) return;
+    if (d.name) setTitle(d.name);
+    if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
+    if (d.set && !tcgSet) setTcgSet(d.set);
+    if (d.year && !tcgYear) setTcgYear(String(d.year));
+    if (!desc.trim()) {
+      const parts = [d.category, d.set, d.year && `(${d.year})`, d.tcg_number && `#${d.tcg_number}`].filter(Boolean);
+      if (parts.length) setDesc(parts.join(" • "));
+    }
+    const cp: ConditionPrices | null = d.condition_prices || null;
+    setCondPrices(cp);
+    const base = Number(d.estimated_value) || Number(cp?.NM) || 0;
+    if (base) setBuyNowPrice(String(priceFor(condition, base, cp)));
+    if (!imageUrl && d.name) {
+      try {
+        const { data: img } = await supabase.functions.invoke("generate-card-image", {
+          body: { name: d.name, category: d.category, set: d.set, year: d.year, tcg_number: d.tcg_number || tcgNumber },
+        });
+        if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
+      } catch { /* ignore */ }
+    }
+  }
+
+  // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
+  useEffect(() => {
+    if (!condPrices) return;
+    const base = Number(condPrices.NM) || 0;
+    if (!base) return;
+    setBuyNowPrice(String(priceFor(condition, base, condPrices)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [condition, condPrices]);
+
 
   const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
     <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
@@ -277,13 +319,25 @@ function Sell() {
           <div className="space-y-3">
             <div className="flex gap-2">
               <input className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <button type="button" onClick={() => setScanning(true)}
+                className="flex items-center gap-1 rounded-xl bg-primary px-3 py-3 text-xs font-bold text-primary-foreground"
+                title="Scan card with camera (same engine as Vault)">
+                <Camera className="h-3.5 w-3.5" /> Scan
+              </button>
               <button type="button" onClick={aiIdentify} disabled={identifying}
                 className="rounded-xl bg-accent px-3 py-3 text-xs font-bold text-accent-foreground disabled:opacity-50">
                 {identifying ? "…" : "✨ AI ID"}
               </button>
             </div>
+            <p className="-mt-1 text-[10px] text-muted-foreground">
+              Tap <b>Scan</b> to identify by photo (same as your Vault), or type a name + tap <b>AI ID</b>. Pricing adjusts for condition automatically.
+            </p>
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Card number (optional, e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+            <div className="grid grid-cols-3 gap-2">
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="# (e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Front photo URL *" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Back photo URL *" value={backImageUrl} onChange={(e) => setBackImageUrl(e.target.value)} />
@@ -326,6 +380,9 @@ function Sell() {
           </div>
         )}
       </div>
+      {scanning && (
+        <CardScanner onClose={() => setScanning(false)} onResult={onScanResult} />
+      )}
     </AppShell>
   );
 }
