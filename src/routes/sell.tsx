@@ -35,6 +35,10 @@ function Sell() {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [backImageUrl, setBackImageUrl] = useState(""); // 🆕 back of card (required)
+  const [tcgNumber, setTcgNumber] = useState("");        // 🆕 card number (optional)
+  const [condition, setCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM"); // 🆕 required
+  const [identifying, setIdentifying] = useState(false); // 🆕 AI identify in-flight
   const [enableBuyNow, setEnableBuyNow] = useState(true);
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
