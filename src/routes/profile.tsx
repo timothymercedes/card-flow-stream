@@ -2,11 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint, Phone, CheckCircle2 } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint, Phone, CheckCircle2, Bell, BellOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
+import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -297,6 +298,7 @@ function Profile() {
             <Package className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">My Orders</p><p className="text-xs text-muted-foreground">Items you've purchased</p></div>
           </Link>
+          <PushToggle userId={user!.id} />
           <button onClick={async () => { await signOut(); nav({ to: "/" }); }} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
             <LogOut className="h-5 w-5 text-destructive" />
             <p className="text-sm font-semibold">Sign Out</p>
@@ -304,5 +306,42 @@ function Profile() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function PushToggle({ userId }: { userId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    if (!pushSupported()) return;
+    navigator.serviceWorker.getRegistration().then(async (reg) => {
+      const sub = await reg?.pushManager.getSubscription();
+      setEnabled(!!sub && Notification.permission === "granted");
+    });
+  }, []);
+  async function toggle() {
+    setBusy(true);
+    try {
+      if (enabled) {
+        await disablePush();
+        setEnabled(false);
+        toast.success("Live alerts off");
+      } else {
+        const r = await ensurePushSubscribed(userId);
+        if (!r.ok) { toast.error(r.reason || "Couldn't enable"); return; }
+        setEnabled(true);
+        toast.success("You'll get a ping when sellers you follow go live 🔔");
+      }
+    } finally { setBusy(false); }
+  }
+  if (!pushSupported()) return null;
+  return (
+    <button onClick={toggle} disabled={busy} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left disabled:opacity-60">
+      {enabled ? <Bell className="h-5 w-5 text-primary" /> : <BellOff className="h-5 w-5 text-muted-foreground" />}
+      <div className="flex-1">
+        <p className="text-sm font-semibold">Live alerts</p>
+        <p className="text-xs text-muted-foreground">{enabled ? "On — followed sellers will ping you" : "Off — tap to get notified when sellers go live"}</p>
+      </div>
+    </button>
   );
 }

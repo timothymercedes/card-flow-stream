@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
 import { Radio } from "lucide-react";
+import { notifyGoingLive } from "@/server/push.functions";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -110,6 +111,8 @@ function Sell() {
       ...cf,
     }).select().single();
     if (error) return toast.error(error.message);
+    // Fire-and-forget push to followers — never block navigation.
+    notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
     nav({ to: "/live/$id", params: { id: data.id } });
   }
 
