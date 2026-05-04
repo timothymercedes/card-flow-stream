@@ -234,6 +234,21 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
+  // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
+  const [unpaidOrders, setUnpaidOrders] = useState(0);
+  useEffect(() => {
+    if (!user) { setUnpaidOrders(0); return; }
+    const refresh = () =>
+      supabase.from("orders").select("id", { count: "exact", head: true })
+        .eq("buyer_id", user.id).eq("payment_status", "awaiting_payment")
+        .then(({ count }) => setUnpaidOrders(count ?? 0));
+    refresh();
+    const ch = supabase.channel(`unpaid-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
+
   // 🆕 For Giveaway eligibility — does the current viewer follow the host / has bought from them?
   useEffect(() => {
     if (!user || !stream?.seller_id || user.id === stream.seller_id) {
