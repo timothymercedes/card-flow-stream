@@ -271,10 +271,37 @@ function Vault() {
         </div>
 
         {/* Total value (owner only) */}
-        <div className="mb-4 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 p-4">
+        <div className="mb-3 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 p-4">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total Vault Value</p>
           <p className="text-3xl font-bold">${totalValue.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} • visible only to you</p>
+          <p className="text-[10px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""}</p>
+        </div>
+
+        {/* Vault sharing (one setting for the whole vault) */}
+        <div className="mb-4 rounded-xl bg-card p-3">
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-xs font-semibold">Who can see your vault</p>
+            {savingVis && <span className="text-[10px] text-muted-foreground">Saving…</span>}
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {([
+              { v: "private",   l: "Only me",   I: Lock },
+              { v: "friends",   l: "Friends",   I: UserCheck },
+              { v: "followers", l: "Followers", I: Users },
+              { v: "public",    l: "Public",    I: Globe },
+            ] as const).map(({ v, l, I }) => (
+              <button key={v} type="button" onClick={() => updateVaultVisibility(v)}
+                className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-semibold ${vaultVisibility === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <I className="h-3.5 w-3.5" />
+                {l}
+              </button>
+            ))}
+          </div>
+          {vaultVisibility !== "private" && profile?.username && (
+            <p className="mt-2 break-all text-[10px] text-muted-foreground">
+              Share link: <span className="font-mono">/u/{profile.username}/vault</span>
+            </p>
+          )}
         </div>
 
         {showAdd && (
