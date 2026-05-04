@@ -295,6 +295,7 @@ export type Database = {
           listing_type: string
           min_bid_increment: number
           quick_start_enabled: boolean
+          round_number: number
           seller_id: string
           shipping_method: string | null
           shipping_price: number | null
@@ -336,6 +337,7 @@ export type Database = {
           listing_type?: string
           min_bid_increment?: number
           quick_start_enabled?: boolean
+          round_number?: number
           seller_id: string
           shipping_method?: string | null
           shipping_price?: number | null
@@ -377,6 +379,7 @@ export type Database = {
           listing_type?: string
           min_bid_increment?: number
           quick_start_enabled?: boolean
+          round_number?: number
           seller_id?: string
           shipping_method?: string | null
           shipping_price?: number | null
