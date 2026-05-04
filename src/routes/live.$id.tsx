@@ -103,6 +103,9 @@ function LiveDetail() {
   const [isPastBuyer, setIsPastBuyer] = useState(false);
   // 🆕 Currency display preference (per-viewer)
   const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
+  // 🆕 Live presence — viewer count + "joined the live" announcements
+  const [viewerCount, setViewerCount] = useState(0);
+  const announcedJoinsRef = useRef<Set<string>>(new Set());
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
