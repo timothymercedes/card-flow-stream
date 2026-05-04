@@ -1629,7 +1629,7 @@ function LiveDetail() {
             <RotateCw className="h-3.5 w-3.5" /> {wheel.title || "Spin to Win"}
           </p>
           <p className="mb-4 text-[11px] text-white/60">
-            Mode: {wheel.mode === "remove" ? "Removed after spin" : "Repeats"} · Speed: {wheel.spin_speed}
+            Spin time: {String(wheel.spin_speed).match(/^\d+$/) ? `${wheel.spin_speed}s` : wheel.spin_speed} · {wheelSlots.filter(s=>s.is_active).length} prizes
           </p>
           <SpinWheel
             slots={wheelSlots}
@@ -1637,11 +1637,33 @@ function LiveDetail() {
             targetSlotId={wheel.spin_target_slot_id || null}
             startedAt={wheel.spin_started_at ? new Date(wheel.spin_started_at).getTime() : null}
             finishAt={wheel.spin_ends_at ? new Date(wheel.spin_ends_at).getTime() : null}
-            size={Math.min(360, typeof window !== "undefined" ? Math.min(window.innerWidth, window.innerHeight) - 120 : 320)}
+            size={Math.min(360, typeof window !== "undefined" ? Math.min(window.innerWidth, window.innerHeight) - 140 : 320)}
           />
 
           <div className="mt-6 flex w-full max-w-sm flex-col gap-2">
-            {(isSeller || wheel.viewer_can_spin) && !wheel.is_spinning && (
+            {/* Host post-spin decision: Remove or Keep the landed slot */}
+            {isSeller && wheel.pending_decision_slot_id && !wheel.is_spinning && (
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="mb-2 text-center text-xs text-white/80">
+                  Landed on <span className="font-bold text-amber-300">{wheel.pending_decision_slot_label}</span> — keep it on the wheel or remove it?
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => decideAfterSpin("remove")} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-500 py-2.5 text-xs font-extrabold text-white">
+                    <Trash2 className="h-3.5 w-3.5" /> Remove
+                  </button>
+                  <button onClick={() => decideAfterSpin("keep")} className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2.5 text-xs font-extrabold text-white">
+                    <Check className="h-3.5 w-3.5" /> Keep
+                  </button>
+                </div>
+              </div>
+            )}
+            {!isSeller && wheel.pending_decision_slot_id && !wheel.is_spinning && (
+              <div className="rounded-xl bg-white/5 p-3 text-center text-xs text-white/70">
+                Waiting for host to decide on <span className="font-bold text-amber-300">{wheel.pending_decision_slot_label}</span>…
+              </div>
+            )}
+
+            {(isSeller || wheel.viewer_can_spin) && !wheel.is_spinning && !wheel.pending_decision_slot_id && (
               <button
                 onClick={triggerSpin}
                 className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-3 text-base font-extrabold text-white shadow-lg active:scale-[0.98]"
@@ -1654,10 +1676,15 @@ function LiveDetail() {
                 <Lock className="h-4 w-4" /> Wheel locked while spinning
               </div>
             )}
-            {!isSeller && !wheel.viewer_can_spin && !wheel.is_spinning && (
+            {!isSeller && !wheel.viewer_can_spin && !wheel.is_spinning && !wheel.pending_decision_slot_id && (
               <p className="text-center text-xs text-white/50">Only the host can spin right now</p>
             )}
-            {wheel.last_winner_slot_label && !wheel.is_spinning && (
+            {isSeller && wheel.is_locked && !wheel.is_spinning && !wheel.pending_decision_slot_id && (
+              <button onClick={resetWheel} className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-2 text-xs font-bold text-white/80">
+                <Unlock className="h-3.5 w-3.5" /> Reset wheel (unlock editing)
+              </button>
+            )}
+            {wheel.last_winner_slot_label && !wheel.is_spinning && !wheel.pending_decision_slot_id && (
               <div className="rounded-xl bg-white/5 p-3 text-center text-xs text-white/80">
                 Last spin: <span className="font-bold text-amber-300">{wheel.last_winner_slot_label}</span> →{" "}
                 <span className="font-bold text-white">@{wheel.last_winner_username}</span>
