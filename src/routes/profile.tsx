@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
+import { AgreementModal } from "@/components/AgreementModal";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -37,10 +38,46 @@ function Profile() {
   const [otpCode, setOtpCode] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
 
+  const [sellerAgreementAccepted, setSellerAgreementAccepted] = useState<boolean | null>(null);
+  const [showSellerAgreement, setShowSellerAgreement] = useState(false);
+  const [acceptingAgreement, setAcceptingAgreement] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
   }, [user]);
+
+  // Check whether approved sellers have already signed the Seller Agreement.
+  useEffect(() => {
+    if (!user || !p) return;
+    if (p.seller_status !== "approved") { setSellerAgreementAccepted(null); return; }
+    supabase
+      .from("legal_acceptances")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("document_type", "seller_agreement")
+      .then(({ count }) => {
+        const accepted = (count ?? 0) > 0;
+        setSellerAgreementAccepted(accepted);
+        if (!accepted) setShowSellerAgreement(true);
+      });
+  }, [user, p?.seller_status]);
+
+  async function acceptSellerAgreement() {
+    if (!user) return;
+    setAcceptingAgreement(true);
+    const { error } = await supabase.from("legal_acceptances").insert({
+      user_id: user.id,
+      document_type: "seller_agreement",
+      version: "1.0",
+      user_agent: navigator.userAgent.slice(0, 200),
+    });
+    setAcceptingAgreement(false);
+    if (error) return toast.error(error.message);
+    setSellerAgreementAccepted(true);
+    setShowSellerAgreement(false);
+    toast.success("Seller Agreement accepted");
+  }
 
   async function sendOtp() {
     if (!p?.phone || p.phone.length < 7) return toast.error("Enter a valid phone number");
