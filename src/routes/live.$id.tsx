@@ -57,6 +57,20 @@ function LiveDetail() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
+  // Mods, mod-chat, announcements, AI hype overlay
+  const [mods, setMods] = useState<any[]>([]);
+  const [modChat, setModChat] = useState<any[]>([]);
+  const [showModPanel, setShowModPanel] = useState(false);
+  const [modSearchQ, setModSearchQ] = useState("");
+  const [modSearchRes, setModSearchRes] = useState<any[]>([]);
+  const [modInput, setModInput] = useState("");
+  const [annOpen, setAnnOpen] = useState(false);
+  const [annText, setAnnText] = useState("");
+  const [hypeCard, setHypeCard] = useState<{ name: string; category: string; set_guess: string; rarity_vibe: string; image: string } | null>(null);
+
+  const isMod = !!user && mods.some((m) => m.mod_user_id === user.id);
+  const isStaff = !!user && (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
+
   const isSeller = !!user && stream && user.id === stream.seller_id;
 
   // Settings form state (seller)
