@@ -143,7 +143,7 @@ function Vault() {
     toast.success(`Identified: ${r.name}`);
   }
 
-  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number }) {
+  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
@@ -157,6 +157,7 @@ function Vault() {
       price: opts.buy_now ? opts.price : null,
       starting_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       current_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
+      reserve_price: opts.auction && opts.reserve ? opts.reserve : null,
       auction_ends_at: opts.auction ? new Date(Date.now() + opts.days * 24 * 60 * 60 * 1000).toISOString() : null,
       condition: card.condition || null,
       tcg_number: card.tcg_number || null,
