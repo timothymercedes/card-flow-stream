@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      cart_items: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -86,6 +107,24 @@ export type Database = {
           recipient_id?: string
           sender_id?: string
           sender_username?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          followee_id: string
+          follower_id: string
+        }
+        Insert: {
+          created_at?: string
+          followee_id: string
+          follower_id: string
+        }
+        Update: {
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
         }
         Relationships: []
       }
@@ -436,6 +475,7 @@ export type Database = {
           id: string
           item_image_url: string | null
           listing_id: string | null
+          order_group_id: string | null
           seller_id: string
           ship_address: string
           ship_city: string
@@ -461,6 +501,7 @@ export type Database = {
           id?: string
           item_image_url?: string | null
           listing_id?: string | null
+          order_group_id?: string | null
           seller_id: string
           ship_address: string
           ship_city: string
@@ -486,6 +527,7 @@ export type Database = {
           id?: string
           item_image_url?: string | null
           listing_id?: string | null
+          order_group_id?: string | null
           seller_id?: string
           ship_address?: string
           ship_city?: string
@@ -508,6 +550,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
       }
       post_edits: {
         Row: {
@@ -573,28 +642,40 @@ export type Database = {
       }
       posts: {
         Row: {
+          allow_comments: boolean
           caption: string
           created_at: string
           id: string
           image_url: string | null
+          moderation_reason: string | null
+          moderation_status: string
           user_id: string
           username: string
+          visibility: string
         }
         Insert: {
+          allow_comments?: boolean
           caption: string
           created_at?: string
           id?: string
           image_url?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
           user_id: string
           username: string
+          visibility?: string
         }
         Update: {
+          allow_comments?: boolean
           caption?: string
           created_at?: string
           id?: string
           image_url?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
           user_id?: string
           username?: string
+          visibility?: string
         }
         Relationships: [
           {
