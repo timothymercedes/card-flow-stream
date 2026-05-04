@@ -101,6 +101,10 @@ function LiveDetail() {
   // 🆕 Giveaway
   const [showGiveaway, setShowGiveaway] = useState(false);
   const [giveawayComposer, setGiveawayComposer] = useState(false);
+  // Track latest giveaway status so we can auto-hide its chat announcement once a winner is decided.
+  const [giveawayStatus, setGiveawayStatus] = useState<string | null>(null);
+  // Per-viewer dismissed announcements (ids the viewer tapped X on)
+  const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<Set<string>>(new Set());
   const [isFollowingHost, setIsFollowingHost] = useState(false);
   const [isPastBuyer, setIsPastBuyer] = useState(false);
   // 🆕 Currency display preference (per-viewer)
