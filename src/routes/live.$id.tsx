@@ -153,6 +153,7 @@ function LiveDetail() {
         setEditQuantity(String(data.quick_start_quantity || 1));
         setEditVoiceEnabled(!!data.voice_trigger_enabled);
         setEditVoicePhrase(data.voice_trigger_phrase || "next");
+        setEditSlowMode(String((data as any).chat_slow_mode_sec ?? 0));
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
