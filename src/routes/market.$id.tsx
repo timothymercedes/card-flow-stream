@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MessageCircle, Timer } from "lucide-react";
+import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
