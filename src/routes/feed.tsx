@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { ThumbsUp, ThumbsDown, Pencil, Trash2, History, X, Check } from "lucide-react";
 import { toast } from "sonner";
+import { StoryRail } from "@/components/StoryRail";
 
 export const Route = createFileRoute("/feed")({ component: Feed });
 
