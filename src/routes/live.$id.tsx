@@ -264,6 +264,14 @@ function LiveDetail() {
       .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
   }, [user?.id, stream?.seller_id]);
 
+  // 🆕 Live viewer presence (heartbeat + 1-min idle removal)
+  const { viewers: liveViewers, count: viewerCount } = useStreamPresence(
+    id || null,
+    user?.id || null,
+    profile?.username || null,
+    profile?.avatar_url || null,
+  );
+
   // Load mod chat once user is known to be staff
   useEffect(() => {
     if (!isStaff) { setModChat([]); return; }
