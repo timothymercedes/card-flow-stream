@@ -698,6 +698,58 @@ function LiveDetail() {
       )}
 
       {scanning && <CardScanner onResult={onScanResult} onClose={() => setScanning(false)} />}
+
+      {/* Shout-Out modal */}
+      {shoutoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShoutoutOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Megaphone className="h-4 w-4 text-primary" /> Send a Shout-Out</p>
+              <button onClick={() => setShoutoutOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              Tip the seller and tell them what to shout. Make it fun! 🎉<br />
+              You've spent <span className="font-semibold text-foreground">${mySpent}</span> · <span className="font-semibold text-foreground">${50 - mySpent}</span> left this stream.
+            </p>
+            <textarea
+              value={shoutoutMsg}
+              onChange={(e) => setShoutoutMsg(e.target.value)}
+              maxLength={140}
+              rows={2}
+              placeholder='e.g. "Shout out to my friend Mike!" or "Say hi to Tokyo!"'
+              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <p className="mb-2 text-right text-[10px] text-muted-foreground">{shoutoutMsg.length}/140</p>
+
+            <p className="mb-1 text-xs font-semibold">Amount: <span className="text-primary">${shoutoutAmt}</span></p>
+            <input
+              type="range" min={5} max={Math.max(5, Math.min(50, 50 - mySpent))} step={1}
+              value={shoutoutAmt}
+              onChange={(e) => setShoutoutAmt(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+            <div className="mt-1 mb-3 flex justify-between text-[10px] text-muted-foreground">
+              <span>$5</span><span>$25</span><span>$50</span>
+            </div>
+            <div className="mb-3 grid grid-cols-4 gap-1.5">
+              {[5, 10, 25, 50].map((v) => {
+                const disabled = v > (50 - mySpent);
+                return (
+                  <button key={v} disabled={disabled}
+                    onClick={() => setShoutoutAmt(v)}
+                    className={`rounded-lg py-1.5 text-xs font-bold ${shoutoutAmt === v ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"} disabled:opacity-30`}>
+                    ${v}
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={sendShoutout} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+              Send ${shoutoutAmt} Shout-Out (safe mode)
+            </button>
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">No real charge yet — payments turn on later.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
