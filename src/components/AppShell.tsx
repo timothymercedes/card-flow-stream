@@ -1,18 +1,34 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User } from "lucide-react";
-import { ReactNode } from "react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package } from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-const tabs = [
+const baseTabs = [
   { to: "/", label: "Home", icon: Home },
   { to: "/live", label: "Live", icon: Radio },
   { to: "/market", label: "Market", icon: Store },
   { to: "/vault", label: "Vault", icon: Lock },
   { to: "/messages", label: "Chat", icon: MessageCircle },
-  { to: "/profile", label: "Profile", icon: User },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
+  const { user } = useAuth();
+  const [isSeller, setIsSeller] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsSeller(false); return; }
+    supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setIsSeller(data?.seller_status === "approved"));
+  }, [user]);
+
+  const tabs = [
+    ...baseTabs,
+    ...(isSeller ? [{ to: "/store", label: "Store", icon: Package }] : []),
+    { to: "/profile", label: "Profile", icon: User },
+  ];
+
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
@@ -31,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
       <main className="flex-1 pb-20">{children}</main>
       <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
-        <div className="grid grid-cols-6">
+        <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((t) => {
             const active = loc.pathname === t.to || (t.to !== "/" && loc.pathname.startsWith(t.to));
             const Icon = t.icon;
