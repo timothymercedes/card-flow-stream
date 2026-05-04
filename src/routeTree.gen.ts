@@ -26,6 +26,10 @@ import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as LegalTosRouteImport } from './routes/legal.tos'
+import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-agreement'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 
 const VaultRoute = VaultRouteImport.update({
@@ -113,6 +117,26 @@ const LiveIdRoute = LiveIdRouteImport.update({
   path: '/live/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalTosRoute = LegalTosRouteImport.update({
+  id: '/legal/tos',
+  path: '/legal/tos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalSellerAgreementRoute = LegalSellerAgreementRouteImport.update({
+  id: '/legal/seller-agreement',
+  path: '/legal/seller-agreement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
+  id: '/legal/buyer-terms',
+  path: '/legal/buyer-terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRefreshVaultValuesRoute =
   ApiPublicHooksRefreshVaultValuesRouteImport.update({
     id: '/api/public/hooks/refresh-vault-values',
@@ -131,6 +155,10 @@ export interface FileRoutesByFullPath {
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
+  '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
@@ -151,6 +179,10 @@ export interface FileRoutesByTo {
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
+  '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
@@ -172,6 +204,10 @@ export interface FileRoutesById {
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
+  '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
@@ -194,6 +230,10 @@ export interface FileRouteTypes {
     | '/sell'
     | '/store'
     | '/vault'
+    | '/legal/buyer-terms'
+    | '/legal/privacy'
+    | '/legal/seller-agreement'
+    | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
     | '/messages/$userId'
@@ -214,6 +254,10 @@ export interface FileRouteTypes {
     | '/sell'
     | '/store'
     | '/vault'
+    | '/legal/buyer-terms'
+    | '/legal/privacy'
+    | '/legal/seller-agreement'
+    | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
     | '/messages/$userId'
@@ -234,6 +278,10 @@ export interface FileRouteTypes {
     | '/sell'
     | '/store'
     | '/vault'
+    | '/legal/buyer-terms'
+    | '/legal/privacy'
+    | '/legal/seller-agreement'
+    | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
     | '/messages/$userId'
@@ -255,6 +303,10 @@ export interface RootRouteChildren {
   SellRoute: typeof SellRoute
   StoreRoute: typeof StoreRoute
   VaultRoute: typeof VaultRoute
+  LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalSellerAgreementRoute: typeof LegalSellerAgreementRoute
+  LegalTosRoute: typeof LegalTosRoute
   LiveIdRoute: typeof LiveIdRoute
   MarketIdRoute: typeof MarketIdRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
@@ -386,6 +438,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/tos': {
+      id: '/legal/tos'
+      path: '/legal/tos'
+      fullPath: '/legal/tos'
+      preLoaderRoute: typeof LegalTosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/seller-agreement': {
+      id: '/legal/seller-agreement'
+      path: '/legal/seller-agreement'
+      fullPath: '/legal/seller-agreement'
+      preLoaderRoute: typeof LegalSellerAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/buyer-terms': {
+      id: '/legal/buyer-terms'
+      path: '/legal/buyer-terms'
+      fullPath: '/legal/buyer-terms'
+      preLoaderRoute: typeof LegalBuyerTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-vault-values': {
       id: '/api/public/hooks/refresh-vault-values'
       path: '/api/public/hooks/refresh-vault-values'
@@ -407,6 +487,10 @@ const rootRouteChildren: RootRouteChildren = {
   SellRoute: SellRoute,
   StoreRoute: StoreRoute,
   VaultRoute: VaultRoute,
+  LegalBuyerTermsRoute: LegalBuyerTermsRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalSellerAgreementRoute: LegalSellerAgreementRoute,
+  LegalTosRoute: LegalTosRoute,
   LiveIdRoute: LiveIdRoute,
   MarketIdRoute: MarketIdRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
@@ -419,3 +503,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
