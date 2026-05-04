@@ -1024,12 +1024,15 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_locked: boolean
           is_open: boolean
           is_spinning: boolean
           last_winner_at: string | null
           last_winner_slot_label: string | null
           last_winner_username: string | null
           mode: string
+          pending_decision_slot_id: string | null
+          pending_decision_slot_label: string | null
           seller_id: string
           spin_ends_at: string | null
           spin_seed: number | null
@@ -1044,12 +1047,15 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_locked?: boolean
           is_open?: boolean
           is_spinning?: boolean
           last_winner_at?: string | null
           last_winner_slot_label?: string | null
           last_winner_username?: string | null
           mode?: string
+          pending_decision_slot_id?: string | null
+          pending_decision_slot_label?: string | null
           seller_id: string
           spin_ends_at?: string | null
           spin_seed?: number | null
@@ -1064,12 +1070,15 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_locked?: boolean
           is_open?: boolean
           is_spinning?: boolean
           last_winner_at?: string | null
           last_winner_slot_label?: string | null
           last_winner_username?: string | null
           mode?: string
+          pending_decision_slot_id?: string | null
+          pending_decision_slot_label?: string | null
           seller_id?: string
           spin_ends_at?: string | null
           spin_seed?: number | null

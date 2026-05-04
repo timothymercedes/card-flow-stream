@@ -111,34 +111,72 @@ export function SpinWheel({ slots, spinning, targetSlotId, startedAt, finishAt, 
     return { d, color: s.color, label: s.label, lx, ly, rotDeg, key: s.id };
   });
 
+  // Index of the slice that's currently sitting at the top pointer (visual feedback)
+  const pointedIdx = useMemo(() => {
+    if (active.length === 0) return -1;
+    const stepDeg = 360 / active.length;
+    // The slice whose center is at angle 0 after wheel rotation = (-angle/step) mod n, offset by half step
+    const norm = ((360 - (angle % 360)) % 360);
+    return Math.floor((norm + stepDeg / 2) / stepDeg) % active.length;
+  }, [angle, active]);
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      {/* Pointer */}
+    <div className="relative" style={{ width: size + 24, height: size + 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {/* Outer rim ring */}
+      <div className="absolute inset-0 rounded-full" style={{ background: "radial-gradient(circle at 50% 0%, hsl(var(--primary)/0.55), transparent 60%)" }} />
+
+      {/* NEEDLE / POINTER — large arrow at the top, points DOWN into the wheel */}
       <div
-        className="absolute left-1/2 -top-1 z-10 -translate-x-1/2"
-        style={{ width: 0, height: 0, borderLeft: "12px solid transparent", borderRight: "12px solid transparent", borderTop: "20px solid hsl(var(--primary))" }}
-      />
+        className="absolute left-1/2 z-20 -translate-x-1/2"
+        style={{ top: 0 }}
+      >
+        <svg width="44" height="56" viewBox="0 0 44 56" style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,.6))" }}>
+          {/* Knob */}
+          <circle cx="22" cy="10" r="9" fill="hsl(var(--primary))" stroke="#fff" strokeWidth="2" />
+          {/* Arrow body pointing down */}
+          <path d="M 22 54 L 6 18 Q 22 26 38 18 Z" fill="hsl(var(--primary))" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      </div>
+
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: `rotate(${angle}deg)`, transition: "none", filter: "drop-shadow(0 8px 24px rgba(0,0,0,.45))" }}>
         <circle cx={cx} cy={cy} r={r - 2} fill="#0b0b0b" />
-        {slices.map((sl) => (
-          <g key={sl.key}>
-            <path d={sl.d} fill={sl.color} stroke="rgba(0,0,0,.35)" strokeWidth={1} />
-            <text
-              x={sl.lx}
-              y={sl.ly}
-              fill="#fff"
-              fontSize={Math.max(10, size / 22)}
-              fontWeight={800}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              transform={`rotate(${sl.rotDeg} ${sl.lx} ${sl.ly})`}
-              style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,.6)", strokeWidth: 2 }}
-            >
-              {sl.label.length > 14 ? sl.label.slice(0, 13) + "…" : sl.label}
-            </text>
-          </g>
-        ))}
-        <circle cx={cx} cy={cy} r={size * 0.08} fill="hsl(var(--primary))" stroke="#fff" strokeWidth={2} />
+        {slices.map((sl, i) => {
+          const highlighted = i === pointedIdx;
+          return (
+            <g key={sl.key}>
+              <path
+                d={sl.d}
+                fill={sl.color}
+                stroke={highlighted ? "#fff" : "rgba(0,0,0,.35)"}
+                strokeWidth={highlighted ? 3 : 1}
+                style={highlighted ? { filter: "brightness(1.25)" } : undefined}
+              />
+              <text
+                x={sl.lx}
+                y={sl.ly}
+                fill="#fff"
+                fontSize={Math.max(10, size / 22)}
+                fontWeight={800}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                transform={`rotate(${sl.rotDeg} ${sl.lx} ${sl.ly})`}
+                style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,.6)", strokeWidth: 2 }}
+              >
+                {sl.label.length > 14 ? sl.label.slice(0, 13) + "…" : sl.label}
+              </text>
+            </g>
+          );
+        })}
+        {/* Tick marks between slices for that satisfying click feel */}
+        {slices.map((_, i) => {
+          const a = -Math.PI / 2 + i * step;
+          const x1 = cx + (r - 2) * Math.cos(a);
+          const y1 = cy + (r - 2) * Math.sin(a);
+          const x2 = cx + (r - 10) * Math.cos(a);
+          const y2 = cy + (r - 10) * Math.sin(a);
+          return <line key={`tick-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#fff" strokeWidth={2} opacity={0.6} />;
+        })}
+        <circle cx={cx} cy={cy} r={size * 0.09} fill="hsl(var(--primary))" stroke="#fff" strokeWidth={3} />
       </svg>
     </div>
   );
