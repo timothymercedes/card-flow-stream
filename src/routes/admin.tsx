@@ -93,7 +93,8 @@ function Admin() {
     loadRoles();
   }
 
-  useEffect(() => { if (isAdmin) loadAll(); }, [isAdmin]);
+  useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
+  useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
 
   async function updateReport(id: string, status: "reviewing" | "resolved" | "dismissed") {
     const note = status !== "reviewing" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
