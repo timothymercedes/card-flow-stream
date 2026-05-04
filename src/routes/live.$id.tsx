@@ -647,6 +647,7 @@ function LiveDetail() {
   async function claimBreakSlotNumber(slotNumber: number) {
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before claiming"); nav({ to: "/orders" }); return; }
     const taken = breakSlots.some((s) => s.slot_number === slotNumber);
     if (taken) return toast.error("That slot is already taken");
     const price = Number(breakPrice) || 10;
