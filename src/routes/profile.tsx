@@ -253,6 +253,23 @@ function Profile() {
           ) : (
             <button onClick={applyToSell} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Apply to Sell</button>
           )}
+          {p.seller_status === "approved" && (
+            <div className="mt-2 rounded-lg border border-border p-3">
+              <p className="mb-1 text-xs font-semibold">Combined-shipping cap (per buyer, per checkout)</p>
+              <p className="mb-2 text-[11px] text-muted-foreground">When a buyer orders multiple items from you in one checkout, total shipping for your items will never exceed this cap. Leave blank for no cap.</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">$</span>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={p.shipping_cap ?? ""}
+                  onChange={(e) => setP({ ...p, shipping_cap: e.target.value })}
+                  placeholder="e.g. 10"
+                  className="w-32 rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                />
+                <span className="text-[11px] text-muted-foreground">max total / checkout</span>
+              </div>
+            </div>
+          )}
         </section>
 
         <div className="space-y-2">
