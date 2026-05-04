@@ -126,6 +126,10 @@ function LiveDetail() {
   const [editTimerSec, setEditTimerSec] = useState("30");
   const [editShipPrice, setEditShipPrice] = useState("");
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
+  // 🆕 Quantity (back-to-back identical auctions) + voice trigger
+  const [editQuantity, setEditQuantity] = useState("1");
+  const [editVoiceEnabled, setEditVoiceEnabled] = useState(false);
+  const [editVoicePhrase, setEditVoicePhrase] = useState("next");
 
   useEffect(() => {
     supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setAllStreams(data || []));
@@ -139,6 +143,10 @@ function LiveDetail() {
         setEditStartPrice(String(data.starting_bid || 1));
         setEditShipPrice(String(data.shipping_price || 0));
         setEditShipMethod(data.shipping_method || "USPS Ground");
+        setEditTimerSec(String(data.default_timer_sec || 30));
+        setEditQuantity(String(data.quick_start_quantity || 1));
+        setEditVoiceEnabled(!!data.voice_trigger_enabled);
+        setEditVoicePhrase(data.voice_trigger_phrase || "next");
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
@@ -289,6 +297,39 @@ function LiveDetail() {
       finalizeAuctionRound();
     }
   }, [remaining, isSeller, stream?.status]);
+
+  // 🆕 Voice trigger — listens for the seller's phrase and re-fires the next auction round.
+  useEffect(() => {
+    if (!isSeller) return;
+    if (!stream?.voice_trigger_enabled) return;
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase();
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    rec.onresult = (ev: any) => {
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = String(ev.results[i][0]?.transcript || "").toLowerCase();
+        if (t.includes(phrase)) {
+          // Avoid double-fires while a round is live
+          if (auctionLive) return;
+          startAuction();
+          return;
+        }
+      }
+    };
+    rec.onend = () => { try { rec.start(); } catch {} };
+    try { rec.start(); setVoiceListening(true); } catch {}
+    recognitionRef.current = rec;
+    return () => {
+      setVoiceListening(false);
+      try { rec.onend = null; rec.stop(); } catch {}
+      recognitionRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase]);
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
@@ -757,11 +798,14 @@ function LiveDetail() {
     if (!isSeller) return;
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
+    const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
     await supabase.from("live_streams").update({
       status: "live",
       listing_type: "auction",
       starting_bid: start,
+      default_starting_bid: start,
+      default_timer_sec: sec,
       current_bid: start,
       current_bidder_id: null,
       item_description: editDesc || null,
@@ -774,11 +818,37 @@ function LiveDetail() {
       snipe_extends: 0,
       snipe_price: null,
       sudden_death_active: false,
+      quick_start_quantity: qty,
+      quick_start_remaining: qty - 1,
+      voice_trigger_enabled: editVoiceEnabled,
+      voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
     }).eq("id", id);
     endedRef.current = false;
-    await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}`, true);
+    await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`, true);
     toast.success("Auction started");
     setShowSettings(false);
+  }
+
+  // 🆕 Save voice trigger + quantity without starting an auction
+  async function saveAuctionDefaults() {
+    if (!isSeller) return;
+    const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
+    await supabase.from("live_streams").update({
+      default_timer_sec: Number(editTimerSec) || 30,
+      default_starting_bid: Number(editStartPrice) || 1,
+      shipping_price: Number(editShipPrice) || 0,
+      shipping_method: editShipMethod,
+      quick_start_quantity: qty,
+      voice_trigger_enabled: editVoiceEnabled,
+      voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
+    }).eq("id", id);
+    toast.success("Settings saved");
+  }
+
+  // 🆕 Persist edited break character labels (allowed any time)
+  async function saveBreakCharacters(next: string[]) {
+    if (!isSeller || !stream) return;
+    await supabase.from("live_streams").update({ break_characters: next }).eq("id", id);
   }
 
   // Auction ends only by timer (no manual end button for host)
@@ -895,13 +965,26 @@ function LiveDetail() {
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
         round_number: nextRound,
       }).eq("id", id);
-      // Clear winner banner + ends_at after 5s
+      // Clear winner banner + ends_at after 5s, then auto-rearm next round if quantity remaining
       setTimeout(async () => {
-        await supabase.from("live_streams").update({
+        const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
+        const sec = Number(stream.default_timer_sec || 30);
+        const start = Number(stream.default_starting_bid || stream.starting_bid || 1);
+        const update: any = {
           ends_at: null, winner_id: null, winning_bid: null, winner_username: null, current_bidder_id: null,
-        }).eq("id", id);
+        };
+        if (remaining > 0) {
+          update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
+          update.starting_bid = start;
+          update.current_bid = start;
+          update.snipe_extends = 0;
+          update.sudden_death_active = false;
+          update.quick_start_remaining = remaining - 1;
+        }
+        await supabase.from("live_streams").update(update).eq("id", id);
         endedRef.current = false;
         snapshotRef.current = false;
+        if (remaining > 0) sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
       }, 5000);
     } else {
       // No winner: silently clear after 5s, no banner/notif
@@ -1085,27 +1168,37 @@ function LiveDetail() {
         </div>
       </div>
 
-      {/* 🆕 Always-visible auction timer (regardless of pin state) */}
-      {auctionLive && (
+      {/* 🆕 Always-visible auction timer (regardless of pin state); shows READY when no round is live */}
+      {!ended && (
         <div className="pointer-events-none absolute left-1/2 top-14 z-20 -translate-x-1/2">
-          <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-extrabold tabular-nums shadow-2xl ring-2 transition ${
-            stream.sudden_death_active
-              ? "bg-red-600 text-white ring-red-300 animate-pulse"
-              : snipeFlash
-                ? "bg-yellow-400 text-black ring-yellow-200 scale-110"
-                : remaining <= 5000
-                  ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
-                  : "bg-live text-live-foreground ring-white/30"
-          }`}>
-            {stream.sudden_death_active ? <Zap className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
-            <span>{fmtRemaining(remaining)}</span>
-            {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
-              <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">+{stream.snipe_extends}/3 OT</span>
-            )}
-            {stream.sudden_death_active && (
-              <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">Sudden Death</span>
-            )}
-          </div>
+          {auctionLive ? (
+            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-extrabold tabular-nums shadow-2xl ring-2 transition ${
+              stream.sudden_death_active
+                ? "bg-red-600 text-white ring-red-300 animate-pulse"
+                : snipeFlash
+                  ? "bg-yellow-400 text-black ring-yellow-200 scale-110"
+                  : remaining <= 5000
+                    ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
+                    : "bg-live text-live-foreground ring-white/30"
+            }`}>
+              {stream.sudden_death_active ? <Zap className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
+              <span>{fmtRemaining(remaining)}</span>
+              {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
+                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">+{stream.snipe_extends}/3 OT</span>
+              )}
+              {stream.sudden_death_active && (
+                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">Sudden Death</span>
+              )}
+              {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && (
+                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
+              <Timer className="h-3.5 w-3.5 opacity-70" />
+              <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -1208,6 +1301,41 @@ function LiveDetail() {
               <input type="number" min="0" step="0.01" value={editShipPrice} onChange={(e) => setEditShipPrice(e.target.value)} placeholder="Shipping ($)" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
               <input value={editShipMethod} onChange={(e) => setEditShipMethod(e.target.value)} placeholder="Method" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
             </div>
+
+            {/* 🆕 Quantity — runs N back-to-back identical auctions */}
+            <label className="block text-[11px] text-muted-foreground">
+              Quantity (back-to-back rounds)
+              <div className="mt-1 flex items-center gap-2">
+                <input type="number" min="1" max="99" value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                  className="w-20 rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
+                <span className="text-[10px] text-muted-foreground">After each win, the next round auto-starts with the same settings.</span>
+              </div>
+              {Number((stream as any).quick_start_remaining || 0) > 0 && (
+                <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} round(s) queued</p>
+              )}
+            </label>
+
+            {/* 🆕 Voice trigger toggle + phrase */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-bold">
+                <span className="flex items-center gap-1.5">
+                  🎙️ Voice trigger
+                  {voiceListening && <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">LISTENING</span>}
+                </span>
+                <input type="checkbox" checked={editVoiceEnabled}
+                  onChange={(e) => setEditVoiceEnabled(e.target.checked)} className="h-4 w-4" />
+              </label>
+              <p className="mt-1 text-[10px] text-muted-foreground">Say the phrase below to auto-start the next auction round (hands-free).</p>
+              <input value={editVoicePhrase}
+                onChange={(e) => setEditVoicePhrase(e.target.value)}
+                placeholder='e.g. "next" or "go go go"'
+                className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none" />
+              <button onClick={saveAuctionDefaults} className="mt-2 w-full rounded-md bg-card-foreground/10 py-1.5 text-[11px] font-bold">
+                💾 Save voice & quantity
+              </button>
+            </div>
+
             <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
@@ -1786,9 +1914,9 @@ function LiveDetail() {
                           next[i] = e.target.value;
                           return next;
                         })}
-                        disabled={stream.break_mode === "open"}
+                        onBlur={() => saveBreakCharacters(breakCharacters)}
                         placeholder={`Character ${i + 1}`}
-                        className="flex-1 rounded-md bg-input px-2 py-1.5 text-xs outline-none disabled:opacity-60"
+                        className="flex-1 rounded-md bg-input px-2 py-1.5 text-xs outline-none"
                       />
                       {taken ? (
                         <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">@{taken.buyer_username}</span>
@@ -1803,9 +1931,9 @@ function LiveDetail() {
               <label className="mb-3 block text-[11px] text-muted-foreground">
                 Default prefix (used when a slot name is left blank)
                 <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 12))}
-                  disabled={stream.break_mode === "open"}
+                  onBlur={() => supabase.from("live_streams").update({ break_slot_prefix: breakPrefix.trim() || null }).eq("id", id)}
                   placeholder='e.g. "Box "'
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
               </label>
 
               {stream.break_mode === "open" ? (
