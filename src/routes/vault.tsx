@@ -113,6 +113,15 @@ function Vault() {
       const base = Number(data?.estimated_value) || 0;
       if (base) setEstValue(String(priceFor(condition, base, cp)));
       toast.success(`Identified: ${data?.name || name} • ${data?.set || ""} ${data?.year || ""}`);
+      // Auto-generate front image if user hasn't uploaded one
+      if (!imageUrl) {
+        try {
+          const { data: img } = await supabase.functions.invoke("generate-card-image", {
+            body: { name: data?.name || name, category: data?.category || category, set: data?.set || tcgSet, year: data?.year || tcgYear, tcg_number: data?.tcg_number || tcgNumber },
+          });
+          if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
+        } catch {/* ignore */}
+      }
     } catch (e: any) { toast.error(e?.message || "Identification failed"); }
     finally { setIdentifying(false); }
   }
@@ -139,9 +148,18 @@ function Vault() {
         }
       } catch {/* ignore */}
     }
+    let finalImage = imageUrl;
+    if (!finalImage) {
+      try {
+        const { data: img } = await supabase.functions.invoke("generate-card-image", {
+          body: { name, category: cat, set: setName2, year: year2, tcg_number: num2 },
+        });
+        if (img?.image) finalImage = img.image;
+      } catch {/* ignore */}
+    }
     const { error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name, category: cat || "Trading Card",
-      image_url: imageUrl || null, back_image_url: backImageUrl || null,
+      image_url: finalImage || null, back_image_url: backImageUrl || null,
       description: description || null,
       estimated_value: value,
       condition_prices: cp as any,
