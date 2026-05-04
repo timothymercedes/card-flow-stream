@@ -1173,6 +1173,18 @@ function LiveDetail() {
           </button>
         )}
 
+        {/* 🆕 Spin Wheel — visible to viewers whenever a wheel exists */}
+        {!isSeller && wheel && wheelSlots.length > 0 && (
+          <button
+            onClick={() => setShowWheelOverlay(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+          >
+            <RotateCw className={`h-4 w-4 ${wheel.is_spinning ? "animate-spin" : ""}`} />
+            {wheel.is_spinning ? "Spinning live…" : "Open Spin Wheel"}
+            <span className="ml-1 text-[10px] font-semibold opacity-80">{wheelSlots.filter((s)=>s.is_active).length} prizes</span>
+          </button>
+        )}
+
         {!isSeller && (
           <div className="flex gap-2">
             <button
