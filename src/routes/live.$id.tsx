@@ -11,6 +11,7 @@ import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel"
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { GiveawayChip } from "@/components/GiveawayChip";
 import { Confetti } from "@/components/Confetti";
+import { useStreamPresence } from "@/hooks/useStreamPresence";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
