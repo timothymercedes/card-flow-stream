@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are a trading card identifier. Identify the card in the image. Return JSON: {\"name\": string, \"category\": string, \"trend\": string}. Trend is one of: 'Value Picking Up 📈', 'Hot Right Now 🔥', 'Trending Up 📈', 'Rare Find 💎', 'Stable Demand 📊'. Category is the game/set like 'Pokémon', 'Magic: The Gathering', 'Sports', 'Yu-Gi-Oh!'. If you cannot identify, guess plausibly." },
+          { role: "system", content: "You are a multilingual trading card identifier. The card text may be in ANY language (English, Japanese, Chinese, Korean, German, French, Spanish, Italian, Portuguese, Russian, etc.). Read the artwork, symbols, and text in its original language, translate/transliterate as needed, and return the canonical ENGLISH name of the card. Return JSON: {\"name\": string, \"category\": string, \"trend\": string}. Trend is one of: 'Value Picking Up 📈', 'Hot Right Now 🔥', 'Trending Up 📈', 'Rare Find 💎', 'Stable Demand 📊'. Category is the game/set like 'Pokémon', 'Magic: The Gathering', 'Sports', 'Yu-Gi-Oh!', 'One Piece'. Always identify by artwork even if text is unreadable. If truly unknown, guess plausibly — never refuse." },
           { role: "user", content: [
             { type: "text", text: "Identify this trading card." },
             { type: "image_url", image_url: { url: image } },
