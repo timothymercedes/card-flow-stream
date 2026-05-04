@@ -1719,65 +1719,121 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🆕 Mystery Break panel (host opens, sets teams + price) */}
+      {/* 🆕 Mystery Break panel — character editor + live claims + spin reveal */}
       {showBreakPanel && isSeller && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowBreakPanel(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
-            <div className="mb-2 flex items-center justify-between">
+          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-card text-foreground shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/50 p-4 pb-3">
               <p className="flex items-center gap-1.5 text-sm font-bold"><Dice5 className="h-4 w-4 text-primary" /> Mystery Break</p>
               <button onClick={() => setShowBreakPanel(false)}><X className="h-4 w-4" /></button>
             </div>
-            <p className="mb-2 text-[11px] text-muted-foreground">
-              Pick how many slots (1–50). Buyers tap a number to claim it. When you're ready, close claims to lock the board — or roll an auction per slot.
-            </p>
-            <div className="mb-2 grid grid-cols-2 gap-2">
-              <label className="text-[11px] text-muted-foreground">
-                Slot count
-                <input type="number" min="2" max="50" value={breakSlotCount}
-                  onChange={(e) => setBreakSlotCount(e.target.value)}
-                  disabled={stream.break_mode === "open"}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none disabled:opacity-50" />
-              </label>
-              <label className="text-[11px] text-muted-foreground">
-                Price/slot $
-                <input type="number" min="1" value={breakPrice}
-                  onChange={(e) => setBreakPrice(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
-              </label>
-            </div>
-            <label className="mb-3 block text-[11px] text-muted-foreground">
-              Label prefix (optional)
-              <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 8))}
-                disabled={stream.break_mode === "open"}
-                placeholder='e.g. "Box" → Box1, Box2…'
-                className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
-            </label>
 
-            {stream.break_mode === "open" ? (
-              <>
-                <div className="mb-2 max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <p className="mb-1 font-semibold">Claimed: {breakSlots.length}/{stream.break_slot_count}</p>
-                  {[...breakSlots].sort((a, b) => (a.slot_number || 0) - (b.slot_number || 0)).map((s) => (
-                    <div key={s.id} className="flex items-center justify-between py-0.5">
-                      <span className="font-bold text-primary">{stream.break_slot_prefix || "#"}{s.slot_number}</span>
-                      <span>@{s.buyer_username}</span>
-                    </div>
-                  ))}
-                  {breakSlots.length === 0 && <p className="text-muted-foreground">Waiting for buyers to claim…</p>}
-                </div>
+            <div className="overflow-y-auto p-4">
+              <p className="mb-3 text-[11px] text-muted-foreground">
+                Name each slot (Charizard, Team A, Box #3 — anything). Buyers tap to claim. When all are claimed, hit <b>Spin reveal</b> and a fun wheel pops out for everyone.
+              </p>
+
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <label className="text-[11px] text-muted-foreground">
+                  Slot count
+                  <input type="number" min="2" max="50" value={breakSlotCount}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setBreakSlotCount(v);
+                      const n = Math.max(2, Math.min(50, Number(v) || 0));
+                      setBreakCharacters((arr) => {
+                        if (n <= arr.length) return arr.slice(0, n);
+                        return [...arr, ...Array.from({ length: n - arr.length }, (_, i) => `Character ${arr.length + i + 1}`)];
+                      });
+                    }}
+                    disabled={stream.break_mode === "open"}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none disabled:opacity-50" />
+                </label>
+                <label className="text-[11px] text-muted-foreground">
+                  Price/slot $
+                  <input type="number" min="1" value={breakPrice}
+                    onChange={(e) => setBreakPrice(e.target.value)}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
+                </label>
+              </div>
+
+              {/* Character roster — one input per slot */}
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-muted-foreground">Slot names ({Math.max(2, Math.min(50, Number(breakSlotCount) || 0))})</p>
                 <button
-                  onClick={closeBreakClaims}
-                  disabled={drawAnim}
-                  className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
+                  type="button"
+                  disabled={stream.break_mode === "open" || (Number(breakSlotCount) || 0) >= 50}
+                  onClick={() => {
+                    const next = Math.min(50, (Number(breakSlotCount) || 0) + 1);
+                    setBreakSlotCount(String(next));
+                    setBreakCharacters((arr) => [...arr, `Character ${arr.length + 1}`]);
+                  }}
+                  className="flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary disabled:opacity-50"
                 >
-                  {drawAnim ? "Locking…" : "🔒 Close claims"}
+                  <Plus className="h-3 w-3" /> Add slot
                 </button>
-              </>
-            ) : (
-              <button onClick={startBreakMode} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
-                <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
-              </button>
-            )}
+              </div>
+              <div className="mb-3 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border/50 bg-muted/20 p-2">
+                {Array.from({ length: Math.max(2, Math.min(50, Number(breakSlotCount) || 0)) }, (_, i) => {
+                  const taken = breakSlots.find((s) => s.slot_number === i + 1);
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-6 shrink-0 text-center text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+                      <input
+                        value={breakCharacters[i] ?? ""}
+                        onChange={(e) => setBreakCharacters((arr) => {
+                          const next = [...arr];
+                          next[i] = e.target.value;
+                          return next;
+                        })}
+                        disabled={stream.break_mode === "open"}
+                        placeholder={`Character ${i + 1}`}
+                        className="flex-1 rounded-md bg-input px-2 py-1.5 text-xs outline-none disabled:opacity-60"
+                      />
+                      {taken ? (
+                        <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">@{taken.buyer_username}</span>
+                      ) : (
+                        <span className="w-14 shrink-0 text-right text-[9px] text-muted-foreground">open</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <label className="mb-3 block text-[11px] text-muted-foreground">
+                Default prefix (used when a slot name is left blank)
+                <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 12))}
+                  disabled={stream.break_mode === "open"}
+                  placeholder='e.g. "Box "'
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
+              </label>
+
+              {stream.break_mode === "open" ? (
+                <div className="space-y-2">
+                  <div className="rounded-lg bg-muted/40 p-2 text-[11px]">
+                    <p className="font-semibold">Claimed: {breakSlots.length}/{stream.break_slot_count}</p>
+                  </div>
+                  <button
+                    onClick={spinBreakWheel}
+                    disabled={breakSlots.length === 0 || stream.break_wheel_spinning}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
+                  >
+                    <RotateCw className="h-4 w-4" /> {stream.break_wheel_spinning ? "Spinning…" : "🎡 Spin reveal wheel"}
+                  </button>
+                  <button
+                    onClick={closeBreakClaims}
+                    disabled={drawAnim}
+                    className="w-full rounded-lg bg-card-foreground/10 py-2 text-xs font-bold text-foreground disabled:opacity-50"
+                  >
+                    {drawAnim ? "Locking…" : "🔒 Close claims"}
+                  </button>
+                </div>
+              ) : (
+                <button onClick={startBreakMode} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+                  <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
