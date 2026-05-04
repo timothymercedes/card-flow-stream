@@ -26,6 +26,7 @@ function LiveDetail() {
   const nav = useNavigate();
   const { user, profile } = useAuth();
   const [stream, setStream] = useState<any>(null);
+  const [sellerUsername, setSellerUsername] = useState<string>("");
   const [allStreams, setAllStreams] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
