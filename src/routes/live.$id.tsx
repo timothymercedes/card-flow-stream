@@ -264,8 +264,8 @@ function LiveDetail() {
       .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
   }, [user?.id, stream?.seller_id]);
 
-  // 🆕 Live viewer presence (heartbeat + 1-min idle removal)
-  const { viewers: liveViewers, count: viewerCount } = useStreamPresence(
+  // 🆕 Live viewer presence (DB-backed; heartbeat + 1-min idle removal). Used for viewer list.
+  const { viewers: liveViewers } = useStreamPresence(
     id || null,
     user?.id || null,
     profile?.username || null,
