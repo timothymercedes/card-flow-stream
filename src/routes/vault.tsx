@@ -30,11 +30,15 @@ function Vault() {
 
   // add form
   const [name, setName] = useState("");
+  const [tcgNumber, setTcgNumber] = useState("");
+  const [tcgSet, setTcgSet] = useState("");
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [estValue, setEstValue] = useState("");
+  const [estValue, setEstValue] = useState(""); // auto-filled, read-only
   const [price, setPrice] = useState("");
+  const [condition, setCondition] = useState<Condition>("NM");
+  const [identifying, setIdentifying] = useState(false);
 
   async function load() {
     if (!user) return;
