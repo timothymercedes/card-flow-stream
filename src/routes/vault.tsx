@@ -47,7 +47,7 @@ function Vault() {
   const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
-  const [visibility, setVisibility] = useState<Visibility>("private");
+  // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
 
   async function load() {
