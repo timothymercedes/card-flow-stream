@@ -86,3 +86,92 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ============= PullBid brand animations ============= */
+
+/* "Now owned by" — slams in, glows, then settles */
+@utility owned-slam {
+  animation: owned-slam 1.1s cubic-bezier(0.18, 1.25, 0.4, 1) both;
+}
+@keyframes owned-slam {
+  0%   { transform: scale(0.4) rotate(-6deg); opacity: 0; filter: blur(6px); }
+  55%  { transform: scale(1.12) rotate(2deg);  opacity: 1; filter: blur(0); }
+  75%  { transform: scale(0.96) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0);        opacity: 1; }
+}
+
+@utility owned-glow {
+  animation: owned-glow 2.6s ease-in-out infinite;
+}
+@keyframes owned-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 70%, transparent),
+                         0 0 30px 0 color-mix(in oklab, var(--primary) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 14px color-mix(in oklab, var(--primary) 0%, transparent),
+                         0 0 60px 6px color-mix(in oklab, var(--primary-glow) 50%, transparent); }
+}
+
+/* Winner reveal — gold burst + scale in */
+@utility winner-burst {
+  animation: winner-burst 1.4s cubic-bezier(0.2, 1.3, 0.3, 1) both;
+}
+@keyframes winner-burst {
+  0%   { transform: scale(0.2);  opacity: 0; }
+  40%  { transform: scale(1.25); opacity: 1; }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@utility winner-shine {
+  background: linear-gradient(110deg,
+    var(--primary) 0%,
+    var(--primary-glow) 35%,
+    #fff 50%,
+    var(--primary-glow) 65%,
+    var(--primary) 100%);
+  background-size: 250% 100%;
+  animation: winner-shine 2.8s linear infinite;
+}
+@keyframes winner-shine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Confetti shards rain */
+@utility confetti-fall {
+  animation: confetti-fall 2s linear forwards;
+}
+@keyframes confetti-fall {
+  0%   { transform: translateY(-20vh) rotate(0deg);   opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Swipe-up bid hint */
+@utility swipe-up-hint {
+  animation: swipe-up-hint 1.6s ease-in-out infinite;
+}
+@keyframes swipe-up-hint {
+  0%, 100% { transform: translateY(0);    opacity: 0.55; }
+  50%      { transform: translateY(-10px); opacity: 1; }
+}
+
+/* Bid bump — fires when current_bid changes */
+@utility bid-bump {
+  animation: bid-bump 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes bid-bump {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); color: var(--primary-glow); }
+  100% { transform: scale(1); }
+}
+
+/* Floating shimmer for premium chips */
+@utility brand-shimmer {
+  background: linear-gradient(120deg, transparent 30%, color-mix(in oklab, var(--primary-glow) 35%, transparent) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: brand-shimmer 2.4s linear infinite;
+}
+@keyframes brand-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

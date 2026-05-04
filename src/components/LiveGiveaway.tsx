@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Gift, X, Sparkles, Users, Trophy, Truck, Loader2, Check } from "lucide-react";
+import { Confetti } from "@/components/Confetti";
 
 type Giveaway = {
   id: string;
@@ -501,23 +502,26 @@ export function LiveGiveaway({
           </div>
         )}
 
-        {/* COMPLETE */}
+        {/* COMPLETE — branded reveal with shine + confetti */}
         {giveaway && giveaway.status === "complete" && giveaway.winner_username && (
-          <div className="rounded-2xl bg-gradient-to-br from-emerald-500/30 via-teal-500/20 to-cyan-500/30 p-6 text-center text-white">
-            <Trophy className="mx-auto mb-2 h-10 w-10 text-amber-300" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Winner</p>
-            <p className="mt-1 text-2xl font-extrabold">@{giveaway.winner_username}</p>
-            <p className="mt-2 text-sm text-white/80">won <b>{giveaway.prize_label}</b></p>
-            <p className="mt-3 flex items-center justify-center gap-1 text-[10px] text-white/60">
-              <Truck className="h-3 w-3" /> Shipping covered by host
-            </p>
-            {isSeller && (
-              <button onClick={() => setHostOpenComposer(true)}
-                className="mt-4 w-full rounded-xl bg-white/10 py-2 text-xs font-bold text-white">
-                Start a new Appreciation Gift
-              </button>
-            )}
-          </div>
+          <>
+            <Confetti count={80} durationMs={2600} />
+            <div className="winner-burst rounded-2xl bg-gradient-to-br from-emerald-500/40 via-teal-500/30 to-cyan-500/40 p-6 text-center text-white owned-glow ring-1 ring-white/20">
+              <Trophy className="mx-auto mb-2 h-12 w-12 text-amber-300 drop-shadow" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-300">Winner</p>
+              <p className="mt-1 winner-shine bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">@{giveaway.winner_username}</p>
+              <p className="mt-2 text-sm text-white/85">won <b>{giveaway.prize_label}</b></p>
+              <p className="mt-3 flex items-center justify-center gap-1 text-[10px] text-white/70">
+                <Truck className="h-3 w-3" /> Shipping covered by host
+              </p>
+              {isSeller && (
+                <button onClick={() => setHostOpenComposer(true)}
+                  className="mt-4 w-full rounded-xl bg-white/15 py-2 text-xs font-bold text-white backdrop-blur hover:bg-white/25">
+                  Start a new Appreciation Gift
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

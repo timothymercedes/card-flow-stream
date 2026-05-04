@@ -9,6 +9,7 @@ import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
+import { Confetti } from "@/components/Confetti";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -1353,13 +1354,23 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Winner banner — prominent popup at the top once auction ends with a winner */}
+      {/* Winner banner — branded slam-in with shine + confetti rain */}
       {(auctionFinished || ended) && stream.winner_username && pinned && (
-        <div className="absolute left-1/2 top-20 z-30 w-[92%] max-w-md -translate-x-1/2 rounded-2xl bg-gradient-to-r from-primary to-accent p-4 text-center shadow-2xl ring-2 ring-white/40 backdrop-blur animate-in fade-in zoom-in">
-          <Trophy className="mx-auto h-7 w-7" />
-          <p className="mt-1 text-base font-extrabold tracking-tight">🎉 @{stream.winner_username} owns this item!</p>
-          <p className="text-xs opacity-90">Winning bid: ${Number(stream.winning_bid || 0).toFixed(2)}</p>
-        </div>
+        <>
+          <Confetti count={70} durationMs={2400} />
+          <div className="owned-slam absolute left-1/2 top-20 z-30 w-[92%] max-w-md -translate-x-1/2">
+            <div className="owned-glow rounded-2xl bg-card/80 p-[2px] backdrop-blur">
+              <div className="rounded-2xl bg-gradient-to-br from-primary/95 via-primary to-accent p-4 text-center text-primary-foreground ring-1 ring-white/30">
+                <Trophy className="winner-burst mx-auto h-9 w-9 drop-shadow" />
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Now Owned By</p>
+                <p className="mt-0.5 winner-shine bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+                  @{stream.winner_username}
+                </p>
+                <p className="text-xs font-semibold opacity-90">Winning bid: {fmtMoney(Number(stream.winning_bid || 0))}</p>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Stream switcher */}
@@ -1552,7 +1563,7 @@ function LiveDetail() {
           </div>
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
-            <p className="text-2xl font-bold text-primary">{fmtMoney(Number(stream.current_bid || 0))}</p>
+            <p key={`bid-${Number(stream.current_bid || 0)}`} className="bid-bump text-2xl font-bold text-primary tabular-nums">{fmtMoney(Number(stream.current_bid || 0))}</p>
           </div>
         </div>
 
@@ -1644,16 +1655,30 @@ function LiveDetail() {
 
         {!isSeller && (
           <div className="flex gap-2">
-            <button
-              onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
-              disabled={bidDisabled || meBlocked}
-              className="flex-1 select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            >
-              {meBlocked ? "🚫 You're muted/banned"
-                : bidDisabled
-                  ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
-                  : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
-            </button>
+            <div className="relative flex-1">
+              {!bidDisabled && !meBlocked && holdAdd === 0 && (
+                <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 swipe-up-hint">
+                  <div className="flex flex-col items-center text-[9px] font-bold uppercase tracking-wider text-primary-glow">
+                    <span>Swipe ↑ +$3</span>
+                  </div>
+                </div>
+              )}
+              <button
+                onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
+                disabled={bidDisabled || meBlocked}
+                className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary to-primary-glow py-3.5 text-base font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
+              >
+                {!bidDisabled && !meBlocked && holdAdd === 0 && (
+                  <span className="pointer-events-none absolute inset-0 brand-shimmer opacity-50" />
+                )}
+                <span className="relative">
+                  {meBlocked ? "🚫 You're muted/banned"
+                    : bidDisabled
+                      ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                      : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold to bid")}
+                </span>
+              </button>
+            </div>
             {!ended && (
               <button
                 onClick={() => user ? setShoutoutOpen(true) : toast.error("Sign in to shout out")}
