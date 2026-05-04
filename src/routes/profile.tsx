@@ -293,7 +293,21 @@ function Profile() {
           <p className="text-sm font-bold">Sell on Pull Bid</p>
           <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Requires verified ID + mailing address. Admin reviews each application.</p>
           {p.seller_status === "approved" ? (
-            <p className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">✓ Approved seller</p>
+            sellerAgreementAccepted === false ? (
+              <div className="space-y-2">
+                <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-600">
+                  ✓ Approved — please review and accept the Seller Agreement to start selling.
+                </p>
+                <button
+                  onClick={() => setShowSellerAgreement(true)}
+                  className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                >
+                  Review & Accept Seller Agreement
+                </button>
+              </div>
+            ) : (
+              <p className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">✓ Approved seller — agreement on file</p>
+            )
           ) : p.seller_status === "pending" ? (
             <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-600">Application pending review</p>
           ) : (
