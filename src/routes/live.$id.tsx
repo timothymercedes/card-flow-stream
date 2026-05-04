@@ -406,18 +406,34 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Chat overlay */}
+      {/* Auction notification feed (separate from chat, pinnable) */}
+      {pinned && messages.some((m) => m.is_system) && (
+        <div className="pointer-events-none absolute right-3 top-32 z-10 flex max-h-[28vh] w-56 flex-col items-end gap-1 overflow-hidden">
+          {messages.filter((m) => m.is_system).slice(-5).map((m) => (
+            <div key={m.id} className="rounded-lg bg-primary/60 px-2.5 py-1 text-[11px] text-white backdrop-blur">
+              <Sparkles className="mr-1 inline h-3 w-3" />{m.content}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Chat overlay (separate, scrollable up/down) */}
       {showChat && (
-        <div className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto px-3 pb-2">
+        <div ref={chatScrollRef} className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto overscroll-contain px-3 pb-2">
           <div className="flex flex-col items-start gap-1.5">
-            {messages.slice(-30).map((m) => (
-              <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${m.is_system ? "bg-primary/40" : "bg-black/50"}`}>
-                <span className={`mr-1 font-semibold ${m.is_system ? "text-primary-foreground" : "text-live-foreground"}`}>
-                  {m.is_system ? <Sparkles className="inline h-3 w-3" /> : "@"}{m.username}:
-                </span>
-                <span>{m.content}</span>
-              </div>
-            ))}
+            {messages.filter((m) => !m.is_system).map((m) => {
+              const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
+              return (
+                <div key={m.id} className="max-w-[85%] rounded-lg bg-black/50 px-2.5 py-1 text-xs backdrop-blur">
+                  <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
+                  <span>
+                    {parts.map((p, i) => p.startsWith("@") ? (
+                      <Link key={i} to="/profile" className="font-semibold text-primary hover:underline">{p}</Link>
+                    ) : <span key={i}>{p}</span>)}
+                  </span>
+                </div>
+              );
+            })}
             <div ref={chatEndRef} />
           </div>
         </div>
