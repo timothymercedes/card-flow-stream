@@ -157,6 +157,53 @@ function Orders() {
                 {pay === "paid" && o.status === "shipped" && (
                   <button onClick={() => deliver(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
                 )}
+                {o.status === "delivered" && (
+                  reviews[o.id] ? (
+                    <div className="mt-2 rounded-lg bg-muted/40 p-2 text-[11px]">
+                      <p className="font-semibold">Your review</p>
+                      <div className="mt-1 flex gap-3">
+                        <span className="inline-flex items-center gap-0.5">
+                          {[1,2,3,4,5].map((i) => <Star key={i} className={`h-3 w-3 ${i <= reviews[o.id].rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />)}
+                          <span className="ml-1">overall</span>
+                        </span>
+                        <span className="inline-flex items-center gap-0.5">
+                          {[1,2,3,4,5].map((i) => <Star key={i} className={`h-3 w-3 ${i <= reviews[o.id].shipping_rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />)}
+                          <span className="ml-1">shipping</span>
+                        </span>
+                      </div>
+                      {reviews[o.id].comment && <p className="mt-1 text-muted-foreground">"{reviews[o.id].comment}"</p>}
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2 rounded-lg bg-muted/40 p-2">
+                      <p className="text-[11px] font-semibold">Rate this seller</p>
+                      {(["rating", "shipping_rating"] as const).map((k) => (
+                        <div key={k} className="flex items-center gap-2">
+                          <span className="w-16 text-[10px] text-muted-foreground">{k === "rating" ? "Overall" : "Shipping"}</span>
+                          {[1,2,3,4,5].map((i) => {
+                            const cur = reviewForm[o.id]?.[k] ?? 5;
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => setReviewForm({ ...reviewForm, [o.id]: { rating: 5, shipping_rating: 5, comment: "", ...reviewForm[o.id], [k]: i } })}
+                                aria-label={`${i} stars`}
+                              >
+                                <Star className={`h-4 w-4 ${i <= cur ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                      <input
+                        type="text"
+                        placeholder="Optional comment (how was the shipping & item?)"
+                        value={reviewForm[o.id]?.comment || ""}
+                        onChange={(e) => setReviewForm({ ...reviewForm, [o.id]: { rating: 5, shipping_rating: 5, ...reviewForm[o.id], comment: e.target.value } })}
+                        className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                      />
+                      <button onClick={() => submitReview(o)} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Submit review</button>
+                    </div>
+                  )
+                )}
               </div>
             );
           })}
