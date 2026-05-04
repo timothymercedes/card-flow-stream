@@ -921,7 +921,7 @@ function LiveDetail() {
       update.starting_bid = start;
       update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
       update.winner_id = null; update.winning_bid = null; update.winner_username = null;
-      update.snipe_extends = 0; update.snipe_price = null;
+      update.snipe_extends = 0; update.snipe_price = null; update.sudden_death_active = false;
       endedRef.current = false; snapshotRef.current = false;
     }
     supabase.from("live_streams").update(update).eq("id", id);
