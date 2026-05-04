@@ -308,14 +308,28 @@ function LiveDetail() {
   function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
     setScanning(false);
     if (!isSeller) return;
-    supabase.from("live_streams").update({
+    const useQuick = !!stream.quick_start_enabled && !auctionLive;
+    const start = Number(stream.default_starting_bid || editStartPrice || 1);
+    const sec = Number(stream.default_timer_sec || editTimerSec || 30);
+    const cond = stream.default_condition || null;
+    const update: any = {
       current_item: r.name,
-      current_bid: Number(editStartPrice) || stream.starting_bid || 1,
+      current_bid: start,
       current_bidder_id: null,
       item_image_url: r.image,
-    }).eq("id", id);
-    sendMsg(`${r.name} — ${r.trend}`, true);
-    toast.success("Card scanned");
+      current_condition: cond,
+    };
+    if (useQuick) {
+      update.status = "live";
+      update.listing_type = "auction";
+      update.starting_bid = start;
+      update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
+      update.winner_id = null; update.winning_bid = null; update.winner_username = null;
+      endedRef.current = false; snapshotRef.current = false;
+    }
+    supabase.from("live_streams").update(update).eq("id", id);
+    sendMsg(useQuick ? `▶️ ${r.name}${cond ? ` [${cond}]` : ""} — ${sec}s, $${start}` : `${r.name} — ${r.trend}`, true);
+    toast.success(useQuick ? "Auction auto-started" : "Card scanned");
   }
 
   function swipeStream(dir: 1 | -1) {
