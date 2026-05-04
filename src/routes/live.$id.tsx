@@ -239,15 +239,32 @@ function LiveDetail() {
     if (!stream) return;
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
-    let winnerUsername: string | null = null;
+    // Ensure we have a snapshot if not already captured
+    let snapshot = stream.item_image_url;
+    if (!snapshot && isSeller) snapshot = await captureSnapshot();
     if (winnerId) {
-      const { data: p } = await supabase.from("profiles").select("username").eq("id", winnerId).maybeSingle();
-      winnerUsername = p?.username || "buyer";
+      const { data: p } = await supabase.from("profiles").select("username, address_line1, address_city, address_state, address_zip, address_country, full_name").eq("id", winnerId).maybeSingle();
+      const winnerUsername = p?.username || "buyer";
       await supabase.from("receipts").insert({
         stream_id: id, buyer_id: winnerId, seller_id: stream.seller_id,
         item_name: stream.current_item || stream.title,
-        item_image_url: stream.item_image_url || null,
+        item_image_url: snapshot || null,
         amount: winningBid,
+      });
+      // Create order so it appears in buyer's "My Orders" and seller's "My Store"
+      await supabase.from("orders").insert({
+        buyer_id: winnerId, seller_id: stream.seller_id,
+        title: stream.current_item || stream.title,
+        description: stream.item_description || null,
+        amount: winningBid + Number(stream.shipping_price || 0),
+        item_image_url: snapshot || null,
+        stream_id: id,
+        ship_name: p?.full_name || winnerUsername,
+        ship_address: p?.address_line1 || "",
+        ship_city: p?.address_city || "",
+        ship_state: p?.address_state || "",
+        ship_zip: p?.address_zip || "",
+        ship_country: p?.address_country || "US",
       });
       await supabase.from("notifications").insert({
         user_id: winnerId, type: "won",
@@ -258,11 +275,20 @@ function LiveDetail() {
       await supabase.from("live_streams").update({
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
       }).eq("id", id);
+      // Clear winner banner + ends_at after 5s
+      setTimeout(async () => {
+        await supabase.from("live_streams").update({
+          ends_at: null, winner_id: null, winning_bid: null, winner_username: null, current_bidder_id: null,
+        }).eq("id", id);
+        endedRef.current = false;
+        snapshotRef.current = false;
+      }, 5000);
     } else {
-      // No bid: clear the ended auction state after 5s so the banner disappears
+      // No winner: silently clear after 5s, no banner/notif
       setTimeout(async () => {
         await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
         endedRef.current = false;
+        snapshotRef.current = false;
       }, 5000);
     }
   }
