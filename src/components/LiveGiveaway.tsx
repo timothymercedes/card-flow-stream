@@ -367,9 +367,9 @@ export function LiveGiveaway({
                   onChange={(e) => setDraftDuration(Number(e.target.value) || 60)}
                   className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
                 <span className="text-[11px] text-muted-foreground">sec</span>
-                {[30, 60, 120].map((s) => (
+                {[120, 240, 360].map((s) => (
                   <button key={s} type="button" onClick={() => setDraftDuration(s)}
-                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${draftDuration === s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>{s}s</button>
+                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${draftDuration === s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>{s/60}m</button>
                 ))}
               </div>
               <p className="mt-1 text-[10px] text-muted-foreground">🏆 1 winner per gift. Viewers must join the live & tap the code to enter.</p>
