@@ -1166,8 +1166,15 @@ function LiveDetail() {
       {/* Top bar */}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4" /></Link>
-        <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
-          {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
+        <div className="flex items-center gap-1.5">
+          <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
+            {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
+          </div>
+          {!ended && (
+            <div className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur" title="Viewers in the live">
+              <Users className="h-3 w-3" /> {viewerCount.toLocaleString()}
+            </div>
+          )}
         </div>
         <div className="flex gap-1">
           <button onClick={() => setShareOpen(true)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Share2 className="h-4 w-4" /></button>
