@@ -104,15 +104,53 @@ function LiveDetail() {
   const auctionLive = !!stream?.ends_at && remaining > 0 && stream?.status === "live";
   const auctionFinished = !!stream?.ends_at && remaining <= 0;
 
-  // Auto-end auction round when timer hits 0 (seller drives this)
+  // Auto-end auction round when timer hits 0 (seller drives this); snapshot at T-2s
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || !stream.ends_at) return;
+    if (!snapshotRef.current && remaining > 0 && remaining <= 2000) {
+      snapshotRef.current = true;
+      captureSnapshot();
+    }
     if (endedRef.current) return;
     if (remaining <= 0) {
       endedRef.current = true;
       finalizeAuctionRound();
     }
   }, [remaining, isSeller, stream?.status]);
+
+  // Auto-hide system notifications after 5s
+  useEffect(() => {
+    const sysMsgs = messages.filter((m) => m.is_system && !hiddenSysIds.has(m.id));
+    const timers = sysMsgs.map((m) => {
+      const age = Date.now() - new Date(m.created_at).getTime();
+      const remain = Math.max(0, 5000 - age);
+      return setTimeout(() => {
+        setHiddenSysIds((s) => new Set(s).add(m.id));
+      }, remain);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [messages]);
+
+  async function captureSnapshot(): Promise<string | null> {
+    try {
+      const v = videoRef.current;
+      if (!v || !v.videoWidth) return null;
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(v, 0, 0);
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.85));
+      if (!blob) return null;
+      const path = `${user!.id}/${id}-${Date.now()}.jpg`;
+      const { error } = await supabase.storage.from("order-snapshots").upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      if (error) { console.error(error); return null; }
+      const { data: pub } = supabase.storage.from("order-snapshots").getPublicUrl(path);
+      const url = pub.publicUrl;
+      await supabase.from("live_streams").update({ item_image_url: url }).eq("id", id);
+      return url;
+    } catch (e) { console.error(e); return null; }
+  }
 
   async function sendMsg(content: string, isSystem = false) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
