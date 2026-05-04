@@ -206,7 +206,10 @@ function Vault() {
     toast.success(`Identified: ${r.name}`);
   }
 
-  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) {
+  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) {
+    if (!card.image_url) return toast.error("Front photo required");
+    const back = card.back_image_url || opts.backImage;
+    if (!back) return toast.error("Back photo required to sell");
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
@@ -214,6 +217,7 @@ function Vault() {
       seller_id: user!.id, title: card.name,
       description: (card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc,
       image_url: card.image_url,
+      back_image_url: back,
       listing_type: primary,
       is_auction: opts.auction,
       accepts_offers: opts.offer,
@@ -225,8 +229,13 @@ function Vault() {
       condition: card.condition || null,
       tcg_number: card.tcg_number || null,
       tcg_set: card.tcg_set || null,
+      tcg_year: card.tcg_year || null,
     }).select().single();
     if (error) return toast.error(error.message);
+    // Persist back image to vault if newly captured
+    if (!card.back_image_url && opts.backImage) {
+      await supabase.from("vault_cards").update({ back_image_url: opts.backImage }).eq("id", card.id);
+    }
     toast.success("Listed!");
     setSelling(null);
     nav({ to: "/market/$id", params: { id: data.id } });
