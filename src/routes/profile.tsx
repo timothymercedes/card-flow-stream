@@ -198,10 +198,15 @@ function Profile() {
       "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
     );
     if (confirmed) { window.open("/legal/seller-agreement", "_blank"); return; }
-    await supabase.from("legal_acceptances").upsert({
-      user_id: user.id, document_type: "seller_agreement", version: "1.0",
-      user_agent: navigator.userAgent.slice(0, 200),
-    }, { onConflict: "user_id,document_type,version", ignoreDuplicates: true });
+    const { count: ec } = await supabase.from("legal_acceptances")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id).eq("document_type", "seller_agreement").eq("version", "1.0");
+    if (!ec) {
+      await supabase.from("legal_acceptances").insert({
+        user_id: user.id, document_type: "seller_agreement", version: "1.0",
+        user_agent: navigator.userAgent.slice(0, 200),
+      });
+    }
     await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id);
     setP({ ...p, seller_status: "pending" });
     toast.success("Application submitted — awaiting admin approval");
