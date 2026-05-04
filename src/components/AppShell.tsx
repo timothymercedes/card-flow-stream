@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,11 +17,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const { user } = useAuth();
   const [isSeller, setIsSeller] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    if (!user) { setIsSeller(false); return; }
+    if (!user) { setIsSeller(false); setCartCount(0); return; }
     supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle()
       .then(({ data }) => setIsSeller(data?.seller_status === "approved"));
+    const refresh = () => supabase.from("orders").select("id", { count: "exact", head: true })
+      .eq("buyer_id", user.id).eq("payment_status", "awaiting_payment")
+      .then(({ count }) => setCartCount(count || 0));
+    refresh();
+    const ch = supabase.channel(`cart-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const tabs = [
@@ -40,6 +49,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2">
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
             <Plus className="h-3.5 w-3.5" /> Sell
+          </Link>
+          <Link to="/cart" className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <ShoppingBag className="h-4 w-4" />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-live px-1 text-[9px] font-bold text-live-foreground">
+                {cartCount}
+              </span>
+            )}
           </Link>
           <Link to="/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-semibold">
             <User className="h-4 w-4" />
