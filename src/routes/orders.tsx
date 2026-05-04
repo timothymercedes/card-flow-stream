@@ -184,7 +184,7 @@ function Orders() {
                             return (
                               <button
                                 key={i}
-                                onClick={() => setReviewForm({ ...reviewForm, [o.id]: { rating: 5, shipping_rating: 5, comment: "", ...reviewForm[o.id], [k]: i } })}
+                                onClick={() => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "" }, ...(reviewForm[o.id] || {}), [k]: i } })}
                                 aria-label={`${i} stars`}
                               >
                                 <Star className={`h-4 w-4 ${i <= cur ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
