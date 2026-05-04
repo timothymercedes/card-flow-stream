@@ -55,6 +55,27 @@ function ListingDetail() {
     return () => clearInterval(t);
   }, []);
 
+  // Auto-notify seller once when their auction ends below reserve
+  useEffect(() => {
+    if (!listing || !user) return;
+    if (user.id !== listing.seller_id) return;
+    if (listing.auction_status !== "active") return;
+    if (!listing.reserve_price || !listing.auction_ends_at) return;
+    const ended = new Date(listing.auction_ends_at).getTime() <= Date.now();
+    const belowReserve = Number(listing.current_bid || 0) < Number(listing.reserve_price);
+    if (!ended || !belowReserve) return;
+    const key = `notified-below-reserve-${listing.id}`;
+    if (typeof window !== "undefined" && window.localStorage.getItem(key)) return;
+    (async () => {
+      await supabase.from("notifications").insert({
+        user_id: listing.seller_id, type: "bid",
+        body: `Auction "${listing.title}" ended below reserve. Top bid: $${Number(listing.current_bid || 0).toFixed(0)} — accept or decline.`,
+        link: `/market/${listing.id}`,
+      });
+      window.localStorage.setItem(key, "1");
+    })();
+  }, [listing, user]);
+
   async function placeBid() {
     if (!profile) return toast.error("Sign in first");
     const amt = Number(bidAmt);
@@ -122,6 +143,20 @@ function ListingDetail() {
     load();
   }
 
+  async function declineTopBidBelowReserve() {
+    if (!listing) return;
+    await supabase.from("listings").update({ auction_status: "declined_below_reserve" }).eq("id", id);
+    if (listing.top_bidder_id) {
+      await supabase.from("notifications").insert({
+        user_id: listing.top_bidder_id, type: "bid",
+        body: `Seller declined your $${listing.current_bid} bid on "${listing.title}" — reserve not met`,
+        link: `/market/${id}`,
+      });
+    }
+    toast.success("Bid declined");
+    load();
+  }
+
   if (!listing) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const isSeller = user?.id === listing.seller_id;
@@ -173,7 +208,10 @@ function ListingDetail() {
                 <div className="rounded-lg bg-yellow-500/10 p-3 text-xs">
                   <p className="font-semibold text-yellow-600">Auction ended below your reserve.</p>
                   <p className="mt-1 text-muted-foreground">Top bid: ${Number(listing.current_bid || 0).toFixed(0)}. Accept it or let it expire.</p>
-                  <button onClick={acceptTopBidBelowReserve} className="mt-2 w-full rounded-lg bg-primary py-2 font-bold text-primary-foreground">Accept top bid</button>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={acceptTopBidBelowReserve} className="flex-1 rounded-lg bg-primary py-2 font-bold text-primary-foreground">Accept</button>
+                    <button onClick={declineTopBidBelowReserve} className="flex-1 rounded-lg bg-muted py-2 font-bold text-foreground">Decline</button>
+                  </div>
                 </div>
               )}
               {auctionEnded && !reserveMet && !isSeller && (
