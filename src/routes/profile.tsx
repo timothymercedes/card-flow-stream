@@ -307,6 +307,19 @@ function Profile() {
             <div className="flex-1"><p className="text-sm font-semibold">My Orders</p><p className="text-xs text-muted-foreground">Items you've purchased</p></div>
           </Link>
           <PushToggle userId={user!.id} />
+          <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <div className="flex-1"><p className="text-sm font-semibold">Disputes & Reports</p><p className="text-xs text-muted-foreground">File or track a dispute</p></div>
+          </Link>
+          <div className="rounded-xl bg-card p-4">
+            <p className="mb-2 text-sm font-bold">Legal</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <Link to="/legal/tos" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Terms of Service</Link>
+              <Link to="/legal/privacy" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Privacy Policy</Link>
+              <Link to="/legal/buyer-terms" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Buyer Terms</Link>
+              <Link to="/legal/seller-agreement" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Seller Agreement</Link>
+            </div>
+          </div>
           <button onClick={async () => { await signOut(); nav({ to: "/" }); }} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
             <LogOut className="h-5 w-5 text-destructive" />
             <p className="text-sm font-semibold">Sign Out</p>
