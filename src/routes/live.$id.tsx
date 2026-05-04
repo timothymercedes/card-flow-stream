@@ -218,8 +218,13 @@ function LiveDetail() {
       await supabase.from("live_streams").update({
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
       }).eq("id", id);
+    } else {
+      // No bid: clear the ended auction state after 5s so the banner disappears
+      setTimeout(async () => {
+        await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+        endedRef.current = false;
+      }, 5000);
     }
-    // No-bid path: silently reset (no announcement)
   }
 
   async function endLive() {
