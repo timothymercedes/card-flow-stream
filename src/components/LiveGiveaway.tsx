@@ -318,8 +318,8 @@ export function LiveGiveaway({
           const isEnterCmd = txt === "!enter" || txt === "!join" || /🎁/.test(msg.content || "");
           if (!isEnterCmd) return;
           if (!eligibilityOk) {
-            toast.error(eligibilityHint(giveaway.eligibility));
-            return;
+            const ok = await ensureFollow();
+            if (!ok) { toast.error(eligibilityHint(giveaway.eligibility)); return; }
           }
           const { error } = await supabase.from("giveaway_entries").insert({
             giveaway_id: giveaway.id, user_id: userId,
