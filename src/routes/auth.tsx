@@ -1,24 +1,32 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-
-async function oauth(provider: "google" | "apple") {
-  const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin });
-  if (result.error) toast.error("Sign-in failed");
-}
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
 function Auth() {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [isSeller, setIsSeller] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) nav({ to: "/" });
+  }, [user, nav]);
+
+  async function oauth(provider: "google" | "apple") {
+    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
+    if (result.error) toast.error("Sign-in failed");
+    else if (!result.redirected) nav({ to: "/" });
+  }
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
