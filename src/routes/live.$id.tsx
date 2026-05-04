@@ -468,13 +468,9 @@ function LiveDetail() {
             <button onClick={() => setScanning(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-semibold text-accent-foreground">
               <Camera className="h-3.5 w-3.5" /> Scan
             </button>
-            {!auctionLive ? (
+            {!auctionLive && (
               <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground">
                 <Play className="h-3.5 w-3.5" /> Start Auction
-              </button>
-            ) : (
-              <button onClick={endAuctionNow} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-bold text-accent-foreground">
-                <Square className="h-3.5 w-3.5" /> End Auction
               </button>
             )}
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
