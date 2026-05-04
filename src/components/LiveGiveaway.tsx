@@ -353,7 +353,7 @@ export function LiveGiveaway({
             <p className="text-center text-[11px] uppercase tracking-widest text-emerald-300">Prize</p>
             <p className="mb-1 text-center text-xl font-extrabold">{giveaway.prize_label}</p>
             <p className="mb-2 flex items-center justify-center gap-2 text-[10px] text-white/60">
-              <Truck className="h-3 w-3" /> Free shipping · {entries.length} {entries.length === 1 ? "entry" : "entries"} · {giveaway.quantity || 1} winner{(giveaway.quantity || 1) > 1 ? "s" : ""}
+              <Truck className="h-3 w-3" /> Free shipping · {entries.length} {entries.length === 1 ? "entry" : "entries"} · 1 winner
             </p>
             {giveaway.ends_at && (
               <div className={`mb-3 mx-auto w-fit rounded-full px-3 py-1 text-xs font-extrabold tabular-nums ${remainingMs <= 5000 ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500/20 text-emerald-200"}`}>
