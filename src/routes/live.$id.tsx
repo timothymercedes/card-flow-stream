@@ -126,6 +126,10 @@ function LiveDetail() {
   const [editTimerSec, setEditTimerSec] = useState("30");
   const [editShipPrice, setEditShipPrice] = useState("");
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
+  // 🆕 Quantity (back-to-back identical auctions) + voice trigger
+  const [editQuantity, setEditQuantity] = useState("1");
+  const [editVoiceEnabled, setEditVoiceEnabled] = useState(false);
+  const [editVoicePhrase, setEditVoicePhrase] = useState("next");
 
   useEffect(() => {
     supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setAllStreams(data || []));
