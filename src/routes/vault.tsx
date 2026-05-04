@@ -426,16 +426,40 @@ function Vault() {
 
         {/* Search */}
         {cards.length > 0 && (
-          <div className="mb-3 flex items-center gap-2 rounded-xl bg-input px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, set, year, or card #"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-            {query && (
-              <button onClick={() => setQuery("")} aria-label="Clear search"><X className="h-4 w-4 text-muted-foreground" /></button>
+          <div className="relative mb-3">
+            <div className="flex items-center gap-2 rounded-xl bg-input px-3 py-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setShowSuggest(true); }}
+                onFocus={() => setShowSuggest(true)}
+                onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+                placeholder="Search by name, set, year, or card #"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              {query && (
+                <button onClick={() => setQuery("")} aria-label="Clear search"><X className="h-4 w-4 text-muted-foreground" /></button>
+              )}
+              <button
+                onClick={listening ? stopVoice : startVoice}
+                aria-label={listening ? "Stop voice" : "Voice search"}
+                className={`rounded-full p-1 ${listening ? "bg-destructive text-destructive-foreground animate-pulse" : "bg-muted text-muted-foreground"}`}
+              >
+                {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            {showSuggest && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onMouseDown={(e) => { e.preventDefault(); setQuery(s); setShowSuggest(false); }}
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                  >
+                    <Search className="mr-2 inline h-3 w-3 text-muted-foreground" />{s}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         )}
