@@ -73,8 +73,26 @@ function MyStore() {
   const filtered = orders.filter((o) =>
     tab === "to_ship" ? o.status === "pending" :
     tab === "in_transit" ? o.status === "shipped" :
-    o.status === "delivered"
+    tab === "delivered" ? o.status === "delivered" :
+    false
   );
+
+  const reviewStats = useMemo(() => {
+    if (!reviews.length) return { count: 0, avg: 0, ship: 0 };
+    const avg = reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / reviews.length;
+    const ship = reviews.reduce((s, r) => s + Number(r.shipping_rating || 0), 0) / reviews.length;
+    return { count: reviews.length, avg, ship };
+  }, [reviews]);
+
+  function Stars({ n, size = 12 }: { n: number; size?: number }) {
+    return (
+      <span className="inline-flex">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Star key={i} style={{ width: size, height: size }} className={i <= Math.round(n) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"} />
+        ))}
+      </span>
+    );
+  }
 
   if (!user) return (
     <AppShell>
