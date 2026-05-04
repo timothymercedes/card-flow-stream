@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export const Route = createFileRoute("/messages/$userId")({ component: ChatThread });
 
@@ -71,7 +72,8 @@ function ChatThread() {
     <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
       <header className="flex items-center gap-3 border-b border-border px-3 py-3">
         <Link to="/messages" className="rounded-full p-1"><ArrowLeft className="h-5 w-5" /></Link>
-        <p className="text-sm font-bold">@{other?.username || "user"}</p>
+        <p className="flex-1 text-sm font-bold">@{other?.username || "user"}</p>
+        {other?.id && <ReportDialog targetType="user" targetId={other.id} targetLabel={`@${other.username}`} size="icon" />}
       </header>
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {messages.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">Say hi 👋</p>}

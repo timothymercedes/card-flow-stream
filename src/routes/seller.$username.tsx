@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users } from "lucide-react";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -22,6 +23,8 @@ function PublicStore() {
   const [listings, setListings] = useState<any[]>([]);
   const [soldOrders, setSoldOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
 
   useEffect(() => {
@@ -29,14 +32,18 @@ function PublicStore() {
       const { data: prof } = await supabase.from("profiles").select("id,username,avatar_url").eq("username", username).maybeSingle();
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r] = await Promise.all([
+      const [l, o, r, fr, fg] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
+        supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
+        supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
       ]);
       setListings(l.data || []);
       setSoldOrders(o.data || []);
       setReviews(r.data || []);
+      setFollowers(fr.count || 0);
+      setFollowing(fg.count || 0);
     })();
   }, [username]);
 
@@ -68,8 +75,16 @@ function PublicStore() {
               {seller.avatar_url ? <img src={seller.avatar_url} alt={seller.username} className="h-full w-full object-cover" /> : <StoreIcon className="h-6 w-6 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-bold">@{seller.username}</p>
-              
+              <div className="flex items-start justify-between gap-2">
+                <p className="truncate text-lg font-bold">@{seller.username}</p>
+                <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
+              </div>
+
+              <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> <span className="font-semibold text-foreground">{followers}</span> followers</span>
+                <span><span className="font-semibold text-foreground">{following}</span> following</span>
+              </div>
+
               <div className="mt-1 flex items-center gap-2 text-xs">
                 <Stars n={stats.avg} size={12} />
                 <span className="text-muted-foreground">{stats.count ? `${stats.avg.toFixed(1)} · ${stats.count} review${stats.count === 1 ? "" : "s"}` : "No reviews yet"}</span>
