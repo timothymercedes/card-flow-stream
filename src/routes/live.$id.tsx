@@ -143,6 +143,8 @@ function LiveDetail() {
     if (prevBidder && prevBidder !== user.id) {
       await supabase.from("notifications").insert({ user_id: prevBidder, type: "outbid", body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`, link: `/live/${id}` });
     }
+    // Notify the new top bidder they're winning
+    await supabase.from("notifications").insert({ user_id: user.id, type: "winning", body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`, link: `/live/${id}` });
   }
 
   async function startAuction() {
