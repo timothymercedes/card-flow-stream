@@ -20,6 +20,7 @@ function MyStore() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
+  const [carrier, setCarrier] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"to_ship" | "in_transit" | "delivered">("to_ship");
 
   async function load() {
@@ -32,7 +33,13 @@ function MyStore() {
   async function ship(o: any) {
     const tn = tracking[o.id];
     if (!tn) return toast.error("Add tracking number");
-    const { error } = await supabase.from("orders").update({ status: "shipped", tracking_number: tn, shipped_at: new Date().toISOString() }).eq("id", o.id);
+    const c = carrier[o.id] || null;
+    const { error } = await supabase.from("orders").update({
+      status: "shipped",
+      tracking_number: tn,
+      carrier: c,
+      shipped_at: new Date().toISOString(),
+    }).eq("id", o.id);
     if (error) return toast.error(error.message);
     await supabase.from("notifications").insert({ user_id: o.buyer_id, type: "order", body: `Your "${o.title}" shipped — ${tn}`, link: "/orders" });
     toast.success("Marked shipped");
