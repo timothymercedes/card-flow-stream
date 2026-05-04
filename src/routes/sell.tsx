@@ -133,6 +133,8 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
+    if (!imageUrl.trim()) return toast.error("Front photo is required");
+    if (!backImageUrl.trim()) return toast.error("Back photo is required");
     if (!enableBuyNow && !enableAuction && !enableOffers) return toast.error("Pick at least one sale type");
     if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0)) return toast.error("Set a Buy Now price");
     if (enableAuction && (!auctionStart || Number(auctionStart) <= 0)) return toast.error("Set a starting bid");
@@ -142,7 +144,6 @@ function Sell() {
       ? new Date(Date.now() + Number(auctionDays) * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    // listing_type kept for back-compat: pick the "primary" mode
     const primary = enableAuction ? "auction" : enableBuyNow ? "buy_now" : "offer";
 
     const { error } = await supabase.from("listings").insert({
@@ -150,6 +151,9 @@ function Sell() {
       title,
       description: desc,
       image_url: imageUrl || null,
+      back_image_url: backImageUrl || null,
+      tcg_number: tcgNumber.trim() || null,
+      condition,
       listing_type: primary,
       is_auction: enableAuction,
       accepts_offers: enableOffers,
@@ -163,6 +167,27 @@ function Sell() {
     if (error) return toast.error(error.message);
     toast.success("Listing created");
     nav({ to: "/market" });
+  }
+
+  // 🆕 AI identify — uses the title (or description) to guess card name + suggested price
+  async function aiIdentify() {
+    const q = title.trim() || desc.trim();
+    if (!q) return toast.error("Type a card name or description first");
+    setIdentifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      if (error) throw error;
+      const d: any = data || {};
+      if (d.name) setTitle(d.name);
+      if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
+      const cond = d.condition_prices?.[condition];
+      if (cond && !buyNowPrice) setBuyNowPrice(String(cond));
+      toast.success(`Identified: ${d.name || q}`);
+    } catch (e: any) {
+      toast.error(e.message || "Identify failed");
+    } finally {
+      setIdentifying(false);
+    }
   }
 
   const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
