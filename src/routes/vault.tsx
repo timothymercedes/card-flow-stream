@@ -421,7 +421,7 @@ function Vault() {
 function SellModal({ card, onClose, onSubmit }: {
   card: Card;
   onClose: () => void;
-  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) => void;
+  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) => void;
 }) {
   const [buyNow, setBuyNow] = useState(true);
   const [auction, setAuction] = useState(false);
@@ -429,6 +429,15 @@ function SellModal({ card, onClose, onSubmit }: {
   const [days, setDays] = useState(3);
   const [price, setPrice] = useState(String(card.price ?? card.estimated_value ?? 1));
   const [reserve, setReserve] = useState("");
+  const [backImage, setBackImage] = useState<string>(card.back_image_url || "");
+
+  function onBackFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => setBackImage(String(r.result));
+    r.readAsDataURL(f);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={onClose}>
@@ -437,6 +446,19 @@ function SellModal({ card, onClose, onSubmit }: {
           <p className="font-bold">Sell "{card.name}"</p>
           <button onClick={onClose}><X className="h-4 w-4" /></button>
         </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Front</p>
+            {card.image_url ? <img src={card.image_url} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <p className="text-[10px] text-destructive">Missing</p>}
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Back {backImage ? "" : "(required)"}</p>
+            {backImage ? <img src={backImage} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <div className="mt-1 flex h-24 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No back photo</div>}
+            <input type="file" accept="image/*" onChange={onBackFile} className="mt-1 block w-full text-[10px]" />
+          </div>
+        </div>
+
         <p className="text-[11px] text-muted-foreground">Choose one or more listing options</p>
         <div className="space-y-2">
           <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
@@ -473,8 +495,10 @@ function SellModal({ card, onClose, onSubmit }: {
         </div>
         <button
           onClick={() => {
+            if (!card.image_url) return toast.error("Front photo required");
+            if (!backImage) return toast.error("Back photo required");
             if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
-            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0, reserve: reserve ? Number(reserve) : undefined });
+            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0, reserve: reserve ? Number(reserve) : undefined, backImage });
           }}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >
