@@ -468,6 +468,8 @@ function LiveDetail() {
       winner_id: null,
       winning_bid: null,
       winner_username: null,
+      snipe_extends: 0,
+      snipe_price: null,
     }).eq("id", id);
     endedRef.current = false;
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}`, true);
