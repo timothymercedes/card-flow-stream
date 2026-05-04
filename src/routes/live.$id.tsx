@@ -215,12 +215,11 @@ function LiveDetail() {
         link: `/orders`,
       });
       await sendMsg(`🏆 Now owned by @${winnerUsername} — $${winningBid}`, true);
-    } else {
-      await sendMsg(`🏁 Auction ended with no bids`, true);
+      await supabase.from("live_streams").update({
+        winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
+      }).eq("id", id);
     }
-    await supabase.from("live_streams").update({
-      winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
-    }).eq("id", id);
+    // No-bid path: silently reset (no announcement)
   }
 
   async function endLive() {
