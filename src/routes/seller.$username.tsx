@@ -69,7 +69,7 @@ function PublicStore() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-bold">@{seller.username}</p>
-              {seller.full_name && <p className="truncate text-xs text-muted-foreground">{seller.full_name}</p>}
+              
               <div className="mt-1 flex items-center gap-2 text-xs">
                 <Stars n={stats.avg} size={12} />
                 <span className="text-muted-foreground">{stats.count ? `${stats.avg.toFixed(1)} · ${stats.count} review${stats.count === 1 ? "" : "s"}` : "No reviews yet"}</span>
