@@ -101,6 +101,10 @@ function LiveDetail() {
   // 🆕 Giveaway
   const [showGiveaway, setShowGiveaway] = useState(false);
   const [giveawayComposer, setGiveawayComposer] = useState(false);
+  // Track latest giveaway status so we can auto-hide its chat announcement once a winner is decided.
+  const [giveawayStatus, setGiveawayStatus] = useState<string | null>(null);
+  // Per-viewer dismissed announcements (ids the viewer tapped X on)
+  const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<Set<string>>(new Set());
   const [isFollowingHost, setIsFollowingHost] = useState(false);
   const [isPastBuyer, setIsPastBuyer] = useState(false);
   // 🆕 Currency display preference (per-viewer)
@@ -289,6 +293,31 @@ function LiveDetail() {
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // 🆕 Track latest giveaway status so we can hide its chat announcement once decided.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from("giveaways")
+        .select("status")
+        .eq("stream_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setGiveawayStatus((data?.status as string) || null);
+    }
+    load();
+    const ch = supabase
+      .channel(`giveaway-status-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "giveaways", filter: `stream_id=eq.${id}` },
+        (p) => setGiveawayStatus(((p.new as any)?.status ?? (p.old as any)?.status) || null),
+      )
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [id]);
 
   // Auto-hide AI hype overlay after 5s
@@ -1516,23 +1545,39 @@ function LiveDetail() {
         <GiveawayChip streamId={id} />
       </div>
 
-      {/* Chat overlay (separate, scrollable up/down) */}
+      {/* Chat overlay — narrower so it doesn't span across the stream; scrollable up/down */}
       {showChat && (
-        <div ref={chatScrollRef} className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto overscroll-contain px-3 pb-2">
-          <div className="flex flex-col items-start gap-1.5">
+        <div
+          ref={chatScrollRef}
+          className="absolute bottom-40 left-2 z-10 max-h-[28vh] w-[62%] max-w-xs overflow-y-auto overscroll-contain pb-2 pr-1"
+        >
+          <div className="flex flex-col items-start gap-1">
             {messages.filter((m) => !m.is_system || m.is_announcement).map((m) => {
               if (m.is_announcement) {
+                // Hide if viewer dismissed it
+                if (dismissedAnnouncementIds.has(m.id)) return null;
+                // Auto-hide the giveaway "opened" announcement once a winner is decided / it's no longer open
+                const isGiveawayOpenAnn = /Appreciation Gift opened/i.test(String(m.content || ""));
+                if (isGiveawayOpenAnn && giveawayStatus && giveawayStatus !== "open") return null;
                 return (
-                  <div key={m.id} className="w-full rounded-lg border border-accent/60 bg-gradient-to-r from-accent/40 to-primary/40 px-3 py-1.5 text-xs font-bold text-white shadow backdrop-blur">
+                  <div key={m.id} className="relative w-full rounded-lg border border-accent/60 bg-gradient-to-r from-accent/40 to-primary/40 py-1.5 pl-3 pr-7 text-[11px] font-bold text-white shadow backdrop-blur">
                     <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
                     @{m.username}: {m.content.replace(/^📢\s*/, "")}
+                    <button
+                      onClick={() => setDismissedAnnouncementIds((s) => new Set(s).add(m.id))}
+                      className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white/90 hover:bg-black"
+                      title="Dismiss"
+                      aria-label="Dismiss announcement"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </div>
                 );
               }
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
-                <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50"}`}>
+                <div key={m.id} className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50"}`}>
                   {isStaff && m.user_id && m.user_id !== user?.id && m.user_id !== stream.seller_id ? (
                     <button
                       onClick={() => setChatActionMenu({ userId: m.user_id, username: m.username })}
@@ -1544,7 +1589,7 @@ function LiveDetail() {
                   ) : (
                     <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
                   )}
-                  <span>
+                  <span className="break-words">
                     {parts.map((p, i) => p.startsWith("@") ? (
                       <Link key={i} to="/seller/$username" params={{ username: p.slice(1) }} className="font-semibold text-primary hover:underline">{p}</Link>
                     ) : <span key={i}>{p}</span>)}
