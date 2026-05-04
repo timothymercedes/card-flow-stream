@@ -9,6 +9,7 @@ import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
+import { Confetti } from "@/components/Confetti";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
