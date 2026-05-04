@@ -19,17 +19,25 @@ function StatusIcon({ s }: { s: string }) {
 function MyStore() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [carrier, setCarrier] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"to_ship" | "in_transit" | "delivered">("to_ship");
+  const [tab, setTab] = useState<"listings" | "to_ship" | "in_transit" | "delivered" | "reviews">("listings");
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
-    setOrders(data || []);
-    const { data: prof } = await supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle();
-    setPayoutStatus((prof as any)?.stripe_onboarding_status || "not_started");
+    const [ord, list, revs, prof] = await Promise.all([
+      supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("seller_reviews").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle(),
+    ]);
+    setOrders(ord.data || []);
+    setListings(list.data || []);
+    setReviews(revs.data || []);
+    setPayoutStatus((prof.data as any)?.stripe_onboarding_status || "not_started");
   }
   useEffect(() => { load(); }, [user]);
 
