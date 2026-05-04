@@ -114,6 +114,7 @@ function Profile() {
           <div className="min-w-0">
             <p className="truncate text-lg font-bold">@{p.username}</p>
             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">User ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
             <div className="mt-1 flex flex-wrap gap-1">
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
               <Badge status={p.id_status || "none"} label="ID" />
