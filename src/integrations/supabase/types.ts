@@ -271,6 +271,36 @@ export type Database = {
           },
         ]
       }
+      message_requests: {
+        Row: {
+          created_at: string
+          id: string
+          last_request_at: string
+          recipient_id: string
+          sender_id: string
+          sender_username: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_request_at?: string
+          recipient_id: string
+          sender_id: string
+          sender_username: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_request_at?: string
+          recipient_id?: string
+          sender_id?: string
+          sender_username?: string
+          status?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
