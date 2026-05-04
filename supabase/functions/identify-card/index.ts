@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: SYSTEM + langHint },
           { role: "user", content: `Identify and price: ${query}` },
         ],
         response_format: { type: "json_object" },
