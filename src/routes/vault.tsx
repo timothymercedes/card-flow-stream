@@ -34,6 +34,16 @@ function Vault() {
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
   const [query, setQuery] = useState("");
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
+
+  const LANGUAGES = [
+    { v: "en", l: "EN" }, { v: "jp", l: "日本語" }, { v: "kr", l: "한국어" },
+    { v: "zh", l: "中文" }, { v: "de", l: "DE" }, { v: "fr", l: "FR" },
+    { v: "es", l: "ES" }, { v: "it", l: "IT" }, { v: "pt", l: "PT" }, { v: "ru", l: "RU" },
+  ] as const;
+  const [language, setLanguage] = useState<string>("en");
 
   // add form
   const [name, setName] = useState("");
