@@ -85,6 +85,10 @@ function Sell() {
       is_active: true,
       started_at: new Date().toISOString(),
       ends_at,
+      quick_start_enabled: quickStart,
+      default_timer_sec: Number(defaultTimerSec) || 30,
+      default_starting_bid: Number(startingBid) || 1,
+      default_condition: defaultCondition,
     }).select().single();
     if (error) return toast.error(error.message);
     nav({ to: "/live/$id", params: { id: data.id } });
