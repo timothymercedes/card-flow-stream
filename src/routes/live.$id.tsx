@@ -1329,23 +1329,27 @@ function LiveDetail() {
                 {breakSlots.length}/{stream.break_slot_count} taken
               </span>
             </div>
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
+                const charLabel =
+                  (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
+                  `${stream.break_slot_prefix || "#"}${n}`;
                 return (
                   <button
                     key={n}
                     onClick={() => !taken && claimBreakSlotNumber(n)}
                     disabled={!!taken}
-                    title={taken ? `@${taken.buyer_username}` : `Claim #${n}`}
-                    className={`aspect-square rounded-lg text-xs font-extrabold transition ${
+                    title={taken ? `@${taken.buyer_username}` : `Claim ${charLabel}`}
+                    className={`flex min-h-[44px] flex-col items-center justify-center rounded-lg px-1 py-1 text-[10px] font-extrabold leading-tight transition ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
                       taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
                       "bg-white text-black active:scale-95 hover:bg-pink-200"
                     }`}
                   >
-                    {stream.break_slot_prefix || "#"}{n}
+                    <span className="line-clamp-2 text-center">{charLabel}</span>
+                    {taken && <span className="text-[8px] opacity-70">@{taken.buyer_username}</span>}
                   </button>
                 );
               })}
