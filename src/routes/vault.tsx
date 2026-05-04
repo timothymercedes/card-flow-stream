@@ -31,7 +31,8 @@ function Vault() {
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
-  
+  const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
+  const [savingVis, setSavingVis] = useState(false);
 
   // add form
   const [name, setName] = useState("");
