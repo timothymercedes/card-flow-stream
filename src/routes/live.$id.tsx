@@ -1577,9 +1577,9 @@ function LiveDetail() {
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
       {(() => {
-        const annMsgs = messages.filter((m) => m.is_announcement && !dismissedAnnouncementIds.has(m.id) && !(/Appreciation Gift opened/i.test(String(m.content || "")) && giveawayStatus && giveawayStatus !== "open"));
+        // Always hide the giveaway-open announcement — the top-right chip already shows the live countdown.
+        const annMsgs = messages.filter((m) => m.is_announcement && !dismissedAnnouncementIds.has(m.id) && !/Appreciation Gift opened/i.test(String(m.content || "")));
         if (annMsgs.length === 0) return null;
-        const giveawayEndsAt = activeGiveaway?.status === "open" && activeGiveaway?.ends_at ? new Date(activeGiveaway.ends_at).getTime() : 0;
         return (
           <div className="pointer-events-none absolute left-2 right-14 top-16 z-20 flex flex-col items-stretch gap-1">
             {annMsgs.slice(-3).map((m) => {
