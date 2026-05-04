@@ -830,8 +830,8 @@ function LiveDetail() {
     const start = Number(editStartPrice) || 1;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
-    await supabase.from("live_streams").update({
-      status: "live",
+    const patch = {
+      status: "live" as const,
       listing_type: "auction",
       starting_bid: start,
       default_starting_bid: start,
@@ -852,10 +852,15 @@ function LiveDetail() {
       quick_start_remaining: qty - 1,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
-    }).eq("id", id);
+    };
+    // 🆕 Optimistic local update so the host's timer starts ticking instantly,
+    // without waiting for the realtime UPDATE round-trip.
+    setStream((prev: any) => prev ? { ...prev, ...patch } : prev);
     endedRef.current = false;
+    snapshotRef.current = false;
+    await supabase.from("live_streams").update(patch).eq("id", id);
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`, true);
-    toast.success("Auction started");
+    toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
   }
 
