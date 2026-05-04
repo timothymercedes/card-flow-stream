@@ -143,6 +143,10 @@ function LiveDetail() {
         setEditStartPrice(String(data.starting_bid || 1));
         setEditShipPrice(String(data.shipping_price || 0));
         setEditShipMethod(data.shipping_method || "USPS Ground");
+        setEditTimerSec(String(data.default_timer_sec || 30));
+        setEditQuantity(String(data.quick_start_quantity || 1));
+        setEditVoiceEnabled(!!data.voice_trigger_enabled);
+        setEditVoicePhrase(data.voice_trigger_phrase || "next");
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
