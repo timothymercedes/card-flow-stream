@@ -1569,6 +1569,38 @@ function LiveDetail() {
               </div>
             </div>
 
+            {/* 🆕 Sudden Death config */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-bold">
+                <span className="flex items-center gap-1.5">💀 Sudden Death</span>
+                <input type="checkbox" checked={!!stream?.sudden_death_enabled}
+                  onChange={async (e) => {
+                    await supabase.from("live_streams").update({ sudden_death_enabled: e.target.checked }).eq("id", id);
+                  }} className="h-4 w-4" />
+              </label>
+              <p className="mt-1 text-[10px] text-muted-foreground">When ON, late bids extend the timer up to N times.</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <label className="text-[10px] text-muted-foreground">
+                  Max triggers
+                  <input type="number" min={1} max={10} defaultValue={stream?.sudden_death_max_triggers ?? 3}
+                    onBlur={async (e) => {
+                      const v = Math.max(1, Math.min(10, Number(e.target.value) || 3));
+                      await supabase.from("live_streams").update({ sudden_death_max_triggers: v }).eq("id", id);
+                    }}
+                    className="mt-1 w-full rounded-md bg-input px-2 py-1.5 text-xs font-bold outline-none" />
+                </label>
+                <label className="text-[10px] text-muted-foreground">
+                  Sec added per bid
+                  <input type="number" min={1} max={30} defaultValue={stream?.sudden_death_seconds_added ?? 5}
+                    onBlur={async (e) => {
+                      const v = Math.max(1, Math.min(30, Number(e.target.value) || 5));
+                      await supabase.from("live_streams").update({ sudden_death_seconds_added: v }).eq("id", id);
+                    }}
+                    className="mt-1 w-full rounded-md bg-input px-2 py-1.5 text-xs font-bold outline-none" />
+                </label>
+              </div>
+            </div>
+
             <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
