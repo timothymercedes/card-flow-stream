@@ -1571,6 +1571,149 @@ function LiveDetail() {
           </div>
         </div>
       )}
+
+      {/* 🆕 Spin Wheel — fullscreen overlay (visible to ALL viewers when open) */}
+      {showWheelOverlay && wheel && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <button
+            onClick={() => setShowWheelOverlay(false)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white"
+          ><X className="h-5 w-5" /></button>
+          <p className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-300">
+            <RotateCw className="h-3.5 w-3.5" /> {wheel.title || "Spin to Win"}
+          </p>
+          <p className="mb-4 text-[11px] text-white/60">
+            Mode: {wheel.mode === "remove" ? "Removed after spin" : "Repeats"} · Speed: {wheel.spin_speed}
+          </p>
+          <SpinWheel
+            slots={wheelSlots}
+            spinning={!!wheel.is_spinning}
+            targetSlotId={wheel.spin_target_slot_id || null}
+            startedAt={wheel.spin_started_at ? new Date(wheel.spin_started_at).getTime() : null}
+            finishAt={wheel.spin_ends_at ? new Date(wheel.spin_ends_at).getTime() : null}
+            size={Math.min(360, typeof window !== "undefined" ? Math.min(window.innerWidth, window.innerHeight) - 120 : 320)}
+          />
+
+          <div className="mt-6 flex w-full max-w-sm flex-col gap-2">
+            {(isSeller || wheel.viewer_can_spin) && !wheel.is_spinning && (
+              <button
+                onClick={triggerSpin}
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-3 text-base font-extrabold text-white shadow-lg active:scale-[0.98]"
+              >
+                <RotateCw className="h-5 w-5" /> SPIN!
+              </button>
+            )}
+            {wheel.is_spinning && (
+              <div className="flex items-center justify-center gap-2 rounded-xl bg-white/10 py-3 text-sm font-bold text-white">
+                <Lock className="h-4 w-4" /> Wheel locked while spinning
+              </div>
+            )}
+            {!isSeller && !wheel.viewer_can_spin && !wheel.is_spinning && (
+              <p className="text-center text-xs text-white/50">Only the host can spin right now</p>
+            )}
+            {wheel.last_winner_slot_label && !wheel.is_spinning && (
+              <div className="rounded-xl bg-white/5 p-3 text-center text-xs text-white/80">
+                Last spin: <span className="font-bold text-amber-300">{wheel.last_winner_slot_label}</span> →{" "}
+                <span className="font-bold text-white">@{wheel.last_winner_username}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Winner popup — appears for everyone when a spin lands */}
+      {wheelWinnerPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={() => setWheelWinnerPopup(null)}>
+          <div className="animate-in zoom-in-95 fade-in rounded-3xl bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 p-1 shadow-2xl">
+            <div className="rounded-3xl bg-black/85 px-8 py-6 text-center">
+              <Trophy className="mx-auto h-12 w-12 text-amber-300" />
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-amber-300">Winner</p>
+              <p className="mt-1 text-2xl font-extrabold text-white">{wheelWinnerPopup.slot}</p>
+              <p className="mt-3 text-xs text-white/70">Owned by</p>
+              <p className="text-lg font-bold text-white">@{wheelWinnerPopup.winner}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Wheel editor — host only */}
+      {showWheelEditor && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowWheelEditor(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><RotateCw className="h-4 w-4 text-primary" /> Spin Wheel</p>
+              <button onClick={() => setShowWheelEditor(false)}><X className="h-4 w-4" /></button>
+            </div>
+
+            {wheel?.is_spinning && (
+              <div className="mb-3 flex items-center gap-2 rounded-lg bg-yellow-500/20 p-2 text-[11px] text-yellow-300">
+                <Lock className="h-3.5 w-3.5" /> Locked while spinning
+              </div>
+            )}
+
+            {/* Settings */}
+            <div className="mb-3 space-y-2 rounded-xl bg-muted/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-muted-foreground">Mode</p>
+                <div className="flex gap-1">
+                  {(["remove","keep"] as const).map((m) => (
+                    <button key={m} disabled={!!wheel?.is_spinning} onClick={() => updateWheelMode(m)}
+                      className={`rounded-md px-2 py-1 text-[11px] font-bold ${wheel?.mode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
+                      {m === "remove" ? "Remove" : "Repeat"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-muted-foreground">Speed</p>
+                <div className="flex gap-1">
+                  {(["slow","normal","fast"] as const).map((s) => (
+                    <button key={s} disabled={!!wheel?.is_spinning} onClick={() => updateWheelSpeed(s)}
+                      className={`rounded-md px-2 py-1 text-[11px] font-bold ${wheel?.spin_speed === s ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button disabled={!wheel} onClick={toggleViewerSpin}
+                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] font-bold ${wheel?.viewer_can_spin ? "bg-primary/20 text-primary" : "bg-background text-muted-foreground"}`}>
+                <span>Allow viewers to spin</span>
+                <span>{wheel?.viewer_can_spin ? "ON" : "OFF"}</span>
+              </button>
+            </div>
+
+            {/* Add slot */}
+            <div className="mb-3 flex gap-2">
+              <input value={draftSlotLabel} onChange={(e) => setDraftSlotLabel(e.target.value)} placeholder="Prize / item" maxLength={40} className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm outline-none" />
+              <input value={draftSlotWeight} onChange={(e) => setDraftSlotWeight(e.target.value)} type="number" min="1" max="100" className="w-16 rounded-lg bg-muted px-2 py-2 text-center text-sm outline-none" />
+              <button disabled={!!wheel?.is_spinning} onClick={addWheelSlot} className="flex items-center gap-1 rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground disabled:opacity-50">
+                <Plus className="h-3.5 w-3.5" /> Add
+              </button>
+            </div>
+            <p className="mb-2 text-[10px] text-muted-foreground">Higher weight = better odds. Min 2 active slots needed to spin.</p>
+
+            {/* Slot list */}
+            <div className="mb-3 max-h-44 space-y-1 overflow-y-auto">
+              {wheelSlots.length === 0 && <p className="text-center text-xs text-muted-foreground">No slots yet</p>}
+              {wheelSlots.map((s) => (
+                <div key={s.id} className="flex items-center gap-2 rounded-lg bg-muted/40 p-2">
+                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: s.color }} />
+                  <p className="min-w-0 flex-1 truncate text-xs font-semibold">{s.label}</p>
+                  <span className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">×{s.weight}</span>
+                  <button disabled={!!wheel?.is_spinning} onClick={() => removeWheelSlot(s.id)} className="text-destructive disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => { setShowWheelEditor(false); setShowWheelOverlay(true); }} disabled={!wheel || wheelSlots.filter(s=>s.is_active).length < 2}
+                className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">
+                Open & Spin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
