@@ -87,6 +87,16 @@ function LiveDetail() {
   const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
+  // 🆕 Spin Wheel state
+  const [wheel, setWheel] = useState<any>(null);
+  const [wheelSlots, setWheelSlots] = useState<WheelSlot[]>([]);
+  const [showWheelOverlay, setShowWheelOverlay] = useState(false);
+  const [showWheelEditor, setShowWheelEditor] = useState(false);
+  const [wheelWinnerPopup, setWheelWinnerPopup] = useState<{ slot: string; winner: string } | null>(null);
+  const [draftSlotLabel, setDraftSlotLabel] = useState("");
+  const [draftSlotWeight, setDraftSlotWeight] = useState("1");
+  const wheelLandedRef = useRef<string | null>(null);
+
   const isMod = !!user && mods.some((m) => m.mod_user_id === user.id);
   const isStaff = !!user && (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
 
