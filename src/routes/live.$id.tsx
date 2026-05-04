@@ -9,6 +9,7 @@ import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
+import { GiveawayChip } from "@/components/GiveawayChip";
 import { Confetti } from "@/components/Confetti";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
@@ -1509,6 +1510,11 @@ function LiveDetail() {
           ))}
         </div>
       )}
+
+      {/* 🎁 Persistent giveaway countdown chip — visible while a gift is open */}
+      <div className="absolute bottom-[calc(11rem+35vh+0.5rem)] left-0 right-0 z-20 px-3">
+        <GiveawayChip streamId={id} />
+      </div>
 
       {/* Chat overlay (separate, scrollable up/down) */}
       {showChat && (
