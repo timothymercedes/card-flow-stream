@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -33,6 +33,7 @@ function Vault() {
   const [actionFor, setActionFor] = useState<Card | null>(null);
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
+  const [query, setQuery] = useState("");
 
   // add form
   const [name, setName] = useState("");
@@ -75,6 +76,16 @@ function Vault() {
     () => cards.reduce((s, c) => s + Number(c.estimated_value || 0), 0),
     [cards]
   );
+
+  const filteredCards = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return cards;
+    return cards.filter((c) =>
+      [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
+        .filter(Boolean)
+        .some((f) => String(f).toLowerCase().includes(q))
+    );
+  }, [cards, query]);
 
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
@@ -354,22 +365,45 @@ function Vault() {
           </div>
         )}
 
+        {/* Search */}
+        {cards.length > 0 && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl bg-input px-3 py-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name, set, year, or card #"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            {query && (
+              <button onClick={() => setQuery("")} aria-label="Clear search"><X className="h-4 w-4 text-muted-foreground" /></button>
+            )}
+          </div>
+        )}
+
         {cards.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Your vault is empty</p>}
+        {cards.length > 0 && filteredCards.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">No cards match "{query}"</p>
+        )}
         <div className="grid grid-cols-2 gap-3">
-          {cards.map((c) => (
-            <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
-              <div className="aspect-square bg-muted">
-                {c.image_url ? <img src={c.image_url} className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
-              </div>
-              <div className="p-2">
-                <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {c.category || "—"}{c.condition && ` • ${c.condition}`}
-                </p>
-                <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value || 0).toFixed(2)}</p>
-              </div>
-            </button>
-          ))}
+          {filteredCards.map((c) => {
+            const meta = [c.tcg_set, c.tcg_year, c.tcg_number && `#${c.tcg_number}`].filter(Boolean).join(" • ");
+            return (
+              <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
+                <div className="aspect-square bg-muted">
+                  {c.image_url ? <img src={c.image_url} className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                </div>
+                <div className="p-2">
+                  <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                  {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
+                  <p className="text-[10px] text-muted-foreground">
+                    {c.category || "—"}{c.condition && ` • ${c.condition}`}
+                  </p>
+                  <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value || 0).toFixed(2)}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
