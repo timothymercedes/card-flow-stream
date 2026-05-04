@@ -256,9 +256,28 @@ function Sell() {
           </div>
         ) : (
           <div className="space-y-3">
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <div className="flex gap-2">
+              <input className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <button type="button" onClick={aiIdentify} disabled={identifying}
+                className="rounded-xl bg-accent px-3 py-3 text-xs font-bold text-accent-foreground disabled:opacity-50">
+                {identifying ? "…" : "✨ AI ID"}
+              </button>
+            </div>
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Image URL (optional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Card number (optional, e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Front photo URL *" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Back photo URL *" value={backImageUrl} onChange={(e) => setBackImageUrl(e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Condition (required)</p>
+              <div className="grid grid-cols-4 gap-1">
+                {(["NM","LP","MP","Damaged"] as const).map((c) => (
+                  <button key={c} type="button" onClick={() => setCondition(c)}
+                    className={`rounded-lg py-2 text-xs font-bold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
+                ))}
+              </div>
+            </div>
 
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">Sale options (pick any combination)</p>
