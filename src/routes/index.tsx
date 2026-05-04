@@ -27,7 +27,7 @@ function Home() {
   const [vault, setVault] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(6).then(({ data }) => setStreams(data || []));
+    supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6).then(({ data }) => setStreams(data || []));
     supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
     supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setListings(data || []));
     supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
