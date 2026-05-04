@@ -15,6 +15,9 @@ type Giveaway = {
   winner_id: string | null;
   winner_username: string | null;
   shipping_covered: boolean;
+  duration_sec: number;
+  ends_at: string | null;
+  quantity: number;
 };
 
 type Entry = {
