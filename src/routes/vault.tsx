@@ -263,9 +263,17 @@ function Vault() {
               <button onClick={() => setActionFor(null)}><X className="h-4 w-4" /></button>
             </div>
             {actionFor.image_url && <img src={actionFor.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
-            <p className="text-xs text-muted-foreground">{actionFor.category || "—"} • Est. ${Number(actionFor.estimated_value || 0).toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">
+              {actionFor.category || "—"}
+              {actionFor.tcg_number && ` • #${actionFor.tcg_number}`}
+              {actionFor.condition && ` • ${actionFor.condition}`}
+              {` • Est. $${Number(actionFor.estimated_value || 0).toFixed(2)}`}
+            </p>
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
+            </button>
+            <button onClick={() => refreshValue(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-foreground">
+              <DollarSign className="h-4 w-4" /> Refresh value (TCG)
             </button>
             <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
               <Pencil className="h-4 w-4" /> Edit
