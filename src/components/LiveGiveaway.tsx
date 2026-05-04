@@ -64,6 +64,8 @@ export function LiveGiveaway({
   const [draftPrize, setDraftPrize] = useState("");
   const [draftCode, setDraftCode] = useState(suggestCode());
   const [draftEligibility, setDraftEligibility] = useState<"anyone" | "followers" | "buyers">("anyone");
+  const [draftDuration, setDraftDuration] = useState<number>(60); // seconds
+  const [draftQuantity, setDraftQuantity] = useState<number>(1);
 
   // Letter-tap mini game state
   const [tapStep, setTapStep] = useState(0);            // 0..code.length
@@ -74,6 +76,11 @@ export function LiveGiveaway({
   // Drawing reel
   const [reelName, setReelName] = useState<string | null>(null);
   const drawTimerRef = useRef<number | null>(null);
+
+  // Live ticker for countdown
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t); }, []);
+  const remainingMs = giveaway?.ends_at ? Math.max(0, new Date(giveaway.ends_at).getTime() - now) : 0;
 
   // Load + subscribe to current giveaway for this stream.
   useEffect(() => {
