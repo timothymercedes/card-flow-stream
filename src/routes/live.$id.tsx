@@ -532,6 +532,7 @@ function LiveDetail() {
 
   async function removeWheelSlot(slotId: string) {
     if (wheel?.is_spinning) return toast.error("Wheel is locked while spinning");
+    if (wheel?.is_locked) return toast.error("Wheel is locked — reset it to edit");
     await supabase.from("wheel_slots").delete().eq("id", slotId);
   }
 
