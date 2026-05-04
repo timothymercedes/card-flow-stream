@@ -292,6 +292,45 @@ function Admin() {
             </div>
           </>
         )}
+
+        {tab === "roles" && isAdmin && (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-card p-4 space-y-2">
+              <p className="flex items-center gap-2 text-sm font-bold"><UserCog className="h-4 w-4" /> Assign role</p>
+              <input placeholder="Username" value={roleForm.username} onChange={(e) => setRoleForm({ ...roleForm, username: e.target.value })}
+                className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+              <select value={roleForm.role} onChange={(e) => setRoleForm({ ...roleForm, role: e.target.value as Role })}
+                className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none">
+                {isOwner && <option value="admin">Admin</option>}
+                <option value="moderator">Moderator</option>
+                <option value="support">Support</option>
+              </select>
+              <button onClick={assignRole} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Grant role</button>
+              <p className="text-[10px] text-muted-foreground">
+                {isOwner ? "As owner you can grant admin, moderator, or support." : "Admins can grant moderator and support. Only the owner can grant admin."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {roles.map((r) => (
+                <div key={`${r.user_id}-${r.role}`} className="flex items-center justify-between rounded-xl bg-card p-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGES[r.role]}`}>
+                      {r.role === "owner" && <Crown className="h-3 w-3" />} {r.role}
+                    </span>
+                    <p className="truncate text-xs font-bold">@{r.username || r.user_id.slice(0, 8)}</p>
+                  </div>
+                  {r.role !== "owner" && (isOwner || r.role !== "admin") && (
+                    <button onClick={() => removeRole(r.user_id, r.role)}
+                      className="rounded-lg bg-destructive/20 p-1.5 text-destructive" title="Remove role">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {roles.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No role assignments.</p>}
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );
