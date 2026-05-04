@@ -1410,8 +1410,33 @@ function LiveDetail() {
               </button>
             </div>
 
-            <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
-              <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
+            {/* 🆕 Chat slow-mode */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center justify-between text-xs font-bold">
+                <span className="flex items-center gap-1.5">🐢 Slow chat
+                  {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
+                      {(stream as any).chat_slow_mode_sec}s
+                    </span>
+                  )}
+                </span>
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Limit how often each viewer can chat. Host & mods bypass.</p>
+              <div className="mt-2 grid grid-cols-5 gap-1">
+                {[0, 3, 5, 10, 30].map((s) => (
+                  <button key={s} type="button"
+                    onClick={async () => {
+                      setEditSlowMode(String(s));
+                      await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                      sendMsg(s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s between messages`, true);
+                    }}
+                    className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                    {s === 0 ? "Off" : `${s}s`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             </button>
 
             {/* OBS / Cloudflare Stream credentials */}
