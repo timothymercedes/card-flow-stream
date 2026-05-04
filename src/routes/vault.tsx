@@ -193,26 +193,6 @@ function Vault() {
     load();
   }
 
-  async function refreshValue(card: Card) {
-    try {
-      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`, card.tcg_year && `year: ${card.tcg_year}`].filter(Boolean).join(" ");
-      const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
-      const base = Number(data?.estimated_value);
-      if (!isFinite(base) || base <= 0) return toast.error("Couldn't get a price");
-      const cp: ConditionPrices | null = data?.condition_prices || null;
-      const v = priceFor((card.condition || "NM") as Condition, base, cp);
-      await supabase.from("vault_cards").update({
-        estimated_value: v, condition_prices: cp as any,
-        tcg_set: card.tcg_set || data?.set || null,
-        tcg_year: card.tcg_year || (data?.year ? String(data.year) : null),
-        tcg_number: card.tcg_number || data?.tcg_number || null,
-        last_valued_at: new Date().toISOString(),
-      }).eq("id", card.id);
-      toast.success(`Updated to $${v}`);
-      load();
-    } catch (e: any) { toast.error(e?.message || "Refresh failed"); }
-  }
-
   function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
     setName(r.name); setCategory(r.category); setImageUrl(r.image);
     setScanning(false); setShowAdd(true);
