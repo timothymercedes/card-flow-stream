@@ -2,9 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2 } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { startRegistration } from "@simplewebauthn/browser";
+import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
 
 export const Route = createFileRoute("/profile")({ component: Profile });
 
