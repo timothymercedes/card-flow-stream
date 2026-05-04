@@ -27,10 +27,19 @@ function Home() {
   const [vault, setVault] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6).then(({ data }) => setStreams(data || []));
-    supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
-    supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setListings(data || []));
-    supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
+    const load = () => {
+      supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6).then(({ data }) => setStreams(data || []));
+      supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
+      supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setListings(data || []));
+      supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
+    };
+    load();
+    const ch = supabase.channel("home-discover")
+      .on("postgres_changes", { event: "*", schema: "public", table: "live_streams" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   return (
