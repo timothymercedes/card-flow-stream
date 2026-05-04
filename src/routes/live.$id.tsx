@@ -1038,6 +1038,30 @@ function LiveDetail() {
         </div>
       </div>
 
+      {/* 🆕 Always-visible auction timer (regardless of pin state) */}
+      {auctionLive && (
+        <div className="pointer-events-none absolute left-1/2 top-14 z-20 -translate-x-1/2">
+          <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-extrabold tabular-nums shadow-2xl ring-2 transition ${
+            stream.sudden_death_active
+              ? "bg-red-600 text-white ring-red-300 animate-pulse"
+              : snipeFlash
+                ? "bg-yellow-400 text-black ring-yellow-200 scale-110"
+                : remaining <= 5000
+                  ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
+                  : "bg-live text-live-foreground ring-white/30"
+          }`}>
+            {stream.sudden_death_active ? <Zap className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
+            <span>{fmtRemaining(remaining)}</span>
+            {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
+              <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">+{stream.snipe_extends}/3 OT</span>
+            )}
+            {stream.sudden_death_active && (
+              <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">Sudden Death</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
         <div className="absolute left-3 right-3 top-14 z-10">
