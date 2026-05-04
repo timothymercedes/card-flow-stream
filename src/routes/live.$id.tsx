@@ -1291,6 +1291,16 @@ function LiveDetail() {
           </button>
         )}
 
+        {/* 🆕 Giveaway — viewer entry button */}
+        {!isSeller && (
+          <button
+            onClick={() => setShowGiveaway(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+          >
+            <Gift className="h-4 w-4" /> Open Giveaway
+          </button>
+        )}
+
         {!isSeller && (
           <div className="flex gap-2">
             <button
