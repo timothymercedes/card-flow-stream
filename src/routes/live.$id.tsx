@@ -1667,41 +1667,43 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — numbered slot grid for buyers */}
+        {/* 🆕 Mystery break — compact right-side keypad for buyers (only when host opens it) */}
         {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <div className="rounded-xl bg-gradient-to-br from-pink-500/15 via-purple-500/15 to-indigo-500/15 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="flex items-center gap-1.5 text-xs font-extrabold text-white">
-                <Dice5 className="h-4 w-4 text-pink-300" /> Mystery Break · ${breakPrice}/slot
-              </p>
-              <span className="text-[10px] text-white/60">
-                {breakSlots.length}/{stream.break_slot_count} taken
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
-                const taken = breakSlots.find((s) => s.slot_number === n);
-                const mine = taken && taken.buyer_id === user?.id;
-                const charLabel =
-                  (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
-                  `${stream.break_slot_prefix || "#"}${n}`;
-                return (
-                  <button
-                    key={n}
-                    onClick={() => !taken && claimBreakSlotNumber(n)}
-                    disabled={!!taken}
-                    title={taken ? `@${taken.buyer_username}` : `Claim ${charLabel}`}
-                    className={`flex min-h-[44px] flex-col items-center justify-center rounded-lg px-1 py-1 text-[10px] font-extrabold leading-tight transition ${
-                      mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
-                      taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
-                      "bg-white text-black active:scale-95 hover:bg-pink-200"
-                    }`}
-                  >
-                    <span className="line-clamp-2 text-center">{charLabel}</span>
-                    {taken && <span className="text-[8px] opacity-70">@{taken.buyer_username}</span>}
-                  </button>
-                );
-              })}
+          <div className="pointer-events-none absolute right-2 top-32 z-10 w-32">
+            <div className="pointer-events-auto rounded-xl bg-black/60 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
+              <div className="mb-1 flex items-center justify-between px-0.5">
+                <span className="flex items-center gap-1 text-[9px] font-extrabold text-pink-300">
+                  <Dice5 className="h-3 w-3" /> Break
+                </span>
+                <span className="text-[8px] text-white/60">
+                  {breakSlots.length}/{stream.break_slot_count}
+                </span>
+              </div>
+              <div className="grid max-h-44 grid-cols-3 gap-1 overflow-y-auto pr-0.5">
+                {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
+                  const taken = breakSlots.find((s) => s.slot_number === n);
+                  const mine = taken && taken.buyer_id === user?.id;
+                  const charLabel =
+                    (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
+                    `${stream.break_slot_prefix || "#"}${n}`;
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => !taken && claimBreakSlotNumber(n)}
+                      disabled={!!taken}
+                      title={taken ? `@${taken.buyer_username}` : `Claim ${charLabel}`}
+                      className={`flex h-7 items-center justify-center rounded text-[9px] font-extrabold ${
+                        mine ? "bg-emerald-500 text-white ring-1 ring-emerald-200" :
+                        taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
+                        "bg-white text-black active:scale-95 hover:bg-pink-200"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 px-0.5 text-center text-[8px] text-white/50">${breakPrice}/slot</p>
             </div>
           </div>
         )}
@@ -1721,14 +1723,14 @@ function LiveDetail() {
           </div>
         )}
 
-        {/* 🆕 Spin Wheel — visible to viewers whenever a wheel exists */}
-        {!isSeller && wheel && wheelSlots.length > 0 && (
+        {/* 🆕 Spin Wheel — viewers only see it when host enables viewer spins or a spin is live */}
+        {!isSeller && wheel && wheelSlots.length > 0 && (wheel.viewer_can_spin || wheel.is_spinning) && (
           <button
             onClick={() => setShowWheelOverlay(true)}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
           >
             <RotateCw className={`h-4 w-4 ${wheel.is_spinning ? "animate-spin" : ""}`} />
-            {wheel.is_spinning ? "Spinning live…" : "Open Spin Wheel"}
+            {wheel.is_spinning ? "Spinning live…" : "Spin the Wheel"}
             <span className="ml-1 text-[10px] font-semibold opacity-80">{wheelSlots.filter((s)=>s.is_active).length} prizes</span>
           </button>
         )}
