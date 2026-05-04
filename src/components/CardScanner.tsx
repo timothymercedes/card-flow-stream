@@ -3,14 +3,29 @@ import { Camera, RefreshCw, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-type ScanResult = { name: string; category: string; trend: string; image: string };
+type ScanResult = { name: string; category: string; trend: string; image: string; language?: string };
 
-export function CardScanner({ onResult, onClose }: { onResult: (r: ScanResult) => void; onClose: () => void }) {
+const LANGUAGES = [
+  { v: "auto", l: "Auto" },
+  { v: "en", l: "EN" },
+  { v: "jp", l: "日本語" },
+  { v: "kr", l: "한국어" },
+  { v: "zh", l: "中文" },
+  { v: "de", l: "DE" },
+  { v: "fr", l: "FR" },
+  { v: "es", l: "ES" },
+  { v: "it", l: "IT" },
+  { v: "pt", l: "PT" },
+  { v: "ru", l: "RU" },
+] as const;
+
+export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { onResult: (r: ScanResult) => void; onClose: () => void; defaultLanguage?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState<string>(defaultLanguage);
 
   async function start(mode: "environment" | "user") {
     setError(null);
@@ -49,9 +64,11 @@ export function CardScanner({ onResult, onClose }: { onResult: (r: ScanResult) =
       ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
-      const { data, error } = await supabase.functions.invoke("scan-card", { body: { image: dataUrl } });
+      const { data, error } = await supabase.functions.invoke("scan-card", {
+        body: { image: dataUrl, language: language === "auto" ? undefined : language },
+      });
       if (error) throw error;
-      onResult({ ...(data as any), image: dataUrl });
+      onResult({ ...(data as any), image: dataUrl, language });
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
     } finally {
@@ -66,6 +83,23 @@ export function CardScanner({ onResult, onClose }: { onResult: (r: ScanResult) =
         <p className="text-sm font-semibold text-white">Scan Card</p>
         <button onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))} className="rounded-full bg-white/10 p-2 text-white"><RefreshCw className="h-5 w-5" /></button>
       </div>
+
+      {/* Language picker — helps pull the right printing (EN/JP/KR/CN…) */}
+      <div className="px-3 pb-2">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">Card language</p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {LANGUAGES.map((lang) => (
+            <button
+              key={lang.v}
+              onClick={() => setLanguage(lang.v)}
+              className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${language === lang.v ? "bg-white text-black" : "bg-white/10 text-white"}`}
+            >
+              {lang.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="relative flex-1 overflow-hidden">
         {error ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/80">{error}</div>

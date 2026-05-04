@@ -176,6 +176,7 @@ export type Database = {
           auction_ends_at: string | null
           auction_status: string
           back_image_url: string | null
+          buy_now_price: number | null
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
@@ -201,6 +202,7 @@ export type Database = {
           auction_ends_at?: string | null
           auction_status?: string
           back_image_url?: string | null
+          buy_now_price?: number | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
@@ -226,6 +228,7 @@ export type Database = {
           auction_ends_at?: string | null
           auction_status?: string
           back_image_url?: string | null
+          buy_now_price?: number | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
@@ -258,6 +261,11 @@ export type Database = {
       }
       live_streams: {
         Row: {
+          cf_live_input_id: string | null
+          cf_playback_hls: string | null
+          cf_rtmps_url: string | null
+          cf_stream_key: string | null
+          cf_video_uid: string | null
           created_at: string
           current_bid: number
           current_bidder_id: string | null
@@ -294,6 +302,11 @@ export type Database = {
           winning_bid: number | null
         }
         Insert: {
+          cf_live_input_id?: string | null
+          cf_playback_hls?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
+          cf_video_uid?: string | null
           created_at?: string
           current_bid?: number
           current_bidder_id?: string | null
@@ -330,6 +343,11 @@ export type Database = {
           winning_bid?: number | null
         }
         Update: {
+          cf_live_input_id?: string | null
+          cf_playback_hls?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
+          cf_video_uid?: string | null
           created_at?: string
           current_bid?: number
           current_bidder_id?: string | null

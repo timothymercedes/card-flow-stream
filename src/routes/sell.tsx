@@ -4,10 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { toast } from "sonner";
+import { Radio } from "lucide-react";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
-
-type ListingType = "buy_now" | "auction" | "offer";
 
 function Sell() {
   const { user, profile } = useAuth();
@@ -18,21 +17,23 @@ function Sell() {
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
   const [streamDesc, setStreamDesc] = useState("");
-  const [streamType, setStreamType] = useState<ListingType>("auction");
   const [startingBid, setStartingBid] = useState("1");
   const [timerMin, setTimerMin] = useState("10");
   const [minIncrement, setMinIncrement] = useState("1");
   const [defaultCondition, setDefaultCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM");
   const [quickStart, setQuickStart] = useState(true);
   const [defaultTimerSec, setDefaultTimerSec] = useState("30");
+  const [useObs, setUseObs] = useState(false);
 
-  // Listing form
+  // Listing form — independent toggles
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [price, setPrice] = useState("");
-  const [listingType, setListingType] = useState<ListingType>("buy_now");
-  const [acceptsOffers, setAcceptsOffers] = useState(false);
+  const [enableBuyNow, setEnableBuyNow] = useState(true);
+  const [enableAuction, setEnableAuction] = useState(false);
+  const [enableOffers, setEnableOffers] = useState(false);
+  const [buyNowPrice, setBuyNowPrice] = useState("");
+  const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
   const [shippingPrice, setShippingPrice] = useState("0");
 
@@ -67,17 +68,33 @@ function Sell() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
 
-
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     await ensureSeller();
     const minutes = Number(timerMin) || 0;
-    const ends_at = streamType === "auction" && minutes > 0 ? new Date(Date.now() + minutes * 60 * 1000).toISOString() : null;
+    const ends_at = minutes > 0 ? new Date(Date.now() + minutes * 60 * 1000).toISOString() : null;
+
+    // Optional: provision OBS / Cloudflare Stream input
+    let cf: any = {};
+    if (useObs) {
+      const { data, error } = await supabase.functions.invoke("create-stream-input", { body: { meta_name: streamTitle } });
+      if (error || (data as any)?.error) {
+        toast.error("Could not set up OBS streaming — check Cloudflare keys");
+        return;
+      }
+      cf = {
+        cf_live_input_id: (data as any).live_input_id,
+        cf_rtmps_url: (data as any).rtmps_url,
+        cf_stream_key: (data as any).stream_key,
+        cf_playback_hls: (data as any).hls_url,
+      };
+    }
+
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user!.id,
       title: streamTitle,
       item_description: streamDesc || null,
-      listing_type: streamType,
+      listing_type: "auction",
       starting_bid: Number(startingBid) || 1,
       current_bid: Number(startingBid) || 1,
       current_item: streamTitle,
@@ -90,6 +107,7 @@ function Sell() {
       default_timer_sec: Number(defaultTimerSec) || 30,
       default_starting_bid: Number(startingBid) || 1,
       default_condition: defaultCondition,
+      ...cf,
     }).select().single();
     if (error) return toast.error(error.message);
     nav({ to: "/live/$id", params: { id: data.id } });
@@ -97,20 +115,30 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
+    if (!enableBuyNow && !enableAuction && !enableOffers) return toast.error("Pick at least one sale type");
+    if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0)) return toast.error("Set a Buy Now price");
+    if (enableAuction && (!auctionStart || Number(auctionStart) <= 0)) return toast.error("Set a starting bid");
     await ensureSeller();
-    const amt = Number(price) || 0;
-    const auctionEnds = listingType === "auction" ? new Date(Date.now() + Number(auctionDays) * 24 * 60 * 60 * 1000).toISOString() : null;
+
+    const auctionEnds = enableAuction
+      ? new Date(Date.now() + Number(auctionDays) * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+    // listing_type kept for back-compat: pick the "primary" mode
+    const primary = enableAuction ? "auction" : enableBuyNow ? "buy_now" : "offer";
+
     const { error } = await supabase.from("listings").insert({
       seller_id: user!.id,
       title,
       description: desc,
       image_url: imageUrl || null,
-      listing_type: listingType,
-      is_auction: listingType === "auction",
-      accepts_offers: listingType === "offer" ? true : acceptsOffers,
-      starting_bid: listingType === "auction" ? amt : null,
-      current_bid: listingType === "auction" ? amt : null,
-      price: listingType !== "auction" ? amt : null,
+      listing_type: primary,
+      is_auction: enableAuction,
+      accepts_offers: enableOffers,
+      starting_bid: enableAuction ? Number(auctionStart) : null,
+      current_bid: enableAuction ? Number(auctionStart) : null,
+      price: enableBuyNow ? Number(buyNowPrice) : null,
+      buy_now_price: enableBuyNow ? Number(buyNowPrice) : null,
       shipping_price: Number(shippingPrice) || 0,
       auction_ends_at: auctionEnds,
     });
@@ -119,8 +147,14 @@ function Sell() {
     nav({ to: "/market" });
   }
 
-  const TypeBtn = ({ v, label, set, cur }: { v: ListingType; label: string; set: (v: ListingType) => void; cur: ListingType }) => (
-    <button type="button" onClick={() => set(v)} className={`flex-1 rounded-lg py-2 text-xs font-semibold ${cur === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{label}</button>
+  const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
+    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
+      <div>
+        <p className="text-sm font-semibold">{label}</p>
+        {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      </div>
+      <input type="checkbox" checked={on} onChange={(e) => set(e.target.checked)} className="mt-1 h-5 w-5" />
+    </label>
   );
 
   return (
@@ -136,27 +170,17 @@ function Sell() {
           <div className="space-y-3">
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Stream title" value={streamTitle} onChange={(e) => setStreamTitle(e.target.value)} />
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={2} placeholder="Item description (optional)" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
-            <div>
-              <p className="mb-1 text-xs text-muted-foreground">Listing type</p>
-              <div className="flex gap-2">
-                <TypeBtn v="buy_now" label="Buy Now" set={setStreamType} cur={streamType} />
-                <TypeBtn v="auction" label="Auction" set={setStreamType} cur={streamType} />
-                <TypeBtn v="offer" label="Offers" set={setStreamType} cur={streamType} />
-              </div>
-            </div>
             <input type="number" min="1" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting price ($)" value={startingBid} onChange={(e) => setStartingBid(e.target.value)} />
-            {streamType === "auction" && (
-              <div className="grid grid-cols-2 gap-2">
-                <input type="number" min="0" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Timer (min)" value={timerMin} onChange={(e) => setTimerMin(e.target.value)} />
-                <input type="number" min="1" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Min bid increment ($)" value={minIncrement} onChange={(e) => setMinIncrement(e.target.value)} />
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" min="0" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Timer (min)" value={timerMin} onChange={(e) => setTimerMin(e.target.value)} />
+              <input type="number" min="1" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Min bid increment ($)" value={minIncrement} onChange={(e) => setMinIncrement(e.target.value)} />
+            </div>
             <div className="rounded-xl bg-card p-3 space-y-2">
               <label className="flex items-center justify-between text-xs font-semibold">
                 <span>⚡ Scan-to-start (run bids hands-free)</span>
                 <input type="checkbox" checked={quickStart} onChange={(e) => setQuickStart(e.target.checked)} className="h-4 w-4" />
               </label>
-              <p className="text-[10px] text-muted-foreground">When ON: scanning a card during the live stream instantly starts an auction with the defaults below — no need to press Start each time.</p>
+              <p className="text-[10px] text-muted-foreground">When ON: scanning a card during the live stream instantly starts an auction with the defaults below.</p>
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-[10px] text-muted-foreground">
                   Default timer
@@ -175,6 +199,16 @@ function Sell() {
                 </label>
               </div>
             </div>
+
+            {/* OBS / Pro broadcaster toggle */}
+            <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
+              <div>
+                <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> Broadcast from OBS / Streamlabs</p>
+                <p className="text-[11px] text-muted-foreground">Pro mode: get an RTMPS URL + stream key to use in OBS instead of the in-app camera.</p>
+              </div>
+              <input type="checkbox" checked={useObs} onChange={(e) => setUseObs(e.target.checked)} className="mt-1 h-5 w-5" />
+            </label>
+
             <button onClick={startLive} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
@@ -182,29 +216,30 @@ function Sell() {
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Image URL (optional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+
             <div>
-              <p className="mb-1 text-xs text-muted-foreground">Listing type</p>
-              <div className="flex gap-2">
-                <TypeBtn v="buy_now" label="Buy Now" set={setListingType} cur={listingType} />
-                <TypeBtn v="auction" label="Auction" set={setListingType} cur={listingType} />
-                <TypeBtn v="offer" label="Make Offer" set={setListingType} cur={listingType} />
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">Sale options (pick any combination)</p>
+              <div className="space-y-2">
+                <Toggle label="Buy Now" hint="Set a fixed price buyers can pay instantly." on={enableBuyNow} set={setEnableBuyNow} />
+                {enableBuyNow && (
+                  <input type="number" min="0" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Buy Now price ($)" value={buyNowPrice} onChange={(e) => setBuyNowPrice(e.target.value)} />
+                )}
+                <Toggle label="Auction" hint="Buyers place bids. Highest at end-time wins." on={enableAuction} set={setEnableAuction} />
+                {enableAuction && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="number" min="0" step="0.01" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting bid ($)" value={auctionStart} onChange={(e) => setAuctionStart(e.target.value)} />
+                    <select value={auctionDays} onChange={(e) => setAuctionDays(e.target.value)} className="rounded-xl bg-input px-4 py-3 text-sm outline-none">
+                      <option value="1">1 day</option>
+                      <option value="3">3 days</option>
+                      <option value="5">5 days</option>
+                      <option value="7">7 days</option>
+                    </select>
+                  </div>
+                )}
+                <Toggle label="Accept Offers" hint="Buyers can send custom offers (>$1)." on={enableOffers} set={setEnableOffers} />
               </div>
             </div>
-            {listingType === "buy_now" && (
-              <label className="flex items-center gap-2 text-xs">
-                <input type="checkbox" checked={acceptsOffers} onChange={(e) => setAcceptsOffers(e.target.checked)} className="h-4 w-4" />
-                Also accept offers
-              </label>
-            )}
-            {listingType === "auction" && (
-              <select value={auctionDays} onChange={(e) => setAuctionDays(e.target.value)} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none">
-                <option value="1">1 day</option>
-                <option value="3">3 days</option>
-                <option value="5">5 days</option>
-                <option value="7">7 days</option>
-              </select>
-            )}
-            <input type="number" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder={listingType === "auction" ? "Starting bid ($)" : "Price ($)"} value={price} onChange={(e) => setPrice(e.target.value)} />
+
             <input type="number" min="0" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Shipping price ($) — 0 for free" value={shippingPrice} onChange={(e) => setShippingPrice(e.target.value)} />
             <button onClick={createListing} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Create Listing</button>
           </div>

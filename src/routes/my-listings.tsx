@@ -9,11 +9,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
 
 type Listing = {
-  id: string; title: string; image_url: string | null;
+  id: string; title: string; description: string | null; image_url: string | null;
   price: number | null; current_bid: number | null; starting_bid: number | null;
+  buy_now_price: number | null;
   listing_type: string; is_auction: boolean; accepts_offers: boolean;
   expires_at: string; auction_ends_at: string | null;
   auction_status: string; created_at: string;
+  shipping_price: number | null;
   reserve_price: number | null;
 };
 
@@ -67,12 +69,23 @@ function MyListings() {
 
   async function saveEdit() {
     if (!editing) return;
-    const { error } = await supabase.from("listings").update({
+    const hasBids = editing.is_auction && (editing.current_bid ?? 0) > (editing.starting_bid ?? 0);
+    const update: any = {
       title: editing.title,
+      description: editing.description,
+      image_url: editing.image_url,
       price: editing.price != null ? Number(editing.price) : null,
+      buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
+      shipping_price: editing.shipping_price != null ? Number(editing.shipping_price) : 0,
       accepts_offers: editing.accepts_offers,
-    }).eq("id", editing.id);
+    };
+    // Starting bid only editable if no real bids yet
+    if (editing.is_auction && !hasBids && editing.starting_bid != null) {
+      update.starting_bid = Number(editing.starting_bid);
+      update.current_bid = Number(editing.starting_bid);
+    }
+    const { error } = await supabase.from("listings").update(update).eq("id", editing.id);
     if (error) return toast.error(error.message);
     toast.success("Updated");
     setEditing(null);
@@ -161,31 +174,67 @@ function MyListings() {
         </Link>
       </div>
 
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setEditing(null)}>
-          <div className="w-full max-w-md space-y-2 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
-            <p className="font-bold">Edit listing</p>
-            <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-              className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Title" />
-            {!editing.is_auction && (
-              <input type="number" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
-                className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Price" />
-            )}
-            {editing.is_auction && (
-              <input type="number" value={editing.reserve_price ?? ""} onChange={(e) => setEditing({ ...editing, reserve_price: e.target.value === "" ? null : Number(e.target.value) })}
-                className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Reserve price (optional)" />
-            )}
-            <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
-              <input type="checkbox" checked={editing.accepts_offers} onChange={(e) => setEditing({ ...editing, accepts_offers: e.target.checked })} className="h-4 w-4" />
-              Accept offers
-            </label>
-            <div className="flex gap-2">
-              <button onClick={saveEdit} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
-              <button onClick={() => setEditing(null)} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
+      {editing && (() => {
+        const hasBids = editing.is_auction && (editing.current_bid ?? 0) > (editing.starting_bid ?? 0);
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setEditing(null)}>
+            <div className="w-full max-w-md space-y-2 overflow-y-auto rounded-2xl bg-card p-4 max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+              <p className="font-bold">Edit listing</p>
+              <label className="block text-[11px] text-muted-foreground">Title
+                <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Title" />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">Description
+                <textarea value={editing.description ?? ""} rows={2} onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                  className="mt-1 w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">Image URL
+                <input value={editing.image_url ?? ""} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="https://…" />
+              </label>
+
+              {!editing.is_auction && (
+                <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
+                  <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
+                </label>
+              )}
+              {editing.is_auction && (
+                <>
+                  <label className="block text-[11px] text-muted-foreground">
+                    Starting bid ($) {hasBids && <span className="text-destructive">— locked, bids placed</span>}
+                    <input type="number" min="0" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
+                      onChange={(e) => setEditing({ ...editing, starting_bid: e.target.value === "" ? null : Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" />
+                  </label>
+                  <label className="block text-[11px] text-muted-foreground">Reserve price (optional)
+                    <input type="number" min="0" step="0.01" value={editing.reserve_price ?? ""} onChange={(e) => setEditing({ ...editing, reserve_price: e.target.value === "" ? null : Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
+                  </label>
+                  <label className="block text-[11px] text-muted-foreground">Buy Now price (optional, lets buyers skip the auction)
+                    <input type="number" min="0" step="0.01" value={editing.buy_now_price ?? ""} onChange={(e) => setEditing({ ...editing, buy_now_price: e.target.value === "" ? null : Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
+                  </label>
+                </>
+              )}
+
+              <label className="block text-[11px] text-muted-foreground">Shipping ($)
+                <input type="number" min="0" step="0.01" value={editing.shipping_price ?? 0} onChange={(e) => setEditing({ ...editing, shipping_price: e.target.value === "" ? 0 : Number(e.target.value) })}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
+              </label>
+
+              <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
+                <input type="checkbox" checked={editing.accepts_offers} onChange={(e) => setEditing({ ...editing, accepts_offers: e.target.checked })} className="h-4 w-4" />
+                Accept offers
+              </label>
+              <div className="flex gap-2 pt-1">
+                <button onClick={saveEdit} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
+                <button onClick={() => setEditing(null)} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </AppShell>
   );
 }
