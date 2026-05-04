@@ -4,7 +4,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X } from "lucide-react";
+
+type Role = "owner" | "admin" | "moderator" | "support";
+const ROLE_BADGES: Record<Role, string> = {
+  owner: "bg-yellow-500/20 text-yellow-500",
+  admin: "bg-primary/20 text-primary",
+  moderator: "bg-blue-500/20 text-blue-500",
+  support: "bg-emerald-500/20 text-emerald-500",
+};
 
 const REPORT_GROUPS = [
   { key: "all", label: "All", icon: Flag, types: [] as string[] },
