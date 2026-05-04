@@ -129,6 +129,8 @@ function LiveDetail() {
         setEditStartPrice(String(data.starting_bid || 1));
         setEditShipPrice(String(data.shipping_price || 0));
         setEditShipMethod(data.shipping_method || "USPS Ground");
+        if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
+        if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
         if (sp?.username) setSellerUsername(sp.username);
       }
