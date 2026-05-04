@@ -830,8 +830,8 @@ function LiveDetail() {
     const start = Number(editStartPrice) || 1;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
-    await supabase.from("live_streams").update({
-      status: "live",
+    const patch = {
+      status: "live" as const,
       listing_type: "auction",
       starting_bid: start,
       default_starting_bid: start,
@@ -852,10 +852,15 @@ function LiveDetail() {
       quick_start_remaining: qty - 1,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
-    }).eq("id", id);
+    };
+    // 🆕 Optimistic local update so the host's timer starts ticking instantly,
+    // without waiting for the realtime UPDATE round-trip.
+    setStream((prev: any) => prev ? { ...prev, ...patch } : prev);
     endedRef.current = false;
+    snapshotRef.current = false;
+    await supabase.from("live_streams").update(patch).eq("id", id);
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`, true);
-    toast.success("Auction started");
+    toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
   }
 
@@ -1076,14 +1081,19 @@ function LiveDetail() {
       current_condition: cond,
     };
     if (useQuick) {
+      const qty = Math.max(1, Math.min(99, Number(stream.quick_start_quantity || editQuantity || 1)));
       update.status = "live";
       update.listing_type = "auction";
       update.starting_bid = start;
       update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
       update.winner_id = null; update.winning_bid = null; update.winner_username = null;
       update.snipe_extends = 0; update.snipe_price = null; update.sudden_death_active = false;
+      update.quick_start_quantity = qty;
+      update.quick_start_remaining = qty - 1;
       endedRef.current = false; snapshotRef.current = false;
     }
+    // 🆕 Optimistic local update so the timer ticks instantly on the host's screen.
+    setStream((prev: any) => prev ? { ...prev, ...update } : prev);
     supabase.from("live_streams").update(update).eq("id", id);
 
     // Post hype to chat as AI hype messages (no price)
