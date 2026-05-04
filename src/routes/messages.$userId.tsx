@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export const Route = createFileRoute("/messages/$userId")({ component: ChatThread });
 
