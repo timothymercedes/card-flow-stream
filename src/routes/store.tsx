@@ -22,11 +22,14 @@ function MyStore() {
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [carrier, setCarrier] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"to_ship" | "in_transit" | "delivered">("to_ship");
+  const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
 
   async function load() {
     if (!user) return;
     const { data } = await supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
     setOrders(data || []);
+    const { data: prof } = await supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle();
+    setPayoutStatus((prof as any)?.stripe_onboarding_status || "not_started");
   }
   useEffect(() => { load(); }, [user]);
 
