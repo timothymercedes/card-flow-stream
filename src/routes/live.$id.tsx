@@ -1869,9 +1869,9 @@ function LiveDetail() {
                           next[i] = e.target.value;
                           return next;
                         })}
-                        disabled={stream.break_mode === "open"}
+                        onBlur={() => saveBreakCharacters(breakCharacters)}
                         placeholder={`Character ${i + 1}`}
-                        className="flex-1 rounded-md bg-input px-2 py-1.5 text-xs outline-none disabled:opacity-60"
+                        className="flex-1 rounded-md bg-input px-2 py-1.5 text-xs outline-none"
                       />
                       {taken ? (
                         <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">@{taken.buyer_username}</span>
