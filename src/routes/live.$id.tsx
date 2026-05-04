@@ -70,13 +70,15 @@ function LiveDetail() {
   }, [id]);
 
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(({ data }) => {
+    supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(async ({ data }) => {
       setStream(data);
       if (data) {
         setEditDesc(data.item_description || "");
         setEditStartPrice(String(data.starting_bid || 1));
         setEditShipPrice(String(data.shipping_price || 0));
         setEditShipMethod(data.shipping_method || "USPS Ground");
+        const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
+        if (sp?.username) setSellerUsername(sp.username);
       }
     });
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
