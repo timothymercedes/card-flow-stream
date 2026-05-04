@@ -1292,6 +1292,97 @@ function LiveDetail() {
           </div>
         </div>
       )}
+      {/* 🆕 Chat-action menu (mod taps a username) */}
+      {chatActionMenu && isStaff && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setChatActionMenu(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-bold">Mod actions · @{chatActionMenu.username}</p>
+              <button onClick={() => setChatActionMenu(null)}><X className="h-4 w-4" /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => chatAction(chatActionMenu, "mute")} className="flex items-center justify-center gap-1 rounded-lg bg-amber-500/20 py-2 text-xs font-bold text-amber-300">
+                <VolumeX className="h-3.5 w-3.5" /> Mute
+              </button>
+              <button onClick={() => chatAction(chatActionMenu, "timeout", 5)} className="flex items-center justify-center gap-1 rounded-lg bg-amber-600/20 py-2 text-xs font-bold text-amber-200">
+                <ClockIcon className="h-3.5 w-3.5" /> 5m timeout
+              </button>
+              <button onClick={() => chatAction(chatActionMenu, "ban")} className="flex items-center justify-center gap-1 rounded-lg bg-red-500/20 py-2 text-xs font-bold text-red-300">
+                <Ban className="h-3.5 w-3.5" /> Ban
+              </button>
+              <button onClick={() => chatAction(chatActionMenu, "unmute")} className="flex items-center justify-center gap-1 rounded-lg bg-primary/20 py-2 text-xs font-bold text-primary">
+                ✅ Lift mute/ban
+              </button>
+            </div>
+            <p className="mt-3 text-[10px] text-muted-foreground">Mute hides their chat & blocks bidding. Timeout expires automatically.</p>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Mystery Break panel (host opens, sets teams + price) */}
+      {showBreakPanel && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowBreakPanel(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><Dice5 className="h-4 w-4 text-primary" /> Mystery Break</p>
+              <button onClick={() => setShowBreakPanel(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              List teams (or any labels) — buyers claim a slot, then you tap "Draw" to randomly assign.
+              Hits the Whatnot use-case, but with a fair on-screen shuffle anim.
+            </p>
+            <input
+              value={breakTeamsInput}
+              onChange={(e) => setBreakTeamsInput(e.target.value)}
+              placeholder="e.g. Lakers, Warriors, Celtics, Heat..."
+              className="mb-2 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">Price/slot $</span>
+              <input
+                type="number" min="1" value={breakPrice} onChange={(e) => setBreakPrice(e.target.value)}
+                className="w-20 rounded-lg bg-input px-2 py-1 text-xs outline-none"
+              />
+            </div>
+            {stream.break_mode === "open" ? (
+              <>
+                <div className="mb-2 max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-2 text-[11px]">
+                  <p className="mb-1 font-semibold">Slots claimed: {breakSlots.length}</p>
+                  {breakSlots.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between py-0.5">
+                      <span>@{s.buyer_username}</span>
+                      <span className="font-bold text-primary">{s.team_label || "—"}</span>
+                    </div>
+                  ))}
+                  {breakSlots.length === 0 && <p className="text-muted-foreground">Waiting for buyers to claim…</p>}
+                </div>
+                <button
+                  onClick={drawBreakTeams}
+                  disabled={drawAnim || breakSlots.length === 0}
+                  className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
+                >
+                  {drawAnim ? "🎲 Shuffling…" : "🎲 Draw teams now"}
+                </button>
+              </>
+            ) : (
+              <button onClick={startBreakMode} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+                <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Live break-draw celebration overlay */}
+      {drawAnim && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur">
+          <div className="animate-in zoom-in text-center">
+            <Dice5 className="mx-auto h-16 w-16 animate-spin text-yellow-300" />
+            <p className="mt-3 text-2xl font-extrabold tracking-wider text-white">SHUFFLING TEAMS…</p>
+            <p className="mt-1 text-sm text-white/70">Random fair draw in progress</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
