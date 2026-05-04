@@ -122,7 +122,7 @@ function Admin() {
         {tab === "reports" && (() => {
           const group = REPORT_GROUPS.find(g => g.key === reportFilter)!;
           const filtered = reports.filter(r =>
-            (group.types.length === 0 || group.types.includes(r.target_type)) &&
+            (group.types.length === 0 || (group.types as readonly string[]).includes(r.target_type)) &&
             (reportStatus === "all" || r.status === "open")
           );
           return (
@@ -130,7 +130,7 @@ function Admin() {
               <div className="flex flex-wrap gap-1.5">
                 {REPORT_GROUPS.map(g => {
                   const Icon = g.icon;
-                  const count = g.types.length === 0 ? reports.length : reports.filter(r => g.types.includes(r.target_type)).length;
+                  const count = g.types.length === 0 ? reports.length : reports.filter(r => (g.types as readonly string[]).includes(r.target_type)).length;
                   return (
                     <button key={g.key} onClick={() => setReportFilter(g.key)}
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${reportFilter === g.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
