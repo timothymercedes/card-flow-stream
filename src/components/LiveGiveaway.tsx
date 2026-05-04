@@ -281,7 +281,7 @@ export function LiveGiveaway({
       (giveaway.status === "open" && remainingMs > 0 && remainingMs <= 5000)
     );
   // Host composer and "no giveaway" empty state always need the full overlay for editing.
-  const needsFullOverlay = open && (hostOpenComposer || !giveaway || isRevealMoment);
+  const needsFullOverlay = open && (hostOpenComposer || !giveaway || isRevealMoment || expandToFull);
 
   // ===== Floating widget (stream stays visible) =====
   if (giveaway && giveaway.status === "open" && !needsFullOverlay) {
@@ -308,10 +308,10 @@ export function LiveGiveaway({
           </div>
         )}
         {!isSeller && !hasEntered && eligibilityOk && (
-          <button onClick={() => { /* expand to enter */ }} className="mt-2 w-full rounded-lg bg-white py-1.5 text-[11px] font-extrabold text-emerald-700"
-            // open the full overlay so they can tap-code enter
-            // (we reuse the parent's "open" state — but simplest is to set hostOpenComposer noop and toggle local)
-            >
+          <button
+            onClick={() => setExpandToFull(true)}
+            className="mt-2 w-full rounded-lg bg-white py-1.5 text-[11px] font-extrabold text-emerald-700"
+          >
             Tap to enter →
           </button>
         )}
