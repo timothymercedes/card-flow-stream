@@ -242,7 +242,36 @@ function LiveDetail() {
     setter(data || []);
   }
 
-  async function finalizeAuctionRound() {
+  // Compute how much current viewer already spent on shout-outs in this stream
+  useEffect(() => {
+    if (!user) { setMySpent(0); return; }
+    const total = shoutouts.filter((s) => s.buyer_id === user.id).reduce((a, b) => a + Number(b.amount || 0), 0);
+    setMySpent(total);
+  }, [shoutouts, user]);
+
+  async function sendShoutout() {
+    if (!user || !profile) return toast.error("Sign in to send a shout-out");
+    if (isSeller) return toast.error("Sellers can't shout out themselves");
+    const msg = shoutoutMsg.trim();
+    if (!msg) return toast.error("Tell the seller what to shout!");
+    if (msg.length > 140) return toast.error("Keep it under 140 chars");
+    const amt = Math.max(5, Math.min(50, Number(shoutoutAmt) || 5));
+    const remaining = 50 - mySpent;
+    if (amt > remaining) return toast.error(`You have $${remaining} shout-out budget left for this stream`);
+    const { error } = await supabase.from("stream_shoutouts").insert({
+      stream_id: id, seller_id: stream.seller_id, buyer_id: user.id,
+      buyer_username: profile.username, message: msg, amount: amt,
+    });
+    if (error) return toast.error(error.message);
+    await sendMsg(`📣 @${profile.username} sent a $${amt} shout-out: "${msg}"`, true);
+    await supabase.from("notifications").insert({
+      user_id: stream.seller_id, type: "shoutout",
+      body: `📣 @${profile.username} ($${amt}): "${msg}"`,
+      link: `/live/${id}`,
+    });
+    toast.success("Shout-out sent! (safe mode — no real charge)");
+    setShoutoutOpen(false); setShoutoutMsg(""); setShoutoutAmt(5);
+  }
     if (!stream) return;
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
