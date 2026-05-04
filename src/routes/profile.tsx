@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag } from "lucide-react";
+import { LogOut, Radio, Tag, Package, User } from "lucide-react";
 
 export const Route = createFileRoute("/profile")({ component: Profile });
 
@@ -46,6 +46,13 @@ function Profile() {
             <div className="flex-1">
               <p className="text-sm font-semibold">List an Item</p>
               <p className="text-xs text-muted-foreground">Sell or auction a card</p>
+            </div>
+          </Link>
+          <Link to="/orders" className="flex items-center gap-3 rounded-xl bg-card p-4">
+            <Package className="h-5 w-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold">My Orders</p>
+              <p className="text-xs text-muted-foreground">Track shipping & purchases</p>
             </div>
           </Link>
           <button onClick={async () => { await signOut(); nav({ to: "/" }); }} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
