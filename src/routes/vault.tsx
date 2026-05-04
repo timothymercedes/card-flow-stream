@@ -185,6 +185,7 @@ function Vault() {
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
+      visibility: editing.visibility || "private",
       estimated_value: newValue,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
