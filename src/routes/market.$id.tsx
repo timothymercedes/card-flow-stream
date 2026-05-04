@@ -180,6 +180,11 @@ function ListingDetail() {
           {!isSeller && seller && (
             <Link to="/messages/$userId" params={{ userId: seller.id }} className="flex items-center gap-1 text-xs font-semibold text-primary"><MessageCircle className="h-3 w-3" /> Message</Link>
           )}
+          {isSeller && (
+            <Link to="/my-listings" className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold">
+              <Pencil className="h-3 w-3" /> Edit
+            </Link>
+          )}
         </div>
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
 
