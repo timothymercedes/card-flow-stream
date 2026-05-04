@@ -32,10 +32,48 @@ function Profile() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
   }, [user]);
+
+  async function sendOtp() {
+    if (!p?.phone || p.phone.length < 7) return toast.error("Enter a valid phone number");
+    setOtpLoading(true);
+    if (SMS_SAFE_MODE) {
+      // No real SMS sent — UX placeholder. Use any 6-digit code to verify.
+      await new Promise((r) => setTimeout(r, 500));
+      setOtpSent(true);
+      setOtpLoading(false);
+      toast.success("Safe mode: enter any 6-digit code to verify");
+      return;
+    }
+    // TODO: call server function that uses Twilio Verify to send the code.
+    setOtpLoading(false);
+  }
+
+  async function verifyOtp() {
+    if (otpCode.length !== 6) return toast.error("Enter the 6-digit code");
+    setOtpLoading(true);
+    if (SMS_SAFE_MODE) {
+      const { error } = await supabase.from("profiles").update({
+        phone_verified: true, phone_verified_at: new Date().toISOString(),
+      }).eq("id", user!.id);
+      setOtpLoading(false);
+      if (error) return toast.error(error.message);
+      setP({ ...p, phone_verified: true });
+      setOtpSent(false);
+      setOtpCode("");
+      toast.success("Phone verified");
+      return;
+    }
+    // TODO: call server function that checks the OTP via Twilio Verify.
+    setOtpLoading(false);
+  }
 
   async function save() {
     if (!user) return;
