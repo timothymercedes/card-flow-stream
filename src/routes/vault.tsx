@@ -77,6 +77,16 @@ function Vault() {
     [cards]
   );
 
+  const filteredCards = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return cards;
+    return cards.filter((c) =>
+      [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
+        .filter(Boolean)
+        .some((f) => String(f).toLowerCase().includes(q))
+    );
+  }, [cards, query]);
+
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
