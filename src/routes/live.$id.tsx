@@ -1384,7 +1384,7 @@ function LiveDetail() {
                   onChange={(e) => setEditQuantity(e.target.value)}
                   className="w-20 rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
                 <span className="text-[10px] text-muted-foreground">After each win, the next round auto-starts with the same settings.</span>
-            </div>
+              </div>
               {Number((stream as any).quick_start_remaining || 0) > 0 && (
                 <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} round(s) queued</p>
               )}
