@@ -12,6 +12,8 @@ import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { GiveawayChip } from "@/components/GiveawayChip";
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
+import { ReportDialog } from "@/components/ReportDialog";
+import { Flag } from "lucide-react";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -1710,6 +1712,18 @@ function LiveDetail() {
                       <Link key={i} to="/seller/$username" params={{ username: p.slice(1) }} className="font-semibold text-primary hover:underline">{p}</Link>
                     ) : <span key={i}>{p}</span>)}
                   </span>
+                  {user && m.user_id && m.user_id !== user.id && (
+                    <ReportDialog
+                      targetType="message"
+                      targetId={m.id}
+                      targetLabel={`@${m.username}: ${String(m.content).slice(0, 60)}`}
+                      trigger={
+                        <button className="ml-1 align-middle text-white/40 hover:text-white" title="Report message">
+                          <Flag className="inline h-2.5 w-2.5" />
+                        </button>
+                      }
+                    />
+                  )}
                 </div>
               );
             })}
