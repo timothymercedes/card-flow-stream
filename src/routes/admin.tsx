@@ -4,7 +4,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X } from "lucide-react";
+
+type Role = "owner" | "admin" | "moderator" | "support";
+const ROLE_BADGES: Record<Role, string> = {
+  owner: "bg-yellow-500/20 text-yellow-500",
+  admin: "bg-primary/20 text-primary",
+  moderator: "bg-blue-500/20 text-blue-500",
+  support: "bg-emerald-500/20 text-emerald-500",
+};
 
 const REPORT_GROUPS = [
   { key: "all", label: "All", icon: Flag, types: [] as string[] },
@@ -23,19 +31,26 @@ export const Route = createFileRoute("/admin")({
 
 function Admin() {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions">("reports");
+  const [myRoles, setMyRoles] = useState<Role[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
+  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions" | "roles">("reports");
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [reportFilter, setReportFilter] = useState<typeof REPORT_GROUPS[number]["key"]>("all");
   const [reportStatus, setReportStatus] = useState<"open" | "all">("open");
   const [banForm, setBanForm] = useState({ user_id: "", username: "", reason: "", type: "suspension", days: "7" });
+  const [roles, setRoles] = useState<{ user_id: string; role: Role; username?: string }[]>([]);
+  const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
+
+  const isOwner = myRoles.includes("owner");
+  const isAdmin = isOwner || myRoles.includes("admin");
+  const canViewAdmin = isAdmin || myRoles.includes("moderator") || myRoles.includes("support");
 
   useEffect(() => {
-    if (!user) { setIsAdmin(false); return; }
-    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()
-      .then(({ data }) => setIsAdmin(!!data));
+    if (!user) { setRolesLoaded(true); return; }
+    supabase.from("user_roles").select("role").eq("user_id", user.id)
+      .then(({ data }) => { setMyRoles(((data || []) as any[]).map(r => r.role)); setRolesLoaded(true); });
   }, [user]);
 
   async function loadAll() {
@@ -48,7 +63,38 @@ function Admin() {
     setSuspensions(s || []);
     setReports(r || []);
   }
-  useEffect(() => { if (isAdmin) loadAll(); }, [isAdmin]);
+
+  async function loadRoles() {
+    const { data } = await supabase.from("user_roles").select("user_id, role");
+    const list = (data || []) as { user_id: string; role: Role }[];
+    if (list.length === 0) { setRoles([]); return; }
+    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", list.map(r => r.user_id));
+    const map = new Map((profs || []).map((p: any) => [p.id, p.username]));
+    setRoles(list.map(r => ({ ...r, username: map.get(r.user_id) })).sort((a, b) =>
+      (["owner","admin","moderator","support"].indexOf(a.role) - ["owner","admin","moderator","support"].indexOf(b.role))
+    ));
+  }
+
+  async function assignRole() {
+    if (!roleForm.username) return toast.error("Enter a username");
+    const { data: prof } = await supabase.from("profiles").select("id").eq("username", roleForm.username).maybeSingle();
+    if (!prof) return toast.error("User not found");
+    const { error } = await (supabase.rpc as any)("admin_assign_role", { _target_user: (prof as any).id, _role: roleForm.role });
+    if (error) return toast.error(error.message);
+    toast.success(`Granted ${roleForm.role}`);
+    setRoleForm({ username: "", role: "moderator" });
+    loadRoles();
+  }
+
+  async function removeRole(user_id: string, role: Role) {
+    const { error } = await (supabase.rpc as any)("admin_remove_role", { _target_user: user_id, _role: role });
+    if (error) return toast.error(error.message);
+    toast.success("Role removed");
+    loadRoles();
+  }
+
+  useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
+  useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
 
   async function updateReport(id: string, status: "reviewing" | "resolved" | "dismissed") {
     const note = status !== "reviewing" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
@@ -101,8 +147,8 @@ function Admin() {
   }
 
   if (!user) return <AppShell><div className="p-8 text-center text-sm">Sign in.</div></AppShell>;
-  if (isAdmin === null) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
-  if (!isAdmin) return (
+  if (!rolesLoaded) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
+  if (!canViewAdmin) return (
     <AppShell><div className="p-8 text-center">
       <p className="text-sm text-muted-foreground">Admin access required.</p>
       <Link to="/" className="mt-4 inline-block text-xs text-primary">Go home</Link>
@@ -112,11 +158,23 @@ function Admin() {
   return (
     <AppShell>
       <div className="px-4 py-4 space-y-4">
-        <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="h-6 w-6" /> Admin</h1>
-        <div className="flex gap-2 border-b border-border">
+        <div className="flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="h-6 w-6" /> Admin</h1>
+          {myRoles.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {myRoles.map(r => (
+                <span key={r} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGES[r]}`}>
+                  {r === "owner" && <Crown className="h-3 w-3" />} {r}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 border-b border-border">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
-          <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>
+          {isAdmin && <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>}
+          {isAdmin && <button onClick={() => setTab("roles")} className={`pb-2 text-xs font-bold ${tab === "roles" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Roles</button>}
         </div>
 
         {tab === "reports" && (() => {
@@ -233,6 +291,45 @@ function Admin() {
               ))}
             </div>
           </>
+        )}
+
+        {tab === "roles" && isAdmin && (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-card p-4 space-y-2">
+              <p className="flex items-center gap-2 text-sm font-bold"><UserCog className="h-4 w-4" /> Assign role</p>
+              <input placeholder="Username" value={roleForm.username} onChange={(e) => setRoleForm({ ...roleForm, username: e.target.value })}
+                className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+              <select value={roleForm.role} onChange={(e) => setRoleForm({ ...roleForm, role: e.target.value as Role })}
+                className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none">
+                {isOwner && <option value="admin">Admin</option>}
+                <option value="moderator">Moderator</option>
+                <option value="support">Support</option>
+              </select>
+              <button onClick={assignRole} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Grant role</button>
+              <p className="text-[10px] text-muted-foreground">
+                {isOwner ? "As owner you can grant admin, moderator, or support." : "Admins can grant moderator and support. Only the owner can grant admin."}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {roles.map((r) => (
+                <div key={`${r.user_id}-${r.role}`} className="flex items-center justify-between rounded-xl bg-card p-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGES[r.role]}`}>
+                      {r.role === "owner" && <Crown className="h-3 w-3" />} {r.role}
+                    </span>
+                    <p className="truncate text-xs font-bold">@{r.username || r.user_id.slice(0, 8)}</p>
+                  </div>
+                  {r.role !== "owner" && (isOwner || r.role !== "admin") && (
+                    <button onClick={() => removeRole(r.user_id, r.role)}
+                      className="rounded-lg bg-destructive/20 p-1.5 text-destructive" title="Remove role">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {roles.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No role assignments.</p>}
+            </div>
+          </div>
         )}
       </div>
     </AppShell>
