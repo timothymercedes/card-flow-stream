@@ -2040,6 +2040,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_assign_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user: string
+        }
+        Returns: undefined
+      }
+      admin_remove_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user: string
+        }
+        Returns: undefined
+      }
       can_view_story: {
         Args: { _story_owner: string; _viewer: string; _visibility: string }
         Returns: boolean
