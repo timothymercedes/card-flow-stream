@@ -186,6 +186,12 @@ export function LiveGiveaway({
       title: "Appreciation Gift",
     });
     if (error) return toast.error(error.message);
+    // 🆕 Post a system chat message so viewers see how to enter without a popup blocking the stream.
+    await supabase.from("chat_messages").insert({
+      stream_id: streamId, user_id: userId, username: username || "host",
+      content: `🎁 Appreciation Gift opened: ${prize} — type !enter (or 🎁) in chat to join. Winner in ${dur}s!`,
+      is_system: true, is_announcement: true,
+    });
     setHostOpenComposer(false);
     setDraftPrize(""); setDraftCode(suggestCode());
     toast.success(`Appreciation Gift opened — ${dur}s · 1 winner`);
@@ -271,66 +277,67 @@ export function LiveGiveaway({
     }
   }
 
+  // 🆕 CHAT-COMMAND ENTRY: viewers join the giveaway by typing `!enter`, `!join`, or 🎁 in chat.
+  // The host page already keeps a realtime list of chat_messages; we subscribe here too so
+  // we can react the instant the viewer sends one — without needing the popup to be visible.
+  useEffect(() => {
+    if (!giveaway || giveaway.status !== "open" || !userId || isSeller || hasEntered) return;
+    const ch = supabase
+      .channel(`giveaway-chat-${giveaway.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${streamId}` },
+        async (p) => {
+          const msg: any = p.new;
+          if (msg.user_id !== userId) return;
+          const txt = String(msg.content || "").trim().toLowerCase();
+          const isEnterCmd = txt === "!enter" || txt === "!join" || /🎁/.test(msg.content || "");
+          if (!isEnterCmd) return;
+          if (!eligibilityOk) {
+            toast.error(eligibilityHint(giveaway.eligibility));
+            return;
+          }
+          const { error } = await supabase.from("giveaway_entries").insert({
+            giveaway_id: giveaway.id, user_id: userId,
+            username: username || "viewer", reaction_ms: null,
+          });
+          if (!error) toast.success("🎁 You're entered in the giveaway!");
+          else if (error.code !== "23505") toast.error(error.message);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [giveaway?.id, giveaway?.status, userId, isSeller, hasEntered, eligibilityOk, streamId, username]);
+
   // Show widget anytime there's an active giveaway, regardless of `open` prop.
   if (!open && !giveaway) return null;
-  // 🆕 When a giveaway is OPEN and there's still >5s on the clock, render as a small
-  // floating widget so the stream stays visible. Only take over the screen for the
-  // last 5s reveal countdown, the drawing animation, and the winner reveal.
+  // Render rules:
+  // - status === "open": COMPLETELY HIDDEN unless we're in the last 5s (reveal countdown)
+  //   or the host explicitly opens it (composer / draw button via `open` prop).
+  //   Viewers enter via chat command (`!enter`, `!join`, or 🎁). A subtle one-line system
+  //   message in chat tells them how to join when a giveaway opens.
+  // - status === "drawing" / "complete": full overlay (the reveal moment).
+  // - After complete + close: vanish until host starts a new one.
   const isRevealMoment =
     !!giveaway && (
       giveaway.status === "drawing" ||
-      giveaway.status === "complete" ||
       (giveaway.status === "open" && remainingMs > 0 && remainingMs <= 5000)
     );
-  // Host composer and "no giveaway" empty state always need the full overlay for editing.
-  const needsFullOverlay = open && (hostOpenComposer || !giveaway || isRevealMoment || expandToFull);
+  const isWinnerReveal = !!giveaway && giveaway.status === "complete" && !!giveaway.winner_username;
+  const needsFullOverlay =
+    (open && (hostOpenComposer || !giveaway)) ||  // host composing / no giveaway yet
+    isRevealMoment ||                              // last 5s + drawing animation
+    isWinnerReveal;                                // winner reveal screen
 
-  // ===== Floating widget (stream stays visible) =====
+  // Hide entirely when the giveaway is open but not yet in reveal window.
   if (giveaway && giveaway.status === "open" && !needsFullOverlay) {
-    return (
-      <div className="pointer-events-auto fixed bottom-24 right-3 z-40 w-[min(82vw,260px)] animate-in slide-in-from-right rounded-2xl bg-gradient-to-br from-emerald-600/95 to-teal-700/95 p-3 text-white shadow-2xl ring-2 ring-emerald-300/40 backdrop-blur">
-        <div className="mb-1 flex items-center justify-between">
-          <p className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">
-            <Gift className="h-3 w-3" /> Appreciation Gift
-          </p>
-          <button onClick={onClose} className="rounded-full bg-black/30 p-1 text-white/80"><X className="h-3 w-3" /></button>
-        </div>
-        <p className="line-clamp-1 text-sm font-extrabold">{giveaway.prize_label}</p>
-        <p className="text-[10px] text-emerald-100/80">
-          {entries.length} {entries.length === 1 ? "entry" : "entries"} · 1 winner
-        </p>
-        {giveaway.ends_at && (
-          <p className="mt-1 text-base font-extrabold tabular-nums text-white">
-            ⏱ {Math.ceil(remainingMs / 1000)}s
-          </p>
-        )}
-        {!isSeller && hasEntered && (
-          <div className="mt-2 rounded-lg bg-white/15 px-2 py-1 text-center text-[11px] font-bold">
-            ✓ You're in!
-          </div>
-        )}
-        {!isSeller && !hasEntered && eligibilityOk && (
-          <button
-            onClick={() => setExpandToFull(true)}
-            className="mt-2 w-full rounded-lg bg-white py-1.5 text-[11px] font-extrabold text-emerald-700"
-          >
-            Tap to enter →
-          </button>
-        )}
-        {!isSeller && !eligibilityOk && (
-          <p className="mt-1 text-[10px] text-emerald-100/80">
-            {eligibilityHint(giveaway.eligibility)}
-          </p>
-        )}
-        {isSeller && (
-          <button onClick={startDraw} disabled={entries.length === 0}
-            className="mt-2 w-full rounded-lg bg-amber-400 py-1.5 text-[11px] font-extrabold text-amber-950 disabled:opacity-50">
-            Draw now ({entries.length})
-          </button>
-        )}
-      </div>
-    );
+    return null;
   }
+  // Hide entirely once a giveaway is complete and the user/host has dismissed it.
+  if (giveaway && giveaway.status === "complete" && !needsFullOverlay) {
+    return null;
+  }
+
 
   if (!open) return null;
 

@@ -7,16 +7,16 @@ type ScanResult = { name: string; category: string; trend: string; image: string
 
 const LANGUAGES = [
   { v: "auto", l: "Auto" },
-  { v: "en", l: "EN" },
-  { v: "jp", l: "日本語" },
-  { v: "kr", l: "한국어" },
-  { v: "zh", l: "中文" },
-  { v: "de", l: "DE" },
-  { v: "fr", l: "FR" },
-  { v: "es", l: "ES" },
-  { v: "it", l: "IT" },
-  { v: "pt", l: "PT" },
-  { v: "ru", l: "RU" },
+  { v: "en", l: "English" },
+  { v: "jp", l: "Japanese" },
+  { v: "kr", l: "Korean" },
+  { v: "zh", l: "Chinese" },
+  { v: "de", l: "German" },
+  { v: "fr", l: "French" },
+  { v: "es", l: "Spanish" },
+  { v: "it", l: "Italian" },
+  { v: "pt", l: "Portuguese" },
+  { v: "ru", l: "Russian" },
 ] as const;
 
 export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { onResult: (r: ScanResult) => void; onClose: () => void; defaultLanguage?: string }) {
