@@ -704,7 +704,15 @@ function LiveDetail() {
       {showChat && (
         <div ref={chatScrollRef} className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto overscroll-contain px-3 pb-2">
           <div className="flex flex-col items-start gap-1.5">
-            {messages.filter((m) => !m.is_system).map((m) => {
+            {messages.filter((m) => !m.is_system || m.is_announcement).map((m) => {
+              if (m.is_announcement) {
+                return (
+                  <div key={m.id} className="w-full rounded-lg border border-accent/60 bg-gradient-to-r from-accent/40 to-primary/40 px-3 py-1.5 text-xs font-bold text-white shadow backdrop-blur">
+                    <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
+                    @{m.username}: {m.content.replace(/^📢\s*/, "")}
+                  </div>
+                );
+              }
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               return (
                 <div key={m.id} className="max-w-[85%] rounded-lg bg-black/50 px-2.5 py-1 text-xs backdrop-blur">
