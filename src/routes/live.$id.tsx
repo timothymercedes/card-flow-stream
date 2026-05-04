@@ -1696,27 +1696,24 @@ function LiveDetail() {
                 <Lock className="h-3.5 w-3.5" /> Locked while spinning
               </div>
             )}
+            {!wheel?.is_spinning && wheel?.is_locked && (
+              <div className="mb-3 flex items-center justify-between gap-2 rounded-lg bg-amber-500/15 p-2 text-[11px] text-amber-300">
+                <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Wheel locked — reset to edit slots</span>
+                <button onClick={resetWheel} className="flex items-center gap-1 rounded-md bg-amber-500/30 px-2 py-1 text-[10px] font-bold text-amber-100">
+                  <Unlock className="h-3 w-3" /> Reset
+                </button>
+              </div>
+            )}
 
             {/* Settings */}
             <div className="mb-3 space-y-2 rounded-xl bg-muted/40 p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-muted-foreground">Mode</p>
+                <p className="text-[11px] font-semibold text-muted-foreground">Spin time</p>
                 <div className="flex gap-1">
-                  {(["remove","keep"] as const).map((m) => (
-                    <button key={m} disabled={!!wheel?.is_spinning} onClick={() => updateWheelMode(m)}
-                      className={`rounded-md px-2 py-1 text-[11px] font-bold ${wheel?.mode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
-                      {m === "remove" ? "Remove" : "Repeat"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold text-muted-foreground">Speed</p>
-                <div className="flex gap-1">
-                  {(["slow","normal","fast"] as const).map((s) => (
+                  {(["5","10","15"] as const).map((s) => (
                     <button key={s} disabled={!!wheel?.is_spinning} onClick={() => updateWheelSpeed(s)}
-                      className={`rounded-md px-2 py-1 text-[11px] font-bold ${wheel?.spin_speed === s ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
-                      {s}
+                      className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${String(wheel?.spin_speed) === s ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
+                      {s}s
                     </button>
                   ))}
                 </div>
@@ -1726,17 +1723,24 @@ function LiveDetail() {
                 <span>Allow viewers to spin</span>
                 <span>{wheel?.viewer_can_spin ? "ON" : "OFF"}</span>
               </button>
+              <p className="text-[10px] text-muted-foreground">After each spin you'll choose <b>Remove</b> or <b>Keep</b> the landed prize.</p>
             </div>
 
             {/* Add slot */}
             <div className="mb-3 flex gap-2">
-              <input value={draftSlotLabel} onChange={(e) => setDraftSlotLabel(e.target.value)} placeholder="Prize / item" maxLength={40} className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm outline-none" />
-              <input value={draftSlotWeight} onChange={(e) => setDraftSlotWeight(e.target.value)} type="number" min="1" max="100" className="w-16 rounded-lg bg-muted px-2 py-2 text-center text-sm outline-none" />
-              <button disabled={!!wheel?.is_spinning} onClick={addWheelSlot} className="flex items-center gap-1 rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground disabled:opacity-50">
+              <input value={draftSlotLabel} onChange={(e) => setDraftSlotLabel(e.target.value)} placeholder="Prize / item" maxLength={40} disabled={!!wheel?.is_locked || !!wheel?.is_spinning} className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm outline-none disabled:opacity-50" />
+              <input value={draftSlotWeight} onChange={(e) => setDraftSlotWeight(e.target.value)} type="number" min="1" max="100" disabled={!!wheel?.is_locked || !!wheel?.is_spinning} className="w-16 rounded-lg bg-muted px-2 py-2 text-center text-sm outline-none disabled:opacity-50" />
+              <button disabled={!!wheel?.is_spinning || !!wheel?.is_locked} onClick={addWheelSlot} className="flex items-center gap-1 rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground disabled:opacity-50">
                 <Plus className="h-3.5 w-3.5" /> Add
               </button>
             </div>
-            <p className="mb-2 text-[10px] text-muted-foreground">Higher weight = better odds. Min 2 active slots needed to spin.</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">Higher weight = better odds. Min 2 slots to spin.</p>
+              <button onClick={shuffleWheelSlots} disabled={!!wheel?.is_spinning || !!wheel?.pending_decision_slot_id || wheelSlots.length < 2}
+                className="flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground disabled:opacity-40">
+                <Shuffle className="h-3 w-3" /> Shuffle
+              </button>
+            </div>
 
             {/* Slot list */}
             <div className="mb-3 max-h-44 space-y-1 overflow-y-auto">
@@ -1746,7 +1750,7 @@ function LiveDetail() {
                   <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: s.color }} />
                   <p className="min-w-0 flex-1 truncate text-xs font-semibold">{s.label}</p>
                   <span className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">×{s.weight}</span>
-                  <button disabled={!!wheel?.is_spinning} onClick={() => removeWheelSlot(s.id)} className="text-destructive disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button disabled={!!wheel?.is_spinning || !!wheel?.is_locked} onClick={() => removeWheelSlot(s.id)} className="text-destructive disabled:opacity-30"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               ))}
             </div>
