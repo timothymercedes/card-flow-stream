@@ -495,14 +495,17 @@ function LiveDetail() {
     const count = Math.max(2, Math.min(50, Number(breakSlotCount) || 0));
     if (count < 2) return toast.error("Pick 2–50 slots");
     const price = Math.max(1, Number(breakPrice) || 0);
+    const chars = Array.from({ length: count }, (_, i) =>
+      (breakCharacters[i] && breakCharacters[i].trim()) || `${(breakPrefix.trim() || "Slot ")}${i + 1}`,
+    );
     await supabase.from("live_streams").update({
       break_mode: "open",
       break_slot_count: count,
       break_slot_prefix: breakPrefix.trim() || null,
-      // store as a numeric-label list so existing UI (break_teams) stays compatible for fallback
-      break_teams: Array.from({ length: count }, (_, i) => `${(breakPrefix.trim() || "#")}${i + 1}`),
+      break_characters: chars,
+      break_teams: chars,
     }).eq("id", id);
-    await sendMsg(`🎲 BREAK OPEN — ${count} slots, $${price} each. Tap a number below to claim!`, true);
+    await sendMsg(`🎲 BREAK OPEN — ${count} slots, $${price} each. Tap a slot below to claim!`, true);
     toast.success("Break opened");
   }
 
@@ -512,17 +515,19 @@ function LiveDetail() {
     const taken = breakSlots.some((s) => s.slot_number === slotNumber);
     if (taken) return toast.error("That slot is already taken");
     const price = Number(breakPrice) || 10;
+    const charLabel =
+      (Array.isArray(stream.break_characters) && stream.break_characters[slotNumber - 1]) ||
+      `${stream.break_slot_prefix || "#"}${slotNumber}`;
     const { error } = await supabase.from("break_slots").insert({
       stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
-      slot_number: slotNumber,
+      slot_number: slotNumber, character_label: charLabel,
     });
     if (error) {
-      // unique-violation on (stream_id, slot_number)
       if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
       return toast.error(error.message);
     }
-    await sendMsg(`🎟️ @${profile.username} grabbed slot #${slotNumber} ($${price})`, true);
-    toast.success(`Slot #${slotNumber} is yours!`);
+    await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
+    toast.success(`${charLabel} is yours!`);
   }
 
   async function closeBreakClaims() {
@@ -534,6 +539,35 @@ function LiveDetail() {
       await sendMsg(`🔒 Break claims closed — ${breakSlots.length} slots taken.`, true);
       toast.success("Claims closed");
     }, 1500);
+  }
+
+  // 🆕 BREAK reveal wheel — picks a random claimed slot, broadcasts to all viewers,
+  // then announces "Character → @user" once it lands.
+  async function spinBreakWheel() {
+    if (!isSeller) return;
+    const claimed = breakSlots.filter((s) => s.slot_number != null);
+    if (claimed.length === 0) return toast.error("No slots claimed yet");
+    const winner = claimed[Math.floor(Math.random() * claimed.length)];
+    const startedAt = new Date();
+    const endsAt = new Date(Date.now() + 6500);
+    await supabase.from("live_streams").update({
+      break_wheel_spinning: true,
+      break_wheel_started_at: startedAt.toISOString(),
+      break_wheel_ends_at: endsAt.toISOString(),
+      break_wheel_target_slot: winner.slot_number,
+      break_wheel_last_winner_username: null,
+      break_wheel_last_winner_label: null,
+    }).eq("id", id);
+    await sendMsg(`🎡 BREAK REVEAL spinning…`, true);
+    setTimeout(async () => {
+      const label = winner.character_label || `${stream.break_slot_prefix || "#"}${winner.slot_number}`;
+      await supabase.from("live_streams").update({
+        break_wheel_spinning: false,
+        break_wheel_last_winner_username: winner.buyer_username,
+        break_wheel_last_winner_label: label,
+      }).eq("id", id);
+      await sendMsg(`🏆 BREAK WIN — ${label} goes to @${winner.buyer_username}!`, true);
+    }, 6600);
   }
 
   async function setSnipePriceNow() {
