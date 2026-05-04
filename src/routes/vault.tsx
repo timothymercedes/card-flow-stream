@@ -44,6 +44,16 @@ function Vault() {
     if (!user) return;
     const { data } = await supabase.from("vault_cards").select("*").order("created_at", { ascending: false });
     setCards((data || []) as Card[]);
+    // Fire-and-forget on-open refresh of stale values (>20h old)
+    const stale = (data || []).some((c: any) => !c.last_valued_at || (Date.now() - new Date(c.last_valued_at).getTime()) > 20 * 60 * 60 * 1000);
+    if (stale) {
+      fetch("/api/public/hooks/refresh-vault-values", { method: "POST" })
+        .then((r) => r.ok && setTimeout(async () => {
+          const { data: fresh } = await supabase.from("vault_cards").select("*").order("created_at", { ascending: false });
+          if (fresh) setCards(fresh as Card[]);
+        }, 1500))
+        .catch(() => {});
+    }
   }
   useEffect(() => { load(); }, [user]);
 
