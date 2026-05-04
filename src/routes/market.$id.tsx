@@ -208,7 +208,10 @@ function ListingDetail() {
                 <div className="rounded-lg bg-yellow-500/10 p-3 text-xs">
                   <p className="font-semibold text-yellow-600">Auction ended below your reserve.</p>
                   <p className="mt-1 text-muted-foreground">Top bid: ${Number(listing.current_bid || 0).toFixed(0)}. Accept it or let it expire.</p>
-                  <button onClick={acceptTopBidBelowReserve} className="mt-2 w-full rounded-lg bg-primary py-2 font-bold text-primary-foreground">Accept top bid</button>
+                  <div className="mt-2 flex gap-2">
+                    <button onClick={acceptTopBidBelowReserve} className="flex-1 rounded-lg bg-primary py-2 font-bold text-primary-foreground">Accept</button>
+                    <button onClick={declineTopBidBelowReserve} className="flex-1 rounded-lg bg-muted py-2 font-bold text-foreground">Decline</button>
+                  </div>
                 </div>
               )}
               {auctionEnded && !reserveMet && !isSeller && (
