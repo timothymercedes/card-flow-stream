@@ -272,6 +272,8 @@ function LiveDetail() {
     toast.success("Shout-out sent! (safe mode — no real charge)");
     setShoutoutOpen(false); setShoutoutMsg(""); setShoutoutAmt(5);
   }
+
+  async function finalizeAuctionRound() {
     if (!stream) return;
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
