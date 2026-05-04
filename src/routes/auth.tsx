@@ -8,6 +8,7 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@/server/passkeys.functions";
 import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { AgreementModal } from "@/components/AgreementModal";
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
@@ -20,8 +21,8 @@ function Auth() {
   const [username, setUsername] = useState("");
   const [usernameOk, setUsernameOk] = useState<null | boolean>(null);
   const [isSeller, setIsSeller] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
@@ -61,32 +62,38 @@ function Auth() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     if (mode === "signup") {
-      if (!acceptedTerms) { setLoading(false); return toast.error("You must accept the Terms & Privacy Policy"); }
-      if (usernameOk === false) { setLoading(false); return toast.error("Username already taken"); }
-      const { data: signupData, error } = await supabase.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller } },
-      });
-      if (error) { toast.error(error.message); }
-      else {
-        // Record legal acceptances
-        const uid = signupData.user?.id;
-        if (uid) {
-          await supabase.from("legal_acceptances").insert([
-            { user_id: uid, document_type: "tos", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-            { user_id: uid, document_type: "privacy", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-            { user_id: uid, document_type: "buyer_terms", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-          ]);
-        }
-        toast.success("Account created!"); nav({ to: "/" });
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) toast.error(error.message); else nav({ to: "/" });
+      if (usernameOk === false) return toast.error("Username already taken");
+      if (!email || !password) return toast.error("Email and password required");
+      // Open the agreement modal — signup happens after acceptance.
+      setShowTerms(true);
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) toast.error(error.message); else nav({ to: "/" });
+    setLoading(false);
+  }
+
+  async function completeSignup() {
+    setLoading(true);
+    const { data: signupData, error } = await supabase.auth.signUp({
+      email, password,
+      options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller } },
+    });
+    if (error) { toast.error(error.message); setLoading(false); return; }
+    const uid = signupData.user?.id;
+    if (uid) {
+      await supabase.from("legal_acceptances").insert([
+        { user_id: uid, document_type: "tos", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
+        { user_id: uid, document_type: "privacy", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
+        { user_id: uid, document_type: "buyer_terms", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
+      ]);
     }
     setLoading(false);
+    setShowTerms(false);
+    toast.success("Account created!");
+    nav({ to: "/" });
   }
 
   return (
