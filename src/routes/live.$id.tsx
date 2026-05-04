@@ -556,6 +556,19 @@ function LiveDetail() {
         </div>
         <div className="flex gap-1">
           <button onClick={() => setShareOpen(true)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Share2 className="h-4 w-4" /></button>
+          {isStaff && !ended && (
+            <button onClick={() => setAnnOpen(true)} className="rounded-full bg-accent/80 p-2 backdrop-blur" title="Post announcement">
+              <Megaphone className="h-4 w-4" />
+            </button>
+          )}
+          {isStaff && !ended && (
+            <button onClick={() => setShowModPanel((v) => !v)} className="relative rounded-full bg-primary/80 p-2 backdrop-blur" title="Mod panel">
+              <Shield className="h-4 w-4" />
+              {modChat.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-live" />
+              )}
+            </button>
+          )}
           {(auctionLive || stream.current_item) && (
             <button onClick={() => setPinned((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
