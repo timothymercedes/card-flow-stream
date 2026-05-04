@@ -69,6 +69,23 @@ function LiveDetail() {
   const [annText, setAnnText] = useState("");
   const [hypeCard, setHypeCard] = useState<{ name: string; category: string; set_guess: string; rarity_vibe: string; image: string } | null>(null);
 
+  // 🆕 Anti-snipe banner
+  const [snipeFlash, setSnipeFlash] = useState(false);
+  // 🆕 Snipe / buy-now-during-live
+  const [snipePriceInput, setSnipePriceInput] = useState("");
+  // 🆕 Chat moderation actions
+  const [chatActions, setChatActions] = useState<any[]>([]);
+  const [chatActionMenu, setChatActionMenu] = useState<{ userId: string; username: string } | null>(null);
+  // 🆕 Mystery break (team draw)
+  const [breakSlots, setBreakSlots] = useState<any[]>([]);
+  const [showBreakPanel, setShowBreakPanel] = useState(false);
+  const [breakTeamsInput, setBreakTeamsInput] = useState("");
+  const [breakPrice, setBreakPrice] = useState("10");
+  const [drawAnim, setDrawAnim] = useState(false);
+  // 🆕 Currency display preference (per-viewer)
+  const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
+  const { fmt: fmtMoney } = useCurrency(viewerCurrency);
+
   const isMod = !!user && mods.some((m) => m.mod_user_id === user.id);
   const isStaff = !!user && (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
 
