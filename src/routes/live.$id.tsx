@@ -362,12 +362,12 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Winner banner */}
+      {/* Winner banner — prominent popup at the top once auction ends with a winner */}
       {(auctionFinished || ended) && stream.winner_username && pinned && (
-        <div className="absolute left-3 right-3 top-32 z-10 rounded-xl bg-primary/80 p-3 text-center backdrop-blur">
-          <Trophy className="mx-auto h-5 w-5" />
-          <p className="mt-1 text-sm font-bold">Now owned by @{stream.winner_username}</p>
-          <p className="text-xs">Final bid: ${Number(stream.winning_bid || 0).toFixed(2)}</p>
+        <div className="absolute left-1/2 top-20 z-30 w-[92%] max-w-md -translate-x-1/2 rounded-2xl bg-gradient-to-r from-primary to-accent p-4 text-center shadow-2xl ring-2 ring-white/40 backdrop-blur animate-in fade-in zoom-in">
+          <Trophy className="mx-auto h-7 w-7" />
+          <p className="mt-1 text-base font-extrabold tracking-tight">🎉 @{stream.winner_username} owns this item!</p>
+          <p className="text-xs opacity-90">Winning bid: ${Number(stream.winning_bid || 0).toFixed(2)}</p>
         </div>
       )}
 
