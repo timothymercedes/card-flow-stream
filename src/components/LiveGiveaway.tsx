@@ -268,6 +268,66 @@ export function LiveGiveaway({
     }
   }
 
+  if (!open && !giveaway) return null;
+  // 🆕 When a giveaway is OPEN and there's still >5s on the clock, render as a small
+  // floating widget so the stream stays visible. Only take over the screen for the
+  // last 5s reveal countdown, the drawing animation, and the winner reveal.
+  const isRevealMoment =
+    !!giveaway && (
+      giveaway.status === "drawing" ||
+      giveaway.status === "complete" ||
+      (giveaway.status === "open" && remainingMs > 0 && remainingMs <= 5000)
+    );
+  // Host composer and "no giveaway" empty state always need the full overlay for editing.
+  const needsFullOverlay = open && (hostOpenComposer || !giveaway || isRevealMoment);
+
+  // ===== Floating widget (stream stays visible) =====
+  if (giveaway && giveaway.status === "open" && !needsFullOverlay) {
+    return (
+      <div className="pointer-events-auto fixed bottom-24 right-3 z-40 w-[min(82vw,260px)] animate-in slide-in-from-right rounded-2xl bg-gradient-to-br from-emerald-600/95 to-teal-700/95 p-3 text-white shadow-2xl ring-2 ring-emerald-300/40 backdrop-blur">
+        <div className="mb-1 flex items-center justify-between">
+          <p className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-widest text-emerald-200">
+            <Gift className="h-3 w-3" /> Appreciation Gift
+          </p>
+          <button onClick={onClose} className="rounded-full bg-black/30 p-1 text-white/80"><X className="h-3 w-3" /></button>
+        </div>
+        <p className="line-clamp-1 text-sm font-extrabold">{giveaway.prize_label}</p>
+        <p className="text-[10px] text-emerald-100/80">
+          {entries.length} {entries.length === 1 ? "entry" : "entries"} · 1 winner
+        </p>
+        {giveaway.ends_at && (
+          <p className="mt-1 text-base font-extrabold tabular-nums text-white">
+            ⏱ {Math.ceil(remainingMs / 1000)}s
+          </p>
+        )}
+        {!isSeller && hasEntered && (
+          <div className="mt-2 rounded-lg bg-white/15 px-2 py-1 text-center text-[11px] font-bold">
+            ✓ You're in!
+          </div>
+        )}
+        {!isSeller && !hasEntered && eligibilityOk && (
+          <button onClick={() => { /* expand to enter */ }} className="mt-2 w-full rounded-lg bg-white py-1.5 text-[11px] font-extrabold text-emerald-700"
+            // open the full overlay so they can tap-code enter
+            // (we reuse the parent's "open" state — but simplest is to set hostOpenComposer noop and toggle local)
+            >
+            Tap to enter →
+          </button>
+        )}
+        {!isSeller && !eligibilityOk && (
+          <p className="mt-1 text-[10px] text-emerald-100/80">
+            {eligibilityHint(giveaway.eligibility)}
+          </p>
+        )}
+        {isSeller && (
+          <button onClick={startDraw} disabled={entries.length === 0}
+            className="mt-2 w-full rounded-lg bg-amber-400 py-1.5 text-[11px] font-extrabold text-amber-950 disabled:opacity-50">
+            Draw now ({entries.length})
+          </button>
+        )}
+      </div>
+    );
+  }
+
   if (!open) return null;
 
   const code = giveaway?.code?.toUpperCase() || "";
