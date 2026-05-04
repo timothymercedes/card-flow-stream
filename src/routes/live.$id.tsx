@@ -795,22 +795,47 @@ function LiveDetail() {
               <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">{stream.current_condition}</span>
             )}
             {auctionLive && (
-              <div className="flex shrink-0 items-center gap-1 rounded-md bg-live px-2 py-1 text-sm font-extrabold tabular-nums text-live-foreground">
+              <div className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-extrabold tabular-nums transition ${snipeFlash ? "bg-yellow-400 text-black scale-110 ring-2 ring-yellow-200" : "bg-live text-live-foreground"}`}>
                 <Timer className="h-4 w-4" /> {fmtRemaining(remaining)}
+                {Number(stream.snipe_extends || 0) > 0 && (
+                  <span className="ml-1 rounded bg-black/30 px-1 text-[9px]">+{stream.snipe_extends}× OT</span>
+                )}
               </div>
             )}
           </div>
+          {snipeFlash && (
+            <div className="mt-1 animate-in zoom-in rounded-lg bg-yellow-400 px-3 py-1.5 text-center text-xs font-extrabold tracking-wide text-black shadow-lg">
+              ⚡ OVERTIME +5s — last-second strike!
+            </div>
+          )}
           {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
           {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
-              📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
+              📦 {stream.shipping_method || "Shipping"} — {fmtMoney(Number(stream.shipping_price || 0))}
             </p>
           ) : null}
-          {auctionLive && stream.current_bidder_id && (
-            <p className="mt-1 inline-block rounded-lg bg-primary/60 px-3 py-1 text-[10px] font-bold backdrop-blur">
-              🥇 Winning: bid ${Number(stream.current_bid || 0).toFixed(0)}
+          {auctionLive && stream.snipe_price && (
+            <p className="mt-1 inline-block rounded-lg bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold text-black backdrop-blur">
+              💸 SNIPE: hit {fmtMoney(Number(stream.snipe_price))} to win NOW
             </p>
           )}
+          {auctionLive && stream.current_bidder_id && (
+            <p className="mt-1 inline-block rounded-lg bg-primary/60 px-3 py-1 text-[10px] font-bold backdrop-blur">
+              🥇 Winning bid: {fmtMoney(Number(stream.current_bid || 0))}
+            </p>
+          )}
+          {/* 🆕 Currency selector */}
+          <div className="mt-1 flex items-center gap-1">
+            <Globe className="h-3 w-3 opacity-60" />
+            <select
+              value={viewerCurrency}
+              onChange={(e) => saveCurrencyPref(e.target.value as Currency)}
+              className="rounded bg-black/40 px-1.5 py-0.5 text-[10px] outline-none backdrop-blur"
+              title="Display currency (charges always in USD)"
+            >
+              {SUPPORTED_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
       )}
 
