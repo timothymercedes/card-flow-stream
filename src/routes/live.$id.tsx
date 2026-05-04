@@ -1081,14 +1081,19 @@ function LiveDetail() {
       current_condition: cond,
     };
     if (useQuick) {
+      const qty = Math.max(1, Math.min(99, Number(stream.quick_start_quantity || editQuantity || 1)));
       update.status = "live";
       update.listing_type = "auction";
       update.starting_bid = start;
       update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
       update.winner_id = null; update.winning_bid = null; update.winner_username = null;
       update.snipe_extends = 0; update.snipe_price = null; update.sudden_death_active = false;
+      update.quick_start_quantity = qty;
+      update.quick_start_remaining = qty - 1;
       endedRef.current = false; snapshotRef.current = false;
     }
+    // 🆕 Optimistic local update so the timer ticks instantly on the host's screen.
+    setStream((prev: any) => prev ? { ...prev, ...update } : prev);
     supabase.from("live_streams").update(update).eq("id", id);
 
     // Post hype to chat as AI hype messages (no price)
