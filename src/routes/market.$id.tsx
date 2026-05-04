@@ -55,6 +55,27 @@ function ListingDetail() {
     return () => clearInterval(t);
   }, []);
 
+  // Auto-notify seller once when their auction ends below reserve
+  useEffect(() => {
+    if (!listing || !user) return;
+    if (user.id !== listing.seller_id) return;
+    if (listing.auction_status !== "active") return;
+    if (!listing.reserve_price || !listing.auction_ends_at) return;
+    const ended = new Date(listing.auction_ends_at).getTime() <= Date.now();
+    const belowReserve = Number(listing.current_bid || 0) < Number(listing.reserve_price);
+    if (!ended || !belowReserve) return;
+    const key = `notified-below-reserve-${listing.id}`;
+    if (typeof window !== "undefined" && window.localStorage.getItem(key)) return;
+    (async () => {
+      await supabase.from("notifications").insert({
+        user_id: listing.seller_id, type: "bid",
+        body: `Auction "${listing.title}" ended below reserve. Top bid: $${Number(listing.current_bid || 0).toFixed(0)} — accept or decline.`,
+        link: `/market/${listing.id}`,
+      });
+      window.localStorage.setItem(key, "1");
+    })();
+  }, [listing, user]);
+
   async function placeBid() {
     if (!profile) return toast.error("Sign in first");
     const amt = Number(bidAmt);
