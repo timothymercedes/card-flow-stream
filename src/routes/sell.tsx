@@ -48,6 +48,8 @@ function Sell() {
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     await ensureSeller();
+    const minutes = Number(timerMin) || 0;
+    const ends_at = streamType === "auction" && minutes > 0 ? new Date(Date.now() + minutes * 60 * 1000).toISOString() : null;
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user!.id,
       title: streamTitle,
@@ -55,6 +57,12 @@ function Sell() {
       listing_type: streamType,
       starting_bid: Number(startingBid) || 1,
       current_bid: Number(startingBid) || 1,
+      current_item: streamTitle,
+      min_bid_increment: Number(minIncrement) || 1,
+      status: "live",
+      is_active: true,
+      started_at: new Date().toISOString(),
+      ends_at,
     }).select().single();
     if (error) return toast.error(error.message);
     nav({ to: "/live/$id", params: { id: data.id } });
