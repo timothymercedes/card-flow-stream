@@ -161,6 +161,7 @@ function Profile() {
             {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">User ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
             <div className="mt-1 flex flex-wrap gap-1">
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
+              <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
               <Badge status={p.id_status || "none"} label="ID" />
               <Badge status={p.seller_status || "none"} label="Seller" />
             </div>
