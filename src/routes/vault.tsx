@@ -393,7 +393,7 @@ function Vault() {
               </div>
             )}
 
-            <p className="text-[10px] text-muted-foreground">Visible to: <span className="font-semibold capitalize">{actionFor.visibility || "private"}</span></p>
+            
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
