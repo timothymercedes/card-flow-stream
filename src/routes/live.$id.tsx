@@ -374,11 +374,12 @@ function LiveDetail() {
             <div className="grid grid-cols-2 gap-2">
               <input type="number" min="1" value={editStartPrice} onChange={(e) => setEditStartPrice(e.target.value)} placeholder="Start price ($)" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
               <select value={editTimerSec} onChange={(e) => setEditTimerSec(e.target.value)} className="rounded-lg bg-input px-3 py-2 text-xs outline-none">
+                <option value="5">5s</option>
+                <option value="10">10s</option>
+                <option value="15">15s</option>
+                <option value="20">20s</option>
                 <option value="30">30s</option>
                 <option value="60">60s</option>
-                <option value="120">2 min</option>
-                <option value="300">5 min</option>
-                <option value="600">10 min</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
