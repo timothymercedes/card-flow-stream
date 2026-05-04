@@ -951,6 +951,7 @@ export type Database = {
           tcg_set: string | null
           tcg_year: string | null
           user_id: string
+          visibility: string
         }
         Insert: {
           back_image_url?: string | null
@@ -969,6 +970,7 @@ export type Database = {
           tcg_set?: string | null
           tcg_year?: string | null
           user_id: string
+          visibility?: string
         }
         Update: {
           back_image_url?: string | null
@@ -987,6 +989,7 @@ export type Database = {
           tcg_set?: string | null
           tcg_year?: string | null
           user_id?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -1041,6 +1044,10 @@ export type Database = {
     Functions: {
       can_view_story: {
         Args: { _story_owner: string; _viewer: string; _visibility: string }
+        Returns: boolean
+      }
+      can_view_vault: {
+        Args: { _owner: string; _viewer: string; _visibility: string }
         Returns: boolean
       }
       generate_public_id: { Args: never; Returns: string }
