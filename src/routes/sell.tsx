@@ -34,6 +34,7 @@ function Sell() {
   const [listingType, setListingType] = useState<ListingType>("buy_now");
   const [acceptsOffers, setAcceptsOffers] = useState(false);
   const [auctionDays, setAuctionDays] = useState("3");
+  const [shippingPrice, setShippingPrice] = useState("0");
 
   // Load seller status
   if (user && sellerStatus === null) {
