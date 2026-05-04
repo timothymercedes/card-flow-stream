@@ -333,7 +333,7 @@ function Profile() {
         </section>
 
         <div className="space-y-2">
-          {p.seller_status === "approved" && (
+          {p.seller_status === "approved" && sellerAgreementAccepted && (
             <>
               <Link to="/sell" className="flex items-center gap-3 rounded-xl bg-card p-4">
                 <Radio className="h-5 w-5 text-live" />
