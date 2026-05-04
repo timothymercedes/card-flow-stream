@@ -170,9 +170,27 @@ function LiveDetail() {
     setShowSettings(false);
   }
 
-  async function endAuctionNow() {
-    if (!isSeller) return;
-    await supabase.from("live_streams").update({ ends_at: new Date().toISOString() }).eq("id", id);
+  // Auction ends only by timer (no manual end button for host)
+
+  async function shareLiveTo(recipientId: string, recipientUsername: string) {
+    if (!user || !profile) return toast.error("Sign in to share");
+    const link = `/live/${id}`;
+    const content = `📺 Check out this live: "${stream.title}" ${window.location.origin}${link}`;
+    await supabase.from("direct_messages").insert({
+      sender_id: user.id, sender_username: profile.username,
+      recipient_id: recipientId, content,
+    });
+    await supabase.from("notifications").insert({
+      user_id: recipientId, type: "share", body: `@${profile.username} shared a live with you`, link,
+    });
+    toast.success(`Shared with @${recipientUsername}`);
+    setShareOpen(false); setShareQuery("");
+  }
+
+  async function searchUsers(q: string, setter: (rows: any[]) => void) {
+    if (!q.trim()) return setter([]);
+    const { data } = await supabase.from("profiles").select("id,username,avatar_url").ilike("username", `%${q}%`).limit(8);
+    setter(data || []);
   }
 
   async function finalizeAuctionRound() {
