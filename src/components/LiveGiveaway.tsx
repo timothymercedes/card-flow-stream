@@ -270,6 +270,7 @@ export function LiveGiveaway({
     }
   }
 
+  // Show widget anytime there's an active giveaway, regardless of `open` prop.
   if (!open && !giveaway) return null;
   // 🆕 When a giveaway is OPEN and there's still >5s on the clock, render as a small
   // floating widget so the stream stays visible. Only take over the screen for the
