@@ -270,6 +270,8 @@ function MyStore() {
             );
           })}
         </div>
+          </>
+        )}
       </div>
     </AppShell>
   );
