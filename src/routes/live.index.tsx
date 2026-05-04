@@ -1,36 +1,193 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Radio } from "lucide-react";
+import { Radio, Calendar, Plus, X, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
-function LiveList() {
-  const [streams, setStreams] = useState<any[]>([]);
+type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null };
+type Show = {
+  id: string; seller_id: string; seller_username: string; title: string;
+  description: string | null; thumbnail_url: string | null; category: string | null;
+  scheduled_for: string;
+};
+
+function fmtCountdown(target: string) {
+  const ms = new Date(target).getTime() - Date.now();
+  if (ms <= 0) return "Starting…";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function StreamCountdown({ endsAt }: { endsAt: string }) {
+  const [, setTick] = useState(0);
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setStreams(data || []));
+    const i = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(i);
   }, []);
+  const ms = new Date(endsAt).getTime() - Date.now();
+  if (ms <= 0) return <span className="text-destructive">Ended</span>;
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return <span>{m}:{sec.toString().padStart(2, "0")}</span>;
+}
+
+function LiveList() {
+  const { user, profile } = useAuth();
+  const [tab, setTab] = useState<"live" | "scheduled">("live");
+  const [streams, setStreams] = useState<Stream[]>([]);
+  const [shows, setShows] = useState<Show[]>([]);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", category: "", thumbnail_url: "", date: "", time: "" });
+
+  async function load() {
+    const [{ data: s }, { data: sh }] = await Promise.all([
+      supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }),
+      supabase.from("scheduled_shows").select("*").gte("scheduled_for", new Date().toISOString()).order("scheduled_for", { ascending: true }),
+    ]);
+    setStreams((s as Stream[]) || []);
+    setShows((sh as Show[]) || []);
+  }
+  useEffect(() => {
+    load();
+    const ch = supabase.channel("live-shows")
+      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_shows" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "live_streams" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  async function createShow() {
+    if (!user || !profile) return toast.error("Sign in first");
+    if (!form.title || !form.date || !form.time) return toast.error("Title, date and time required");
+    const scheduled_for = new Date(`${form.date}T${form.time}`).toISOString();
+    if (new Date(scheduled_for).getTime() < Date.now()) return toast.error("Pick a future date");
+    const { error } = await supabase.from("scheduled_shows").insert({
+      seller_id: user.id,
+      seller_username: profile.username,
+      title: form.title,
+      description: form.description || null,
+      category: form.category || null,
+      thumbnail_url: form.thumbnail_url || null,
+      scheduled_for,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Show scheduled");
+    setComposeOpen(false);
+    setForm({ title: "", description: "", category: "", thumbnail_url: "", date: "", time: "" });
+    load();
+  }
+
+  async function deleteShow(id: string) {
+    if (!confirm("Cancel this show?")) return;
+    await supabase.from("scheduled_shows").delete().eq("id", id);
+    load();
+  }
+
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-4 text-2xl font-bold">Live Now</h1>
-        {streams.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No active streams. Be the first to go live!</p>}
-        <div className="grid grid-cols-2 gap-3">
-          {streams.map((s) => (
-            <Link key={s.id} to="/live/$id" params={{ id: s.id }}>
-              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
-                {s.thumbnail_url ? <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
-                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold">
-                  <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
-                </div>
-              </div>
-              <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
-              <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>
-            </Link>
-          ))}
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Live</h1>
+          {tab === "scheduled" && user && (
+            <button onClick={() => setComposeOpen(true)} className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
+              <Plus className="h-3.5 w-3.5" /> Schedule
+            </button>
+          )}
         </div>
+
+        <div className="mb-4 flex gap-2 border-b border-border">
+          <button onClick={() => setTab("live")} className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm ${tab === "live" ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+            <Radio className="h-3.5 w-3.5" /> Live now
+          </button>
+          <button onClick={() => setTab("scheduled")} className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm ${tab === "scheduled" ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+            <Calendar className="h-3.5 w-3.5" /> Scheduled
+          </button>
+        </div>
+
+        {tab === "live" && (
+          <>
+            {streams.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No active streams. Be the first to go live!</p>}
+            <div className="grid grid-cols-2 gap-3">
+              {streams.map((s) => (
+                <Link key={s.id} to="/live/$id" params={{ id: s.id }}>
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
+                    {s.thumbnail_url ? <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
+                    <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold">
+                      <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
+                    </div>
+                    {s.ends_at && (
+                      <div className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                        <StreamCountdown endsAt={s.ends_at} />
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
+                  <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "scheduled" && (
+          <>
+            {shows.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No upcoming shows. Tap Schedule to plan one.</p>}
+            <div className="space-y-3">
+              {shows.map((sh) => (
+                <div key={sh.id} className="flex gap-3 rounded-xl bg-card p-3">
+                  <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {sh.thumbnail_url ? <img src={sh.thumbnail_url} className="h-full w-full object-cover" alt="" /> : <div className="flex h-full w-full items-center justify-center"><Calendar className="h-6 w-6 text-muted-foreground" /></div>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-1 text-sm font-bold">{sh.title}</p>
+                      {user?.id === sh.seller_id && (
+                        <button onClick={() => deleteShow(sh.id)} className="rounded-full p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-primary">@{sh.seller_username}{sh.category ? ` · ${sh.category}` : ""}</p>
+                    {sh.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{sh.description}</p>}
+                    <p className="mt-1 text-xs">
+                      {new Date(sh.scheduled_for).toLocaleString()}
+                      <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">in {fmtCountdown(sh.scheduled_for)}</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
+
+      {composeOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setComposeOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-2 rounded-2xl bg-card p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-bold">Schedule a show</p>
+              <button onClick={() => setComposeOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Title" className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description (optional)" rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category (Pokemon, Sports, One Piece…)" className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            <input value={form.thumbnail_url} onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })} placeholder="Thumbnail URL (optional)" className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            <div className="flex gap-2">
+              <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="flex-1 rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className="flex-1 rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            </div>
+            <button onClick={createShow} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Schedule</button>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

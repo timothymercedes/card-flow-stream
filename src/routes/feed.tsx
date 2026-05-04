@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { ThumbsUp, ThumbsDown, Pencil, Trash2, History, X, Check } from "lucide-react";
 import { toast } from "sonner";
+import { StoryRail } from "@/components/StoryRail";
 
 export const Route = createFileRoute("/feed")({ component: Feed });
 
@@ -110,7 +111,8 @@ function Feed() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-4 text-2xl font-bold">Status Feed</h1>
+        <h1 className="mb-3 text-2xl font-bold">Status Feed</h1>
+        <StoryRail />
         <div className="mb-4 rounded-xl bg-card p-3">
           <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={user ? "Share an update..." : "Sign in to post"} disabled={!user} rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm outline-none disabled:opacity-50" />
           <button onClick={post} disabled={!user || !caption.trim()} className="mt-2 w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Post</button>

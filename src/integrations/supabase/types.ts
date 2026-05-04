@@ -804,6 +804,114 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_shows: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          scheduled_for: string
+          seller_id: string
+          seller_username: string
+          thumbnail_url: string | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          scheduled_for: string
+          seller_id: string
+          seller_username: string
+          thumbnail_url?: string | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          scheduled_for?: string
+          seller_id?: string
+          seller_username?: string
+          thumbnail_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          avatar_url: string | null
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          image_url: string
+          user_id: string
+          username: string
+          visibility: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url: string
+          user_id: string
+          username: string
+          visibility?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string
+          user_id?: string
+          username?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
+      story_close_friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -931,6 +1039,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_story: {
+        Args: { _story_owner: string; _viewer: string; _visibility: string }
+        Returns: boolean
+      }
       generate_public_id: { Args: never; Returns: string }
       has_role: {
         Args: {
