@@ -24,9 +24,12 @@ export const Route = createFileRoute("/admin")({
 function Admin() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"disputes" | "suspensions">("disputes");
+  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions">("reports");
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportFilter, setReportFilter] = useState<typeof REPORT_GROUPS[number]["key"]>("all");
+  const [reportStatus, setReportStatus] = useState<"open" | "all">("open");
   const [banForm, setBanForm] = useState({ user_id: "", username: "", reason: "", type: "suspension", days: "7" });
 
   useEffect(() => {
