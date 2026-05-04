@@ -340,19 +340,26 @@ function LiveDetail() {
         </div>
       </div>
 
-      {/* Title overlay */}
-      <div className="absolute left-3 right-3 top-14 z-10">
-        <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
-        {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
-        {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
-          <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
-            📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
-          </p>
-        ) : null}
-      </div>
+      {/* Title / auction notification overlay (pinnable) */}
+      {pinned && (
+        <div className="absolute left-3 right-3 top-14 z-10">
+          <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
+          {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
+          {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
+            <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
+              📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
+            </p>
+          ) : null}
+          {auctionLive && stream.current_bidder_id && (
+            <p className="mt-1 inline-block rounded-lg bg-primary/60 px-3 py-1 text-[10px] font-bold backdrop-blur">
+              🥇 Winning: bid ${Number(stream.current_bid || 0).toFixed(0)}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Winner banner */}
-      {(auctionFinished || ended) && stream.winner_username && (
+      {(auctionFinished || ended) && stream.winner_username && pinned && (
         <div className="absolute left-3 right-3 top-32 z-10 rounded-xl bg-primary/80 p-3 text-center backdrop-blur">
           <Trophy className="mx-auto h-5 w-5" />
           <p className="mt-1 text-sm font-bold">Now owned by @{stream.winner_username}</p>
