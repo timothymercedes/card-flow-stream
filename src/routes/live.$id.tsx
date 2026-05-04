@@ -98,14 +98,31 @@ function LiveDetail() {
     });
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
     supabase.from("stream_shoutouts").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setShoutouts(data || []));
+    supabase.from("stream_moderators").select("*").eq("stream_id", id).then(({ data }) => setMods(data || []));
 
     const ch = supabase.channel(`live-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` }, (p) => setMessages((m) => [...m, p.new]))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => setStream(p.new))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${id}` }, (p) => setShoutouts((s) => [p.new, ...s]))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => [...m, p.new]))
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => m.filter((x) => x.id !== (p.old as any).id)))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_mod_messages", filter: `stream_id=eq.${id}` }, (p) => setModChat((m) => [...m, p.new]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  // Load mod chat once user is known to be staff
+  useEffect(() => {
+    if (!isStaff) { setModChat([]); return; }
+    supabase.from("stream_mod_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setModChat(data || []));
+  }, [isStaff, id]);
+
+  // Auto-hide AI hype overlay after 5s
+  useEffect(() => {
+    if (!hypeCard) return;
+    const t = setTimeout(() => setHypeCard(null), 5000);
+    return () => clearTimeout(t);
+  }, [hypeCard]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
