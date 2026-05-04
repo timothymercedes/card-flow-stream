@@ -544,6 +544,31 @@ function LiveDetail() {
             <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
+
+            {/* OBS / Cloudflare Stream credentials */}
+            {usingObs && (
+              <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-[11px]">
+                <p className="mb-2 flex items-center gap-1.5 font-bold text-primary"><Radio className="h-3.5 w-3.5" /> OBS / Streamlabs setup</p>
+                <p className="mb-2 text-muted-foreground">In OBS → Settings → Stream → Service "Custom...", paste these values:</p>
+                <div className="space-y-2">
+                  <div>
+                    <p className="mb-0.5 font-semibold">Server (RTMPS URL)</p>
+                    <div className="flex items-center gap-1.5">
+                      <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-[10px]">{stream.cf_rtmps_url}</code>
+                      <button onClick={() => { navigator.clipboard.writeText(stream.cf_rtmps_url); toast.success("Copied"); }} className="rounded bg-muted px-2 py-1"><Copy className="h-3 w-3" /></button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-0.5 font-semibold">Stream Key</p>
+                    <div className="flex items-center gap-1.5">
+                      <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-[10px]">{stream.cf_stream_key ? "••••••••" + String(stream.cf_stream_key).slice(-6) : ""}</code>
+                      <button onClick={() => { navigator.clipboard.writeText(stream.cf_stream_key); toast.success("Stream key copied"); }} className="rounded bg-muted px-2 py-1"><Copy className="h-3 w-3" /></button>
+                    </div>
+                    <p className="mt-1 text-[10px] text-muted-foreground">Keep this private. Anyone with this key can broadcast to your stream.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
