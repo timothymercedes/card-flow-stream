@@ -101,8 +101,9 @@ function LiveDetail() {
   // 🆕 Giveaway
   const [showGiveaway, setShowGiveaway] = useState(false);
   const [giveawayComposer, setGiveawayComposer] = useState(false);
-  // Track latest giveaway status so we can auto-hide its chat announcement once a winner is decided.
-  const [giveawayStatus, setGiveawayStatus] = useState<string | null>(null);
+  // Track latest giveaway so we can live-tick its announcement and auto-hide it once a winner is decided.
+  const [activeGiveaway, setActiveGiveaway] = useState<any>(null);
+  const giveawayStatus = activeGiveaway?.status ?? null;
   // Per-viewer dismissed announcements (ids the viewer tapped X on)
   const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<Set<string>>(new Set());
   const [isFollowingHost, setIsFollowingHost] = useState(false);
@@ -295,18 +296,18 @@ function LiveDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // 🆕 Track latest giveaway status so we can hide its chat announcement once decided.
+  // 🆕 Track latest giveaway (status + ends_at) so the announcement bubble can tick live and auto-hide.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
         .from("giveaways")
-        .select("status")
+        .select("*")
         .eq("stream_id", id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!cancelled) setGiveawayStatus((data?.status as string) || null);
+      if (!cancelled) setActiveGiveaway(data || null);
     }
     load();
     const ch = supabase
@@ -314,7 +315,7 @@ function LiveDetail() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "giveaways", filter: `stream_id=eq.${id}` },
-        (p) => setGiveawayStatus(((p.new as any)?.status ?? (p.old as any)?.status) || null),
+        (p) => setActiveGiveaway((p.new as any) || (p.old as any) || null),
       )
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
@@ -1403,6 +1404,35 @@ function LiveDetail() {
         </>
       )}
 
+      {/* Persistent "Latest Winner" pill — stays on screen until a new winner replaces it */}
+      {(() => {
+        // Pick the most recent winner across bid + giveaway + wheel.
+        const candidates: { ts: number; label: string; sub?: string; kind: string }[] = [];
+        const sLastBidUser = (stream as any)?.last_winner_username;
+        const sLastBidAmt = Number((stream as any)?.last_winning_bid || 0);
+        const sLastBidAt = (stream as any)?.last_winner_at ? new Date((stream as any).last_winner_at).getTime() : 0;
+        if (sLastBidUser) candidates.push({ ts: sLastBidAt, label: `@${sLastBidUser}`, sub: sLastBidAmt ? `${fmtMoney(sLastBidAmt)} bid` : "Bid winner", kind: "🏆" });
+        const gWinner = activeGiveaway?.winner_username;
+        const gAt = activeGiveaway?.drawn_at ? new Date(activeGiveaway.drawn_at).getTime() : 0;
+        if (gWinner && activeGiveaway?.status === "complete") candidates.push({ ts: gAt, label: `@${gWinner}`, sub: activeGiveaway.prize_label || "Gift winner", kind: "🎁" });
+        const wWinner = wheel?.last_winner_username;
+        const wAt = wheel?.last_winner_at ? new Date(wheel.last_winner_at).getTime() : 0;
+        if (wWinner) candidates.push({ ts: wAt, label: `@${wWinner}`, sub: wheel.last_winner_slot_label || "Wheel winner", kind: "🎡" });
+        const latest = candidates.sort((a, b) => b.ts - a.ts)[0];
+        // Don't double up with the big slam-in banner
+        const slamming = (auctionFinished || ended) && stream.winner_username && pinned;
+        if (!latest || slamming) return null;
+        return (
+          <div className="pointer-events-none absolute left-2 top-28 z-20">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-lg backdrop-blur ring-1 ring-white/15">
+              <span>{latest.kind}</span>
+              <span className="text-white">{latest.label}</span>
+              {latest.sub && <span className="text-white/70 font-semibold">· {latest.sub}</span>}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Stream switcher */}
       {allStreams.length > 1 && !ended && (
         <>
@@ -1545,35 +1575,46 @@ function LiveDetail() {
         <GiveawayChip streamId={id} />
       </div>
 
-      {/* Chat overlay — narrower so it doesn't span across the stream; scrollable up/down */}
+      {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
+      {(() => {
+        const annMsgs = messages.filter((m) => m.is_announcement && !dismissedAnnouncementIds.has(m.id) && !(/Appreciation Gift opened/i.test(String(m.content || "")) && giveawayStatus && giveawayStatus !== "open"));
+        if (annMsgs.length === 0) return null;
+        const giveawayEndsAt = activeGiveaway?.status === "open" && activeGiveaway?.ends_at ? new Date(activeGiveaway.ends_at).getTime() : 0;
+        return (
+          <div className="pointer-events-none absolute left-2 right-14 top-16 z-20 flex flex-col items-stretch gap-1">
+            {annMsgs.slice(-3).map((m) => {
+              const isGiveawayOpenAnn = /Appreciation Gift opened/i.test(String(m.content || ""));
+              const secsLeft = isGiveawayOpenAnn && giveawayEndsAt ? Math.max(0, Math.ceil((giveawayEndsAt - now) / 1000)) : 0;
+              return (
+                <div key={m.id} className="pointer-events-auto relative rounded-lg border border-accent/60 bg-gradient-to-r from-accent/70 to-primary/70 py-1.5 pl-3 pr-7 text-[11px] font-bold text-white shadow-lg backdrop-blur">
+                  <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
+                  @{m.username}: {m.content.replace(/^📢\s*/, "")}
+                  {isGiveawayOpenAnn && secsLeft > 0 && (
+                    <span className="ml-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] tabular-nums">⏱ {secsLeft}s</span>
+                  )}
+                  <button
+                    onClick={() => setDismissedAnnouncementIds((s) => new Set(s).add(m.id))}
+                    className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white/90 hover:bg-black"
+                    title="Dismiss"
+                    aria-label="Dismiss announcement"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* Chat overlay — narrower so it doesn't span across the stream; near-invisible scrollbar */}
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="absolute bottom-40 left-2 z-10 max-h-[28vh] w-[62%] max-w-xs overflow-y-auto overscroll-contain pb-2 pr-1"
+          className="chat-scroll absolute bottom-40 left-2 z-10 max-h-[28vh] w-[62%] max-w-xs overflow-y-auto overscroll-contain pb-2 pr-1"
         >
           <div className="flex flex-col items-start gap-1">
-            {messages.filter((m) => !m.is_system || m.is_announcement).map((m) => {
-              if (m.is_announcement) {
-                // Hide if viewer dismissed it
-                if (dismissedAnnouncementIds.has(m.id)) return null;
-                // Auto-hide the giveaway "opened" announcement once a winner is decided / it's no longer open
-                const isGiveawayOpenAnn = /Appreciation Gift opened/i.test(String(m.content || ""));
-                if (isGiveawayOpenAnn && giveawayStatus && giveawayStatus !== "open") return null;
-                return (
-                  <div key={m.id} className="relative w-full rounded-lg border border-accent/60 bg-gradient-to-r from-accent/40 to-primary/40 py-1.5 pl-3 pr-7 text-[11px] font-bold text-white shadow backdrop-blur">
-                    <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
-                    @{m.username}: {m.content.replace(/^📢\s*/, "")}
-                    <button
-                      onClick={() => setDismissedAnnouncementIds((s) => new Set(s).add(m.id))}
-                      className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white/90 hover:bg-black"
-                      title="Dismiss"
-                      aria-label="Dismiss announcement"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                );
-              }
+            {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
