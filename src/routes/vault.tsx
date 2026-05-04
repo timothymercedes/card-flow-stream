@@ -97,6 +97,44 @@ function Vault() {
     );
   }, [cards, query]);
 
+  // Predictive suggestions for the search box (from existing vault metadata)
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const pool = new Set<string>();
+    cards.forEach((c) => {
+      [c.name, c.tcg_set, c.category, c.tcg_number].forEach((v) => {
+        if (v && String(v).toLowerCase().startsWith(q) && String(v).toLowerCase() !== q) {
+          pool.add(String(v));
+        }
+      });
+    });
+    return Array.from(pool).slice(0, 6);
+  }, [cards, query]);
+
+  function startVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { toast.error("Voice search not supported in this browser"); return; }
+    const rec = new SR();
+    const langTag: Record<string, string> = { en: "en-US", jp: "ja-JP", kr: "ko-KR", zh: "zh-CN", de: "de-DE", fr: "fr-FR", es: "es-ES", it: "it-IT", pt: "pt-PT", ru: "ru-RU" };
+    rec.lang = langTag[language] || "en-US";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (e: any) => {
+      const txt = Array.from(e.results).map((r: any) => r[0].transcript).join("");
+      setQuery(txt);
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => setListening(false);
+    recognitionRef.current = rec;
+    setListening(true);
+    rec.start();
+  }
+  function stopVoice() {
+    try { recognitionRef.current?.stop?.(); } catch {/* */}
+    setListening(false);
+  }
+
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
