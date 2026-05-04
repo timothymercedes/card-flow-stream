@@ -765,11 +765,14 @@ function LiveDetail() {
     if (!isSeller) return;
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
+    const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
     await supabase.from("live_streams").update({
       status: "live",
       listing_type: "auction",
       starting_bid: start,
+      default_starting_bid: start,
+      default_timer_sec: sec,
       current_bid: start,
       current_bidder_id: null,
       item_description: editDesc || null,
@@ -782,11 +785,37 @@ function LiveDetail() {
       snipe_extends: 0,
       snipe_price: null,
       sudden_death_active: false,
+      quick_start_quantity: qty,
+      quick_start_remaining: qty - 1,
+      voice_trigger_enabled: editVoiceEnabled,
+      voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
     }).eq("id", id);
     endedRef.current = false;
-    await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}`, true);
+    await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`, true);
     toast.success("Auction started");
     setShowSettings(false);
+  }
+
+  // 🆕 Save voice trigger + quantity without starting an auction
+  async function saveAuctionDefaults() {
+    if (!isSeller) return;
+    const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
+    await supabase.from("live_streams").update({
+      default_timer_sec: Number(editTimerSec) || 30,
+      default_starting_bid: Number(editStartPrice) || 1,
+      shipping_price: Number(editShipPrice) || 0,
+      shipping_method: editShipMethod,
+      quick_start_quantity: qty,
+      voice_trigger_enabled: editVoiceEnabled,
+      voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
+    }).eq("id", id);
+    toast.success("Settings saved");
+  }
+
+  // 🆕 Persist edited break character labels (allowed any time)
+  async function saveBreakCharacters(next: string[]) {
+    if (!isSeller || !stream) return;
+    await supabase.from("live_streams").update({ break_characters: next }).eq("id", id);
   }
 
   // Auction ends only by timer (no manual end button for host)
