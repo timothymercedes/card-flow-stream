@@ -284,22 +284,63 @@ function LiveDetail() {
     toast.success("Announcement posted");
   }
 
+  // 🆕 Compute who is currently muted/banned in chat (latest action wins per user)
+  const chatBlockSet = useMemo(() => {
+    const latest: Record<string, any> = {};
+    for (const a of [...chatActions].sort((x, y) => +new Date(x.created_at) - +new Date(y.created_at))) {
+      latest[a.target_user_id] = a;
+    }
+    const blocked = new Set<string>();
+    for (const [uid, a] of Object.entries(latest)) {
+      if (a.action === "ban" || a.action === "mute") blocked.add(uid);
+      if (a.action === "timeout" && a.expires_at && +new Date(a.expires_at) > Date.now()) blocked.add(uid);
+      if (a.action === "unmute" || a.action === "unban") blocked.delete(uid);
+    }
+    return blocked;
+  }, [chatActions]);
+  const meBlocked = !!user && chatBlockSet.has(user.id);
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
+    if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
     await sendMsg(input);
     setInput("");
   }
 
+  // 🆕 Anti-snipe: if a bid lands in the final 3s, extend the timer by +5s.
+  // Different from Whatnot's flat 10s/15s — we use a 3s/5s nibble that
+  // resets snappily and shows a fun "⚡ +5s OVERTIME" flash.
   async function placeBidAmount(amount: number) {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
+    if (meBlocked) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
     const cur = Number(stream.current_bid || 0);
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
     const prevBidder = stream.current_bidder_id;
-    const { error } = await supabase.from("live_streams").update({ current_bid: amount, current_bidder_id: user.id }).eq("id", id);
+
+    const update: any = { current_bid: amount, current_bidder_id: user.id };
+    const remainingMs = stream.ends_at ? new Date(stream.ends_at).getTime() - Date.now() : 0;
+    let extended = false;
+    if (remainingMs > 0 && remainingMs <= 3000) {
+      // Add 5s + 1 to extends counter
+      const newEnd = new Date(Date.now() + 5000 + Math.max(remainingMs - 0, 0)).toISOString();
+      // Simpler: ensure at least 5s left from now
+      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 5000).toISOString();
+      update.snipe_extends = Number(stream.snipe_extends || 0) + 1;
+      extended = true;
+    }
+
+    const { error } = await supabase.from("live_streams").update(update).eq("id", id);
     if (error) return toast.error(error.message);
+
+    if (extended) {
+      // Reset auto-end + snapshot guards so the new countdown can re-trigger
+      endedRef.current = false;
+      snapshotRef.current = false;
+      await sendMsg(`⚡ OVERTIME +5s — @${profile.username} struck in the final 3s!`, true);
+    }
     await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
     if (stream.seller_id !== user.id) {
       await supabase.from("notifications").insert({ user_id: stream.seller_id, type: "bid", body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`, link: `/live/${id}` });
@@ -309,6 +350,104 @@ function LiveDetail() {
     }
     // Notify the new top bidder they're winning
     await supabase.from("notifications").insert({ user_id: user.id, type: "winning", body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`, link: `/live/${id}` });
+  }
+
+  // 🆕 Buy-now snipe: instantly win at the host's snipe price
+  async function buyNowSnipe() {
+    if (!user || !profile || !stream?.snipe_price) return;
+    if (isSeller) return;
+    if (!auctionLive) return toast.error("No active auction");
+    const price = Number(stream.snipe_price);
+    // Force win: set bid to snipe price + bidder = me, then end immediately
+    const { error } = await supabase.from("live_streams").update({
+      current_bid: price, current_bidder_id: user.id,
+      ends_at: new Date(Date.now() + 1500).toISOString(),
+      snipe_price: null,
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    endedRef.current = false; snapshotRef.current = false;
+    await sendMsg(`💥 SNIPE! @${profile.username} hit Buy-Now for $${price} — instant win!`, true);
+  }
+
+  // 🆕 Mod chat action — mute/timeout/ban/unblock
+  async function chatAction(target: { userId: string; username: string }, action: "mute" | "timeout" | "ban" | "unmute" | "unban", minutes = 5) {
+    if (!isStaff || !user) return;
+    const expires_at = action === "timeout" ? new Date(Date.now() + minutes * 60_000).toISOString() : null;
+    const { error } = await supabase.from("stream_chat_actions").insert({
+      stream_id: id, target_user_id: target.userId, target_username: target.username,
+      action, by_user_id: user.id, expires_at,
+    });
+    if (error) return toast.error(error.message);
+    const labels: Record<string, string> = { mute: "muted 🔇", timeout: `timed out for ${minutes}m ⏱️`, ban: "banned 🚫", unmute: "unmuted ✅", unban: "unbanned ✅" };
+    toast.success(`@${target.username} ${labels[action]}`);
+    setChatActionMenu(null);
+  }
+
+  // 🆕 Mystery break: random team draw across paid slots
+  async function startBreakMode() {
+    if (!isSeller) return;
+    const teams = breakTeamsInput.split(",").map((s) => s.trim()).filter(Boolean);
+    if (teams.length < 2) return toast.error("List at least 2 teams (comma-separated)");
+    await supabase.from("live_streams").update({
+      break_mode: "open",
+      break_teams: teams,
+    }).eq("id", id);
+    setShowBreakPanel(false);
+    await sendMsg(`🎲 BREAK OPEN — ${teams.length} teams, $${breakPrice}/slot. Hit "Claim Slot" below!`, true);
+    toast.success("Break opened");
+  }
+
+  async function claimBreakSlot() {
+    if (!user || !profile || !stream?.break_teams) return;
+    if (isSeller) return toast.error("Host can't claim slots");
+    const price = Number(breakPrice) || 10;
+    const { error } = await supabase.from("break_slots").insert({
+      stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
+    });
+    if (error) return toast.error(error.message);
+    await sendMsg(`🎟️ @${profile.username} claimed a break slot ($${price})`, true);
+    toast.success("Slot claimed — wait for the draw!");
+  }
+
+  async function drawBreakTeams() {
+    if (!isSeller || !stream?.break_teams) return;
+    const teams = [...(stream.break_teams as string[])];
+    const slots = breakSlots.filter((s) => !s.team_label);
+    if (slots.length === 0) return toast.error("No unassigned slots");
+    setDrawAnim(true);
+    // Fisher-Yates on teams; assign one team per slot (cycle if more slots than teams)
+    for (let i = teams.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [teams[i], teams[j]] = [teams[j], teams[i]];
+    }
+    setTimeout(async () => {
+      for (let i = 0; i < slots.length; i++) {
+        const team = teams[i % teams.length];
+        await supabase.from("break_slots").update({
+          team_label: team, assigned_at: new Date().toISOString(),
+        }).eq("id", slots[i].id);
+        await sendMsg(`🎉 @${slots[i].buyer_username} pulled ${team}!`, true);
+      }
+      await supabase.from("live_streams").update({ break_mode: "closed" }).eq("id", id);
+      setDrawAnim(false);
+      toast.success("Teams drawn!");
+    }, 2200);
+  }
+
+  async function setSnipePriceNow() {
+    if (!isSeller) return;
+    const v = Number(snipePriceInput);
+    if (!v || v <= Number(stream.current_bid || 0)) return toast.error("Snipe price must be above current bid");
+    await supabase.from("live_streams").update({ snipe_price: v }).eq("id", id);
+    await sendMsg(`💸 Buy-Now SNIPE set at $${v} — first to hit it wins instantly!`, true);
+    setSnipePriceInput("");
+    toast.success("Snipe price set");
+  }
+
+  async function saveCurrencyPref(c: Currency) {
+    setViewerCurrency(c);
+    if (!user) return;
+    await supabase.from("profiles").update({ preferred_currency: c }).eq("id", user.id);
   }
 
   async function startAuction() {
