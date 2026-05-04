@@ -259,6 +259,7 @@ function LiveDetail() {
         amount: winningBid + Number(stream.shipping_price || 0),
         item_image_url: snapshot || null,
         stream_id: id,
+        condition: stream.current_condition || null,
         ship_name: p?.full_name || winnerUsername,
         ship_address: p?.address_line1 || "",
         ship_city: p?.address_city || "",
