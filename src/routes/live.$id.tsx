@@ -85,6 +85,16 @@ function LiveDetail() {
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
   const [drawAnim, setDrawAnim] = useState(false);
+  // 🆕 Per-slot character/team labels (host edits before opening claims)
+  const [breakCharacters, setBreakCharacters] = useState<string[]>(
+    Array.from({ length: 20 }, (_, i) => `Character ${i + 1}`),
+  );
+  // 🆕 Voice trigger phrase
+  const [voiceListening, setVoiceListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  // 🆕 Break-reveal wheel animation state
+  const [breakWheelAngle, setBreakWheelAngle] = useState(0);
+  const breakWheelRafRef = useRef<number | null>(null);
 
   // 🆕 Giveaway
   const [showGiveaway, setShowGiveaway] = useState(false);
@@ -131,6 +141,9 @@ function LiveDetail() {
         setEditShipMethod(data.shipping_method || "USPS Ground");
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
+        if (Array.isArray(data.break_characters) && data.break_characters.length) {
+          setBreakCharacters(data.break_characters as string[]);
+        }
         const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
         if (sp?.username) setSellerUsername(sp.username);
       }
@@ -383,9 +396,8 @@ function LiveDetail() {
     setInput("");
   }
 
-  // 🆕 Anti-snipe: if a bid lands in the final 3s, extend the timer by +5s.
-  // Different from Whatnot's flat 10s/15s — we use a 3s/5s nibble that
-  // resets snappily and shows a fun "⚡ +5s OVERTIME" flash.
+  // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
+  // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
@@ -398,24 +410,42 @@ function LiveDetail() {
 
     const update: any = { current_bid: amount, current_bidder_id: user.id };
     const remainingMs = stream.ends_at ? new Date(stream.ends_at).getTime() - Date.now() : 0;
+    const exts = Number(stream.snipe_extends || 0);
+    const inSuddenDeath = !!stream.sudden_death_active;
     let extended = false;
-    if (remainingMs > 0 && remainingMs <= 3000) {
-      // Add 5s + 1 to extends counter
-      const newEnd = new Date(Date.now() + 5000 + Math.max(remainingMs - 0, 0)).toISOString();
-      // Simpler: ensure at least 5s left from now
-      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 5000).toISOString();
-      update.snipe_extends = Number(stream.snipe_extends || 0) + 1;
+    let suddenDeathWin = false;
+
+    if (inSuddenDeath) {
+      // 💀 Sudden death — bid wins instantly, end timer in 1.2s for drama.
+      update.ends_at = new Date(Date.now() + 1200).toISOString();
+      update.sudden_death_active = false;
+      suddenDeathWin = true;
+    } else if (remainingMs > 0 && remainingMs <= 3000) {
+      // Add +3s and bump extension counter
+      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 3000).toISOString();
+      update.snipe_extends = exts + 1;
       extended = true;
+      // After the 3rd extension we arm sudden death for the NEXT bid
+      if (exts + 1 >= 3) update.sudden_death_active = true;
     }
 
     const { error } = await supabase.from("live_streams").update(update).eq("id", id);
     if (error) return toast.error(error.message);
 
     if (extended) {
-      // Reset auto-end + snapshot guards so the new countdown can re-trigger
       endedRef.current = false;
       snapshotRef.current = false;
-      await sendMsg(`⚡ OVERTIME +5s — @${profile.username} struck in the final 3s!`, true);
+      const willArm = exts + 1 >= 3;
+      await sendMsg(
+        willArm
+          ? `💀 SUDDEN DEATH ARMED — next bid INSTANTLY wins! (@${profile.username} forced it)`
+          : `⚡ OVERTIME +3s — @${profile.username} struck in the final 3s! (${exts + 1}/3)`,
+        true,
+      );
+    }
+    if (suddenDeathWin) {
+      endedRef.current = false; snapshotRef.current = false;
+      await sendMsg(`💥 SUDDEN-DEATH WIN — @${profile.username} took it for $${amount}!`, true);
     }
     await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
     if (stream.seller_id !== user.id) {
@@ -465,14 +495,17 @@ function LiveDetail() {
     const count = Math.max(2, Math.min(50, Number(breakSlotCount) || 0));
     if (count < 2) return toast.error("Pick 2–50 slots");
     const price = Math.max(1, Number(breakPrice) || 0);
+    const chars = Array.from({ length: count }, (_, i) =>
+      (breakCharacters[i] && breakCharacters[i].trim()) || `${(breakPrefix.trim() || "Slot ")}${i + 1}`,
+    );
     await supabase.from("live_streams").update({
       break_mode: "open",
       break_slot_count: count,
       break_slot_prefix: breakPrefix.trim() || null,
-      // store as a numeric-label list so existing UI (break_teams) stays compatible for fallback
-      break_teams: Array.from({ length: count }, (_, i) => `${(breakPrefix.trim() || "#")}${i + 1}`),
+      break_characters: chars,
+      break_teams: chars,
     }).eq("id", id);
-    await sendMsg(`🎲 BREAK OPEN — ${count} slots, $${price} each. Tap a number below to claim!`, true);
+    await sendMsg(`🎲 BREAK OPEN — ${count} slots, $${price} each. Tap a slot below to claim!`, true);
     toast.success("Break opened");
   }
 
@@ -482,17 +515,19 @@ function LiveDetail() {
     const taken = breakSlots.some((s) => s.slot_number === slotNumber);
     if (taken) return toast.error("That slot is already taken");
     const price = Number(breakPrice) || 10;
+    const charLabel =
+      (Array.isArray(stream.break_characters) && stream.break_characters[slotNumber - 1]) ||
+      `${stream.break_slot_prefix || "#"}${slotNumber}`;
     const { error } = await supabase.from("break_slots").insert({
       stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
-      slot_number: slotNumber,
+      slot_number: slotNumber, character_label: charLabel,
     });
     if (error) {
-      // unique-violation on (stream_id, slot_number)
       if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
       return toast.error(error.message);
     }
-    await sendMsg(`🎟️ @${profile.username} grabbed slot #${slotNumber} ($${price})`, true);
-    toast.success(`Slot #${slotNumber} is yours!`);
+    await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
+    toast.success(`${charLabel} is yours!`);
   }
 
   async function closeBreakClaims() {
@@ -504,6 +539,35 @@ function LiveDetail() {
       await sendMsg(`🔒 Break claims closed — ${breakSlots.length} slots taken.`, true);
       toast.success("Claims closed");
     }, 1500);
+  }
+
+  // 🆕 BREAK reveal wheel — picks a random claimed slot, broadcasts to all viewers,
+  // then announces "Character → @user" once it lands.
+  async function spinBreakWheel() {
+    if (!isSeller) return;
+    const claimed = breakSlots.filter((s) => s.slot_number != null);
+    if (claimed.length === 0) return toast.error("No slots claimed yet");
+    const winner = claimed[Math.floor(Math.random() * claimed.length)];
+    const startedAt = new Date();
+    const endsAt = new Date(Date.now() + 6500);
+    await supabase.from("live_streams").update({
+      break_wheel_spinning: true,
+      break_wheel_started_at: startedAt.toISOString(),
+      break_wheel_ends_at: endsAt.toISOString(),
+      break_wheel_target_slot: winner.slot_number,
+      break_wheel_last_winner_username: null,
+      break_wheel_last_winner_label: null,
+    }).eq("id", id);
+    await sendMsg(`🎡 BREAK REVEAL spinning…`, true);
+    setTimeout(async () => {
+      const label = winner.character_label || `${stream.break_slot_prefix || "#"}${winner.slot_number}`;
+      await supabase.from("live_streams").update({
+        break_wheel_spinning: false,
+        break_wheel_last_winner_username: winner.buyer_username,
+        break_wheel_last_winner_label: label,
+      }).eq("id", id);
+      await sendMsg(`🏆 BREAK WIN — ${label} goes to @${winner.buyer_username}!`, true);
+    }, 6600);
   }
 
   async function setSnipePriceNow() {
@@ -709,6 +773,7 @@ function LiveDetail() {
       winner_username: null,
       snipe_extends: 0,
       snipe_price: null,
+      sudden_death_active: false,
     }).eq("id", id);
     endedRef.current = false;
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}`, true);
@@ -903,7 +968,7 @@ function LiveDetail() {
       update.starting_bid = start;
       update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
       update.winner_id = null; update.winning_bid = null; update.winner_username = null;
-      update.snipe_extends = 0; update.snipe_price = null;
+      update.snipe_extends = 0; update.snipe_price = null; update.sudden_death_active = false;
       endedRef.current = false; snapshotRef.current = false;
     }
     supabase.from("live_streams").update(update).eq("id", id);
@@ -1020,9 +1085,33 @@ function LiveDetail() {
         </div>
       </div>
 
+      {/* 🆕 Always-visible auction timer (regardless of pin state) */}
+      {auctionLive && (
+        <div className="pointer-events-none absolute left-1/2 top-14 z-20 -translate-x-1/2">
+          <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-extrabold tabular-nums shadow-2xl ring-2 transition ${
+            stream.sudden_death_active
+              ? "bg-red-600 text-white ring-red-300 animate-pulse"
+              : snipeFlash
+                ? "bg-yellow-400 text-black ring-yellow-200 scale-110"
+                : remaining <= 5000
+                  ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
+                  : "bg-live text-live-foreground ring-white/30"
+          }`}>
+            {stream.sudden_death_active ? <Zap className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
+            <span>{fmtRemaining(remaining)}</span>
+            {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
+              <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">+{stream.snipe_extends}/3 OT</span>
+            )}
+            {stream.sudden_death_active && (
+              <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">Sudden Death</span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
-        <div className="absolute left-3 right-3 top-14 z-10">
+        <div className={`absolute left-3 right-3 z-10 ${auctionLive ? "top-28" : "top-14"}`}>
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
@@ -1240,23 +1329,27 @@ function LiveDetail() {
                 {breakSlots.length}/{stream.break_slot_count} taken
               </span>
             </div>
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
+                const charLabel =
+                  (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
+                  `${stream.break_slot_prefix || "#"}${n}`;
                 return (
                   <button
                     key={n}
                     onClick={() => !taken && claimBreakSlotNumber(n)}
                     disabled={!!taken}
-                    title={taken ? `@${taken.buyer_username}` : `Claim #${n}`}
-                    className={`aspect-square rounded-lg text-xs font-extrabold transition ${
+                    title={taken ? `@${taken.buyer_username}` : `Claim ${charLabel}`}
+                    className={`flex min-h-[44px] flex-col items-center justify-center rounded-lg px-1 py-1 text-[10px] font-extrabold leading-tight transition ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
                       taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
                       "bg-white text-black active:scale-95 hover:bg-pink-200"
                     }`}
                   >
-                    {stream.break_slot_prefix || "#"}{n}
+                    <span className="line-clamp-2 text-center">{charLabel}</span>
+                    {taken && <span className="text-[8px] opacity-70">@{taken.buyer_username}</span>}
                   </button>
                 );
               })}
@@ -1626,65 +1719,121 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🆕 Mystery Break panel (host opens, sets teams + price) */}
+      {/* 🆕 Mystery Break panel — character editor + live claims + spin reveal */}
       {showBreakPanel && isSeller && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowBreakPanel(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
-            <div className="mb-2 flex items-center justify-between">
+          <div onClick={(e) => e.stopPropagation()} className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-card text-foreground shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/50 p-4 pb-3">
               <p className="flex items-center gap-1.5 text-sm font-bold"><Dice5 className="h-4 w-4 text-primary" /> Mystery Break</p>
               <button onClick={() => setShowBreakPanel(false)}><X className="h-4 w-4" /></button>
             </div>
-            <p className="mb-2 text-[11px] text-muted-foreground">
-              Pick how many slots (1–50). Buyers tap a number to claim it. When you're ready, close claims to lock the board — or roll an auction per slot.
-            </p>
-            <div className="mb-2 grid grid-cols-2 gap-2">
-              <label className="text-[11px] text-muted-foreground">
-                Slot count
-                <input type="number" min="2" max="50" value={breakSlotCount}
-                  onChange={(e) => setBreakSlotCount(e.target.value)}
-                  disabled={stream.break_mode === "open"}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none disabled:opacity-50" />
-              </label>
-              <label className="text-[11px] text-muted-foreground">
-                Price/slot $
-                <input type="number" min="1" value={breakPrice}
-                  onChange={(e) => setBreakPrice(e.target.value)}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
-              </label>
-            </div>
-            <label className="mb-3 block text-[11px] text-muted-foreground">
-              Label prefix (optional)
-              <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 8))}
-                disabled={stream.break_mode === "open"}
-                placeholder='e.g. "Box" → Box1, Box2…'
-                className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
-            </label>
 
-            {stream.break_mode === "open" ? (
-              <>
-                <div className="mb-2 max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <p className="mb-1 font-semibold">Claimed: {breakSlots.length}/{stream.break_slot_count}</p>
-                  {[...breakSlots].sort((a, b) => (a.slot_number || 0) - (b.slot_number || 0)).map((s) => (
-                    <div key={s.id} className="flex items-center justify-between py-0.5">
-                      <span className="font-bold text-primary">{stream.break_slot_prefix || "#"}{s.slot_number}</span>
-                      <span>@{s.buyer_username}</span>
-                    </div>
-                  ))}
-                  {breakSlots.length === 0 && <p className="text-muted-foreground">Waiting for buyers to claim…</p>}
-                </div>
+            <div className="overflow-y-auto p-4">
+              <p className="mb-3 text-[11px] text-muted-foreground">
+                Name each slot (Charizard, Team A, Box #3 — anything). Buyers tap to claim. When all are claimed, hit <b>Spin reveal</b> and a fun wheel pops out for everyone.
+              </p>
+
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <label className="text-[11px] text-muted-foreground">
+                  Slot count
+                  <input type="number" min="2" max="50" value={breakSlotCount}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setBreakSlotCount(v);
+                      const n = Math.max(2, Math.min(50, Number(v) || 0));
+                      setBreakCharacters((arr) => {
+                        if (n <= arr.length) return arr.slice(0, n);
+                        return [...arr, ...Array.from({ length: n - arr.length }, (_, i) => `Character ${arr.length + i + 1}`)];
+                      });
+                    }}
+                    disabled={stream.break_mode === "open"}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none disabled:opacity-50" />
+                </label>
+                <label className="text-[11px] text-muted-foreground">
+                  Price/slot $
+                  <input type="number" min="1" value={breakPrice}
+                    onChange={(e) => setBreakPrice(e.target.value)}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
+                </label>
+              </div>
+
+              {/* Character roster — one input per slot */}
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-muted-foreground">Slot names ({Math.max(2, Math.min(50, Number(breakSlotCount) || 0))})</p>
                 <button
-                  onClick={closeBreakClaims}
-                  disabled={drawAnim}
-                  className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
+                  type="button"
+                  disabled={stream.break_mode === "open" || (Number(breakSlotCount) || 0) >= 50}
+                  onClick={() => {
+                    const next = Math.min(50, (Number(breakSlotCount) || 0) + 1);
+                    setBreakSlotCount(String(next));
+                    setBreakCharacters((arr) => [...arr, `Character ${arr.length + 1}`]);
+                  }}
+                  className="flex items-center gap-1 rounded-md bg-primary/15 px-2 py-1 text-[10px] font-bold text-primary disabled:opacity-50"
                 >
-                  {drawAnim ? "Locking…" : "🔒 Close claims"}
+                  <Plus className="h-3 w-3" /> Add slot
                 </button>
-              </>
-            ) : (
-              <button onClick={startBreakMode} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
-                <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
-              </button>
-            )}
+              </div>
+              <div className="mb-3 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border/50 bg-muted/20 p-2">
+                {Array.from({ length: Math.max(2, Math.min(50, Number(breakSlotCount) || 0)) }, (_, i) => {
+                  const taken = breakSlots.find((s) => s.slot_number === i + 1);
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-6 shrink-0 text-center text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+                      <input
+                        value={breakCharacters[i] ?? ""}
+                        onChange={(e) => setBreakCharacters((arr) => {
+                          const next = [...arr];
+                          next[i] = e.target.value;
+                          return next;
+                        })}
+                        disabled={stream.break_mode === "open"}
+                        placeholder={`Character ${i + 1}`}
+                        className="flex-1 rounded-md bg-input px-2 py-1.5 text-xs outline-none disabled:opacity-60"
+                      />
+                      {taken ? (
+                        <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">@{taken.buyer_username}</span>
+                      ) : (
+                        <span className="w-14 shrink-0 text-right text-[9px] text-muted-foreground">open</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <label className="mb-3 block text-[11px] text-muted-foreground">
+                Default prefix (used when a slot name is left blank)
+                <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 12))}
+                  disabled={stream.break_mode === "open"}
+                  placeholder='e.g. "Box "'
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
+              </label>
+
+              {stream.break_mode === "open" ? (
+                <div className="space-y-2">
+                  <div className="rounded-lg bg-muted/40 p-2 text-[11px]">
+                    <p className="font-semibold">Claimed: {breakSlots.length}/{stream.break_slot_count}</p>
+                  </div>
+                  <button
+                    onClick={spinBreakWheel}
+                    disabled={breakSlots.length === 0 || stream.break_wheel_spinning}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
+                  >
+                    <RotateCw className="h-4 w-4" /> {stream.break_wheel_spinning ? "Spinning…" : "🎡 Spin reveal wheel"}
+                  </button>
+                  <button
+                    onClick={closeBreakClaims}
+                    disabled={drawAnim}
+                    className="w-full rounded-lg bg-card-foreground/10 py-2 text-xs font-bold text-foreground disabled:opacity-50"
+                  >
+                    {drawAnim ? "Locking…" : "🔒 Close claims"}
+                  </button>
+                </div>
+              ) : (
+                <button onClick={startBreakMode} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+                  <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1699,6 +1848,63 @@ function LiveDetail() {
           </div>
         </div>
       )}
+
+      {/* 🆕 BREAK REVEAL WHEEL — fullscreen, fun, visible to ALL viewers */}
+      {(stream.break_wheel_spinning || stream.break_wheel_last_winner_username) && (() => {
+        const claimed = [...breakSlots].filter((s) => s.slot_number != null).sort((a, b) => a.slot_number - b.slot_number);
+        if (claimed.length === 0) return null;
+        const palette = ["#ec4899","#7c3aed","#f59e0b","#10b981","#3b82f6","#ef4444","#06b6d4","#a855f7","#14b8a6","#f97316"];
+        const wheelSlots: WheelSlot[] = claimed.map((s, i) => ({
+          id: String(s.slot_number),
+          label: s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`,
+          weight: 1,
+          color: palette[i % palette.length],
+          is_active: true,
+        }));
+        const targetId = stream.break_wheel_target_slot != null ? String(stream.break_wheel_target_slot) : null;
+        const startedAt = stream.break_wheel_started_at ? new Date(stream.break_wheel_started_at).getTime() : null;
+        const finishAt = stream.break_wheel_ends_at ? new Date(stream.break_wheel_ends_at).getTime() : null;
+        const winnerLabel = stream.break_wheel_last_winner_label;
+        const winnerUser = stream.break_wheel_last_winner_username;
+        return (
+          <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-gradient-to-br from-purple-900/95 via-black/90 to-pink-900/95 p-4 backdrop-blur-sm animate-in fade-in">
+            {isSeller && !stream.break_wheel_spinning && (
+              <button
+                onClick={async () => {
+                  await supabase.from("live_streams").update({
+                    break_wheel_last_winner_username: null,
+                    break_wheel_last_winner_label: null,
+                    break_wheel_target_slot: null,
+                  }).eq("id", id);
+                }}
+                className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white"
+              ><X className="h-5 w-5" /></button>
+            )}
+            <p className="mb-1 flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-amber-300">
+              <Dice5 className="h-3.5 w-3.5" /> Mystery Break Reveal
+            </p>
+            <p className="mb-4 text-[11px] text-white/70">{claimed.length} contenders · the wheel decides</p>
+            <SpinWheel
+              slots={wheelSlots}
+              spinning={!!stream.break_wheel_spinning}
+              targetSlotId={targetId}
+              startedAt={startedAt}
+              finishAt={finishAt}
+              size={Math.min(360, typeof window !== "undefined" ? Math.min(window.innerWidth, window.innerHeight) - 180 : 320)}
+            />
+            {!stream.break_wheel_spinning && winnerLabel && winnerUser && (
+              <div className="mt-6 w-full max-w-sm rounded-2xl bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 p-4 text-center shadow-2xl ring-2 ring-white/30 animate-in zoom-in">
+                <Trophy className="mx-auto h-8 w-8 text-white" />
+                <p className="mt-1 text-lg font-extrabold tracking-tight text-white">{winnerLabel}</p>
+                <p className="text-sm font-bold text-white/90">goes to @{winnerUser} 🎉</p>
+              </div>
+            )}
+            {stream.break_wheel_spinning && (
+              <p className="mt-4 animate-pulse text-sm font-bold text-amber-200">🎡 Spinning…</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 🆕 Spin Wheel — fullscreen overlay (visible to ALL viewers when open) */}
       {showWheelOverlay && wheel && (
