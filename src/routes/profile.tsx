@@ -33,6 +33,8 @@ function Profile() {
   const [p, setP] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -45,6 +47,8 @@ function Profile() {
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
+    supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", user.id).then(({ count }) => setFollowers(count || 0));
+    supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => setFollowing(count || 0));
   }, [user]);
 
   // Check whether approved sellers have already signed the Seller Agreement.
@@ -224,6 +228,12 @@ function Profile() {
             <p className="truncate text-lg font-bold">@{p.username}</p>
             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
             {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">User ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
+            <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+              <Link to="/seller/$username" params={{ username: p.username }} className="hover:text-foreground">
+                <span className="font-bold text-foreground">{followers}</span> followers
+              </Link>
+              <span><span className="font-bold text-foreground">{following}</span> following</span>
+            </div>
             <div className="mt-1 flex flex-wrap gap-1">
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
               <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />

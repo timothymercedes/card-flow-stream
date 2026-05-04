@@ -25,19 +25,25 @@ function MyStore() {
   const [carrier, setCarrier] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"listings" | "to_ship" | "in_transit" | "delivered" | "reviews">("listings");
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
 
   async function load() {
     if (!user) return;
-    const [ord, list, revs, prof] = await Promise.all([
+    const [ord, list, revs, prof, fr, fg] = await Promise.all([
       supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("seller_reviews").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle(),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", user.id),
+      supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id),
     ]);
     setOrders(ord.data || []);
     setListings(list.data || []);
     setReviews(revs.data || []);
     setPayoutStatus((prof.data as any)?.stripe_onboarding_status || "not_started");
+    setFollowers(fr.count || 0);
+    setFollowing(fg.count || 0);
   }
   useEffect(() => { load(); }, [user]);
 
@@ -108,7 +114,11 @@ function MyStore() {
     <AppShell>
       <div className="px-4 py-4">
         <h1 className="mb-1 text-2xl font-bold">My Store</h1>
-        <p className="mb-4 text-xs text-muted-foreground">Items you've sold via live or marketplace</p>
+        <p className="mb-2 text-xs text-muted-foreground">Items you've sold via live or marketplace</p>
+        <div className="mb-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span><span className="font-bold text-foreground">{followers}</span> followers</span>
+          <span><span className="font-bold text-foreground">{following}</span> following</span>
+        </div>
 
         {payoutStatus !== "complete" && (
           <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-card p-3">
