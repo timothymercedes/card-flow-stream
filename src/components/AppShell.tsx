@@ -3,6 +3,7 @@ import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package } from "lu
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo.png";
 
 const baseTabs = [
   { to: "/", label: "Home", icon: Home },
@@ -33,8 +34,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">P</div>
-          <div className="text-sm font-bold tracking-wide">PULL BID <span className="text-live">LIVE</span></div>
+          <img src={logo} alt="PullBid Live" className="h-10 w-10 object-contain" />
+          <div className="text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
         <div className="flex items-center gap-2">
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
