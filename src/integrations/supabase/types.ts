@@ -452,6 +452,36 @@ export type Database = {
           },
         ]
       }
+      post_edits: {
+        Row: {
+          action: string
+          edited_at: string
+          id: string
+          post_id: string
+          prev_caption: string | null
+          prev_image_url: string | null
+          user_id: string
+        }
+        Insert: {
+          action?: string
+          edited_at?: string
+          id?: string
+          post_id: string
+          prev_caption?: string | null
+          prev_image_url?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          edited_at?: string
+          id?: string
+          post_id?: string
+          prev_caption?: string | null
+          prev_image_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_reactions: {
         Row: {
           created_at: string
@@ -587,6 +617,7 @@ export type Database = {
           estimated_value: number | null
           id: string
           image_url: string | null
+          last_valued_at: string | null
           name: string
           price: number | null
           user_id: string
@@ -598,6 +629,7 @@ export type Database = {
           estimated_value?: number | null
           id?: string
           image_url?: string | null
+          last_valued_at?: string | null
           name: string
           price?: number | null
           user_id: string
@@ -609,6 +641,7 @@ export type Database = {
           estimated_value?: number | null
           id?: string
           image_url?: string | null
+          last_valued_at?: string | null
           name?: string
           price?: number | null
           user_id?: string

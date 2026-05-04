@@ -23,6 +23,7 @@ function Vault() {
   const [scanning, setScanning] = useState(false);
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
+  const [actionFor, setActionFor] = useState<Card | null>(null);
 
   // add form
   const [name, setName] = useState("");
@@ -58,11 +59,27 @@ function Vault() {
 
   async function add() {
     if (!name.trim()) return toast.error("Card name required");
+    let identified = { name, category: category || "Trading Card", estimated_value: Number(estValue) || 0 };
+    // If user typed but didn't scan/value, try TCG identification + valuation via AI
+    if (!estValue || !category) {
+      try {
+        const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: name } });
+        if (!error && data) {
+          identified = {
+            name: data.name || name,
+            category: category || data.category || "Trading Card",
+            estimated_value: Number(estValue) || Number(data.estimated_value) || 0,
+          };
+          toast.success(`Identified: ${identified.name} (~$${identified.estimated_value})`);
+        }
+      } catch {/* ignore */}
+    }
     const { error } = await supabase.from("vault_cards").insert({
-      user_id: user!.id, name, category: category || null, image_url: imageUrl || null,
+      user_id: user!.id, name: identified.name, category: identified.category, image_url: imageUrl || null,
       description: description || null,
-      estimated_value: Number(estValue) || 0,
+      estimated_value: identified.estimated_value,
       price: price ? Number(price) : null,
+      last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
     resetForm(); setShowAdd(false);
@@ -166,30 +183,42 @@ function Vault() {
         {cards.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Your vault is empty</p>}
         <div className="grid grid-cols-2 gap-3">
           {cards.map((c) => (
-            <div key={c.id} className="overflow-hidden rounded-xl bg-card">
+            <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
               <div className="aspect-square bg-muted">
                 {c.image_url ? <img src={c.image_url} className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
               </div>
               <div className="p-2">
-                <div className="flex items-start justify-between gap-1">
-                  <div className="min-w-0">
-                    <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{c.category || "—"}</p>
-                    <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value || 0).toFixed(2)}</p>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => setEditing(c)} className="text-muted-foreground"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => remove(c.id)} className="text-muted-foreground"><Trash2 className="h-3.5 w-3.5" /></button>
-                  </div>
-                </div>
-                <button onClick={() => setSelling(c)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-primary py-1.5 text-[11px] font-bold text-primary-foreground">
-                  <Tag className="h-3 w-3" /> Sell this card
-                </button>
+                <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                <p className="text-[10px] text-muted-foreground">{c.category || "—"}</p>
+                <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value || 0).toFixed(2)}</p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Card action sheet */}
+      {actionFor && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setActionFor(null)}>
+          <div className="w-full max-w-sm space-y-2 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="font-bold">{actionFor.name}</p>
+              <button onClick={() => setActionFor(null)}><X className="h-4 w-4" /></button>
+            </div>
+            {actionFor.image_url && <img src={actionFor.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
+            <p className="text-xs text-muted-foreground">{actionFor.category || "—"} • Est. ${Number(actionFor.estimated_value || 0).toFixed(2)}</p>
+            <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
+              <Tag className="h-4 w-4" /> Sell this card
+            </button>
+            <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
+              <Pencil className="h-4 w-4" /> Edit
+            </button>
+            <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
+              <Trash2 className="h-4 w-4" /> Delete
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Edit modal */}
       {editing && (

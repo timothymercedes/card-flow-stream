@@ -22,6 +22,7 @@ import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
@@ -88,6 +89,12 @@ const LiveIdRoute = LiveIdRouteImport.update({
   path: '/live/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksRefreshVaultValuesRoute =
+  ApiPublicHooksRefreshVaultValuesRouteImport.update({
+    id: '/api/public/hooks/refresh-vault-values',
+    path: '/api/public/hooks/refresh-vault-values',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +126,7 @@ export interface FileRoutesByTo {
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
+  '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +143,7 @@ export interface FileRoutesById {
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/live/'
     | '/market/'
     | '/messages/'
+    | '/api/public/hooks/refresh-vault-values'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/live'
     | '/market'
     | '/messages'
+    | '/api/public/hooks/refresh-vault-values'
   id:
     | '__root__'
     | '/'
@@ -181,6 +193,7 @@ export interface FileRouteTypes {
     | '/live/'
     | '/market/'
     | '/messages/'
+    | '/api/public/hooks/refresh-vault-values'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +210,7 @@ export interface RootRouteChildren {
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
+  ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/refresh-vault-values': {
+      id: '/api/public/hooks/refresh-vault-values'
+      path: '/api/public/hooks/refresh-vault-values'
+      fullPath: '/api/public/hooks/refresh-vault-values'
+      preLoaderRoute: typeof ApiPublicHooksRefreshVaultValuesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
+  ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
