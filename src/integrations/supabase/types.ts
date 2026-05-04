@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          actor_id: string | null
+          actor_username: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          stream_id: string | null
+          target_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_username?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          stream_id?: string | null
+          target_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_username?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          stream_id?: string | null
+          target_id?: string | null
+        }
+        Relationships: []
+      }
       break_slots: {
         Row: {
           amount: number
@@ -155,6 +188,60 @@ export type Database = {
         }
         Relationships: []
       }
+      disputes: {
+        Row: {
+          created_at: string
+          description: string
+          evidence_urls: string[] | null
+          id: string
+          order_id: string | null
+          reason: string
+          reported_user_id: string | null
+          reporter_id: string
+          reporter_username: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          stream_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          evidence_urls?: string[] | null
+          id?: string
+          order_id?: string | null
+          reason: string
+          reported_user_id?: string | null
+          reporter_id: string
+          reporter_username: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          stream_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          evidence_urls?: string[] | null
+          id?: string
+          order_id?: string | null
+          reason?: string
+          reported_user_id?: string | null
+          reporter_id?: string
+          reporter_username?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          stream_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -271,6 +358,36 @@ export type Database = {
           updated_at?: string
           winner_id?: string | null
           winner_username?: string | null
+        }
+        Relationships: []
+      }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          document_type: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          document_type: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+          version?: string
+        }
+        Update: {
+          accepted_at?: string
+          document_type?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string
+          version?: string
         }
         Relationships: []
       }
@@ -1463,6 +1580,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_suspensions: {
+        Row: {
+          active: boolean
+          by_admin_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          reason: string
+          type: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          active?: boolean
+          by_admin_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason: string
+          type?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          active?: boolean
+          by_admin_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          type?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       vault_cards: {
         Row: {
           back_image_url: string | null
@@ -1711,6 +1864,7 @@ export type Database = {
         Args: { _stream_id: string; _user: string }
         Returns: boolean
       }
+      is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
