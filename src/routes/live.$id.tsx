@@ -1875,6 +1875,7 @@ function LiveDetail() {
               </button>
             )}
           </div>
+          </>
         )}
         {isSeller && !ended && (
           <div className="flex flex-wrap gap-2">
