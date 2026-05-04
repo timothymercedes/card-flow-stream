@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
+import { Route as StoreRouteImport } from './routes/store'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrdersRouteImport } from './routes/orders'
@@ -27,6 +28,11 @@ import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/a
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
   path: '/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellRoute = SellRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/sell'
+    | '/store'
     | '/vault'
     | '/live/$id'
     | '/market/$id'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/sell'
+    | '/store'
     | '/vault'
     | '/live/$id'
     | '/market/$id'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/sell'
+    | '/store'
     | '/vault'
     | '/live/$id'
     | '/market/$id'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   OrdersRoute: typeof OrdersRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
+  StoreRoute: typeof StoreRoute
   VaultRoute: typeof VaultRoute
   LiveIdRoute: typeof LiveIdRoute
   MarketIdRoute: typeof MarketIdRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/vault'
       fullPath: '/vault'
       preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersRoute: OrdersRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
+  StoreRoute: StoreRoute,
   VaultRoute: VaultRoute,
   LiveIdRoute: LiveIdRoute,
   MarketIdRoute: MarketIdRoute,
