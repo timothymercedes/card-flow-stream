@@ -34,6 +34,13 @@ function LiveDetail() {
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [pinned, setPinned] = useState(true);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tagResults, setTagResults] = useState<any[]>([]);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUsers, setShareUsers] = useState<any[]>([]);
+  const [shareQuery, setShareQuery] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
