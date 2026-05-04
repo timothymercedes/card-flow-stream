@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users } from "lucide-react";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
