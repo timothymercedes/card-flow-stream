@@ -10,6 +10,7 @@ import { CardScanner } from "@/components/CardScanner";
 export const Route = createFileRoute("/vault")({ component: Vault });
 
 type Condition = "NM" | "LP" | "MP" | "Damaged";
+type Visibility = "private" | "followers" | "friends" | "public";
 type ConditionPrices = { NM?: number; LP?: number; MP?: number; Damaged?: number };
 type Card = {
   id: string; user_id: string; name: string; category: string | null;
@@ -18,6 +19,7 @@ type Card = {
   tcg_number?: string | null; tcg_set?: string | null; tcg_year?: string | null;
   condition?: Condition | null;
   condition_prices?: ConditionPrices | null;
+  visibility?: Visibility | null;
 };
 
 function Vault() {
