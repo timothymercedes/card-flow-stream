@@ -467,7 +467,17 @@ function LiveDetail() {
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
+    // 🆕 Slow-mode (host & mods bypass)
+    const slow = Math.max(0, Number((stream as any)?.chat_slow_mode_sec || 0));
+    if (slow > 0 && !isSeller && !isMod) {
+      const since = Date.now() - lastChatTsRef.current;
+      if (since < slow * 1000) {
+        const wait = Math.ceil((slow * 1000 - since) / 1000);
+        return toast.error(`Slow mode: wait ${wait}s before chatting again`);
+      }
+    }
     await sendMsg(input);
+    lastChatTsRef.current = Date.now();
     setInput("");
   }
 
