@@ -1404,6 +1404,35 @@ function LiveDetail() {
         </>
       )}
 
+      {/* Persistent "Latest Winner" pill — stays on screen until a new winner replaces it */}
+      {(() => {
+        // Pick the most recent winner across bid + giveaway + wheel.
+        const candidates: { ts: number; label: string; sub?: string; kind: string }[] = [];
+        const sLastBidUser = (stream as any)?.last_winner_username;
+        const sLastBidAmt = Number((stream as any)?.last_winning_bid || 0);
+        const sLastBidAt = (stream as any)?.last_winner_at ? new Date((stream as any).last_winner_at).getTime() : 0;
+        if (sLastBidUser) candidates.push({ ts: sLastBidAt, label: `@${sLastBidUser}`, sub: sLastBidAmt ? `${fmtMoney(sLastBidAmt)} bid` : "Bid winner", kind: "🏆" });
+        const gWinner = activeGiveaway?.winner_username;
+        const gAt = activeGiveaway?.drawn_at ? new Date(activeGiveaway.drawn_at).getTime() : 0;
+        if (gWinner && activeGiveaway?.status === "complete") candidates.push({ ts: gAt, label: `@${gWinner}`, sub: activeGiveaway.prize_label || "Gift winner", kind: "🎁" });
+        const wWinner = wheel?.last_winner_username;
+        const wAt = wheel?.last_winner_at ? new Date(wheel.last_winner_at).getTime() : 0;
+        if (wWinner) candidates.push({ ts: wAt, label: `@${wWinner}`, sub: wheel.last_winner_slot_label || "Wheel winner", kind: "🎡" });
+        const latest = candidates.sort((a, b) => b.ts - a.ts)[0];
+        // Don't double up with the big slam-in banner
+        const slamming = (auctionFinished || ended) && stream.winner_username && pinned;
+        if (!latest || slamming) return null;
+        return (
+          <div className="pointer-events-none absolute left-2 top-28 z-20">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-lg backdrop-blur ring-1 ring-white/15">
+              <span>{latest.kind}</span>
+              <span className="text-white">{latest.label}</span>
+              {latest.sub && <span className="text-white/70 font-semibold">· {latest.sub}</span>}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Stream switcher */}
       {allStreams.length > 1 && !ended && (
         <>
