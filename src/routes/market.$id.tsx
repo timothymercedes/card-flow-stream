@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
+import { ReportDialog } from "@/components/ReportDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
@@ -188,7 +189,10 @@ function ListingDetail() {
         <div className="mt-1 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">@{seller?.username || "seller"}</p>
           {!isSeller && seller && (
-            <Link to="/messages/$userId" params={{ userId: seller.id }} className="flex items-center gap-1 text-xs font-semibold text-primary"><MessageCircle className="h-3 w-3" /> Message</Link>
+            <div className="flex items-center gap-2">
+              <Link to="/messages/$userId" params={{ userId: seller.id }} className="flex items-center gap-1 text-xs font-semibold text-primary"><MessageCircle className="h-3 w-3" /> Message</Link>
+              <ReportDialog targetType="listing" targetId={listing.id} targetLabel={listing.title} />
+            </div>
           )}
           {isSeller && (
             <Link to="/my-listings" className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold">
