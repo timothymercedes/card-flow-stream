@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
+import { ReportDialog } from "@/components/ReportDialog";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
