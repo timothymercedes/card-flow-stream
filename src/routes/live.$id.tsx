@@ -1577,21 +1577,16 @@ function LiveDetail() {
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
       {(() => {
-        const annMsgs = messages.filter((m) => m.is_announcement && !dismissedAnnouncementIds.has(m.id) && !(/Appreciation Gift opened/i.test(String(m.content || "")) && giveawayStatus && giveawayStatus !== "open"));
+        // Always hide the giveaway-open announcement — the top-right chip already shows the live countdown.
+        const annMsgs = messages.filter((m) => m.is_announcement && !dismissedAnnouncementIds.has(m.id) && !/Appreciation Gift opened/i.test(String(m.content || "")));
         if (annMsgs.length === 0) return null;
-        const giveawayEndsAt = activeGiveaway?.status === "open" && activeGiveaway?.ends_at ? new Date(activeGiveaway.ends_at).getTime() : 0;
         return (
           <div className="pointer-events-none absolute left-2 right-14 top-16 z-20 flex flex-col items-stretch gap-1">
             {annMsgs.slice(-3).map((m) => {
-              const isGiveawayOpenAnn = /Appreciation Gift opened/i.test(String(m.content || ""));
-              const secsLeft = isGiveawayOpenAnn && giveawayEndsAt ? Math.max(0, Math.ceil((giveawayEndsAt - now) / 1000)) : 0;
               return (
                 <div key={m.id} className="pointer-events-auto relative rounded-lg border border-accent/60 bg-gradient-to-r from-accent/70 to-primary/70 py-1.5 pl-3 pr-7 text-[11px] font-bold text-white shadow-lg backdrop-blur">
                   <span className="mr-1 rounded bg-accent px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-accent-foreground">Announcement</span>
                   @{m.username}: {m.content.replace(/^📢\s*/, "")}
-                  {isGiveawayOpenAnn && secsLeft > 0 && (
-                    <span className="ml-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] tabular-nums">⏱ {secsLeft}s</span>
-                  )}
                   <button
                     onClick={() => setDismissedAnnouncementIds((s) => new Set(s).add(m.id))}
                     className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-white/90 hover:bg-black"
