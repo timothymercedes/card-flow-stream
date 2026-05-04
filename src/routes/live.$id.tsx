@@ -133,6 +133,9 @@ function LiveDetail() {
   const [editQuantity, setEditQuantity] = useState("1");
   const [editVoiceEnabled, setEditVoiceEnabled] = useState(false);
   const [editVoicePhrase, setEditVoicePhrase] = useState("next");
+  // 🆕 Chat slow-mode (seconds between messages per viewer; 0 = off)
+  const [editSlowMode, setEditSlowMode] = useState("0");
+  const lastChatTsRef = useRef<number>(0);
 
   useEffect(() => {
     supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setAllStreams(data || []));
@@ -150,6 +153,7 @@ function LiveDetail() {
         setEditQuantity(String(data.quick_start_quantity || 1));
         setEditVoiceEnabled(!!data.voice_trigger_enabled);
         setEditVoicePhrase(data.voice_trigger_phrase || "next");
+        setEditSlowMode(String((data as any).chat_slow_mode_sec ?? 0));
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
@@ -463,7 +467,17 @@ function LiveDetail() {
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
+    // 🆕 Slow-mode (host & mods bypass)
+    const slow = Math.max(0, Number((stream as any)?.chat_slow_mode_sec || 0));
+    if (slow > 0 && !isSeller && !isMod) {
+      const since = Date.now() - lastChatTsRef.current;
+      if (since < slow * 1000) {
+        const wait = Math.ceil((slow * 1000 - since) / 1000);
+        return toast.error(`Slow mode: wait ${wait}s before chatting again`);
+      }
+    }
     await sendMsg(input);
+    lastChatTsRef.current = Date.now();
     setInput("");
   }
 
@@ -876,6 +890,7 @@ function LiveDetail() {
       quick_start_quantity: qty,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
+      chat_slow_mode_sec: Math.max(0, Math.min(300, Number(editSlowMode) || 0)),
     }).eq("id", id);
     toast.success("Settings saved");
   }
@@ -1393,6 +1408,33 @@ function LiveDetail() {
               <button onClick={saveAuctionDefaults} className="mt-2 w-full rounded-md bg-card-foreground/10 py-1.5 text-[11px] font-bold">
                 💾 Save voice & quantity
               </button>
+            </div>
+
+            {/* 🆕 Chat slow-mode */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center justify-between text-xs font-bold">
+                <span className="flex items-center gap-1.5">🐢 Slow chat
+                  {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
+                      {(stream as any).chat_slow_mode_sec}s
+                    </span>
+                  )}
+                </span>
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Limit how often each viewer can chat. Host & mods bypass.</p>
+              <div className="mt-2 grid grid-cols-5 gap-1">
+                {[0, 3, 5, 10, 30].map((s) => (
+                  <button key={s} type="button"
+                    onClick={async () => {
+                      setEditSlowMode(String(s));
+                      await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                      sendMsg(s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s between messages`, true);
+                    }}
+                    className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                    {s === 0 ? "Off" : `${s}s`}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">

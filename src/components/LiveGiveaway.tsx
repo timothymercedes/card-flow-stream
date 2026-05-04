@@ -65,7 +65,7 @@ export function LiveGiveaway({
   const [draftCode, setDraftCode] = useState(suggestCode());
   const [draftEligibility, setDraftEligibility] = useState<"anyone" | "followers" | "buyers">("anyone");
   const [draftDuration, setDraftDuration] = useState<number>(60); // seconds
-  const [draftQuantity, setDraftQuantity] = useState<number>(1);
+  // Quantity is locked to 1 winner per Appreciation Gift (per host policy)
 
   // Letter-tap mini game state
   const [tapStep, setTapStep] = useState(0);            // 0..code.length
@@ -174,7 +174,7 @@ export function LiveGiveaway({
     if (!prize) return toast.error("Add a prize label");
     if (code.length < 2 || code.length > 5) return toast.error("Code must be 2–5 letters");
     const dur = Math.max(15, Math.min(600, Math.floor(draftDuration || 60)));
-    const qty = Math.max(1, Math.min(50, Math.floor(draftQuantity || 1)));
+    const qty = 1; // 🆕 Locked: 1 winner per Appreciation Gift
     const ends = new Date(Date.now() + dur * 1000).toISOString();
     const { error } = await supabase.from("giveaways").insert({
       stream_id: streamId, seller_id: userId,
@@ -185,7 +185,7 @@ export function LiveGiveaway({
     if (error) return toast.error(error.message);
     setHostOpenComposer(false);
     setDraftPrize(""); setDraftCode(suggestCode());
-    toast.success(`Appreciation Gift opened — ${dur}s · ${qty} winner${qty > 1 ? "s" : ""}`);
+    toast.success(`Appreciation Gift opened — ${dur}s · 1 winner`);
   }
 
   async function startDraw() {
@@ -296,30 +296,20 @@ export function LiveGiveaway({
             </div>
             <p className="mb-3 text-[10px] text-muted-foreground">Viewers see letters drop and must tap them in order. Wrong tap = restart.</p>
 
-            {/* 🆕 Duration + Quantity */}
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              <div>
-                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Duration</p>
-                <div className="flex items-center gap-1">
-                  <input type="number" min={15} max={600} value={draftDuration}
-                    onChange={(e) => setDraftDuration(Number(e.target.value) || 60)}
-                    className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
-                  <span className="text-[11px] text-muted-foreground">sec</span>
-                  {[30, 60, 120].map((s) => (
-                    <button key={s} type="button" onClick={() => setDraftDuration(s)}
-                      className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${draftDuration === s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>{s}s</button>
-                  ))}
-                </div>
+            {/* 🆕 Duration only — winners locked to 1 per Appreciation Gift */}
+            <div className="mb-3">
+              <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Duration</p>
+              <div className="flex items-center gap-1">
+                <input type="number" min={15} max={600} value={draftDuration}
+                  onChange={(e) => setDraftDuration(Number(e.target.value) || 60)}
+                  className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
+                <span className="text-[11px] text-muted-foreground">sec</span>
+                {[30, 60, 120].map((s) => (
+                  <button key={s} type="button" onClick={() => setDraftDuration(s)}
+                    className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${draftDuration === s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>{s}s</button>
+                ))}
               </div>
-              <div>
-                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Winners</p>
-                <div className="flex items-center gap-1">
-                  <input type="number" min={1} max={50} value={draftQuantity}
-                    onChange={(e) => setDraftQuantity(Number(e.target.value) || 1)}
-                    className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
-                  <span className="text-[11px] text-muted-foreground">qty</span>
-                </div>
-              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">🏆 1 winner per gift. Viewers must join the live & tap the code to enter.</p>
             </div>
 
             <div className="mb-3">
@@ -363,7 +353,7 @@ export function LiveGiveaway({
             <p className="text-center text-[11px] uppercase tracking-widest text-emerald-300">Prize</p>
             <p className="mb-1 text-center text-xl font-extrabold">{giveaway.prize_label}</p>
             <p className="mb-2 flex items-center justify-center gap-2 text-[10px] text-white/60">
-              <Truck className="h-3 w-3" /> Free shipping · {entries.length} {entries.length === 1 ? "entry" : "entries"} · {giveaway.quantity || 1} winner{(giveaway.quantity || 1) > 1 ? "s" : ""}
+              <Truck className="h-3 w-3" /> Free shipping · {entries.length} {entries.length === 1 ? "entry" : "entries"} · 1 winner
             </p>
             {giveaway.ends_at && (
               <div className={`mb-3 mx-auto w-fit rounded-full px-3 py-1 text-xs font-extrabold tabular-nums ${remainingMs <= 5000 ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500/20 text-emerald-200"}`}>
