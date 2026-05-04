@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -95,9 +95,10 @@ function LiveDetail() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
-  // Seller: start camera preview
+  // Seller: start camera preview (skip if seller is broadcasting via OBS)
+  const usingObs = !!stream?.cf_playback_hls;
   useEffect(() => {
-    if (!isSeller || !stream || stream.status !== "live") return;
+    if (!isSeller || !stream || stream.status !== "live" || usingObs) return;
     let cancelled = false;
     (async () => {
       try {
@@ -108,7 +109,7 @@ function LiveDetail() {
       } catch {/* ignore */}
     })();
     return () => { cancelled = true; camStream.current?.getTracks().forEach((t) => t.stop()); camStream.current = null; };
-  }, [isSeller, stream?.status]);
+  }, [isSeller, stream?.status, usingObs]);
 
   const remaining = useMemo(() => stream?.ends_at ? new Date(stream.ends_at).getTime() - now : 0, [stream?.ends_at, now]);
   const auctionLive = !!stream?.ends_at && remaining > 0 && stream?.status === "live";
