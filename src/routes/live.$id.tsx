@@ -302,6 +302,7 @@ function LiveDetail() {
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
     camStream.current?.getTracks().forEach((t) => t.stop());
+    nav({ to: "/store" });
   }
 
   function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
