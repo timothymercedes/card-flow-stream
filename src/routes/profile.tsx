@@ -83,6 +83,7 @@ function Profile() {
       address_line1: p.address_line1, address_city: p.address_city,
       address_state: p.address_state, address_zip: p.address_zip,
       address_country: p.address_country || "US",
+      shipping_cap: p.shipping_cap === "" || p.shipping_cap == null ? null : Number(p.shipping_cap),
     }).eq("id", user.id);
     setSaving(false);
     if (error) toast.error(error.message);
