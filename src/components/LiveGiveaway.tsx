@@ -64,8 +64,10 @@ export function LiveGiveaway({
   const [draftPrize, setDraftPrize] = useState("");
   const [draftCode, setDraftCode] = useState(suggestCode());
   const [draftEligibility, setDraftEligibility] = useState<"anyone" | "followers" | "buyers">("anyone");
-  const [draftDuration, setDraftDuration] = useState<number>(60); // seconds
+  const [draftDuration, setDraftDuration] = useState<number>(120); // seconds (2 min default)
   // Quantity is locked to 1 winner per Appreciation Gift (per host policy)
+  // 🆕 Local "expand widget" state — viewer taps the floating widget to enter via the full overlay.
+  const [expandToFull, setExpandToFull] = useState(false);
 
   // Letter-tap mini game state
   const [tapStep, setTapStep] = useState(0);            // 0..code.length
