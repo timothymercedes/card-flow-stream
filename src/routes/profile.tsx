@@ -387,7 +387,7 @@ function Profile() {
         subtitle="Required for all approved sellers before listing or going live."
         agreeLabel="I have read and agree to the Seller Agreement and will follow these rules on every sale and live stream."
         acceptLabel="Agree & Activate Seller Tools"
-        onAccept={acceptSellerAgreement}
+        onAccept={() => { void acceptSellerAgreement(); }}
       >
         <p>Congratulations on being approved as a seller on PullBid Live. Before you can list, host live auctions, or receive payouts, please review and accept this Seller Agreement.</p>
 
