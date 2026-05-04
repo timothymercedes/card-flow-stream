@@ -68,8 +68,9 @@ function Vault() {
   );
 
   function resetForm() {
-    setName(""); setTcgNumber(""); setTcgSet(""); setCategory(""); setImageUrl("");
-    setDescription(""); setEstValue(""); setPrice(""); setCondition("NM");
+    setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
+    setImageUrl(""); setBackImageUrl("");
+    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -80,17 +81,37 @@ function Vault() {
     reader.readAsDataURL(f);
   }
 
+  function priceFor(cond: Condition, base: number, cp: ConditionPrices | null | undefined): number {
+    if (cp && cp[cond] && Number(cp[cond])) return Number(cp[cond]);
+    const mult = cond === "NM" ? 1 : cond === "LP" ? 0.85 : cond === "MP" ? 0.6 : 0.25;
+    return Math.max(0.5, Math.round(base * mult * 100) / 100);
+  }
+
+  // Auto-update displayed value when condition changes (uses condition_prices map)
+  useEffect(() => {
+    const base = Number(estValue) || 0;
+    if (!base) return;
+    setEstValue(String(priceFor(condition, base / (condPrices?.NM ? base / (condPrices.NM || base) : 1) || base, condPrices)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [condition]);
+
   async function identifyNow() {
     if (!name.trim()) return toast.error("Enter a card name first");
     setIdentifying(true);
     try {
-      const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`].filter(Boolean).join(" ");
+      const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
       const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
       if (error) throw error;
       if (data?.name) setName(data.name);
       if (data?.category && !category) setCategory(data.category);
-      if (data?.estimated_value) setEstValue(String(data.estimated_value));
-      toast.success(`Identified: ${data?.name || name} ~$${data?.estimated_value || "?"}`);
+      if (data?.set && !tcgSet) setTcgSet(data.set);
+      if (data?.year && !tcgYear) setTcgYear(String(data.year));
+      if (data?.tcg_number && !tcgNumber) setTcgNumber(data.tcg_number);
+      const cp: ConditionPrices | null = data?.condition_prices || null;
+      setCondPrices(cp);
+      const base = Number(data?.estimated_value) || 0;
+      if (base) setEstValue(String(priceFor(condition, base, cp)));
+      toast.success(`Identified: ${data?.name || name} • ${data?.set || ""} ${data?.year || ""}`);
     } catch (e: any) { toast.error(e?.message || "Identification failed"); }
     finally { setIdentifying(false); }
   }
@@ -99,20 +120,32 @@ function Vault() {
     if (!name.trim()) return toast.error("Card name required");
     let value = Number(estValue) || 0;
     let cat = category;
+    let cp: ConditionPrices | null = condPrices;
+    let setName2 = tcgSet, year2 = tcgYear, num2 = tcgNumber;
     // If value is missing, auto-identify (value cannot be edited manually)
     if (!value) {
       try {
-        const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`].filter(Boolean).join(" ");
+        const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
         const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
-        if (data) { value = Number(data.estimated_value) || 0; cat = cat || data.category || "Trading Card"; }
+        if (data) {
+          cp = data.condition_prices || null;
+          const base = Number(data.estimated_value) || 0;
+          value = priceFor(condition, base, cp);
+          cat = cat || data.category || "Trading Card";
+          setName2 = setName2 || data.set || "";
+          year2 = year2 || (data.year ? String(data.year) : "");
+          num2 = num2 || data.tcg_number || "";
+        }
       } catch {/* ignore */}
     }
     const { error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name, category: cat || "Trading Card",
-      image_url: imageUrl || null, description: description || null,
+      image_url: imageUrl || null, back_image_url: backImageUrl || null,
+      description: description || null,
       estimated_value: value,
+      condition_prices: cp as any,
       price: price ? Number(price) : null,
-      tcg_number: tcgNumber || null, tcg_set: tcgSet || null,
+      tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
       last_valued_at: new Date().toISOString(),
     });
@@ -126,13 +159,19 @@ function Vault() {
   }
   async function saveEdit() {
     if (!editing) return;
-    // estimated_value is auto-managed by TCG; do not allow manual edit
+    // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
+    let newValue = editing.estimated_value;
+    if (editing.condition_prices) {
+      newValue = priceFor((editing.condition || "NM") as Condition, Number(editing.condition_prices.NM || editing.estimated_value || 0), editing.condition_prices);
+    }
     const { error } = await supabase.from("vault_cards").update({
       name: editing.name, category: editing.category, image_url: editing.image_url,
+      back_image_url: editing.back_image_url || null,
       description: editing.description,
       price: editing.price != null ? Number(editing.price) : null,
-      tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null,
+      tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
+      estimated_value: newValue,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
     toast.success("Saved");
@@ -142,11 +181,19 @@ function Vault() {
 
   async function refreshValue(card: Card) {
     try {
-      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`].filter(Boolean).join(" ");
+      const q = [card.name, card.tcg_number && `#${card.tcg_number}`, card.tcg_set && `set: ${card.tcg_set}`, card.tcg_year && `year: ${card.tcg_year}`].filter(Boolean).join(" ");
       const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
-      const v = Number(data?.estimated_value);
-      if (!isFinite(v) || v <= 0) return toast.error("Couldn't get a price");
-      await supabase.from("vault_cards").update({ estimated_value: v, last_valued_at: new Date().toISOString() }).eq("id", card.id);
+      const base = Number(data?.estimated_value);
+      if (!isFinite(base) || base <= 0) return toast.error("Couldn't get a price");
+      const cp: ConditionPrices | null = data?.condition_prices || null;
+      const v = priceFor((card.condition || "NM") as Condition, base, cp);
+      await supabase.from("vault_cards").update({
+        estimated_value: v, condition_prices: cp as any,
+        tcg_set: card.tcg_set || data?.set || null,
+        tcg_year: card.tcg_year || (data?.year ? String(data.year) : null),
+        tcg_number: card.tcg_number || data?.tcg_number || null,
+        last_valued_at: new Date().toISOString(),
+      }).eq("id", card.id);
       toast.success(`Updated to $${v}`);
       load();
     } catch (e: any) { toast.error(e?.message || "Refresh failed"); }
