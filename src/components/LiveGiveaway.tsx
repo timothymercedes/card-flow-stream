@@ -185,7 +185,7 @@ export function LiveGiveaway({
     if (error) return toast.error(error.message);
     setHostOpenComposer(false);
     setDraftPrize(""); setDraftCode(suggestCode());
-    toast.success(`Appreciation Gift opened — ${dur}s · ${qty} winner${qty > 1 ? "s" : ""}`);
+    toast.success(`Appreciation Gift opened — ${dur}s · 1 winner`);
   }
 
   async function startDraw() {
