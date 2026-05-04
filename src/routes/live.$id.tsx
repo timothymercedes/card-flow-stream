@@ -424,15 +424,38 @@ function LiveDetail() {
     nav({ to: "/store" });
   }
 
-  function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
+  async function onScanResult(r: { name: string; category: string; trend: string; image: string; language?: string }) {
     setScanning(false);
     if (!isSeller) return;
     const useQuick = !!stream.quick_start_enabled && !auctionLive;
     const start = Number(stream.default_starting_bid || editStartPrice || 1);
     const sec = Number(stream.default_timer_sec || editTimerSec || 30);
     const cond = stream.default_condition || null;
+
+    // Get HYPE-only AI blurb (NEVER prices) for live streams
+    let hypeName = r.name;
+    let hypeCategory = r.category;
+    let hypeSet = "";
+    let hypeVibe = r.trend || "Solid Pickup 💪";
+    let hypeLines: string[] = [];
+    try {
+      const { data: hype, error: hypeErr } = await supabase.functions.invoke("live-card-hype", {
+        body: { image: r.image, language: r.language },
+      });
+      if (!hypeErr && hype) {
+        hypeName = hype.name || hypeName;
+        hypeCategory = hype.category || hypeCategory;
+        hypeSet = hype.set_guess || "";
+        hypeVibe = hype.rarity_vibe || hypeVibe;
+        hypeLines = Array.isArray(hype.hype_lines) ? hype.hype_lines : [];
+      }
+    } catch {/* fall back to scan */}
+
+    // Show 5-second card overlay (price-free)
+    setHypeCard({ name: hypeName, category: hypeCategory, set_guess: hypeSet, rarity_vibe: hypeVibe, image: r.image });
+
     const update: any = {
-      current_item: r.name,
+      current_item: hypeName,
       current_bid: start,
       current_bidder_id: null,
       item_image_url: r.image,
@@ -447,7 +470,15 @@ function LiveDetail() {
       endedRef.current = false; snapshotRef.current = false;
     }
     supabase.from("live_streams").update(update).eq("id", id);
-    sendMsg(useQuick ? `▶️ ${r.name}${cond ? ` [${cond}]` : ""} — ${sec}s, $${start}` : `${r.name} — ${r.trend}`, true);
+
+    // Post hype to chat as AI hype messages (no price)
+    if (useQuick) {
+      sendMsg(`▶️ ${hypeName}${cond ? ` [${cond}]` : ""} — ${sec}s round`, true);
+    }
+    sendMsg(`${hypeName} — ${hypeVibe}`, true, { isHype: true });
+    for (const line of hypeLines.slice(0, 2)) {
+      sendMsg(line, true, { isHype: true });
+    }
     toast.success(useQuick ? "Auction auto-started" : "Card scanned");
   }
 
