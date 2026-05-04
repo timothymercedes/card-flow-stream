@@ -174,7 +174,7 @@ export function LiveGiveaway({
     if (!prize) return toast.error("Add a prize label");
     if (code.length < 2 || code.length > 5) return toast.error("Code must be 2–5 letters");
     const dur = Math.max(15, Math.min(600, Math.floor(draftDuration || 60)));
-    const qty = Math.max(1, Math.min(50, Math.floor(draftQuantity || 1)));
+    const qty = 1; // 🆕 Locked: 1 winner per Appreciation Gift
     const ends = new Date(Date.now() + dur * 1000).toISOString();
     const { error } = await supabase.from("giveaways").insert({
       stream_id: streamId, seller_id: userId,
