@@ -42,10 +42,9 @@ export function GiveawayChip({ streamId }: { streamId: string }) {
     };
   }, [streamId]);
 
-  if (!g || g.status !== "open" || !g.ends_at || !g.starts_at) return null;
-  const startedMs = new Date(g.starts_at).getTime();
+  if (!g || g.status !== "open" || !g.ends_at) return null;
   const endsMs = new Date(g.ends_at).getTime();
-  const totalMs = Math.max(1, endsMs - startedMs);
+  const totalMs = Math.max(1000, Number(g.duration_sec || 30) * 1000);
   const remaining = Math.max(0, endsMs - now);
   if (remaining <= 0) return null;
 
