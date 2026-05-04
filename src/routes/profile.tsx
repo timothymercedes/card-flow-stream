@@ -66,12 +66,23 @@ function Profile() {
   async function acceptSellerAgreement() {
     if (!user) return;
     setAcceptingAgreement(true);
-    const { error } = await supabase.from("legal_acceptances").upsert({
-      user_id: user.id,
-      document_type: "seller_agreement",
-      version: "1.0",
-      user_agent: navigator.userAgent.slice(0, 200),
-    }, { onConflict: "user_id,document_type,version", ignoreDuplicates: true });
+    // Check first to avoid UPDATE (no UPDATE RLS policy on legal_acceptances)
+    const { count } = await supabase
+      .from("legal_acceptances")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("document_type", "seller_agreement")
+      .eq("version", "1.0");
+    let error: any = null;
+    if (!count) {
+      const res = await supabase.from("legal_acceptances").insert({
+        user_id: user.id,
+        document_type: "seller_agreement",
+        version: "1.0",
+        user_agent: navigator.userAgent.slice(0, 200),
+      });
+      error = res.error;
+    }
     setAcceptingAgreement(false);
     if (error) return toast.error(error.message);
     setSellerAgreementAccepted(true);
