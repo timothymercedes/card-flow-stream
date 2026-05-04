@@ -246,11 +246,31 @@ export function LiveGiveaway({
     // We don't delete history; a new giveaway can be created.
   }
 
+  // 🆕 Auto-follow helper — when joining a followers-only giveaway, follow the host first.
+  async function ensureFollow(): Promise<boolean> {
+    if (!giveaway || !userId) return false;
+    if (giveaway.eligibility !== "followers") return true;
+    if (isFollower) return true;
+    if (!sellerId) return false;
+    const { error } = await supabase.from("follows").insert({ follower_id: userId, followee_id: sellerId });
+    if (error && error.code !== "23505") {
+      toast.error("Couldn't follow — try again");
+      return false;
+    }
+    toast.success("Followed host — you're in!");
+    onFollowed?.();
+    return true;
+  }
+
   // ===== Viewer actions =====
   async function tapLetter(letter: string) {
     if (!giveaway || !userId || hasEntered) return;
     if (giveaway.status !== "open") return;
-    if (!eligibilityOk) return toast.error(eligibilityHint(giveaway.eligibility));
+    if (!eligibilityOk) {
+      // Followers-only: auto-follow on first tap
+      const ok = await ensureFollow();
+      if (!ok) { toast.error(eligibilityHint(giveaway.eligibility)); return; }
+    }
     const code = giveaway.code.toUpperCase();
     const expected = code[tapStep];
     if (letter !== expected) {
