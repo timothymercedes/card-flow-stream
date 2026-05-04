@@ -30,6 +30,14 @@ function ListingDetail() {
   const [bidAmt, setBidAmt] = useState("");
   const [offerAmt, setOfferAmt] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [unpaidOrders, setUnpaidOrders] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnpaidOrders(0); return; }
+    supabase.from("orders").select("id", { count: "exact", head: true })
+      .eq("buyer_id", user.id).eq("payment_status", "awaiting_payment")
+      .then(({ count }) => setUnpaidOrders(count ?? 0));
+  }, [user?.id]);
 
   // shipping
   const [showShip, setShowShip] = useState(false);
