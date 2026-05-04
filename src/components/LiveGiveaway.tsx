@@ -186,6 +186,12 @@ export function LiveGiveaway({
       title: "Appreciation Gift",
     });
     if (error) return toast.error(error.message);
+    // 🆕 Post a system chat message so viewers see how to enter without a popup blocking the stream.
+    await supabase.from("chat_messages").insert({
+      stream_id: streamId, user_id: userId, username: username || "host",
+      content: `🎁 Appreciation Gift opened: ${prize} — type !enter (or 🎁) in chat to join. Winner in ${dur}s!`,
+      is_system: true, is_announcement: true,
+    });
     setHostOpenComposer(false);
     setDraftPrize(""); setDraftCode(suggestCode());
     toast.success(`Appreciation Gift opened — ${dur}s · 1 winner`);
