@@ -66,23 +66,11 @@ function Profile() {
   async function acceptSellerAgreement() {
     if (!user) return;
     setAcceptingAgreement(true);
-    // Check first to avoid UPDATE (no UPDATE RLS policy on legal_acceptances)
-    const { count } = await supabase
-      .from("legal_acceptances")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("document_type", "seller_agreement")
-      .eq("version", "1.0");
-    let error: any = null;
-    if (!count) {
-      const res = await supabase.from("legal_acceptances").insert({
-        user_id: user.id,
-        document_type: "seller_agreement",
-        version: "1.0",
-        user_agent: navigator.userAgent.slice(0, 200),
-      });
-      error = res.error;
-    }
+    const { error } = await (supabase.rpc as any)("accept_legal_document", {
+      _document_type: "seller_agreement",
+      _version: "1.0",
+      _user_agent: navigator.userAgent.slice(0, 200),
+    });
     setAcceptingAgreement(false);
     if (error) return toast.error(error.message);
     setSellerAgreementAccepted(true);
@@ -198,15 +186,12 @@ function Profile() {
       "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
     );
     if (confirmed) { window.open("/legal/seller-agreement", "_blank"); return; }
-    const { count: ec } = await supabase.from("legal_acceptances")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id).eq("document_type", "seller_agreement").eq("version", "1.0");
-    if (!ec) {
-      await supabase.from("legal_acceptances").insert({
-        user_id: user.id, document_type: "seller_agreement", version: "1.0",
-        user_agent: navigator.userAgent.slice(0, 200),
-      });
-    }
+    const { error: agreementError } = await (supabase.rpc as any)("accept_legal_document", {
+      _document_type: "seller_agreement",
+      _version: "1.0",
+      _user_agent: navigator.userAgent.slice(0, 200),
+    });
+    if (agreementError) return toast.error(agreementError.message);
     await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id);
     setP({ ...p, seller_status: "pending" });
     toast.success("Application submitted — awaiting admin approval");
