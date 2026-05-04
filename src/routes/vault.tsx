@@ -203,13 +203,33 @@ function Vault() {
               <span className="text-[10px] text-muted-foreground">Image</span>
               <input type="file" accept="image/*" onChange={(e) => handleFile(e, setImageUrl)} className="block w-full text-xs" />
             </label>
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name" value={name} onChange={(e) => setName(e.target.value)} />
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} />
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="TCG card name (e.g., Charizard VMAX)" value={name} onChange={(e) => setName(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card # (e.g., 020/189)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set (e.g., Darkness Ablaze)" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+            </div>
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Condition</p>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
+                  <button key={c} type="button" onClick={() => setCondition(c)}
+                    className={`rounded-lg px-2 py-1.5 text-xs font-bold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
+                ))}
+              </div>
+            </div>
             <textarea rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Est. value ($)" value={estValue} onChange={(e) => setEstValue(e.target.value)} />
-              <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
+              <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs">
+                <p className="text-[9px] uppercase text-muted-foreground">Value (auto)</p>
+                <p className="font-bold">{estValue ? `$${Number(estValue).toFixed(2)}` : "—"}</p>
+              </div>
+              <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
+            <button type="button" onClick={identifyNow} disabled={identifying} className="w-full rounded-lg bg-accent py-2 text-xs font-semibold text-accent-foreground disabled:opacity-60">
+              {identifying ? "Identifying..." : "🔍 Identify & price via TCG"}
+            </button>
+            <p className="text-[10px] text-muted-foreground">Value is set automatically from TCG market data — it can't be edited.</p>
             <div className="flex gap-2">
               <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
               <button onClick={() => { setShowAdd(false); resetForm(); }} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
