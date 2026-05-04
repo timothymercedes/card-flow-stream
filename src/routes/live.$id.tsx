@@ -1229,14 +1229,54 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — Claim Slot for buyers */}
-        {!isSeller && stream.break_mode === "open" && (
-          <button
-            onClick={claimBreakSlot}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
-          >
-            <Dice5 className="h-4 w-4" /> Claim Mystery Break Slot · ${breakPrice}
-          </button>
+        {/* 🆕 Mystery break — numbered slot grid for buyers */}
+        {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
+          <div className="rounded-xl bg-gradient-to-br from-pink-500/15 via-purple-500/15 to-indigo-500/15 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-xs font-extrabold text-white">
+                <Dice5 className="h-4 w-4 text-pink-300" /> Mystery Break · ${breakPrice}/slot
+              </p>
+              <span className="text-[10px] text-white/60">
+                {breakSlots.length}/{stream.break_slot_count} taken
+              </span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
+                const taken = breakSlots.find((s) => s.slot_number === n);
+                const mine = taken && taken.buyer_id === user?.id;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => !taken && claimBreakSlotNumber(n)}
+                    disabled={!!taken}
+                    title={taken ? `@${taken.buyer_username}` : `Claim #${n}`}
+                    className={`aspect-square rounded-lg text-xs font-extrabold transition ${
+                      mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
+                      taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
+                      "bg-white text-black active:scale-95 hover:bg-pink-200"
+                    }`}
+                  >
+                    {stream.break_slot_prefix || "#"}{n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Mystery break results — shown after host closes claims */}
+        {!isSeller && stream.break_mode === "closed" && breakSlots.length > 0 && (
+          <div className="rounded-xl bg-card/40 p-3 text-xs">
+            <p className="mb-1 font-bold text-white">🎲 Mystery Break results</p>
+            <div className="grid grid-cols-2 gap-1">
+              {[...breakSlots].sort((a, b) => (a.slot_number || 0) - (b.slot_number || 0)).map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded bg-white/5 px-2 py-1">
+                  <span className="font-bold text-pink-300">{stream.break_slot_prefix || "#"}{s.slot_number}</span>
+                  <span className="truncate text-white/80">@{s.buyer_username}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* 🆕 Spin Wheel — visible to viewers whenever a wheel exists */}
