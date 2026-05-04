@@ -34,10 +34,13 @@ function Vault() {
   const [name, setName] = useState("");
   const [tcgNumber, setTcgNumber] = useState("");
   const [tcgSet, setTcgSet] = useState("");
+  const [tcgYear, setTcgYear] = useState("");
   const [category, setCategory] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [backImageUrl, setBackImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [estValue, setEstValue] = useState(""); // auto-filled, read-only
+  const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
   const [identifying, setIdentifying] = useState(false);
