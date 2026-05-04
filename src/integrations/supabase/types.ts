@@ -491,6 +491,7 @@ export type Database = {
           amount: number
           buyer_id: string
           carrier: string | null
+          commission_amount: number | null
           commission_rate: number
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
@@ -503,6 +504,8 @@ export type Database = {
           paid_at: string | null
           payment_status: string
           seller_id: string
+          seller_payout_amount: number | null
+          seller_stripe_account_id: string | null
           ship_address: string
           ship_city: string
           ship_country: string
@@ -520,6 +523,7 @@ export type Database = {
           amount: number
           buyer_id: string
           carrier?: string | null
+          commission_amount?: number | null
           commission_rate?: number
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
@@ -532,6 +536,8 @@ export type Database = {
           paid_at?: string | null
           payment_status?: string
           seller_id: string
+          seller_payout_amount?: number | null
+          seller_stripe_account_id?: string | null
           ship_address: string
           ship_city: string
           ship_country?: string
@@ -549,6 +555,7 @@ export type Database = {
           amount?: number
           buyer_id?: string
           carrier?: string | null
+          commission_amount?: number | null
           commission_rate?: number
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
@@ -561,6 +568,8 @@ export type Database = {
           paid_at?: string | null
           payment_status?: string
           seller_id?: string
+          seller_payout_amount?: number | null
+          seller_stripe_account_id?: string | null
           ship_address?: string
           ship_city?: string
           ship_country?: string
@@ -740,6 +749,10 @@ export type Database = {
           phone_verified_at: string | null
           public_id: string | null
           seller_status: string
+          stripe_account_id: string | null
+          stripe_charges_enabled: boolean
+          stripe_onboarding_status: string
+          stripe_payouts_enabled: boolean
           username: string
         }
         Insert: {
@@ -761,6 +774,10 @@ export type Database = {
           phone_verified_at?: string | null
           public_id?: string | null
           seller_status?: string
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
+          stripe_onboarding_status?: string
+          stripe_payouts_enabled?: boolean
           username: string
         }
         Update: {
@@ -782,6 +799,10 @@ export type Database = {
           phone_verified_at?: string | null
           public_id?: string | null
           seller_status?: string
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
+          stripe_onboarding_status?: string
+          stripe_payouts_enabled?: boolean
           username?: string
         }
         Relationships: []
