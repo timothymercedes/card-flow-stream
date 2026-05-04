@@ -156,6 +156,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       direct_messages: {
@@ -431,6 +438,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "listing_bids_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       listings: {
@@ -518,6 +532,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -715,10 +736,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "live_streams_current_bidder_id_fkey"
+            columns: ["current_bidder_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "live_streams_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_streams_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -760,6 +795,7 @@ export type Database = {
           id: string
           link: string | null
           read: boolean
+          sender_id: string | null
           type: string
           user_id: string
         }
@@ -769,6 +805,7 @@ export type Database = {
           id?: string
           link?: string | null
           read?: boolean
+          sender_id?: string | null
           type: string
           user_id: string
         }
@@ -778,6 +815,7 @@ export type Database = {
           id?: string
           link?: string | null
           read?: boolean
+          sender_id?: string | null
           type?: string
           user_id?: string
         }
@@ -1066,6 +1104,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1685,6 +1730,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vault_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vault_settings: {
@@ -1837,7 +1889,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          buyer_verified: boolean | null
+          created_at: string | null
+          id: string | null
+          id_status: string | null
+          is_seller: boolean | null
+          phone_verified: boolean | null
+          preferred_currency: string | null
+          public_id: string | null
+          seller_status: string | null
+          stripe_charges_enabled: boolean | null
+          stripe_onboarding_status: string | null
+          stripe_payouts_enabled: boolean | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          buyer_verified?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          id_status?: string | null
+          is_seller?: boolean | null
+          phone_verified?: boolean | null
+          preferred_currency?: string | null
+          public_id?: string | null
+          seller_status?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_onboarding_status?: string | null
+          stripe_payouts_enabled?: boolean | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          buyer_verified?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          id_status?: string | null
+          is_seller?: boolean | null
+          phone_verified?: boolean | null
+          preferred_currency?: string | null
+          public_id?: string | null
+          seller_status?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_onboarding_status?: string | null
+          stripe_payouts_enabled?: boolean | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_view_story: {
@@ -1853,6 +1955,18 @@ export type Database = {
         Returns: boolean
       }
       generate_public_id: { Args: never; Returns: string }
+      get_winner_shipping: {
+        Args: { p_stream_id: string; p_winner_id: string }
+        Returns: {
+          address_city: string
+          address_country: string
+          address_line1: string
+          address_state: string
+          address_zip: string
+          full_name: string
+          phone: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

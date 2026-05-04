@@ -1014,8 +1014,11 @@ function LiveDetail() {
     let snapshot = stream.item_image_url;
     if (!snapshot && isSeller) snapshot = await captureSnapshot();
     if (winnerId) {
-      const { data: p } = await supabase.from("profiles").select("username, address_line1, address_city, address_state, address_zip, address_country, full_name").eq("id", winnerId).maybeSingle();
-      const winnerUsername = p?.username || "buyer";
+      const { data: pubP } = await supabase.from("profiles").select("username").eq("id", winnerId).maybeSingle();
+      const winnerUsername = pubP?.username || "buyer";
+      // Fetch shipping address via RPC (only seller of this stream is allowed to read it)
+      const { data: shipRows } = await supabase.rpc("get_winner_shipping", { p_stream_id: id, p_winner_id: winnerId });
+      const p: any = (shipRows && shipRows[0]) || {};
       // Bid number for THIS sale on the stream — only increments when an item sells
       const nextRound = Number(stream.round_number || 0) + 1;
       const itemName = stream.current_item || stream.title;
