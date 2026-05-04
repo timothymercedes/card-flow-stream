@@ -2478,6 +2478,8 @@ function LiveDetail() {
         username={profile?.username || null}
         isFollower={isFollowingHost}
         isBuyer={isPastBuyer}
+        sellerId={stream?.seller_id || null}
+        onFollowed={() => setIsFollowingHost(true)}
         open={showGiveaway}
         onClose={() => { setShowGiveaway(false); setGiveawayComposer(false); }}
         hostOpenComposer={giveawayComposer}
