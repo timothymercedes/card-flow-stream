@@ -31,19 +31,26 @@ export const Route = createFileRoute("/admin")({
 
 function Admin() {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions">("reports");
+  const [myRoles, setMyRoles] = useState<Role[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
+  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions" | "roles">("reports");
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [reportFilter, setReportFilter] = useState<typeof REPORT_GROUPS[number]["key"]>("all");
   const [reportStatus, setReportStatus] = useState<"open" | "all">("open");
   const [banForm, setBanForm] = useState({ user_id: "", username: "", reason: "", type: "suspension", days: "7" });
+  const [roles, setRoles] = useState<{ user_id: string; role: Role; username?: string }[]>([]);
+  const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
+
+  const isOwner = myRoles.includes("owner");
+  const isAdmin = isOwner || myRoles.includes("admin");
+  const canViewAdmin = isAdmin || myRoles.includes("moderator") || myRoles.includes("support");
 
   useEffect(() => {
-    if (!user) { setIsAdmin(false); return; }
-    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()
-      .then(({ data }) => setIsAdmin(!!data));
+    if (!user) { setRolesLoaded(true); return; }
+    supabase.from("user_roles").select("role").eq("user_id", user.id)
+      .then(({ data }) => { setMyRoles(((data || []) as any[]).map(r => r.role)); setRolesLoaded(true); });
   }, [user]);
 
   async function loadAll() {
@@ -56,6 +63,36 @@ function Admin() {
     setSuspensions(s || []);
     setReports(r || []);
   }
+
+  async function loadRoles() {
+    const { data } = await supabase.from("user_roles").select("user_id, role");
+    const list = (data || []) as { user_id: string; role: Role }[];
+    if (list.length === 0) { setRoles([]); return; }
+    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", list.map(r => r.user_id));
+    const map = new Map((profs || []).map((p: any) => [p.id, p.username]));
+    setRoles(list.map(r => ({ ...r, username: map.get(r.user_id) })).sort((a, b) =>
+      (["owner","admin","moderator","support"].indexOf(a.role) - ["owner","admin","moderator","support"].indexOf(b.role))
+    ));
+  }
+
+  async function assignRole() {
+    if (!roleForm.username) return toast.error("Enter a username");
+    const { data: prof } = await supabase.from("profiles").select("id").eq("username", roleForm.username).maybeSingle();
+    if (!prof) return toast.error("User not found");
+    const { error } = await (supabase.rpc as any)("admin_assign_role", { _target_user: (prof as any).id, _role: roleForm.role });
+    if (error) return toast.error(error.message);
+    toast.success(`Granted ${roleForm.role}`);
+    setRoleForm({ username: "", role: "moderator" });
+    loadRoles();
+  }
+
+  async function removeRole(user_id: string, role: Role) {
+    const { error } = await (supabase.rpc as any)("admin_remove_role", { _target_user: user_id, _role: role });
+    if (error) return toast.error(error.message);
+    toast.success("Role removed");
+    loadRoles();
+  }
+
   useEffect(() => { if (isAdmin) loadAll(); }, [isAdmin]);
 
   async function updateReport(id: string, status: "reviewing" | "resolved" | "dismissed") {
