@@ -496,6 +496,12 @@ export function LiveGiveaway({
             {!isSeller && !eligibilityOk && (
               <div className="rounded-xl bg-yellow-500/15 p-3 text-center text-xs text-yellow-300">
                 {eligibilityHint(giveaway.eligibility)}
+                {giveaway.eligibility === "followers" && sellerId && (
+                  <button onClick={ensureFollow}
+                    className="mt-2 w-full rounded-lg bg-emerald-500 py-2 text-xs font-extrabold text-white">
+                    + Follow host to participate
+                  </button>
+                )}
               </div>
             )}
 
