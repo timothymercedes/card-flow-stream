@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -33,22 +33,37 @@ function LiveDetail() {
   const [scanning, setScanning] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
-  const holdTimer = useRef<number | null>(null);
   const endedRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
   const isSeller = !!user && stream && user.id === stream.seller_id;
 
+  // Settings form state (seller)
+  const [editDesc, setEditDesc] = useState("");
+  const [editStartPrice, setEditStartPrice] = useState("");
+  const [editTimerSec, setEditTimerSec] = useState("60");
+  const [editShipPrice, setEditShipPrice] = useState("");
+  const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
+
   useEffect(() => {
     supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setAllStreams(data || []));
   }, [id]);
 
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(({ data }) => setStream(data));
+    supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(({ data }) => {
+      setStream(data);
+      if (data) {
+        setEditDesc(data.item_description || "");
+        setEditStartPrice(String(data.starting_bid || 1));
+        setEditShipPrice(String(data.shipping_price || 0));
+        setEditShipMethod(data.shipping_method || "USPS Ground");
+      }
+    });
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
 
     const ch = supabase.channel(`live-${id}`)
@@ -77,14 +92,16 @@ function LiveDetail() {
   }, [isSeller, stream?.status]);
 
   const remaining = useMemo(() => stream?.ends_at ? new Date(stream.ends_at).getTime() - now : 0, [stream?.ends_at, now]);
+  const auctionLive = !!stream?.ends_at && remaining > 0 && stream?.status === "live";
+  const auctionFinished = !!stream?.ends_at && remaining <= 0;
 
-  // Auto-end auction when timer hits 0 (seller drives this from their client; buyers just observe)
+  // Auto-end auction round when timer hits 0 (seller drives this)
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || !stream.ends_at) return;
     if (endedRef.current) return;
     if (remaining <= 0) {
       endedRef.current = true;
-      endLive();
+      finalizeAuctionRound();
     }
   }, [remaining, isSeller, stream?.status]);
 
@@ -106,6 +123,7 @@ function LiveDetail() {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
     if (stream.status !== "live") return toast.error("Auction ended");
+    if (!auctionLive) return toast.error("Auction not running");
     const cur = Number(stream.current_bid || 0);
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
     const prevBidder = stream.current_bidder_id;
@@ -120,29 +138,71 @@ function LiveDetail() {
     }
   }
 
-  async function endLive() {
+  async function startAuction() {
     if (!isSeller) return;
+    const sec = Number(editTimerSec) || 60;
+    const start = Number(editStartPrice) || 1;
+    const ends_at = new Date(Date.now() + sec * 1000).toISOString();
+    await supabase.from("live_streams").update({
+      status: "live",
+      listing_type: "auction",
+      starting_bid: start,
+      current_bid: start,
+      current_bidder_id: null,
+      item_description: editDesc || null,
+      shipping_price: Number(editShipPrice) || 0,
+      shipping_method: editShipMethod,
+      ends_at,
+      winner_id: null,
+      winning_bid: null,
+      winner_username: null,
+    }).eq("id", id);
+    endedRef.current = false;
+    await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}`, true);
+    toast.success("Auction started");
+    setShowSettings(false);
+  }
+
+  async function endAuctionNow() {
+    if (!isSeller) return;
+    await supabase.from("live_streams").update({ ends_at: new Date().toISOString() }).eq("id", id);
+  }
+
+  async function finalizeAuctionRound() {
+    if (!stream) return;
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
-    const { error } = await supabase.from("live_streams").update({
-      status: "ended", is_active: false, ended_at: new Date().toISOString(),
-      winner_id: winnerId, winning_bid: winningBid,
-    }).eq("id", id);
-    if (error) return toast.error(error.message);
-    await sendMsg(`🏁 Auction ended${winnerId ? ` — winner @ $${winningBid}` : ""}`, true);
+    let winnerUsername: string | null = null;
     if (winnerId) {
-      const { data: receipt } = await supabase.from("receipts").insert({
-        stream_id: id, buyer_id: winnerId, seller_id: user!.id,
+      const { data: p } = await supabase.from("profiles").select("username").eq("id", winnerId).maybeSingle();
+      winnerUsername = p?.username || "buyer";
+      await supabase.from("receipts").insert({
+        stream_id: id, buyer_id: winnerId, seller_id: stream.seller_id,
         item_name: stream.current_item || stream.title,
         item_image_url: stream.item_image_url || null,
         amount: winningBid,
-      }).select().single();
+      });
       await supabase.from("notifications").insert({
         user_id: winnerId, type: "won",
         body: `🎉 You won "${stream.current_item || stream.title}" for $${winningBid}`,
-        link: receipt ? `/orders` : `/live/${id}`,
+        link: `/orders`,
       });
+      await sendMsg(`🏆 Now owned by @${winnerUsername} — $${winningBid}`, true);
+    } else {
+      await sendMsg(`🏁 Auction ended with no bids`, true);
     }
+    await supabase.from("live_streams").update({
+      winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
+    }).eq("id", id);
+  }
+
+  async function endLive() {
+    if (!isSeller) return;
+    if (auctionLive) await finalizeAuctionRound();
+    await supabase.from("live_streams").update({
+      status: "ended", is_active: false, ended_at: new Date().toISOString(),
+    }).eq("id", id);
+    await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
     camStream.current?.getTracks().forEach((t) => t.stop());
   }
@@ -152,7 +212,7 @@ function LiveDetail() {
     if (!isSeller) return;
     supabase.from("live_streams").update({
       current_item: r.name,
-      current_bid: stream.starting_bid || 1,
+      current_bid: Number(editStartPrice) || stream.starting_bid || 1,
       current_bidder_id: null,
       item_image_url: r.image,
     }).eq("id", id);
@@ -180,7 +240,6 @@ function LiveDetail() {
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) swipeStream(dx < 0 ? 1 : -1);
   }
 
-  // Bid button: tap = +increment ; press-hold + swipe up = +$3 each step
   function startHold(e: React.PointerEvent) {
     e.preventDefault();
     if (isSeller || !stream) return;
@@ -210,6 +269,7 @@ function LiveDetail() {
   if (!stream) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const ended = stream.status === "ended";
+  const bidDisabled = isSeller || ended || !auctionLive;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -231,22 +291,41 @@ function LiveDetail() {
           <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}>
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
           </div>
-          {stream.ends_at && !ended && (
-            <div className="flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-bold backdrop-blur">
+          {auctionLive && (
+            <div className="flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold backdrop-blur">
               <Timer className="h-3 w-3" /> {fmtRemaining(remaining)}
             </div>
           )}
         </div>
-        <button onClick={() => setShowChat((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur">
-          {showChat ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
-        </button>
+        <div className="flex gap-1">
+          {isSeller && !ended && (
+            <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Settings className="h-4 w-4" /></button>
+          )}
+          <button onClick={() => setShowChat((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur">
+            {showChat ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {/* Title overlay */}
       <div className="absolute left-3 right-3 top-14 z-10">
         <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
         {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
+        {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
+          <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
+            📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
+          </p>
+        ) : null}
       </div>
+
+      {/* Winner banner */}
+      {(auctionFinished || ended) && stream.winner_username && (
+        <div className="absolute left-3 right-3 top-32 z-10 rounded-xl bg-primary/80 p-3 text-center backdrop-blur">
+          <Trophy className="mx-auto h-5 w-5" />
+          <p className="mt-1 text-sm font-bold">Now owned by @{stream.winner_username}</p>
+          <p className="text-xs">Final bid: ${Number(stream.winning_bid || 0).toFixed(2)}</p>
+        </div>
+      )}
 
       {/* Stream switcher */}
       {allStreams.length > 1 && !ended && (
@@ -256,9 +335,39 @@ function LiveDetail() {
         </>
       )}
 
+      {/* Seller settings panel */}
+      {isSeller && showSettings && !ended && (
+        <div className="absolute inset-x-3 top-24 z-30 max-h-[60vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl backdrop-blur">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-bold">Item & Auction</p>
+            <button onClick={() => setShowSettings(false)}><X className="h-4 w-4" /></button>
+          </div>
+          <div className="space-y-2">
+            <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2} placeholder="Item description" className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" min="1" value={editStartPrice} onChange={(e) => setEditStartPrice(e.target.value)} placeholder="Start price ($)" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+              <select value={editTimerSec} onChange={(e) => setEditTimerSec(e.target.value)} className="rounded-lg bg-input px-3 py-2 text-xs outline-none">
+                <option value="30">30s</option>
+                <option value="60">60s</option>
+                <option value="120">2 min</option>
+                <option value="300">5 min</option>
+                <option value="600">10 min</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" min="0" step="0.01" value={editShipPrice} onChange={(e) => setEditShipPrice(e.target.value)} placeholder="Shipping ($)" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+              <input value={editShipMethod} onChange={(e) => setEditShipMethod(e.target.value)} placeholder="Method" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+            </div>
+            <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
+              <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Chat overlay */}
       {showChat && (
-        <div className="absolute bottom-44 left-0 right-0 z-10 max-h-[40vh] overflow-y-auto px-3 pb-2">
+        <div className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto px-3 pb-2">
           <div className="flex flex-col items-start gap-1.5">
             {messages.slice(-30).map((m) => (
               <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${m.is_system ? "bg-primary/40" : "bg-black/50"}`}>
@@ -281,32 +390,44 @@ function LiveDetail() {
             <p className="line-clamp-1 text-sm font-bold">{stream.current_item || "—"}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wide text-white/60">{ended ? "Final" : (stream.listing_type === "buy_now" ? "Price" : "Current Bid")}</p>
+            <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
             <p className="text-2xl font-bold text-primary">${Number(stream.current_bid || 0).toFixed(0)}</p>
           </div>
         </div>
 
-        {!isSeller && !ended && (
+        {!isSeller && (
           <button
-            onPointerDown={startHold}
-            className="w-full select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98]"
+            onPointerDown={bidDisabled ? undefined : startHold}
+            disabled={bidDisabled}
+            className="w-full select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
           >
-            {holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3"}
+            {bidDisabled
+              ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+              : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
           </button>
         )}
         {isSeller && !ended && (
-          <div className="flex gap-2">
-            <button onClick={() => setScanning(true)} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-xs font-semibold text-accent-foreground">
-              <Camera className="h-3.5 w-3.5" /> AI Scan Card
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setScanning(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-semibold text-accent-foreground">
+              <Camera className="h-3.5 w-3.5" /> Scan
             </button>
-            <button onClick={endLive} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
+            {!auctionLive ? (
+              <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground">
+                <Play className="h-3.5 w-3.5" /> Start Auction
+              </button>
+            ) : (
+              <button onClick={endAuctionNow} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-bold text-accent-foreground">
+                <Square className="h-3.5 w-3.5" /> End Auction
+              </button>
+            )}
+            <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
             </button>
           </div>
         )}
         {ended && (
           <div className="rounded-xl bg-card/20 p-3 text-center text-xs backdrop-blur">
-            {stream.winner_id ? "Auction complete — receipt sent to buyer" : "Auction ended with no bids"}
+            {stream.winner_id ? `Sold to @${stream.winner_username || "buyer"} for $${Number(stream.winning_bid || 0).toFixed(2)}` : "Live ended"}
           </div>
         )}
 
