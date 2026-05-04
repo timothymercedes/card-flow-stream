@@ -438,6 +438,20 @@ function Vault() {
                 ))}
               </div>
             </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Who can see this card</p>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {([
+                  { v: "private", l: "Only me" },
+                  { v: "friends", l: "Friends" },
+                  { v: "followers", l: "Followers" },
+                  { v: "public", l: "Public" },
+                ] as const).map(({ v, l }) => (
+                  <button key={v} type="button" onClick={() => setEditing({ ...editing, visibility: v })}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-semibold ${(editing.visibility || "private") === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{l}</button>
+                ))}
+              </div>
+            </div>
             <textarea rows={2} value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" />
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs">
