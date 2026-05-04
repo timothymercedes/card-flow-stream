@@ -49,17 +49,16 @@ export function GiveawayChip({ streamId }: { streamId: string }) {
 
   const urgent = remaining <= 10000;
   return (
-    <div className="pointer-events-none flex justify-center">
-      <div
-        className={`pointer-events-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold shadow-lg backdrop-blur tabular-nums ${
-          urgent
-            ? "bg-red-500 text-white animate-pulse"
-            : "bg-emerald-500/90 text-white"
-        }`}
-      >
-        <Gift className="h-3 w-3" />
-        🎁 {g.prize_label} · type !enter · {secs}s
-      </div>
+    <div
+      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold shadow-lg backdrop-blur tabular-nums ${
+        urgent
+          ? "bg-red-500 text-white animate-pulse"
+          : "bg-emerald-500/90 text-white"
+      }`}
+      title={`${g.prize_label} — type !enter in chat`}
+    >
+      <Gift className="h-3 w-3" />
+      {secs}s
     </div>
   );
 }
