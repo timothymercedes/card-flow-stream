@@ -172,6 +172,19 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
+  // 🆕 For Giveaway eligibility — does the current viewer follow the host / has bought from them?
+  useEffect(() => {
+    if (!user || !stream?.seller_id || user.id === stream.seller_id) {
+      setIsFollowingHost(false); setIsPastBuyer(false); return;
+    }
+    supabase.from("follows").select("follower_id", { count: "exact", head: true })
+      .eq("follower_id", user.id).eq("followee_id", stream.seller_id)
+      .then(({ count }) => setIsFollowingHost((count ?? 0) > 0));
+    supabase.from("orders").select("id", { count: "exact", head: true })
+      .eq("buyer_id", user.id).eq("seller_id", stream.seller_id)
+      .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
+  }, [user?.id, stream?.seller_id]);
+
   // Load mod chat once user is known to be staff
   useEffect(() => {
     if (!isStaff) { setModChat([]); return; }
