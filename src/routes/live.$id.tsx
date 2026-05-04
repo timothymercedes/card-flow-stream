@@ -1622,40 +1622,49 @@ function LiveDetail() {
               <button onClick={() => setShowBreakPanel(false)}><X className="h-4 w-4" /></button>
             </div>
             <p className="mb-2 text-[11px] text-muted-foreground">
-              List teams (or any labels) — buyers claim a slot, then you tap "Draw" to randomly assign.
-              Hits the Whatnot use-case, but with a fair on-screen shuffle anim.
+              Pick how many slots (1–50). Buyers tap a number to claim it. When you're ready, close claims to lock the board — or roll an auction per slot.
             </p>
-            <input
-              value={breakTeamsInput}
-              onChange={(e) => setBreakTeamsInput(e.target.value)}
-              placeholder="e.g. Lakers, Warriors, Celtics, Heat..."
-              className="mb-2 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
-            />
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">Price/slot $</span>
-              <input
-                type="number" min="1" value={breakPrice} onChange={(e) => setBreakPrice(e.target.value)}
-                className="w-20 rounded-lg bg-input px-2 py-1 text-xs outline-none"
-              />
+            <div className="mb-2 grid grid-cols-2 gap-2">
+              <label className="text-[11px] text-muted-foreground">
+                Slot count
+                <input type="number" min="2" max="50" value={breakSlotCount}
+                  onChange={(e) => setBreakSlotCount(e.target.value)}
+                  disabled={stream.break_mode === "open"}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none disabled:opacity-50" />
+              </label>
+              <label className="text-[11px] text-muted-foreground">
+                Price/slot $
+                <input type="number" min="1" value={breakPrice}
+                  onChange={(e) => setBreakPrice(e.target.value)}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
+              </label>
             </div>
+            <label className="mb-3 block text-[11px] text-muted-foreground">
+              Label prefix (optional)
+              <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 8))}
+                disabled={stream.break_mode === "open"}
+                placeholder='e.g. "Box" → Box1, Box2…'
+                className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
+            </label>
+
             {stream.break_mode === "open" ? (
               <>
                 <div className="mb-2 max-h-40 overflow-y-auto rounded-lg bg-muted/40 p-2 text-[11px]">
-                  <p className="mb-1 font-semibold">Slots claimed: {breakSlots.length}</p>
-                  {breakSlots.map((s) => (
+                  <p className="mb-1 font-semibold">Claimed: {breakSlots.length}/{stream.break_slot_count}</p>
+                  {[...breakSlots].sort((a, b) => (a.slot_number || 0) - (b.slot_number || 0)).map((s) => (
                     <div key={s.id} className="flex items-center justify-between py-0.5">
+                      <span className="font-bold text-primary">{stream.break_slot_prefix || "#"}{s.slot_number}</span>
                       <span>@{s.buyer_username}</span>
-                      <span className="font-bold text-primary">{s.team_label || "—"}</span>
                     </div>
                   ))}
                   {breakSlots.length === 0 && <p className="text-muted-foreground">Waiting for buyers to claim…</p>}
                 </div>
                 <button
-                  onClick={drawBreakTeams}
-                  disabled={drawAnim || breakSlots.length === 0}
+                  onClick={closeBreakClaims}
+                  disabled={drawAnim}
                   className="w-full rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
                 >
-                  {drawAnim ? "🎲 Shuffling…" : "🎲 Draw teams now"}
+                  {drawAnim ? "Locking…" : "🔒 Close claims"}
                 </button>
               </>
             ) : (
