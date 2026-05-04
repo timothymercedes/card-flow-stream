@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
+import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 
@@ -35,6 +38,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
@@ -50,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MessagesIndexRoute = MessagesIndexRouteImport.update({
+  id: '/messages/',
+  path: '/messages/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketIndexRoute = MarketIndexRouteImport.update({
   id: '/market/',
   path: '/market/',
@@ -58,6 +71,11 @@ const MarketIndexRoute = MarketIndexRouteImport.update({
 const LiveIndexRoute = LiveIndexRouteImport.update({
   id: '/live/',
   path: '/live/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesUserIdRoute = MessagesUserIdRouteImport.update({
+  id: '/messages/$userId',
+  path: '/messages/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketIdRoute = MarketIdRouteImport.update({
@@ -75,38 +93,47 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
+  '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/vault': typeof VaultRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
+  '/messages/$userId': typeof MessagesUserIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
+  '/messages/': typeof MessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
+  '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/vault': typeof VaultRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
+  '/messages/$userId': typeof MessagesUserIdRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
+  '/messages': typeof MessagesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
+  '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/vault': typeof VaultRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
+  '/messages/$userId': typeof MessagesUserIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
+  '/messages/': typeof MessagesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,50 +141,62 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/feed'
+    | '/orders'
     | '/profile'
     | '/sell'
     | '/vault'
     | '/live/$id'
     | '/market/$id'
+    | '/messages/$userId'
     | '/live/'
     | '/market/'
+    | '/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/feed'
+    | '/orders'
     | '/profile'
     | '/sell'
     | '/vault'
     | '/live/$id'
     | '/market/$id'
+    | '/messages/$userId'
     | '/live'
     | '/market'
+    | '/messages'
   id:
     | '__root__'
     | '/'
     | '/auth'
     | '/feed'
+    | '/orders'
     | '/profile'
     | '/sell'
     | '/vault'
     | '/live/$id'
     | '/market/$id'
+    | '/messages/$userId'
     | '/live/'
     | '/market/'
+    | '/messages/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   FeedRoute: typeof FeedRoute
+  OrdersRoute: typeof OrdersRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
   VaultRoute: typeof VaultRoute
   LiveIdRoute: typeof LiveIdRoute
   MarketIdRoute: typeof MarketIdRoute
+  MessagesUserIdRoute: typeof MessagesUserIdRoute
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
+  MessagesIndexRoute: typeof MessagesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -183,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/feed': {
       id: '/feed'
       path: '/feed'
@@ -204,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages/': {
+      id: '/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof MessagesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/market/': {
       id: '/market/'
       path: '/market'
@@ -216,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/live'
       fullPath: '/live/'
       preLoaderRoute: typeof LiveIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/$userId': {
+      id: '/messages/$userId'
+      path: '/messages/$userId'
+      fullPath: '/messages/$userId'
+      preLoaderRoute: typeof MessagesUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/market/$id': {
@@ -239,13 +299,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   FeedRoute: FeedRoute,
+  OrdersRoute: OrdersRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
   VaultRoute: VaultRoute,
   LiveIdRoute: LiveIdRoute,
   MarketIdRoute: MarketIdRoute,
+  MessagesUserIdRoute: MessagesUserIdRoute,
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
+  MessagesIndexRoute: MessagesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

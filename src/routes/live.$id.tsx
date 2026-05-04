@@ -125,15 +125,15 @@ function LiveDetail() {
       {/* Chat overlay (right side) */}
       {showChat && (
         <div className="absolute bottom-44 left-0 right-0 z-10 max-h-[40vh] overflow-y-auto px-3 pb-2">
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5 items-start">
             {messages.slice(-30).map((m) => (
-              <div key={m.id} className={`inline-block max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${m.is_system ? "bg-primary/40" : "bg-black/50"}`}>
+              <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${m.is_system ? "bg-primary/40" : "bg-black/50"}`}>
                 <span className={`mr-1 font-semibold ${m.is_system ? "text-primary-foreground" : "text-live-foreground"}`}>
                   {m.is_system ? <Sparkles className="inline h-3 w-3" /> : "@"}{m.username}:
                 </span>
                 <span>{m.content}</span>
               </div>
-            )).reduce<any[]>((acc, el) => [...acc, el, <div key={`br-${acc.length}`} className="h-0" />], [])}
+            ))}
             <div ref={chatEndRef} />
           </div>
         </div>
