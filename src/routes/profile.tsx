@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
+import { AgreementModal } from "@/components/AgreementModal";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -37,10 +38,46 @@ function Profile() {
   const [otpCode, setOtpCode] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
 
+  const [sellerAgreementAccepted, setSellerAgreementAccepted] = useState<boolean | null>(null);
+  const [showSellerAgreement, setShowSellerAgreement] = useState(false);
+  const [acceptingAgreement, setAcceptingAgreement] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
   }, [user]);
+
+  // Check whether approved sellers have already signed the Seller Agreement.
+  useEffect(() => {
+    if (!user || !p) return;
+    if (p.seller_status !== "approved") { setSellerAgreementAccepted(null); return; }
+    supabase
+      .from("legal_acceptances")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("document_type", "seller_agreement")
+      .then(({ count }) => {
+        const accepted = (count ?? 0) > 0;
+        setSellerAgreementAccepted(accepted);
+        if (!accepted) setShowSellerAgreement(true);
+      });
+  }, [user, p?.seller_status]);
+
+  async function acceptSellerAgreement() {
+    if (!user) return;
+    setAcceptingAgreement(true);
+    const { error } = await supabase.from("legal_acceptances").insert({
+      user_id: user.id,
+      document_type: "seller_agreement",
+      version: "1.0",
+      user_agent: navigator.userAgent.slice(0, 200),
+    });
+    setAcceptingAgreement(false);
+    if (error) return toast.error(error.message);
+    setSellerAgreementAccepted(true);
+    setShowSellerAgreement(false);
+    toast.success("Seller Agreement accepted");
+  }
 
   async function sendOtp() {
     if (!p?.phone || p.phone.length < 7) return toast.error("Enter a valid phone number");
@@ -256,7 +293,21 @@ function Profile() {
           <p className="text-sm font-bold">Sell on Pull Bid</p>
           <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Requires verified ID + mailing address. Admin reviews each application.</p>
           {p.seller_status === "approved" ? (
-            <p className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">✓ Approved seller</p>
+            sellerAgreementAccepted === false ? (
+              <div className="space-y-2">
+                <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-600">
+                  ✓ Approved — please review and accept the Seller Agreement to start selling.
+                </p>
+                <button
+                  onClick={() => setShowSellerAgreement(true)}
+                  className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                >
+                  Review & Accept Seller Agreement
+                </button>
+              </div>
+            ) : (
+              <p className="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">✓ Approved seller — agreement on file</p>
+            )
           ) : p.seller_status === "pending" ? (
             <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-600">Application pending review</p>
           ) : (
@@ -282,7 +333,7 @@ function Profile() {
         </section>
 
         <div className="space-y-2">
-          {p.seller_status === "approved" && (
+          {p.seller_status === "approved" && sellerAgreementAccepted && (
             <>
               <Link to="/sell" className="flex items-center gap-3 rounded-xl bg-card p-4">
                 <Radio className="h-5 w-5 text-live" />
@@ -326,6 +377,76 @@ function Profile() {
           </button>
         </div>
       </div>
+
+      <AgreementModal
+        open={showSellerAgreement}
+        required
+        onDismiss={() => setShowSellerAgreement(false)}
+        loading={acceptingAgreement}
+        title="Seller Agreement"
+        subtitle="Required for all approved sellers before listing or going live."
+        agreeLabel="I have read and agree to the Seller Agreement and will follow these rules on every sale and live stream."
+        acceptLabel="Agree & Activate Seller Tools"
+        onAccept={() => { void acceptSellerAgreement(); }}
+      >
+        <p>Congratulations on being approved as a seller on PullBid Live. Before you can list, host live auctions, or receive payouts, please review and accept this Seller Agreement.</p>
+
+        <h2>1. Shipping Obligations</h2>
+        <ul>
+          <li>Ship paid orders within <strong>3 business days</strong> of payment unless a longer timeframe is clearly stated on the listing.</li>
+          <li>Provide a valid tracking number through the order page within 24 hours of shipment.</li>
+          <li>Use packaging appropriate for the item (toploader/sleeve for cards, bubble mailer minimum, rigid mailer for high-value).</li>
+          <li>Honor combined-shipping caps when buyers win multiple items in the same stream.</li>
+        </ul>
+
+        <h2>2. Listing Accuracy</h2>
+        <ul>
+          <li>All listings must accurately describe the item: title, set, year, card number, and condition (NM, LP, MP, Damaged).</li>
+          <li>Front and back photos must be of the actual item, well-lit, and unedited beyond cropping/brightness.</li>
+          <li>Disclose any flaws, alterations, or restoration.</li>
+          <li>AI-assisted identification does not transfer responsibility — you are accountable for what you list.</li>
+        </ul>
+
+        <h2>3. No Counterfeits or Fakes</h2>
+        <ul>
+          <li>Selling counterfeit, reproduction, proxy, or knowingly altered items is strictly prohibited.</li>
+          <li>Violation results in <strong>immediate permanent ban</strong>, payout freeze, and potential reporting to authorities.</li>
+        </ul>
+
+        <h2>4. Live Auction Conduct</h2>
+        <ul>
+          <li>Run auctions fairly. <strong>No shill bidding</strong>, fake bidders, or collusion.</li>
+          <li>Honor stated giveaway rules and announced winners.</li>
+          <li>Maintain a respectful environment in chat. You are responsible for your moderators.</li>
+        </ul>
+
+        <h2>5. Order Fulfillment & Refunds</h2>
+        <ul>
+          <li>You are responsible for fulfilling every paid order. Cancelling without buyer agreement may incur penalties.</li>
+          <li>If an item is lost or damaged in transit, work with the buyer to resolve (refund or replacement).</li>
+          <li>Refunds for valid disputes must be processed promptly.</li>
+        </ul>
+
+        <h2>6. Fees & Payouts</h2>
+        <ul>
+          <li>The Platform deducts a commission (default 5%) from each completed sale. Stripe processing fees also apply.</li>
+          <li>Payouts go to your connected Stripe account on the standard schedule.</li>
+          <li>Payouts may be held pending dispute resolution or suspected fraud.</li>
+        </ul>
+
+        <h2>7. Suspension & Removal</h2>
+        <ul>
+          <li>The Platform may suspend or permanently remove sellers for violations including: late shipments, fakes, inaccurate listings, fraudulent auction conduct, high chargeback rates, or harassment.</li>
+          <li>Removed sellers forfeit pending payouts only where required to satisfy buyer refunds and chargebacks.</li>
+        </ul>
+
+        <h2>8. Tax & Legal Compliance</h2>
+        <p>You are solely responsible for collecting and remitting any applicable sales tax, VAT, and reporting income from sales on the Platform.</p>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Full document: <a href="/legal/seller-agreement" target="_blank" className="text-primary underline">Seller Agreement</a>
+        </p>
+      </AgreementModal>
     </AppShell>
   );
 }
