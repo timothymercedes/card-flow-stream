@@ -2032,6 +2032,14 @@ export type Database = {
       }
     }
     Functions: {
+      accept_legal_document: {
+        Args: {
+          _document_type: string
+          _user_agent?: string
+          _version?: string
+        }
+        Returns: undefined
+      }
       can_view_story: {
         Args: { _story_owner: string; _viewer: string; _visibility: string }
         Returns: boolean
