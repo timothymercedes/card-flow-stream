@@ -34,16 +34,41 @@ function PayBadge({ s }: { s: string }) {
 }
 
 function Orders() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [paying, setPaying] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Record<string, any>>({});
+  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string }>>({});
 
   async function load() {
     if (!user) return;
     const { data } = await supabase.from("orders").select("*").eq("buyer_id", user.id).order("created_at", { ascending: false });
     setOrders(data || []);
+    const ids = (data || []).map((o: any) => o.id);
+    if (ids.length) {
+      const { data: revs } = await supabase.from("seller_reviews").select("*").in("order_id", ids).eq("buyer_id", user.id);
+      const map: Record<string, any> = {};
+      (revs || []).forEach((r) => { map[r.order_id] = r; });
+      setReviews(map);
+    }
   }
   useEffect(() => { load(); }, [user]);
+
+  async function submitReview(o: any) {
+    const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "" };
+    const { error } = await supabase.from("seller_reviews").insert({
+      order_id: o.id,
+      seller_id: o.seller_id,
+      buyer_id: user!.id,
+      buyer_username: profile?.username || "buyer",
+      rating: f.rating,
+      shipping_rating: f.shipping_rating,
+      comment: f.comment || null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Review submitted");
+    load();
+  }
 
   async function payNow(o: any) {
     if (PAYMENTS_SAFE_MODE) {
