@@ -25,6 +25,11 @@ function Sell() {
   const [quickStart, setQuickStart] = useState(true);
   const [defaultTimerSec, setDefaultTimerSec] = useState("30");
   const [useObs, setUseObs] = useState(false);
+  // 🆕 Pre-live Mystery Break setup
+  const [enableBreak, setEnableBreak] = useState(false);
+  const [breakSlotCount, setBreakSlotCount] = useState("20");
+  const [breakSlotPrice, setBreakSlotPrice] = useState("10");
+  const [breakSlotPrefix, setBreakSlotPrefix] = useState("");
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
