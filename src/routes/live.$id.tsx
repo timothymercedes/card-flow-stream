@@ -42,6 +42,11 @@ function LiveDetail() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUsers, setShareUsers] = useState<any[]>([]);
   const [shareQuery, setShareQuery] = useState("");
+  const [shoutoutOpen, setShoutoutOpen] = useState(false);
+  const [shoutoutMsg, setShoutoutMsg] = useState("");
+  const [shoutoutAmt, setShoutoutAmt] = useState(5);
+  const [shoutouts, setShoutouts] = useState<any[]>([]);
+  const [mySpent, setMySpent] = useState(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
