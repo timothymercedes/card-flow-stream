@@ -976,20 +976,41 @@ function LiveDetail() {
           </div>
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
-            <p className="text-2xl font-bold text-primary">${Number(stream.current_bid || 0).toFixed(0)}</p>
+            <p className="text-2xl font-bold text-primary">{fmtMoney(Number(stream.current_bid || 0))}</p>
           </div>
         </div>
+
+        {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
+        {!isSeller && auctionLive && stream.snipe_price && !meBlocked && (
+          <button
+            onClick={buyNowSnipe}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-2.5 text-sm font-extrabold text-black shadow-lg ring-2 ring-yellow-200 active:scale-[0.98]"
+          >
+            <Zap className="h-4 w-4" /> SNIPE Buy-Now {fmtMoney(Number(stream.snipe_price))}
+          </button>
+        )}
+
+        {/* 🆕 Mystery break — Claim Slot for buyers */}
+        {!isSeller && stream.break_mode === "open" && (
+          <button
+            onClick={claimBreakSlot}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+          >
+            <Dice5 className="h-4 w-4" /> Claim Mystery Break Slot · ${breakPrice}
+          </button>
+        )}
 
         {!isSeller && (
           <div className="flex gap-2">
             <button
-              onPointerDown={bidDisabled ? undefined : startHold}
-              disabled={bidDisabled}
+              onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
+              disabled={bidDisabled || meBlocked}
               className="flex-1 select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             >
-              {bidDisabled
-                ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
-                : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
+              {meBlocked ? "🚫 You're muted/banned"
+                : bidDisabled
+                  ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                  : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
             </button>
             {!ended && (
               <button
@@ -1015,6 +1036,22 @@ function LiveDetail() {
                 <Play className="h-3.5 w-3.5" /> Start Auction
               </button>
             )}
+            {/* 🆕 Snipe price quick-set for hosts during a live auction */}
+            {auctionLive && (
+              <div className="flex flex-1 items-center gap-1 rounded-xl bg-yellow-500/20 px-2 py-1">
+                <Zap className="h-3.5 w-3.5 text-yellow-300" />
+                <input
+                  type="number" min="1" inputMode="decimal"
+                  value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
+                  placeholder="Snipe $"
+                  className="w-16 bg-transparent text-xs text-yellow-100 outline-none placeholder:text-yellow-200/50"
+                />
+                <button onClick={setSnipePriceNow} className="rounded-md bg-yellow-400 px-2 py-1 text-[10px] font-bold text-black">Set</button>
+              </div>
+            )}
+            <button onClick={() => setShowBreakPanel(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2.5 text-xs font-bold text-white">
+              <Dice5 className="h-3.5 w-3.5" /> Break
+            </button>
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
             </button>
