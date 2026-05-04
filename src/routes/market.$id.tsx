@@ -86,6 +86,7 @@ function ListingDetail() {
 
   async function placeBid() {
     if (!profile) return toast.error("Sign in first");
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding"); nav({ to: "/orders" }); return; }
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
     if (listing.auction_ends_at && new Date(listing.auction_ends_at).getTime() <= Date.now()) return toast.error("Auction ended");
