@@ -9,7 +9,7 @@ export const Route = createFileRoute("/live/")({ component: LiveList });
 function LiveList() {
   const [streams, setStreams] = useState<any[]>([]);
   useEffect(() => {
-    supabase.from("live_streams").select("*").eq("is_active", true).order("created_at", { ascending: false }).then(({ data }) => setStreams(data || []));
+    supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setStreams(data || []));
   }, []);
   return (
     <AppShell>

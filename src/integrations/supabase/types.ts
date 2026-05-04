@@ -193,42 +193,66 @@ export type Database = {
           current_bid: number
           current_bidder_id: string | null
           current_item: string | null
+          ended_at: string | null
+          ends_at: string | null
           id: string
           is_active: boolean
           item_description: string | null
+          item_image_url: string | null
           listing_type: string
+          min_bid_increment: number
           seller_id: string
+          started_at: string | null
           starting_bid: number
+          status: string
           thumbnail_url: string | null
           title: string
+          winner_id: string | null
+          winning_bid: number | null
         }
         Insert: {
           created_at?: string
           current_bid?: number
           current_bidder_id?: string | null
           current_item?: string | null
+          ended_at?: string | null
+          ends_at?: string | null
           id?: string
           is_active?: boolean
           item_description?: string | null
+          item_image_url?: string | null
           listing_type?: string
+          min_bid_increment?: number
           seller_id: string
+          started_at?: string | null
           starting_bid?: number
+          status?: string
           thumbnail_url?: string | null
           title: string
+          winner_id?: string | null
+          winning_bid?: number | null
         }
         Update: {
           created_at?: string
           current_bid?: number
           current_bidder_id?: string | null
           current_item?: string | null
+          ended_at?: string | null
+          ends_at?: string | null
           id?: string
           is_active?: boolean
           item_description?: string | null
+          item_image_url?: string | null
           listing_type?: string
+          min_bid_increment?: number
           seller_id?: string
+          started_at?: string | null
           starting_bid?: number
+          status?: string
           thumbnail_url?: string | null
           title?: string
+          winner_id?: string | null
+          winning_bid?: number | null
         }
         Relationships: [
           {
@@ -246,6 +270,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      message_requests: {
+        Row: {
+          created_at: string
+          id: string
+          last_request_at: string
+          recipient_id: string
+          sender_id: string
+          sender_username: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_request_at?: string
+          recipient_id: string
+          sender_id: string
+          sender_username: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_request_at?: string
+          recipient_id?: string
+          sender_id?: string
+          sender_username?: string
+          status?: string
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
@@ -477,6 +531,42 @@ export type Database = {
           id?: string
           is_seller?: boolean
           username?: string
+        }
+        Relationships: []
+      }
+      receipts: {
+        Row: {
+          amount: number
+          buyer_id: string
+          created_at: string
+          id: string
+          item_image_url: string | null
+          item_name: string
+          listing_id: string | null
+          seller_id: string
+          stream_id: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          created_at?: string
+          id?: string
+          item_image_url?: string | null
+          item_name: string
+          listing_id?: string | null
+          seller_id: string
+          stream_id?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          item_image_url?: string | null
+          item_name?: string
+          listing_id?: string | null
+          seller_id?: string
+          stream_id?: string | null
         }
         Relationships: []
       }

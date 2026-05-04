@@ -19,6 +19,8 @@ function Sell() {
   const [streamDesc, setStreamDesc] = useState("");
   const [streamType, setStreamType] = useState<ListingType>("auction");
   const [startingBid, setStartingBid] = useState("1");
+  const [timerMin, setTimerMin] = useState("10");
+  const [minIncrement, setMinIncrement] = useState("1");
 
   // Listing form
   const [title, setTitle] = useState("");
@@ -46,6 +48,8 @@ function Sell() {
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     await ensureSeller();
+    const minutes = Number(timerMin) || 0;
+    const ends_at = streamType === "auction" && minutes > 0 ? new Date(Date.now() + minutes * 60 * 1000).toISOString() : null;
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user!.id,
       title: streamTitle,
@@ -53,6 +57,12 @@ function Sell() {
       listing_type: streamType,
       starting_bid: Number(startingBid) || 1,
       current_bid: Number(startingBid) || 1,
+      current_item: streamTitle,
+      min_bid_increment: Number(minIncrement) || 1,
+      status: "live",
+      is_active: true,
+      started_at: new Date().toISOString(),
+      ends_at,
     }).select().single();
     if (error) return toast.error(error.message);
     nav({ to: "/live/$id", params: { id: data.id } });
@@ -107,6 +117,12 @@ function Sell() {
               </div>
             </div>
             <input type="number" min="1" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting price ($)" value={startingBid} onChange={(e) => setStartingBid(e.target.value)} />
+            {streamType === "auction" && (
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" min="0" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Timer (min)" value={timerMin} onChange={(e) => setTimerMin(e.target.value)} />
+                <input type="number" min="1" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Min bid increment ($)" value={minIncrement} onChange={(e) => setMinIncrement(e.target.value)} />
+              </div>
+            )}
             <button onClick={startLive} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
