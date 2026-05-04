@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, User, Plus } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User } from "lucide-react";
 import { ReactNode } from "react";
 
 const tabs = [
@@ -7,7 +7,7 @@ const tabs = [
   { to: "/live", label: "Live", icon: Radio },
   { to: "/market", label: "Market", icon: Store },
   { to: "/vault", label: "Vault", icon: Lock },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/messages", label: "Chat", icon: MessageCircle },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -19,9 +19,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">P</div>
           <div className="text-sm font-bold tracking-wide">PULL BID <span className="text-live">LIVE</span></div>
         </Link>
-        <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-          <Plus className="h-3.5 w-3.5" /> Sell
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+            <Plus className="h-3.5 w-3.5" /> Sell
+          </Link>
+          <Link to="/profile" className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+            <User className="h-4 w-4" />
+          </Link>
+        </div>
       </header>
       <main className="flex-1 pb-20">{children}</main>
       <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">

@@ -59,6 +59,36 @@ export type Database = {
           },
         ]
       }
+      direct_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          recipient_id: string
+          sender_id: string
+          sender_username: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id: string
+          sender_id: string
+          sender_username: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id?: string
+          sender_id?: string
+          sender_username?: string
+        }
+        Relationships: []
+      }
       listing_bids: {
         Row: {
           amount: number
@@ -103,36 +133,48 @@ export type Database = {
       }
       listings: {
         Row: {
+          accepts_offers: boolean
+          auction_ends_at: string | null
           created_at: string
           current_bid: number | null
           description: string | null
           id: string
           image_url: string | null
           is_auction: boolean
+          listing_type: string
           price: number | null
           seller_id: string
+          starting_bid: number | null
           title: string
         }
         Insert: {
+          accepts_offers?: boolean
+          auction_ends_at?: string | null
           created_at?: string
           current_bid?: number | null
           description?: string | null
           id?: string
           image_url?: string | null
           is_auction?: boolean
+          listing_type?: string
           price?: number | null
           seller_id: string
+          starting_bid?: number | null
           title: string
         }
         Update: {
+          accepts_offers?: boolean
+          auction_ends_at?: string | null
           created_at?: string
           current_bid?: number | null
           description?: string | null
           id?: string
           image_url?: string | null
           is_auction?: boolean
+          listing_type?: string
           price?: number | null
           seller_id?: string
+          starting_bid?: number | null
           title?: string
         }
         Relationships: [
@@ -153,7 +195,10 @@ export type Database = {
           current_item: string | null
           id: string
           is_active: boolean
+          item_description: string | null
+          listing_type: string
           seller_id: string
+          starting_bid: number
           thumbnail_url: string | null
           title: string
         }
@@ -164,7 +209,10 @@ export type Database = {
           current_item?: string | null
           id?: string
           is_active?: boolean
+          item_description?: string | null
+          listing_type?: string
           seller_id: string
+          starting_bid?: number
           thumbnail_url?: string | null
           title: string
         }
@@ -175,7 +223,10 @@ export type Database = {
           current_item?: string | null
           id?: string
           is_active?: boolean
+          item_description?: string | null
+          listing_type?: string
           seller_id?: string
+          starting_bid?: number
           thumbnail_url?: string | null
           title?: string
         }
@@ -192,6 +243,180 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          read: boolean
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      offers: {
+        Row: {
+          amount: number
+          buyer_id: string
+          buyer_username: string
+          created_at: string
+          id: string
+          listing_id: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          buyer_username: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          buyer_username?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount: number
+          buyer_id: string
+          carrier: string | null
+          created_at: string
+          delivered_at: string | null
+          id: string
+          listing_id: string | null
+          seller_id: string
+          ship_address: string
+          ship_city: string
+          ship_country: string
+          ship_name: string
+          ship_state: string | null
+          ship_zip: string
+          shipped_at: string | null
+          status: string
+          title: string
+          tracking_number: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          carrier?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          listing_id?: string | null
+          seller_id: string
+          ship_address: string
+          ship_city: string
+          ship_country?: string
+          ship_name: string
+          ship_state?: string | null
+          ship_zip: string
+          shipped_at?: string | null
+          status?: string
+          title: string
+          tracking_number?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          carrier?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          listing_id?: string | null
+          seller_id?: string
+          ship_address?: string
+          ship_city?: string
+          ship_country?: string
+          ship_name?: string
+          ship_state?: string | null
+          ship_zip?: string
+          shipped_at?: string | null
+          status?: string
+          title?: string
+          tracking_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]

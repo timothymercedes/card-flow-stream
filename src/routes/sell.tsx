@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
+type ListingType = "buy_now" | "auction" | "offer";
+
 function Sell() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
@@ -14,12 +16,18 @@ function Sell() {
 
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
+  const [streamDesc, setStreamDesc] = useState("");
+  const [streamType, setStreamType] = useState<ListingType>("auction");
+  const [startingBid, setStartingBid] = useState("1");
 
   // Listing form
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [price, setPrice] = useState("");
-  const [isAuction, setIsAuction] = useState(false);
+  const [listingType, setListingType] = useState<ListingType>("buy_now");
+  const [acceptsOffers, setAcceptsOffers] = useState(false);
+  const [auctionDays, setAuctionDays] = useState("3");
 
   if (!user) return (
     <AppShell>
@@ -31,31 +39,51 @@ function Sell() {
     </AppShell>
   );
 
+  async function ensureSeller() {
+    if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
+  }
+
   async function startLive() {
-    if (!streamTitle.trim()) return;
-    if (!profile?.is_seller) {
-      await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
-    }
-    const { data, error } = await supabase.from("live_streams").insert({ seller_id: user!.id, title: streamTitle }).select().single();
+    if (!streamTitle.trim()) return toast.error("Add a title");
+    await ensureSeller();
+    const { data, error } = await supabase.from("live_streams").insert({
+      seller_id: user!.id,
+      title: streamTitle,
+      item_description: streamDesc || null,
+      listing_type: streamType,
+      starting_bid: Number(startingBid) || 1,
+      current_bid: Number(startingBid) || 1,
+    }).select().single();
     if (error) return toast.error(error.message);
     nav({ to: "/live/$id", params: { id: data.id } });
   }
 
   async function createListing() {
-    if (!title.trim()) return;
-    if (!profile?.is_seller) {
-      await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
-    }
+    if (!title.trim()) return toast.error("Add a title");
+    await ensureSeller();
+    const amt = Number(price) || 0;
+    const auctionEnds = listingType === "auction" ? new Date(Date.now() + Number(auctionDays) * 24 * 60 * 60 * 1000).toISOString() : null;
     const { error } = await supabase.from("listings").insert({
-      seller_id: user!.id, title, description: desc,
-      price: isAuction ? null : Number(price) || 0,
-      current_bid: isAuction ? Number(price) || 0 : null,
-      is_auction: isAuction,
+      seller_id: user!.id,
+      title,
+      description: desc,
+      image_url: imageUrl || null,
+      listing_type: listingType,
+      is_auction: listingType === "auction",
+      accepts_offers: listingType === "offer" ? true : acceptsOffers,
+      starting_bid: listingType === "auction" ? amt : null,
+      current_bid: listingType === "auction" ? amt : null,
+      price: listingType !== "auction" ? amt : null,
+      auction_ends_at: auctionEnds,
     });
     if (error) return toast.error(error.message);
     toast.success("Listing created");
     nav({ to: "/market" });
   }
+
+  const TypeBtn = ({ v, label, set, cur }: { v: ListingType; label: string; set: (v: ListingType) => void; cur: ListingType }) => (
+    <button type="button" onClick={() => set(v)} className={`flex-1 rounded-lg py-2 text-xs font-semibold ${cur === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{label}</button>
+  );
 
   return (
     <AppShell>
@@ -69,17 +97,46 @@ function Sell() {
         {tab === "live" ? (
           <div className="space-y-3">
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Stream title" value={streamTitle} onChange={(e) => setStreamTitle(e.target.value)} />
+            <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={2} placeholder="Item description (optional)" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Listing type</p>
+              <div className="flex gap-2">
+                <TypeBtn v="buy_now" label="Buy Now" set={setStreamType} cur={streamType} />
+                <TypeBtn v="auction" label="Auction" set={setStreamType} cur={streamType} />
+                <TypeBtn v="offer" label="Offers" set={setStreamType} cur={streamType} />
+              </div>
+            </div>
+            <input type="number" min="1" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting price ($)" value={startingBid} onChange={(e) => setStartingBid(e.target.value)} />
             <button onClick={startLive} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
           <div className="space-y-3">
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={isAuction} onChange={(e) => setIsAuction(e.target.checked)} className="h-4 w-4" />
-              Auction (bidding)
-            </label>
-            <input type="number" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder={isAuction ? "Starting bid ($)" : "Price ($)"} value={price} onChange={(e) => setPrice(e.target.value)} />
+            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Image URL (optional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <div>
+              <p className="mb-1 text-xs text-muted-foreground">Listing type</p>
+              <div className="flex gap-2">
+                <TypeBtn v="buy_now" label="Buy Now" set={setListingType} cur={listingType} />
+                <TypeBtn v="auction" label="Auction" set={setListingType} cur={listingType} />
+                <TypeBtn v="offer" label="Make Offer" set={setListingType} cur={listingType} />
+              </div>
+            </div>
+            {listingType === "buy_now" && (
+              <label className="flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={acceptsOffers} onChange={(e) => setAcceptsOffers(e.target.checked)} className="h-4 w-4" />
+                Also accept offers
+              </label>
+            )}
+            {listingType === "auction" && (
+              <select value={auctionDays} onChange={(e) => setAuctionDays(e.target.value)} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none">
+                <option value="1">1 day</option>
+                <option value="3">3 days</option>
+                <option value="5">5 days</option>
+                <option value="7">7 days</option>
+              </select>
+            )}
+            <input type="number" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder={listingType === "auction" ? "Starting bid ($)" : "Price ($)"} value={price} onChange={(e) => setPrice(e.target.value)} />
             <button onClick={createListing} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Create Listing</button>
           </div>
         )}
