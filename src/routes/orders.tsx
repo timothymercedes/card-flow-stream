@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Package, Truck, CheckCircle2, CreditCard, Clock } from "lucide-react";
+import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
