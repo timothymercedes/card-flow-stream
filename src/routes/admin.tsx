@@ -39,14 +39,29 @@ function Admin() {
   }, [user]);
 
   async function loadAll() {
-    const [{ data: d }, { data: s }] = await Promise.all([
+    const [{ data: d }, { data: s }, { data: r }] = await Promise.all([
       supabase.from("disputes").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("user_suspensions").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("user_reports").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
     setDisputes(d || []);
     setSuspensions(s || []);
+    setReports(r || []);
   }
   useEffect(() => { if (isAdmin) loadAll(); }, [isAdmin]);
+
+  async function updateReport(id: string, status: "reviewing" | "resolved" | "dismissed") {
+    const note = status !== "reviewing" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
+    const { error } = await supabase.from("user_reports").update({
+      status,
+      resolution_note: note || null,
+      resolved_by: user!.id,
+      resolved_at: status === "reviewing" ? null : new Date().toISOString(),
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Updated");
+    loadAll();
+  }
 
   async function resolveDispute(id: string, status: "resolved" | "rejected" | "investigating") {
     const note = status === "resolved" || status === "rejected" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
