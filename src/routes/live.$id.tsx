@@ -168,6 +168,48 @@ function LiveDetail() {
     supabase.from("stream_mod_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setModChat(data || []));
   }, [isStaff, id]);
 
+  // 🆕 Load Spin Wheel + slots, subscribe to realtime updates
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWheel() {
+      const { data: w } = await supabase.from("spin_wheels").select("*").eq("stream_id", id).maybeSingle();
+      if (cancelled) return;
+      setWheel(w || null);
+      if (w) {
+        const { data: ss } = await supabase.from("wheel_slots").select("*").eq("wheel_id", w.id).order("position");
+        if (!cancelled) setWheelSlots((ss || []) as WheelSlot[]);
+      } else {
+        setWheelSlots([]);
+      }
+    }
+    loadWheel();
+    const ch = supabase.channel(`wheel-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "spin_wheels", filter: `stream_id=eq.${id}` }, (p) => {
+        const next: any = p.new;
+        setWheel(next || null);
+        // Auto-open the wheel for everyone the moment a spin starts
+        if (next?.is_spinning) {
+          wheelLandedRef.current = null;
+          setShowWheelOverlay(true);
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "wheel_slots" }, async () => {
+        // Re-fetch slots whenever any change occurs (small table, host-only writes)
+        const wid = wheel?.id || (await supabase.from("spin_wheels").select("id").eq("stream_id", id).maybeSingle()).data?.id;
+        if (!wid) return;
+        const { data: ss } = await supabase.from("wheel_slots").select("*").eq("wheel_id", wid).order("position");
+        setWheelSlots((ss || []) as WheelSlot[]);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "wheel_spins", filter: `stream_id=eq.${id}` }, (p) => {
+        const r: any = p.new;
+        setWheelWinnerPopup({ slot: r.slot_label, winner: r.winner_username });
+        setTimeout(() => setWheelWinnerPopup(null), 6000);
+      })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   // Auto-hide AI hype overlay after 5s
   useEffect(() => {
     if (!hypeCard) return;
