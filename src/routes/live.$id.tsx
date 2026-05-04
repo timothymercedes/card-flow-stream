@@ -1511,8 +1511,8 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🎁 Persistent giveaway countdown chip — visible while a gift is open */}
-      <div className="absolute bottom-[calc(11rem+35vh+0.5rem)] left-0 right-0 z-20 px-3">
+      {/* 🎁 Persistent giveaway countdown chip — pinned to top-right corner */}
+      <div className="absolute right-3 top-16 z-30">
         <GiveawayChip streamId={id} />
       </div>
 
