@@ -22,6 +22,7 @@ export type Database = {
           buyer_username: string
           created_at: string
           id: string
+          slot_number: number | null
           stream_id: string
           team_label: string | null
         }
@@ -32,6 +33,7 @@ export type Database = {
           buyer_username: string
           created_at?: string
           id?: string
+          slot_number?: number | null
           stream_id: string
           team_label?: string | null
         }
@@ -42,6 +44,7 @@ export type Database = {
           buyer_username?: string
           created_at?: string
           id?: string
+          slot_number?: number | null
           stream_id?: string
           team_label?: string | null
         }
@@ -164,6 +167,98 @@ export type Database = {
           created_at?: string
           followee_id?: string
           follower_id?: string
+        }
+        Relationships: []
+      }
+      giveaway_entries: {
+        Row: {
+          created_at: string
+          giveaway_id: string
+          id: string
+          reaction_ms: number | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          giveaway_id: string
+          id?: string
+          reaction_ms?: number | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          giveaway_id?: string
+          id?: string
+          reaction_ms?: number | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giveaway_entries_giveaway_id_fkey"
+            columns: ["giveaway_id"]
+            isOneToOne: false
+            referencedRelation: "giveaways"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      giveaways: {
+        Row: {
+          closed_at: string | null
+          code: string
+          created_at: string
+          drawn_at: string | null
+          eligibility: string
+          id: string
+          opened_at: string
+          prize_label: string
+          seller_id: string
+          shipping_covered: boolean
+          status: string
+          stream_id: string
+          title: string
+          updated_at: string
+          winner_id: string | null
+          winner_username: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          code: string
+          created_at?: string
+          drawn_at?: string | null
+          eligibility?: string
+          id?: string
+          opened_at?: string
+          prize_label: string
+          seller_id: string
+          shipping_covered?: boolean
+          status?: string
+          stream_id: string
+          title?: string
+          updated_at?: string
+          winner_id?: string | null
+          winner_username?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          code?: string
+          created_at?: string
+          drawn_at?: string | null
+          eligibility?: string
+          id?: string
+          opened_at?: string
+          prize_label?: string
+          seller_id?: string
+          shipping_covered?: boolean
+          status?: string
+          stream_id?: string
+          title?: string
+          updated_at?: string
+          winner_id?: string | null
+          winner_username?: string | null
         }
         Relationships: []
       }
@@ -301,6 +396,8 @@ export type Database = {
       live_streams: {
         Row: {
           break_mode: string | null
+          break_slot_count: number | null
+          break_slot_prefix: string | null
           break_teams: Json | null
           cf_live_input_id: string | null
           cf_playback_hls: string | null
@@ -347,6 +444,8 @@ export type Database = {
         }
         Insert: {
           break_mode?: string | null
+          break_slot_count?: number | null
+          break_slot_prefix?: string | null
           break_teams?: Json | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
@@ -393,6 +492,8 @@ export type Database = {
         }
         Update: {
           break_mode?: string | null
+          break_slot_count?: number | null
+          break_slot_prefix?: string | null
           break_teams?: Json | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
