@@ -133,6 +133,9 @@ function LiveDetail() {
   const [editQuantity, setEditQuantity] = useState("1");
   const [editVoiceEnabled, setEditVoiceEnabled] = useState(false);
   const [editVoicePhrase, setEditVoicePhrase] = useState("next");
+  // 🆕 Chat slow-mode (seconds between messages per viewer; 0 = off)
+  const [editSlowMode, setEditSlowMode] = useState("0");
+  const lastChatTsRef = useRef<number>(0);
 
   useEffect(() => {
     supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).then(({ data }) => setAllStreams(data || []));
