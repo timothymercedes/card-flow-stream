@@ -534,6 +534,7 @@ function LiveDetail() {
   async function placeBidAmount(amount: number) {
     if (!user || !profile) return toast.error("Sign in to bid");
     if (isSeller) return;
+    if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding again"); nav({ to: "/orders" }); return; }
     if (meBlocked) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
