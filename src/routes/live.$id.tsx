@@ -2,11 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2, Zap, Users, Dice5, Globe, VolumeX, Ban, Clock as ClockIcon } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2, Megaphone, Copy, Shield, ShieldPlus, Trash2, Zap, Users, Dice5, Globe, VolumeX, Ban, Clock as ClockIcon, RotateCw, Plus, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
+import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -86,6 +87,16 @@ function LiveDetail() {
   const [viewerCurrency, setViewerCurrency] = useState<Currency>("USD");
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
+  // 🆕 Spin Wheel state
+  const [wheel, setWheel] = useState<any>(null);
+  const [wheelSlots, setWheelSlots] = useState<WheelSlot[]>([]);
+  const [showWheelOverlay, setShowWheelOverlay] = useState(false);
+  const [showWheelEditor, setShowWheelEditor] = useState(false);
+  const [wheelWinnerPopup, setWheelWinnerPopup] = useState<{ slot: string; winner: string } | null>(null);
+  const [draftSlotLabel, setDraftSlotLabel] = useState("");
+  const [draftSlotWeight, setDraftSlotWeight] = useState("1");
+  const wheelLandedRef = useRef<string | null>(null);
+
   const isMod = !!user && mods.some((m) => m.mod_user_id === user.id);
   const isStaff = !!user && (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
 
@@ -156,6 +167,48 @@ function LiveDetail() {
     if (!isStaff) { setModChat([]); return; }
     supabase.from("stream_mod_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setModChat(data || []));
   }, [isStaff, id]);
+
+  // 🆕 Load Spin Wheel + slots, subscribe to realtime updates
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWheel() {
+      const { data: w } = await supabase.from("spin_wheels").select("*").eq("stream_id", id).maybeSingle();
+      if (cancelled) return;
+      setWheel(w || null);
+      if (w) {
+        const { data: ss } = await supabase.from("wheel_slots").select("*").eq("wheel_id", w.id).order("position");
+        if (!cancelled) setWheelSlots((ss || []) as WheelSlot[]);
+      } else {
+        setWheelSlots([]);
+      }
+    }
+    loadWheel();
+    const ch = supabase.channel(`wheel-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "spin_wheels", filter: `stream_id=eq.${id}` }, (p) => {
+        const next: any = p.new;
+        setWheel(next || null);
+        // Auto-open the wheel for everyone the moment a spin starts
+        if (next?.is_spinning) {
+          wheelLandedRef.current = null;
+          setShowWheelOverlay(true);
+        }
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "wheel_slots" }, async () => {
+        // Re-fetch slots whenever any change occurs (small table, host-only writes)
+        const wid = wheel?.id || (await supabase.from("spin_wheels").select("id").eq("stream_id", id).maybeSingle()).data?.id;
+        if (!wid) return;
+        const { data: ss } = await supabase.from("wheel_slots").select("*").eq("wheel_id", wid).order("position");
+        setWheelSlots((ss || []) as WheelSlot[]);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "wheel_spins", filter: `stream_id=eq.${id}` }, (p) => {
+        const r: any = p.new;
+        setWheelWinnerPopup({ slot: r.slot_label, winner: r.winner_username });
+        setTimeout(() => setWheelWinnerPopup(null), 6000);
+      })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Auto-hide AI hype overlay after 5s
   useEffect(() => {
@@ -448,6 +501,126 @@ function LiveDetail() {
     setViewerCurrency(c);
     if (!user) return;
     await supabase.from("profiles").update({ preferred_currency: c }).eq("id", user.id);
+  }
+
+  // ===== Spin Wheel handlers =====
+  async function ensureWheel(): Promise<any | null> {
+    if (wheel) return wheel;
+    if (!isSeller) return null;
+    const { data, error } = await supabase.from("spin_wheels").insert({
+      stream_id: id, seller_id: user!.id,
+    }).select().single();
+    if (error) { toast.error(error.message); return null; }
+    setWheel(data);
+    return data;
+  }
+
+  async function addWheelSlot() {
+    const w = await ensureWheel();
+    if (!w) return;
+    const label = draftSlotLabel.trim();
+    if (!label) return toast.error("Add a label");
+    const weight = Math.max(1, Math.min(100, Number(draftSlotWeight) || 1));
+    const palette = ["#7c3aed","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#06b6d4","#a855f7","#14b8a6","#f97316"];
+    const color = palette[wheelSlots.length % palette.length];
+    const { error } = await supabase.from("wheel_slots").insert({
+      wheel_id: w.id, label, weight, color, position: wheelSlots.length,
+    });
+    if (error) return toast.error(error.message);
+    setDraftSlotLabel(""); setDraftSlotWeight("1");
+  }
+
+  async function removeWheelSlot(slotId: string) {
+    if (wheel?.is_spinning) return toast.error("Wheel is locked while spinning");
+    await supabase.from("wheel_slots").delete().eq("id", slotId);
+  }
+
+  async function updateWheelMode(mode: "remove" | "keep") {
+    if (!wheel || !isSeller) return;
+    await supabase.from("spin_wheels").update({ mode }).eq("id", wheel.id);
+  }
+  async function updateWheelSpeed(spin_speed: "slow" | "normal" | "fast") {
+    if (!wheel || !isSeller) return;
+    await supabase.from("spin_wheels").update({ spin_speed }).eq("id", wheel.id);
+  }
+  async function toggleViewerSpin() {
+    if (!wheel || !isSeller) return;
+    await supabase.from("spin_wheels").update({ viewer_can_spin: !wheel.viewer_can_spin }).eq("id", wheel.id);
+  }
+
+  function spinDurationMs(speed: string): number {
+    if (speed === "slow") return 7500;
+    if (speed === "fast") return 3500;
+    return 5000;
+  }
+
+  // Trigger a spin: host always allowed; viewers only if viewer_can_spin and idle.
+  async function triggerSpin() {
+    if (!user) return toast.error("Sign in to spin");
+    if (!wheel) return toast.error("No wheel yet");
+    if (wheel.is_spinning) return;
+    const canSpin = isSeller || wheel.viewer_can_spin;
+    if (!canSpin) return toast.error("Only the host can spin");
+    const active = wheelSlots.filter((s) => s.is_active);
+    if (active.length < 2) return toast.error("Add at least 2 slots");
+
+    // Pick winning slot using weights — done client-side, persisted server-side.
+    const pick = weightedPick(active);
+    if (!pick) return;
+    const dur = spinDurationMs(wheel.spin_speed);
+    const startedAt = new Date();
+    const endsAt = new Date(startedAt.getTime() + dur);
+    setShowWheelOverlay(true);
+    wheelLandedRef.current = null;
+    const { error } = await supabase.from("spin_wheels").update({
+      is_spinning: true,
+      spin_started_at: startedAt.toISOString(),
+      spin_ends_at: endsAt.toISOString(),
+      spin_target_slot_id: pick.id,
+      spin_seed: Math.floor(Math.random() * 1_000_000),
+    }).eq("id", wheel.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    // Schedule the result write at finish (any client can do it; RLS guards host-only).
+    if (isSeller) {
+      setTimeout(() => finalizeSpin(pick.id), dur + 150);
+    }
+  }
+
+  async function finalizeSpin(slotId: string) {
+    if (!wheel || !isSeller) return;
+    if (wheelLandedRef.current === slotId) return;
+    wheelLandedRef.current = slotId;
+    const slot = wheelSlots.find((s) => s.id === slotId);
+    if (!slot) return;
+    // Winner = current top bidder if a live auction, else the seller for now.
+    const winnerId = (stream?.current_bidder_id as string) || user!.id;
+    const winnerUsername = stream?.winner_username || (winnerId === user!.id ? (profile?.username || "host") : "top bidder");
+
+    await supabase.from("wheel_spins").insert({
+      wheel_id: wheel.id,
+      stream_id: id,
+      triggered_by_id: user!.id,
+      triggered_by_username: profile?.username || "host",
+      winner_id: winnerId,
+      winner_username: winnerUsername,
+      slot_id: slot.id,
+      slot_label: slot.label,
+    });
+    // Remove the slot if mode is 'remove'
+    if (wheel.mode === "remove") {
+      await supabase.from("wheel_slots").delete().eq("id", slot.id);
+    }
+    await supabase.from("spin_wheels").update({
+      is_spinning: false,
+      last_winner_username: winnerUsername,
+      last_winner_slot_label: slot.label,
+      last_winner_at: new Date().toISOString(),
+    }).eq("id", wheel.id);
+    await sendMsg(`🎡 ${winnerUsername} won "${slot.label}" on the wheel!`, true);
   }
 
   async function startAuction() {
@@ -1000,6 +1173,18 @@ function LiveDetail() {
           </button>
         )}
 
+        {/* 🆕 Spin Wheel — visible to viewers whenever a wheel exists */}
+        {!isSeller && wheel && wheelSlots.length > 0 && (
+          <button
+            onClick={() => setShowWheelOverlay(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+          >
+            <RotateCw className={`h-4 w-4 ${wheel.is_spinning ? "animate-spin" : ""}`} />
+            {wheel.is_spinning ? "Spinning live…" : "Open Spin Wheel"}
+            <span className="ml-1 text-[10px] font-semibold opacity-80">{wheelSlots.filter((s)=>s.is_active).length} prizes</span>
+          </button>
+        )}
+
         {!isSeller && (
           <div className="flex gap-2">
             <button
@@ -1051,6 +1236,9 @@ function LiveDetail() {
             )}
             <button onClick={() => setShowBreakPanel(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2.5 text-xs font-bold text-white">
               <Dice5 className="h-3.5 w-3.5" /> Break
+            </button>
+            <button onClick={() => setShowWheelEditor(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2.5 text-xs font-bold text-white">
+              <RotateCw className="h-3.5 w-3.5" /> Wheel
             </button>
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
               <Square className="h-3.5 w-3.5" /> End Live
@@ -1380,6 +1568,149 @@ function LiveDetail() {
             <Dice5 className="mx-auto h-16 w-16 animate-spin text-yellow-300" />
             <p className="mt-3 text-2xl font-extrabold tracking-wider text-white">SHUFFLING TEAMS…</p>
             <p className="mt-1 text-sm text-white/70">Random fair draw in progress</p>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Spin Wheel — fullscreen overlay (visible to ALL viewers when open) */}
+      {showWheelOverlay && wheel && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <button
+            onClick={() => setShowWheelOverlay(false)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white"
+          ><X className="h-5 w-5" /></button>
+          <p className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-300">
+            <RotateCw className="h-3.5 w-3.5" /> {wheel.title || "Spin to Win"}
+          </p>
+          <p className="mb-4 text-[11px] text-white/60">
+            Mode: {wheel.mode === "remove" ? "Removed after spin" : "Repeats"} · Speed: {wheel.spin_speed}
+          </p>
+          <SpinWheel
+            slots={wheelSlots}
+            spinning={!!wheel.is_spinning}
+            targetSlotId={wheel.spin_target_slot_id || null}
+            startedAt={wheel.spin_started_at ? new Date(wheel.spin_started_at).getTime() : null}
+            finishAt={wheel.spin_ends_at ? new Date(wheel.spin_ends_at).getTime() : null}
+            size={Math.min(360, typeof window !== "undefined" ? Math.min(window.innerWidth, window.innerHeight) - 120 : 320)}
+          />
+
+          <div className="mt-6 flex w-full max-w-sm flex-col gap-2">
+            {(isSeller || wheel.viewer_can_spin) && !wheel.is_spinning && (
+              <button
+                onClick={triggerSpin}
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-3 text-base font-extrabold text-white shadow-lg active:scale-[0.98]"
+              >
+                <RotateCw className="h-5 w-5" /> SPIN!
+              </button>
+            )}
+            {wheel.is_spinning && (
+              <div className="flex items-center justify-center gap-2 rounded-xl bg-white/10 py-3 text-sm font-bold text-white">
+                <Lock className="h-4 w-4" /> Wheel locked while spinning
+              </div>
+            )}
+            {!isSeller && !wheel.viewer_can_spin && !wheel.is_spinning && (
+              <p className="text-center text-xs text-white/50">Only the host can spin right now</p>
+            )}
+            {wheel.last_winner_slot_label && !wheel.is_spinning && (
+              <div className="rounded-xl bg-white/5 p-3 text-center text-xs text-white/80">
+                Last spin: <span className="font-bold text-amber-300">{wheel.last_winner_slot_label}</span> →{" "}
+                <span className="font-bold text-white">@{wheel.last_winner_username}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Winner popup — appears for everyone when a spin lands */}
+      {wheelWinnerPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={() => setWheelWinnerPopup(null)}>
+          <div className="animate-in zoom-in-95 fade-in rounded-3xl bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 p-1 shadow-2xl">
+            <div className="rounded-3xl bg-black/85 px-8 py-6 text-center">
+              <Trophy className="mx-auto h-12 w-12 text-amber-300" />
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-amber-300">Winner</p>
+              <p className="mt-1 text-2xl font-extrabold text-white">{wheelWinnerPopup.slot}</p>
+              <p className="mt-3 text-xs text-white/70">Owned by</p>
+              <p className="text-lg font-bold text-white">@{wheelWinnerPopup.winner}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Wheel editor — host only */}
+      {showWheelEditor && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setShowWheelEditor(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold"><RotateCw className="h-4 w-4 text-primary" /> Spin Wheel</p>
+              <button onClick={() => setShowWheelEditor(false)}><X className="h-4 w-4" /></button>
+            </div>
+
+            {wheel?.is_spinning && (
+              <div className="mb-3 flex items-center gap-2 rounded-lg bg-yellow-500/20 p-2 text-[11px] text-yellow-300">
+                <Lock className="h-3.5 w-3.5" /> Locked while spinning
+              </div>
+            )}
+
+            {/* Settings */}
+            <div className="mb-3 space-y-2 rounded-xl bg-muted/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-muted-foreground">Mode</p>
+                <div className="flex gap-1">
+                  {(["remove","keep"] as const).map((m) => (
+                    <button key={m} disabled={!!wheel?.is_spinning} onClick={() => updateWheelMode(m)}
+                      className={`rounded-md px-2 py-1 text-[11px] font-bold ${wheel?.mode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
+                      {m === "remove" ? "Remove" : "Repeat"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-muted-foreground">Speed</p>
+                <div className="flex gap-1">
+                  {(["slow","normal","fast"] as const).map((s) => (
+                    <button key={s} disabled={!!wheel?.is_spinning} onClick={() => updateWheelSpeed(s)}
+                      className={`rounded-md px-2 py-1 text-[11px] font-bold ${wheel?.spin_speed === s ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"} disabled:opacity-50`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button disabled={!wheel} onClick={toggleViewerSpin}
+                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[11px] font-bold ${wheel?.viewer_can_spin ? "bg-primary/20 text-primary" : "bg-background text-muted-foreground"}`}>
+                <span>Allow viewers to spin</span>
+                <span>{wheel?.viewer_can_spin ? "ON" : "OFF"}</span>
+              </button>
+            </div>
+
+            {/* Add slot */}
+            <div className="mb-3 flex gap-2">
+              <input value={draftSlotLabel} onChange={(e) => setDraftSlotLabel(e.target.value)} placeholder="Prize / item" maxLength={40} className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm outline-none" />
+              <input value={draftSlotWeight} onChange={(e) => setDraftSlotWeight(e.target.value)} type="number" min="1" max="100" className="w-16 rounded-lg bg-muted px-2 py-2 text-center text-sm outline-none" />
+              <button disabled={!!wheel?.is_spinning} onClick={addWheelSlot} className="flex items-center gap-1 rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground disabled:opacity-50">
+                <Plus className="h-3.5 w-3.5" /> Add
+              </button>
+            </div>
+            <p className="mb-2 text-[10px] text-muted-foreground">Higher weight = better odds. Min 2 active slots needed to spin.</p>
+
+            {/* Slot list */}
+            <div className="mb-3 max-h-44 space-y-1 overflow-y-auto">
+              {wheelSlots.length === 0 && <p className="text-center text-xs text-muted-foreground">No slots yet</p>}
+              {wheelSlots.map((s) => (
+                <div key={s.id} className="flex items-center gap-2 rounded-lg bg-muted/40 p-2">
+                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: s.color }} />
+                  <p className="min-w-0 flex-1 truncate text-xs font-semibold">{s.label}</p>
+                  <span className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">×{s.weight}</span>
+                  <button disabled={!!wheel?.is_spinning} onClick={() => removeWheelSlot(s.id)} className="text-destructive disabled:opacity-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => { setShowWheelEditor(false); setShowWheelOverlay(true); }} disabled={!wheel || wheelSlots.filter(s=>s.is_active).length < 2}
+                className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">
+                Open & Spin
+              </button>
+            </div>
           </div>
         </div>
       )}

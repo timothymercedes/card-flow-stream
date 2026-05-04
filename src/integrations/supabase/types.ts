@@ -1020,6 +1020,69 @@ export type Database = {
         }
         Relationships: []
       }
+      spin_wheels: {
+        Row: {
+          created_at: string
+          id: string
+          is_open: boolean
+          is_spinning: boolean
+          last_winner_at: string | null
+          last_winner_slot_label: string | null
+          last_winner_username: string | null
+          mode: string
+          seller_id: string
+          spin_ends_at: string | null
+          spin_seed: number | null
+          spin_speed: string
+          spin_started_at: string | null
+          spin_target_slot_id: string | null
+          stream_id: string
+          title: string
+          updated_at: string
+          viewer_can_spin: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          is_spinning?: boolean
+          last_winner_at?: string | null
+          last_winner_slot_label?: string | null
+          last_winner_username?: string | null
+          mode?: string
+          seller_id: string
+          spin_ends_at?: string | null
+          spin_seed?: number | null
+          spin_speed?: string
+          spin_started_at?: string | null
+          spin_target_slot_id?: string | null
+          stream_id: string
+          title?: string
+          updated_at?: string
+          viewer_can_spin?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          is_spinning?: boolean
+          last_winner_at?: string | null
+          last_winner_slot_label?: string | null
+          last_winner_username?: string | null
+          mode?: string
+          seller_id?: string
+          spin_ends_at?: string | null
+          spin_seed?: number | null
+          spin_speed?: string
+          spin_started_at?: string | null
+          spin_target_slot_id?: string | null
+          stream_id?: string
+          title?: string
+          updated_at?: string
+          viewer_can_spin?: boolean
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           avatar_url: string | null
@@ -1366,6 +1429,97 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      wheel_slots: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          label: string
+          position: number
+          weight: number
+          wheel_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          label: string
+          position?: number
+          weight?: number
+          wheel_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          label?: string
+          position?: number
+          weight?: number
+          wheel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheel_slots_wheel_id_fkey"
+            columns: ["wheel_id"]
+            isOneToOne: false
+            referencedRelation: "spin_wheels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wheel_spins: {
+        Row: {
+          created_at: string
+          id: string
+          slot_id: string | null
+          slot_label: string
+          stream_id: string
+          triggered_by_id: string
+          triggered_by_username: string
+          wheel_id: string
+          winner_id: string | null
+          winner_username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          slot_id?: string | null
+          slot_label: string
+          stream_id: string
+          triggered_by_id: string
+          triggered_by_username: string
+          wheel_id: string
+          winner_id?: string | null
+          winner_username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          slot_id?: string | null
+          slot_label?: string
+          stream_id?: string
+          triggered_by_id?: string
+          triggered_by_username?: string
+          wheel_id?: string
+          winner_id?: string | null
+          winner_username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheel_spins_wheel_id_fkey"
+            columns: ["wheel_id"]
+            isOneToOne: false
+            referencedRelation: "spin_wheels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
