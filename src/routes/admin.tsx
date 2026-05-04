@@ -4,7 +4,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag } from "lucide-react";
+
+const REPORT_GROUPS = [
+  { key: "all", label: "All", icon: Flag, types: [] as string[] },
+  { key: "messages", label: "Chat / Messages", icon: MessageSquare, types: ["message"] },
+  { key: "orders", label: "Orders", icon: ShoppingBag, types: ["order"] },
+  { key: "users", label: "Users", icon: UserIcon, types: ["user"] },
+  { key: "streams", label: "Streams", icon: Radio, types: ["stream"] },
+  { key: "posts", label: "Posts", icon: FileText, types: ["post"] },
+  { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
+] as const;
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
