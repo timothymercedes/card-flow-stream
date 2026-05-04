@@ -2,10 +2,22 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
+
+function fmtCountdown(ms: number) {
+  if (ms <= 0) return "Ended";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m ${ss}s`;
+  return `${m}m ${ss.toString().padStart(2, "0")}s`;
+}
 
 function ListingDetail() {
   const { id } = Route.useParams();
