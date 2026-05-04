@@ -543,6 +543,30 @@ export type Database = {
           },
         ]
       }
+      live_stream_presence: {
+        Row: {
+          avatar_url: string | null
+          last_seen_at: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          last_seen_at?: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          last_seen_at?: string
+          stream_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       live_streams: {
         Row: {
           break_characters: Json | null
@@ -584,6 +608,8 @@ export type Database = {
           item_image_url: string | null
           listing_type: string
           min_bid_increment: number
+          quantity: number
+          quantity_remaining: number | null
           quick_start_enabled: boolean
           quick_start_quantity: number
           quick_start_remaining: number | null
@@ -597,6 +623,10 @@ export type Database = {
           starting_bid: number
           status: string
           sudden_death_active: boolean
+          sudden_death_enabled: boolean
+          sudden_death_max_triggers: number
+          sudden_death_seconds_added: number
+          sudden_death_triggers_used: number
           thumbnail_url: string | null
           title: string
           voice_trigger_enabled: boolean
@@ -645,6 +675,8 @@ export type Database = {
           item_image_url?: string | null
           listing_type?: string
           min_bid_increment?: number
+          quantity?: number
+          quantity_remaining?: number | null
           quick_start_enabled?: boolean
           quick_start_quantity?: number
           quick_start_remaining?: number | null
@@ -658,6 +690,10 @@ export type Database = {
           starting_bid?: number
           status?: string
           sudden_death_active?: boolean
+          sudden_death_enabled?: boolean
+          sudden_death_max_triggers?: number
+          sudden_death_seconds_added?: number
+          sudden_death_triggers_used?: number
           thumbnail_url?: string | null
           title: string
           voice_trigger_enabled?: boolean
@@ -706,6 +742,8 @@ export type Database = {
           item_image_url?: string | null
           listing_type?: string
           min_bid_increment?: number
+          quantity?: number
+          quantity_remaining?: number | null
           quick_start_enabled?: boolean
           quick_start_quantity?: number
           quick_start_remaining?: number | null
@@ -719,6 +757,10 @@ export type Database = {
           starting_bid?: number
           status?: string
           sudden_death_active?: boolean
+          sudden_death_enabled?: boolean
+          sudden_death_max_triggers?: number
+          sudden_death_seconds_added?: number
+          sudden_death_triggers_used?: number
           thumbnail_url?: string | null
           title?: string
           voice_trigger_enabled?: boolean
@@ -1601,6 +1643,54 @@ export type Database = {
           seller_id?: string
           status?: string
           stream_id?: string
+        }
+        Relationships: []
+      }
+      user_reports: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          reporter_username: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          target_id: string | null
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          reason: string
+          reporter_id: string
+          reporter_username: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          reporter_username?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string
         }
         Relationships: []
       }

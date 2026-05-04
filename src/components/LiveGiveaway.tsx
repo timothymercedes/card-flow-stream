@@ -37,6 +37,10 @@ type Props = {
   // Whether the current viewer follows the seller / has bought from them.
   isFollower: boolean;
   isBuyer: boolean;
+  // 🆕 Seller id so we can auto-follow when joining a followers-only giveaway.
+  sellerId: string | null;
+  // 🆕 Notify parent when the viewer follows (so parent can refresh isFollower).
+  onFollowed?: () => void;
   open: boolean;
   onClose: () => void;
   // Called by the Live page when the host wants to open a draft form.
@@ -54,7 +58,7 @@ function suggestCode(): string {
 
 export function LiveGiveaway({
   streamId, isSeller, userId, username,
-  isFollower, isBuyer,
+  isFollower, isBuyer, sellerId, onFollowed,
   open, onClose, hostOpenComposer, setHostOpenComposer,
 }: Props) {
   const [giveaway, setGiveaway] = useState<Giveaway | null>(null);
@@ -242,11 +246,31 @@ export function LiveGiveaway({
     // We don't delete history; a new giveaway can be created.
   }
 
+  // 🆕 Auto-follow helper — when joining a followers-only giveaway, follow the host first.
+  async function ensureFollow(): Promise<boolean> {
+    if (!giveaway || !userId) return false;
+    if (giveaway.eligibility !== "followers") return true;
+    if (isFollower) return true;
+    if (!sellerId) return false;
+    const { error } = await supabase.from("follows").insert({ follower_id: userId, followee_id: sellerId });
+    if (error && error.code !== "23505") {
+      toast.error("Couldn't follow — try again");
+      return false;
+    }
+    toast.success("Followed host — you're in!");
+    onFollowed?.();
+    return true;
+  }
+
   // ===== Viewer actions =====
   async function tapLetter(letter: string) {
     if (!giveaway || !userId || hasEntered) return;
     if (giveaway.status !== "open") return;
-    if (!eligibilityOk) return toast.error(eligibilityHint(giveaway.eligibility));
+    if (!eligibilityOk) {
+      // Followers-only: auto-follow on first tap
+      const ok = await ensureFollow();
+      if (!ok) { toast.error(eligibilityHint(giveaway.eligibility)); return; }
+    }
     const code = giveaway.code.toUpperCase();
     const expected = code[tapStep];
     if (letter !== expected) {
@@ -294,8 +318,8 @@ export function LiveGiveaway({
           const isEnterCmd = txt === "!enter" || txt === "!join" || /🎁/.test(msg.content || "");
           if (!isEnterCmd) return;
           if (!eligibilityOk) {
-            toast.error(eligibilityHint(giveaway.eligibility));
-            return;
+            const ok = await ensureFollow();
+            if (!ok) { toast.error(eligibilityHint(giveaway.eligibility)); return; }
           }
           const { error } = await supabase.from("giveaway_entries").insert({
             giveaway_id: giveaway.id, user_id: userId,
@@ -472,6 +496,12 @@ export function LiveGiveaway({
             {!isSeller && !eligibilityOk && (
               <div className="rounded-xl bg-yellow-500/15 p-3 text-center text-xs text-yellow-300">
                 {eligibilityHint(giveaway.eligibility)}
+                {giveaway.eligibility === "followers" && sellerId && (
+                  <button onClick={ensureFollow}
+                    className="mt-2 w-full rounded-lg bg-emerald-500 py-2 text-xs font-extrabold text-white">
+                    + Follow host to participate
+                  </button>
+                )}
               </div>
             )}
 

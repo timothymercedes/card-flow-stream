@@ -11,6 +11,7 @@ import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel"
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { GiveawayChip } from "@/components/GiveawayChip";
 import { Confetti } from "@/components/Confetti";
+import { useStreamPresence } from "@/hooks/useStreamPresence";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -262,6 +263,14 @@ function LiveDetail() {
       .eq("buyer_id", user.id).eq("seller_id", stream.seller_id).eq("stream_id", id)
       .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
   }, [user?.id, stream?.seller_id]);
+
+  // 🆕 Live viewer presence (DB-backed; heartbeat + 1-min idle removal). Used for viewer list.
+  const { viewers: liveViewers } = useStreamPresence(
+    id || null,
+    user?.id || null,
+    profile?.username || null,
+    profile?.avatar_url || null,
+  );
 
   // Load mod chat once user is known to be staff
   useEffect(() => {
@@ -545,6 +554,9 @@ function LiveDetail() {
     const update: any = { current_bid: amount, current_bidder_id: user.id };
     const remainingMs = stream.ends_at ? new Date(stream.ends_at).getTime() - Date.now() : 0;
     const exts = Number(stream.snipe_extends || 0);
+    const sdEnabled = !!stream.sudden_death_enabled;
+    const sdMax = Math.max(1, Number(stream.sudden_death_max_triggers || 3));
+    const sdSec = Math.max(1, Number(stream.sudden_death_seconds_added || 5));
     const inSuddenDeath = !!stream.sudden_death_active;
     let extended = false;
     let suddenDeathWin = false;
@@ -554,13 +566,13 @@ function LiveDetail() {
       update.ends_at = new Date(Date.now() + 1200).toISOString();
       update.sudden_death_active = false;
       suddenDeathWin = true;
-    } else if (remainingMs > 0 && remainingMs <= 3000) {
-      // Add +3s and bump extension counter
-      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + 3000).toISOString();
+    } else if (sdEnabled && remainingMs > 0 && remainingMs <= 3000) {
+      // Add +sdSec and bump extension counter
+      update.ends_at = new Date(Math.max(new Date(stream.ends_at).getTime(), Date.now()) + sdSec * 1000).toISOString();
       update.snipe_extends = exts + 1;
       extended = true;
-      // After the 3rd extension we arm sudden death for the NEXT bid
-      if (exts + 1 >= 3) update.sudden_death_active = true;
+      // After max extensions, arm sudden death for the NEXT bid
+      if (exts + 1 >= sdMax) update.sudden_death_active = true;
     }
 
     const { error } = await supabase.from("live_streams").update(update).eq("id", id);
@@ -1268,9 +1280,21 @@ function LiveDetail() {
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
           </div>
           {!ended && (
-            <div className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur" title="Viewers in the live">
-              <Users className="h-3 w-3" /> {viewerCount.toLocaleString()}
-            </div>
+            <details className="relative">
+              <summary className="flex list-none cursor-pointer items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur" title="Viewers in the live">
+                <Users className="h-3 w-3" /> {Math.max(viewerCount, liveViewers.length).toLocaleString()}
+              </summary>
+              <div className="absolute left-0 top-full z-40 mt-1 max-h-60 w-44 overflow-y-auto rounded-lg bg-card p-2 text-xs shadow-2xl ring-1 ring-border">
+                <p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">In the live ({liveViewers.length})</p>
+                {liveViewers.length === 0 && <p className="px-1 py-2 text-muted-foreground">Just you.</p>}
+                {liveViewers.map((v) => (
+                  <div key={v.user_id} className="flex items-center gap-1.5 rounded px-1 py-1 hover:bg-muted">
+                    {v.avatar_url ? <img src={v.avatar_url} className="h-4 w-4 rounded-full object-cover" /> : <div className="h-4 w-4 rounded-full bg-primary/30" />}
+                    <span className="truncate font-semibold">@{v.username}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
         </div>
         <div className="flex gap-1">
@@ -1545,6 +1569,38 @@ function LiveDetail() {
                     {s === 0 ? "Off" : `${s}s`}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* 🆕 Sudden Death config */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-xs font-bold">
+                <span className="flex items-center gap-1.5">💀 Sudden Death</span>
+                <input type="checkbox" checked={!!stream?.sudden_death_enabled}
+                  onChange={async (e) => {
+                    await supabase.from("live_streams").update({ sudden_death_enabled: e.target.checked }).eq("id", id);
+                  }} className="h-4 w-4" />
+              </label>
+              <p className="mt-1 text-[10px] text-muted-foreground">When ON, late bids extend the timer up to N times.</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <label className="text-[10px] text-muted-foreground">
+                  Max triggers
+                  <input type="number" min={1} max={10} defaultValue={stream?.sudden_death_max_triggers ?? 3}
+                    onBlur={async (e) => {
+                      const v = Math.max(1, Math.min(10, Number(e.target.value) || 3));
+                      await supabase.from("live_streams").update({ sudden_death_max_triggers: v }).eq("id", id);
+                    }}
+                    className="mt-1 w-full rounded-md bg-input px-2 py-1.5 text-xs font-bold outline-none" />
+                </label>
+                <label className="text-[10px] text-muted-foreground">
+                  Sec added per bid
+                  <input type="number" min={1} max={30} defaultValue={stream?.sudden_death_seconds_added ?? 5}
+                    onBlur={async (e) => {
+                      const v = Math.max(1, Math.min(30, Number(e.target.value) || 5));
+                      await supabase.from("live_streams").update({ sudden_death_seconds_added: v }).eq("id", id);
+                    }}
+                    className="mt-1 w-full rounded-md bg-input px-2 py-1.5 text-xs font-bold outline-none" />
+                </label>
               </div>
             </div>
 
@@ -2478,6 +2534,8 @@ function LiveDetail() {
         username={profile?.username || null}
         isFollower={isFollowingHost}
         isBuyer={isPastBuyer}
+        sellerId={stream?.seller_id || null}
+        onFollowed={() => setIsFollowingHost(true)}
         open={showGiveaway}
         onClose={() => { setShowGiveaway(false); setGiveawayComposer(false); }}
         hostOpenComposer={giveawayComposer}
