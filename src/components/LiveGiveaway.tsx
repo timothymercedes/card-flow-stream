@@ -278,13 +278,13 @@ export function LiveGiveaway({
 
       <div className="w-full max-w-md">
         <p className="mb-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
-          <Gift className="h-3.5 w-3.5" /> Lucky Letter Drop
+          <Gift className="h-3.5 w-3.5" /> Appreciation Gift · Lucky Letter Drop
         </p>
 
         {/* HOST: composer */}
         {isSeller && hostOpenComposer && (
           <div className="rounded-2xl bg-card p-4 text-foreground shadow-2xl">
-            <p className="mb-3 text-sm font-bold flex items-center gap-1.5"><Sparkles className="h-4 w-4 text-emerald-400" /> New giveaway</p>
+            <p className="mb-3 text-sm font-bold flex items-center gap-1.5"><Sparkles className="h-4 w-4 text-emerald-400" /> New Appreciation Gift</p>
             <input value={draftPrize} onChange={(e) => setDraftPrize(e.target.value)} placeholder="Prize (e.g. Charizard graded)" maxLength={60}
               className="mb-2 w-full rounded-lg bg-muted px-3 py-2 text-sm outline-none" />
             <div className="mb-2 flex items-center gap-2">
@@ -295,6 +295,33 @@ export function LiveGiveaway({
                 className="rounded-md bg-muted px-2 py-1 text-[11px] font-bold text-muted-foreground">Random</button>
             </div>
             <p className="mb-3 text-[10px] text-muted-foreground">Viewers see letters drop and must tap them in order. Wrong tap = restart.</p>
+
+            {/* 🆕 Duration + Quantity */}
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              <div>
+                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Duration</p>
+                <div className="flex items-center gap-1">
+                  <input type="number" min={15} max={600} value={draftDuration}
+                    onChange={(e) => setDraftDuration(Number(e.target.value) || 60)}
+                    className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
+                  <span className="text-[11px] text-muted-foreground">sec</span>
+                  {[30, 60, 120].map((s) => (
+                    <button key={s} type="button" onClick={() => setDraftDuration(s)}
+                      className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${draftDuration === s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>{s}s</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Winners</p>
+                <div className="flex items-center gap-1">
+                  <input type="number" min={1} max={50} value={draftQuantity}
+                    onChange={(e) => setDraftQuantity(Number(e.target.value) || 1)}
+                    className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
+                  <span className="text-[11px] text-muted-foreground">qty</span>
+                </div>
+              </div>
+            </div>
+
             <div className="mb-3">
               <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Who can enter</p>
               <div className="grid grid-cols-3 gap-1">
@@ -312,7 +339,7 @@ export function LiveGiveaway({
             </div>
             <button onClick={createGiveaway}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white">
-              Open giveaway
+              Open Appreciation Gift
             </button>
           </div>
         )}
@@ -320,11 +347,11 @@ export function LiveGiveaway({
         {/* No giveaway yet */}
         {!giveaway && !hostOpenComposer && (
           <div className="rounded-2xl bg-white/5 p-6 text-center text-sm text-white/70">
-            {isSeller ? "No giveaway yet. Tap below to create one." : "No giveaway running right now."}
+            {isSeller ? "No Appreciation Gift yet. Tap below to create one." : "No Appreciation Gift running right now."}
             {isSeller && (
               <button onClick={() => setHostOpenComposer(true)}
                 className="mt-3 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white">
-                + Start a giveaway
+                + Start an Appreciation Gift
               </button>
             )}
           </div>
@@ -335,9 +362,14 @@ export function LiveGiveaway({
           <div className="rounded-2xl bg-white/5 p-4 text-white shadow-2xl">
             <p className="text-center text-[11px] uppercase tracking-widest text-emerald-300">Prize</p>
             <p className="mb-1 text-center text-xl font-extrabold">{giveaway.prize_label}</p>
-            <p className="mb-3 flex items-center justify-center gap-1 text-[10px] text-white/60">
-              <Truck className="h-3 w-3" /> Free shipping · {entries.length} {entries.length === 1 ? "entry" : "entries"}
+            <p className="mb-2 flex items-center justify-center gap-2 text-[10px] text-white/60">
+              <Truck className="h-3 w-3" /> Free shipping · {entries.length} {entries.length === 1 ? "entry" : "entries"} · {giveaway.quantity || 1} winner{(giveaway.quantity || 1) > 1 ? "s" : ""}
             </p>
+            {giveaway.ends_at && (
+              <div className={`mb-3 mx-auto w-fit rounded-full px-3 py-1 text-xs font-extrabold tabular-nums ${remainingMs <= 5000 ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500/20 text-emerald-200"}`}>
+                ⏱ {Math.ceil(remainingMs / 1000)}s left
+              </div>
+            )}
 
             {/* Eligibility badge */}
             <div className="mb-3 flex items-center justify-center gap-1 text-[10px]">
