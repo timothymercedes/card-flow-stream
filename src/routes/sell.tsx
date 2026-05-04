@@ -111,6 +111,7 @@ function Sell() {
       starting_bid: listingType === "auction" ? amt : null,
       current_bid: listingType === "auction" ? amt : null,
       price: listingType !== "auction" ? amt : null,
+      shipping_price: Number(shippingPrice) || 0,
       auction_ends_at: auctionEnds,
     });
     if (error) return toast.error(error.message);
