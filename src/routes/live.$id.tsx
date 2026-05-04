@@ -503,6 +503,126 @@ function LiveDetail() {
     await supabase.from("profiles").update({ preferred_currency: c }).eq("id", user.id);
   }
 
+  // ===== Spin Wheel handlers =====
+  async function ensureWheel(): Promise<any | null> {
+    if (wheel) return wheel;
+    if (!isSeller) return null;
+    const { data, error } = await supabase.from("spin_wheels").insert({
+      stream_id: id, seller_id: user!.id,
+    }).select().single();
+    if (error) { toast.error(error.message); return null; }
+    setWheel(data);
+    return data;
+  }
+
+  async function addWheelSlot() {
+    const w = await ensureWheel();
+    if (!w) return;
+    const label = draftSlotLabel.trim();
+    if (!label) return toast.error("Add a label");
+    const weight = Math.max(1, Math.min(100, Number(draftSlotWeight) || 1));
+    const palette = ["#7c3aed","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#06b6d4","#a855f7","#14b8a6","#f97316"];
+    const color = palette[wheelSlots.length % palette.length];
+    const { error } = await supabase.from("wheel_slots").insert({
+      wheel_id: w.id, label, weight, color, position: wheelSlots.length,
+    });
+    if (error) return toast.error(error.message);
+    setDraftSlotLabel(""); setDraftSlotWeight("1");
+  }
+
+  async function removeWheelSlot(slotId: string) {
+    if (wheel?.is_spinning) return toast.error("Wheel is locked while spinning");
+    await supabase.from("wheel_slots").delete().eq("id", slotId);
+  }
+
+  async function updateWheelMode(mode: "remove" | "keep") {
+    if (!wheel || !isSeller) return;
+    await supabase.from("spin_wheels").update({ mode }).eq("id", wheel.id);
+  }
+  async function updateWheelSpeed(spin_speed: "slow" | "normal" | "fast") {
+    if (!wheel || !isSeller) return;
+    await supabase.from("spin_wheels").update({ spin_speed }).eq("id", wheel.id);
+  }
+  async function toggleViewerSpin() {
+    if (!wheel || !isSeller) return;
+    await supabase.from("spin_wheels").update({ viewer_can_spin: !wheel.viewer_can_spin }).eq("id", wheel.id);
+  }
+
+  function spinDurationMs(speed: string): number {
+    if (speed === "slow") return 7500;
+    if (speed === "fast") return 3500;
+    return 5000;
+  }
+
+  // Trigger a spin: host always allowed; viewers only if viewer_can_spin and idle.
+  async function triggerSpin() {
+    if (!user) return toast.error("Sign in to spin");
+    if (!wheel) return toast.error("No wheel yet");
+    if (wheel.is_spinning) return;
+    const canSpin = isSeller || wheel.viewer_can_spin;
+    if (!canSpin) return toast.error("Only the host can spin");
+    const active = wheelSlots.filter((s) => s.is_active);
+    if (active.length < 2) return toast.error("Add at least 2 slots");
+
+    // Pick winning slot using weights — done client-side, persisted server-side.
+    const pick = weightedPick(active);
+    if (!pick) return;
+    const dur = spinDurationMs(wheel.spin_speed);
+    const startedAt = new Date();
+    const endsAt = new Date(startedAt.getTime() + dur);
+    setShowWheelOverlay(true);
+    wheelLandedRef.current = null;
+    const { error } = await supabase.from("spin_wheels").update({
+      is_spinning: true,
+      spin_started_at: startedAt.toISOString(),
+      spin_ends_at: endsAt.toISOString(),
+      spin_target_slot_id: pick.id,
+      spin_seed: Math.floor(Math.random() * 1_000_000),
+    }).eq("id", wheel.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    // Schedule the result write at finish (any client can do it; RLS guards host-only).
+    if (isSeller) {
+      setTimeout(() => finalizeSpin(pick.id), dur + 150);
+    }
+  }
+
+  async function finalizeSpin(slotId: string) {
+    if (!wheel || !isSeller) return;
+    if (wheelLandedRef.current === slotId) return;
+    wheelLandedRef.current = slotId;
+    const slot = wheelSlots.find((s) => s.id === slotId);
+    if (!slot) return;
+    // Winner = current top bidder if a live auction, else the seller for now.
+    const winnerId = (stream?.current_bidder_id as string) || user!.id;
+    const winnerUsername = stream?.winner_username || (winnerId === user!.id ? (profile?.username || "host") : "top bidder");
+
+    await supabase.from("wheel_spins").insert({
+      wheel_id: wheel.id,
+      stream_id: id,
+      triggered_by_id: user!.id,
+      triggered_by_username: profile?.username || "host",
+      winner_id: winnerId,
+      winner_username: winnerUsername,
+      slot_id: slot.id,
+      slot_label: slot.label,
+    });
+    // Remove the slot if mode is 'remove'
+    if (wheel.mode === "remove") {
+      await supabase.from("wheel_slots").delete().eq("id", slot.id);
+    }
+    await supabase.from("spin_wheels").update({
+      is_spinning: false,
+      last_winner_username: winnerUsername,
+      last_winner_slot_label: slot.label,
+      last_winner_at: new Date().toISOString(),
+    }).eq("id", wheel.id);
+    await sendMsg(`🎡 ${winnerUsername} won "${slot.label}" on the wheel!`, true);
+  }
+
   async function startAuction() {
     if (!isSeller) return;
     const sec = Number(editTimerSec) || 60;
