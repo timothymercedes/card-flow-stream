@@ -75,8 +75,16 @@ function PublicStore() {
               {seller.avatar_url ? <img src={seller.avatar_url} alt={seller.username} className="h-full w-full object-cover" /> : <StoreIcon className="h-6 w-6 text-muted-foreground" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-bold">@{seller.username}</p>
-              
+              <div className="flex items-start justify-between gap-2">
+                <p className="truncate text-lg font-bold">@{seller.username}</p>
+                <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
+              </div>
+
+              <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> <span className="font-semibold text-foreground">{followers}</span> followers</span>
+                <span><span className="font-semibold text-foreground">{following}</span> following</span>
+              </div>
+
               <div className="mt-1 flex items-center gap-2 text-xs">
                 <Stars n={stats.avg} size={12} />
                 <span className="text-muted-foreground">{stats.count ? `${stats.avg.toFixed(1)} · ${stats.count} review${stats.count === 1 ? "" : "s"}` : "No reviews yet"}</span>
