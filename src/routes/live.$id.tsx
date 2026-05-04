@@ -508,7 +508,7 @@ function LiveDetail() {
     if (wheel) return wheel;
     if (!isSeller) return null;
     const { data, error } = await supabase.from("spin_wheels").insert({
-      stream_id: id, seller_id: user!.id,
+      stream_id: id, seller_id: user!.id, spin_speed: "10",
     }).select().single();
     if (error) { toast.error(error.message); return null; }
     setWheel(data);
