@@ -113,6 +113,12 @@ function Sell() {
       default_timer_sec: Number(defaultTimerSec) || 30,
       default_starting_bid: Number(startingBid) || 1,
       default_condition: defaultCondition,
+      ...(enableBreak ? {
+        break_mode: "open",
+        break_slot_count: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)),
+        break_slot_prefix: breakSlotPrefix.trim() || null,
+        break_teams: Array.from({ length: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)) }, (_, i) => `${(breakSlotPrefix.trim() || "#")}${i + 1}`),
+      } : {}),
       ...cf,
     }).select().single();
     if (error) return toast.error(error.message);
