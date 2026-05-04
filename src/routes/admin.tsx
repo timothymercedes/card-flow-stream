@@ -158,11 +158,23 @@ function Admin() {
   return (
     <AppShell>
       <div className="px-4 py-4 space-y-4">
-        <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="h-6 w-6" /> Admin</h1>
-        <div className="flex gap-2 border-b border-border">
+        <div className="flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="h-6 w-6" /> Admin</h1>
+          {myRoles.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {myRoles.map(r => (
+                <span key={r} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGES[r]}`}>
+                  {r === "owner" && <Crown className="h-3 w-3" />} {r}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 border-b border-border">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
-          <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>
+          {isAdmin && <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>}
+          {isAdmin && <button onClick={() => setTab("roles")} className={`pb-2 text-xs font-bold ${tab === "roles" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Roles</button>}
         </div>
 
         {tab === "reports" && (() => {
