@@ -148,9 +148,18 @@ function Vault() {
         }
       } catch {/* ignore */}
     }
+    let finalImage = imageUrl;
+    if (!finalImage) {
+      try {
+        const { data: img } = await supabase.functions.invoke("generate-card-image", {
+          body: { name, category: cat, set: setName2, year: year2, tcg_number: num2 },
+        });
+        if (img?.image) finalImage = img.image;
+      } catch {/* ignore */}
+    }
     const { error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name, category: cat || "Trading Card",
-      image_url: imageUrl || null, back_image_url: backImageUrl || null,
+      image_url: finalImage || null, back_image_url: backImageUrl || null,
       description: description || null,
       estimated_value: value,
       condition_prices: cp as any,
