@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@/server/passkeys.functions";
 import { Fingerprint } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
@@ -77,8 +78,7 @@ function Auth() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-background px-6">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">P</div>
-        <h1 className="text-2xl font-bold">PULL BID <span className="text-live">LIVE</span></h1>
+        <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_rgba(212,175,55,0.35)]" />
         <p className="mt-1 text-sm text-muted-foreground">{mode === "signin" ? "Welcome back" : "Create your account"}</p>
       </div>
       <form onSubmit={submit} className="space-y-3">
