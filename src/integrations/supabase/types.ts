@@ -20,6 +20,7 @@ export type Database = {
           assigned_at: string | null
           buyer_id: string
           buyer_username: string
+          character_label: string | null
           created_at: string
           id: string
           slot_number: number | null
@@ -31,6 +32,7 @@ export type Database = {
           assigned_at?: string | null
           buyer_id: string
           buyer_username: string
+          character_label?: string | null
           created_at?: string
           id?: string
           slot_number?: number | null
@@ -42,6 +44,7 @@ export type Database = {
           assigned_at?: string | null
           buyer_id?: string
           buyer_username?: string
+          character_label?: string | null
           created_at?: string
           id?: string
           slot_number?: number | null
@@ -395,10 +398,17 @@ export type Database = {
       }
       live_streams: {
         Row: {
+          break_characters: Json | null
           break_mode: string | null
           break_slot_count: number | null
           break_slot_prefix: string | null
           break_teams: Json | null
+          break_wheel_ends_at: string | null
+          break_wheel_last_winner_label: string | null
+          break_wheel_last_winner_username: string | null
+          break_wheel_spinning: boolean
+          break_wheel_started_at: string | null
+          break_wheel_target_slot: number | null
           cf_live_input_id: string | null
           cf_playback_hls: string | null
           cf_rtmps_url: string | null
@@ -436,17 +446,27 @@ export type Database = {
           started_at: string | null
           starting_bid: number
           status: string
+          sudden_death_active: boolean
           thumbnail_url: string | null
           title: string
+          voice_trigger_enabled: boolean
+          voice_trigger_phrase: string | null
           winner_id: string | null
           winner_username: string | null
           winning_bid: number | null
         }
         Insert: {
+          break_characters?: Json | null
           break_mode?: string | null
           break_slot_count?: number | null
           break_slot_prefix?: string | null
           break_teams?: Json | null
+          break_wheel_ends_at?: string | null
+          break_wheel_last_winner_label?: string | null
+          break_wheel_last_winner_username?: string | null
+          break_wheel_spinning?: boolean
+          break_wheel_started_at?: string | null
+          break_wheel_target_slot?: number | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
           cf_rtmps_url?: string | null
@@ -484,17 +504,27 @@ export type Database = {
           started_at?: string | null
           starting_bid?: number
           status?: string
+          sudden_death_active?: boolean
           thumbnail_url?: string | null
           title: string
+          voice_trigger_enabled?: boolean
+          voice_trigger_phrase?: string | null
           winner_id?: string | null
           winner_username?: string | null
           winning_bid?: number | null
         }
         Update: {
+          break_characters?: Json | null
           break_mode?: string | null
           break_slot_count?: number | null
           break_slot_prefix?: string | null
           break_teams?: Json | null
+          break_wheel_ends_at?: string | null
+          break_wheel_last_winner_label?: string | null
+          break_wheel_last_winner_username?: string | null
+          break_wheel_spinning?: boolean
+          break_wheel_started_at?: string | null
+          break_wheel_target_slot?: number | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
           cf_rtmps_url?: string | null
@@ -532,8 +562,11 @@ export type Database = {
           started_at?: string | null
           starting_bid?: number
           status?: string
+          sudden_death_active?: boolean
           thumbnail_url?: string | null
           title?: string
+          voice_trigger_enabled?: boolean
+          voice_trigger_phrase?: string | null
           winner_id?: string | null
           winner_username?: string | null
           winning_bid?: number | null
