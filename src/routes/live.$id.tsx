@@ -298,6 +298,39 @@ function LiveDetail() {
     }
   }, [remaining, isSeller, stream?.status]);
 
+  // 🆕 Voice trigger — listens for the seller's phrase and re-fires the next auction round.
+  useEffect(() => {
+    if (!isSeller) return;
+    if (!stream?.voice_trigger_enabled) return;
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase();
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    rec.onresult = (ev: any) => {
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = String(ev.results[i][0]?.transcript || "").toLowerCase();
+        if (t.includes(phrase)) {
+          // Avoid double-fires while a round is live
+          if (auctionLive) return;
+          startAuction();
+          return;
+        }
+      }
+    };
+    rec.onend = () => { try { rec.start(); } catch {} };
+    try { rec.start(); setVoiceListening(true); } catch {}
+    recognitionRef.current = rec;
+    return () => {
+      setVoiceListening(false);
+      try { rec.onend = null; rec.stop(); } catch {}
+      recognitionRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase]);
+
   // Auto-hide system notifications after 5s
   useEffect(() => {
     const sysMsgs = messages.filter((m) => m.is_system && !hiddenSysIds.has(m.id));
