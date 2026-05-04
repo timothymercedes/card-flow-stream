@@ -116,25 +116,22 @@ function Auth() {
         <input type="email" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input type="password" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
         {mode === "signup" && (
-          <>
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input type="checkbox" checked={isSeller} onChange={(e) => setIsSeller(e.target.checked)} className="h-4 w-4" />
-              I want to sell & host live auctions
-            </label>
-            <label className="flex items-start gap-2 text-xs text-muted-foreground">
-              <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-0.5 h-4 w-4" />
-              <span>
-                I agree to the{" "}
-                <a href="/legal/tos" target="_blank" className="font-semibold text-primary underline">Terms of Service</a>,{" "}
-                <a href="/legal/buyer-terms" target="_blank" className="font-semibold text-primary underline">Buyer Terms</a>, and{" "}
-                <a href="/legal/privacy" target="_blank" className="font-semibold text-primary underline">Privacy Policy</a>.
-              </span>
-            </label>
-          </>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" checked={isSeller} onChange={(e) => setIsSeller(e.target.checked)} className="h-4 w-4" />
+            I want to sell & host live auctions
+          </label>
         )}
-        <button disabled={loading || (mode === "signup" && (usernameOk === false || !acceptedTerms))} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
-          {loading ? "..." : mode === "signin" ? "Sign In" : "Sign Up"}
+        <button disabled={loading || (mode === "signup" && usernameOk === false)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
+          {loading ? "..." : mode === "signin" ? "Sign In" : "Review Terms & Sign Up"}
         </button>
+        {mode === "signup" && (
+          <p className="text-center text-[11px] text-muted-foreground">
+            You'll be asked to review the{" "}
+            <a href="/legal/buyer-terms" target="_blank" className="text-primary underline">Buyer Terms</a>,{" "}
+            <a href="/legal/tos" target="_blank" className="text-primary underline">Terms of Service</a>, and{" "}
+            <a href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</a> before your account is created.
+          </p>
+        )}
       </form>
 
       <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
