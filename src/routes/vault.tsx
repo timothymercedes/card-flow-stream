@@ -89,11 +89,12 @@ function Vault() {
 
   // Auto-update displayed value when condition changes (uses condition_prices map)
   useEffect(() => {
-    const base = Number(estValue) || 0;
+    if (!condPrices) return;
+    const base = Number(condPrices.NM) || 0;
     if (!base) return;
-    setEstValue(String(priceFor(condition, base / (condPrices?.NM ? base / (condPrices.NM || base) : 1) || base, condPrices)));
+    setEstValue(String(priceFor(condition, base, condPrices)));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [condition]);
+  }, [condition, condPrices]);
 
   async function identifyNow() {
     if (!name.trim()) return toast.error("Enter a card name first");
