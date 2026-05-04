@@ -35,6 +35,10 @@ function Sell() {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [backImageUrl, setBackImageUrl] = useState(""); // 🆕 back of card (required)
+  const [tcgNumber, setTcgNumber] = useState("");        // 🆕 card number (optional)
+  const [condition, setCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM"); // 🆕 required
+  const [identifying, setIdentifying] = useState(false); // 🆕 AI identify in-flight
   const [enableBuyNow, setEnableBuyNow] = useState(true);
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
@@ -129,6 +133,8 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
+    if (!imageUrl.trim()) return toast.error("Front photo is required");
+    if (!backImageUrl.trim()) return toast.error("Back photo is required");
     if (!enableBuyNow && !enableAuction && !enableOffers) return toast.error("Pick at least one sale type");
     if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0)) return toast.error("Set a Buy Now price");
     if (enableAuction && (!auctionStart || Number(auctionStart) <= 0)) return toast.error("Set a starting bid");
@@ -138,7 +144,6 @@ function Sell() {
       ? new Date(Date.now() + Number(auctionDays) * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    // listing_type kept for back-compat: pick the "primary" mode
     const primary = enableAuction ? "auction" : enableBuyNow ? "buy_now" : "offer";
 
     const { error } = await supabase.from("listings").insert({
@@ -146,6 +151,9 @@ function Sell() {
       title,
       description: desc,
       image_url: imageUrl || null,
+      back_image_url: backImageUrl || null,
+      tcg_number: tcgNumber.trim() || null,
+      condition,
       listing_type: primary,
       is_auction: enableAuction,
       accepts_offers: enableOffers,
@@ -159,6 +167,27 @@ function Sell() {
     if (error) return toast.error(error.message);
     toast.success("Listing created");
     nav({ to: "/market" });
+  }
+
+  // 🆕 AI identify — uses the title (or description) to guess card name + suggested price
+  async function aiIdentify() {
+    const q = title.trim() || desc.trim();
+    if (!q) return toast.error("Type a card name or description first");
+    setIdentifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      if (error) throw error;
+      const d: any = data || {};
+      if (d.name) setTitle(d.name);
+      if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
+      const cond = d.condition_prices?.[condition];
+      if (cond && !buyNowPrice) setBuyNowPrice(String(cond));
+      toast.success(`Identified: ${d.name || q}`);
+    } catch (e: any) {
+      toast.error(e.message || "Identify failed");
+    } finally {
+      setIdentifying(false);
+    }
   }
 
   const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
@@ -227,9 +256,28 @@ function Sell() {
           </div>
         ) : (
           <div className="space-y-3">
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <div className="flex gap-2">
+              <input className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <button type="button" onClick={aiIdentify} disabled={identifying}
+                className="rounded-xl bg-accent px-3 py-3 text-xs font-bold text-accent-foreground disabled:opacity-50">
+                {identifying ? "…" : "✨ AI ID"}
+              </button>
+            </div>
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Image URL (optional)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Card number (optional, e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Front photo URL *" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Back photo URL *" value={backImageUrl} onChange={(e) => setBackImageUrl(e.target.value)} />
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Condition (required)</p>
+              <div className="grid grid-cols-4 gap-1">
+                {(["NM","LP","MP","Damaged"] as const).map((c) => (
+                  <button key={c} type="button" onClick={() => setCondition(c)}
+                    className={`rounded-lg py-2 text-xs font-bold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
+                ))}
+              </div>
+            </div>
 
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">Sale options (pick any combination)</p>

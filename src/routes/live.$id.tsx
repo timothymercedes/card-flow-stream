@@ -235,8 +235,9 @@ function LiveDetail() {
     supabase.from("follows").select("follower_id", { count: "exact", head: true })
       .eq("follower_id", user.id).eq("followee_id", stream.seller_id)
       .then(({ count }) => setIsFollowingHost((count ?? 0) > 0));
+    // 🆕 "Past buyers" = bought in THIS stream only (not across all past streams)
     supabase.from("orders").select("id", { count: "exact", head: true })
-      .eq("buyer_id", user.id).eq("seller_id", stream.seller_id)
+      .eq("buyer_id", user.id).eq("seller_id", stream.seller_id).eq("stream_id", id)
       .then(({ count }) => setIsPastBuyer((count ?? 0) > 0));
   }, [user?.id, stream?.seller_id]);
 
@@ -630,28 +631,46 @@ function LiveDetail() {
   // then announces "Character → @user" once it lands.
   async function spinBreakWheel() {
     if (!isSeller) return;
+    // 🆕 If anyone has claimed: pick from claimed buyers.
+    // If nobody has claimed yet: pick from the configured characters (so host can preview/spin a fun wheel during the live).
     const claimed = breakSlots.filter((s) => s.slot_number != null);
-    if (claimed.length === 0) return toast.error("No slots claimed yet");
-    const winner = claimed[Math.floor(Math.random() * claimed.length)];
+    let winnerSlotNumber: number;
+    let winnerUsername: string;
+    let winnerLabel: string;
+    if (claimed.length > 0) {
+      const w = claimed[Math.floor(Math.random() * claimed.length)];
+      winnerSlotNumber = w.slot_number!;
+      winnerUsername = w.buyer_username;
+      winnerLabel = w.character_label || `${stream.break_slot_prefix || "#"}${w.slot_number}`;
+    } else {
+      const chars: string[] = Array.isArray(stream.break_characters) ? stream.break_characters : [];
+      const total = chars.length || Number(stream.break_slot_count) || 0;
+      if (total < 2) return toast.error("Set up at least 2 characters first");
+      const idx = Math.floor(Math.random() * total);
+      winnerSlotNumber = idx + 1;
+      winnerUsername = "—";
+      winnerLabel = chars[idx] || `${stream.break_slot_prefix || "#"}${idx + 1}`;
+    }
     const startedAt = new Date();
     const endsAt = new Date(Date.now() + 6500);
     await supabase.from("live_streams").update({
       break_wheel_spinning: true,
       break_wheel_started_at: startedAt.toISOString(),
       break_wheel_ends_at: endsAt.toISOString(),
-      break_wheel_target_slot: winner.slot_number,
+      break_wheel_target_slot: winnerSlotNumber,
       break_wheel_last_winner_username: null,
       break_wheel_last_winner_label: null,
     }).eq("id", id);
     await sendMsg(`🎡 BREAK REVEAL spinning…`, true);
     setTimeout(async () => {
-      const label = winner.character_label || `${stream.break_slot_prefix || "#"}${winner.slot_number}`;
       await supabase.from("live_streams").update({
         break_wheel_spinning: false,
-        break_wheel_last_winner_username: winner.buyer_username,
-        break_wheel_last_winner_label: label,
+        break_wheel_last_winner_username: winnerUsername,
+        break_wheel_last_winner_label: winnerLabel,
       }).eq("id", id);
-      await sendMsg(`🏆 BREAK WIN — ${label} goes to @${winner.buyer_username}!`, true);
+      await sendMsg(claimed.length > 0
+        ? `🏆 BREAK WIN — ${winnerLabel} goes to @${winnerUsername}!`
+        : `🎡 Test spin landed on ${winnerLabel} (no claims yet)`, true);
     }, 6600);
   }
 
@@ -2044,10 +2063,10 @@ function LiveDetail() {
                   </div>
                   <button
                     onClick={spinBreakWheel}
-                    disabled={breakSlots.length === 0 || stream.break_wheel_spinning}
+                    disabled={stream.break_wheel_spinning}
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
                   >
-                    <RotateCw className="h-4 w-4" /> {stream.break_wheel_spinning ? "Spinning…" : "🎡 Spin reveal wheel"}
+                    <RotateCw className="h-4 w-4" /> {stream.break_wheel_spinning ? "Spinning…" : (breakSlots.length === 0 ? "🎡 Test spin (no claims yet)" : "🎡 Spin reveal wheel")}
                   </button>
                   <button
                     onClick={closeBreakClaims}
@@ -2081,15 +2100,22 @@ function LiveDetail() {
       {/* 🆕 BREAK REVEAL WHEEL — fullscreen, fun, visible to ALL viewers */}
       {(stream.break_wheel_spinning || stream.break_wheel_last_winner_username) && (() => {
         const claimed = [...breakSlots].filter((s) => s.slot_number != null).sort((a, b) => a.slot_number - b.slot_number);
-        if (claimed.length === 0) return null;
         const palette = ["#ec4899","#7c3aed","#f59e0b","#10b981","#3b82f6","#ef4444","#06b6d4","#a855f7","#14b8a6","#f97316"];
-        const wheelSlots: WheelSlot[] = claimed.map((s, i) => ({
-          id: String(s.slot_number),
-          label: s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`,
-          weight: 1,
-          color: palette[i % palette.length],
-          is_active: true,
-        }));
+        // 🆕 Fall back to configured characters when nobody has claimed yet (lets host preview the wheel).
+        const chars: string[] = Array.isArray(stream.break_characters) ? stream.break_characters : [];
+        const total = Number(stream.break_slot_count) || chars.length || 0;
+        const wheelSlots: WheelSlot[] = claimed.length > 0
+          ? claimed.map((s, i) => ({
+              id: String(s.slot_number),
+              label: s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`,
+              weight: 1, color: palette[i % palette.length], is_active: true,
+            }))
+          : Array.from({ length: total }, (_, i) => ({
+              id: String(i + 1),
+              label: chars[i] || `${stream.break_slot_prefix || "#"}${i + 1}`,
+              weight: 1, color: palette[i % palette.length], is_active: true,
+            }));
+        if (wheelSlots.length === 0) return null;
         const targetId = stream.break_wheel_target_slot != null ? String(stream.break_wheel_target_slot) : null;
         const startedAt = stream.break_wheel_started_at ? new Date(stream.break_wheel_started_at).getTime() : null;
         const finishAt = stream.break_wheel_ends_at ? new Date(stream.break_wheel_ends_at).getTime() : null;

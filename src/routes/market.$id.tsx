@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MessageCircle, Timer } from "lucide-react";
+import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
@@ -179,6 +179,11 @@ function ListingDetail() {
           <p className="text-sm text-muted-foreground">@{seller?.username || "seller"}</p>
           {!isSeller && seller && (
             <Link to="/messages/$userId" params={{ userId: seller.id }} className="flex items-center gap-1 text-xs font-semibold text-primary"><MessageCircle className="h-3 w-3" /> Message</Link>
+          )}
+          {isSeller && (
+            <Link to="/my-listings" className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold">
+              <Pencil className="h-3 w-3" /> Edit
+            </Link>
           )}
         </div>
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
