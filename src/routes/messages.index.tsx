@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { MessageCircle, Search, Inbox, Check, X as XIcon } from "lucide-react";
+import { MessageCircle, Search, Inbox, Check, X as XIcon, PenSquare } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/messages/")({ component: Messages });
