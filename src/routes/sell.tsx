@@ -1,13 +1,25 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { CardScanner } from "@/components/CardScanner";
 import { toast } from "sonner";
-import { Radio } from "lucide-react";
+import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
+
+type Condition = "NM" | "LP" | "MP" | "Damaged";
+type ConditionPrices = { NM?: number; LP?: number; MP?: number; Damaged?: number };
+
+// Same condition-based pricing helper used by the Vault, so listing
+// prices and vault prices stay in sync regardless of where AI ID runs.
+function priceFor(cond: Condition, base: number, cp: ConditionPrices | null | undefined): number {
+  if (cp && cp[cond] && Number(cp[cond])) return Number(cp[cond]);
+  const mult = cond === "NM" ? 1 : cond === "LP" ? 0.85 : cond === "MP" ? 0.6 : 0.25;
+  return Math.max(0.5, Math.round(base * mult * 100) / 100);
+}
 
 function Sell() {
   const { user, profile } = useAuth();
