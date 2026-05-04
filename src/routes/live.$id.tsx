@@ -1168,39 +1168,51 @@ function LiveDetail() {
         </div>
       </div>
 
-      {/* 🆕 Always-visible auction timer (regardless of pin state); shows READY when no round is live */}
-      {!ended && (
-        <div className="pointer-events-none absolute left-1/2 top-14 z-20 -translate-x-1/2">
-          {auctionLive ? (
-            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base font-extrabold tabular-nums shadow-2xl ring-2 transition ${
-              stream.sudden_death_active
-                ? "bg-red-600 text-white ring-red-300 animate-pulse"
-                : snipeFlash
-                  ? "bg-yellow-400 text-black ring-yellow-200 scale-110"
-                  : remaining <= 5000
-                    ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
-                    : "bg-live text-live-foreground ring-white/30"
-            }`}>
-              {stream.sudden_death_active ? <Zap className="h-4 w-4" /> : <Timer className="h-4 w-4" />}
-              <span>{fmtRemaining(remaining)}</span>
-              {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
-                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">+{stream.snipe_extends}/3 OT</span>
-              )}
-              {stream.sudden_death_active && (
-                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider">Sudden Death</span>
-              )}
-              {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && (
-                <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
-              <Timer className="h-3.5 w-3.5 opacity-70" />
-              <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* 🆕 Always-visible auction timer.
+          When ≤5s remain (or sudden death), it bursts to the center of the screen and grows huge.
+          When the round ends it animates back to its top-pill spot. */}
+      {!ended && (() => {
+        const dramatic = auctionLive && (remaining <= 5000 || stream.sudden_death_active);
+        const wrapPos = dramatic
+          ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          : "left-1/2 top-14 -translate-x-1/2";
+        return (
+          <div className={`pointer-events-none absolute z-30 ${wrapPos} transition-all duration-500 ease-out`}>
+            {auctionLive ? (
+              <div className={`flex items-center gap-2 rounded-full font-extrabold tabular-nums shadow-2xl ring-2 transition-all duration-500 ease-out ${
+                dramatic ? "px-8 py-5 text-6xl ring-4 scale-100" : "px-3 py-1.5 text-base"
+              } ${
+                stream.sudden_death_active
+                  ? "bg-red-600 text-white ring-red-300 animate-pulse"
+                  : snipeFlash
+                    ? "bg-yellow-400 text-black ring-yellow-200"
+                    : remaining <= 5000
+                      ? "bg-orange-500 text-white ring-orange-200 animate-pulse"
+                      : "bg-live text-live-foreground ring-white/30"
+              }`}>
+                {stream.sudden_death_active
+                  ? <Zap className={dramatic ? "h-12 w-12" : "h-4 w-4"} />
+                  : <Timer className={dramatic ? "h-12 w-12" : "h-4 w-4"} />}
+                <span>{fmtRemaining(remaining)}</span>
+                {Number(stream.snipe_extends || 0) > 0 && !stream.sudden_death_active && (
+                  <span className={`rounded bg-black/30 ${dramatic ? "px-2 py-1 text-sm" : "ml-1 px-1.5 py-0.5 text-[9px]"}`}>+{stream.snipe_extends}/3 OT</span>
+                )}
+                {stream.sudden_death_active && (
+                  <span className={`rounded bg-black/30 uppercase tracking-wider ${dramatic ? "px-3 py-1 text-base" : "ml-1 px-1.5 py-0.5 text-[9px]"}`}>Sudden Death</span>
+                )}
+                {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && !dramatic && (
+                  <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
+                <Timer className="h-3.5 w-3.5 opacity-70" />
+                <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
