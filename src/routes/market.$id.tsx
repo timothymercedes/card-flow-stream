@@ -110,10 +110,25 @@ function ListingDetail() {
     load();
   }
 
+  async function acceptTopBidBelowReserve() {
+    if (!listing?.top_bidder_id || !listing?.current_bid) return toast.error("No bids yet");
+    await supabase.from("listings").update({ auction_status: "accepted_below_reserve" }).eq("id", id);
+    await supabase.from("notifications").insert({
+      user_id: listing.top_bidder_id, type: "bid",
+      body: `Seller accepted your $${listing.current_bid} bid on "${listing.title}" — complete checkout!`,
+      link: `/market/${id}`,
+    });
+    toast.success("Top bidder notified");
+    load();
+  }
+
   if (!listing) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const isSeller = user?.id === listing.seller_id;
   const type: string = listing.listing_type || (listing.is_auction ? "auction" : "buy_now");
+  const endsMs = listing.auction_ends_at ? new Date(listing.auction_ends_at).getTime() - now : 0;
+  const auctionEnded = type === "auction" && !!listing.auction_ends_at && endsMs <= 0;
+  const reserveMet = !listing.reserve_price || Number(listing.current_bid || 0) >= Number(listing.reserve_price);
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
@@ -137,15 +152,35 @@ function ListingDetail() {
               <div>
                 <p className="text-xs text-muted-foreground">Current Bid</p>
                 <p className="text-2xl font-bold text-primary">${Number(listing.current_bid || 0).toFixed(0)}</p>
-                {listing.auction_ends_at && <p className="text-[10px] text-muted-foreground">Ends {new Date(listing.auction_ends_at).toLocaleString()}</p>}
+                {listing.reserve_price && (
+                  <p className={`text-[10px] font-semibold ${reserveMet ? "text-primary" : "text-muted-foreground"}`}>
+                    {reserveMet ? "✓ Reserve met" : `Reserve not met (min $${Number(listing.reserve_price).toFixed(0)})`}
+                  </p>
+                )}
+                {listing.auction_ends_at && (
+                  <p className="mt-1 flex items-center gap-1 text-xs font-bold text-live">
+                    <Timer className="h-3 w-3" /> {fmtCountdown(endsMs)}
+                  </p>
+                )}
               </div>
-              {!isSeller && (
+              {!isSeller && !auctionEnded && (
                 <div className="flex gap-2">
                   <input type="number" placeholder="Your bid" value={bidAmt} onChange={(e) => setBidAmt(e.target.value)} className="flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
                   <button onClick={placeBid} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Bid</button>
                 </div>
               )}
+              {auctionEnded && !reserveMet && isSeller && listing.auction_status === "active" && (
+                <div className="rounded-lg bg-yellow-500/10 p-3 text-xs">
+                  <p className="font-semibold text-yellow-600">Auction ended below your reserve.</p>
+                  <p className="mt-1 text-muted-foreground">Top bid: ${Number(listing.current_bid || 0).toFixed(0)}. Accept it or let it expire.</p>
+                  <button onClick={acceptTopBidBelowReserve} className="mt-2 w-full rounded-lg bg-primary py-2 font-bold text-primary-foreground">Accept top bid</button>
+                </div>
+              )}
+              {auctionEnded && !reserveMet && !isSeller && (
+                <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">Reserve not met — waiting on seller.</p>
+              )}
             </>
+
           ) : (
             <>
               <div>
