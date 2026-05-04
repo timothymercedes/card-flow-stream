@@ -880,6 +880,7 @@ function LiveDetail() {
       quick_start_quantity: qty,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
+      chat_slow_mode_sec: Math.max(0, Math.min(300, Number(editSlowMode) || 0)),
     }).eq("id", id);
     toast.success("Settings saved");
   }
