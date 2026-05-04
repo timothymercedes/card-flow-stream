@@ -143,7 +143,7 @@ function Vault() {
     toast.success(`Identified: ${r.name}`);
   }
 
-  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number }) {
+  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
@@ -157,6 +157,7 @@ function Vault() {
       price: opts.buy_now ? opts.price : null,
       starting_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       current_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
+      reserve_price: opts.auction && opts.reserve ? opts.reserve : null,
       auction_ends_at: opts.auction ? new Date(Date.now() + opts.days * 24 * 60 * 60 * 1000).toISOString() : null,
       condition: card.condition || null,
       tcg_number: card.tcg_number || null,
@@ -339,13 +340,14 @@ function Vault() {
 function SellModal({ card, onClose, onSubmit }: {
   card: Card;
   onClose: () => void;
-  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number }) => void;
+  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number }) => void;
 }) {
   const [buyNow, setBuyNow] = useState(true);
   const [auction, setAuction] = useState(false);
   const [offer, setOffer] = useState(false);
   const [days, setDays] = useState(3);
   const [price, setPrice] = useState(String(card.price ?? card.estimated_value ?? 1));
+  const [reserve, setReserve] = useState("");
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={onClose}>
@@ -366,9 +368,22 @@ function SellModal({ card, onClose, onSubmit }: {
             <input type="checkbox" checked={auction} onChange={(e) => setAuction(e.target.checked)} className="h-4 w-4" /> Auction
           </label>
           {auction && (
-            <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
-              {[1, 2, 3, 4, 5, 6, 7].map((d) => <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>)}
-            </select>
+            <>
+              <div>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Auction length</p>
+                <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
+                  {[1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30].map((d) => <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>)}
+                </select>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Reserve / minimum (optional)</p>
+                <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <input type="number" min="0" step="0.01" value={reserve} onChange={(e) => setReserve(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder="No sale below this amount" />
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">If the top bid is below this, you'll be asked to accept or decline.</p>
+              </div>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
@@ -378,7 +393,7 @@ function SellModal({ card, onClose, onSubmit }: {
         <button
           onClick={() => {
             if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
-            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0 });
+            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0, reserve: reserve ? Number(reserve) : undefined });
           }}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >
@@ -388,3 +403,4 @@ function SellModal({ card, onClose, onSubmit }: {
     </div>
   );
 }
+

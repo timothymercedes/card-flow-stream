@@ -2,10 +2,22 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Timer } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
+
+function fmtCountdown(ms: number) {
+  if (ms <= 0) return "Ended";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (h > 0) return `${h}h ${m}m ${ss}s`;
+  return `${m}m ${ss.toString().padStart(2, "0")}s`;
+}
 
 function ListingDetail() {
   const { id } = Route.useParams();
@@ -17,6 +29,7 @@ function ListingDetail() {
   const [offers, setOffers] = useState<any[]>([]);
   const [bidAmt, setBidAmt] = useState("");
   const [offerAmt, setOfferAmt] = useState("");
+  const [now, setNow] = useState(Date.now());
 
   // shipping
   const [showShip, setShowShip] = useState(false);
@@ -37,13 +50,18 @@ function ListingDetail() {
     }
   }
   useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   async function placeBid() {
     if (!profile) return toast.error("Sign in first");
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
+    if (listing.auction_ends_at && new Date(listing.auction_ends_at).getTime() <= Date.now()) return toast.error("Auction ended");
     await supabase.from("listing_bids").insert({ listing_id: id, user_id: profile.id, username: profile.username, amount: amt });
-    await supabase.from("listings").update({ current_bid: amt }).eq("id", id);
+    await supabase.from("listings").update({ current_bid: amt, top_bidder_id: profile.id }).eq("id", id);
     await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "bid", body: `@${profile.username} bid $${amt} on "${listing.title}"`, link: `/market/${id}` });
     setBidAmt(""); load(); toast.success("Bid placed");
   }
@@ -51,10 +69,18 @@ function ListingDetail() {
   async function makeOffer() {
     if (!profile) return toast.error("Sign in first");
     const amt = Number(offerAmt);
-    if (!amt) return toast.error("Enter an amount");
-    await supabase.from("offers").insert({
+    if (!amt || amt <= 1) return toast.error("Offer must be more than $1");
+    // Dedupe: same buyer can't repeat the same exact amount that's still pending
+    const dup = offers.find((o) => o.buyer_id === profile.id && Number(o.amount) === amt && o.status === "pending");
+    if (dup) return toast.error("You already offered that amount");
+    const { error } = await supabase.from("offers").insert({
       listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
     });
+    if (error) {
+      if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
+      if (error.code === "23505") return toast.error("You already offered that amount");
+      return toast.error(error.message);
+    }
     await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "offer", body: `@${profile.username} offered $${amt} on "${listing.title}"`, link: `/market/${id}` });
     setOfferAmt(""); load(); toast.success("Offer sent");
   }
@@ -84,10 +110,25 @@ function ListingDetail() {
     load();
   }
 
+  async function acceptTopBidBelowReserve() {
+    if (!listing?.top_bidder_id || !listing?.current_bid) return toast.error("No bids yet");
+    await supabase.from("listings").update({ auction_status: "accepted_below_reserve" }).eq("id", id);
+    await supabase.from("notifications").insert({
+      user_id: listing.top_bidder_id, type: "bid",
+      body: `Seller accepted your $${listing.current_bid} bid on "${listing.title}" — complete checkout!`,
+      link: `/market/${id}`,
+    });
+    toast.success("Top bidder notified");
+    load();
+  }
+
   if (!listing) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const isSeller = user?.id === listing.seller_id;
   const type: string = listing.listing_type || (listing.is_auction ? "auction" : "buy_now");
+  const endsMs = listing.auction_ends_at ? new Date(listing.auction_ends_at).getTime() - now : 0;
+  const auctionEnded = type === "auction" && !!listing.auction_ends_at && endsMs <= 0;
+  const reserveMet = !listing.reserve_price || Number(listing.current_bid || 0) >= Number(listing.reserve_price);
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
@@ -111,15 +152,35 @@ function ListingDetail() {
               <div>
                 <p className="text-xs text-muted-foreground">Current Bid</p>
                 <p className="text-2xl font-bold text-primary">${Number(listing.current_bid || 0).toFixed(0)}</p>
-                {listing.auction_ends_at && <p className="text-[10px] text-muted-foreground">Ends {new Date(listing.auction_ends_at).toLocaleString()}</p>}
+                {listing.reserve_price && (
+                  <p className={`text-[10px] font-semibold ${reserveMet ? "text-primary" : "text-muted-foreground"}`}>
+                    {reserveMet ? "✓ Reserve met" : `Reserve not met (min $${Number(listing.reserve_price).toFixed(0)})`}
+                  </p>
+                )}
+                {listing.auction_ends_at && (
+                  <p className="mt-1 flex items-center gap-1 text-xs font-bold text-live">
+                    <Timer className="h-3 w-3" /> {fmtCountdown(endsMs)}
+                  </p>
+                )}
               </div>
-              {!isSeller && (
+              {!isSeller && !auctionEnded && (
                 <div className="flex gap-2">
                   <input type="number" placeholder="Your bid" value={bidAmt} onChange={(e) => setBidAmt(e.target.value)} className="flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
                   <button onClick={placeBid} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Bid</button>
                 </div>
               )}
+              {auctionEnded && !reserveMet && isSeller && listing.auction_status === "active" && (
+                <div className="rounded-lg bg-yellow-500/10 p-3 text-xs">
+                  <p className="font-semibold text-yellow-600">Auction ended below your reserve.</p>
+                  <p className="mt-1 text-muted-foreground">Top bid: ${Number(listing.current_bid || 0).toFixed(0)}. Accept it or let it expire.</p>
+                  <button onClick={acceptTopBidBelowReserve} className="mt-2 w-full rounded-lg bg-primary py-2 font-bold text-primary-foreground">Accept top bid</button>
+                </div>
+              )}
+              {auctionEnded && !reserveMet && !isSeller && (
+                <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">Reserve not met — waiting on seller.</p>
+              )}
             </>
+
           ) : (
             <>
               <div>
