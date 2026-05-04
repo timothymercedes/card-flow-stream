@@ -2063,10 +2063,10 @@ function LiveDetail() {
                   </div>
                   <button
                     onClick={spinBreakWheel}
-                    disabled={breakSlots.length === 0 || stream.break_wheel_spinning}
+                    disabled={stream.break_wheel_spinning}
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-50"
                   >
-                    <RotateCw className="h-4 w-4" /> {stream.break_wheel_spinning ? "Spinning…" : "🎡 Spin reveal wheel"}
+                    <RotateCw className="h-4 w-4" /> {stream.break_wheel_spinning ? "Spinning…" : (breakSlots.length === 0 ? "🎡 Test spin (no claims yet)" : "🎡 Spin reveal wheel")}
                   </button>
                   <button
                     onClick={closeBreakClaims}
