@@ -22,11 +22,14 @@ function MyStore() {
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [carrier, setCarrier] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"to_ship" | "in_transit" | "delivered">("to_ship");
+  const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
 
   async function load() {
     if (!user) return;
     const { data } = await supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false });
     setOrders(data || []);
+    const { data: prof } = await supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle();
+    setPayoutStatus((prof as any)?.stripe_onboarding_status || "not_started");
   }
   useEffect(() => { load(); }, [user]);
 
@@ -80,6 +83,23 @@ function MyStore() {
       <div className="px-4 py-4">
         <h1 className="mb-1 text-2xl font-bold">My Store</h1>
         <p className="mb-4 text-xs text-muted-foreground">Items you've sold via live or marketplace</p>
+
+        {payoutStatus !== "complete" && (
+          <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-card p-3">
+            <p className="text-sm font-bold">💳 Connect your payout account</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Currently in safe mode — no real money moves yet. When live payments are turned on,
+              you'll connect a Stripe account here so buyers' funds (minus 5% commission) land in your bank.
+            </p>
+            <button
+              disabled
+              className="mt-2 rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+              title="Available once live payments are enabled"
+            >
+              Set up payouts (coming soon)
+            </button>
+          </div>
+        )}
 
         <div className="mb-4 grid grid-cols-3 gap-2 rounded-xl bg-card p-3 text-center">
           <div>
