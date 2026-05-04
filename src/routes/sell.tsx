@@ -380,6 +380,9 @@ function Sell() {
           </div>
         )}
       </div>
+      {scanning && (
+        <CardScanner onClose={() => setScanning(false)} onResult={onScanResult} />
+      )}
     </AppShell>
   );
 }
