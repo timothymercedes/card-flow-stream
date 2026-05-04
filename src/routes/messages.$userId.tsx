@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/messages/$userId")({ component: ChatThread });
@@ -13,6 +13,7 @@ function ChatThread() {
   const [other, setOther] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
+  const [accepted, setAccepted] = useState<boolean | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,6 +22,14 @@ function ChatThread() {
 
   useEffect(() => {
     if (!user) return;
+    async function check() {
+      const { data } = await supabase.from("message_requests").select("*")
+        .or(`and(sender_id.eq.${user!.id},recipient_id.eq.${userId}),and(sender_id.eq.${userId},recipient_id.eq.${user!.id})`)
+        .maybeSingle();
+      setAccepted(data?.status === "accepted");
+    }
+    check();
+
     async function load() {
       const { data } = await supabase
         .from("direct_messages")
@@ -44,6 +53,7 @@ function ChatThread() {
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim() || !user || !profile) return;
+    if (!accepted) return toast.error("Send a message request first");
     const content = input.trim();
     setInput("");
     const { error } = await supabase.from("direct_messages").insert({
@@ -72,10 +82,16 @@ function ChatThread() {
         ))}
         <div ref={endRef} />
       </div>
-      <form onSubmit={send} className="flex gap-2 border-t border-border bg-card p-3">
-        <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message..." className="flex-1 rounded-full bg-input px-4 py-2 text-sm outline-none" />
-        <button type="submit" className="rounded-full bg-primary p-2.5 text-primary-foreground"><Send className="h-4 w-4" /></button>
-      </form>
+      {accepted === false ? (
+        <div className="flex items-center gap-2 border-t border-border bg-card p-3 text-xs text-muted-foreground">
+          <Lock className="h-4 w-4" /> Message request required. Go to Messages → search to send a request.
+        </div>
+      ) : (
+        <form onSubmit={send} className="flex gap-2 border-t border-border bg-card p-3">
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message..." className="flex-1 rounded-full bg-input px-4 py-2 text-sm outline-none" />
+          <button type="submit" className="rounded-full bg-primary p-2.5 text-primary-foreground"><Send className="h-4 w-4" /></button>
+        </form>
+      )}
     </div>
   );
 }
