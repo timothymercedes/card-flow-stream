@@ -1553,7 +1553,7 @@ function LiveDetail() {
           </div>
           <div className="text-right">
             <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
-            <p className="text-2xl font-bold text-primary">{fmtMoney(Number(stream.current_bid || 0))}</p>
+            <p key={`bid-${Number(stream.current_bid || 0)}`} className="bid-bump text-2xl font-bold text-primary tabular-nums">{fmtMoney(Number(stream.current_bid || 0))}</p>
           </div>
         </div>
 
