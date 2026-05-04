@@ -131,7 +131,7 @@ function Vault() {
     setIdentifying(true);
     try {
       const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
-      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q, language } });
       if (error) throw error;
       if (data?.name) setName(data.name);
       if (data?.category && !category) setCategory(data.category);
