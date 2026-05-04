@@ -53,7 +53,8 @@ function Vault() {
   );
 
   function resetForm() {
-    setName(""); setCategory(""); setImageUrl(""); setDescription(""); setEstValue(""); setPrice("");
+    setName(""); setTcgNumber(""); setTcgSet(""); setCategory(""); setImageUrl("");
+    setDescription(""); setEstValue(""); setPrice(""); setCondition("NM");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -64,28 +65,40 @@ function Vault() {
     reader.readAsDataURL(f);
   }
 
+  async function identifyNow() {
+    if (!name.trim()) return toast.error("Enter a card name first");
+    setIdentifying(true);
+    try {
+      const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`].filter(Boolean).join(" ");
+      const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+      if (error) throw error;
+      if (data?.name) setName(data.name);
+      if (data?.category && !category) setCategory(data.category);
+      if (data?.estimated_value) setEstValue(String(data.estimated_value));
+      toast.success(`Identified: ${data?.name || name} ~$${data?.estimated_value || "?"}`);
+    } catch (e: any) { toast.error(e?.message || "Identification failed"); }
+    finally { setIdentifying(false); }
+  }
+
   async function add() {
     if (!name.trim()) return toast.error("Card name required");
-    let identified = { name, category: category || "Trading Card", estimated_value: Number(estValue) || 0 };
-    // If user typed but didn't scan/value, try TCG identification + valuation via AI
-    if (!estValue || !category) {
+    let value = Number(estValue) || 0;
+    let cat = category;
+    // If value is missing, auto-identify (value cannot be edited manually)
+    if (!value) {
       try {
-        const { data, error } = await supabase.functions.invoke("identify-card", { body: { query: name } });
-        if (!error && data) {
-          identified = {
-            name: data.name || name,
-            category: category || data.category || "Trading Card",
-            estimated_value: Number(estValue) || Number(data.estimated_value) || 0,
-          };
-          toast.success(`Identified: ${identified.name} (~$${identified.estimated_value})`);
-        }
+        const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`].filter(Boolean).join(" ");
+        const { data } = await supabase.functions.invoke("identify-card", { body: { query: q } });
+        if (data) { value = Number(data.estimated_value) || 0; cat = cat || data.category || "Trading Card"; }
       } catch {/* ignore */}
     }
     const { error } = await supabase.from("vault_cards").insert({
-      user_id: user!.id, name: identified.name, category: identified.category, image_url: imageUrl || null,
-      description: description || null,
-      estimated_value: identified.estimated_value,
+      user_id: user!.id, name, category: cat || "Trading Card",
+      image_url: imageUrl || null, description: description || null,
+      estimated_value: value,
       price: price ? Number(price) : null,
+      tcg_number: tcgNumber || null, tcg_set: tcgSet || null,
+      condition,
       last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
