@@ -535,11 +535,7 @@ function LiveDetail() {
     await supabase.from("wheel_slots").delete().eq("id", slotId);
   }
 
-  async function updateWheelMode(mode: "remove" | "keep") {
-    if (!wheel || !isSeller) return;
-    await supabase.from("spin_wheels").update({ mode }).eq("id", wheel.id);
-  }
-  async function updateWheelSpeed(spin_speed: "slow" | "normal" | "fast") {
+  async function updateWheelSpeed(spin_speed: "5" | "10" | "15") {
     if (!wheel || !isSeller) return;
     await supabase.from("spin_wheels").update({ spin_speed }).eq("id", wheel.id);
   }
@@ -549,9 +545,42 @@ function LiveDetail() {
   }
 
   function spinDurationMs(speed: string): number {
-    if (speed === "slow") return 7500;
-    if (speed === "fast") return 3500;
-    return 5000;
+    const n = Number(speed);
+    if (n === 5 || n === 10 || n === 15) return n * 1000;
+    // back-compat for old 'slow'/'normal'/'fast' values
+    if (speed === "slow") return 15000;
+    if (speed === "fast") return 5000;
+    return 10000;
+  }
+
+  // 🆕 Shuffle slot order on the wheel
+  async function shuffleWheelSlots() {
+    if (!wheel || !isSeller) return;
+    if (wheel.is_spinning) return toast.error("Wheel is locked while spinning");
+    if (wheel.pending_decision_slot_id) return toast.error("Decide on the last winner first");
+    const arr = [...wheelSlots];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    // Persist new positions
+    await Promise.all(arr.map((s, idx) => supabase.from("wheel_slots").update({ position: idx }).eq("id", s.id)));
+    toast.success("Slots shuffled");
+  }
+
+  // 🆕 Reset the wheel — unlocks editing
+  async function resetWheel() {
+    if (!wheel || !isSeller) return;
+    if (wheel.is_spinning) return toast.error("Wheel is still spinning");
+    await supabase.from("spin_wheels").update({
+      is_locked: false,
+      pending_decision_slot_id: null,
+      pending_decision_slot_label: null,
+      last_winner_username: null,
+      last_winner_slot_label: null,
+      last_winner_at: null,
+    }).eq("id", wheel.id);
+    toast.success("Wheel reset — you can edit slots again");
   }
 
   // Trigger a spin: host always allowed; viewers only if viewer_can_spin and idle.
@@ -559,6 +588,7 @@ function LiveDetail() {
     if (!user) return toast.error("Sign in to spin");
     if (!wheel) return toast.error("No wheel yet");
     if (wheel.is_spinning) return;
+    if (wheel.pending_decision_slot_id) return toast.error("Host must decide on the last winner first");
     const canSpin = isSeller || wheel.viewer_can_spin;
     if (!canSpin) return toast.error("Only the host can spin");
     const active = wheelSlots.filter((s) => s.is_active);
@@ -574,6 +604,7 @@ function LiveDetail() {
     wheelLandedRef.current = null;
     const { error } = await supabase.from("spin_wheels").update({
       is_spinning: true,
+      is_locked: true, // 🔒 lock the wheel from manual edits as soon as a spin starts
       spin_started_at: startedAt.toISOString(),
       spin_ends_at: endsAt.toISOString(),
       spin_target_slot_id: pick.id,
@@ -610,17 +641,32 @@ function LiveDetail() {
       slot_id: slot.id,
       slot_label: slot.label,
     });
-    // Remove the slot if mode is 'remove'
-    if (wheel.mode === "remove") {
-      await supabase.from("wheel_slots").delete().eq("id", slot.id);
-    }
+    // 🆕 No automatic remove/keep — host decides AFTER landing.
     await supabase.from("spin_wheels").update({
       is_spinning: false,
+      is_locked: true,
+      pending_decision_slot_id: slot.id,
+      pending_decision_slot_label: slot.label,
       last_winner_username: winnerUsername,
       last_winner_slot_label: slot.label,
       last_winner_at: new Date().toISOString(),
     }).eq("id", wheel.id);
     await sendMsg(`🎡 ${winnerUsername} won "${slot.label}" on the wheel!`, true);
+  }
+
+  // 🆕 Host's post-spin choice: remove the landed slot or keep it.
+  async function decideAfterSpin(action: "remove" | "keep") {
+    if (!wheel || !isSeller) return;
+    const slotId = wheel.pending_decision_slot_id;
+    if (!slotId) return;
+    if (action === "remove") {
+      await supabase.from("wheel_slots").delete().eq("id", slotId);
+    }
+    await supabase.from("spin_wheels").update({
+      pending_decision_slot_id: null,
+      pending_decision_slot_label: null,
+    }).eq("id", wheel.id);
+    toast.success(action === "remove" ? "Slot removed" : "Slot kept on wheel");
   }
 
   async function startAuction() {
