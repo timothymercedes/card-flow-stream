@@ -147,8 +147,8 @@ function Admin() {
   }
 
   if (!user) return <AppShell><div className="p-8 text-center text-sm">Sign in.</div></AppShell>;
-  if (isAdmin === null) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
-  if (!isAdmin) return (
+  if (!rolesLoaded) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
+  if (!canViewAdmin) return (
     <AppShell><div className="p-8 text-center">
       <p className="text-sm text-muted-foreground">Admin access required.</p>
       <Link to="/" className="mt-4 inline-block text-xs text-primary">Go home</Link>
