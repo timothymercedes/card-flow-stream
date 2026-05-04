@@ -1655,16 +1655,30 @@ function LiveDetail() {
 
         {!isSeller && (
           <div className="flex gap-2">
-            <button
-              onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
-              disabled={bidDisabled || meBlocked}
-              className="flex-1 select-none rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            >
-              {meBlocked ? "🚫 You're muted/banned"
-                : bidDisabled
-                  ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
-                  : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold & swipe up for +$3")}
-            </button>
+            <div className="relative flex-1">
+              {!bidDisabled && !meBlocked && holdAdd === 0 && (
+                <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 swipe-up-hint">
+                  <div className="flex flex-col items-center text-[9px] font-bold uppercase tracking-wider text-primary-glow">
+                    <span>Swipe ↑ +$3</span>
+                  </div>
+                </div>
+              )}
+              <button
+                onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
+                disabled={bidDisabled || meBlocked}
+                className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary to-primary-glow py-3.5 text-base font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
+              >
+                {!bidDisabled && !meBlocked && holdAdd === 0 && (
+                  <span className="pointer-events-none absolute inset-0 brand-shimmer opacity-50" />
+                )}
+                <span className="relative">
+                  {meBlocked ? "🚫 You're muted/banned"
+                    : bidDisabled
+                      ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                      : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold to bid")}
+                </span>
+              </button>
+            </div>
             {!ended && (
               <button
                 onClick={() => user ? setShoutoutOpen(true) : toast.error("Sign in to shout out")}
