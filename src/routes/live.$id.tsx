@@ -406,7 +406,14 @@ function LiveDetail() {
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
         <div className="absolute left-3 right-3 top-14 z-10">
-          <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
+          <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
+            <p className="flex-1 truncate text-sm font-semibold">{stream.title}</p>
+            {auctionLive && (
+              <div className="flex shrink-0 items-center gap-1 rounded-md bg-live px-2 py-1 text-sm font-extrabold tabular-nums text-live-foreground">
+                <Timer className="h-4 w-4" /> {fmtRemaining(remaining)}
+              </div>
+            )}
+          </div>
           {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
           {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
