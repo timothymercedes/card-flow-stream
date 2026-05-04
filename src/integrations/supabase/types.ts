@@ -202,12 +202,15 @@ export type Database = {
           listing_type: string
           min_bid_increment: number
           seller_id: string
+          shipping_method: string | null
+          shipping_price: number | null
           started_at: string | null
           starting_bid: number
           status: string
           thumbnail_url: string | null
           title: string
           winner_id: string | null
+          winner_username: string | null
           winning_bid: number | null
         }
         Insert: {
@@ -224,12 +227,15 @@ export type Database = {
           listing_type?: string
           min_bid_increment?: number
           seller_id: string
+          shipping_method?: string | null
+          shipping_price?: number | null
           started_at?: string | null
           starting_bid?: number
           status?: string
           thumbnail_url?: string | null
           title: string
           winner_id?: string | null
+          winner_username?: string | null
           winning_bid?: number | null
         }
         Update: {
@@ -246,12 +252,15 @@ export type Database = {
           listing_type?: string
           min_bid_increment?: number
           seller_id?: string
+          shipping_method?: string | null
+          shipping_price?: number | null
           started_at?: string | null
           starting_bid?: number
           status?: string
           thumbnail_url?: string | null
           title?: string
           winner_id?: string | null
+          winner_username?: string | null
           winning_bid?: number | null
         }
         Relationships: [
@@ -574,25 +583,34 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          description: string | null
+          estimated_value: number | null
           id: string
           image_url: string | null
           name: string
+          price: number | null
           user_id: string
         }
         Insert: {
           category?: string | null
           created_at?: string
+          description?: string | null
+          estimated_value?: number | null
           id?: string
           image_url?: string | null
           name: string
+          price?: number | null
           user_id: string
         }
         Update: {
           category?: string | null
           created_at?: string
+          description?: string | null
+          estimated_value?: number | null
           id?: string
           image_url?: string | null
           name?: string
+          price?: number | null
           user_id?: string
         }
         Relationships: [
