@@ -49,8 +49,12 @@ function Sell() {
   const [imageUrl, setImageUrl] = useState("");
   const [backImageUrl, setBackImageUrl] = useState(""); // 🆕 back of card (required)
   const [tcgNumber, setTcgNumber] = useState("");        // 🆕 card number (optional)
-  const [condition, setCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM"); // 🆕 required
+  const [tcgSet, setTcgSet] = useState("");               // 🆕 from AI ID
+  const [tcgYear, setTcgYear] = useState("");             // 🆕 from AI ID
+  const [condition, setCondition] = useState<Condition>("NM"); // 🆕 required
+  const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null); // 🆕 from AI ID
   const [identifying, setIdentifying] = useState(false); // 🆕 AI identify in-flight
+  const [scanning, setScanning] = useState(false);       // 🆕 image scan modal
   const [enableBuyNow, setEnableBuyNow] = useState(true);
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
