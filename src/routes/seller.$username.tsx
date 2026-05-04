@@ -26,7 +26,7 @@ function PublicStore() {
 
   useEffect(() => {
     (async () => {
-      const { data: prof } = await supabase.from("profiles").select("id,username,avatar_url,full_name").eq("username", username).maybeSingle();
+      const { data: prof } = await supabase.from("profiles").select("id,username,avatar_url").eq("username", username).maybeSingle();
       if (!prof) return;
       setSeller(prof);
       const [l, o, r] = await Promise.all([
