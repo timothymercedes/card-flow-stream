@@ -33,7 +33,7 @@ export function useStreamPresence(streamId: string | null, userId: string | null
     async function beat() {
       if (cancelled) return;
       await supabase.from("live_stream_presence").upsert(
-        { stream_id: streamId, user_id: userId, username, avatar_url: avatarUrl, last_seen_at: new Date().toISOString() },
+        [{ stream_id: streamId!, user_id: userId!, username: username!, avatar_url: avatarUrl, last_seen_at: new Date().toISOString() }],
         { onConflict: "stream_id,user_id" },
       );
     }
@@ -52,7 +52,7 @@ export function useStreamPresence(streamId: string | null, userId: string | null
     if (!streamId) return;
     let cancelled = false;
     async function load() {
-      const { data } = await supabase.from("live_stream_presence").select("*").eq("stream_id", streamId);
+      const { data } = await supabase.from("live_stream_presence").select("*").eq("stream_id", streamId!);
       if (!cancelled) setViewers((data as any) || []);
     }
     load();
