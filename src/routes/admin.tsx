@@ -4,7 +4,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag } from "lucide-react";
+
+const REPORT_GROUPS = [
+  { key: "all", label: "All", icon: Flag, types: [] as string[] },
+  { key: "messages", label: "Chat / Messages", icon: MessageSquare, types: ["message"] },
+  { key: "orders", label: "Orders", icon: ShoppingBag, types: ["order"] },
+  { key: "users", label: "Users", icon: UserIcon, types: ["user"] },
+  { key: "streams", label: "Streams", icon: Radio, types: ["stream"] },
+  { key: "posts", label: "Posts", icon: FileText, types: ["post"] },
+  { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
+] as const;
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
@@ -14,9 +24,12 @@ export const Route = createFileRoute("/admin")({
 function Admin() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"disputes" | "suspensions">("disputes");
+  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions">("reports");
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportFilter, setReportFilter] = useState<typeof REPORT_GROUPS[number]["key"]>("all");
+  const [reportStatus, setReportStatus] = useState<"open" | "all">("open");
   const [banForm, setBanForm] = useState({ user_id: "", username: "", reason: "", type: "suspension", days: "7" });
 
   useEffect(() => {
@@ -26,14 +39,29 @@ function Admin() {
   }, [user]);
 
   async function loadAll() {
-    const [{ data: d }, { data: s }] = await Promise.all([
+    const [{ data: d }, { data: s }, { data: r }] = await Promise.all([
       supabase.from("disputes").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("user_suspensions").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("user_reports").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
     setDisputes(d || []);
     setSuspensions(s || []);
+    setReports(r || []);
   }
   useEffect(() => { if (isAdmin) loadAll(); }, [isAdmin]);
+
+  async function updateReport(id: string, status: "reviewing" | "resolved" | "dismissed") {
+    const note = status !== "reviewing" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
+    const { error } = await supabase.from("user_reports").update({
+      status,
+      resolution_note: note || null,
+      resolved_by: user!.id,
+      resolved_at: status === "reviewing" ? null : new Date().toISOString(),
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Updated");
+    loadAll();
+  }
 
   async function resolveDispute(id: string, status: "resolved" | "rejected" | "investigating") {
     const note = status === "resolved" || status === "rejected" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
@@ -86,9 +114,61 @@ function Admin() {
       <div className="px-4 py-4 space-y-4">
         <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="h-6 w-6" /> Admin</h1>
         <div className="flex gap-2 border-b border-border">
+          <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
           <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>
         </div>
+
+        {tab === "reports" && (() => {
+          const group = REPORT_GROUPS.find(g => g.key === reportFilter)!;
+          const filtered = reports.filter(r =>
+            (group.types.length === 0 || (group.types as readonly string[]).includes(r.target_type)) &&
+            (reportStatus === "all" || r.status === "open")
+          );
+          return (
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-1.5">
+                {REPORT_GROUPS.map(g => {
+                  const Icon = g.icon;
+                  const count = g.types.length === 0 ? reports.length : reports.filter(r => (g.types as readonly string[]).includes(r.target_type)).length;
+                  return (
+                    <button key={g.key} onClick={() => setReportFilter(g.key)}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${reportFilter === g.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      <Icon className="h-3 w-3" /> {g.label} ({count})
+                    </button>
+                  );
+                })}
+                <button onClick={() => setReportStatus(reportStatus === "open" ? "all" : "open")}
+                  className="ml-auto rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold">
+                  {reportStatus === "open" ? "Showing: open" : "Showing: all"}
+                </button>
+              </div>
+              {filtered.map(r => (
+                <div key={r.id} className="rounded-xl bg-card p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold truncate">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground mr-1.5">{r.target_type}</span>
+                      @{r.reporter_username} → {r.target_label || r.target_id || "—"}
+                    </p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${r.status === "open" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"}`}>{r.status}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] font-semibold text-muted-foreground">Category: {r.category}</p>
+                  <p className="mt-1 text-xs whitespace-pre-wrap">{r.reason}</p>
+                  {r.resolution_note && <p className="mt-1 rounded bg-muted/50 p-2 text-[11px]">{r.resolution_note}</p>}
+                  <p className="mt-1 text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</p>
+                  {r.status !== "resolved" && r.status !== "dismissed" && (
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => updateReport(r.id, "reviewing")} className="rounded-lg bg-blue-500/20 px-3 py-1 text-[10px] font-bold text-blue-500">Review</button>
+                      <button onClick={() => updateReport(r.id, "resolved")} className="rounded-lg bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground">Resolve</button>
+                      <button onClick={() => updateReport(r.id, "dismissed")} className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Dismiss</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {filtered.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No reports.</p>}
+            </div>
+          );
+        })()}
 
         {tab === "disputes" && (
           <div className="space-y-2">
