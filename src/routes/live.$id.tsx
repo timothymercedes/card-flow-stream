@@ -189,7 +189,34 @@ function LiveDetail() {
     return () => { supabase.removeChannel(ch); };
   }, [id]);
 
-  // 🆕 Load viewer's preferred currency
+  // 🆕 Presence — count viewers + announce joins to chat
+  useEffect(() => {
+    if (!id) return;
+    const myKey = user?.id || `guest-${Math.random().toString(36).slice(2, 10)}`;
+    const myName = profile?.username || "viewer";
+    const ch = supabase.channel(`presence-${id}`, { config: { presence: { key: myKey } } });
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState() as Record<string, any[]>;
+      setViewerCount(Object.keys(state).length);
+    });
+    ch.on("presence", { event: "join" }, ({ key, newPresences }) => {
+      if (key === myKey) return;
+      if (announcedJoinsRef.current.has(key)) return;
+      announcedJoinsRef.current.add(key);
+      const u = (newPresences?.[0] as any)?.username || "viewer";
+      // Only announce signed-in users (skip generic guests)
+      if (!String(key).startsWith("guest-")) {
+        sendMsg(`👋 @${u} has joined the live`, true);
+      }
+    });
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await ch.track({ username: myName, joined_at: Date.now() });
+      }
+    });
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user?.id, profile?.username]);
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("preferred_currency").eq("id", user.id).maybeSingle()
