@@ -9,10 +9,13 @@ import { CardScanner } from "@/components/CardScanner";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
+type Condition = "NM" | "LP" | "MP" | "Damaged";
 type Card = {
   id: string; user_id: string; name: string; category: string | null;
   image_url: string | null; description: string | null;
   estimated_value: number | null; price: number | null;
+  tcg_number?: string | null; tcg_set?: string | null;
+  condition?: Condition | null;
 };
 
 function Vault() {
