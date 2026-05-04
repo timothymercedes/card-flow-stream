@@ -262,15 +262,24 @@ function Vault() {
 
         {showAdd && (
           <div className="mb-4 space-y-2 rounded-xl bg-card p-3">
-            {imageUrl && <img src={imageUrl} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
-            <label className="block">
-              <span className="text-[10px] text-muted-foreground">Image</span>
-              <input type="file" accept="image/*" onChange={(e) => handleFile(e, setImageUrl)} className="block w-full text-xs" />
-            </label>
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="TCG card name (e.g., Charizard VMAX)" value={name} onChange={(e) => setName(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card # (e.g., 020/189)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
-              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set (e.g., Darkness Ablaze)" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+              <div>
+                <p className="text-[10px] text-muted-foreground">Front photo</p>
+                {imageUrl && <img src={imageUrl} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" />}
+                <input type="file" accept="image/*" onChange={(e) => handleFile(e, setImageUrl)} className="mt-1 block w-full text-[10px]" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Back photo</p>
+                {backImageUrl && <img src={backImageUrl} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" />}
+                <input type="file" accept="image/*" onChange={(e) => handleFile(e, setBackImageUrl)} className="mt-1 block w-full text-[10px]" />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Front photo required to add. Back photo required to sell.</p>
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, LeBron Rookie)" value={name} onChange={(e) => setName(e.target.value)} />
+            <div className="grid grid-cols-3 gap-2">
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card #" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
+              <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
             </div>
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
             <div>
