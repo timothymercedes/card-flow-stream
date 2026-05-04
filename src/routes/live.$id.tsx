@@ -1886,9 +1886,9 @@ function LiveDetail() {
               <label className="mb-3 block text-[11px] text-muted-foreground">
                 Default prefix (used when a slot name is left blank)
                 <input value={breakPrefix} onChange={(e) => setBreakPrefix(e.target.value.slice(0, 12))}
-                  disabled={stream.break_mode === "open"}
+                  onBlur={() => supabase.from("live_streams").update({ break_slot_prefix: breakPrefix.trim() || null }).eq("id", id)}
                   placeholder='e.g. "Box "'
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none disabled:opacity-50" />
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none" />
               </label>
 
               {stream.break_mode === "open" ? (
