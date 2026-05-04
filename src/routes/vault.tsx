@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -31,7 +31,8 @@ function Vault() {
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
-  
+  const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
+  const [savingVis, setSavingVis] = useState(false);
 
   // add form
   const [name, setName] = useState("");
@@ -46,15 +47,29 @@ function Vault() {
   const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
-  const [visibility, setVisibility] = useState<Visibility>("private");
+  // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("vault_cards").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const [{ data }, { data: vs }] = await Promise.all([
+      supabase.from("vault_cards").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("vault_settings").select("visibility").eq("user_id", user.id).maybeSingle(),
+    ]);
     setCards((data || []) as Card[]);
+    if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
   }
   useEffect(() => { load(); }, [user]);
+
+  async function updateVaultVisibility(v: Visibility) {
+    if (!user) return;
+    setVaultVisibility(v);
+    setSavingVis(true);
+    const { error } = await supabase.from("vault_settings").upsert({ user_id: user.id, visibility: v, updated_at: new Date().toISOString() });
+    setSavingVis(false);
+    if (error) toast.error(error.message);
+    else toast.success(v === "private" ? "Vault is private" : `Vault visible to ${v}`);
+  }
 
   const totalValue = useMemo(
     () => cards.reduce((s, c) => s + Number(c.estimated_value || 0), 0),
@@ -64,7 +79,7 @@ function Vault() {
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
-    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM"); setVisibility("private");
+    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -160,7 +175,6 @@ function Vault() {
       price: price ? Number(price) : null,
       tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
-      visibility,
       last_valued_at: new Date().toISOString(),
     });
     if (error) return toast.error(error.message);
@@ -185,7 +199,7 @@ function Vault() {
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
-      visibility: editing.visibility || "private",
+      
       estimated_value: newValue,
     }).eq("id", editing.id);
     if (error) return toast.error(error.message);
@@ -257,10 +271,37 @@ function Vault() {
         </div>
 
         {/* Total value (owner only) */}
-        <div className="mb-4 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 p-4">
+        <div className="mb-3 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 p-4">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total Vault Value</p>
           <p className="text-3xl font-bold">${totalValue.toFixed(2)}</p>
-          <p className="text-[10px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} • visible only to you</p>
+          <p className="text-[10px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""}</p>
+        </div>
+
+        {/* Vault sharing (one setting for the whole vault) */}
+        <div className="mb-4 rounded-xl bg-card p-3">
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-xs font-semibold">Who can see your vault</p>
+            {savingVis && <span className="text-[10px] text-muted-foreground">Saving…</span>}
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {([
+              { v: "private",   l: "Only me",   I: Lock },
+              { v: "friends",   l: "Friends",   I: UserCheck },
+              { v: "followers", l: "Followers", I: Users },
+              { v: "public",    l: "Public",    I: Globe },
+            ] as const).map(({ v, l, I }) => (
+              <button key={v} type="button" onClick={() => updateVaultVisibility(v)}
+                className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-semibold ${vaultVisibility === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <I className="h-3.5 w-3.5" />
+                {l}
+              </button>
+            ))}
+          </div>
+          {vaultVisibility !== "private" && profile?.username && (
+            <p className="mt-2 break-all text-[10px] text-muted-foreground">
+              Share link: <span className="font-mono">/u/{profile.username}/vault</span>
+            </p>
+          )}
         </div>
 
         {showAdd && (
@@ -291,20 +332,6 @@ function Vault() {
                 {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
                   <button key={c} type="button" onClick={() => setCondition(c)}
                     className={`rounded-lg px-2 py-1.5 text-xs font-bold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Who can see this card</p>
-              <div className="mt-1 grid grid-cols-4 gap-1">
-                {([
-                  { v: "private", l: "Only me" },
-                  { v: "friends", l: "Close friends" },
-                  { v: "followers", l: "Followers" },
-                  { v: "public", l: "Public" },
-                ] as const).map(({ v, l }) => (
-                  <button key={v} type="button" onClick={() => setVisibility(v)}
-                    className={`rounded-lg px-1 py-1.5 text-[10px] font-semibold ${visibility === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{l}</button>
                 ))}
               </div>
             </div>
@@ -393,7 +420,7 @@ function Vault() {
               </div>
             )}
 
-            <p className="text-[10px] text-muted-foreground">Visible to: <span className="font-semibold capitalize">{actionFor.visibility || "private"}</span></p>
+            
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
@@ -435,20 +462,6 @@ function Vault() {
                 {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
                   <button key={c} type="button" onClick={() => setEditing({ ...editing, condition: c })}
                     className={`rounded-lg px-2 py-1.5 text-xs font-bold ${editing.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Who can see this card</p>
-              <div className="mt-1 grid grid-cols-4 gap-1">
-                {([
-                  { v: "private", l: "Only me" },
-                  { v: "friends", l: "Friends" },
-                  { v: "followers", l: "Followers" },
-                  { v: "public", l: "Public" },
-                ] as const).map(({ v, l }) => (
-                  <button key={v} type="button" onClick={() => setEditing({ ...editing, visibility: v })}
-                    className={`rounded-lg px-1 py-1.5 text-[10px] font-semibold ${(editing.visibility || "private") === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{l}</button>
                 ))}
               </div>
             </div>

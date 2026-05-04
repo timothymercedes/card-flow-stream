@@ -1001,6 +1001,27 @@ export type Database = {
           },
         ]
       }
+      vault_settings: {
+        Row: {
+          created_at: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       webauthn_credentials: {
         Row: {
           counter: number
@@ -1048,6 +1069,10 @@ export type Database = {
       }
       can_view_vault: {
         Args: { _owner: string; _viewer: string; _visibility: string }
+        Returns: boolean
+      }
+      can_view_vault_owner: {
+        Args: { _owner: string; _viewer: string }
         Returns: boolean
       }
       generate_public_id: { Args: never; Returns: string }

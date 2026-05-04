@@ -12,8 +12,8 @@ Given a card name, photo description, or partial info, return STRICT JSON with t
 {
   "name": string,                  // canonical card name
   "category": string,              // e.g. "Pokémon", "MTG", "Yu-Gi-Oh!", "One Piece", "Sports - Basketball", "TMNT"
-  "set": string,                   // set/series name (best guess if unsure)
-  "year": string,                  // 4-digit release year (best guess)
+  "set": string,                   // REQUIRED — set/series name (your best guess; never empty)
+  "year": string,                  // REQUIRED — 4-digit release year (your best guess; never empty)
   "tcg_number": string,            // card number within set (e.g. "25/102") or "" if unknown
   "estimated_value": number,       // current USD market value in NEAR MINT condition, > 0
   "condition_prices": {            // USD price per condition (must all be > 0)
@@ -24,6 +24,8 @@ Given a card name, photo description, or partial info, return STRICT JSON with t
   },
   "trend": string                  // short note like "Stable", "Rising", "Falling"
 }
+
+CRITICAL: "set" and "year" must ALWAYS be filled with your best guess based on the card name and category — never leave them blank. If multiple printings exist, pick the most iconic/original one.
 
 Always provide best-guess numeric values — never null, never zero. If totally unknown, estimate $1 NM and scale conditions.`;
 
