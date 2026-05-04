@@ -79,7 +79,7 @@ function Vault() {
   function resetForm() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
-    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM"); setVisibility("private");
+    setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
