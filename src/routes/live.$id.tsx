@@ -1683,14 +1683,17 @@ function LiveDetail() {
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="chat-scroll absolute bottom-28 left-2 z-10 max-h-[20vh] w-[58%] max-w-[16rem] overflow-y-auto overscroll-contain pb-1 pr-1"
+          className="chat-scroll absolute z-10 overflow-y-auto overscroll-contain
+            bottom-28 left-2 max-h-[20vh] w-[58%] max-w-[16rem] pb-1 pr-1
+            md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
+            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10"
         >
           <div className="flex flex-col items-start gap-1">
             {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
-                <div key={m.id} className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50"}`}>
+                <div key={m.id} className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50 md:bg-white/5"}`}>
                   {isStaff && m.user_id && m.user_id !== user?.id && m.user_id !== stream.seller_id ? (
                     <button
                       onClick={() => setChatActionMenu({ userId: m.user_id, username: m.username })}
