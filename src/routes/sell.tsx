@@ -185,45 +185,71 @@ function Sell() {
     nav({ to: "/market" });
   }
 
-  // 🆕 AI identify — same flow as the Vault: identifies the card, fills in details,
-  // suggests a price for the selected condition, and (if no front photo yet) auto-generates one.
+  // 🆕 AI identify (TEXT) — same flow as the Vault. Stores condition_prices so
+  // the buy-now price auto-recomputes when the seller switches condition.
   async function aiIdentify() {
     const q = title.trim() || desc.trim() || tcgNumber.trim();
     if (!q) return toast.error("Type a card name, number, or description first");
     setIdentifying(true);
     try {
       const { data, error } = await supabase.functions.invoke("identify-card", {
-        body: { query: [q, tcgNumber && `#${tcgNumber}`].filter(Boolean).join(" ") },
+        body: { query: [q, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ") },
       });
       if (error) throw error;
-      const d: any = data || {};
-      if (d.name) setTitle(d.name);
-      if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
-      // Build a richer description if the user hasn't typed one.
-      if (!desc.trim()) {
-        const parts = [d.category, d.set, d.year && `(${d.year})`, d.tcg_number && `#${d.tcg_number}`].filter(Boolean);
-        if (parts.length) setDesc(parts.join(" • "));
-      }
-      // Suggest a buy-now price for the chosen condition from condition_prices map (NM/LP/MP/Damaged).
-      const cp = d.condition_prices || {};
-      const suggested = Number(cp[condition]) || Number(d.estimated_value) || 0;
-      if (suggested && !buyNowPrice) setBuyNowPrice(String(suggested));
-      // Auto-generate a front image if missing.
-      if (!imageUrl) {
-        try {
-          const { data: img } = await supabase.functions.invoke("generate-card-image", {
-            body: { name: d.name || title, category: d.category, set: d.set, year: d.year, tcg_number: d.tcg_number || tcgNumber },
-          });
-          if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
-        } catch { /* ignore */ }
-      }
-      toast.success(`Identified: ${d.name || q}${d.set ? ` • ${d.set}` : ""}`);
+      applyIdResult(data);
+      toast.success(`Identified: ${data?.name || q}${data?.set ? ` • ${data.set}` : ""}`);
     } catch (e: any) {
       toast.error(e.message || "Identify failed");
     } finally {
       setIdentifying(false);
     }
   }
+
+  // 🆕 IMAGE-based identify — same engine as the Vault scanner. The seller
+  // snaps the card with their camera; we run scan-card and apply the result.
+  function onScanResult(r: { name: string; category: string; trend: string; image: string;
+                            set?: string; year?: string; tcg_number?: string;
+                            estimated_value?: number; condition_prices?: ConditionPrices }) {
+    if (!imageUrl) setImageUrl(r.image); // captured photo becomes the front image
+    applyIdResult(r);
+    setScanning(false);
+    toast.success(`Identified: ${r.name}`);
+  }
+
+  // Shared "apply identification result to the form" used by both text & image flows.
+  async function applyIdResult(d: any) {
+    if (!d) return;
+    if (d.name) setTitle(d.name);
+    if (d.tcg_number && !tcgNumber) setTcgNumber(d.tcg_number);
+    if (d.set && !tcgSet) setTcgSet(d.set);
+    if (d.year && !tcgYear) setTcgYear(String(d.year));
+    if (!desc.trim()) {
+      const parts = [d.category, d.set, d.year && `(${d.year})`, d.tcg_number && `#${d.tcg_number}`].filter(Boolean);
+      if (parts.length) setDesc(parts.join(" • "));
+    }
+    const cp: ConditionPrices | null = d.condition_prices || null;
+    setCondPrices(cp);
+    const base = Number(d.estimated_value) || Number(cp?.NM) || 0;
+    if (base) setBuyNowPrice(String(priceFor(condition, base, cp)));
+    if (!imageUrl && d.name) {
+      try {
+        const { data: img } = await supabase.functions.invoke("generate-card-image", {
+          body: { name: d.name, category: d.category, set: d.set, year: d.year, tcg_number: d.tcg_number || tcgNumber },
+        });
+        if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
+      } catch { /* ignore */ }
+    }
+  }
+
+  // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
+  useEffect(() => {
+    if (!condPrices) return;
+    const base = Number(condPrices.NM) || 0;
+    if (!base) return;
+    setBuyNowPrice(String(priceFor(condition, base, condPrices)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [condition, condPrices]);
+
 
   const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
     <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
