@@ -26,22 +26,38 @@ Deno.serve(async (req) => {
     const desc = [name, category, set, year, tcg_number && `#${tcg_number}`].filter(Boolean).join(" • ");
     const prompt = `A high-quality, photorealistic image of the trading card "${desc}". Centered card, clean neutral background, sharp focus, accurate artwork and typography for this specific card. Square aspect ratio.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-      }),
-    });
-    if (!resp.ok) {
-      const t = await resp.text();
-      return new Response(JSON.stringify({ error: "AI error", details: t }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    async function callModel(model: string) {
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+      const txt = await r.text();
+      let json: any = null;
+      try { json = JSON.parse(txt); } catch {}
+      return { ok: r.ok, status: r.status, txt, json };
     }
-    const data = await resp.json();
-    const dataUrl: string | null = data.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
-    if (!dataUrl) return new Response(JSON.stringify({ error: "No image returned" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Try the fast image model first, then fall back to the newer preview name.
+    const models = [
+      "google/gemini-2.5-flash-image-preview",
+      "google/gemini-3.1-flash-image-preview",
+    ];
+    let dataUrl: string | null = null;
+    let lastErr = "";
+    for (const m of models) {
+      const r = await callModel(m);
+      if (!r.ok) { lastErr = `${m}: ${r.status} ${r.txt}`; console.error("AI error", lastErr); continue; }
+      dataUrl = r.json?.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
+      if (dataUrl) break;
+      lastErr = `${m}: no image in response — ${r.txt.slice(0, 300)}`;
+      console.error(lastErr);
+    }
+    if (!dataUrl) return new Response(JSON.stringify({ error: "No image returned", details: lastErr }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     // Upload to storage so client gets a small URL (not a multi-MB base64)
     if (userId) {
