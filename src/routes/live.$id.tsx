@@ -566,7 +566,7 @@ function LiveDetail() {
                   <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
                   <span>
                     {parts.map((p, i) => p.startsWith("@") ? (
-                      <Link key={i} to="/profile" className="font-semibold text-primary hover:underline">{p}</Link>
+                      <Link key={i} to="/seller/$username" params={{ username: p.slice(1) }} className="font-semibold text-primary hover:underline">{p}</Link>
                     ) : <span key={i}>{p}</span>)}
                   </span>
                 </div>
