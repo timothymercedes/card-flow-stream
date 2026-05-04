@@ -295,6 +295,31 @@ function LiveDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // 🆕 Track latest giveaway status so we can hide its chat announcement once decided.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const { data } = await supabase
+        .from("giveaways")
+        .select("status")
+        .eq("stream_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setGiveawayStatus((data?.status as string) || null);
+    }
+    load();
+    const ch = supabase
+      .channel(`giveaway-status-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "giveaways", filter: `stream_id=eq.${id}` },
+        (p) => setGiveawayStatus(((p.new as any)?.status ?? (p.old as any)?.status) || null),
+      )
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [id]);
+
   // Auto-hide AI hype overlay after 5s
   useEffect(() => {
     if (!hypeCard) return;
