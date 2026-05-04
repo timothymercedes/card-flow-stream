@@ -23,6 +23,8 @@ function PublicStore() {
   const [listings, setListings] = useState<any[]>([]);
   const [soldOrders, setSoldOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
 
   useEffect(() => {
@@ -30,14 +32,18 @@ function PublicStore() {
       const { data: prof } = await supabase.from("profiles").select("id,username,avatar_url").eq("username", username).maybeSingle();
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r] = await Promise.all([
+      const [l, o, r, fr, fg] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
+        supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
+        supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
       ]);
       setListings(l.data || []);
       setSoldOrders(o.data || []);
       setReviews(r.data || []);
+      setFollowers(fr.count || 0);
+      setFollowing(fg.count || 0);
     })();
   }, [username]);
 
