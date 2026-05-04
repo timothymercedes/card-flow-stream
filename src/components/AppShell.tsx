@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, User, Plus } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus } from "lucide-react";
 import { ReactNode } from "react";
 
 const tabs = [
@@ -7,7 +7,7 @@ const tabs = [
   { to: "/live", label: "Live", icon: Radio },
   { to: "/market", label: "Market", icon: Store },
   { to: "/vault", label: "Vault", icon: Lock },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/messages", label: "Chat", icon: MessageCircle },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
