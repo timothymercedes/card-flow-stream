@@ -117,17 +117,39 @@ function LiveDetail() {
     supabase.from("chat_messages").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setMessages(data || []));
     supabase.from("stream_shoutouts").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setShoutouts(data || []));
     supabase.from("stream_moderators").select("*").eq("stream_id", id).then(({ data }) => setMods(data || []));
+    supabase.from("stream_chat_actions").select("*").eq("stream_id", id).order("created_at", { ascending: false }).then(({ data }) => setChatActions(data || []));
+    supabase.from("break_slots").select("*").eq("stream_id", id).order("created_at").then(({ data }) => setBreakSlots(data || []));
 
     const ch = supabase.channel(`live-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` }, (p) => setMessages((m) => [...m, p.new]))
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => setStream(p.new))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "live_streams", filter: `id=eq.${id}` }, (p) => {
+        const next = p.new as any;
+        // 🆕 Detect anti-snipe extension to flash UI
+        setStream((prev: any) => {
+          if (prev && next.snipe_extends > (prev.snipe_extends || 0)) {
+            setSnipeFlash(true);
+            setTimeout(() => setSnipeFlash(false), 1500);
+          }
+          return next;
+        });
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${id}` }, (p) => setShoutouts((s) => [p.new, ...s]))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => [...m, p.new]))
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${id}` }, (p) => setMods((m) => m.filter((x) => x.id !== (p.old as any).id)))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_mod_messages", filter: `stream_id=eq.${id}` }, (p) => setModChat((m) => [...m, p.new]))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_chat_actions", filter: `stream_id=eq.${id}` }, (p) => setChatActions((a) => [p.new, ...a]))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => [...s, p.new]))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => s.map((x) => x.id === (p.new as any).id ? p.new : x)))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
+
+  // 🆕 Load viewer's preferred currency
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("preferred_currency").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
+  }, [user?.id]);
 
   // Load mod chat once user is known to be staff
   useEffect(() => {
