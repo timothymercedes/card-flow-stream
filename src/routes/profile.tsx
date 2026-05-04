@@ -129,6 +129,14 @@ function Profile() {
     if (!user) return;
     if (!p?.id_document_url) return toast.error("Upload your ID first");
     if (!p?.address_line1) return toast.error("Add your mailing address first");
+    const confirmed = window.confirm(
+      "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
+    );
+    if (confirmed) { window.open("/legal/seller-agreement", "_blank"); return; }
+    await supabase.from("legal_acceptances").insert({
+      user_id: user.id, document_type: "seller_agreement", version: "1.0",
+      user_agent: navigator.userAgent.slice(0, 200),
+    });
     await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id);
     setP({ ...p, seller_status: "pending" });
     toast.success("Application submitted — awaiting admin approval");
@@ -299,6 +307,19 @@ function Profile() {
             <div className="flex-1"><p className="text-sm font-semibold">My Orders</p><p className="text-xs text-muted-foreground">Items you've purchased</p></div>
           </Link>
           <PushToggle userId={user!.id} />
+          <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <div className="flex-1"><p className="text-sm font-semibold">Disputes & Reports</p><p className="text-xs text-muted-foreground">File or track a dispute</p></div>
+          </Link>
+          <div className="rounded-xl bg-card p-4">
+            <p className="mb-2 text-sm font-bold">Legal</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <Link to="/legal/tos" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Terms of Service</Link>
+              <Link to="/legal/privacy" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Privacy Policy</Link>
+              <Link to="/legal/buyer-terms" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Buyer Terms</Link>
+              <Link to="/legal/seller-agreement" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Seller Agreement</Link>
+            </div>
+          </div>
           <button onClick={async () => { await signOut(); nav({ to: "/" }); }} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
             <LogOut className="h-5 w-5 text-destructive" />
             <p className="text-sm font-semibold">Sign Out</p>

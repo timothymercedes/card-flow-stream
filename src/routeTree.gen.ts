@@ -16,8 +16,10 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as DisputesRouteImport } from './routes/disputes'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
@@ -26,6 +28,10 @@ import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as LegalTosRouteImport } from './routes/legal.tos'
+import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-agreement'
+import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 
 const VaultRoute = VaultRouteImport.update({
@@ -63,6 +69,11 @@ const FeedRoute = FeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DisputesRoute = DisputesRouteImport.update({
+  id: '/disputes',
+  path: '/disputes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
@@ -71,6 +82,11 @@ const CartRoute = CartRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -113,6 +129,26 @@ const LiveIdRoute = LiveIdRouteImport.update({
   path: '/live/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalTosRoute = LegalTosRouteImport.update({
+  id: '/legal/tos',
+  path: '/legal/tos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalSellerAgreementRoute = LegalSellerAgreementRouteImport.update({
+  id: '/legal/seller-agreement',
+  path: '/legal/seller-agreement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
+  id: '/legal/privacy',
+  path: '/legal/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
+  id: '/legal/buyer-terms',
+  path: '/legal/buyer-terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRefreshVaultValuesRoute =
   ApiPublicHooksRefreshVaultValuesRouteImport.update({
     id: '/api/public/hooks/refresh-vault-values',
@@ -122,8 +158,10 @@ const ApiPublicHooksRefreshVaultValuesRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
   '/orders': typeof OrdersRoute
@@ -131,6 +169,10 @@ export interface FileRoutesByFullPath {
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
+  '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
@@ -142,8 +184,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
   '/orders': typeof OrdersRoute
@@ -151,6 +195,10 @@ export interface FileRoutesByTo {
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
+  '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
@@ -163,8 +211,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
   '/orders': typeof OrdersRoute
@@ -172,6 +222,10 @@ export interface FileRoutesById {
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
   '/vault': typeof VaultRoute
+  '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/privacy': typeof LegalPrivacyRoute
+  '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
@@ -185,8 +239,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/cart'
+    | '/disputes'
     | '/feed'
     | '/my-listings'
     | '/orders'
@@ -194,6 +250,10 @@ export interface FileRouteTypes {
     | '/sell'
     | '/store'
     | '/vault'
+    | '/legal/buyer-terms'
+    | '/legal/privacy'
+    | '/legal/seller-agreement'
+    | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
     | '/messages/$userId'
@@ -205,8 +265,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/auth'
     | '/cart'
+    | '/disputes'
     | '/feed'
     | '/my-listings'
     | '/orders'
@@ -214,6 +276,10 @@ export interface FileRouteTypes {
     | '/sell'
     | '/store'
     | '/vault'
+    | '/legal/buyer-terms'
+    | '/legal/privacy'
+    | '/legal/seller-agreement'
+    | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
     | '/messages/$userId'
@@ -225,8 +291,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/auth'
     | '/cart'
+    | '/disputes'
     | '/feed'
     | '/my-listings'
     | '/orders'
@@ -234,6 +302,10 @@ export interface FileRouteTypes {
     | '/sell'
     | '/store'
     | '/vault'
+    | '/legal/buyer-terms'
+    | '/legal/privacy'
+    | '/legal/seller-agreement'
+    | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
     | '/messages/$userId'
@@ -246,8 +318,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
+  DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
   MyListingsRoute: typeof MyListingsRoute
   OrdersRoute: typeof OrdersRoute
@@ -255,6 +329,10 @@ export interface RootRouteChildren {
   SellRoute: typeof SellRoute
   StoreRoute: typeof StoreRoute
   VaultRoute: typeof VaultRoute
+  LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
+  LegalPrivacyRoute: typeof LegalPrivacyRoute
+  LegalSellerAgreementRoute: typeof LegalSellerAgreementRoute
+  LegalTosRoute: typeof LegalTosRoute
   LiveIdRoute: typeof LiveIdRoute
   MarketIdRoute: typeof MarketIdRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
@@ -316,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/disputes': {
+      id: '/disputes'
+      path: '/disputes'
+      fullPath: '/disputes'
+      preLoaderRoute: typeof DisputesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cart': {
       id: '/cart'
       path: '/cart'
@@ -328,6 +413,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -386,6 +478,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/tos': {
+      id: '/legal/tos'
+      path: '/legal/tos'
+      fullPath: '/legal/tos'
+      preLoaderRoute: typeof LegalTosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/seller-agreement': {
+      id: '/legal/seller-agreement'
+      path: '/legal/seller-agreement'
+      fullPath: '/legal/seller-agreement'
+      preLoaderRoute: typeof LegalSellerAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/privacy': {
+      id: '/legal/privacy'
+      path: '/legal/privacy'
+      fullPath: '/legal/privacy'
+      preLoaderRoute: typeof LegalPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/buyer-terms': {
+      id: '/legal/buyer-terms'
+      path: '/legal/buyer-terms'
+      fullPath: '/legal/buyer-terms'
+      preLoaderRoute: typeof LegalBuyerTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-vault-values': {
       id: '/api/public/hooks/refresh-vault-values'
       path: '/api/public/hooks/refresh-vault-values'
@@ -398,8 +518,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
+  DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
   MyListingsRoute: MyListingsRoute,
   OrdersRoute: OrdersRoute,
@@ -407,6 +529,10 @@ const rootRouteChildren: RootRouteChildren = {
   SellRoute: SellRoute,
   StoreRoute: StoreRoute,
   VaultRoute: VaultRoute,
+  LegalBuyerTermsRoute: LegalBuyerTermsRoute,
+  LegalPrivacyRoute: LegalPrivacyRoute,
+  LegalSellerAgreementRoute: LegalSellerAgreementRoute,
+  LegalTosRoute: LegalTosRoute,
   LiveIdRoute: LiveIdRoute,
   MarketIdRoute: MarketIdRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
