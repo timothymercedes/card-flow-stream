@@ -195,12 +195,53 @@ function LiveDetail() {
     } catch (e) { console.error(e); return null; }
   }
 
-  async function sendMsg(content: string, isSystem = false) {
+  async function sendMsg(content: string, isSystem = false, opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string } = {}) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
     if (!content.trim()) return;
     await supabase.from("chat_messages").insert({
-      stream_id: id, user_id: profile?.id || user?.id, username: isSystem ? "AI" : profile?.username || "guest", content, is_system: isSystem,
+      stream_id: id,
+      user_id: profile?.id || user?.id,
+      username: opts.usernameOverride || (isSystem ? "AI" : profile?.username || "guest"),
+      content,
+      is_system: isSystem,
+      is_announcement: !!opts.isAnnouncement,
+      is_hype: !!opts.isHype,
     });
+  }
+
+  // ---- Mod management ----
+  async function addModBySearch(u: { id: string; username: string }) {
+    if (!isSeller || !user) return;
+    if (u.id === user.id) return toast.error("You're already the host");
+    const { error } = await supabase.from("stream_moderators").insert({
+      stream_id: id, host_id: user.id, mod_user_id: u.id, mod_username: u.username,
+    });
+    if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({
+      user_id: u.id, type: "mod_added", body: `🛡️ You're now a mod for "${stream.title}"`, link: `/live/${id}`,
+    });
+    toast.success(`@${u.username} added as mod`);
+    setModSearchQ(""); setModSearchRes([]);
+  }
+  async function removeMod(modId: string) {
+    if (!isSeller) return;
+    await supabase.from("stream_moderators").delete().eq("id", modId);
+  }
+  async function sendModMsg() {
+    if (!isStaff || !user || !profile) return;
+    const t = modInput.trim(); if (!t) return;
+    const { error } = await supabase.from("stream_mod_messages").insert({
+      stream_id: id, user_id: user.id, username: profile.username, content: t,
+    });
+    if (error) return toast.error(error.message);
+    setModInput("");
+  }
+  async function postAnnouncement() {
+    if (!isStaff || !user || !profile) return;
+    const t = annText.trim(); if (!t) return;
+    await sendMsg(`📢 ${t}`, false, { isAnnouncement: true });
+    setAnnText(""); setAnnOpen(false);
+    toast.success("Announcement posted");
   }
 
   async function handleSend(e: React.FormEvent) {
