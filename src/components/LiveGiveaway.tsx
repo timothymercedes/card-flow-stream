@@ -461,7 +461,7 @@ export function LiveGiveaway({
             {isSeller && (
               <button onClick={() => setHostOpenComposer(true)}
                 className="mt-4 w-full rounded-xl bg-white/10 py-2 text-xs font-bold text-white">
-                Start a new giveaway
+                Start a new Appreciation Gift
               </button>
             )}
           </div>
