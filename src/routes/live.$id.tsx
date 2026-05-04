@@ -1823,6 +1823,20 @@ function LiveDetail() {
         )}
 
         {!isSeller && (
+          <>
+          {auctionLive && !meBlocked && !bidDisabled && (
+            <div className="grid grid-cols-4 gap-1.5">
+              {[1, 5, 10, 25].map((inc) => (
+                <button
+                  key={inc}
+                  onClick={() => placeBidAmount(Number(stream.current_bid || 0) + inc)}
+                  className="rounded-lg bg-white/10 py-2 text-xs font-extrabold tabular-nums text-white backdrop-blur ring-1 ring-white/15 active:scale-95 hover:bg-white/15"
+                >
+                  +${inc}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
             <div className="relative flex-1">
               {!bidDisabled && !meBlocked && holdAdd === 0 && (
