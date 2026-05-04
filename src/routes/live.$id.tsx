@@ -1719,7 +1719,7 @@ function LiveDetail() {
       )}
 
       {/* Bottom panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
+      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6 md:right-[19rem]">
         <div className="flex items-end justify-between">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-white/60">
