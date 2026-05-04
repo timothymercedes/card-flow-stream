@@ -1374,7 +1374,7 @@ function LiveDetail() {
 
       {/* Title / auction notification overlay (pinnable) */}
       {pinned && (
-        <div className={`absolute left-3 right-3 z-10 ${auctionLive ? "top-28" : "top-14"}`}>
+        <div className={`absolute left-3 right-3 z-10 md:right-[19rem] ${auctionLive ? "top-28" : "top-14"}`}>
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
@@ -1683,14 +1683,17 @@ function LiveDetail() {
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="chat-scroll absolute bottom-28 left-2 z-10 max-h-[20vh] w-[58%] max-w-[16rem] overflow-y-auto overscroll-contain pb-1 pr-1"
+          className="chat-scroll absolute z-10 overflow-y-auto overscroll-contain
+            bottom-28 left-2 max-h-[20vh] w-[58%] max-w-[16rem] pb-1 pr-1
+            md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
+            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10"
         >
           <div className="flex flex-col items-start gap-1">
             {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
-                <div key={m.id} className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50"}`}>
+                <div key={m.id} className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50 md:bg-white/5"}`}>
                   {isStaff && m.user_id && m.user_id !== user?.id && m.user_id !== stream.seller_id ? (
                     <button
                       onClick={() => setChatActionMenu({ userId: m.user_id, username: m.username })}
@@ -1716,7 +1719,7 @@ function LiveDetail() {
       )}
 
       {/* Bottom panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6">
+      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6 md:right-[19rem]">
         <div className="flex items-end justify-between">
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-white/60">
@@ -1820,6 +1823,20 @@ function LiveDetail() {
         )}
 
         {!isSeller && (
+          <>
+          {auctionLive && !meBlocked && !bidDisabled && (
+            <div className="grid grid-cols-4 gap-1.5">
+              {[1, 5, 10, 25].map((inc) => (
+                <button
+                  key={inc}
+                  onClick={() => placeBidAmount(Number(stream.current_bid || 0) + inc)}
+                  className="rounded-lg bg-white/10 py-2 text-xs font-extrabold tabular-nums text-white backdrop-blur ring-1 ring-white/15 active:scale-95 hover:bg-white/15"
+                >
+                  +${inc}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
             <div className="relative flex-1">
               {!bidDisabled && !meBlocked && holdAdd === 0 && (
@@ -1858,6 +1875,7 @@ function LiveDetail() {
               </button>
             )}
           </div>
+          </>
         )}
         {isSeller && !ended && (
           <div className="flex flex-wrap gap-2">
