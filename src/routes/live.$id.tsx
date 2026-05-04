@@ -141,6 +141,9 @@ function LiveDetail() {
         setEditShipMethod(data.shipping_method || "USPS Ground");
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
+        if (Array.isArray(data.break_characters) && data.break_characters.length) {
+          setBreakCharacters(data.break_characters as string[]);
+        }
         const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
         if (sp?.username) setSellerUsername(sp.username);
       }
