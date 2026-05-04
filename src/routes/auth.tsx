@@ -156,6 +156,62 @@ function Auth() {
         {mode === "signin" ? "Need an account? " : "Have an account? "}
         <span className="font-semibold text-primary">{mode === "signin" ? "Sign Up" : "Sign In"}</span>
       </button>
+      <AgreementModal
+        open={showTerms}
+        required
+        onDismiss={() => setShowTerms(false)}
+        loading={loading}
+        title="Buyer Terms & Conditions"
+        subtitle="Required for everyone who bids, buys, or enters giveaways."
+        agreeLabel="I have read and agree to the Buyer Terms, Terms of Service, and Privacy Policy."
+        acceptLabel="Agree & Create Account"
+        onAccept={completeSignup}
+      >
+        <p>By creating an account on PullBid Live, you agree to all of the following:</p>
+
+        <h2>Binding Bids</h2>
+        <ul>
+          <li><strong>All bids are final and binding.</strong> Placing a bid is a legal commitment to purchase the item if you are the highest bidder when the auction ends.</li>
+          <li>Winning a Buy-Now or Mystery Break slot is also a binding purchase.</li>
+          <li>Bids cannot be retracted except in cases of clear seller misrepresentation, subject to Platform review.</li>
+        </ul>
+
+        <h2>Payment</h2>
+        <ul>
+          <li>You must complete payment for all won items within the cart payment window.</li>
+          <li>Payment is processed via Stripe. By paying, you authorize the charge to your selected payment method.</li>
+          <li>Failure to pay may result in items being relisted, account suspension, and forfeiture of related giveaway prizes.</li>
+        </ul>
+
+        <h2>No Chargeback Abuse</h2>
+        <ul>
+          <li>Chargebacks must only be filed for genuine unauthorized transactions.</li>
+          <li>Filing a fraudulent chargeback (e.g. "item not received" after delivery confirmation) is grounds for permanent ban.</li>
+          <li>Item-quality disputes must go through the in-app dispute system <strong>before</strong> any chargeback.</li>
+        </ul>
+
+        <h2>Conduct</h2>
+        <ul>
+          <li>No fraud, scams, or fake listings.</li>
+          <li>Follow chat slow-mode and host rules. No spam or harassment.</li>
+          <li>You are responsible for your own transactions; the Platform is not liable for disputes between users.</li>
+        </ul>
+
+        <h2>Privacy</h2>
+        <ul>
+          <li>We collect your account info, payment info (via Stripe), and platform activity to operate the service.</li>
+          <li>We never sell your personal data. Full details: <a href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</a>.</li>
+        </ul>
+
+        <h2>Violations</h2>
+        <p>Breaking these rules can result in warnings, suspension, or permanent ban at the Platform's sole discretion.</p>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Full documents: <a href="/legal/tos" target="_blank" className="text-primary underline">Terms of Service</a> ·{" "}
+          <a href="/legal/buyer-terms" target="_blank" className="text-primary underline">Buyer Terms</a> ·{" "}
+          <a href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</a>
+        </p>
+      </AgreementModal>
     </div>
   );
 }
