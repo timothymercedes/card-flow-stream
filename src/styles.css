@@ -34,32 +34,38 @@
 
 :root {
   --radius: 0.875rem;
-  --background: oklch(0.16 0.02 260);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.21 0.025 260);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.21 0.025 260);
-  --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.62 0.21 255);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.27 0.03 260);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.25 0.025 260);
-  --muted-foreground: oklch(0.68 0.02 260);
-  --accent: oklch(0.3 0.04 260);
-  --accent-foreground: oklch(0.98 0 0);
+  /* PullBid Live theme — black + gold + silver */
+  --background: oklch(0.13 0.005 60);
+  --foreground: oklch(0.98 0.005 90);
+  --card: oklch(0.18 0.008 70);
+  --card-foreground: oklch(0.98 0.005 90);
+  --popover: oklch(0.18 0.008 70);
+  --popover-foreground: oklch(0.98 0.005 90);
+  /* Gold primary */
+  --primary: oklch(0.78 0.16 85);
+  --primary-foreground: oklch(0.15 0.01 60);
+  --primary-glow: oklch(0.86 0.18 90);
+  /* Silver secondary */
+  --secondary: oklch(0.78 0.005 90);
+  --secondary-foreground: oklch(0.15 0.01 60);
+  --muted: oklch(0.22 0.008 70);
+  --muted-foreground: oklch(0.7 0.01 80);
+  --accent: oklch(0.3 0.04 80);
+  --accent-foreground: oklch(0.98 0.005 90);
   --destructive: oklch(0.62 0.24 25);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.02 260);
-  --input: oklch(0.27 0.025 260);
-  --ring: oklch(0.62 0.21 255);
+  --border: oklch(0.3 0.04 80);
+  --input: oklch(0.22 0.01 70);
+  --ring: oklch(0.78 0.16 85);
   --live: oklch(0.65 0.25 25);
   --live-foreground: oklch(0.99 0 0);
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.16 85), oklch(0.86 0.18 90));
+  --shadow-gold: 0 10px 30px -10px color-mix(in oklab, oklch(0.78 0.16 85) 40%, transparent);
 }
 
 .dark {
-  --background: oklch(0.16 0.02 260);
-  --foreground: oklch(0.98 0 0);
+  --background: oklch(0.13 0.005 60);
+  --foreground: oklch(0.98 0.005 90);
 }
 
 @layer base {
