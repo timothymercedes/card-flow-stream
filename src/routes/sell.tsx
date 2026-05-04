@@ -205,6 +205,7 @@ function Sell() {
               </select>
             )}
             <input type="number" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder={listingType === "auction" ? "Starting bid ($)" : "Price ($)"} value={price} onChange={(e) => setPrice(e.target.value)} />
+            <input type="number" min="0" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Shipping price ($) — 0 for free" value={shippingPrice} onChange={(e) => setShippingPrice(e.target.value)} />
             <button onClick={createListing} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Create Listing</button>
           </div>
         )}
