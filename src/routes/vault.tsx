@@ -379,7 +379,17 @@ function Vault() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">Front photo required to add. Back photo required to sell.</p>
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, LeBron Rookie)" value={name} onChange={(e) => setName(e.target.value)} />
+            <div>
+              <p className="mb-1 text-[10px] text-muted-foreground">Card language (helps pull the right printing)</p>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full rounded-lg bg-input px-3 py-2 text-sm"
+              >
+                {LANGUAGES.map((l) => <option key={l.v} value={l.v}>{l.l}</option>)}
+              </select>
+            </div>
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, リザードン, 리자몽)" value={name} onChange={(e) => setName(e.target.value)} />
             <div className="grid grid-cols-3 gap-2">
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card #" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
