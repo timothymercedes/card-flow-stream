@@ -932,13 +932,26 @@ function LiveDetail() {
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
         round_number: nextRound,
       }).eq("id", id);
-      // Clear winner banner + ends_at after 5s
+      // Clear winner banner + ends_at after 5s, then auto-rearm next round if quantity remaining
       setTimeout(async () => {
-        await supabase.from("live_streams").update({
+        const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
+        const sec = Number(stream.default_timer_sec || 30);
+        const start = Number(stream.default_starting_bid || stream.starting_bid || 1);
+        const update: any = {
           ends_at: null, winner_id: null, winning_bid: null, winner_username: null, current_bidder_id: null,
-        }).eq("id", id);
+        };
+        if (remaining > 0) {
+          update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
+          update.starting_bid = start;
+          update.current_bid = start;
+          update.snipe_extends = 0;
+          update.sudden_death_active = false;
+          update.quick_start_remaining = remaining - 1;
+        }
+        await supabase.from("live_streams").update(update).eq("id", id);
         endedRef.current = false;
         snapshotRef.current = false;
+        if (remaining > 0) sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
       }, 5000);
     } else {
       // No winner: silently clear after 5s, no banner/notif
