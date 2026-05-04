@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { startAuthentication } from "@simplewebauthn/browser";
+import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@/server/passkeys.functions";
+import { Fingerprint } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
@@ -14,12 +17,23 @@ function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [usernameOk, setUsernameOk] = useState<null | boolean>(null);
   const [isSeller, setIsSeller] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
+
+  // Debounced uniqueness check
   useEffect(() => {
-    if (user) nav({ to: "/" });
-  }, [user, nav]);
+    if (mode !== "signup" || !username || username.length < 3) { setUsernameOk(null); return; }
+    const t = setTimeout(async () => {
+      try {
+        const r = await checkUsernameAvailable({ data: { username } });
+        setUsernameOk(r.available);
+      } catch { setUsernameOk(null); }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [username, mode]);
 
   async function oauth(provider: "google" | "apple") {
     const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin + "/auth" });
@@ -27,11 +41,27 @@ function Auth() {
     else if (!result.redirected) nav({ to: "/" });
   }
 
+  async function passkeyLogin() {
+    try {
+      const { options, challengeKey } = await startPasskeyLogin({ data: { username: username || undefined } });
+      const cred = await startAuthentication({ optionsJSON: options as any });
+      const res = await finishPasskeyLogin({ data: { response: cred, challengeKey } });
+      const { error } = await supabase.auth.verifyOtp({
+        type: "magiclink", token_hash: res.hashed_token, email: res.email,
+      } as any);
+      if (error) throw error;
+      toast.success("Welcome back");
+      nav({ to: "/" });
+    } catch (e: any) {
+      toast.error(e?.message || "Passkey sign-in failed");
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     if (mode === "signup") {
+      if (usernameOk === false) { setLoading(false); return toast.error("Username already taken"); }
       const { error } = await supabase.auth.signUp({
         email, password,
         options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller } },
@@ -53,7 +83,14 @@ function Auth() {
       </div>
       <form onSubmit={submit} className="space-y-3">
         {mode === "signup" && (
-          <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+          <div>
+            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Username (unique)" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s+/g, ""))} required minLength={3} />
+            {username.length >= 3 && usernameOk !== null && (
+              <p className={`mt-1 text-[11px] ${usernameOk ? "text-primary" : "text-destructive"}`}>
+                {usernameOk ? `✓ @${username} is available` : `✗ @${username} is taken`}
+              </p>
+            )}
+          </div>
         )}
         <input type="email" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input type="password" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
@@ -63,7 +100,7 @@ function Auth() {
             I want to sell & host live auctions
           </label>
         )}
-        <button disabled={loading} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
+        <button disabled={loading || (mode === "signup" && usernameOk === false)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "..." : mode === "signin" ? "Sign In" : "Sign Up"}
         </button>
       </form>
@@ -73,6 +110,9 @@ function Auth() {
       </div>
 
       <div className="space-y-2">
+        <button onClick={passkeyLogin} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/15 py-3 text-sm font-semibold text-primary border border-primary/30">
+          <Fingerprint className="h-4 w-4" /> Sign in with Face ID / Passkey
+        </button>
         <button onClick={() => oauth("google")} className="flex w-full items-center justify-center gap-2 rounded-xl bg-card py-3 text-sm font-semibold border border-border">
           <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continue with Google
