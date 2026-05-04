@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy } from "lucide-react";
+import { Radio, Send, Sparkles, ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, X, Camera, Square, Timer, Settings, Play, Trophy, Pin, PinOff, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
 
@@ -34,6 +34,13 @@ function LiveDetail() {
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [pinned, setPinned] = useState(true);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tagResults, setTagResults] = useState<any[]>([]);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUsers, setShareUsers] = useState<any[]>([]);
+  const [shareQuery, setShareQuery] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -46,7 +53,7 @@ function LiveDetail() {
   // Settings form state (seller)
   const [editDesc, setEditDesc] = useState("");
   const [editStartPrice, setEditStartPrice] = useState("");
-  const [editTimerSec, setEditTimerSec] = useState("60");
+  const [editTimerSec, setEditTimerSec] = useState("30");
   const [editShipPrice, setEditShipPrice] = useState("");
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
 
@@ -136,6 +143,8 @@ function LiveDetail() {
     if (prevBidder && prevBidder !== user.id) {
       await supabase.from("notifications").insert({ user_id: prevBidder, type: "outbid", body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`, link: `/live/${id}` });
     }
+    // Notify the new top bidder they're winning
+    await supabase.from("notifications").insert({ user_id: user.id, type: "winning", body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`, link: `/live/${id}` });
   }
 
   async function startAuction() {
@@ -163,9 +172,27 @@ function LiveDetail() {
     setShowSettings(false);
   }
 
-  async function endAuctionNow() {
-    if (!isSeller) return;
-    await supabase.from("live_streams").update({ ends_at: new Date().toISOString() }).eq("id", id);
+  // Auction ends only by timer (no manual end button for host)
+
+  async function shareLiveTo(recipientId: string, recipientUsername: string) {
+    if (!user || !profile) return toast.error("Sign in to share");
+    const link = `/live/${id}`;
+    const content = `📺 Check out this live: "${stream.title}" ${window.location.origin}${link}`;
+    await supabase.from("direct_messages").insert({
+      sender_id: user.id, sender_username: profile.username,
+      recipient_id: recipientId, content,
+    });
+    await supabase.from("notifications").insert({
+      user_id: recipientId, type: "share", body: `@${profile.username} shared a live with you`, link,
+    });
+    toast.success(`Shared with @${recipientUsername}`);
+    setShareOpen(false); setShareQuery("");
+  }
+
+  async function searchUsers(q: string, setter: (rows: any[]) => void) {
+    if (!q.trim()) return setter([]);
+    const { data } = await supabase.from("profiles").select("id,username,avatar_url").ilike("username", `%${q}%`).limit(8);
+    setter(data || []);
   }
 
   async function finalizeAuctionRound() {
@@ -298,6 +325,12 @@ function LiveDetail() {
           )}
         </div>
         <div className="flex gap-1">
+          <button onClick={() => setShareOpen(true)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Share2 className="h-4 w-4" /></button>
+          {(auctionLive || stream.current_item) && (
+            <button onClick={() => setPinned((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
+              {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+            </button>
+          )}
           {isSeller && !ended && (
             <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Settings className="h-4 w-4" /></button>
           )}
@@ -307,19 +340,26 @@ function LiveDetail() {
         </div>
       </div>
 
-      {/* Title overlay */}
-      <div className="absolute left-3 right-3 top-14 z-10">
-        <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
-        {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
-        {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
-          <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
-            📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
-          </p>
-        ) : null}
-      </div>
+      {/* Title / auction notification overlay (pinnable) */}
+      {pinned && (
+        <div className="absolute left-3 right-3 top-14 z-10">
+          <p className="rounded-lg bg-black/40 px-3 py-1.5 text-sm font-semibold backdrop-blur">{stream.title}</p>
+          {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
+          {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
+            <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
+              📦 {stream.shipping_method || "Shipping"} — ${Number(stream.shipping_price || 0).toFixed(2)}
+            </p>
+          ) : null}
+          {auctionLive && stream.current_bidder_id && (
+            <p className="mt-1 inline-block rounded-lg bg-primary/60 px-3 py-1 text-[10px] font-bold backdrop-blur">
+              🥇 Winning: bid ${Number(stream.current_bid || 0).toFixed(0)}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Winner banner */}
-      {(auctionFinished || ended) && stream.winner_username && (
+      {(auctionFinished || ended) && stream.winner_username && pinned && (
         <div className="absolute left-3 right-3 top-32 z-10 rounded-xl bg-primary/80 p-3 text-center backdrop-blur">
           <Trophy className="mx-auto h-5 w-5" />
           <p className="mt-1 text-sm font-bold">Now owned by @{stream.winner_username}</p>
@@ -347,11 +387,12 @@ function LiveDetail() {
             <div className="grid grid-cols-2 gap-2">
               <input type="number" min="1" value={editStartPrice} onChange={(e) => setEditStartPrice(e.target.value)} placeholder="Start price ($)" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
               <select value={editTimerSec} onChange={(e) => setEditTimerSec(e.target.value)} className="rounded-lg bg-input px-3 py-2 text-xs outline-none">
+                <option value="5">5s</option>
+                <option value="10">10s</option>
+                <option value="15">15s</option>
+                <option value="20">20s</option>
                 <option value="30">30s</option>
                 <option value="60">60s</option>
-                <option value="120">2 min</option>
-                <option value="300">5 min</option>
-                <option value="600">10 min</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -365,18 +406,34 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Chat overlay */}
+      {/* Auction notification feed (separate from chat, pinnable) */}
+      {pinned && messages.some((m) => m.is_system) && (
+        <div className="pointer-events-none absolute right-3 top-32 z-10 flex max-h-[28vh] w-56 flex-col items-end gap-1 overflow-hidden">
+          {messages.filter((m) => m.is_system).slice(-5).map((m) => (
+            <div key={m.id} className="rounded-lg bg-primary/60 px-2.5 py-1 text-[11px] text-white backdrop-blur">
+              <Sparkles className="mr-1 inline h-3 w-3" />{m.content}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Chat overlay (separate, scrollable up/down) */}
       {showChat && (
-        <div className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto px-3 pb-2">
+        <div ref={chatScrollRef} className="absolute bottom-44 left-0 right-0 z-10 max-h-[35vh] overflow-y-auto overscroll-contain px-3 pb-2">
           <div className="flex flex-col items-start gap-1.5">
-            {messages.slice(-30).map((m) => (
-              <div key={m.id} className={`max-w-[85%] rounded-lg px-2.5 py-1 text-xs backdrop-blur ${m.is_system ? "bg-primary/40" : "bg-black/50"}`}>
-                <span className={`mr-1 font-semibold ${m.is_system ? "text-primary-foreground" : "text-live-foreground"}`}>
-                  {m.is_system ? <Sparkles className="inline h-3 w-3" /> : "@"}{m.username}:
-                </span>
-                <span>{m.content}</span>
-              </div>
-            ))}
+            {messages.filter((m) => !m.is_system).map((m) => {
+              const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
+              return (
+                <div key={m.id} className="max-w-[85%] rounded-lg bg-black/50 px-2.5 py-1 text-xs backdrop-blur">
+                  <span className="mr-1 font-semibold text-live-foreground">@{m.username}:</span>
+                  <span>
+                    {parts.map((p, i) => p.startsWith("@") ? (
+                      <Link key={i} to="/profile" className="font-semibold text-primary hover:underline">{p}</Link>
+                    ) : <span key={i}>{p}</span>)}
+                  </span>
+                </div>
+              );
+            })}
             <div ref={chatEndRef} />
           </div>
         </div>
@@ -411,13 +468,9 @@ function LiveDetail() {
             <button onClick={() => setScanning(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-semibold text-accent-foreground">
               <Camera className="h-3.5 w-3.5" /> Scan
             </button>
-            {!auctionLive ? (
+            {!auctionLive && (
               <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground">
                 <Play className="h-3.5 w-3.5" /> Start Auction
-              </button>
-            ) : (
-              <button onClick={endAuctionNow} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-accent py-2.5 text-xs font-bold text-accent-foreground">
-                <Square className="h-3.5 w-3.5" /> End Auction
               </button>
             )}
             <button onClick={endLive} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-live py-2.5 text-xs font-bold text-live-foreground">
@@ -431,11 +484,66 @@ function LiveDetail() {
           </div>
         )}
 
-        <form onSubmit={handleSend} className="flex gap-2">
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={user ? "Say something..." : "Sign in to chat"} disabled={!user} className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50" />
+        <form onSubmit={handleSend} className="relative flex gap-2">
+          {tagOpen && tagResults.length > 0 && (
+            <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
+              {tagResults.map((u) => (
+                <button key={u.id} type="button" onClick={() => {
+                  const next = input.replace(/@([A-Za-z0-9_]*)$/, `@${u.username} `);
+                  setInput(next); setTagOpen(false); setTagResults([]);
+                }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted">
+                  @{u.username}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            value={input}
+            onChange={(e) => {
+              const v = e.target.value; setInput(v);
+              const m = v.match(/@([A-Za-z0-9_]*)$/);
+              if (m) { setTagOpen(true); searchUsers(m[1], setTagResults); }
+              else { setTagOpen(false); setTagResults([]); }
+            }}
+            placeholder={user ? "Say something... use @ to tag" : "Sign in to chat"}
+            disabled={!user}
+            className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
+          />
           <button type="submit" className="rounded-full bg-primary p-2.5 text-primary-foreground"><Send className="h-4 w-4" /></button>
         </form>
       </div>
+
+      {/* Share modal */}
+      {shareOpen && (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-3 sm:items-center" onClick={() => setShareOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-bold">Share live</p>
+              <button onClick={() => setShareOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <button onClick={async () => {
+              const url = `${window.location.origin}/live/${id}`;
+              try {
+                if (navigator.share) await navigator.share({ title: stream.title, url });
+                else { await navigator.clipboard.writeText(url); toast.success("Link copied"); }
+              } catch {/* ignore */}
+            }} className="mb-2 w-full rounded-lg bg-muted px-3 py-2 text-xs font-semibold">Copy / system share</button>
+            <input
+              value={shareQuery}
+              onChange={(e) => { setShareQuery(e.target.value); searchUsers(e.target.value, setShareUsers); }}
+              placeholder="Search users to DM"
+              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
+            <div className="mt-2 max-h-56 overflow-y-auto">
+              {shareUsers.map((u) => (
+                <button key={u.id} onClick={() => shareLiveTo(u.id, u.username)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs hover:bg-muted">
+                  @{u.username}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {scanning && <CardScanner onResult={onScanResult} onClose={() => setScanning(false)} />}
     </div>
