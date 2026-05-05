@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Radio, ChevronRight, Heart } from "lucide-react";
+import { Radio, ChevronRight, Heart, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Link as RLink } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -21,16 +23,33 @@ function Section({ title, to, children }: any) {
 }
 
 function Home() {
+  const { profile } = useAuth();
+  const interests = (profile?.interests as string[] | undefined) || [];
   const [streams, setStreams] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [vault, setVault] = useState<any[]>([]);
 
   useEffect(() => {
-    const load = () => {
-      supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6).then(({ data }) => setStreams(data || []));
+    const load = async () => {
+      // Streams: prefer interest-matched, fall back to all
+      let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6);
+      if (interests.length > 0) sQ = sQ.in("category", interests);
+      const { data: sData } = await sQ;
+      if ((sData?.length || 0) === 0 && interests.length > 0) {
+        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6);
+        setStreams(fallback || []);
+      } else setStreams(sData || []);
+
+      let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4);
+      if (interests.length > 0) lQ = lQ.in("category", interests);
+      const { data: lData } = await lQ;
+      if ((lData?.length || 0) === 0 && interests.length > 0) {
+        const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4);
+        setListings(fb || []);
+      } else setListings(lData || []);
+
       supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
-      supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setListings(data || []));
       supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
     };
     load();
@@ -40,13 +59,20 @@ function Home() {
       .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+  }, [interests.join(",")]);
 
   return (
     <AppShell>
       <div className="bg-gradient-to-b from-primary/15 to-transparent px-4 pb-6 pt-4">
         <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Live auctions, drops & cards from collectors.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {interests.length > 0 ? "Personalized for what you collect." : "Live auctions, drops & cards from collectors."}
+        </p>
+        {profile && interests.length === 0 && (
+          <RLink to="/onboarding" className="mt-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary">
+            <Sparkles className="h-4 w-4" /> Tell us what you collect → personalized feed
+          </RLink>
+        )}
       </div>
 
       <Section title="🔴 Live Now" to="/live">
