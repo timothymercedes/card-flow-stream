@@ -60,8 +60,8 @@ function Messages() {
 
   useEffect(() => {
     if (!query.trim()) return setResults([]);
-    supabase.from("profiles").select("id,username").ilike("username", `%${query}%`).limit(8)
-      .then(({ data }) => setResults((data || []).filter((p) => p.id !== user?.id)));
+    (supabase.rpc as any)("search_public_profiles", { _query: query, _limit: 8 })
+      .then(({ data }: any) => setResults(((data || []) as any[]).filter((p) => p.id !== user?.id)));
   }, [query, user]);
 
   async function sendRequest(otherId: string, otherName: string) {
