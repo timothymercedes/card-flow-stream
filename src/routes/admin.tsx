@@ -33,7 +33,7 @@ function Admin() {
   const { user } = useAuth();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "disputes" | "suspensions" | "roles">("reports");
+  const [tab, setTab] = useState<"reports" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
@@ -42,6 +42,10 @@ function Admin() {
   const [banForm, setBanForm] = useState({ user_id: "", username: "", reason: "", type: "suspension", days: "7" });
   const [roles, setRoles] = useState<{ user_id: string; role: Role; username?: string }[]>([]);
   const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
+  const [orders, setOrders] = useState<any[]>([]);
+  const [orderFilter, setOrderFilter] = useState<"all" | "issues">("issues");
+  const [userQuery, setUserQuery] = useState("");
+  const [userResults, setUserResults] = useState<any[]>([]);
 
   const isOwner = myRoles.includes("owner");
   const isAdmin = isOwner || myRoles.includes("admin");
