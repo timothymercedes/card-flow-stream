@@ -9,7 +9,7 @@ import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
-import { GiveawayChip } from "@/components/GiveawayChip";
+
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -1752,10 +1752,8 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🎁 Persistent giveaway countdown chip — pinned to top-right corner */}
-      <div className="absolute right-3 top-16 z-30">
-        <GiveawayChip streamId={id} />
-      </div>
+      {/* Giveaway chip removed — viewers see the compact floating "Tap to Join" widget only */}
+
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
       {(() => {

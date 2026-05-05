@@ -1992,6 +1992,7 @@ export type Database = {
           total_amount: number
         }[]
       }
+      create_giveaway_order: { Args: { _giveaway_id: string }; Returns: string }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
       get_seller_completed_count: { Args: { _user: string }; Returns: number }
