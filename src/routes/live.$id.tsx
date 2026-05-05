@@ -580,7 +580,8 @@ function LiveDetail() {
     }
     return blocked;
   }, [chatActions]);
-  const meBlockedOrBanned = !!user && chatBlockSet.has(user.id);
+  const meBlocked = !!user && chatBlockSet.has(user.id);
+  // Combined: mod-mute OR host-ban-from-this-live (computed below after streamBannedIds is set)
 
   // 🆕 Personal blocks (this viewer mutes another user) + Stream bans (host bans user from this live)
   const [myBlockedIds, setMyBlockedIds] = useState<Set<string>>(new Set());
