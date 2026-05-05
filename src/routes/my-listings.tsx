@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
 
