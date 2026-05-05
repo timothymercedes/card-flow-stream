@@ -1786,18 +1786,20 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — small button only; opens drawer on tap */}
-        {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <button
-            onClick={() => setShowViewerBreak(true)}
-            className="mx-auto flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-xs font-extrabold text-white shadow-lg ring-1 ring-pink-300/40 active:scale-[0.98]"
-          >
-            <Dice5 className="h-3.5 w-3.5" />
-            🎴 View Break
-            <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold">
-              {breakSlots.length}/{stream.break_slot_count}
-            </span>
-          </button>
+        {/* 🆕 Mystery break stays collapsed for viewers unless they tap it or host pins it */}
+        {!isSeller && stream.break_mode === "open" && stream.break_slot_count && !stream.break_force_visible && (
+          <div className="flex justify-center">
+            <button
+              onClick={() => setShowViewerBreak(true)}
+              className="flex items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 text-[11px] font-extrabold text-foreground shadow-lg ring-1 ring-white/15 backdrop-blur active:scale-[0.98]"
+            >
+              <Dice5 className="h-3.5 w-3.5 text-primary" />
+              🎴 View Break
+              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                {breakSlots.length}/{stream.break_slot_count}
+              </span>
+            </button>
+          </div>
         )}
 
         {/* Mystery break results — shown after host closes claims */}
@@ -1831,7 +1833,7 @@ function LiveDetail() {
         {!isSeller && (
           <button
             onClick={() => setShowGiveaway(true)}
-            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
+            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
           >
             <Gift className="h-3 w-3" /> Open Appreciation Gift
           </button>
