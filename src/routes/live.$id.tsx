@@ -613,12 +613,6 @@ function LiveDetail() {
     return true;
   }
 
-  function _unused_handleSendBlock_(e: React.FormEvent) {
-    e.preventDefault();
-    await sendMsg(input);
-    lastChatTsRef.current = Date.now();
-    setInput("");
-  }
 
   // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
