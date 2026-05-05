@@ -596,16 +596,29 @@ function LiveDetail() {
     setInput("");
   }
 
-  // 🆕 Require account + completed buyer profile before any purchase/bid action
+  // 🆕 Buyer readiness — must have completed shipping profile to bid/buy
+  const [buyerReady, setBuyerReady] = useState(false);
+  useEffect(() => {
+    if (!user) { setBuyerReady(false); return; }
+    let cancelled = false;
+    supabase.from("profiles")
+      .select("full_name,phone,address_line1,address_city,address_zip,buyer_verified")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const ok = !!(data.full_name && data.phone && data.address_line1 && data.address_city && data.address_zip);
+        setBuyerReady(ok || !!data.buyer_verified);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
   function requireBuyerReady(action = "continue"): boolean {
     if (!user || !profile) {
       toast.error(`Sign in to ${action}`);
       nav({ to: "/auth" });
       return false;
     }
-    const p: any = profile;
-    const ok = p.full_name && p.phone && p.address_line1 && p.address_city && p.address_zip;
-    if (!ok && !(profile as any).buyer_verified) {
+    if (!buyerReady) {
       toast.error("Complete your shipping profile first");
       nav({ to: "/profile" });
       return false;
