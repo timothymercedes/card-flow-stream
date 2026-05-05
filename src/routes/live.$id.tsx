@@ -1018,7 +1018,7 @@ function LiveDetail() {
 
   async function searchUsers(q: string, setter: (rows: any[]) => void) {
     if (!q.trim()) return setter([]);
-    const { data } = await supabase.from("profiles").select("id,username,avatar_url").ilike("username", `%${q}%`).limit(8);
+    const { data } = await (supabase.rpc as any)("search_public_profiles", { _query: q, _limit: 8 });
     setter(data || []);
   }
 
