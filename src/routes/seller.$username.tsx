@@ -153,13 +153,12 @@ function PublicStore() {
                       >
                         {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
                       </button>
-                      <Link
-                        to="/messages/$userId"
-                        params={{ userId: seller.id }}
+                      <button
+                        onClick={startMessage}
                         className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold ring-1 ring-border"
                       >
                         <MessageCircle className="h-3 w-3" /> Message
-                      </Link>
+                      </button>
                     </>
                   )}
                   <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
