@@ -170,7 +170,8 @@ function LiveDetail() {
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
           setBreakCharacters(data.break_characters as string[]);
         }
-        const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
+        const { data: spRows } = await (supabase.rpc as any)("public_profiles_by_ids", { _ids: [data.seller_id] });
+        const sp = (spRows && spRows[0]) || null;
         if (sp?.username) setSellerUsername(sp.username);
       }
     });
