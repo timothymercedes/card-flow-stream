@@ -242,12 +242,16 @@ function Profile() {
             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
             {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">User ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
             <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-              <Link to="/seller/$username" params={{ username: p.username }} className="hover:text-foreground">
+              <button onClick={() => openList("followers")} className="hover:text-foreground">
                 <span className="font-bold text-foreground">{followers}</span> followers
-              </Link>
-              <span><span className="font-bold text-foreground">{following}</span> following</span>
+              </button>
+              <button onClick={() => openList("following")} className="hover:text-foreground">
+                <span className="font-bold text-foreground">{following}</span> following
+              </button>
             </div>
             <div className="mt-1 flex flex-wrap gap-1">
+              {sellerCompleted >= 100 && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">✓ Verified Seller</span>}
+              {buyerCompleted >= 35 && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-500">✓ Verified Buyer</span>}
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
               <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
               <Badge status={p.id_status || "none"} label="ID" />
@@ -255,6 +259,43 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        {(sellerCompleted < 100 || buyerCompleted < 35) && (
+          <section className="rounded-xl bg-card p-3 space-y-2">
+            <p className="text-xs font-bold">Verification progress</p>
+            {sellerCompleted < 100 && (
+              <div>
+                <div className="flex justify-between text-[10px] text-muted-foreground"><span>Verified Seller (100 completed orders)</span><span className="font-semibold text-foreground">{sellerCompleted} / 100</span></div>
+                <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.min(100, (sellerCompleted/100)*100)}%` }} /></div>
+              </div>
+            )}
+            {buyerCompleted < 35 && (
+              <div>
+                <div className="flex justify-between text-[10px] text-muted-foreground"><span>Verified Buyer (35 dispute-free orders)</span><span className="font-semibold text-foreground">{buyerCompleted} / 35</span></div>
+                <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-muted"><div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, (buyerCompleted/35)*100)}%` }} /></div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {listOpen && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setListOpen(null)}>
+            <div onClick={(e) => e.stopPropagation()} className="max-h-[70vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-4">
+              <p className="mb-3 text-sm font-bold capitalize">{listOpen}</p>
+              {listRows.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No users yet.</p>}
+              <div className="space-y-2">
+                {listRows.map((u: any) => (
+                  <Link key={u.id} to="/seller/$username" params={{ username: u.username }} onClick={() => setListOpen(null)} className="flex items-center gap-2 rounded-lg bg-muted p-2 hover:bg-muted/70">
+                    <div className="h-8 w-8 overflow-hidden rounded-full bg-card">
+                      {u.avatar_url ? <img src={u.avatar_url} className="h-full w-full object-cover" alt="" /> : <div className="flex h-full w-full items-center justify-center text-xs font-bold">{u.username[0]?.toUpperCase()}</div>}
+                    </div>
+                    <span className="text-xs font-semibold">@{u.username}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <section className="rounded-xl bg-card p-4 space-y-2">
           <p className="text-sm font-bold">Contact & Mailing</p>
