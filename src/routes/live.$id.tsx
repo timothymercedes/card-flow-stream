@@ -2341,11 +2341,11 @@ function LiveDetail() {
                 </button>
               )}
 
-              {/* 🆕 Host toggle: force break panel visible to all viewers */}
+              {/* 🆕 Host toggle: force break panel over viewer screens */}
               <label className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs">
                 <span className="flex flex-col">
-                  <span className="font-bold">Force break panel visible to viewers</span>
-                  <span className="text-[10px] text-muted-foreground">Off = viewers tap "View Break" to open it themselves</span>
+                  <span className="font-bold">Pin break grid over viewer live screen</span>
+                  <span className="text-[10px] text-muted-foreground">Off = viewers see only "View Break" and can collapse it anytime</span>
                 </span>
                 <input
                   type="checkbox"
@@ -2361,15 +2361,15 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🆕 Viewer Mystery Break drawer — slide-up modal, dim+blur background, manual + auto close */}
+      {/* 🆕 Viewer Mystery Break drawer — compact sheet by default; fullscreen only when host pins it */}
       {showViewerBreak && !isSeller && stream && stream.break_mode === "open" && stream.break_slot_count && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
+          className={`fixed inset-x-0 bottom-0 z-50 flex justify-center ${stream.break_force_visible ? "top-0 items-center bg-black/55 p-3 backdrop-blur-sm" : "pointer-events-none p-2 pb-[5.25rem]"}`}
           onClick={() => !stream.break_force_visible && setShowViewerBreak(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md animate-in slide-in-from-bottom rounded-t-2xl bg-card p-4 text-foreground shadow-2xl sm:rounded-2xl"
+            className={`pointer-events-auto w-full max-w-sm animate-in slide-in-from-bottom rounded-2xl bg-card p-3 text-foreground shadow-2xl ring-1 ring-border/60 ${stream.break_force_visible ? "max-h-[80vh]" : "max-h-[48vh]"}`}
           >
             <div className="mb-3 flex items-center justify-between">
               <p className="flex items-center gap-1.5 text-sm font-bold">
@@ -2378,16 +2378,14 @@ function LiveDetail() {
                   {breakSlots.length}/{stream.break_slot_count}
                 </span>
               </p>
-              {!stream.break_force_visible && (
-                <button onClick={() => setShowViewerBreak(false)} className="rounded-full p-1 hover:bg-muted">
+              <button onClick={() => setShowViewerBreak(false)} className="rounded-full p-1 hover:bg-muted">
                   <X className="h-4 w-4" />
-                </button>
-              )}
+              </button>
             </div>
             <p className="mb-3 text-[11px] text-muted-foreground">
-              Tap a slot to claim · ${breakPrice}/slot
+              Tap a slot to claim · choices save instantly
             </p>
-            <div className="grid max-h-[50vh] grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+            <div className={`grid gap-1.5 overflow-y-auto ${stream.break_force_visible ? "max-h-[58vh] grid-cols-4" : "max-h-[30vh] grid-cols-4"}`}>
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
@@ -2399,27 +2397,25 @@ function LiveDetail() {
                     key={n}
                     onClick={() => !taken && claimBreakSlotNumber(n)}
                     disabled={!!taken}
-                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg p-1 text-[10px] font-bold leading-tight ${
+                    className={`flex aspect-square min-h-0 flex-col items-center justify-center gap-0.5 rounded-md p-1 text-[9px] font-bold leading-tight ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
                       taken ? "bg-muted text-muted-foreground cursor-not-allowed" :
                       "bg-gradient-to-br from-pink-500 to-purple-500 text-white active:scale-95"
                     }`}
                   >
-                    <span className="text-sm font-extrabold">{n}</span>
+                    <span className="text-xs font-extrabold">{n}</span>
                     <span className="line-clamp-1 max-w-full truncate px-1 text-[8px] opacity-90">{charLabel}</span>
                     {taken && <span className="line-clamp-1 max-w-full truncate text-[8px] opacity-80">@{taken.buyer_username}</span>}
                   </button>
                 );
               })}
             </div>
-            {!stream.break_force_visible && (
-              <button
-                onClick={() => setShowViewerBreak(false)}
-                className="mt-3 w-full rounded-lg bg-muted py-2 text-xs font-bold text-foreground"
-              >
-                Done
-              </button>
-            )}
+            <button
+              onClick={() => setShowViewerBreak(false)}
+              className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
