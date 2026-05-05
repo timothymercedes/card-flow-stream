@@ -253,7 +253,7 @@ function LiveList() {
                         <button onClick={() => deleteShow(sh.id)} className="rounded-full p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                       )}
                     </div>
-                    <p className="text-[10px] text-primary">@{sh.seller_username}{sh.category ? ` · ${sh.category}` : ""}</p>
+                    <p className="text-[10px] text-primary">@{sh.seller_username}{sh.category ? ` · ${categoryEmoji(sh.category)} ${categoryLabel(sh.category) || sh.category}` : ""}</p>
                     {sh.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{sh.description}</p>}
                     <p className="mt-1 text-xs">
                       {new Date(sh.scheduled_for).toLocaleString()}
