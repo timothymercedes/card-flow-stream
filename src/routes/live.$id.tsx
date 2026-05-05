@@ -2379,12 +2379,14 @@ function LiveDetail() {
                   {breakSlots.length}/{stream.break_slot_count}
                 </span>
               </p>
-              <button onClick={() => setShowViewerBreak(false)} className="rounded-full p-1 hover:bg-muted">
+              {!stream.break_force_visible && (
+                <button onClick={() => setShowViewerBreak(false)} className="rounded-full p-1 hover:bg-muted">
                   <X className="h-4 w-4" />
-              </button>
+                </button>
+              )}
             </div>
             <p className="mb-3 text-[11px] text-muted-foreground">
-              Tap a slot to claim · choices save instantly
+              {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
             <div className={`grid gap-1.5 overflow-y-auto ${stream.break_force_visible ? "max-h-[58vh] grid-cols-4" : "max-h-[30vh] grid-cols-4"}`}>
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
@@ -2411,12 +2413,14 @@ function LiveDetail() {
                 );
               })}
             </div>
-            <button
-              onClick={() => setShowViewerBreak(false)}
-              className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
-            >
-              Done
-            </button>
+            {!stream.break_force_visible && (
+              <button
+                onClick={() => setShowViewerBreak(false)}
+                className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+              >
+                Done
+              </button>
+            )}
           </div>
         </div>
       )}
