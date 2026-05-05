@@ -103,14 +103,14 @@ function Admin() {
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
   useEffect(() => {
-    if (!isAdmin || tab !== "users") return;
+    if (!isAdmin) return;
     (supabase.rpc as any)("admin_get_signup_stats").then(({ data }: any) => {
       if (data && data[0]) setSignupStats(data[0]);
     });
     (supabase.rpc as any)("admin_list_recent_signups", { _limit: 50 }).then(({ data }: any) => {
       setRecentSignups((data as any[]) || []);
     });
-  }, [isAdmin, tab]);
+  }, [isAdmin]);
 
   async function loadOrders() {
     let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
@@ -216,6 +216,22 @@ function Admin() {
             </div>
           )}
         </div>
+        {isAdmin && signupStats && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Total signups</p>
+              <p className="text-xl font-bold">{signupStats.total}</p>
+            </div>
+            <div className="rounded-lg bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Last 24h</p>
+              <p className="text-xl font-bold text-primary">{signupStats.last_24h}</p>
+            </div>
+            <div className="rounded-lg bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Last 7d</p>
+              <p className="text-xl font-bold">{signupStats.last_7d}</p>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 border-b border-border">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("orders")} className={`pb-2 text-xs font-bold ${tab === "orders" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Orders</button>

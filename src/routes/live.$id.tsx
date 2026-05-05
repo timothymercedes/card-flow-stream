@@ -1955,7 +1955,7 @@ function LiveDetail() {
         )}
 
         {/* 🆕 Spin Wheel — viewers only see it when host enables viewer spins or a spin is live */}
-        {!isSeller && wheel && wheelSlots.length > 0 && (wheel.viewer_can_spin || wheel.is_spinning) && (
+        {!isSeller && wheel && wheelSlots.length > 0 && (
           <button
             onClick={() => setShowWheelOverlay(true)}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
