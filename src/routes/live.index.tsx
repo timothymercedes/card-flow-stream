@@ -174,17 +174,56 @@ function LiveList() {
 
         {tab === "live" && (
           <>
-            {streams.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No active streams. Be the first to go live!</p>}
+            {/* Filters: category + viewer-size bucket */}
+            <div className="mb-3 space-y-2">
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+                <Filter className="h-3 w-3" /> Pick what you're into
+              </div>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                <button onClick={() => setCatFilter("all")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${catFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}>✨ All</button>
+                {LISTING_CATEGORIES.filter((c) => activeCategories.length === 0 || activeCategories.includes(c.value)).map((c) => (
+                  <button key={c.value} onClick={() => setCatFilter(c.value)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${catFilter === c.value ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                    {c.emoji} {c.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1.5">
+                {([
+                  { v: "any", label: "Any size" },
+                  { v: "intimate", label: "🤝 Cozy ≤10" },
+                  { v: "warm", label: "🔥 Warm 11–50" },
+                  { v: "hot", label: "🚀 Packed 50+" },
+                ] as { v: ViewerBucket; label: string }[]).map((b) => (
+                  <button key={b.v} onClick={() => setViewerBucket(b.v)} className={`flex-1 rounded-full px-2 py-1 text-[10px] font-bold ${viewerBucket === b.v ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredStreams.length === 0 && (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                {streams.length === 0 ? "No active streams. Be the first to go live!" : "No streams match these filters — try widening your picks."}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3">
-              {streams.map((s) => (
+              {filteredStreams.map((s) => (
                 <Link key={s.id} to="/live/$id" params={{ id: s.id }}>
                   <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
                     {s.thumbnail_url ? <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
                     <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold">
                       <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
                     </div>
+                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                      <Users className="h-2.5 w-2.5" />{viewerCounts[s.id] || 0}
+                    </div>
+                    {s.category && (
+                      <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
+                        {categoryEmoji(s.category)} {categoryLabel(s.category)}
+                      </div>
+                    )}
                     {s.ends_at && (
-                      <div className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                      <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
                         <StreamCountdown endsAt={s.ends_at} />
                       </div>
                     )}
@@ -194,6 +233,7 @@ function LiveList() {
                 </Link>
               ))}
             </div>
+            <p className="mt-3 text-center text-[10px] text-muted-foreground">💡 Tip: inside a stream, swipe left/right to jump to the next live show.</p>
           </>
         )}
 
