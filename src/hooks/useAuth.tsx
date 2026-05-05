@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-type Profile = { id: string; username: string; is_seller: boolean; avatar_url: string | null; interests?: string[]; onboarding_completed?: boolean };
+type Profile = { id: string; username: string; is_seller: boolean; avatar_url: string | null; interests?: string[]; onboarding_completed?: boolean; current_streak?: number; longest_streak?: number; last_login_date?: string | null };
 
 type Ctx = {
   user: User | null;
@@ -26,6 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(s?.user ?? null);
       if (s?.user) {
         setTimeout(async () => {
+          // Bump daily login streak (no-op if already today)
+          await (supabase.rpc as any)("bump_login_streak").catch(() => {});
           const { data } = await supabase.from("profiles").select("*").eq("id", s.user.id).maybeSingle();
           setProfile(data as Profile | null);
         }, 0);
