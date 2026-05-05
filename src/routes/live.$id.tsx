@@ -1982,6 +1982,34 @@ function LiveDetail() {
         </form>
       </div>
 
+      {/* Snipe / Buy-Now price popup (seller) */}
+      {snipeOpen && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setSnipeOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold flex items-center gap-1.5"><Zap className="h-4 w-4 text-yellow-500" /> Buy-Now Snipe</p>
+              <button onClick={() => setSnipeOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground">Set a price viewers can hit to instantly win the current item.</p>
+            <input
+              type="number" min="1" inputMode="decimal"
+              value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
+              placeholder={`Above current bid ($${Number(stream?.current_bid || 0).toFixed(0)})`}
+              className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              {stream?.snipe_price && (
+                <button onClick={async () => { await supabase.from("live_streams").update({ snipe_price: null }).eq("id", id); setSnipeOpen(false); toast.success("Snipe cleared"); }}
+                  className="flex-1 rounded-lg bg-muted py-2 text-xs font-semibold">Clear</button>
+              )}
+              <button onClick={async () => { await setSnipePriceNow(); setSnipeOpen(false); }}
+                className="flex-1 rounded-lg bg-yellow-500 py-2 text-xs font-bold text-black">Set Snipe</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Share modal */}
       {shareOpen && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-3 sm:items-center" onClick={() => setShareOpen(false)}>
