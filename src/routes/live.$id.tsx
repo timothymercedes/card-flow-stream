@@ -1114,7 +1114,7 @@ function LiveDetail() {
   async function saveAuctionDefaults() {
     if (!isSeller) return;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
-    await supabase.from("live_streams").update({
+    await supabase.from("live_streams").update(({
       default_timer_sec: Number(editTimerSec) || 30,
       default_starting_bid: Number(editStartPrice) || 1,
       shipping_price: Number(editShipPrice) || 0,
@@ -1124,7 +1124,7 @@ function LiveDetail() {
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
       chat_slow_mode_sec: Math.max(0, Math.min(300, Number(editSlowMode) || 0)),
       auction_reveal_mode: editRevealMode,
-    } as any).eq("id", id);
+    }) as any).eq("id", id);
     toast.success("Settings saved");
   }
 
