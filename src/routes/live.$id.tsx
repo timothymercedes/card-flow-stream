@@ -241,12 +241,12 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
-  // 🆕 Auto-open viewer break drawer only when host forces it visible; otherwise viewers control it.
+  // 🆕 Auto-open viewer break drawer only when host pins it; otherwise never force it open/closed.
   useEffect(() => {
     if (!stream) return;
     if (stream.break_force_visible && stream.break_mode === "open") {
       setShowViewerBreak(true);
-    } else {
+    } else if (stream.break_mode !== "open") {
       setShowViewerBreak(false);
     }
   }, [stream?.break_force_visible, stream?.break_mode]);
@@ -704,8 +704,29 @@ function LiveDetail() {
       if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
       return toast.error(error.message);
     }
+    const shipProfile = profile as any;
+    const { error: orderError } = await supabase.from("orders").insert({
+      buyer_id: user.id,
+      seller_id: stream.seller_id,
+      title: `Break slot — ${charLabel}`,
+      description: `Mystery Break slot ${slotNumber} in ${stream.title}`,
+      amount: price,
+      item_image_url: stream.item_image_url || stream.thumbnail_url || null,
+      stream_id: id,
+      status: "pending",
+      payment_status: "awaiting_payment",
+      ship_name: shipProfile.full_name || profile.username,
+      ship_address: shipProfile.address_line1 || "",
+      ship_city: shipProfile.address_city || "",
+      ship_state: shipProfile.address_state || "",
+      ship_zip: shipProfile.address_zip || "",
+      ship_country: shipProfile.address_country || "US",
+    });
+    if (orderError) return toast.error(orderError.message);
     await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
-    toast.success(`${charLabel} is yours — tap Done to return to the live`);
+    toast.success(`${charLabel} is yours — pay now to lock it in`);
+    setShowViewerBreak(false);
+    nav({ to: "/orders" });
   }
 
   async function closeBreakClaims() {
@@ -1913,13 +1934,27 @@ function LiveDetail() {
               </button>
             </div>
             {/* Secondary tools row */}
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className={`grid gap-1.5 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}>
               <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98]">
                 <Camera className="h-3.5 w-3.5" /> Scan
               </button>
               <button onClick={() => setShowBreakPanel(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
                 <Dice5 className="h-3.5 w-3.5" /> Break
               </button>
+              {stream.break_mode === "open" && (
+                <button
+                  onClick={async () => {
+                    const next = !stream.break_force_visible;
+                    setStream((prev: any) => prev ? { ...prev, break_force_visible: next } : prev);
+                    await supabase.from("live_streams").update({ break_force_visible: next }).eq("id", id);
+                    toast.success(next ? "Break grid pinned for viewers" : "Viewers can collapse the break grid");
+                  }}
+                  className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-card/70 py-2 text-[10px] font-bold text-foreground ring-1 ring-white/15 active:scale-[0.98]"
+                >
+                  {stream.break_force_visible ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                  {stream.break_force_visible ? "Unpin" : "Pin"}
+                </button>
+              )}
               <button onClick={() => setShowWheelEditor(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
                 <RotateCw className="h-3.5 w-3.5" /> Wheel
               </button>
@@ -2389,7 +2424,7 @@ function LiveDetail() {
               {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
             <div className={`grid gap-1.5 overflow-y-auto ${stream.break_force_visible ? "max-h-[58vh] grid-cols-4" : "max-h-[30vh] grid-cols-4"}`}>
-              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
+              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
                 const charLabel =
@@ -2412,6 +2447,9 @@ function LiveDetail() {
                   </button>
                 );
               })}
+              {breakSlots.length >= Number(stream.break_slot_count || 0) && (
+                <p className="col-span-4 py-6 text-center text-xs font-semibold text-muted-foreground">All characters have been claimed.</p>
+              )}
             </div>
             {!stream.break_force_visible && (
               <button
