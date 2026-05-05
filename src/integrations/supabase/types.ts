@@ -156,13 +156,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "chat_messages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       direct_messages: {
@@ -438,13 +431,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "listing_bids_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       listings: {
@@ -532,13 +518,6 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listings_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -778,24 +757,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "live_streams_current_bidder_id_fkey"
-            columns: ["current_bidder_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "live_streams_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "live_streams_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1146,13 +1111,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1820,13 +1778,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "vault_cards_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "public_profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       vault_settings: {
@@ -1979,57 +1930,7 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          avatar_url: string | null
-          buyer_verified: boolean | null
-          created_at: string | null
-          id: string | null
-          id_status: string | null
-          is_seller: boolean | null
-          phone_verified: boolean | null
-          preferred_currency: string | null
-          public_id: string | null
-          seller_status: string | null
-          stripe_charges_enabled: boolean | null
-          stripe_onboarding_status: string | null
-          stripe_payouts_enabled: boolean | null
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          buyer_verified?: boolean | null
-          created_at?: string | null
-          id?: string | null
-          id_status?: string | null
-          is_seller?: boolean | null
-          phone_verified?: boolean | null
-          preferred_currency?: string | null
-          public_id?: string | null
-          seller_status?: string | null
-          stripe_charges_enabled?: boolean | null
-          stripe_onboarding_status?: string | null
-          stripe_payouts_enabled?: boolean | null
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          buyer_verified?: boolean | null
-          created_at?: string | null
-          id?: string | null
-          id_status?: string | null
-          is_seller?: boolean | null
-          phone_verified?: boolean | null
-          preferred_currency?: string | null
-          public_id?: string | null
-          seller_status?: string | null
-          stripe_charges_enabled?: boolean | null
-          stripe_onboarding_status?: string | null
-          stripe_payouts_enabled?: boolean | null
-          username?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_legal_document: {
@@ -2067,6 +1968,8 @@ export type Database = {
         Returns: boolean
       }
       generate_public_id: { Args: never; Returns: string }
+      get_buyer_completed_count: { Args: { _user: string }; Returns: number }
+      get_seller_completed_count: { Args: { _user: string }; Returns: number }
       get_winner_shipping: {
         Args: { p_stream_id: string; p_winner_id: string }
         Returns: {
@@ -2091,6 +1994,61 @@ export type Database = {
         Returns: boolean
       }
       is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
+      list_followers: {
+        Args: { _user: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          seller_status: string
+          username: string
+        }[]
+      }
+      list_following: {
+        Args: { _user: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          seller_status: string
+          username: string
+        }[]
+      }
+      public_profile_by_username: {
+        Args: { _username: string }
+        Returns: {
+          avatar_url: string
+          buyer_verified: boolean
+          created_at: string
+          id: string
+          is_seller: boolean
+          phone_verified: boolean
+          public_id: string
+          seller_status: string
+          username: string
+        }[]
+      }
+      public_profiles_by_ids: {
+        Args: { _ids: string[] }
+        Returns: {
+          avatar_url: string
+          buyer_verified: boolean
+          id: string
+          is_seller: boolean
+          phone_verified: boolean
+          public_id: string
+          seller_status: string
+          username: string
+        }[]
+      }
+      search_public_profiles: {
+        Args: { _limit?: number; _query: string }
+        Returns: {
+          avatar_url: string
+          id: string
+          is_seller: boolean
+          seller_status: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner" | "support"
