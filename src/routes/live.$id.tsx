@@ -1374,8 +1374,8 @@ function LiveDetail() {
                 {stream.sudden_death_active && (
                   <span className={`rounded bg-black/30 uppercase tracking-wider ${dramatic ? "px-3 py-1 text-base" : "ml-1 px-1.5 py-0.5 text-[9px]"}`}>Sudden Death</span>
                 )}
-                {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && !dramatic && (
-                  <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
+                {Number((stream as any).quick_start_remaining || 0) >= 0 && Number((stream as any).quick_start_quantity || 1) > 1 && !stream.sudden_death_active && !dramatic && (
+                  <span className="ml-1 rounded bg-primary/30 px-1.5 py-0.5 text-[9px] font-bold uppercase">Slot {Number((stream as any).quick_start_quantity || 1) - Number((stream as any).quick_start_remaining || 0)}/{Number((stream as any).quick_start_quantity || 1)}</span>
                 )}
               </div>
             ) : (
@@ -1527,17 +1527,17 @@ function LiveDetail() {
               <input value={editShipMethod} onChange={(e) => setEditShipMethod(e.target.value)} placeholder="Method" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
             </div>
 
-            {/* 🆕 Quantity — runs N back-to-back identical auctions */}
+            {/* 🆕 Quantity — N total slots, one winner per round */}
             <label className="block text-[11px] text-muted-foreground">
-              Quantity (back-to-back rounds)
+              Quantity available (slots)
               <div className="mt-1 flex items-center gap-2">
                 <input type="number" min="1" max="99" value={editQuantity}
                   onChange={(e) => setEditQuantity(e.target.value)}
                   className="w-20 rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
-                <span className="text-[10px] text-muted-foreground">After each win, the next round auto-starts with the same settings.</span>
+                <span className="text-[10px] text-muted-foreground">Multiple winners — each round picks one buyer until all slots are sold.</span>
               </div>
               {Number((stream as any).quick_start_remaining || 0) > 0 && (
-                <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} round(s) queued</p>
+                <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} slot(s) remaining</p>
               )}
             </label>
 
