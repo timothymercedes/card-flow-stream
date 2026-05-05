@@ -80,11 +80,11 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
   }, [facing, pending]);
 
   async function capture() {
-    if (!videoRef.current || scanning) return;
+    if (!videoRef.current || capturingRef.current) return;
+    capturingRef.current = true;
     setScanning(true);
     try {
       const v = videoRef.current;
-      // Higher res capture (1024 long side) so the model can read set symbol + card number reliably.
       const srcW = v.videoWidth || 1280;
       const srcH = v.videoHeight || 720;
       const MAX = 1024;
@@ -107,8 +107,87 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
       toast.error(e?.message || "Scan failed");
     } finally {
       setScanning(false);
+      capturingRef.current = false;
     }
   }
+
+  // 🆕 Auto-capture loop: detect a stable, well-framed card and snap automatically.
+  useEffect(() => {
+    if (pending || !autoCapture) {
+      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
+      return;
+    }
+    const small = document.createElement("canvas");
+    small.width = 80; small.height = 60;
+    const sctx = small.getContext("2d", { willReadFrequently: true });
+    if (!sctx) return;
+
+    autoTimerRef.current = window.setInterval(() => {
+      const v = videoRef.current;
+      if (!v || v.readyState < 2 || capturingRef.current || scanning) return;
+      sctx.drawImage(v, 0, 0, small.width, small.height);
+      const frame = sctx.getImageData(0, 0, small.width, small.height);
+
+      // Compute brightness + edge density (proxy for "card in frame")
+      let lumaSum = 0;
+      let edgeCount = 0;
+      const d = frame.data;
+      const w = small.width;
+      for (let y = 1; y < small.height - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const i = (y * w + x) * 4;
+          const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          lumaSum += l;
+          const ir = ((y) * w + (x + 1)) * 4;
+          const lr = 0.299 * d[ir] + 0.587 * d[ir + 1] + 0.114 * d[ir + 2];
+          if (Math.abs(l - lr) > 30) edgeCount++;
+        }
+      }
+      const avgLuma = lumaSum / (w * small.height);
+      const edgeRatio = edgeCount / (w * small.height);
+
+      // Compare to previous frame for steadiness
+      let diff = 0;
+      const prev = prevFrameRef.current;
+      if (prev && prev.data.length === d.length) {
+        for (let i = 0; i < d.length; i += 16) {
+          diff += Math.abs(d[i] - prev.data[i]);
+        }
+        diff = diff / (d.length / 16);
+      }
+      prevFrameRef.current = frame;
+
+      const wellLit = avgLuma > 40 && avgLuma < 230;
+      const hasCard = edgeRatio > 0.05; // enough detail in frame
+      const steady = diff < 6;
+
+      if (wellLit && hasCard && steady) {
+        steadyTicksRef.current += 1;
+      } else {
+        steadyTicksRef.current = Math.max(0, steadyTicksRef.current - 1);
+      }
+
+      const need = 6; // ~600ms steady
+      const pct = Math.min(100, (steadyTicksRef.current / need) * 100);
+      setSteadyPct(pct);
+
+      if (!hasCard) setHint("Point camera at a card");
+      else if (!wellLit) setHint("More light needed");
+      else if (!steady) setHint("Hold steady…");
+      else setHint("Locking…");
+
+      if (steadyTicksRef.current >= need) {
+        steadyTicksRef.current = 0;
+        setSteadyPct(0);
+        setHint("Capturing…");
+        capture();
+      }
+    }, 100);
+
+    return () => { if (autoTimerRef.current) window.clearInterval(autoTimerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, autoCapture, scanning]);
+
 
   function confirmResult() {
     if (!pending) return;
