@@ -582,6 +582,38 @@ function LiveDetail() {
   }, [chatActions]);
   const meBlocked = !!user && chatBlockSet.has(user.id);
 
+  // 🆕 Personal blocks (this viewer mutes another user) + Stream bans (host bans user from this live)
+  const [myBlockedIds, setMyBlockedIds] = useState<Set<string>>(new Set());
+  const [streamBannedIds, setStreamBannedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user) { setMyBlockedIds(new Set()); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id);
+      if (!cancelled) setMyBlockedIds(new Set((data || []).map((r: any) => r.blocked_id)));
+    })();
+    const ch = supabase.channel(`user-blocks-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_blocks", filter: `blocker_id=eq.${user.id}` }, () => {
+        supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id)
+          .then(({ data }) => setMyBlockedIds(new Set((data || []).map((r: any) => r.blocked_id))));
+      }).subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("stream_user_bans").select("banned_user_id").eq("stream_id", id);
+      if (!cancelled) setStreamBannedIds(new Set((data || []).map((r: any) => r.banned_user_id)));
+    })();
+    const ch = supabase.channel(`stream-bans-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stream_user_bans", filter: `stream_id=eq.${id}` }, () => {
+        supabase.from("stream_user_bans").select("banned_user_id").eq("stream_id", id)
+          .then(({ data }) => setStreamBannedIds(new Set((data || []).map((r: any) => r.banned_user_id))));
+      }).subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [id]);
+  const meStreamBanned = !!user && streamBannedIds.has(user.id);
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
