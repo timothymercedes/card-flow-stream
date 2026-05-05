@@ -48,6 +48,7 @@ function LiveList() {
   const { user, profile } = useAuth();
   const [tab, setTab] = useState<"live" | "scheduled">("live");
   const [streams, setStreams] = useState<Stream[]>([]);
+  const [viewerCounts, setViewerCounts] = useState<Record<string, number>>({});
   const [shows, setShows] = useState<Show[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", category: "", thumbnail_url: "", date: "", time: "" });
@@ -55,6 +56,9 @@ function LiveList() {
   const [weeks, setWeeks] = useState("4");
   const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const [days, setDays] = useState<number[]>([]);
+  // Filters
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [viewerBucket, setViewerBucket] = useState<ViewerBucket>("any");
 
   async function load() {
     const [{ data: s }, { data: sh }] = await Promise.all([
@@ -63,7 +67,36 @@ function LiveList() {
     ]);
     setStreams((s as Stream[]) || []);
     setShows((sh as Show[]) || []);
+
+    // Viewer counts: presence rows seen in last 90s
+    const cutoff = new Date(Date.now() - 90_000).toISOString();
+    const { data: pres } = await supabase
+      .from("live_stream_presence")
+      .select("stream_id")
+      .gte("last_seen_at", cutoff);
+    const counts: Record<string, number> = {};
+    (pres || []).forEach((r: any) => { counts[r.stream_id] = (counts[r.stream_id] || 0) + 1; });
+    setViewerCounts(counts);
   }
+
+  // Categories actually present in current live streams (so the filter only shows useful options)
+  const activeCategories = useMemo(() => {
+    const set = new Set<string>();
+    streams.forEach((s) => { if (s.category) set.add(s.category); });
+    return Array.from(set);
+  }, [streams]);
+
+  const filteredStreams = useMemo(() => {
+    return streams.filter((s) => {
+      if (catFilter !== "all" && s.category !== catFilter) return false;
+      const v = viewerCounts[s.id] || 0;
+      if (viewerBucket === "intimate" && v > 10) return false;
+      if (viewerBucket === "warm" && (v < 11 || v > 50)) return false;
+      if (viewerBucket === "hot" && v < 51) return false;
+      return true;
+    });
+  }, [streams, catFilter, viewerBucket, viewerCounts]);
+
   useEffect(() => {
     load();
     const ch = supabase.channel("live-shows")
