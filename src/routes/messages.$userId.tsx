@@ -18,7 +18,7 @@ function ChatThread() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    supabase.from("profiles").select("id,username").eq("id", userId).maybeSingle().then(({ data }) => setOther(data));
+    (supabase.rpc as any)("public_profiles_by_ids", { _ids: [userId] }).then(({ data }: any) => setOther((data && data[0]) || null));
   }, [userId]);
 
   useEffect(() => {
