@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_hype_posts: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string | null
+          source: string
+          title: string
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          source?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          source?: string
+          title?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           actor_id: string | null
@@ -1155,7 +1188,9 @@ export type Database = {
           id: string
           id_document_url: string | null
           id_status: string
+          interests: string[]
           is_seller: boolean
+          onboarding_completed: boolean
           phone: string | null
           phone_verified: boolean
           phone_verified_at: string | null
@@ -1183,7 +1218,9 @@ export type Database = {
           id: string
           id_document_url?: string | null
           id_status?: string
+          interests?: string[]
           is_seller?: boolean
+          onboarding_completed?: boolean
           phone?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
@@ -1211,7 +1248,9 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           id_status?: string
+          interests?: string[]
           is_seller?: boolean
+          onboarding_completed?: boolean
           phone?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
