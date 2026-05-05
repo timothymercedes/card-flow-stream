@@ -576,6 +576,7 @@ export type Database = {
           break_wheel_spinning: boolean
           break_wheel_started_at: string | null
           break_wheel_target_slot: number | null
+          category: string | null
           cf_live_input_id: string | null
           cf_playback_hls: string | null
           cf_rtmps_url: string | null
@@ -646,6 +647,7 @@ export type Database = {
           break_wheel_spinning?: boolean
           break_wheel_started_at?: string | null
           break_wheel_target_slot?: number | null
+          category?: string | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
           cf_rtmps_url?: string | null
@@ -716,6 +718,7 @@ export type Database = {
           break_wheel_spinning?: boolean
           break_wheel_started_at?: string | null
           break_wheel_target_slot?: number | null
+          category?: string | null
           cf_live_input_id?: string | null
           cf_playback_hls?: string | null
           cf_rtmps_url?: string | null
