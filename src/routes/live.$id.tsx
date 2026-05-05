@@ -91,6 +91,8 @@ function LiveDetail() {
   const [showViewerBreak, setShowViewerBreak] = useState(false);
   const [selectedBreakSlots, setSelectedBreakSlots] = useState<number[]>([]);
   const [claimingBreakSlots, setClaimingBreakSlots] = useState(false);
+  const [selectionDeadline, setSelectionDeadline] = useState<number | null>(null);
+  const [selectionCountdown, setSelectionCountdown] = useState<number>(0);
   const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
@@ -258,6 +260,25 @@ function LiveDetail() {
     if (!breakSlots.length) return;
     setSelectedBreakSlots((slots) => slots.filter((n) => !breakSlots.some((s) => s.slot_number === n)));
   }, [breakSlots]);
+
+  // 🆕 5-second hold: if viewer doesn't claim in time, release selections
+  useEffect(() => {
+    if (!selectionDeadline) { setSelectionCountdown(0); return; }
+    const tick = () => {
+      const ms = selectionDeadline - Date.now();
+      if (ms <= 0) {
+        setSelectedBreakSlots([]);
+        setSelectionDeadline(null);
+        setSelectionCountdown(0);
+        toast.message("Selection expired — slot released");
+      } else {
+        setSelectionCountdown(Math.ceil(ms / 1000));
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 200);
+    return () => clearInterval(iv);
+  }, [selectionDeadline]);
 
   // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
   const [unpaidOrders, setUnpaidOrders] = useState(0);
@@ -697,9 +718,11 @@ function LiveDetail() {
 
   function toggleBreakSlotSelection(slotNumber: number) {
     if (breakSlots.some((s) => s.slot_number === slotNumber)) return;
-    setSelectedBreakSlots((slots) =>
-      slots.includes(slotNumber) ? slots.filter((n) => n !== slotNumber) : [...slots, slotNumber].sort((a, b) => a - b),
-    );
+    setSelectedBreakSlots((slots) => {
+      const next = slots.includes(slotNumber) ? slots.filter((n) => n !== slotNumber) : [...slots, slotNumber].sort((a, b) => a - b);
+      setSelectionDeadline(next.length > 0 ? Date.now() + 5000 : null);
+      return next;
+    });
   }
 
   async function claimSelectedBreakSlots() {
@@ -721,6 +744,7 @@ function LiveDetail() {
     await sendMsg(`🎟️ @${profile.username} claimed ${count} Mystery Break character${count === 1 ? "" : "s"} ($${total.toFixed(2)})`, true);
     toast.success(`${count} character${count === 1 ? "" : "s"} claimed and paid`);
     setSelectedBreakSlots([]);
+    setSelectionDeadline(null);
     setShowViewerBreak(false);
   }
 
@@ -2459,7 +2483,7 @@ function LiveDetail() {
               {claimingBreakSlots
                 ? "Charging…"
                 : selectedBreakSlots.length > 0
-                  ? `Swipe/claim mine · $${(Number((stream as any).break_slot_price || breakPrice) * selectedBreakSlots.length).toFixed(2)}`
+                  ? `Claim mine · $${(Number((stream as any).break_slot_price || breakPrice) * selectedBreakSlots.length).toFixed(2)}${selectionCountdown ? ` · ${selectionCountdown}s` : ""}`
                   : "Choose characters"}
             </button>
             {!stream.break_force_visible && (
