@@ -1381,9 +1381,8 @@ function LiveDetail() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
-                <Timer className="h-3.5 w-3.5 opacity-70" />
-                <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
+              <div className="flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 shadow-md ring-1 ring-white/15 backdrop-blur">
+                {ended ? "Ended" : (stream.current_item ? "Ready" : "Auction not started")}
               </div>
             )}
           </div>
