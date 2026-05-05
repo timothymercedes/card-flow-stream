@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircleQuestion, X, Send, Play, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import tourWelcome from "@/assets/tour-welcome.png";
+import tourLive from "@/assets/tour-live.png";
+import tourMarket from "@/assets/tour-market.png";
+import tourSell from "@/assets/tour-sell.png";
+import tourVault from "@/assets/tour-vault.png";
+import tourHelp from "@/assets/tour-help.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const TOUR_STEPS = [
-  { title: "Welcome to PullBid Live 👋", body: "The fastest way to buy, sell & trade cards live. Here's a 60-second tour." },
-  { title: "🔴 Watch & Bid Live", body: "Tap the Live tab to join sellers running real-time auctions. Bid with one tap — highest bid wins when the timer ends." },
-  { title: "🛒 Shop the Market", body: "Browse Buy Now listings, place bids on auctions, or send custom offers from the Market tab." },
-  { title: "📸 Sell Your Cards", body: "Hit the Sell button. Scan a card with your camera — AI identifies it and prices it for you." },
-  { title: "🔒 Track in your Vault", body: "Every card you scan or buy goes in your Vault with live market value." },
-  { title: "💬 Need help anytime?", body: "Tap this floating chat bubble to ask the AI assistant or replay this tour." },
+  { img: tourWelcome, title: "Welcome to PullBid Live 👋", body: "The fastest way to buy, sell & trade cards live. Here's a 60-second tour." },
+  { img: tourLive, title: "🔴 Watch & Bid Live", body: "Tap the Live tab to join sellers running real-time auctions. Bid with one tap — highest bid wins when the timer ends." },
+  { img: tourMarket, title: "🛒 Shop the Market", body: "Browse Buy Now listings, place bids on auctions, or send custom offers from the Market tab." },
+  { img: tourSell, title: "📸 Sell Your Cards", body: "Hit the Sell button. Scan a card with your camera — AI identifies it and prices it for you." },
+  { img: tourVault, title: "🔒 Track in your Vault", body: "Every card you scan or buy goes in your Vault with live market value." },
+  { img: tourHelp, title: "💬 Need help anytime?", body: "Tap this floating chat bubble to ask the AI assistant or replay this tour." },
 ];
 
 const LS_KEY = "pbl_tour_seen";
@@ -118,7 +124,10 @@ export function HelpBubble() {
                   <div key={i} className={`h-1 flex-1 rounded-full ${i <= tourStep ? "bg-primary" : "bg-muted"}`} />
                 ))}
               </div>
-              <div className="flex-1">
+              <div className="flex flex-1 flex-col items-center text-center">
+                <div className="mb-2 flex h-40 w-40 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 via-accent/10 to-live/15">
+                  <img src={TOUR_STEPS[tourStep].img} alt="" loading="lazy" width={160} height={160} className="h-36 w-36 object-contain drop-shadow-lg" />
+                </div>
                 <h3 className="text-lg font-bold">{TOUR_STEPS[tourStep].title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{TOUR_STEPS[tourStep].body}</p>
               </div>
