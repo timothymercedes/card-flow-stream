@@ -241,12 +241,12 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
-  // 🆕 Auto-open viewer break drawer only when host forces it visible; otherwise viewers control it.
+  // 🆕 Auto-open viewer break drawer only when host pins it; otherwise never force it open/closed.
   useEffect(() => {
     if (!stream) return;
     if (stream.break_force_visible && stream.break_mode === "open") {
       setShowViewerBreak(true);
-    } else {
+    } else if (stream.break_mode !== "open") {
       setShowViewerBreak(false);
     }
   }, [stream?.break_force_visible, stream?.break_mode]);
@@ -704,8 +704,29 @@ function LiveDetail() {
       if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
       return toast.error(error.message);
     }
+    const shipProfile = profile as any;
+    const { error: orderError } = await supabase.from("orders").insert({
+      buyer_id: user.id,
+      seller_id: stream.seller_id,
+      title: `Break slot — ${charLabel}`,
+      description: `Mystery Break slot ${slotNumber} in ${stream.title}`,
+      amount: price,
+      item_image_url: stream.item_image_url || stream.thumbnail_url || null,
+      stream_id: id,
+      status: "pending",
+      payment_status: "awaiting_payment",
+      ship_name: shipProfile.full_name || profile.username,
+      ship_address: shipProfile.address_line1 || "",
+      ship_city: shipProfile.address_city || "",
+      ship_state: shipProfile.address_state || "",
+      ship_zip: shipProfile.address_zip || "",
+      ship_country: shipProfile.address_country || "US",
+    });
+    if (orderError) return toast.error(orderError.message);
     await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
-    toast.success(`${charLabel} is yours — tap Done to return to the live`);
+    toast.success(`${charLabel} is yours — pay now to lock it in`);
+    setShowViewerBreak(false);
+    nav({ to: "/orders" });
   }
 
   async function closeBreakClaims() {
