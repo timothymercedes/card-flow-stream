@@ -168,6 +168,16 @@ function Auth() {
         {mode === "signin" ? "Need an account? " : "Have an account? "}
         <span className="font-semibold text-primary">{mode === "signin" ? "Sign Up" : "Sign In"}</span>
       </button>
+      {mode === "signin" && (
+        <button onClick={() => setMode("forgot")} className="mt-2 text-center text-xs text-muted-foreground hover:text-primary">
+          Forgot password?
+        </button>
+      )}
+      {mode === "forgot" && (
+        <button onClick={() => setMode("signin")} className="mt-2 text-center text-xs text-muted-foreground hover:text-primary">
+          ← Back to sign in
+        </button>
+      )}
       <AgreementModal
         open={showTerms}
         required
