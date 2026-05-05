@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircleQuestion, X, Send, Play, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import tourWelcome from "@/assets/tour-welcome.png";
+import tourLive from "@/assets/tour-live.png";
+import tourMarket from "@/assets/tour-market.png";
+import tourSell from "@/assets/tour-sell.png";
+import tourVault from "@/assets/tour-vault.png";
+import tourHelp from "@/assets/tour-help.png";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
 const TOUR_STEPS = [
-  { title: "Welcome to PullBid Live 👋", body: "The fastest way to buy, sell & trade cards live. Here's a 60-second tour." },
-  { title: "🔴 Watch & Bid Live", body: "Tap the Live tab to join sellers running real-time auctions. Bid with one tap — highest bid wins when the timer ends." },
-  { title: "🛒 Shop the Market", body: "Browse Buy Now listings, place bids on auctions, or send custom offers from the Market tab." },
-  { title: "📸 Sell Your Cards", body: "Hit the Sell button. Scan a card with your camera — AI identifies it and prices it for you." },
-  { title: "🔒 Track in your Vault", body: "Every card you scan or buy goes in your Vault with live market value." },
-  { title: "💬 Need help anytime?", body: "Tap this floating chat bubble to ask the AI assistant or replay this tour." },
+  { img: tourWelcome, title: "Welcome to PullBid Live 👋", body: "The fastest way to buy, sell & trade cards live. Here's a 60-second tour." },
+  { img: tourLive, title: "🔴 Watch & Bid Live", body: "Tap the Live tab to join sellers running real-time auctions. Bid with one tap — highest bid wins when the timer ends." },
+  { img: tourMarket, title: "🛒 Shop the Market", body: "Browse Buy Now listings, place bids on auctions, or send custom offers from the Market tab." },
+  { img: tourSell, title: "📸 Sell Your Cards", body: "Hit the Sell button. Scan a card with your camera — AI identifies it and prices it for you." },
+  { img: tourVault, title: "🔒 Track in your Vault", body: "Every card you scan or buy goes in your Vault with live market value." },
+  { img: tourHelp, title: "💬 Need help anytime?", body: "Tap this floating chat bubble to ask the AI assistant or replay this tour." },
 ];
 
 const LS_KEY = "pbl_tour_seen";
