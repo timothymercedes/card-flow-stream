@@ -37,8 +37,8 @@ function Messages() {
     }
     const otherIds = [...map.keys()];
     if (otherIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("id,username").in("id", otherIds);
-      const byId = Object.fromEntries((profs || []).map((p) => [p.id, p]));
+      const { data: profs } = await (supabase.rpc as any)("public_profiles_by_ids", { _ids: otherIds });
+      const byId = Object.fromEntries((profs || []).map((p: any) => [p.id, p]));
       setThreads([...map.entries()].map(([uid, msg]) => ({ uid, msg, profile: byId[uid] })));
     } else setThreads([]);
 
