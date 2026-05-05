@@ -1965,16 +1965,16 @@ function LiveDetail() {
             {/* Primary action row — always visible Start/End Auction + End Live */}
             <div className="flex items-stretch gap-1.5">
               {!auctionLive ? (
-                <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-lg active:scale-[0.98]">
-                  <Play className="h-4 w-4" /> Start Auction
+                <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-1.5 text-[11px] font-bold text-primary-foreground shadow active:scale-[0.98]">
+                  <Play className="h-3 w-3" /> Start Auction
                 </button>
               ) : (
-                <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-orange-500 py-2.5 text-xs font-bold text-white shadow-lg active:scale-[0.98]">
-                  <Square className="h-3.5 w-3.5" /> End Auction
+                <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-orange-500 py-1.5 text-[11px] font-bold text-white shadow active:scale-[0.98]">
+                  <Square className="h-3 w-3" /> End Auction
                 </button>
               )}
-              <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-xl bg-live px-3 py-2.5 text-xs font-bold text-live-foreground active:scale-[0.98]">
-                <Square className="h-3.5 w-3.5" /> End Live
+              <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2.5 py-1.5 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
+                <Square className="h-3 w-3" /> End Live
               </button>
             </div>
             {/* Secondary tools row */}
