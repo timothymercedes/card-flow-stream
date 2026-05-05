@@ -260,48 +260,8 @@ export function LiveGiveaway({
   const isDrawingMoment = !!giveaway && giveaway.status === "drawing";
   const isWinnerReveal = !!giveaway && giveaway.status === "complete" && !!giveaway.winner_username;
 
-  // === VIEWER COMPACT WIDGET ===
-  // Always visible (small, non-blocking) when there's an open giveaway and viewer hasn't manually closed.
-  // Becomes a fullscreen reveal during draw/winner.
-  if (!isSeller) {
-    if (!giveaway) return null;
-
-    if (isDrawingMoment || isWinnerReveal) {
-      return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
-          <button onClick={onClose} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white">
-            <X className="h-5 w-5" />
-          </button>
-          {isDrawingMoment && (
-            <div className="rounded-2xl bg-gradient-to-br from-amber-500/20 to-rose-500/20 p-6 text-center text-white">
-              <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-amber-300" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Drawing winner…</p>
-              <p className="mt-2 text-3xl font-extrabold">@{reelName || "…"}</p>
-              <p className="mt-3 text-[10px] text-white/60">{entries.length} entries · {giveaway.prize_label}</p>
-            </div>
-          )}
-          {isWinnerReveal && (
-            <>
-              <Confetti count={80} durationMs={2600} />
-              <div className="winner-burst rounded-2xl bg-gradient-to-br from-emerald-500/40 via-teal-500/30 to-cyan-500/40 p-6 text-center text-white owned-glow ring-1 ring-white/20">
-                <Trophy className="mx-auto mb-2 h-12 w-12 text-amber-300 drop-shadow" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-300">Winner</p>
-                <p className="mt-1 winner-shine bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">@{giveaway.winner_username}</p>
-                <p className="mt-2 text-sm text-white/85">won <b>{giveaway.prize_label}</b></p>
-                <p className="mt-3 flex items-center justify-center gap-1 text-[10px] text-white/70">
-                  <Truck className="h-3 w-3" /> Shipping covered by host
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-      );
-    }
-
-    // Viewer-side floating gift widget removed entirely — keeps the stream clean.
-    // Viewers join via the announcement banner / chat prompt only.
-    return null;
-  }
+  // Viewers should never see giveaway/appreciation UI over the bid controls.
+  if (!isSeller) return null;
 
   // === HOST CONTROLS ===
   // Compact, non-blocking floating widget when a giveaway is running and the host
