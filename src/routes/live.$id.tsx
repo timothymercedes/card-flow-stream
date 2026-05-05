@@ -614,6 +614,7 @@ function LiveDetail() {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [id]);
   const meStreamBanned = !!user && streamBannedIds.has(user.id);
+  const meBlockedOrBanned = meBlocked || meStreamBanned;
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
