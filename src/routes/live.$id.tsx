@@ -2340,6 +2340,22 @@ function LiveDetail() {
                   <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
                 </button>
               )}
+
+              {/* 🆕 Host toggle: force break panel visible to all viewers */}
+              <label className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs">
+                <span className="flex flex-col">
+                  <span className="font-bold">Force break panel visible to viewers</span>
+                  <span className="text-[10px] text-muted-foreground">Off = viewers tap "View Break" to open it themselves</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!!stream.break_force_visible}
+                  onChange={async (e) => {
+                    await supabase.from("live_streams").update({ break_force_visible: e.target.checked }).eq("id", id);
+                  }}
+                  className="h-4 w-4"
+                />
+              </label>
             </div>
           </div>
         </div>
