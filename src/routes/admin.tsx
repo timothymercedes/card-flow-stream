@@ -265,6 +265,79 @@ function Admin() {
           );
         })()}
 
+        {tab === "orders" && (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <button onClick={() => setOrderFilter("issues")} className={`rounded-full px-3 py-1 text-[11px] font-bold ${orderFilter === "issues" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Issues only</button>
+              <button onClick={() => setOrderFilter("all")} className={`rounded-full px-3 py-1 text-[11px] font-bold ${orderFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>All recent</button>
+              <span className="ml-auto self-center text-[10px] text-muted-foreground">{orders.length} shown</span>
+            </div>
+            {orders.map((o) => (
+              <div key={o.id} className="rounded-xl bg-card p-3">
+                <div className="flex items-start gap-3">
+                  {o.item_image_url && <img src={o.item_image_url} alt="" className="h-12 w-12 shrink-0 rounded object-cover" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold">{o.title}</p>
+                    <p className="text-[10px] text-muted-foreground">${Number(o.amount).toFixed(2)} · {o.status} · {o.payment_status}</p>
+                    <p className="text-[10px] text-muted-foreground">Buyer: {o.buyer_id.slice(0,8)} · Seller: {o.seller_id.slice(0,8)}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {orders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No orders.</p>}
+          </div>
+        )}
+
+        {tab === "users" && isAdmin && (
+          <div className="space-y-3">
+            <div className="rounded-xl bg-card p-3 space-y-2">
+              <p className="flex items-center gap-2 text-sm font-bold"><UserIcon className="h-4 w-4" /> Find a user</p>
+              <div className="flex gap-2">
+                <input value={userQuery} onChange={(e) => setUserQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && searchUsers()}
+                  placeholder="Username (partial OK)"
+                  className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none" />
+                <button onClick={searchUsers} className="rounded-lg bg-primary px-4 text-xs font-bold text-primary-foreground">Search</button>
+              </div>
+            </div>
+            {userResults.map((u) => {
+              const activeSusp = suspensions.find((s) => s.user_id === u.id && s.active);
+              return (
+                <div key={u.id} className="rounded-xl bg-card p-3">
+                  <div className="flex items-center gap-2">
+                    {u.avatar_url && <img src={u.avatar_url} className="h-8 w-8 rounded-full object-cover" alt="" />}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold">@{u.username}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {u.is_seller ? "Seller" : "Buyer"} · joined {new Date(u.created_at).toLocaleDateString()}
+                        {activeSusp && <span className="ml-2 rounded-full bg-destructive/20 px-1.5 py-0.5 font-bold text-destructive">{activeSusp.type}</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Link to="/seller/$username" params={{ username: u.username }} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">View profile</Link>
+                    {!activeSusp && (
+                      <>
+                        <button onClick={() => quickSuspend(u, 1, window.prompt("Reason for 1-day suspension?") || "")}
+                          className="rounded-lg bg-yellow-500/20 px-3 py-1 text-[10px] font-bold text-yellow-500">Suspend 1d</button>
+                        <button onClick={() => quickSuspend(u, 7, window.prompt("Reason for 7-day suspension?") || "")}
+                          className="rounded-lg bg-orange-500/20 px-3 py-1 text-[10px] font-bold text-orange-500">Suspend 7d</button>
+                        <button onClick={() => quickSuspend(u, 0, window.prompt("Reason for permanent ban?") || "")}
+                          className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Ban</button>
+                      </>
+                    )}
+                    {activeSusp && (
+                      <button onClick={() => lift(activeSusp.id)} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">Lift {activeSusp.type}</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {userQuery && userResults.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No users matched.</p>}
+          </div>
+        )}
+
         {tab === "disputes" && (
           <div className="space-y-2">
             {disputes.map((d) => (
