@@ -72,6 +72,9 @@ function LiveDetail() {
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
   const [showModPanel, setShowModPanel] = useState(false);
+  const [showQuickMod, setShowQuickMod] = useState(false);
+  const [quickModInput, setQuickModInput] = useState("");
+  const [showViewerPreview, setShowViewerPreview] = useState(true);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
