@@ -78,6 +78,8 @@ function MyListings() {
       title: editing.title,
       description: editing.description,
       image_url: editing.image_url,
+      back_image_url: editing.back_image_url,
+      category: editing.category,
       price: editing.price != null ? Number(editing.price) : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
