@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Radio, ChevronRight, Heart, Sparkles } from "lucide-react";
+import { Radio, ChevronRight, Heart, Sparkles, Flame } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link as RLink } from "@tanstack/react-router";
 
@@ -64,10 +64,19 @@ function Home() {
   return (
     <AppShell>
       <div className="bg-gradient-to-b from-primary/15 to-transparent px-4 pb-6 pt-4">
-        <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {interests.length > 0 ? "Personalized for what you collect." : "Live auctions, drops & cards from collectors."}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {interests.length > 0 ? "Personalized for what you collect." : "Live auctions, drops & cards from collectors."}
+            </p>
+          </div>
+          {profile && (profile.current_streak ?? 0) > 0 && (
+            <div className="flex shrink-0 items-center gap-1 rounded-full bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-500" title={`Longest streak: ${profile.longest_streak ?? 0} days`}>
+              <Flame className="h-3.5 w-3.5" /> {profile.current_streak}-day streak
+            </div>
+          )}
+        </div>
         {profile && interests.length === 0 && (
           <RLink to="/onboarding" className="mt-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary">
             <Sparkles className="h-4 w-4" /> Tell us what you collect → personalized feed
