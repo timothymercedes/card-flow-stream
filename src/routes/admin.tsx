@@ -46,6 +46,8 @@ function Admin() {
   const [orderFilter, setOrderFilter] = useState<"all" | "issues">("issues");
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<any[]>([]);
+  const [signupStats, setSignupStats] = useState<{ total: number; last_24h: number; last_7d: number } | null>(null);
+  const [recentSignups, setRecentSignups] = useState<any[]>([]);
 
   const isOwner = myRoles.includes("owner");
   const isAdmin = isOwner || myRoles.includes("admin");
@@ -100,6 +102,15 @@ function Admin() {
   useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
+  useEffect(() => {
+    if (!isAdmin || tab !== "users") return;
+    (supabase.rpc as any)("admin_get_signup_stats").then(({ data }: any) => {
+      if (data && data[0]) setSignupStats(data[0]);
+    });
+    (supabase.rpc as any)("admin_list_recent_signups", { _limit: 50 }).then(({ data }: any) => {
+      setRecentSignups((data as any[]) || []);
+    });
+  }, [isAdmin, tab]);
 
   async function loadOrders() {
     let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
@@ -291,6 +302,22 @@ function Admin() {
 
         {tab === "users" && isAdmin && (
           <div className="space-y-3">
+            {signupStats && (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-card p-3 text-center">
+                  <p className="text-[10px] uppercase text-muted-foreground">Total signups</p>
+                  <p className="text-xl font-bold">{signupStats.total}</p>
+                </div>
+                <div className="rounded-xl bg-card p-3 text-center">
+                  <p className="text-[10px] uppercase text-muted-foreground">Last 24h</p>
+                  <p className="text-xl font-bold text-primary">{signupStats.last_24h}</p>
+                </div>
+                <div className="rounded-xl bg-card p-3 text-center">
+                  <p className="text-[10px] uppercase text-muted-foreground">Last 7d</p>
+                  <p className="text-xl font-bold">{signupStats.last_7d}</p>
+                </div>
+              </div>
+            )}
             <div className="rounded-xl bg-card p-3 space-y-2">
               <p className="flex items-center gap-2 text-sm font-bold"><UserIcon className="h-4 w-4" /> Find a user</p>
               <div className="flex gap-2">
@@ -301,6 +328,26 @@ function Admin() {
                 <button onClick={searchUsers} className="rounded-lg bg-primary px-4 text-xs font-bold text-primary-foreground">Search</button>
               </div>
             </div>
+            {!userQuery && recentSignups.length > 0 && (
+              <div>
+                <p className="mb-2 text-[11px] font-bold uppercase text-muted-foreground">Recent signups</p>
+                <div className="space-y-2">
+                  {recentSignups.map((u) => (
+                    <div key={u.id} className="flex items-center gap-2 rounded-xl bg-card p-2.5">
+                      {u.avatar_url ? <img src={u.avatar_url} className="h-8 w-8 rounded-full object-cover" alt="" /> : <div className="h-8 w-8 rounded-full bg-muted" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold">@{u.username}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {u.is_seller ? "Seller" : "Buyer"} · {new Date(u.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Link to="/seller/$username" params={{ username: u.username }}
+                        className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">View</Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {userResults.map((u) => {
               const activeSusp = suspensions.find((s) => s.user_id === u.id && s.active);
               return (
