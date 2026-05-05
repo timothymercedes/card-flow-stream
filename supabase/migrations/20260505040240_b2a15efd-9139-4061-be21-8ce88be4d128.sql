@@ -1,0 +1,2 @@
+ALTER TABLE public.spin_wheels DROP CONSTRAINT IF EXISTS spin_wheels_spin_speed_check;
+ALTER TABLE public.spin_wheels ADD CONSTRAINT spin_wheels_spin_speed_check CHECK (spin_speed IN ('slow','normal','fast','5','10','15'));
