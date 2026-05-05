@@ -641,6 +641,7 @@ export type Database = {
           item_image_url: string | null
           listing_type: string
           min_bid_increment: number
+          pause_until: string | null
           quantity: number
           quantity_remaining: number | null
           quick_start_enabled: boolean
@@ -712,6 +713,7 @@ export type Database = {
           item_image_url?: string | null
           listing_type?: string
           min_bid_increment?: number
+          pause_until?: string | null
           quantity?: number
           quantity_remaining?: number | null
           quick_start_enabled?: boolean
@@ -783,6 +785,7 @@ export type Database = {
           item_image_url?: string | null
           listing_type?: string
           min_bid_increment?: number
+          pause_until?: string | null
           quantity?: number
           quantity_remaining?: number | null
           quick_start_enabled?: boolean
