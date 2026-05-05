@@ -48,6 +48,10 @@ function LiveList() {
   const [shows, setShows] = useState<Show[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", category: "", thumbnail_url: "", date: "", time: "" });
+  const [recurring, setRecurring] = useState(false);
+  const [weeks, setWeeks] = useState("4");
+  const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const [days, setDays] = useState<number[]>([]);
 
   async function load() {
     const [{ data: s }, { data: sh }] = await Promise.all([
@@ -69,21 +73,39 @@ function LiveList() {
   async function createShow() {
     if (!user || !profile) return toast.error("Sign in first");
     if (!form.title || !form.date || !form.time) return toast.error("Title, date and time required");
-    const scheduled_for = new Date(`${form.date}T${form.time}`).toISOString();
-    if (new Date(scheduled_for).getTime() < Date.now()) return toast.error("Pick a future date");
-    const { error } = await supabase.from("scheduled_shows").insert({
+    const base = new Date(`${form.date}T${form.time}`);
+    if (base.getTime() < Date.now()) return toast.error("Pick a future date");
+
+    const dates: Date[] = [];
+    if (recurring) {
+      const w = Math.max(1, Math.min(12, Number(weeks) || 4));
+      const selected = days.length ? days : [base.getDay()];
+      for (let i = 0; i < w; i++) {
+        for (const dow of selected) {
+          const d = new Date(base);
+          d.setDate(base.getDate() + i * 7 + ((dow - base.getDay() + 7) % 7));
+          if (d.getTime() > Date.now()) dates.push(d);
+        }
+      }
+    } else {
+      dates.push(base);
+    }
+
+    const rows = dates.map((d) => ({
       seller_id: user.id,
       seller_username: profile.username,
       title: form.title,
       description: form.description || null,
       category: form.category || null,
       thumbnail_url: form.thumbnail_url || null,
-      scheduled_for,
-    });
+      scheduled_for: d.toISOString(),
+    }));
+    const { error } = await supabase.from("scheduled_shows").insert(rows);
     if (error) return toast.error(error.message);
-    toast.success("Show scheduled");
+    toast.success(rows.length === 1 ? "Show scheduled" : `${rows.length} shows scheduled`);
     setComposeOpen(false);
     setForm({ title: "", description: "", category: "", thumbnail_url: "", date: "", time: "" });
+    setRecurring(false); setDays([]); setWeeks("4");
     load();
   }
 
@@ -184,7 +206,36 @@ function LiveList() {
               <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="flex-1 rounded-lg bg-input px-3 py-2 text-sm outline-none" />
               <input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} className="flex-1 rounded-lg bg-input px-3 py-2 text-sm outline-none" />
             </div>
-            <button onClick={createShow} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Schedule</button>
+
+            <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+              <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
+              <span className="font-semibold">Repeat weekly</span>
+              <span className="text-muted-foreground">(uses the time above)</span>
+            </label>
+            {recurring && (
+              <div className="space-y-2 rounded-lg bg-muted/30 p-2">
+                <p className="text-[11px] text-muted-foreground">Days of the week</p>
+                <div className="flex flex-wrap gap-1">
+                  {WEEKDAYS.map((d, i) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDays((cur) => cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i])}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${days.includes(i) ? "bg-primary text-primary-foreground" : "bg-card"}`}
+                    >{d}</button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span>For</span>
+                  <input type="number" min={1} max={12} value={weeks} onChange={(e) => setWeeks(e.target.value)} className="w-16 rounded-lg bg-input px-2 py-1 text-xs outline-none" />
+                  <span>weeks</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Tip: leave days empty to repeat on the same weekday as the start date.</p>
+              </div>
+            )}
+            <button onClick={createShow} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">
+              {recurring ? "Schedule recurring shows" : "Schedule"}
+            </button>
           </div>
         </div>
       )}

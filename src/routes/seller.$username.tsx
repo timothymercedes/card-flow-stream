@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 
 function PublicStore() {
   const { username } = Route.useParams();
+  const nav = useNavigate();
   const { user, profile: myProfile } = useAuth();
   const [seller, setSeller] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
@@ -60,6 +61,24 @@ function PublicStore() {
         link: `/seller/${myProfile.username}`,
       });
     }
+  }
+
+  async function startMessage() {
+    if (!user || !myProfile) { toast.error("Sign in to message"); return; }
+    if (!seller || seller.id === user.id) return;
+    const { data: existing } = await supabase.from("message_requests").select("*")
+      .or(`and(sender_id.eq.${user.id},recipient_id.eq.${seller.id}),and(sender_id.eq.${seller.id},recipient_id.eq.${user.id})`)
+      .maybeSingle();
+    if (!existing) {
+      await supabase.from("message_requests").insert({
+        sender_id: user.id, sender_username: myProfile.username, recipient_id: seller.id,
+      });
+      await supabase.from("notifications").insert({
+        user_id: seller.id, type: "msg_request", body: `@${myProfile.username} wants to message you`, link: `/messages`,
+      });
+      toast.success("Message request sent");
+    }
+    nav({ to: "/messages/$userId", params: { userId: seller.id } });
   }
 
   useEffect(() => {
@@ -127,12 +146,20 @@ function PublicStore() {
                 </div>
                 <div className="flex items-center gap-2">
                   {user && seller.id !== user.id && (
-                    <button
-                      onClick={toggleFollow}
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${isFollowing ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"}`}
-                    >
-                      {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
-                    </button>
+                    <>
+                      <button
+                        onClick={toggleFollow}
+                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${isFollowing ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"}`}
+                      >
+                        {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
+                      </button>
+                      <button
+                        onClick={startMessage}
+                        className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold ring-1 ring-border"
+                      >
+                        <MessageCircle className="h-3 w-3" /> Message
+                      </button>
+                    </>
                   )}
                   <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
                 </div>

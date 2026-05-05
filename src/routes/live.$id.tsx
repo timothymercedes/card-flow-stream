@@ -536,16 +536,23 @@ function LiveDetail() {
 
   // ---- Mod management ----
   async function addModBySearch(u: { id: string; username: string }) {
-    if (!isSeller || !user) return;
+    if (!isSeller || !user || !profile) return;
     if (u.id === user.id) return toast.error("You're already the host");
-    const { error } = await supabase.from("stream_moderators").insert({
-      stream_id: id, host_id: user.id, mod_user_id: u.id, mod_username: u.username,
+    // Send a collab invite — invitee accepts to become co-host (mod).
+    const { error } = await supabase.from("stream_collab_invites").insert({
+      stream_id: id, host_id: user.id, host_username: profile.username,
+      invitee_id: u.id, invitee_username: u.username,
     });
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (/duplicate|unique/i.test(error.message)) return toast.error(`@${u.username} already has a pending invite`);
+      return toast.error(error.message);
+    }
     await supabase.from("notifications").insert({
-      user_id: u.id, type: "mod_added", body: `🛡️ You're now a mod for "${stream.title}"`, link: `/live/${id}`,
+      user_id: u.id, type: "collab_invite",
+      body: `🤝 @${profile.username} invited you to co-host "${stream.title}"`,
+      link: `/live/${id}`,
     });
-    toast.success(`@${u.username} added as mod`);
+    toast.success(`Invite sent to @${u.username}`);
     setModSearchQ(""); setModSearchRes([]);
   }
   async function removeMod(modId: string) {

@@ -1160,6 +1160,7 @@ export type Database = {
           public_id: string | null
           seller_status: string
           shipping_cap: number | null
+          shop_name: string | null
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
           stripe_onboarding_status: string
@@ -1187,6 +1188,7 @@ export type Database = {
           public_id?: string | null
           seller_status?: string
           shipping_cap?: number | null
+          shop_name?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
@@ -1214,6 +1216,7 @@ export type Database = {
           public_id?: string | null
           seller_status?: string
           shipping_cap?: number | null
+          shop_name?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
@@ -1531,6 +1534,42 @@ export type Database = {
           stream_id?: string
           target_user_id?: string
           target_username?: string
+        }
+        Relationships: []
+      }
+      stream_collab_invites: {
+        Row: {
+          created_at: string
+          host_id: string
+          host_username: string
+          id: string
+          invitee_id: string
+          invitee_username: string
+          responded_at: string | null
+          status: string
+          stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          host_username: string
+          id?: string
+          invitee_id: string
+          invitee_username: string
+          responded_at?: string | null
+          status?: string
+          stream_id: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          host_username?: string
+          id?: string
+          invitee_id?: string
+          invitee_username?: string
+          responded_at?: string | null
+          status?: string
+          stream_id?: string
         }
         Relationships: []
       }
