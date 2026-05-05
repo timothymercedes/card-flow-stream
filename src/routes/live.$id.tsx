@@ -2470,7 +2470,7 @@ function LiveDetail() {
             <p className="mb-3 text-[11px] text-muted-foreground">
               {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
-            <div className="grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-y-auto pr-1">
+            <div className="grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] [scroll-behavior:smooth] [touch-action:pan-y]" style={{ WebkitOverflowScrolling: "touch" }}>
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
