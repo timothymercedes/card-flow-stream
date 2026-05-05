@@ -156,6 +156,7 @@ function LiveDetail() {
   const [editVoicePhrase, setEditVoicePhrase] = useState("next");
   // 🆕 Chat slow-mode (seconds between messages per viewer; 0 = off)
   const [editSlowMode, setEditSlowMode] = useState("0");
+  const [editRevealMode, setEditRevealMode] = useState<"none" | "wheel" | "break">("none");
   const lastChatTsRef = useRef<number>(0);
 
   useEffect(() => {
