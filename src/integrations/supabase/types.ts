@@ -559,6 +559,7 @@ export type Database = {
       }
       live_streams: {
         Row: {
+          auction_reveal_mode: string
           break_characters: Json | null
           break_force_visible: boolean
           break_mode: string | null
@@ -628,6 +629,7 @@ export type Database = {
           winning_bid: number | null
         }
         Insert: {
+          auction_reveal_mode?: string
           break_characters?: Json | null
           break_force_visible?: boolean
           break_mode?: string | null
@@ -697,6 +699,7 @@ export type Database = {
           winning_bid?: number | null
         }
         Update: {
+          auction_reveal_mode?: string
           break_characters?: Json | null
           break_force_visible?: boolean
           break_mode?: string | null
