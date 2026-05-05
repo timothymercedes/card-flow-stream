@@ -2585,8 +2585,8 @@ function LiveDetail() {
             <p className="mb-3 text-[11px] text-muted-foreground">
               {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
-            <div className="grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] [scroll-behavior:smooth] [touch-action:pan-y]" style={{ WebkitOverflowScrolling: "touch" }}>
-              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
+            <div className="grid min-h-0 flex-1 grid-cols-3 gap-1.5 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch] [scroll-behavior:smooth] [touch-action:pan-y]" style={{ WebkitOverflowScrolling: "touch" }}>
+              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
                 const selected = selectedBreakSlots.includes(n);
@@ -2598,22 +2598,25 @@ function LiveDetail() {
                     key={n}
                     onClick={() => !taken && toggleBreakSlotSelection(n)}
                     disabled={!!taken}
-                    className={`flex aspect-square min-h-0 flex-col items-center justify-center gap-0.5 rounded-md p-1 text-[9px] font-bold leading-tight ${
+                    className={`flex aspect-square min-h-0 flex-col items-center justify-center gap-0.5 rounded-md p-1.5 text-[10px] font-bold leading-tight ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
-                      taken ? "bg-muted text-muted-foreground cursor-not-allowed" :
+                      taken ? "bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/40 cursor-not-allowed" :
                       selected ? "bg-primary text-primary-foreground ring-2 ring-primary/40" :
                       "bg-gradient-to-br from-pink-500 to-purple-500 text-white active:scale-95"
                     }`}
                   >
-                    <span className="text-xs font-extrabold">{n}</span>
-                    <span className="line-clamp-1 max-w-full truncate px-1 text-[8px] opacity-90">{charLabel}</span>
-                    {taken && <span className="line-clamp-1 max-w-full truncate text-[8px] opacity-80">@{taken.buyer_username}</span>}
+                    <span className="text-sm font-extrabold leading-none">#{n}</span>
+                    <span className="line-clamp-2 max-w-full px-0.5 text-[9px] leading-tight opacity-95">{charLabel}</span>
+                    {taken ? (
+                      <span className="line-clamp-1 max-w-full truncate rounded bg-black/30 px-1 text-[9px] font-extrabold">
+                        {mine ? "✓ YOURS" : `@${taken.buyer_username}`}
+                      </span>
+                    ) : (
+                      <span className="text-[8px] uppercase tracking-wide opacity-70">open</span>
+                    )}
                   </button>
                 );
               })}
-              {breakSlots.length >= Number(stream.break_slot_count || 0) && (
-                <p className="col-span-4 py-6 text-center text-xs font-semibold text-muted-foreground">All characters have been claimed.</p>
-              )}
             </div>
             <button
               onClick={claimSelectedBreakSlots}
