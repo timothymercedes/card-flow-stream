@@ -97,8 +97,8 @@ function Sell() {
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     await ensureSeller();
-    const minutes = Number(timerMin) || 0;
-    const ends_at = minutes > 0 ? new Date(Date.now() + minutes * 60 * 1000).toISOString() : null;
+    // Timer never starts on go-live — only starts when seller hits "Start Auction" inside the live page
+    const ends_at: string | null = null;
 
     // Optional: provision OBS / Cloudflare Stream input
     let cf: any = {};
