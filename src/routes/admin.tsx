@@ -216,6 +216,22 @@ function Admin() {
             </div>
           )}
         </div>
+        {isAdmin && signupStats && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Total signups</p>
+              <p className="text-xl font-bold">{signupStats.total}</p>
+            </div>
+            <div className="rounded-lg bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Last 24h</p>
+              <p className="text-xl font-bold text-primary">{signupStats.last_24h}</p>
+            </div>
+            <div className="rounded-lg bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Last 7d</p>
+              <p className="text-xl font-bold">{signupStats.last_7d}</p>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 border-b border-border">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("orders")} className={`pb-2 text-xs font-bold ${tab === "orders" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Orders</button>
