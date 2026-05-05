@@ -92,6 +92,7 @@ function Orders() {
   async function deliver(o: any) {
     const { error } = await supabase.from("orders").update({ status: "delivered", delivered_at: new Date().toISOString() }).eq("id", o.id);
     if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({ user_id: o.seller_id, type: "order", body: `Buyer marked "${o.title}" as delivered ✅`, link: "/store" });
     toast.success("Marked delivered");
     load();
   }

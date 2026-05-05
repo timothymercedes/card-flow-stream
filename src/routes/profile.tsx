@@ -39,6 +39,7 @@ function Profile() {
   const [buyerCompleted, setBuyerCompleted] = useState(0);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [listRows, setListRows] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -55,6 +56,7 @@ function Profile() {
     supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => setFollowing(count || 0));
     (supabase.rpc as any)("get_seller_completed_count", { _user: user.id }).then(({ data }: any) => setSellerCompleted(Number(data ?? 0)));
     (supabase.rpc as any)("get_buyer_completed_count", { _user: user.id }).then(({ data }: any) => setBuyerCompleted(Number(data ?? 0)));
+    supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["owner","admin","moderator","support"]).then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
   }, [user]);
 
   async function openList(kind: "followers" | "following") {
@@ -259,6 +261,13 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        {isAdmin && (
+          <Link to="/admin" className="flex items-center justify-between rounded-xl bg-primary/10 p-3 hover:bg-primary/20">
+            <span className="flex items-center gap-2 text-sm font-bold text-primary"><ShieldCheck className="h-4 w-4" /> Admin Dashboard</span>
+            <span className="text-xs text-primary">Open →</span>
+          </Link>
+        )}
 
         {(sellerCompleted < 100 || buyerCompleted < 35) && (
           <section className="rounded-xl bg-card p-3 space-y-2">

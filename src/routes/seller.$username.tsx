@@ -2,8 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -19,6 +21,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 
 function PublicStore() {
   const { username } = Route.useParams();
+  const { user, profile: myProfile } = useAuth();
   const [seller, setSeller] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [soldOrders, setSoldOrders] = useState<any[]>([]);
@@ -31,6 +34,33 @@ function PublicStore() {
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  useEffect(() => {
+    if (!user || !seller) { setIsFollowing(false); return; }
+    supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
+      .then(({ data }) => setIsFollowing(!!data));
+  }, [user, seller]);
+
+  async function toggleFollow() {
+    if (!user || !myProfile) { toast.error("Sign in to follow"); return; }
+    if (!seller || seller.id === user.id) return;
+    if (isFollowing) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("followee_id", seller.id);
+      setIsFollowing(false);
+      setFollowers((c) => Math.max(0, c - 1));
+    } else {
+      const { error } = await supabase.from("follows").insert({ follower_id: user.id, followee_id: seller.id });
+      if (error) { toast.error(error.message); return; }
+      setIsFollowing(true);
+      setFollowers((c) => c + 1);
+      await supabase.from("notifications").insert({
+        user_id: seller.id, type: "follow",
+        body: `@${myProfile.username} started following you`,
+        link: `/seller/${myProfile.username}`,
+      });
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -95,7 +125,17 @@ function PublicStore() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500"><BadgeCheck className="h-3 w-3" /> Verified Buyer</span>
                   )}
                 </div>
-                <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
+                <div className="flex items-center gap-2">
+                  {user && seller.id !== user.id && (
+                    <button
+                      onClick={toggleFollow}
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${isFollowing ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"}`}
+                    >
+                      {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
+                    </button>
+                  )}
+                  <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
+                </div>
               </div>
 
               <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">

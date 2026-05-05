@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
+import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -37,6 +38,11 @@ import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/a
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
   path: '/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoriesRoute = StoriesRouteImport.update({
+  id: '/stories',
+  path: '/stories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreRoute = StoreRouteImport.update({
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
+  '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
+  '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
+  '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sell'
     | '/store'
+    | '/stories'
     | '/vault'
     | '/legal/buyer-terms'
     | '/legal/privacy'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sell'
     | '/store'
+    | '/stories'
     | '/vault'
     | '/legal/buyer-terms'
     | '/legal/privacy'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/sell'
     | '/store'
+    | '/stories'
     | '/vault'
     | '/legal/buyer-terms'
     | '/legal/privacy'
@@ -328,6 +340,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
   StoreRoute: typeof StoreRoute
+  StoriesRoute: typeof StoriesRoute
   VaultRoute: typeof VaultRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/vault'
       fullPath: '/vault'
       preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stories': {
+      id: '/stories'
+      path: '/stories'
+      fullPath: '/stories'
+      preLoaderRoute: typeof StoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/store': {
@@ -528,6 +548,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
   StoreRoute: StoreRoute,
+  StoriesRoute: StoriesRoute,
   VaultRoute: VaultRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,

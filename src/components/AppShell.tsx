@@ -1,14 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Camera } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/NotificationBell";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
   { to: "/", label: "Home", icon: Home },
   { to: "/live", label: "Live", icon: Radio },
   { to: "/market", label: "Market", icon: Store },
+  { to: "/stories", label: "Stories", icon: Camera },
   { to: "/vault", label: "Vault", icon: Lock },
   { to: "/messages", label: "Chat", icon: MessageCircle },
 ];
@@ -50,6 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
             <Plus className="h-3.5 w-3.5" /> Sell
           </Link>
+          <NotificationBell />
           <Link to="/cart" className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <ShoppingBag className="h-4 w-4" />
             {cartCount > 0 && (
