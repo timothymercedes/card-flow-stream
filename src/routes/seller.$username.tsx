@@ -21,6 +21,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 
 function PublicStore() {
   const { username } = Route.useParams();
+  const { user, profile: myProfile } = useAuth();
   const [seller, setSeller] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [soldOrders, setSoldOrders] = useState<any[]>([]);
@@ -33,6 +34,33 @@ function PublicStore() {
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  useEffect(() => {
+    if (!user || !seller) { setIsFollowing(false); return; }
+    supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
+      .then(({ data }) => setIsFollowing(!!data));
+  }, [user, seller]);
+
+  async function toggleFollow() {
+    if (!user || !myProfile) { toast.error("Sign in to follow"); return; }
+    if (!seller || seller.id === user.id) return;
+    if (isFollowing) {
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("followee_id", seller.id);
+      setIsFollowing(false);
+      setFollowers((c) => Math.max(0, c - 1));
+    } else {
+      const { error } = await supabase.from("follows").insert({ follower_id: user.id, followee_id: seller.id });
+      if (error) { toast.error(error.message); return; }
+      setIsFollowing(true);
+      setFollowers((c) => c + 1);
+      await supabase.from("notifications").insert({
+        user_id: seller.id, type: "follow",
+        body: `@${myProfile.username} started following you`,
+        link: `/seller/${myProfile.username}`,
+      });
+    }
+  }
 
   useEffect(() => {
     (async () => {
