@@ -2786,6 +2786,21 @@ function LiveDetail() {
         </div>
       )}
 
+      {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
+      {isStaff && (
+        <>
+          <button
+            onClick={() => setShowPaymentLog(true)}
+            className="fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-2 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card sm:bottom-28"
+            aria-label="Open payment activity log"
+          >
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Payments
+          </button>
+          <HostPaymentLog streamId={id} open={showPaymentLog} onClose={() => setShowPaymentLog(false)} />
+        </>
+      )}
+
       {/* Giveaway controls are host-only; viewers should never see an appreciation/gift button over bidding. */}
       {isSeller && (
         <LiveGiveaway
