@@ -281,6 +281,12 @@ function Sell() {
           <div className="space-y-3">
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Stream title" value={streamTitle} onChange={(e) => setStreamTitle(e.target.value)} />
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={2} placeholder="Item description (optional)" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">Category — helps viewers find your stream</span>
+              <select value={streamCategory} onChange={(e) => setStreamCategory(e.target.value)} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none">
+                {LISTING_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>)}
+              </select>
+            </label>
             <input type="number" min="1" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting price ($)" value={startingBid} onChange={(e) => setStartingBid(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
               <input type="number" min="0" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Timer (min)" value={timerMin} onChange={(e) => setTimerMin(e.target.value)} />
