@@ -173,6 +173,7 @@ function Sell() {
       image_url: imageUrl || null,
       back_image_url: backImageUrl || null,
       tcg_number: tcgNumber.trim() || null,
+      category,
       condition,
       listing_type: primary,
       is_auction: enableAuction,
