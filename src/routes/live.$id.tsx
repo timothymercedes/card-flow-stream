@@ -744,6 +744,7 @@ function LiveDetail() {
     await sendMsg(`🎟️ @${profile.username} claimed ${count} Mystery Break character${count === 1 ? "" : "s"} ($${total.toFixed(2)})`, true);
     toast.success(`${count} character${count === 1 ? "" : "s"} claimed and paid`);
     setSelectedBreakSlots([]);
+    setSelectionDeadline(null);
     setShowViewerBreak(false);
   }
 
