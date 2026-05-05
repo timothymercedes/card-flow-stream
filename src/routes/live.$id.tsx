@@ -91,6 +91,8 @@ function LiveDetail() {
   const [showViewerBreak, setShowViewerBreak] = useState(false);
   const [selectedBreakSlots, setSelectedBreakSlots] = useState<number[]>([]);
   const [claimingBreakSlots, setClaimingBreakSlots] = useState(false);
+  const [selectionDeadline, setSelectionDeadline] = useState<number | null>(null);
+  const [selectionCountdown, setSelectionCountdown] = useState<number>(0);
   const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
