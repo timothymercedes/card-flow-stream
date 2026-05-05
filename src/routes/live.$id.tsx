@@ -2122,21 +2122,83 @@ function LiveDetail() {
         )}
         {isSeller && !ended && (
           <div className="space-y-1.5">
-            {/* Primary action row — always visible Start/End Auction + End Live */}
-            <div className="flex items-stretch gap-1.5">
-              {!auctionLive ? (
-                <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-1.5 text-[11px] font-bold text-primary-foreground shadow active:scale-[0.98]">
-                  <Play className="h-3 w-3" /> Start Auction
-                </button>
-              ) : (
+            {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
+            {!auctionLive && (
+              <div className="space-y-1.5 rounded-xl bg-card/60 p-2 ring-1 ring-white/10 backdrop-blur">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={quickItem}
+                    onChange={(e) => setQuickItem(e.target.value)}
+                    placeholder="Item (e.g. Charizard PSA 9)"
+                    maxLength={60}
+                    className="flex-1 rounded-md bg-background/70 px-2 py-1.5 text-[12px] text-foreground outline-none placeholder:text-muted-foreground"
+                  />
+                  <button
+                    onClick={() => repeatLastQuick()}
+                    disabled={!lastQuick}
+                    title={lastQuick ? `Repeat: ${lastQuick.item}` : "No previous round"}
+                    className="rounded-md bg-white/10 px-2 py-1.5 text-[10px] font-bold text-white disabled:opacity-40"
+                  >
+                    ↻ Last
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="flex items-center gap-1 rounded-md bg-background/70 px-2 py-1 text-[10px] text-muted-foreground">
+                    Start $
+                    <input
+                      type="number" min="1" inputMode="decimal"
+                      value={editStartPrice}
+                      onChange={(e) => setEditStartPrice(e.target.value)}
+                      className="w-12 bg-transparent text-[12px] font-bold text-foreground outline-none"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1 rounded-md bg-background/70 px-2 py-1 text-[10px] text-muted-foreground">
+                    Buy $
+                    <input
+                      type="number" min="1" inputMode="decimal"
+                      value={quickBuyNow}
+                      onChange={(e) => setQuickBuyNow(e.target.value)}
+                      placeholder="—"
+                      className="w-14 bg-transparent text-[12px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                    />
+                  </label>
+                  <div className="flex items-center gap-0.5">
+                    {([15,30,60,120] as const).map((s) => (
+                      <button key={s} onClick={() => setEditTimerSec(String(s))}
+                        className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}>
+                        {s < 60 ? `${s}s` : `${s/60}m`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-stretch gap-1.5">
+                  <button
+                    onClick={() => quickStartAuction()}
+                    disabled={!quickItem.trim()}
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-1.5 text-[12px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <Play className="h-3.5 w-3.5" /> START ROUND
+                  </button>
+                  <button onClick={() => setShowSettings(true)} title="Advanced settings"
+                    className="rounded-lg bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white">
+                    <Settings className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2.5 py-1.5 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
+                    <Square className="h-3 w-3" /> End Live
+                  </button>
+                </div>
+              </div>
+            )}
+            {auctionLive && (
+              <div className="flex items-stretch gap-1.5">
                 <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-orange-500 py-1.5 text-[11px] font-bold text-white shadow active:scale-[0.98]">
                   <Square className="h-3 w-3" /> End Auction
                 </button>
-              )}
-              <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2.5 py-1.5 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
-                <Square className="h-3 w-3" /> End Live
-              </button>
-            </div>
+                <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2.5 py-1.5 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
+                  <Square className="h-3 w-3" /> End Live
+                </button>
+              </div>
+            )}
             {/* Secondary tools row */}
             <div className={`grid gap-1.5 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}>
               <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98]">
