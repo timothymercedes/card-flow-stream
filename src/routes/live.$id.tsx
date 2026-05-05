@@ -686,6 +686,7 @@ function LiveDetail() {
       break_mode: "open",
       break_force_visible: false,
       break_slot_count: count,
+      break_slot_price: price,
       break_slot_prefix: breakPrefix.trim() || null,
       break_characters: chars,
       break_teams: chars,
@@ -694,47 +695,33 @@ function LiveDetail() {
     toast.success("Break opened");
   }
 
-  async function claimBreakSlotNumber(slotNumber: number) {
+  function toggleBreakSlotSelection(slotNumber: number) {
+    if (breakSlots.some((s) => s.slot_number === slotNumber)) return;
+    setSelectedBreakSlots((slots) =>
+      slots.includes(slotNumber) ? slots.filter((n) => n !== slotNumber) : [...slots, slotNumber].sort((a, b) => a - b),
+    );
+  }
+
+  async function claimSelectedBreakSlots() {
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before claiming"); nav({ to: "/orders" }); return; }
-    const taken = breakSlots.some((s) => s.slot_number === slotNumber);
-    if (taken) return toast.error("That slot is already taken");
-    const price = Number(breakPrice) || 10;
-    const charLabel =
-      (Array.isArray(stream.break_characters) && stream.break_characters[slotNumber - 1]) ||
-      `${stream.break_slot_prefix || "#"}${slotNumber}`;
-    const { error } = await supabase.from("break_slots").insert({
-      stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
-      slot_number: slotNumber, character_label: charLabel,
-    });
+    const slots = selectedBreakSlots.filter((n) => !breakSlots.some((s) => s.slot_number === n));
+    if (slots.length === 0) return toast.error("Choose at least one character");
+    setClaimingBreakSlots(true);
+    const { data, error } = await (supabase.rpc as any)("claim_break_slots", { _stream_id: id, _slot_numbers: slots });
+    setClaimingBreakSlots(false);
     if (error) {
-      if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
+      if ((error as any).code === "23505") return toast.error("One of those characters was just claimed");
       return toast.error(error.message);
     }
-    const shipProfile = profile as any;
-    const { error: orderError } = await supabase.from("orders").insert({
-      buyer_id: user.id,
-      seller_id: stream.seller_id,
-      title: `Break slot — ${charLabel}`,
-      description: `Mystery Break slot ${slotNumber} in ${stream.title}`,
-      amount: price,
-      item_image_url: stream.item_image_url || stream.thumbnail_url || null,
-      stream_id: id,
-      status: "pending",
-      payment_status: "awaiting_payment",
-      ship_name: shipProfile.full_name || profile.username,
-      ship_address: shipProfile.address_line1 || "",
-      ship_city: shipProfile.address_city || "",
-      ship_state: shipProfile.address_state || "",
-      ship_zip: shipProfile.address_zip || "",
-      ship_country: shipProfile.address_country || "US",
-    });
-    if (orderError) return toast.error(orderError.message);
-    await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
-    toast.success(`${charLabel} is yours — pay now to lock it in`);
+    const result = Array.isArray(data) ? data[0] : data;
+    const count = Number(result?.claimed_count || slots.length);
+    const total = Number(result?.total_amount || (Number((stream as any).break_slot_price || breakPrice) * count));
+    await sendMsg(`🎟️ @${profile.username} claimed ${count} Mystery Break character${count === 1 ? "" : "s"} ($${total.toFixed(2)})`, true);
+    toast.success(`${count} character${count === 1 ? "" : "s"} claimed and paid`);
+    setSelectedBreakSlots([]);
     setShowViewerBreak(false);
-    nav({ to: "/orders" });
   }
 
   async function closeBreakClaims() {
