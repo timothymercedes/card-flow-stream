@@ -424,8 +424,14 @@ function Profile() {
         </section>
 
         <div className="space-y-2">
-          {p.seller_status === "approved" && sellerAgreementAccepted && (
+          {p.seller_status === "approved" && sellerAgreementAccepted && !p.shop_name && (
+            <ShopNameClaim userId={user!.id} onClaimed={(name) => setP((x: any) => ({ ...x, shop_name: name }))} />
+          )}
+          {p.seller_status === "approved" && sellerAgreementAccepted && p.shop_name && (
             <>
+              <div className="rounded-xl bg-primary/10 p-3 text-xs">
+                🏪 Your shop: <span className="font-bold text-primary">{p.shop_name}</span>
+              </div>
               <Link to="/sell" className="flex items-center gap-3 rounded-xl bg-card p-4">
                 <Radio className="h-5 w-5 text-live" />
                 <div className="flex-1"><p className="text-sm font-semibold">Go Live</p><p className="text-xs text-muted-foreground">Start a live auction stream</p></div>
