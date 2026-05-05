@@ -15,6 +15,7 @@ import { Route as StoreRouteImport } from './routes/store'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as DisputesRouteImport } from './routes/disputes'
@@ -63,6 +64,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
+  '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
+  '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
+  '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/disputes'
     | '/feed'
     | '/my-listings'
+    | '/onboarding'
     | '/orders'
     | '/profile'
     | '/sell'
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/disputes'
     | '/feed'
     | '/my-listings'
+    | '/onboarding'
     | '/orders'
     | '/profile'
     | '/sell'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/disputes'
     | '/feed'
     | '/my-listings'
+    | '/onboarding'
     | '/orders'
     | '/profile'
     | '/sell'
@@ -336,6 +348,7 @@ export interface RootRouteChildren {
   DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
   MyListingsRoute: typeof MyListingsRoute
+  OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
@@ -398,6 +411,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -544,6 +564,7 @@ const rootRouteChildren: RootRouteChildren = {
   DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
   MyListingsRoute: MyListingsRoute,
+  OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
