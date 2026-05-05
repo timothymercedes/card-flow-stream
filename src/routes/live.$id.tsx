@@ -2174,6 +2174,16 @@ function LiveDetail() {
         )}
         {isSeller && !ended && !paused && (
           <div className="space-y-1.5">
+            {/* Host focus toggle — collapses everything to maximize live video */}
+            <button
+              onClick={() => setHostFocus((v) => !v)}
+              className="flex w-full items-center justify-center gap-1 rounded-lg bg-white/10 py-1 text-[10px] font-bold text-white/90 ring-1 ring-white/15 active:scale-[0.98]"
+              title={hostFocus ? "Show all host panels" : "Hide panels for full video"}
+            >
+              {hostFocus ? <ChevronLeft className="h-3 w-3 rotate-90" /> : <ChevronRight className="h-3 w-3 rotate-90" />}
+              {hostFocus ? "Show panels" : "Hide panels (focus video)"}
+            </button>
+            {!hostFocus && <>
             {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
             {!auctionLive && (
               <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
