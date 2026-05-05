@@ -298,35 +298,9 @@ export function LiveGiveaway({
       );
     }
 
-    if (giveaway.status === "complete") return null;
-
-    // Compact bottom-right floating widget — does NOT cover the stream.
-    return (
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-3 sm:bottom-28">
-        <div className="pointer-events-auto flex max-w-sm items-center gap-2 rounded-full bg-card/90 px-3 py-2 text-xs shadow-2xl ring-1 ring-white/15 backdrop-blur">
-          <Gift className="h-4 w-4 shrink-0 text-emerald-400" />
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-[11px] font-bold text-foreground">{giveaway.prize_label}</span>
-            <span className="text-[10px] text-muted-foreground">
-              {entries.length} joined · {Math.ceil(remainingMs / 1000)}s left
-            </span>
-          </div>
-          {hasEntered ? (
-            <span className="ml-1 flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-[10px] font-extrabold text-emerald-300">
-              <Check className="h-3 w-3" /> Joined
-            </span>
-          ) : (
-            <button
-              onClick={joinGiveaway}
-              disabled={joining || remainingMs <= 0}
-              className="ml-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-extrabold text-white disabled:opacity-50"
-            >
-              {joining ? "…" : "Tap to Join"}
-            </button>
-          )}
-        </div>
-      </div>
-    );
+    // Viewer-side floating gift widget removed entirely — keeps the stream clean.
+    // Viewers join via the announcement banner / chat prompt only.
+    return null;
   }
 
   // === HOST CONTROLS ===
