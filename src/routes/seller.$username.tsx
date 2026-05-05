@@ -63,6 +63,24 @@ function PublicStore() {
     }
   }
 
+  async function startMessage() {
+    if (!user || !myProfile) { toast.error("Sign in to message"); return; }
+    if (!seller || seller.id === user.id) return;
+    const { data: existing } = await supabase.from("message_requests").select("*")
+      .or(`and(sender_id.eq.${user.id},recipient_id.eq.${seller.id}),and(sender_id.eq.${seller.id},recipient_id.eq.${user.id})`)
+      .maybeSingle();
+    if (!existing) {
+      await supabase.from("message_requests").insert({
+        sender_id: user.id, sender_username: myProfile.username, recipient_id: seller.id,
+      });
+      await supabase.from("notifications").insert({
+        user_id: seller.id, type: "msg_request", body: `@${myProfile.username} wants to message you`, link: `/messages`,
+      });
+      toast.success("Message request sent");
+    }
+    nav({ to: "/messages/$userId", params: { userId: seller.id } });
+  }
+
   useEffect(() => {
     (async () => {
       const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
