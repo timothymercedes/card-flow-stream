@@ -1348,15 +1348,41 @@ function LiveDetail() {
     }
   }
 
+  const [endLiveOpen, setEndLiveOpen] = useState(false);
   async function endLive() {
+    if (!isSeller) return;
+    setEndLiveOpen(true);
+  }
+  async function pauseLiveFor3h() {
+    if (!isSeller) return;
+    if (auctionLive) await finalizeAuctionRound();
+    const until = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    await supabase.from("live_streams").update({
+      status: "paused", is_active: false, pause_until: until,
+    }).eq("id", id);
+    await sendMsg(`⏸️ Host paused the live — back within 3 hours`, true);
+    toast.success("Live paused — resume within 3 hours");
+    camStream.current?.getTracks().forEach((t) => t.stop());
+    setEndLiveOpen(false);
+  }
+  async function resumeLive() {
+    if (!isSeller) return;
+    await supabase.from("live_streams").update({
+      status: "live", is_active: true, pause_until: null, ended_at: null,
+    }).eq("id", id);
+    await sendMsg(`▶️ Host is back — live resumed`, true);
+    toast.success("Live resumed");
+  }
+  async function confirmEndLive() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
     await supabase.from("live_streams").update({
-      status: "ended", is_active: false, ended_at: new Date().toISOString(),
+      status: "ended", is_active: false, ended_at: new Date().toISOString(), pause_until: null,
     }).eq("id", id);
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
     camStream.current?.getTracks().forEach((t) => t.stop());
+    setEndLiveOpen(false);
     nav({ to: "/store" });
   }
 
