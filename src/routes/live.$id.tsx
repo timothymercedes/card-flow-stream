@@ -80,6 +80,7 @@ function LiveDetail() {
   const [snipeFlash, setSnipeFlash] = useState(false);
   // 🆕 Snipe / buy-now-during-live
   const [snipePriceInput, setSnipePriceInput] = useState("");
+  const [snipeOpen, setSnipeOpen] = useState(false);
   // 🆕 Chat moderation actions
   const [chatActions, setChatActions] = useState<any[]>([]);
   const [chatActionMenu, setChatActionMenu] = useState<{ userId: string; username: string } | null>(null);
