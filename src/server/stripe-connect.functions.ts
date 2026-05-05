@@ -3,6 +3,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getStripe, calculateFees } from "@/lib/stripe.server";
 
+export const getStripePublishableKey = createServerFn({ method: "GET" }).handler(async () => {
+  const key = process.env.STRIPE_PUBLISHABLE_KEY;
+  if (!key) throw new Error("STRIPE_PUBLISHABLE_KEY not configured");
+  return { publishableKey: key };
+});
+
 /**
  * Create or retrieve a Stripe Express account for the seller and return an onboarding link.
  */
