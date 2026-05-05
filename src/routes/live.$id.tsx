@@ -87,6 +87,8 @@ function LiveDetail() {
   // 🆕 Mystery break (numbered slots 1..N)
   const [breakSlots, setBreakSlots] = useState<any[]>([]);
   const [showBreakPanel, setShowBreakPanel] = useState(false);
+  // Viewer-side break drawer (controlled separately from host editor)
+  const [showViewerBreak, setShowViewerBreak] = useState(false);
   const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
