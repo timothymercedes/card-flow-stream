@@ -2291,6 +2291,7 @@ function LiveDetail() {
                   Price/slot $
                   <input type="number" min="1" value={breakPrice}
                     onChange={(e) => setBreakPrice(e.target.value)}
+                    onBlur={() => supabase.from("live_streams").update({ break_slot_price: Math.max(1, Number(breakPrice) || 10) }).eq("id", id)}
                     className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
                 </label>
               </div>
@@ -2382,7 +2383,9 @@ function LiveDetail() {
                   type="checkbox"
                   checked={!!stream.break_force_visible}
                   onChange={async (e) => {
-                    await supabase.from("live_streams").update({ break_force_visible: e.target.checked }).eq("id", id);
+                    const checked = e.target.checked;
+                    setStream((prev: any) => prev ? { ...prev, break_force_visible: checked } : prev);
+                    await supabase.from("live_streams").update({ break_force_visible: checked }).eq("id", id);
                   }}
                   className="h-4 w-4"
                 />
@@ -2422,17 +2425,19 @@ function LiveDetail() {
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
+                const selected = selectedBreakSlots.includes(n);
                 const charLabel =
                   (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
                   `${stream.break_slot_prefix || "#"}${n}`;
                 return (
                   <button
                     key={n}
-                    onClick={() => !taken && claimBreakSlotNumber(n)}
+                    onClick={() => !taken && toggleBreakSlotSelection(n)}
                     disabled={!!taken}
                     className={`flex aspect-square min-h-0 flex-col items-center justify-center gap-0.5 rounded-md p-1 text-[9px] font-bold leading-tight ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
                       taken ? "bg-muted text-muted-foreground cursor-not-allowed" :
+                      selected ? "bg-primary text-primary-foreground ring-2 ring-primary/40" :
                       "bg-gradient-to-br from-pink-500 to-purple-500 text-white active:scale-95"
                     }`}
                   >
@@ -2446,10 +2451,21 @@ function LiveDetail() {
                 <p className="col-span-4 py-6 text-center text-xs font-semibold text-muted-foreground">All characters have been claimed.</p>
               )}
             </div>
+            <button
+              onClick={claimSelectedBreakSlots}
+              disabled={selectedBreakSlots.length === 0 || claimingBreakSlots}
+              className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+            >
+              {claimingBreakSlots
+                ? "Charging…"
+                : selectedBreakSlots.length > 0
+                  ? `Swipe/claim mine · $${(Number((stream as any).break_slot_price || breakPrice) * selectedBreakSlots.length).toFixed(2)}`
+                  : "Choose characters"}
+            </button>
             {!stream.break_force_visible && (
               <button
                 onClick={() => setShowViewerBreak(false)}
-                className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                className="mt-2 w-full rounded-lg bg-muted py-2 text-xs font-bold text-foreground"
               >
                 Done
               </button>
