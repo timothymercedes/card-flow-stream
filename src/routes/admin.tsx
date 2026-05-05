@@ -103,14 +103,14 @@ function Admin() {
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
   useEffect(() => {
-    if (!isAdmin || tab !== "users") return;
+    if (!isAdmin) return;
     (supabase.rpc as any)("admin_get_signup_stats").then(({ data }: any) => {
       if (data && data[0]) setSignupStats(data[0]);
     });
     (supabase.rpc as any)("admin_list_recent_signups", { _limit: 50 }).then(({ data }: any) => {
       setRecentSignups((data as any[]) || []);
     });
-  }, [isAdmin, tab]);
+  }, [isAdmin]);
 
   async function loadOrders() {
     let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
