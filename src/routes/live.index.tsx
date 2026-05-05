@@ -276,7 +276,10 @@ function LiveList() {
             </div>
             <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Title" className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description (optional)" rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm outline-none" />
-            <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Category (Pokemon, Sports, One Piece…)" className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none">
+              <option value="">Pick a category…</option>
+              {LISTING_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>)}
+            </select>
             <input value={form.thumbnail_url} onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })} placeholder="Thumbnail URL (optional)" className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
             <div className="flex gap-2">
               <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="flex-1 rounded-lg bg-input px-3 py-2 text-sm outline-none" />
