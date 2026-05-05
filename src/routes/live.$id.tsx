@@ -1097,7 +1097,8 @@ function LiveDetail() {
       quick_start_remaining: qty - 1,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
-    };
+      auction_reveal_mode: editRevealMode,
+    } as any;
     // 🆕 Optimistic local update so the host's timer starts ticking instantly,
     // without waiting for the realtime UPDATE round-trip.
     setStream((prev: any) => prev ? { ...prev, ...patch } : prev);
@@ -1122,7 +1123,8 @@ function LiveDetail() {
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
       chat_slow_mode_sec: Math.max(0, Math.min(300, Number(editSlowMode) || 0)),
-    }).eq("id", id);
+      auction_reveal_mode: editRevealMode,
+    } as any).eq("id", id);
     toast.success("Settings saved");
   }
 
