@@ -2798,10 +2798,10 @@ function LiveDetail() {
           <div className="animate-in zoom-in-95 fade-in rounded-3xl bg-gradient-to-br from-amber-400 via-rose-500 to-purple-600 p-1 shadow-2xl">
             <div className="rounded-3xl bg-black/85 px-8 py-6 text-center">
               <Trophy className="mx-auto h-12 w-12 text-amber-300" />
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-amber-300">Winner</p>
-              <p className="mt-1 text-2xl font-extrabold text-white">{wheelWinnerPopup.slot}</p>
-              <p className="mt-3 text-xs text-white/70">Owned by</p>
-              <p className="text-lg font-bold text-white">@{wheelWinnerPopup.winner}</p>
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-amber-300">Wheel Result</p>
+              <p className="mt-2 text-2xl font-extrabold text-white">{wheelWinnerPopup.slot}</p>
+              <p className="mt-4 text-xs text-white/70">is now owned by</p>
+              <p className="mt-1 text-xl font-extrabold text-amber-300">@{wheelWinnerPopup.winner} 🎉</p>
             </div>
           </div>
         </div>
