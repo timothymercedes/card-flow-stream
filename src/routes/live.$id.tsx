@@ -156,6 +156,7 @@ function LiveDetail() {
   const [editVoicePhrase, setEditVoicePhrase] = useState("next");
   // 🆕 Chat slow-mode (seconds between messages per viewer; 0 = off)
   const [editSlowMode, setEditSlowMode] = useState("0");
+  const [editRevealMode, setEditRevealMode] = useState<"none" | "wheel" | "break">("none");
   const lastChatTsRef = useRef<number>(0);
 
   useEffect(() => {
@@ -175,6 +176,7 @@ function LiveDetail() {
         setEditVoiceEnabled(!!data.voice_trigger_enabled);
         setEditVoicePhrase(data.voice_trigger_phrase || "next");
         setEditSlowMode(String((data as any).chat_slow_mode_sec ?? 0));
+        setEditRevealMode((((data as any).auction_reveal_mode as any) || "none"));
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if ((data as any).break_slot_price) setBreakPrice(String((data as any).break_slot_price));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
@@ -1095,7 +1097,8 @@ function LiveDetail() {
       quick_start_remaining: qty - 1,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
-    };
+      auction_reveal_mode: editRevealMode,
+    } as any;
     // 🆕 Optimistic local update so the host's timer starts ticking instantly,
     // without waiting for the realtime UPDATE round-trip.
     setStream((prev: any) => prev ? { ...prev, ...patch } : prev);
@@ -1111,7 +1114,7 @@ function LiveDetail() {
   async function saveAuctionDefaults() {
     if (!isSeller) return;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
-    await supabase.from("live_streams").update({
+    await supabase.from("live_streams").update(({
       default_timer_sec: Number(editTimerSec) || 30,
       default_starting_bid: Number(editStartPrice) || 1,
       shipping_price: Number(editShipPrice) || 0,
@@ -1120,7 +1123,8 @@ function LiveDetail() {
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
       chat_slow_mode_sec: Math.max(0, Math.min(300, Number(editSlowMode) || 0)),
-    }).eq("id", id);
+      auction_reveal_mode: editRevealMode,
+    }) as any).eq("id", id);
     toast.success("Settings saved");
   }
 
@@ -1253,6 +1257,14 @@ function LiveDetail() {
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
         round_number: nextRound,
       }).eq("id", id);
+      // 🆕 Auto-trigger pre-selected reveal (Spin Wheel or Mystery Break) for the winner
+      const revealMode = (stream as any).auction_reveal_mode as string | undefined;
+      if (isSeller && revealMode === "wheel") {
+        // Fire & forget — pops up overlay for everyone
+        triggerSpin().catch(() => {});
+      } else if (isSeller && revealMode === "break") {
+        spinBreakWheel().catch(() => {});
+      }
       // Clear winner banner + ends_at after 5s, then auto-rearm next round if quantity remaining
       setTimeout(async () => {
         const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
@@ -1754,6 +1766,28 @@ function LiveDetail() {
                     }}
                     className="mt-1 w-full rounded-md bg-input px-2 py-1.5 text-xs font-bold outline-none" />
                 </label>
+              </div>
+            </div>
+
+            {/* 🆕 Auction reveal mode — auto-pop a wheel/break when someone wins */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center gap-1.5 text-xs font-bold">🎁 Winner reveal</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">When this auction ends with a winner, auto-pop:</p>
+              <div className="mt-2 grid grid-cols-3 gap-1">
+                {([
+                  { v: "none", label: "None" },
+                  { v: "wheel", label: "🎡 Wheel" },
+                  { v: "break", label: "🎲 Break" },
+                ] as const).map((o) => (
+                  <button key={o.v} type="button"
+                    onClick={async () => {
+                      setEditRevealMode(o.v);
+                      await supabase.from("live_streams").update(({ auction_reveal_mode: o.v }) as any).eq("id", id);
+                    }}
+                    className={`rounded-md py-1.5 text-[11px] font-bold ${editRevealMode === o.v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    {o.label}
+                  </button>
+                ))}
               </div>
             </div>
 
