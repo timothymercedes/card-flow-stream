@@ -1769,6 +1769,28 @@ function LiveDetail() {
               </div>
             </div>
 
+            {/* 🆕 Auction reveal mode — auto-pop a wheel/break when someone wins */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center gap-1.5 text-xs font-bold">🎁 Winner reveal</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">When this auction ends with a winner, auto-pop:</p>
+              <div className="mt-2 grid grid-cols-3 gap-1">
+                {([
+                  { v: "none", label: "None" },
+                  { v: "wheel", label: "🎡 Wheel" },
+                  { v: "break", label: "🎲 Break" },
+                ] as const).map((o) => (
+                  <button key={o.v} type="button"
+                    onClick={async () => {
+                      setEditRevealMode(o.v);
+                      await supabase.from("live_streams").update(({ auction_reveal_mode: o.v }) as any).eq("id", id);
+                    }}
+                    className={`rounded-md py-1.5 text-[11px] font-bold ${editRevealMode === o.v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button onClick={startAuction} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground">
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
