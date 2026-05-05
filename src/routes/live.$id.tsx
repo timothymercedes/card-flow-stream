@@ -176,6 +176,7 @@ function LiveDetail() {
         setEditVoiceEnabled(!!data.voice_trigger_enabled);
         setEditVoicePhrase(data.voice_trigger_phrase || "next");
         setEditSlowMode(String((data as any).chat_slow_mode_sec ?? 0));
+        setEditRevealMode((((data as any).auction_reveal_mode as any) || "none"));
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
         if ((data as any).break_slot_price) setBreakPrice(String((data as any).break_slot_price));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
