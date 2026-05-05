@@ -1870,15 +1870,7 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Giveaway — viewer entry button (de-emphasized secondary) */}
-        {!isSeller && (
-          <button
-            onClick={() => setShowGiveaway(true)}
-            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
-          >
-            <Gift className="h-3 w-3" /> Open Appreciation Gift
-          </button>
-        )}
+        {/* Viewer Giveaway entry — handled by floating widget in <LiveGiveaway /> */}
 
         {!isSeller && (
           <>
