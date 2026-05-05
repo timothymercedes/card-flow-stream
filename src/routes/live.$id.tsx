@@ -1956,7 +1956,7 @@ function LiveDetail() {
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
             pb-1
             ${isStaff
-              ? "right-2 bottom-44 max-h-[45vh] w-[62%] max-w-[17rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
+              ? "right-2 bottom-64 max-h-[40vh] w-[62%] max-w-[17rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
               : "left-2 bottom-28 max-h-[20vh] w-[58%] max-w-[16rem] pr-1"}
             md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
             md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
