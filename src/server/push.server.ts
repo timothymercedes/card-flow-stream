@@ -26,7 +26,7 @@ type Payload = { title: string; body: string; url?: string; tag?: string };
 
 export async function sendPushToUsers(userIds: string[], payload: Payload): Promise<{ sent: number; cleaned: number }> {
   if (userIds.length === 0) return { sent: 0, cleaned: 0 };
-  configure();
+  if (!configure()) return { sent: 0, cleaned: 0 };
   const { data: subs } = await supabaseAdmin.from("push_subscriptions").select("*").in("user_id", userIds);
   if (!subs?.length) return { sent: 0, cleaned: 0 };
 
