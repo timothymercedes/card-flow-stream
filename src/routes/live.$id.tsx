@@ -2483,7 +2483,7 @@ function LiveDetail() {
               {claimingBreakSlots
                 ? "Charging…"
                 : selectedBreakSlots.length > 0
-                  ? `Swipe/claim mine · $${(Number((stream as any).break_slot_price || breakPrice) * selectedBreakSlots.length).toFixed(2)}`
+                  ? `Claim mine · $${(Number((stream as any).break_slot_price || breakPrice) * selectedBreakSlots.length).toFixed(2)}${selectionCountdown ? ` · ${selectionCountdown}s` : ""}`
                   : "Choose characters"}
             </button>
             {!stream.break_force_visible && (
