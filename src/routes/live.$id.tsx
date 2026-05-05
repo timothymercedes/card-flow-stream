@@ -718,9 +718,11 @@ function LiveDetail() {
 
   function toggleBreakSlotSelection(slotNumber: number) {
     if (breakSlots.some((s) => s.slot_number === slotNumber)) return;
-    setSelectedBreakSlots((slots) =>
-      slots.includes(slotNumber) ? slots.filter((n) => n !== slotNumber) : [...slots, slotNumber].sort((a, b) => a - b),
-    );
+    setSelectedBreakSlots((slots) => {
+      const next = slots.includes(slotNumber) ? slots.filter((n) => n !== slotNumber) : [...slots, slotNumber].sort((a, b) => a - b);
+      setSelectionDeadline(next.length > 0 ? Date.now() + 5000 : null);
+      return next;
+    });
   }
 
   async function claimSelectedBreakSlots() {
