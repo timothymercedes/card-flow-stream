@@ -123,6 +123,7 @@ function Sell() {
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user!.id,
       title: streamTitle,
+      category: streamCategory || null,
       item_description: streamDesc || null,
       listing_type: "auction",
       starting_bid: Number(startingBid) || 1,
