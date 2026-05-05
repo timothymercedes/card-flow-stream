@@ -43,6 +43,7 @@ function LiveDetail() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
+  const [hostFocus, setHostFocus] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
@@ -1950,7 +1951,7 @@ function LiveDetail() {
       })()}
 
       {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
-      {showChat && (
+      {showChat && !(isStaff && hostFocus) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
@@ -2173,6 +2174,16 @@ function LiveDetail() {
         )}
         {isSeller && !ended && !paused && (
           <div className="space-y-1.5">
+            {/* Host focus toggle — collapses everything to maximize live video */}
+            <button
+              onClick={() => setHostFocus((v) => !v)}
+              className="flex w-full items-center justify-center gap-1 rounded-lg bg-white/10 py-1 text-[10px] font-bold text-white/90 ring-1 ring-white/15 active:scale-[0.98]"
+              title={hostFocus ? "Show all host panels" : "Hide panels for full video"}
+            >
+              {hostFocus ? <ChevronLeft className="h-3 w-3 rotate-90" /> : <ChevronRight className="h-3 w-3 rotate-90" />}
+              {hostFocus ? "Show panels" : "Hide panels (focus video)"}
+            </button>
+            {!hostFocus && <>
             {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
             {!auctionLive && (
               <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
@@ -2287,6 +2298,7 @@ function LiveDetail() {
                 <Zap className="h-2.5 w-2.5" /> Snipe
               </button>
             </div>
+            </>}
           </div>
         )}
         {ended && (
@@ -3075,7 +3087,7 @@ function LiveDetail() {
       )}
 
       {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
-      {isStaff && (
+      {isStaff && !hostFocus && (
         <>
           <button
             onClick={() => setShowPaymentLog(true)}
