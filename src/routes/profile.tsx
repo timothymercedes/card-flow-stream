@@ -35,6 +35,10 @@ function Profile() {
   const [uploading, setUploading] = useState(false);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
+  const [sellerCompleted, setSellerCompleted] = useState(0);
+  const [buyerCompleted, setBuyerCompleted] = useState(0);
+  const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
+  const [listRows, setListRows] = useState<any[]>([]);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
