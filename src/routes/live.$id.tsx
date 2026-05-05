@@ -2298,6 +2298,7 @@ function LiveDetail() {
                 <Zap className="h-2.5 w-2.5" /> Snipe
               </button>
             </div>
+            </>}
           </div>
         )}
         {ended && (
