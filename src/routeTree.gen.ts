@@ -14,6 +14,7 @@ import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PayoutsRouteImport } from './routes/payouts'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
@@ -60,6 +61,11 @@ const SellRoute = SellRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PayoutsRoute = PayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/my-listings': typeof MyListingsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
+  '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/my-listings': typeof MyListingsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
+  '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
@@ -243,6 +251,7 @@ export interface FileRoutesById {
   '/my-listings': typeof MyListingsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
+  '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/onboarding'
     | '/orders'
+    | '/payouts'
     | '/profile'
     | '/sell'
     | '/store'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/onboarding'
     | '/orders'
+    | '/payouts'
     | '/profile'
     | '/sell'
     | '/store'
@@ -332,6 +343,7 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/onboarding'
     | '/orders'
+    | '/payouts'
     | '/profile'
     | '/sell'
     | '/store'
@@ -362,6 +374,7 @@ export interface RootRouteChildren {
   MyListingsRoute: typeof MyListingsRoute
   OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
+  PayoutsRoute: typeof PayoutsRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
   StoreRoute: typeof StoreRoute
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payouts': {
+      id: '/payouts'
+      path: '/payouts'
+      fullPath: '/payouts'
+      preLoaderRoute: typeof PayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -586,6 +606,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyListingsRoute: MyListingsRoute,
   OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,
+  PayoutsRoute: PayoutsRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
   StoreRoute: StoreRoute,
