@@ -323,6 +323,38 @@ export function LiveGiveaway({
   }
 
   // === HOST CONTROLS ===
+  // Compact, non-blocking floating widget when a giveaway is running and the host
+  // hasn't explicitly opened the full panel.
+  if (
+    !open &&
+    !hostOpenComposer &&
+    !isDrawingMoment &&
+    !isWinnerReveal &&
+    giveaway &&
+    giveaway.status === "open"
+  ) {
+    return (
+      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-40 flex justify-center px-3 sm:bottom-28">
+        <div className="pointer-events-auto flex max-w-sm items-center gap-2 rounded-full bg-card/90 px-3 py-2 text-xs shadow-2xl ring-1 ring-emerald-400/30 backdrop-blur">
+          <Gift className="h-4 w-4 shrink-0 text-emerald-400" />
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-[11px] font-bold text-foreground">{giveaway.prize_label}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {entries.length} joined · {Math.ceil(remainingMs / 1000)}s left
+            </span>
+          </div>
+          <button
+            onClick={startDraw}
+            disabled={entries.length === 0}
+            className="ml-1 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-3 py-1 text-[11px] font-extrabold text-white disabled:opacity-50"
+          >
+            Draw
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!open && !giveaway) return null;
   if (giveaway && giveaway.status === "complete" && !isWinnerReveal) {
     if (!open) return null;

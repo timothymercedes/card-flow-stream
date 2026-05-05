@@ -596,10 +596,42 @@ function LiveDetail() {
     setInput("");
   }
 
+  // 🆕 Buyer readiness — must have completed shipping profile to bid/buy
+  const [buyerReady, setBuyerReady] = useState(false);
+  useEffect(() => {
+    if (!user) { setBuyerReady(false); return; }
+    let cancelled = false;
+    supabase.from("profiles")
+      .select("full_name,phone,address_line1,address_city,address_zip,buyer_verified")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const ok = !!(data.full_name && data.phone && data.address_line1 && data.address_city && data.address_zip);
+        setBuyerReady(ok || !!data.buyer_verified);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  function requireBuyerReady(action = "continue"): boolean {
+    if (!user || !profile) {
+      toast.error(`Sign in to ${action}`);
+      nav({ to: "/auth" });
+      return false;
+    }
+    if (!buyerReady) {
+      toast.error("Complete your shipping profile first");
+      nav({ to: "/profile" });
+      return false;
+    }
+    return true;
+  }
+
+
   // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
-    if (!user || !profile) return toast.error("Sign in to bid");
+    if (!requireBuyerReady("bid")) return;
+    if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding again"); nav({ to: "/orders" }); return; }
     if (meBlocked) return toast.error("You're banned/muted in this stream");
@@ -664,7 +696,9 @@ function LiveDetail() {
 
   // 🆕 Buy-now snipe: instantly win at the host's snipe price
   async function buyNowSnipe() {
-    if (!user || !profile || !stream?.snipe_price) return;
+    if (!stream?.snipe_price) return;
+    if (!requireBuyerReady("buy")) return;
+    if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!auctionLive) return toast.error("No active auction");
@@ -726,6 +760,7 @@ function LiveDetail() {
   }
 
   async function claimSelectedBreakSlots() {
+    if (!requireBuyerReady("claim a character")) return;
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before claiming"); nav({ to: "/orders" }); return; }
@@ -1870,15 +1905,7 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Giveaway — viewer entry button (de-emphasized secondary) */}
-        {!isSeller && (
-          <button
-            onClick={() => setShowGiveaway(true)}
-            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
-          >
-            <Gift className="h-3 w-3" /> Open Appreciation Gift
-          </button>
-        )}
+        {/* Viewer Giveaway entry — handled by floating widget in <LiveGiveaway /> */}
 
         {!isSeller && (
           <>
