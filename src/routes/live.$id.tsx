@@ -89,6 +89,8 @@ function LiveDetail() {
   const [showBreakPanel, setShowBreakPanel] = useState(false);
   // Viewer-side break drawer (controlled separately from host editor)
   const [showViewerBreak, setShowViewerBreak] = useState(false);
+  const [selectedBreakSlots, setSelectedBreakSlots] = useState<number[]>([]);
+  const [claimingBreakSlots, setClaimingBreakSlots] = useState(false);
   const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
@@ -168,6 +170,7 @@ function LiveDetail() {
         setEditVoicePhrase(data.voice_trigger_phrase || "next");
         setEditSlowMode(String((data as any).chat_slow_mode_sec ?? 0));
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
+        if ((data as any).break_slot_price) setBreakPrice(String((data as any).break_slot_price));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
           setBreakCharacters(data.break_characters as string[]);
@@ -246,10 +249,15 @@ function LiveDetail() {
     if (!stream) return;
     if (stream.break_force_visible && stream.break_mode === "open") {
       setShowViewerBreak(true);
-    } else if (stream.break_mode !== "open") {
+    } else if (stream.break_mode !== "open" || !stream.break_force_visible) {
       setShowViewerBreak(false);
     }
   }, [stream?.break_force_visible, stream?.break_mode]);
+
+  useEffect(() => {
+    if (!breakSlots.length) return;
+    setSelectedBreakSlots((slots) => slots.filter((n) => !breakSlots.some((s) => s.slot_number === n)));
+  }, [breakSlots]);
 
   // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
   const [unpaidOrders, setUnpaidOrders] = useState(0);
