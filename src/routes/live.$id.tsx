@@ -80,6 +80,7 @@ function LiveDetail() {
   const [snipeFlash, setSnipeFlash] = useState(false);
   // 🆕 Snipe / buy-now-during-live
   const [snipePriceInput, setSnipePriceInput] = useState("");
+  const [snipeOpen, setSnipeOpen] = useState(false);
   // 🆕 Chat moderation actions
   const [chatActions, setChatActions] = useState<any[]>([]);
   const [chatActionMenu, setChatActionMenu] = useState<{ userId: string; username: string } | null>(null);
@@ -391,28 +392,41 @@ function LiveDetail() {
     }
   }, [remaining, isSeller, stream?.status]);
 
-  // 🆕 Voice trigger — listens for the seller's phrase and re-fires the next auction round.
+  // 🆕 Voice trigger — seller phrase ends the current round and starts the next.
+  const voiceLastFiredRef = useRef(0);
   useEffect(() => {
     if (!isSeller) return;
     if (!stream?.voice_trigger_enabled) return;
     const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase();
+    if (!SR) { toast.error("Voice trigger not supported in this browser"); return; }
+    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase().trim();
+    if (!phrase) return;
     const rec = new SR();
     rec.continuous = true;
-    rec.interimResults = true;
+    rec.interimResults = false;
     rec.lang = "en-US";
-    rec.onresult = (ev: any) => {
+    rec.onresult = async (ev: any) => {
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const t = String(ev.results[i][0]?.transcript || "").toLowerCase();
-        if (t.includes(phrase)) {
-          // Avoid double-fires while a round is live
-          if (auctionLive) return;
-          startAuction();
-          return;
-        }
+        if (!t.includes(phrase)) continue;
+        const now = Date.now();
+        if (now - voiceLastFiredRef.current < 2500) return;
+        voiceLastFiredRef.current = now;
+        try {
+          if (auctionLive) {
+            // End current round first, then start the next one
+            endedRef.current = true;
+            await finalizeAuctionRound();
+            // small delay so finalize state lands before re-arm
+            setTimeout(() => { startAuction().catch(() => {}); }, 600);
+          } else {
+            startAuction().catch(() => {});
+          }
+        } catch {/* ignore */}
+        return;
       }
     };
+    rec.onerror = () => { try { rec.stop(); } catch {} };
     rec.onend = () => { try { rec.start(); } catch {} };
     try { rec.start(); setVoiceListening(true); } catch {}
     recognitionRef.current = rec;
@@ -422,7 +436,7 @@ function LiveDetail() {
       recognitionRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase]);
+  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase, auctionLive]);
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
@@ -1893,30 +1907,23 @@ function LiveDetail() {
         )}
         {isSeller && !ended && (
           <div className="space-y-1.5">
-            {/* Primary action row — Start auction OR snipe input + End live */}
+            {/* Primary action row — always visible Start/End Auction + End Live */}
             <div className="flex items-stretch gap-1.5">
               {!auctionLive ? (
                 <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-lg active:scale-[0.98]">
                   <Play className="h-4 w-4" /> Start Auction
                 </button>
               ) : (
-                <div className="flex flex-1 items-center gap-1 rounded-xl bg-yellow-500/20 px-2 ring-1 ring-yellow-400/40">
-                  <Zap className="h-3.5 w-3.5 shrink-0 text-yellow-300" />
-                  <input
-                    type="number" min="1" inputMode="decimal"
-                    value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
-                    placeholder="Snipe $"
-                    className="w-full min-w-0 bg-transparent text-xs text-yellow-100 outline-none placeholder:text-yellow-200/50"
-                  />
-                  <button onClick={setSnipePriceNow} className="shrink-0 rounded-md bg-yellow-400 px-2 py-1 text-[10px] font-bold text-black">Set</button>
-                </div>
+                <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-orange-500 py-2.5 text-xs font-bold text-white shadow-lg active:scale-[0.98]">
+                  <Square className="h-3.5 w-3.5" /> End Auction
+                </button>
               )}
               <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-xl bg-live px-3 py-2.5 text-xs font-bold text-live-foreground active:scale-[0.98]">
                 <Square className="h-3.5 w-3.5" /> End Live
               </button>
             </div>
-            {/* Secondary tools row — even-width grid, never overlaps */}
-            <div className="grid grid-cols-4 gap-1.5">
+            {/* Secondary tools row */}
+            <div className="grid grid-cols-5 gap-1.5">
               <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98]">
                 <Camera className="h-3.5 w-3.5" /> Scan
               </button>
@@ -1928,6 +1935,14 @@ function LiveDetail() {
               </button>
               <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
                 <Gift className="h-3.5 w-3.5" /> Gift
+              </button>
+              <button
+                disabled={!auctionLive}
+                onClick={() => setSnipeOpen(true)}
+                className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 py-2 text-[10px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
+                title={auctionLive ? "Set buy-now snipe price" : "Available during auction"}
+              >
+                <Zap className="h-3.5 w-3.5" /> Snipe
               </button>
             </div>
           </div>
@@ -1966,6 +1981,34 @@ function LiveDetail() {
           <button type="submit" disabled={meBlocked} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
       </div>
+
+      {/* Snipe / Buy-Now price popup (seller) */}
+      {snipeOpen && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setSnipeOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold flex items-center gap-1.5"><Zap className="h-4 w-4 text-yellow-500" /> Buy-Now Snipe</p>
+              <button onClick={() => setSnipeOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground">Set a price viewers can hit to instantly win the current item.</p>
+            <input
+              type="number" min="1" inputMode="decimal"
+              value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
+              placeholder={`Above current bid ($${Number(stream?.current_bid || 0).toFixed(0)})`}
+              className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              {stream?.snipe_price && (
+                <button onClick={async () => { await supabase.from("live_streams").update({ snipe_price: null }).eq("id", id); setSnipeOpen(false); toast.success("Snipe cleared"); }}
+                  className="flex-1 rounded-lg bg-muted py-2 text-xs font-semibold">Clear</button>
+              )}
+              <button onClick={async () => { await setSnipePriceNow(); setSnipeOpen(false); }}
+                className="flex-1 rounded-lg bg-yellow-500 py-2 text-xs font-bold text-black">Set Snipe</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Share modal */}
       {shareOpen && (
