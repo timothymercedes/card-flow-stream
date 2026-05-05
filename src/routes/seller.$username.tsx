@@ -125,7 +125,17 @@ function PublicStore() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500"><BadgeCheck className="h-3 w-3" /> Verified Buyer</span>
                   )}
                 </div>
-                <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
+                <div className="flex items-center gap-2">
+                  {user && seller.id !== user.id && (
+                    <button
+                      onClick={toggleFollow}
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${isFollowing ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"}`}
+                    >
+                      {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
+                    </button>
+                  )}
+                  <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
+                </div>
               </div>
 
               <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
