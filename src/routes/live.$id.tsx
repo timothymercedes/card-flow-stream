@@ -11,6 +11,7 @@ import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel"
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
+import { UserActionsMenu } from "@/components/UserActionsMenu";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
