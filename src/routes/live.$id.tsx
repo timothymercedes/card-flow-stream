@@ -89,6 +89,8 @@ function LiveDetail() {
   const [showBreakPanel, setShowBreakPanel] = useState(false);
   // Viewer-side break drawer (controlled separately from host editor)
   const [showViewerBreak, setShowViewerBreak] = useState(false);
+  const [selectedBreakSlots, setSelectedBreakSlots] = useState<number[]>([]);
+  const [claimingBreakSlots, setClaimingBreakSlots] = useState(false);
   const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
@@ -168,6 +170,7 @@ function LiveDetail() {
         setEditVoicePhrase(data.voice_trigger_phrase || "next");
         setEditSlowMode(String((data as any).chat_slow_mode_sec ?? 0));
         if (data.break_slot_count) setBreakSlotCount(String(data.break_slot_count));
+        if ((data as any).break_slot_price) setBreakPrice(String((data as any).break_slot_price));
         if (data.break_slot_prefix) setBreakPrefix(data.break_slot_prefix);
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
           setBreakCharacters(data.break_characters as string[]);
@@ -246,10 +249,15 @@ function LiveDetail() {
     if (!stream) return;
     if (stream.break_force_visible && stream.break_mode === "open") {
       setShowViewerBreak(true);
-    } else if (stream.break_mode !== "open") {
+    } else if (stream.break_mode !== "open" || !stream.break_force_visible) {
       setShowViewerBreak(false);
     }
   }, [stream?.break_force_visible, stream?.break_mode]);
+
+  useEffect(() => {
+    if (!breakSlots.length) return;
+    setSelectedBreakSlots((slots) => slots.filter((n) => !breakSlots.some((s) => s.slot_number === n)));
+  }, [breakSlots]);
 
   // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
   const [unpaidOrders, setUnpaidOrders] = useState(0);
@@ -678,6 +686,7 @@ function LiveDetail() {
       break_mode: "open",
       break_force_visible: false,
       break_slot_count: count,
+      break_slot_price: price,
       break_slot_prefix: breakPrefix.trim() || null,
       break_characters: chars,
       break_teams: chars,
@@ -686,47 +695,33 @@ function LiveDetail() {
     toast.success("Break opened");
   }
 
-  async function claimBreakSlotNumber(slotNumber: number) {
+  function toggleBreakSlotSelection(slotNumber: number) {
+    if (breakSlots.some((s) => s.slot_number === slotNumber)) return;
+    setSelectedBreakSlots((slots) =>
+      slots.includes(slotNumber) ? slots.filter((n) => n !== slotNumber) : [...slots, slotNumber].sort((a, b) => a - b),
+    );
+  }
+
+  async function claimSelectedBreakSlots() {
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before claiming"); nav({ to: "/orders" }); return; }
-    const taken = breakSlots.some((s) => s.slot_number === slotNumber);
-    if (taken) return toast.error("That slot is already taken");
-    const price = Number(breakPrice) || 10;
-    const charLabel =
-      (Array.isArray(stream.break_characters) && stream.break_characters[slotNumber - 1]) ||
-      `${stream.break_slot_prefix || "#"}${slotNumber}`;
-    const { error } = await supabase.from("break_slots").insert({
-      stream_id: id, buyer_id: user.id, buyer_username: profile.username, amount: price,
-      slot_number: slotNumber, character_label: charLabel,
-    });
+    const slots = selectedBreakSlots.filter((n) => !breakSlots.some((s) => s.slot_number === n));
+    if (slots.length === 0) return toast.error("Choose at least one character");
+    setClaimingBreakSlots(true);
+    const { data, error } = await (supabase.rpc as any)("claim_break_slots", { _stream_id: id, _slot_numbers: slots });
+    setClaimingBreakSlots(false);
     if (error) {
-      if ((error as any).code === "23505") return toast.error("Slot just got claimed!");
+      if ((error as any).code === "23505") return toast.error("One of those characters was just claimed");
       return toast.error(error.message);
     }
-    const shipProfile = profile as any;
-    const { error: orderError } = await supabase.from("orders").insert({
-      buyer_id: user.id,
-      seller_id: stream.seller_id,
-      title: `Break slot — ${charLabel}`,
-      description: `Mystery Break slot ${slotNumber} in ${stream.title}`,
-      amount: price,
-      item_image_url: stream.item_image_url || stream.thumbnail_url || null,
-      stream_id: id,
-      status: "pending",
-      payment_status: "awaiting_payment",
-      ship_name: shipProfile.full_name || profile.username,
-      ship_address: shipProfile.address_line1 || "",
-      ship_city: shipProfile.address_city || "",
-      ship_state: shipProfile.address_state || "",
-      ship_zip: shipProfile.address_zip || "",
-      ship_country: shipProfile.address_country || "US",
-    });
-    if (orderError) return toast.error(orderError.message);
-    await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
-    toast.success(`${charLabel} is yours — pay now to lock it in`);
+    const result = Array.isArray(data) ? data[0] : data;
+    const count = Number(result?.claimed_count || slots.length);
+    const total = Number(result?.total_amount || (Number((stream as any).break_slot_price || breakPrice) * count));
+    await sendMsg(`🎟️ @${profile.username} claimed ${count} Mystery Break character${count === 1 ? "" : "s"} ($${total.toFixed(2)})`, true);
+    toast.success(`${count} character${count === 1 ? "" : "s"} claimed and paid`);
+    setSelectedBreakSlots([]);
     setShowViewerBreak(false);
-    nav({ to: "/orders" });
   }
 
   async function closeBreakClaims() {
@@ -2296,6 +2291,7 @@ function LiveDetail() {
                   Price/slot $
                   <input type="number" min="1" value={breakPrice}
                     onChange={(e) => setBreakPrice(e.target.value)}
+                    onBlur={() => supabase.from("live_streams").update({ break_slot_price: Math.max(1, Number(breakPrice) || 10) }).eq("id", id)}
                     className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
                 </label>
               </div>
@@ -2387,7 +2383,9 @@ function LiveDetail() {
                   type="checkbox"
                   checked={!!stream.break_force_visible}
                   onChange={async (e) => {
-                    await supabase.from("live_streams").update({ break_force_visible: e.target.checked }).eq("id", id);
+                    const checked = e.target.checked;
+                    setStream((prev: any) => prev ? { ...prev, break_force_visible: checked } : prev);
+                    await supabase.from("live_streams").update({ break_force_visible: checked }).eq("id", id);
                   }}
                   className="h-4 w-4"
                 />
@@ -2427,17 +2425,19 @@ function LiveDetail() {
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
+                const selected = selectedBreakSlots.includes(n);
                 const charLabel =
                   (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
                   `${stream.break_slot_prefix || "#"}${n}`;
                 return (
                   <button
                     key={n}
-                    onClick={() => !taken && claimBreakSlotNumber(n)}
+                    onClick={() => !taken && toggleBreakSlotSelection(n)}
                     disabled={!!taken}
                     className={`flex aspect-square min-h-0 flex-col items-center justify-center gap-0.5 rounded-md p-1 text-[9px] font-bold leading-tight ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
                       taken ? "bg-muted text-muted-foreground cursor-not-allowed" :
+                      selected ? "bg-primary text-primary-foreground ring-2 ring-primary/40" :
                       "bg-gradient-to-br from-pink-500 to-purple-500 text-white active:scale-95"
                     }`}
                   >
@@ -2451,10 +2451,21 @@ function LiveDetail() {
                 <p className="col-span-4 py-6 text-center text-xs font-semibold text-muted-foreground">All characters have been claimed.</p>
               )}
             </div>
+            <button
+              onClick={claimSelectedBreakSlots}
+              disabled={selectedBreakSlots.length === 0 || claimingBreakSlots}
+              className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+            >
+              {claimingBreakSlots
+                ? "Charging…"
+                : selectedBreakSlots.length > 0
+                  ? `Swipe/claim mine · $${(Number((stream as any).break_slot_price || breakPrice) * selectedBreakSlots.length).toFixed(2)}`
+                  : "Choose characters"}
+            </button>
             {!stream.break_force_visible && (
               <button
                 onClick={() => setShowViewerBreak(false)}
-                className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                className="mt-2 w-full rounded-lg bg-muted py-2 text-xs font-bold text-foreground"
               >
                 Done
               </button>
