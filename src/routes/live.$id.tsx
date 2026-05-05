@@ -2452,7 +2452,7 @@ function LiveDetail() {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`pointer-events-auto w-full max-w-sm animate-in slide-in-from-bottom rounded-2xl bg-card p-3 text-foreground shadow-2xl ring-1 ring-border/60 ${stream.break_force_visible ? "max-h-[80vh]" : "max-h-[48vh]"}`}
+            className={`pointer-events-auto flex w-full max-w-sm flex-col animate-in slide-in-from-bottom rounded-2xl bg-card p-3 text-foreground shadow-2xl ring-1 ring-border/60 ${stream.break_force_visible ? "max-h-[85vh]" : "max-h-[70vh]"}`}
           >
             <div className="mb-3 flex items-center justify-between">
               <p className="flex items-center gap-1.5 text-sm font-bold">
@@ -2470,7 +2470,7 @@ function LiveDetail() {
             <p className="mb-3 text-[11px] text-muted-foreground">
               {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
-            <div className={`grid gap-1.5 overflow-y-auto ${stream.break_force_visible ? "max-h-[58vh] grid-cols-4" : "max-h-[30vh] grid-cols-4"}`}>
+            <div className="grid min-h-0 flex-1 grid-cols-4 gap-1.5 overflow-y-auto pr-1">
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
