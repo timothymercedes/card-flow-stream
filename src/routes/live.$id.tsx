@@ -1499,7 +1499,11 @@ function LiveDetail() {
   if (!stream) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const ended = stream.status === "ended";
-  const bidDisabled = isSeller || ended || !auctionLive;
+  const paused = stream.status === "paused";
+  const pauseExpiresAt = paused && stream.pause_until ? new Date(stream.pause_until).getTime() : 0;
+  const pauseExpired = paused && pauseExpiresAt > 0 && pauseExpiresAt < now;
+  const pauseMsLeft = Math.max(0, pauseExpiresAt - now);
+  const bidDisabled = isSeller || ended || paused || !auctionLive;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
