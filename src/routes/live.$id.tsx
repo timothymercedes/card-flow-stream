@@ -2241,22 +2241,22 @@ function LiveDetail() {
               </div>
             )}
             {auctionLive && (
-              <div className="flex items-stretch gap-1.5">
-                <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-orange-500 py-1.5 text-[11px] font-bold text-white shadow active:scale-[0.98]">
-                  <Square className="h-3 w-3" /> End Auction
+              <div className="flex items-stretch gap-1">
+                <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-orange-500 py-1 text-[10px] font-bold text-white shadow active:scale-[0.98]">
+                  <Square className="h-2.5 w-2.5" /> End Auction
                 </button>
-                <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2.5 py-1.5 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
-                  <Square className="h-3 w-3" /> End Live
+                <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2 py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]">
+                  <Square className="h-2.5 w-2.5" /> End Live
                 </button>
               </div>
             )}
             {/* Secondary tools row */}
-            <div className={`grid gap-1 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}>
-              <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-accent py-1 text-[9px] font-bold text-accent-foreground active:scale-[0.98]">
-                <Camera className="h-3 w-3" /> Scan
+            <div className={`grid gap-0.5 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}>
+              <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0 rounded-md bg-accent py-0.5 text-[8px] font-bold text-accent-foreground active:scale-[0.98]">
+                <Camera className="h-2.5 w-2.5" /> Scan
               </button>
-              <button onClick={() => setShowBreakPanel(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 py-1 text-[9px] font-bold text-white active:scale-[0.98]">
-                <Dice5 className="h-3 w-3" /> Break
+              <button onClick={() => setShowBreakPanel(true)} className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-pink-500 to-purple-500 py-0.5 text-[8px] font-bold text-white active:scale-[0.98]">
+                <Dice5 className="h-2.5 w-2.5" /> Break
               </button>
               {stream.break_mode === "open" && (
                 <button
@@ -2266,25 +2266,25 @@ function LiveDetail() {
                     await supabase.from("live_streams").update({ break_force_visible: next }).eq("id", id);
                     toast.success(next ? "Break grid pinned for viewers" : "Viewers can collapse the break grid");
                   }}
-                  className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-card/70 py-1 text-[9px] font-bold text-foreground ring-1 ring-white/15 active:scale-[0.98]"
+                  className="flex flex-col items-center justify-center gap-0 rounded-md bg-card/70 py-0.5 text-[8px] font-bold text-foreground ring-1 ring-white/15 active:scale-[0.98]"
                 >
-                  {stream.break_force_visible ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                  {stream.break_force_visible ? <PinOff className="h-2.5 w-2.5" /> : <Pin className="h-2.5 w-2.5" />}
                   {stream.break_force_visible ? "Unpin" : "Pin"}
                 </button>
               )}
-              <button onClick={() => setShowWheelEditor(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 py-1 text-[9px] font-bold text-white active:scale-[0.98]">
-                <RotateCw className="h-3 w-3" /> Wheel
+              <button onClick={() => setShowWheelEditor(true)} className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-amber-500 to-rose-500 py-0.5 text-[8px] font-bold text-white active:scale-[0.98]">
+                <RotateCw className="h-2.5 w-2.5" /> Wheel
               </button>
-              <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-1 text-[9px] font-bold text-white active:scale-[0.98]">
-                <Gift className="h-3 w-3" /> Gift
+              <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 py-0.5 text-[8px] font-bold text-white active:scale-[0.98]">
+                <Gift className="h-2.5 w-2.5" /> Gift
               </button>
               <button
                 disabled={!auctionLive}
                 onClick={() => setSnipeOpen(true)}
-                className="flex flex-col items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-yellow-500 to-amber-500 py-1 text-[9px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
+                className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-yellow-500 to-amber-500 py-0.5 text-[8px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
                 title={auctionLive ? "Set buy-now snipe price" : "Available during auction"}
               >
-                <Zap className="h-3 w-3" /> Snipe
+                <Zap className="h-2.5 w-2.5" /> Snipe
               </button>
             </div>
           </div>
