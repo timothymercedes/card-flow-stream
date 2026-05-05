@@ -1950,10 +1950,11 @@ function LiveDetail() {
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            bottom-28 left-2 max-h-[20vh] w-[58%] max-w-[16rem] pb-1 pr-1
+          className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
+            left-2 pb-1 pr-1
+            ${isStaff ? "bottom-44 max-h-[42vh] w-[68%] max-w-[18rem]" : "bottom-28 max-h-[20vh] w-[58%] max-w-[16rem]"}
             md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
-            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10"
+            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
         >
           <div className="flex flex-col items-start gap-1">
             {messages.filter((m) => {
