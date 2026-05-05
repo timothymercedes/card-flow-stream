@@ -9,6 +9,7 @@ import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
+import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
@@ -1903,7 +1904,18 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* Viewer Giveaway entry — handled by floating widget in <LiveGiveaway /> */}
+        {/* Viewer Giveaway entry — chip with 1-tap join (auto-follows host if eligibility=followers) */}
+        {!isSeller && (
+          <ViewerGiveawayJoin
+            streamId={id}
+            sellerId={stream?.seller_id || null}
+            userId={user?.id || null}
+            username={profile?.username || null}
+            isFollower={isFollowingHost}
+            isBuyer={isPastBuyer}
+            onFollowed={() => setIsFollowingHost(true)}
+          />
+        )}
 
         {!isSeller && (
           <>
