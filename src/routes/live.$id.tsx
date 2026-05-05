@@ -241,12 +241,12 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
-  // 🆕 Auto-open viewer break drawer when host forces it visible; close when force is off & break closes
+  // 🆕 Auto-open viewer break drawer only when host forces it visible; otherwise viewers control it.
   useEffect(() => {
     if (!stream) return;
     if (stream.break_force_visible && stream.break_mode === "open") {
       setShowViewerBreak(true);
-    } else if (!stream.break_force_visible && stream.break_mode !== "open") {
+    } else {
       setShowViewerBreak(false);
     }
   }, [stream?.break_force_visible, stream?.break_mode]);
@@ -676,6 +676,7 @@ function LiveDetail() {
     );
     await supabase.from("live_streams").update({
       break_mode: "open",
+      break_force_visible: false,
       break_slot_count: count,
       break_slot_prefix: breakPrefix.trim() || null,
       break_characters: chars,
@@ -704,9 +705,7 @@ function LiveDetail() {
       return toast.error(error.message);
     }
     await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
-    toast.success(`${charLabel} is yours!`);
-    // Auto-close the viewer drawer after claiming so the stream is visible again
-    setShowViewerBreak(false);
+    toast.success(`${charLabel} is yours — tap Done to return to the live`);
   }
 
   async function closeBreakClaims() {
@@ -1788,18 +1787,20 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — small button only; opens drawer on tap */}
-        {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <button
-            onClick={() => setShowViewerBreak(true)}
-            className="mx-auto flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-xs font-extrabold text-white shadow-lg ring-1 ring-pink-300/40 active:scale-[0.98]"
-          >
-            <Dice5 className="h-3.5 w-3.5" />
-            🎴 View Break
-            <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold">
-              {breakSlots.length}/{stream.break_slot_count}
-            </span>
-          </button>
+        {/* 🆕 Mystery break stays collapsed for viewers unless they tap it or host pins it */}
+        {!isSeller && stream.break_mode === "open" && stream.break_slot_count && !stream.break_force_visible && (
+          <div className="flex justify-center">
+            <button
+              onClick={() => setShowViewerBreak(true)}
+              className="flex items-center gap-2 rounded-full bg-card/70 px-3 py-1.5 text-[11px] font-extrabold text-foreground shadow-lg ring-1 ring-white/15 backdrop-blur active:scale-[0.98]"
+            >
+              <Dice5 className="h-3.5 w-3.5 text-primary" />
+              🎴 View Break
+              <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
+                {breakSlots.length}/{stream.break_slot_count}
+              </span>
+            </button>
+          </div>
         )}
 
         {/* Mystery break results — shown after host closes claims */}
@@ -1833,7 +1834,7 @@ function LiveDetail() {
         {!isSeller && (
           <button
             onClick={() => setShowGiveaway(true)}
-            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
+            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
           >
             <Gift className="h-3 w-3" /> Open Appreciation Gift
           </button>
@@ -2341,11 +2342,11 @@ function LiveDetail() {
                 </button>
               )}
 
-              {/* 🆕 Host toggle: force break panel visible to all viewers */}
+              {/* 🆕 Host toggle: force break panel over viewer screens */}
               <label className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs">
                 <span className="flex flex-col">
-                  <span className="font-bold">Force break panel visible to viewers</span>
-                  <span className="text-[10px] text-muted-foreground">Off = viewers tap "View Break" to open it themselves</span>
+                  <span className="font-bold">Pin break grid over viewer live screen</span>
+                  <span className="text-[10px] text-muted-foreground">Off = viewers see only "View Break" and can collapse it anytime</span>
                 </span>
                 <input
                   type="checkbox"
@@ -2361,15 +2362,15 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🆕 Viewer Mystery Break drawer — slide-up modal, dim+blur background, manual + auto close */}
+      {/* 🆕 Viewer Mystery Break drawer — compact sheet by default; fullscreen only when host pins it */}
       {showViewerBreak && !isSeller && stream && stream.break_mode === "open" && stream.break_slot_count && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
+          className={`fixed inset-x-0 bottom-0 z-50 flex justify-center ${stream.break_force_visible ? "top-0 items-center bg-black/55 p-3 backdrop-blur-sm" : "pointer-events-none p-2 pb-[5.25rem]"}`}
           onClick={() => !stream.break_force_visible && setShowViewerBreak(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md animate-in slide-in-from-bottom rounded-t-2xl bg-card p-4 text-foreground shadow-2xl sm:rounded-2xl"
+            className={`pointer-events-auto w-full max-w-sm animate-in slide-in-from-bottom rounded-2xl bg-card p-3 text-foreground shadow-2xl ring-1 ring-border/60 ${stream.break_force_visible ? "max-h-[80vh]" : "max-h-[48vh]"}`}
           >
             <div className="mb-3 flex items-center justify-between">
               <p className="flex items-center gap-1.5 text-sm font-bold">
@@ -2385,9 +2386,9 @@ function LiveDetail() {
               )}
             </div>
             <p className="mb-3 text-[11px] text-muted-foreground">
-              Tap a slot to claim · ${breakPrice}/slot
+              {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
-            <div className="grid max-h-[50vh] grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+            <div className={`grid gap-1.5 overflow-y-auto ${stream.break_force_visible ? "max-h-[58vh] grid-cols-4" : "max-h-[30vh] grid-cols-4"}`}>
               {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
@@ -2399,13 +2400,13 @@ function LiveDetail() {
                     key={n}
                     onClick={() => !taken && claimBreakSlotNumber(n)}
                     disabled={!!taken}
-                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg p-1 text-[10px] font-bold leading-tight ${
+                    className={`flex aspect-square min-h-0 flex-col items-center justify-center gap-0.5 rounded-md p-1 text-[9px] font-bold leading-tight ${
                       mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
                       taken ? "bg-muted text-muted-foreground cursor-not-allowed" :
                       "bg-gradient-to-br from-pink-500 to-purple-500 text-white active:scale-95"
                     }`}
                   >
-                    <span className="text-sm font-extrabold">{n}</span>
+                    <span className="text-xs font-extrabold">{n}</span>
                     <span className="line-clamp-1 max-w-full truncate px-1 text-[8px] opacity-90">{charLabel}</span>
                     {taken && <span className="line-clamp-1 max-w-full truncate text-[8px] opacity-80">@{taken.buyer_username}</span>}
                   </button>
@@ -2415,7 +2416,7 @@ function LiveDetail() {
             {!stream.break_force_visible && (
               <button
                 onClick={() => setShowViewerBreak(false)}
-                className="mt-3 w-full rounded-lg bg-muted py-2 text-xs font-bold text-foreground"
+                className="mt-3 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
               >
                 Done
               </button>
@@ -2445,7 +2446,7 @@ function LiveDetail() {
         const wheelSlots: WheelSlot[] = claimed.length > 0
           ? claimed.map((s, i) => ({
               id: String(s.slot_number),
-              label: s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`,
+              label: `${s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`} · @${s.buyer_username}`,
               weight: 1, color: palette[i % palette.length], is_active: true,
             }))
           : Array.from({ length: total }, (_, i) => ({
