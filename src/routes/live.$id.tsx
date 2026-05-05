@@ -2446,7 +2446,7 @@ function LiveDetail() {
         const wheelSlots: WheelSlot[] = claimed.length > 0
           ? claimed.map((s, i) => ({
               id: String(s.slot_number),
-              label: s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`,
+              label: `${s.character_label || `${stream.break_slot_prefix || "#"}${s.slot_number}`} · @${s.buyer_username}`,
               weight: 1, color: palette[i % palette.length], is_active: true,
             }))
           : Array.from({ length: total }, (_, i) => ({
