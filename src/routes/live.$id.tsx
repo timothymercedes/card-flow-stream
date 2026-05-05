@@ -1381,9 +1381,8 @@ function LiveDetail() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-extrabold tabular-nums text-white/90 shadow-lg ring-1 ring-white/20 backdrop-blur">
-                <Timer className="h-3.5 w-3.5 opacity-70" />
-                <span>READY · {Number(stream.default_timer_sec || 30)}s</span>
+              <div className="flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 shadow-md ring-1 ring-white/15 backdrop-blur">
+                {ended ? "Ended" : (stream.current_item ? "Ready" : "Auction not started")}
               </div>
             )}
           </div>
@@ -1749,19 +1748,20 @@ function LiveDetail() {
       )}
 
       {/* Bottom panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6 md:right-[19rem]">
-        <div className="flex items-end justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-white/60">
-              <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-bold text-white">Bid #{Number(stream.round_number || 0) + (auctionLive ? 1 : 0) || 1}</span>
-              Current Item
-            </p>
-            <p className="line-clamp-1 text-sm font-bold">{stream.current_item || "—"}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
-            <p key={`bid-${Number(stream.current_bid || 0)}`} className="bid-bump text-2xl font-bold text-primary tabular-nums">{fmtMoney(Number(stream.current_bid || 0))}</p>
-          </div>
+      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
+        {/* PRIORITY 1: Current Bid — centered, large, focal point */}
+        <div className="flex flex-col items-center gap-0.5 text-center">
+          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/60">
+            <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-bold text-white">Bid #{Number(stream.round_number || 0) + (auctionLive ? 1 : 0) || 1}</span>
+            {ended || auctionFinished ? "Final Bid" : "Current Bid"}
+          </p>
+          <p key={`bid-${Number(stream.current_bid || 0)}`} className="bid-bump text-4xl font-extrabold text-primary tabular-nums drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            {fmtMoney(Number(stream.current_bid || 0))}
+          </p>
+          {/* PRIORITY 3: Item / status (compact) */}
+          <p className="line-clamp-1 max-w-full text-xs font-semibold text-white/90">
+            {stream.current_item || (auctionLive ? "Live auction" : "Waiting for next item")}
+          </p>
         </div>
 
         {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
@@ -1776,17 +1776,17 @@ function LiveDetail() {
 
         {/* 🆕 Mystery break — compact right-side keypad for buyers (only when host opens it) */}
         {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <div className="pointer-events-none absolute right-2 top-32 z-10 w-32">
-            <div className="pointer-events-auto rounded-xl bg-black/60 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
-              <div className="mb-1 flex items-center justify-between px-0.5">
+          <div className="pointer-events-none absolute right-2 top-32 z-10 w-28">
+            <div className="pointer-events-auto rounded-xl bg-black/65 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
+              <div className="mb-1.5 flex items-center justify-between px-0.5">
                 <span className="flex items-center gap-1 text-[9px] font-extrabold text-pink-300">
                   <Dice5 className="h-3 w-3" /> Break
                 </span>
-                <span className="text-[8px] text-white/60">
-                  {breakSlots.length}/{stream.break_slot_count}
+                <span className="rounded bg-pink-500/30 px-1 text-[9px] font-bold text-pink-100">
+                  {breakSlots.length}/{stream.break_slot_count} taken
                 </span>
               </div>
-              <div className="grid max-h-44 grid-cols-3 gap-1 overflow-y-auto pr-0.5">
+              <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-0.5">
                 {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                   const taken = breakSlots.find((s) => s.slot_number === n);
                   const mine = taken && taken.buyer_id === user?.id;
@@ -1798,19 +1798,20 @@ function LiveDetail() {
                       key={n}
                       onClick={() => !taken && claimBreakSlotNumber(n)}
                       disabled={!!taken}
-                      title={taken ? `@${taken.buyer_username}` : `Claim ${charLabel}`}
-                      className={`flex h-7 items-center justify-center rounded text-[9px] font-extrabold ${
-                        mine ? "bg-emerald-500 text-white ring-1 ring-emerald-200" :
-                        taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
+                      title={taken ? `${charLabel} — @${taken.buyer_username}` : `Claim ${charLabel}`}
+                      className={`flex h-9 flex-col items-center justify-center rounded text-[8px] font-bold leading-tight ${
+                        mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
+                        taken ? "bg-white/10 text-white/60 cursor-not-allowed ring-1 ring-white/10" :
                         "bg-white text-black active:scale-95 hover:bg-pink-200"
                       }`}
                     >
-                      {n}
+                      <span className="text-[9px] font-extrabold">{n}</span>
+                      {taken && <span className="max-w-full truncate px-0.5 text-[7px] opacity-90">@{taken.buyer_username}</span>}
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-1 px-0.5 text-center text-[8px] text-white/50">${breakPrice}/slot</p>
+              <p className="mt-1 px-0.5 text-center text-[8px] text-white/60">${breakPrice}/slot</p>
             </div>
           </div>
         )}
@@ -1842,13 +1843,13 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Giveaway — viewer entry button */}
+        {/* 🆕 Giveaway — viewer entry button (de-emphasized secondary) */}
         {!isSeller && (
           <button
             onClick={() => setShowGiveaway(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white shadow-lg active:scale-[0.98]"
+            className="mx-auto flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-300 ring-1 ring-emerald-400/40 hover:bg-emerald-500/30 active:scale-[0.98]"
           >
-            <Gift className="h-4 w-4" /> Open Appreciation Gift
+            <Gift className="h-3 w-3" /> Open Appreciation Gift
           </button>
         )}
 
@@ -1887,7 +1888,7 @@ function LiveDetail() {
                 <span className="relative">
                   {meBlocked ? "🚫 You're muted/banned"
                     : bidDisabled
-                      ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                      ? (auctionFinished || ended ? "Auction Ended" : "Auction not started")
                       : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold to bid")}
                 </span>
               </button>
