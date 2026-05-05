@@ -2047,7 +2047,7 @@ function LiveDetail() {
               <button
                 onPointerDown={bidDisabled || meBlockedOrBanned ? undefined : startHold}
                 disabled={bidDisabled || meBlockedOrBanned}
-                className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary to-primary-glow py-3.5 text-base font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
+                className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-red-600 via-red-500 to-red-700 py-3.5 text-base font-bold text-white shadow-[0_8px_24px_-8px_rgba(220,38,38,0.6)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
               >
                 {!bidDisabled && !meBlockedOrBanned && holdAdd === 0 && (
                   <span className="pointer-events-none absolute inset-0 brand-shimmer opacity-50" />
