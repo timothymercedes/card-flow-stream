@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
+import { HelpBubble } from "@/components/HelpBubble";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
@@ -67,6 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="flex-1 pb-20">{children}</main>
+      <HelpBubble />
       <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((t) => {
