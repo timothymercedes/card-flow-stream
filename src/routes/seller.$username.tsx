@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -21,6 +21,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 
 function PublicStore() {
   const { username } = Route.useParams();
+  const nav = useNavigate();
   const { user, profile: myProfile } = useAuth();
   const [seller, setSeller] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
