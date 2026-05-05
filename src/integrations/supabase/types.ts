@@ -56,6 +56,7 @@ export type Database = {
           character_label: string | null
           created_at: string
           id: string
+          order_id: string | null
           slot_number: number | null
           stream_id: string
           team_label: string | null
@@ -68,6 +69,7 @@ export type Database = {
           character_label?: string | null
           created_at?: string
           id?: string
+          order_id?: string | null
           slot_number?: number | null
           stream_id: string
           team_label?: string | null
@@ -80,11 +82,20 @@ export type Database = {
           character_label?: string | null
           created_at?: string
           id?: string
+          order_id?: string | null
           slot_number?: number | null
           stream_id?: string
           team_label?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "break_slots_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cart_items: {
         Row: {
@@ -553,6 +564,7 @@ export type Database = {
           break_mode: string | null
           break_slot_count: number | null
           break_slot_prefix: string | null
+          break_slot_price: number
           break_teams: Json | null
           break_wheel_ends_at: string | null
           break_wheel_last_winner_label: string | null
@@ -621,6 +633,7 @@ export type Database = {
           break_mode?: string | null
           break_slot_count?: number | null
           break_slot_prefix?: string | null
+          break_slot_price?: number
           break_teams?: Json | null
           break_wheel_ends_at?: string | null
           break_wheel_last_winner_label?: string | null
@@ -689,6 +702,7 @@ export type Database = {
           break_mode?: string | null
           break_slot_count?: number | null
           break_slot_prefix?: string | null
+          break_slot_price?: number
           break_teams?: Json | null
           break_wheel_ends_at?: string | null
           break_wheel_last_winner_label?: string | null
@@ -1969,6 +1983,14 @@ export type Database = {
       can_view_vault_owner: {
         Args: { _owner: string; _viewer: string }
         Returns: boolean
+      }
+      claim_break_slots: {
+        Args: { _slot_numbers: number[]; _stream_id: string }
+        Returns: {
+          claimed_count: number
+          order_id: string
+          total_amount: number
+        }[]
       }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
