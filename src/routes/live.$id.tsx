@@ -580,7 +580,7 @@ function LiveDetail() {
     }
     return blocked;
   }, [chatActions]);
-  const meBlocked = !!user && chatBlockSet.has(user.id);
+  const meBlockedOrBanned = !!user && chatBlockSet.has(user.id);
 
   // 🆕 Personal blocks (this viewer mutes another user) + Stream bans (host bans user from this live)
   const [myBlockedIds, setMyBlockedIds] = useState<Set<string>>(new Set());
@@ -616,7 +616,7 @@ function LiveDetail() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
+    if (meBlockedOrBanned) return toast.error("You can't chat right now (muted by mod)");
     // 🆕 Slow-mode (host & mods bypass)
     const slow = Math.max(0, Number((stream as any)?.chat_slow_mode_sec || 0));
     if (slow > 0 && !isSeller && !isMod) {
@@ -669,7 +669,7 @@ function LiveDetail() {
     if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding again"); nav({ to: "/orders" }); return; }
-    if (meBlocked) return toast.error("You're banned/muted in this stream");
+    if (meBlockedOrBanned) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
     const cur = Number(stream.current_bid || 0);
@@ -1896,7 +1896,7 @@ function LiveDetail() {
         </div>
 
         {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
-        {!isSeller && auctionLive && stream.snipe_price && !meBlocked && (
+        {!isSeller && auctionLive && stream.snipe_price && !meBlockedOrBanned && (
           <button
             onClick={buyNowSnipe}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-2.5 text-sm font-extrabold text-black shadow-lg ring-2 ring-yellow-200 active:scale-[0.98]"
@@ -1963,7 +1963,7 @@ function LiveDetail() {
 
         {!isSeller && (
           <>
-          {auctionLive && !meBlocked && !bidDisabled && (
+          {auctionLive && !meBlockedOrBanned && !bidDisabled && (
             <div className="grid grid-cols-4 gap-1.5">
               {[1, 5, 10, 25].map((inc) => (
                 <button
@@ -1978,7 +1978,7 @@ function LiveDetail() {
           )}
           <div className="flex gap-2">
             <div className="relative flex-1">
-              {!bidDisabled && !meBlocked && holdAdd === 0 && (
+              {!bidDisabled && !meBlockedOrBanned && holdAdd === 0 && (
                 <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 swipe-up-hint">
                   <div className="flex flex-col items-center text-[9px] font-bold uppercase tracking-wider text-primary-glow">
                     <span>Swipe ↑ +$3</span>
@@ -1986,15 +1986,15 @@ function LiveDetail() {
                 </div>
               )}
               <button
-                onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
-                disabled={bidDisabled || meBlocked}
+                onPointerDown={bidDisabled || meBlockedOrBanned ? undefined : startHold}
+                disabled={bidDisabled || meBlockedOrBanned}
                 className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary to-primary-glow py-3.5 text-base font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
               >
-                {!bidDisabled && !meBlocked && holdAdd === 0 && (
+                {!bidDisabled && !meBlockedOrBanned && holdAdd === 0 && (
                   <span className="pointer-events-none absolute inset-0 brand-shimmer opacity-50" />
                 )}
                 <span className="relative">
-                  {meBlocked ? "🚫 You're muted/banned"
+                  {meBlockedOrBanned ? "🚫 You're muted/banned"
                     : bidDisabled
                       ? (auctionFinished || ended ? "Auction Ended" : "Auction not started")
                       : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold to bid")}
@@ -2099,11 +2099,11 @@ function LiveDetail() {
               if (m) { setTagOpen(true); searchUsers(m[1], setTagResults); }
               else { setTagOpen(false); setTagResults([]); }
             }}
-            placeholder={!user ? "Sign in to chat" : meBlocked ? "🚫 You're muted in this stream" : "Say something... use @ to tag"}
-            disabled={!user || meBlocked}
+            placeholder={!user ? "Sign in to chat" : meBlockedOrBanned ? "🚫 You're muted in this stream" : "Say something... use @ to tag"}
+            disabled={!user || meBlockedOrBanned}
             className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
           />
-          <button type="submit" disabled={meBlocked} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
+          <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
       </div>
 
