@@ -1752,7 +1752,7 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Giveaway chip removed — viewers see the compact floating "Tap to Join" widget only */}
+      {/* Viewer giveaway/appreciation entry UI removed to keep bidding controls clear. */}
 
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
@@ -2772,21 +2772,23 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🆕 Lucky Letter Drop — Giveaway overlay */}
-      <LiveGiveaway
-        streamId={id}
-        isSeller={isSeller}
-        userId={user?.id || null}
-        username={profile?.username || null}
-        isFollower={isFollowingHost}
-        isBuyer={isPastBuyer}
-        sellerId={stream?.seller_id || null}
-        onFollowed={() => setIsFollowingHost(true)}
-        open={showGiveaway}
-        onClose={() => { setShowGiveaway(false); setGiveawayComposer(false); }}
-        hostOpenComposer={giveawayComposer}
-        setHostOpenComposer={setGiveawayComposer}
-      />
+      {/* Giveaway controls are host-only; viewers should never see an appreciation/gift button over bidding. */}
+      {isSeller && (
+        <LiveGiveaway
+          streamId={id}
+          isSeller={isSeller}
+          userId={user?.id || null}
+          username={profile?.username || null}
+          isFollower={isFollowingHost}
+          isBuyer={isPastBuyer}
+          sellerId={stream?.seller_id || null}
+          onFollowed={() => setIsFollowingHost(true)}
+          open={showGiveaway}
+          onClose={() => { setShowGiveaway(false); setGiveawayComposer(false); }}
+          hostOpenComposer={giveawayComposer}
+          setHostOpenComposer={setGiveawayComposer}
+        />
+      )}
     </div>
   );
 }
