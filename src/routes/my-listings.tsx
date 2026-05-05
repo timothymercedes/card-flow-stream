@@ -12,6 +12,7 @@ export const Route = createFileRoute("/my-listings")({ component: MyListings });
 
 type Listing = {
   id: string; title: string; description: string | null; image_url: string | null;
+  back_image_url: string | null;
   price: number | null; current_bid: number | null; starting_bid: number | null;
   buy_now_price: number | null;
   listing_type: string; is_auction: boolean; accepts_offers: boolean;
@@ -19,6 +20,7 @@ type Listing = {
   auction_status: string; created_at: string;
   shipping_price: number | null;
   reserve_price: number | null;
+  category: string | null;
 };
 
 function fmtRemain(iso: string) {
