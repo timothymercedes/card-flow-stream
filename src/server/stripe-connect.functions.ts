@@ -1,0 +1,163 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getStripe, calculateFees } from "@/lib/stripe.server";
+
+/**
+ * Create or retrieve a Stripe Express account for the seller and return an onboarding link.
+ */
+export const createConnectOnboardingLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { returnUrl: string; refreshUrl: string }) => {
+    if (!data.returnUrl || !data.refreshUrl) throw new Error("Missing URLs");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const stripe = getStripe();
+
+    // Look up existing account
+    const { data: existing } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id")
+      .eq("seller_id", userId)
+      .maybeSingle();
+
+    let stripeAccountId = (existing as any)?.stripe_account_id as string | undefined;
+
+    if (!stripeAccountId) {
+      // Get email from auth
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const email = userData.user?.email;
+
+      const account = await stripe.accounts.create({
+        type: "express",
+        email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        metadata: { seller_id: userId },
+      });
+      stripeAccountId = account.id;
+
+      await supabaseAdmin.from("stripe_accounts").insert({
+        seller_id: userId,
+        stripe_account_id: stripeAccountId,
+      });
+    }
+
+    const link = await stripe.accountLinks.create({
+      account: stripeAccountId,
+      return_url: data.returnUrl,
+      refresh_url: data.refreshUrl,
+      type: "account_onboarding",
+    });
+
+    return { url: link.url, stripeAccountId };
+  });
+
+/**
+ * Sync the seller's Stripe account status (charges_enabled, payouts_enabled, details_submitted).
+ */
+export const syncConnectAccountStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const stripe = getStripe();
+
+    const { data: row } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id")
+      .eq("seller_id", userId)
+      .maybeSingle();
+
+    if (!row) return { connected: false };
+
+    const account = await stripe.accounts.retrieve((row as any).stripe_account_id);
+
+    await supabaseAdmin
+      .from("stripe_accounts")
+      .update({
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        details_submitted: account.details_submitted,
+        country: account.country,
+        default_currency: account.default_currency,
+      })
+      .eq("seller_id", userId);
+
+    return {
+      connected: true,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+    };
+  });
+
+/**
+ * Get the seller's current Connect status from our database.
+ */
+export const getMyConnectStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { data } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id, charges_enabled, payouts_enabled, details_submitted, deliveries_count")
+      .eq("seller_id", userId)
+      .maybeSingle();
+    return data ?? null;
+  });
+
+/**
+ * Create a marketplace PaymentIntent for a buyer purchasing from a seller.
+ * Splits Stripe processing fees ~50/50 via a buyer service fee, takes 5% platform fee.
+ */
+export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sellerId: string; subtotalCents: number; orderId?: string }) => {
+    if (!data.sellerId) throw new Error("sellerId required");
+    if (!Number.isFinite(data.subtotalCents) || data.subtotalCents < 50) {
+      throw new Error("Invalid amount");
+    }
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const stripe = getStripe();
+
+    const { data: sellerAcct } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id, charges_enabled")
+      .eq("seller_id", data.sellerId)
+      .maybeSingle();
+
+    if (!sellerAcct || !(sellerAcct as any).charges_enabled) {
+      throw new Error("Seller is not ready to accept payments");
+    }
+
+    const fees = calculateFees(data.subtotalCents);
+
+    const intent = await stripe.paymentIntents.create({
+      amount: fees.buyerTotal,
+      currency: "usd",
+      automatic_payment_methods: { enabled: true },
+      application_fee_amount: fees.platformFee + fees.buyerServiceFee,
+      transfer_data: { destination: (sellerAcct as any).stripe_account_id },
+      metadata: {
+        buyer_id: userId,
+        seller_id: data.sellerId,
+        order_id: data.orderId ?? "",
+        subtotal_cents: String(fees.subtotalCents),
+        platform_fee_cents: String(fees.platformFee),
+        buyer_service_fee_cents: String(fees.buyerServiceFee),
+      },
+    });
+
+    return {
+      clientSecret: intent.client_secret,
+      paymentIntentId: intent.id,
+      ...fees,
+    };
+  });
