@@ -1208,6 +1208,8 @@ function LiveDetail() {
         eventType: "payment_pending", amount: winningBid + shipForThis,
         itemLabel: labeledTitle, message: "Awaiting payment from buyer",
       });
+      await supabase.from("notifications").insert({
+        user_id: winnerId, type: "won",
         body: `🎉 You won Bid #${nextRound} "${itemName}" for $${winningBid}`,
         link: `/orders`,
       });
