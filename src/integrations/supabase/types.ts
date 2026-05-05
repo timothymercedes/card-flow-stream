@@ -1582,6 +1582,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_payment_events: {
+        Row: {
+          amount: number | null
+          buyer_id: string | null
+          buyer_username: string | null
+          created_at: string
+          event_type: string
+          id: string
+          item_label: string | null
+          message: string | null
+          order_id: string | null
+          seller_id: string
+          stream_id: string
+        }
+        Insert: {
+          amount?: number | null
+          buyer_id?: string | null
+          buyer_username?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          item_label?: string | null
+          message?: string | null
+          order_id?: string | null
+          seller_id: string
+          stream_id: string
+        }
+        Update: {
+          amount?: number | null
+          buyer_id?: string | null
+          buyer_username?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          item_label?: string | null
+          message?: string | null
+          order_id?: string | null
+          seller_id?: string
+          stream_id?: string
+        }
+        Relationships: []
+      }
       stream_shoutouts: {
         Row: {
           amount: number
@@ -1618,6 +1660,51 @@ export type Database = {
           seller_id?: string
           status?: string
           stream_id?: string
+        }
+        Relationships: []
+      }
+      stream_user_bans: {
+        Row: {
+          banned_by: string
+          banned_user_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          stream_id: string
+        }
+        Insert: {
+          banned_by: string
+          banned_user_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          stream_id: string
+        }
+        Update: {
+          banned_by?: string
+          banned_user_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          stream_id?: string
+        }
+        Relationships: []
+      }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
         }
         Relationships: []
       }
@@ -1964,6 +2051,25 @@ export type Database = {
           _target_user: string
         }
         Returns: undefined
+      }
+      admin_get_signup_stats: {
+        Args: never
+        Returns: {
+          last_24h: number
+          last_7d: number
+          total: number
+        }[]
+      }
+      admin_list_recent_signups: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          id: string
+          is_seller: boolean
+          seller_status: string
+          username: string
+        }[]
       }
       admin_remove_role: {
         Args: {

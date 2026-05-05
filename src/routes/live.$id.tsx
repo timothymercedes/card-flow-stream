@@ -9,6 +9,9 @@ import { HlsPlayer } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
+import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
+import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
+import { UserActionsMenu } from "@/components/UserActionsMenu";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
@@ -69,6 +72,7 @@ function LiveDetail() {
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
   const [showModPanel, setShowModPanel] = useState(false);
+  const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
   const [modInput, setModInput] = useState("");
@@ -578,10 +582,44 @@ function LiveDetail() {
     return blocked;
   }, [chatActions]);
   const meBlocked = !!user && chatBlockSet.has(user.id);
+  // Combined: mod-mute OR host-ban-from-this-live (computed below after streamBannedIds is set)
+
+  // 🆕 Personal blocks (this viewer mutes another user) + Stream bans (host bans user from this live)
+  const [myBlockedIds, setMyBlockedIds] = useState<Set<string>>(new Set());
+  const [streamBannedIds, setStreamBannedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user) { setMyBlockedIds(new Set()); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id);
+      if (!cancelled) setMyBlockedIds(new Set((data || []).map((r: any) => r.blocked_id)));
+    })();
+    const ch = supabase.channel(`user-blocks-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_blocks", filter: `blocker_id=eq.${user.id}` }, () => {
+        supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id)
+          .then(({ data }) => setMyBlockedIds(new Set((data || []).map((r: any) => r.blocked_id))));
+      }).subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("stream_user_bans").select("banned_user_id").eq("stream_id", id);
+      if (!cancelled) setStreamBannedIds(new Set((data || []).map((r: any) => r.banned_user_id)));
+    })();
+    const ch = supabase.channel(`stream-bans-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stream_user_bans", filter: `stream_id=eq.${id}` }, () => {
+        supabase.from("stream_user_bans").select("banned_user_id").eq("stream_id", id)
+          .then(({ data }) => setStreamBannedIds(new Set((data || []).map((r: any) => r.banned_user_id))));
+      }).subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [id]);
+  const meStreamBanned = !!user && streamBannedIds.has(user.id);
+  const meBlockedOrBanned = meBlocked || meStreamBanned;
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (meBlocked) return toast.error("You can't chat right now (muted by mod)");
+    if (meBlockedOrBanned) return toast.error("You can't chat right now (muted by mod)");
     // 🆕 Slow-mode (host & mods bypass)
     const slow = Math.max(0, Number((stream as any)?.chat_slow_mode_sec || 0));
     if (slow > 0 && !isSeller && !isMod) {
@@ -634,7 +672,7 @@ function LiveDetail() {
     if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding again"); nav({ to: "/orders" }); return; }
-    if (meBlocked) return toast.error("You're banned/muted in this stream");
+    if (meBlockedOrBanned) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
     const cur = Number(stream.current_bid || 0);
@@ -777,6 +815,11 @@ function LiveDetail() {
     const count = Number(result?.claimed_count || slots.length);
     const total = Number(result?.total_amount || (Number((stream as any).break_slot_price || breakPrice) * count));
     await sendMsg(`🎟️ @${profile.username} claimed ${count} Mystery Break character${count === 1 ? "" : "s"} ($${total.toFixed(2)})`, true);
+    await logPaymentEvent({
+      streamId: id, buyerId: user.id, buyerUsername: profile.username,
+      orderId: result?.order_id || null, eventType: "payment_paid",
+      amount: total, itemLabel: `Mystery Break · ${count} character${count === 1 ? "" : "s"}`,
+    });
     toast.success(`${count} character${count === 1 ? "" : "s"} claimed and paid`);
     setSelectedBreakSlots([]);
     setSelectionDeadline(null);
@@ -1194,6 +1237,11 @@ function LiveDetail() {
         ship_state: p?.address_state || "",
         ship_zip: p?.address_zip || "",
         ship_country: p?.address_country || "US",
+      });
+      await logPaymentEvent({
+        streamId: id, buyerId: winnerId, buyerUsername: winnerUsername,
+        eventType: "payment_pending", amount: winningBid + shipForThis,
+        itemLabel: labeledTitle, message: "Awaiting payment from buyer",
       });
       await supabase.from("notifications").insert({
         user_id: winnerId, type: "won",
@@ -1792,7 +1840,13 @@ function LiveDetail() {
             md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10"
         >
           <div className="flex flex-col items-start gap-1">
-            {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
+            {messages.filter((m) => {
+              if (m.is_system || m.is_announcement) return false;
+              // Hide messages from users I personally blocked, or users banned from this stream (unless I'm staff — keep visibility for context)
+              if (m.user_id && myBlockedIds.has(m.user_id)) return false;
+              if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
+              return true;
+            }).map((m) => {
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
@@ -1825,6 +1879,15 @@ function LiveDetail() {
                       }
                     />
                   )}
+                  {user && m.user_id && m.user_id !== user.id && (
+                    <UserActionsMenu
+                      meId={user.id}
+                      targetUserId={m.user_id}
+                      targetUsername={m.username}
+                      isStreamStaff={isStaff}
+                      streamId={id}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -1851,7 +1914,7 @@ function LiveDetail() {
         </div>
 
         {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
-        {!isSeller && auctionLive && stream.snipe_price && !meBlocked && (
+        {!isSeller && auctionLive && stream.snipe_price && !meBlockedOrBanned && (
           <button
             onClick={buyNowSnipe}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-2.5 text-sm font-extrabold text-black shadow-lg ring-2 ring-yellow-200 active:scale-[0.98]"
@@ -1903,11 +1966,22 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* Viewer Giveaway entry — handled by floating widget in <LiveGiveaway /> */}
+        {/* Viewer Giveaway entry — chip with 1-tap join (auto-follows host if eligibility=followers) */}
+        {!isSeller && (
+          <ViewerGiveawayJoin
+            streamId={id}
+            sellerId={stream?.seller_id || null}
+            userId={user?.id || null}
+            username={profile?.username || null}
+            isFollower={isFollowingHost}
+            isBuyer={isPastBuyer}
+            onFollowed={() => setIsFollowingHost(true)}
+          />
+        )}
 
         {!isSeller && (
           <>
-          {auctionLive && !meBlocked && !bidDisabled && (
+          {auctionLive && !meBlockedOrBanned && !bidDisabled && (
             <div className="grid grid-cols-4 gap-1.5">
               {[1, 5, 10, 25].map((inc) => (
                 <button
@@ -1922,7 +1996,7 @@ function LiveDetail() {
           )}
           <div className="flex gap-2">
             <div className="relative flex-1">
-              {!bidDisabled && !meBlocked && holdAdd === 0 && (
+              {!bidDisabled && !meBlockedOrBanned && holdAdd === 0 && (
                 <div className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 swipe-up-hint">
                   <div className="flex flex-col items-center text-[9px] font-bold uppercase tracking-wider text-primary-glow">
                     <span>Swipe ↑ +$3</span>
@@ -1930,15 +2004,15 @@ function LiveDetail() {
                 </div>
               )}
               <button
-                onPointerDown={bidDisabled || meBlocked ? undefined : startHold}
-                disabled={bidDisabled || meBlocked}
+                onPointerDown={bidDisabled || meBlockedOrBanned ? undefined : startHold}
+                disabled={bidDisabled || meBlockedOrBanned}
                 className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary to-primary-glow py-3.5 text-base font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
               >
-                {!bidDisabled && !meBlocked && holdAdd === 0 && (
+                {!bidDisabled && !meBlockedOrBanned && holdAdd === 0 && (
                   <span className="pointer-events-none absolute inset-0 brand-shimmer opacity-50" />
                 )}
                 <span className="relative">
-                  {meBlocked ? "🚫 You're muted/banned"
+                  {meBlockedOrBanned ? "🚫 You're muted/banned"
                     : bidDisabled
                       ? (auctionFinished || ended ? "Auction Ended" : "Auction not started")
                       : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold to bid")}
@@ -2043,11 +2117,11 @@ function LiveDetail() {
               if (m) { setTagOpen(true); searchUsers(m[1], setTagResults); }
               else { setTagOpen(false); setTagResults([]); }
             }}
-            placeholder={!user ? "Sign in to chat" : meBlocked ? "🚫 You're muted in this stream" : "Say something... use @ to tag"}
-            disabled={!user || meBlocked}
+            placeholder={!user ? "Sign in to chat" : meBlockedOrBanned ? "🚫 You're muted in this stream" : "Say something... use @ to tag"}
+            disabled={!user || meBlockedOrBanned}
             className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
           />
-          <button type="submit" disabled={meBlocked} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
+          <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
       </div>
 
@@ -2770,6 +2844,21 @@ function LiveDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
+      {isStaff && (
+        <>
+          <button
+            onClick={() => setShowPaymentLog(true)}
+            className="fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-2 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card sm:bottom-28"
+            aria-label="Open payment activity log"
+          >
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Payments
+          </button>
+          <HostPaymentLog streamId={id} open={showPaymentLog} onClose={() => setShowPaymentLog(false)} />
+        </>
       )}
 
       {/* Giveaway controls are host-only; viewers should never see an appreciation/gift button over bidding. */}

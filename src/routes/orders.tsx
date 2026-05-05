@@ -80,6 +80,19 @@ function Orders() {
       }).eq("id", o.id);
       setPaying(null);
       if (error) return toast.error(error.message);
+      // If this order came from a live stream, log a payment event for the host's activity log.
+      if (o.stream_id) {
+        const { logPaymentEvent } = await import("@/components/HostPaymentLog");
+        await logPaymentEvent({
+          streamId: o.stream_id,
+          buyerId: o.buyer_id,
+          buyerUsername: profile?.username || "buyer",
+          orderId: o.id,
+          eventType: "payment_paid",
+          amount: Number(o.amount || 0),
+          itemLabel: o.title,
+        });
+      }
       toast.success("Payment recorded (safe mode — no charge)");
       load();
       return;
