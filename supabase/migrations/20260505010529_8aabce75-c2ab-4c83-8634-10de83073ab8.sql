@@ -1,0 +1,1 @@
+ALTER TABLE public.live_streams ADD COLUMN IF NOT EXISTS break_force_visible boolean NOT NULL DEFAULT false;
