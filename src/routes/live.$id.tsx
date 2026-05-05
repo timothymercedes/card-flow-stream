@@ -596,6 +596,30 @@ function LiveDetail() {
     setInput("");
   }
 
+  // 🆕 Require account + completed buyer profile before any purchase/bid action
+  function requireBuyerReady(action = "continue"): boolean {
+    if (!user || !profile) {
+      toast.error(`Sign in to ${action}`);
+      nav({ to: "/auth" });
+      return false;
+    }
+    const p: any = profile;
+    const ok = p.full_name && p.phone && p.address_line1 && p.address_city && p.address_zip;
+    if (!ok && !(profile as any).buyer_verified) {
+      toast.error("Complete your shipping profile first");
+      nav({ to: "/profile" });
+      return false;
+    }
+    return true;
+  }
+
+  function _unused_handleSendBlock_(e: React.FormEvent) {
+    e.preventDefault();
+    await sendMsg(input);
+    lastChatTsRef.current = Date.now();
+    setInput("");
+  }
+
   // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
