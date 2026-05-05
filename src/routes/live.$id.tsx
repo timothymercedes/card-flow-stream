@@ -695,6 +695,8 @@ function LiveDetail() {
     }
     await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
     toast.success(`${charLabel} is yours!`);
+    // Auto-close the viewer drawer after claiming so the stream is visible again
+    setShowViewerBreak(false);
   }
 
   async function closeBreakClaims() {
