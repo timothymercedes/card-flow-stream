@@ -87,6 +87,8 @@ function LiveDetail() {
   // 🆕 Mystery break (numbered slots 1..N)
   const [breakSlots, setBreakSlots] = useState<any[]>([]);
   const [showBreakPanel, setShowBreakPanel] = useState(false);
+  // Viewer-side break drawer (controlled separately from host editor)
+  const [showViewerBreak, setShowViewerBreak] = useState(false);
   const [breakSlotCount, setBreakSlotCount] = useState("20"); // 1..50
   const [breakPrice, setBreakPrice] = useState("10");
   const [breakPrefix, setBreakPrefix] = useState("");         // optional label e.g. "Box"
@@ -238,6 +240,16 @@ function LiveDetail() {
     supabase.from("profiles").select("preferred_currency").eq("id", user.id).maybeSingle()
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
+
+  // 🆕 Auto-open viewer break drawer when host forces it visible; close when force is off & break closes
+  useEffect(() => {
+    if (!stream) return;
+    if (stream.break_force_visible && stream.break_mode === "open") {
+      setShowViewerBreak(true);
+    } else if (!stream.break_force_visible && stream.break_mode !== "open") {
+      setShowViewerBreak(false);
+    }
+  }, [stream?.break_force_visible, stream?.break_mode]);
 
   // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
   const [unpaidOrders, setUnpaidOrders] = useState(0);
@@ -693,6 +705,8 @@ function LiveDetail() {
     }
     await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
     toast.success(`${charLabel} is yours!`);
+    // Auto-close the viewer drawer after claiming so the stream is visible again
+    setShowViewerBreak(false);
   }
 
   async function closeBreakClaims() {
@@ -1774,46 +1788,18 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — compact right-side keypad for buyers (only when host opens it) */}
+        {/* 🆕 Mystery break — small button only; opens drawer on tap */}
         {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <div className="pointer-events-none absolute right-2 top-32 z-10 w-28">
-            <div className="pointer-events-auto rounded-xl bg-black/65 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
-              <div className="mb-1.5 flex items-center justify-between px-0.5">
-                <span className="flex items-center gap-1 text-[9px] font-extrabold text-pink-300">
-                  <Dice5 className="h-3 w-3" /> Break
-                </span>
-                <span className="rounded bg-pink-500/30 px-1 text-[9px] font-bold text-pink-100">
-                  {breakSlots.length}/{stream.break_slot_count} taken
-                </span>
-              </div>
-              <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-0.5">
-                {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
-                  const taken = breakSlots.find((s) => s.slot_number === n);
-                  const mine = taken && taken.buyer_id === user?.id;
-                  const charLabel =
-                    (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
-                    `${stream.break_slot_prefix || "#"}${n}`;
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => !taken && claimBreakSlotNumber(n)}
-                      disabled={!!taken}
-                      title={taken ? `${charLabel} — @${taken.buyer_username}` : `Claim ${charLabel}`}
-                      className={`flex h-9 flex-col items-center justify-center rounded text-[8px] font-bold leading-tight ${
-                        mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
-                        taken ? "bg-white/10 text-white/60 cursor-not-allowed ring-1 ring-white/10" :
-                        "bg-white text-black active:scale-95 hover:bg-pink-200"
-                      }`}
-                    >
-                      <span className="text-[9px] font-extrabold">{n}</span>
-                      {taken && <span className="max-w-full truncate px-0.5 text-[7px] opacity-90">@{taken.buyer_username}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-1 px-0.5 text-center text-[8px] text-white/60">${breakPrice}/slot</p>
-            </div>
-          </div>
+          <button
+            onClick={() => setShowViewerBreak(true)}
+            className="mx-auto flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-xs font-extrabold text-white shadow-lg ring-1 ring-pink-300/40 active:scale-[0.98]"
+          >
+            <Dice5 className="h-3.5 w-3.5" />
+            🎴 View Break
+            <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold">
+              {breakSlots.length}/{stream.break_slot_count}
+            </span>
+          </button>
         )}
 
         {/* Mystery break results — shown after host closes claims */}
@@ -2354,12 +2340,91 @@ function LiveDetail() {
                   <Users className="mr-1 inline h-3.5 w-3.5" /> Open break for claims
                 </button>
               )}
+
+              {/* 🆕 Host toggle: force break panel visible to all viewers */}
+              <label className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs">
+                <span className="flex flex-col">
+                  <span className="font-bold">Force break panel visible to viewers</span>
+                  <span className="text-[10px] text-muted-foreground">Off = viewers tap "View Break" to open it themselves</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={!!stream.break_force_visible}
+                  onChange={async (e) => {
+                    await supabase.from("live_streams").update({ break_force_visible: e.target.checked }).eq("id", id);
+                  }}
+                  className="h-4 w-4"
+                />
+              </label>
             </div>
           </div>
         </div>
       )}
 
-      {/* 🆕 Live break-draw celebration overlay */}
+      {/* 🆕 Viewer Mystery Break drawer — slide-up modal, dim+blur background, manual + auto close */}
+      {showViewerBreak && !isSeller && stream && stream.break_mode === "open" && stream.break_slot_count && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 backdrop-blur-sm sm:items-center"
+          onClick={() => !stream.break_force_visible && setShowViewerBreak(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md animate-in slide-in-from-bottom rounded-t-2xl bg-card p-4 text-foreground shadow-2xl sm:rounded-2xl"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <p className="flex items-center gap-1.5 text-sm font-bold">
+                <Dice5 className="h-4 w-4 text-primary" /> Mystery Break
+                <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-[10px] font-bold text-pink-300">
+                  {breakSlots.length}/{stream.break_slot_count}
+                </span>
+              </p>
+              {!stream.break_force_visible && (
+                <button onClick={() => setShowViewerBreak(false)} className="rounded-full p-1 hover:bg-muted">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              Tap a slot to claim · ${breakPrice}/slot
+            </p>
+            <div className="grid max-h-[50vh] grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
+                const taken = breakSlots.find((s) => s.slot_number === n);
+                const mine = taken && taken.buyer_id === user?.id;
+                const charLabel =
+                  (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
+                  `${stream.break_slot_prefix || "#"}${n}`;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => !taken && claimBreakSlotNumber(n)}
+                    disabled={!!taken}
+                    className={`flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg p-1 text-[10px] font-bold leading-tight ${
+                      mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
+                      taken ? "bg-muted text-muted-foreground cursor-not-allowed" :
+                      "bg-gradient-to-br from-pink-500 to-purple-500 text-white active:scale-95"
+                    }`}
+                  >
+                    <span className="text-sm font-extrabold">{n}</span>
+                    <span className="line-clamp-1 max-w-full truncate px-1 text-[8px] opacity-90">{charLabel}</span>
+                    {taken && <span className="line-clamp-1 max-w-full truncate text-[8px] opacity-80">@{taken.buyer_username}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {!stream.break_force_visible && (
+              <button
+                onClick={() => setShowViewerBreak(false)}
+                className="mt-3 w-full rounded-lg bg-muted py-2 text-xs font-bold text-foreground"
+              >
+                Done
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+
       {drawAnim && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur">
           <div className="animate-in zoom-in text-center">

@@ -549,6 +549,7 @@ export type Database = {
       live_streams: {
         Row: {
           break_characters: Json | null
+          break_force_visible: boolean
           break_mode: string | null
           break_slot_count: number | null
           break_slot_prefix: string | null
@@ -616,6 +617,7 @@ export type Database = {
         }
         Insert: {
           break_characters?: Json | null
+          break_force_visible?: boolean
           break_mode?: string | null
           break_slot_count?: number | null
           break_slot_prefix?: string | null
@@ -683,6 +685,7 @@ export type Database = {
         }
         Update: {
           break_characters?: Json | null
+          break_force_visible?: boolean
           break_mode?: string | null
           break_slot_count?: number | null
           break_slot_prefix?: string | null
