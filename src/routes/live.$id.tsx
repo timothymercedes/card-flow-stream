@@ -649,11 +649,11 @@ function LiveDetail() {
     if (!user) { setBuyerReady(false); return; }
     let cancelled = false;
     supabase.from("profiles")
-      .select("full_name,phone,address_line1,address_city,address_zip,buyer_verified")
+      .select("full_name,address_line1,address_city,address_zip,buyer_verified")
       .eq("id", user.id).maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return;
-        const ok = !!(data.full_name && data.phone && data.address_line1 && data.address_city && data.address_zip);
+        const ok = !!(data.full_name && data.address_line1 && data.address_city && data.address_zip);
         setBuyerReady(ok || !!data.buyer_verified);
       });
     return () => { cancelled = true; };
