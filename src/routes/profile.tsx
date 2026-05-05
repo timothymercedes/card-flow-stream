@@ -584,3 +584,38 @@ function PushToggle({ userId }: { userId: string }) {
     </button>
   );
 }
+
+function ShopNameClaim({ userId, onClaimed }: { userId: string; onClaimed: (name: string) => void }) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function claim() {
+    const v = name.trim();
+    if (v.length < 3) return toast.error("Shop name must be at least 3 characters");
+    if (!/^[A-Za-z0-9_ -]+$/.test(v)) return toast.error("Letters, numbers, spaces, _ and - only");
+    setBusy(true);
+    const { error } = await supabase.from("profiles").update({ shop_name: v }).eq("id", userId);
+    setBusy(false);
+    if (error) {
+      if (error.code === "23505" || /duplicate|unique/i.test(error.message)) return toast.error("That shop name is taken — try another");
+      return toast.error(error.message);
+    }
+    toast.success(`Shop name claimed: ${v}`);
+    onClaimed(v);
+  }
+  return (
+    <div className="rounded-xl bg-yellow-500/10 p-4 ring-1 ring-yellow-500/30 space-y-2">
+      <p className="text-sm font-bold text-yellow-600">🏪 One last step — claim your shop name</p>
+      <p className="text-[11px] text-muted-foreground">Pick a unique public name for your shop on PullBid. This is how buyers will recognize you. You must claim a shop name before listing or going live.</p>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="e.g. The Card Vault"
+        maxLength={30}
+        className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
+      />
+      <button onClick={claim} disabled={busy || !name.trim()} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">
+        {busy ? "Claiming…" : "Claim shop name"}
+      </button>
+    </div>
+  );
+}
