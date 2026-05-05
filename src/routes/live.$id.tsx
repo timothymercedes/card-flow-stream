@@ -1951,7 +1951,7 @@ function LiveDetail() {
       })()}
 
       {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
-      {showChat && (
+      {showChat && !(isStaff && hostFocus) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
