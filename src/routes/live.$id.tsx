@@ -676,6 +676,7 @@ function LiveDetail() {
     );
     await supabase.from("live_streams").update({
       break_mode: "open",
+      break_force_visible: false,
       break_slot_count: count,
       break_slot_prefix: breakPrefix.trim() || null,
       break_characters: chars,
