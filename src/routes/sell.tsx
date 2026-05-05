@@ -154,6 +154,7 @@ function Sell() {
     if (!title.trim()) return toast.error("Add a title");
     if (!imageUrl.trim()) return toast.error("Front photo is required");
     if (!backImageUrl.trim()) return toast.error("Back photo is required");
+    if (!category) return toast.error("Pick a category");
     if (!enableBuyNow && !enableAuction && !enableOffers) return toast.error("Pick at least one sale type");
     if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0)) return toast.error("Set a Buy Now price");
     if (enableAuction && (!auctionStart || Number(auctionStart) <= 0)) return toast.error("Set a starting bid");
