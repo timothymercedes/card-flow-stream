@@ -1776,17 +1776,17 @@ function LiveDetail() {
 
         {/* 🆕 Mystery break — compact right-side keypad for buyers (only when host opens it) */}
         {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <div className="pointer-events-none absolute right-2 top-32 z-10 w-32">
-            <div className="pointer-events-auto rounded-xl bg-black/60 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
-              <div className="mb-1 flex items-center justify-between px-0.5">
+          <div className="pointer-events-none absolute right-2 top-32 z-10 w-28">
+            <div className="pointer-events-auto rounded-xl bg-black/65 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
+              <div className="mb-1.5 flex items-center justify-between px-0.5">
                 <span className="flex items-center gap-1 text-[9px] font-extrabold text-pink-300">
                   <Dice5 className="h-3 w-3" /> Break
                 </span>
-                <span className="text-[8px] text-white/60">
-                  {breakSlots.length}/{stream.break_slot_count}
+                <span className="rounded bg-pink-500/30 px-1 text-[9px] font-bold text-pink-100">
+                  {breakSlots.length}/{stream.break_slot_count} taken
                 </span>
               </div>
-              <div className="grid max-h-44 grid-cols-3 gap-1 overflow-y-auto pr-0.5">
+              <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-0.5">
                 {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
                   const taken = breakSlots.find((s) => s.slot_number === n);
                   const mine = taken && taken.buyer_id === user?.id;
@@ -1798,19 +1798,20 @@ function LiveDetail() {
                       key={n}
                       onClick={() => !taken && claimBreakSlotNumber(n)}
                       disabled={!!taken}
-                      title={taken ? `@${taken.buyer_username}` : `Claim ${charLabel}`}
-                      className={`flex h-7 items-center justify-center rounded text-[9px] font-extrabold ${
-                        mine ? "bg-emerald-500 text-white ring-1 ring-emerald-200" :
-                        taken ? "bg-white/10 text-white/30 line-through cursor-not-allowed" :
+                      title={taken ? `${charLabel} — @${taken.buyer_username}` : `Claim ${charLabel}`}
+                      className={`flex h-9 flex-col items-center justify-center rounded text-[8px] font-bold leading-tight ${
+                        mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
+                        taken ? "bg-white/10 text-white/60 cursor-not-allowed ring-1 ring-white/10" :
                         "bg-white text-black active:scale-95 hover:bg-pink-200"
                       }`}
                     >
-                      {n}
+                      <span className="text-[9px] font-extrabold">{n}</span>
+                      {taken && <span className="max-w-full truncate px-0.5 text-[7px] opacity-90">@{taken.buyer_username}</span>}
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-1 px-0.5 text-center text-[8px] text-white/50">${breakPrice}/slot</p>
+              <p className="mt-1 px-0.5 text-center text-[8px] text-white/60">${breakPrice}/slot</p>
             </div>
           </div>
         )}
