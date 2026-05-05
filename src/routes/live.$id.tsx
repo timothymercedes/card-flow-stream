@@ -696,7 +696,9 @@ function LiveDetail() {
 
   // 🆕 Buy-now snipe: instantly win at the host's snipe price
   async function buyNowSnipe() {
-    if (!user || !profile || !stream?.snipe_price) return;
+    if (!stream?.snipe_price) return;
+    if (!requireBuyerReady("buy")) return;
+    if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!auctionLive) return toast.error("No active auction");
