@@ -1257,6 +1257,14 @@ function LiveDetail() {
         winner_id: winnerId, winning_bid: winningBid, winner_username: winnerUsername,
         round_number: nextRound,
       }).eq("id", id);
+      // 🆕 Auto-trigger pre-selected reveal (Spin Wheel or Mystery Break) for the winner
+      const revealMode = (stream as any).auction_reveal_mode as string | undefined;
+      if (isSeller && revealMode === "wheel") {
+        // Fire & forget — pops up overlay for everyone
+        triggerSpin().catch(() => {});
+      } else if (isSeller && revealMode === "break") {
+        spinBreakWheel().catch(() => {});
+      }
       // Clear winner banner + ends_at after 5s, then auto-rearm next round if quantity remaining
       setTimeout(async () => {
         const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
