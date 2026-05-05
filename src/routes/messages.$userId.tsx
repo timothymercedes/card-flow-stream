@@ -27,7 +27,16 @@ function ChatThread() {
       const { data } = await supabase.from("message_requests").select("*")
         .or(`and(sender_id.eq.${user!.id},recipient_id.eq.${userId}),and(sender_id.eq.${userId},recipient_id.eq.${user!.id})`)
         .maybeSingle();
-      setAccepted(data?.status === "accepted");
+      // Allow sending if accepted, or if you're the sender of a pending request (Instagram-style first DM = the request)
+      if (data?.status === "accepted") setAccepted(true);
+      else if (data?.status === "pending" && data.sender_id === user!.id) setAccepted(true);
+      else if (!data) {
+        // No request yet — auto-create one as the sender so first message goes through
+        await supabase.from("message_requests").insert({
+          sender_id: user!.id, sender_username: profile?.username || "user", recipient_id: userId,
+        });
+        setAccepted(true);
+      } else setAccepted(false);
     }
     check();
 

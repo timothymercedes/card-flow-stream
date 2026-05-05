@@ -126,7 +126,9 @@ function Auth() {
           </div>
         )}
         <input type="email" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+        {mode !== "forgot" && (
+          <input type="password" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+        )}
         {mode === "signup" && (
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <input type="checkbox" checked={isSeller} onChange={(e) => setIsSeller(e.target.checked)} className="h-4 w-4" />
@@ -134,7 +136,7 @@ function Auth() {
           </label>
         )}
         <button disabled={loading || (mode === "signup" && usernameOk === false)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
-          {loading ? "..." : mode === "signin" ? "Sign In" : "Review Terms & Sign Up"}
+          {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Terms & Sign Up"}
         </button>
         {mode === "signup" && (
           <p className="text-center text-[11px] text-muted-foreground">
@@ -168,6 +170,16 @@ function Auth() {
         {mode === "signin" ? "Need an account? " : "Have an account? "}
         <span className="font-semibold text-primary">{mode === "signin" ? "Sign Up" : "Sign In"}</span>
       </button>
+      {mode === "signin" && (
+        <button onClick={() => setMode("forgot")} className="mt-2 text-center text-xs text-muted-foreground hover:text-primary">
+          Forgot password?
+        </button>
+      )}
+      {mode === "forgot" && (
+        <button onClick={() => setMode("signin")} className="mt-2 text-center text-xs text-muted-foreground hover:text-primary">
+          ← Back to sign in
+        </button>
+      )}
       <AgreementModal
         open={showTerms}
         required
