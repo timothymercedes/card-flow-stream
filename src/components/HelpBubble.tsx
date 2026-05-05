@@ -124,7 +124,10 @@ export function HelpBubble() {
                   <div key={i} className={`h-1 flex-1 rounded-full ${i <= tourStep ? "bg-primary" : "bg-muted"}`} />
                 ))}
               </div>
-              <div className="flex-1">
+              <div className="flex flex-1 flex-col items-center text-center">
+                <div className="mb-2 flex h-40 w-40 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 via-accent/10 to-live/15">
+                  <img src={TOUR_STEPS[tourStep].img} alt="" loading="lazy" width={160} height={160} className="h-36 w-36 object-contain drop-shadow-lg" />
+                </div>
                 <h3 className="text-lg font-bold">{TOUR_STEPS[tourStep].title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{TOUR_STEPS[tourStep].body}</p>
               </div>
