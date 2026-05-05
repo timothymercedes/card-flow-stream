@@ -53,7 +53,16 @@ function Profile() {
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
     supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", user.id).then(({ count }) => setFollowers(count || 0));
     supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => setFollowing(count || 0));
+    (supabase.rpc as any)("get_seller_completed_count", { _user: user.id }).then(({ data }: any) => setSellerCompleted(Number(data ?? 0)));
+    (supabase.rpc as any)("get_buyer_completed_count", { _user: user.id }).then(({ data }: any) => setBuyerCompleted(Number(data ?? 0)));
   }, [user]);
+
+  async function openList(kind: "followers" | "following") {
+    if (!user) return;
+    setListOpen(kind);
+    const { data } = await (supabase.rpc as any)(kind === "followers" ? "list_followers" : "list_following", { _user: user.id });
+    setListRows(data || []);
+  }
 
   // Check whether approved sellers have already signed the Seller Agreement.
   useEffect(() => {
