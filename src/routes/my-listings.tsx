@@ -145,6 +145,11 @@ function MyListings() {
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link to="/market/$id" params={{ id: l.id }} className="line-clamp-1 text-sm font-semibold">{l.title}</Link>
+                  {l.category && (
+                    <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+                      {categoryEmoji(l.category)} {categoryLabel(l.category)}
+                    </span>
+                  )}
                   <p className="text-xs text-primary">
                     {l.is_auction
                       ? `Bid $${Number(l.current_bid || l.starting_bid || 0).toFixed(2)}`
