@@ -262,6 +262,13 @@ function Profile() {
           </div>
         </div>
 
+        {isAdmin && (
+          <Link to="/admin" className="flex items-center justify-between rounded-xl bg-primary/10 p-3 hover:bg-primary/20">
+            <span className="flex items-center gap-2 text-sm font-bold text-primary"><ShieldCheck className="h-4 w-4" /> Admin Dashboard</span>
+            <span className="text-xs text-primary">Open →</span>
+          </Link>
+        )}
+
         {(sellerCompleted < 100 || buyerCompleted < 35) && (
           <section className="rounded-xl bg-card p-3 space-y-2">
             <p className="text-xs font-bold">Verification progress</p>
