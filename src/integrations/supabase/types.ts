@@ -291,16 +291,19 @@ export type Database = {
           created_at: string
           followee_id: string
           follower_id: string
+          notify_on_live: boolean
         }
         Insert: {
           created_at?: string
           followee_id: string
           follower_id: string
+          notify_on_live?: boolean
         }
         Update: {
           created_at?: string
           followee_id?: string
           follower_id?: string
+          notify_on_live?: boolean
         }
         Relationships: []
       }
@@ -1184,12 +1187,15 @@ export type Database = {
           avatar_url: string | null
           buyer_verified: boolean
           created_at: string
+          current_streak: number
           full_name: string | null
           id: string
           id_document_url: string | null
           id_status: string
           interests: string[]
           is_seller: boolean
+          last_login_date: string | null
+          longest_streak: number
           onboarding_completed: boolean
           phone: string | null
           phone_verified: boolean
@@ -1214,12 +1220,15 @@ export type Database = {
           avatar_url?: string | null
           buyer_verified?: boolean
           created_at?: string
+          current_streak?: number
           full_name?: string | null
           id: string
           id_document_url?: string | null
           id_status?: string
           interests?: string[]
           is_seller?: boolean
+          last_login_date?: string | null
+          longest_streak?: number
           onboarding_completed?: boolean
           phone?: string | null
           phone_verified?: boolean
@@ -1244,12 +1253,15 @@ export type Database = {
           avatar_url?: string | null
           buyer_verified?: boolean
           created_at?: string
+          current_streak?: number
           full_name?: string | null
           id?: string
           id_document_url?: string | null
           id_status?: string
           interests?: string[]
           is_seller?: boolean
+          last_login_date?: string | null
+          longest_streak?: number
           onboarding_completed?: boolean
           phone?: string | null
           phone_verified?: boolean
@@ -2164,6 +2176,14 @@ export type Database = {
           _target_user: string
         }
         Returns: undefined
+      }
+      bump_login_streak: {
+        Args: never
+        Returns: {
+          current_streak: number
+          last_login_date: string
+          longest_streak: number
+        }[]
       }
       can_view_story: {
         Args: { _story_owner: string; _viewer: string; _visibility: string }

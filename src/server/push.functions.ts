@@ -27,7 +27,7 @@ export const notifyGoingLive = createServerFn({ method: "POST" })
         .from("profiles").select("username").eq("id", sellerId).maybeSingle();
 
       const { data: followers } = await supabaseAdmin
-        .from("follows").select("follower_id").eq("followee_id", sellerId);
+        .from("follows").select("follower_id").eq("followee_id", sellerId).eq("notify_on_live", true);
       const userIds = (followers || []).map((f) => f.follower_id).filter(Boolean);
       if (userIds.length === 0) return { sent: 0, cleaned: 0 };
 

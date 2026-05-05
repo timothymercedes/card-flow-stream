@@ -2,10 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -36,11 +37,12 @@ function PublicStore() {
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
   const [isFollowing, setIsFollowing] = useState(false);
+  const [notifyOnLive, setNotifyOnLive] = useState(true);
 
   useEffect(() => {
     if (!user || !seller) { setIsFollowing(false); return; }
-    supabase.from("follows").select("follower_id").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
-      .then(({ data }) => setIsFollowing(!!data));
+    supabase.from("follows").select("follower_id, notify_on_live").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
+      .then(({ data }) => { setIsFollowing(!!data); setNotifyOnLive((data as any)?.notify_on_live ?? true); });
   }, [user, seller]);
 
   async function toggleFollow() {
@@ -54,13 +56,33 @@ function PublicStore() {
       const { error } = await supabase.from("follows").insert({ follower_id: user.id, followee_id: seller.id });
       if (error) { toast.error(error.message); return; }
       setIsFollowing(true);
+      setNotifyOnLive(true);
       setFollowers((c) => c + 1);
       await supabase.from("notifications").insert({
         user_id: seller.id, type: "follow",
         body: `@${myProfile.username} started following you`,
         link: `/seller/${myProfile.username}`,
       });
+      // Offer push notifications when following so they actually get the live alerts
+      if (pushSupported()) {
+        ensurePushSubscribed(user.id).then((r) => {
+          if (r.ok) toast.success(`You'll get a ping when @${seller.username} goes live`);
+        }).catch(() => {});
+      }
     }
+  }
+
+  async function toggleNotify() {
+    if (!user || !seller || !isFollowing) return;
+    const next = !notifyOnLive;
+    setNotifyOnLive(next);
+    await supabase.from("follows").update({ notify_on_live: next })
+      .eq("follower_id", user.id).eq("followee_id", seller.id);
+    if (next && pushSupported()) {
+      const r = await ensurePushSubscribed(user.id);
+      if (!r.ok) toast.error(r.reason || "Couldn't enable notifications");
+    }
+    toast.success(next ? "Live alerts on" : "Live alerts off");
   }
 
   async function startMessage() {
@@ -153,6 +175,15 @@ function PublicStore() {
                       >
                         {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
                       </button>
+                      {isFollowing && (
+                        <button
+                          onClick={toggleNotify}
+                          title={notifyOnLive ? "Live alerts on — tap to mute" : "Live alerts off — tap to enable"}
+                          className={`inline-flex items-center justify-center rounded-full p-1.5 ring-1 ring-border ${notifyOnLive ? "bg-primary/15 text-primary" : "bg-card text-muted-foreground"}`}
+                        >
+                          {notifyOnLive ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
                       <button
                         onClick={startMessage}
                         className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold ring-1 ring-border"
