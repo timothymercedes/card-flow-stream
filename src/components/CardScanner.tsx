@@ -44,6 +44,15 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
 
+  // 🆕 Auto-capture
+  const [autoCapture, setAutoCapture] = useState(true);
+  const [hint, setHint] = useState<string>("Point camera at a card");
+  const [steadyPct, setSteadyPct] = useState(0);
+  const autoTimerRef = useRef<number | null>(null);
+  const prevFrameRef = useRef<ImageData | null>(null);
+  const steadyTicksRef = useRef(0);
+  const capturingRef = useRef(false);
+
   async function start(mode: "environment" | "user") {
     setError(null);
     try {
@@ -71,11 +80,11 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
   }, [facing, pending]);
 
   async function capture() {
-    if (!videoRef.current || scanning) return;
+    if (!videoRef.current || capturingRef.current) return;
+    capturingRef.current = true;
     setScanning(true);
     try {
       const v = videoRef.current;
-      // Higher res capture (1024 long side) so the model can read set symbol + card number reliably.
       const srcW = v.videoWidth || 1280;
       const srcH = v.videoHeight || 720;
       const MAX = 1024;
@@ -98,8 +107,87 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
       toast.error(e?.message || "Scan failed");
     } finally {
       setScanning(false);
+      capturingRef.current = false;
     }
   }
+
+  // 🆕 Auto-capture loop: detect a stable, well-framed card and snap automatically.
+  useEffect(() => {
+    if (pending || !autoCapture) {
+      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
+      return;
+    }
+    const small = document.createElement("canvas");
+    small.width = 80; small.height = 60;
+    const sctx = small.getContext("2d", { willReadFrequently: true });
+    if (!sctx) return;
+
+    autoTimerRef.current = window.setInterval(() => {
+      const v = videoRef.current;
+      if (!v || v.readyState < 2 || capturingRef.current || scanning) return;
+      sctx.drawImage(v, 0, 0, small.width, small.height);
+      const frame = sctx.getImageData(0, 0, small.width, small.height);
+
+      // Compute brightness + edge density (proxy for "card in frame")
+      let lumaSum = 0;
+      let edgeCount = 0;
+      const d = frame.data;
+      const w = small.width;
+      for (let y = 1; y < small.height - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const i = (y * w + x) * 4;
+          const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          lumaSum += l;
+          const ir = ((y) * w + (x + 1)) * 4;
+          const lr = 0.299 * d[ir] + 0.587 * d[ir + 1] + 0.114 * d[ir + 2];
+          if (Math.abs(l - lr) > 30) edgeCount++;
+        }
+      }
+      const avgLuma = lumaSum / (w * small.height);
+      const edgeRatio = edgeCount / (w * small.height);
+
+      // Compare to previous frame for steadiness
+      let diff = 0;
+      const prev = prevFrameRef.current;
+      if (prev && prev.data.length === d.length) {
+        for (let i = 0; i < d.length; i += 16) {
+          diff += Math.abs(d[i] - prev.data[i]);
+        }
+        diff = diff / (d.length / 16);
+      }
+      prevFrameRef.current = frame;
+
+      const wellLit = avgLuma > 40 && avgLuma < 230;
+      const hasCard = edgeRatio > 0.05; // enough detail in frame
+      const steady = diff < 6;
+
+      if (wellLit && hasCard && steady) {
+        steadyTicksRef.current += 1;
+      } else {
+        steadyTicksRef.current = Math.max(0, steadyTicksRef.current - 1);
+      }
+
+      const need = 6; // ~600ms steady
+      const pct = Math.min(100, (steadyTicksRef.current / need) * 100);
+      setSteadyPct(pct);
+
+      if (!hasCard) setHint("Point camera at a card");
+      else if (!wellLit) setHint("More light needed");
+      else if (!steady) setHint("Hold steady…");
+      else setHint("Locking…");
+
+      if (steadyTicksRef.current >= need) {
+        steadyTicksRef.current = 0;
+        setSteadyPct(0);
+        setHint("Capturing…");
+        capture();
+      }
+    }, 100);
+
+    return () => { if (autoTimerRef.current) window.clearInterval(autoTimerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, autoCapture, scanning]);
+
 
   function confirmResult() {
     if (!pending) return;
@@ -153,17 +241,32 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
             ) : (
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
-            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/60" />
+            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors" style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }} />
+            {/* Steady progress ring */}
+            {autoCapture && !scanning && (
+              <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
+                {hint} {steadyPct > 0 && steadyPct < 100 ? `· ${Math.round(steadyPct)}%` : ""}
+              </div>
+            )}
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
               Frame the whole card · keep set symbol + card number visible
             </p>
           </div>
-          <div className="p-6">
+          <div className="p-4">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setAutoCapture((a) => !a)}
+                className={`rounded-full px-3 py-1 text-[11px] font-bold ${autoCapture ? "bg-emerald-500 text-white" : "bg-white/10 text-white"}`}
+              >
+                {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
+              </button>
+            </div>
             <button onClick={capture} disabled={scanning || !!error} className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50">
               {scanning ? <Loader2 className="h-7 w-7 animate-spin" /> : <Camera className="h-7 w-7" />}
             </button>
-            <p className="mt-2 text-center text-xs text-white/60">Tap to capture & identify</p>
+            <p className="mt-2 text-center text-xs text-white/60">{autoCapture ? "Hold steady — auto-snaps when ready" : "Tap to capture & identify"}</p>
           </div>
+
         </>
       )}
 
