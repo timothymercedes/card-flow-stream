@@ -630,7 +630,7 @@ function LiveDetail() {
   // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
-    if (!user || !profile) return toast.error("Sign in to bid");
+    if (!requireBuyerReady("bid")) return;
     if (isSeller) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding again"); nav({ to: "/orders" }); return; }
     if (meBlocked) return toast.error("You're banned/muted in this stream");
