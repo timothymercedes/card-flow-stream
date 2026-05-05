@@ -760,6 +760,7 @@ function LiveDetail() {
   }
 
   async function claimSelectedBreakSlots() {
+    if (!requireBuyerReady("claim a character")) return;
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before claiming"); nav({ to: "/orders" }); return; }
