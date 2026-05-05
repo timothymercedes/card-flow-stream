@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { CardScanner } from "@/components/CardScanner";
+import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
@@ -62,6 +64,7 @@ function Sell() {
   const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
   const [shippingPrice, setShippingPrice] = useState("0");
+  const [category, setCategory] = useState<string>("pokemon");
 
   // Load seller status
   if (user && sellerStatus === null) {
@@ -151,6 +154,7 @@ function Sell() {
     if (!title.trim()) return toast.error("Add a title");
     if (!imageUrl.trim()) return toast.error("Front photo is required");
     if (!backImageUrl.trim()) return toast.error("Back photo is required");
+    if (!category) return toast.error("Pick a category");
     if (!enableBuyNow && !enableAuction && !enableOffers) return toast.error("Pick at least one sale type");
     if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0)) return toast.error("Set a Buy Now price");
     if (enableAuction && (!auctionStart || Number(auctionStart) <= 0)) return toast.error("Set a starting bid");
@@ -169,6 +173,7 @@ function Sell() {
       image_url: imageUrl || null,
       back_image_url: backImageUrl || null,
       tcg_number: tcgNumber.trim() || null,
+      category,
       condition,
       listing_type: primary,
       is_auction: enableAuction,
@@ -338,10 +343,22 @@ function Sell() {
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="# (e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Front photo URL *" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Back photo URL *" value={backImageUrl} onChange={(e) => setBackImageUrl(e.target.value)} />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <ListingImageUpload value={imageUrl} onChange={setImageUrl} label="Front photo *" />
+              <ListingImageUpload value={backImageUrl} onChange={setBackImageUrl} label="Back photo *" />
             </div>
+            <label className="block">
+              <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Category *</p>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
+              >
+                {LISTING_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+                ))}
+              </select>
+            </label>
             <div>
               <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Condition (required)</p>
               <div className="grid grid-cols-4 gap-1">

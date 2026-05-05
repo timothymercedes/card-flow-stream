@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
+import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,6 +12,7 @@ export const Route = createFileRoute("/my-listings")({ component: MyListings });
 
 type Listing = {
   id: string; title: string; description: string | null; image_url: string | null;
+  back_image_url: string | null;
   price: number | null; current_bid: number | null; starting_bid: number | null;
   buy_now_price: number | null;
   listing_type: string; is_auction: boolean; accepts_offers: boolean;
@@ -17,6 +20,7 @@ type Listing = {
   auction_status: string; created_at: string;
   shipping_price: number | null;
   reserve_price: number | null;
+  category: string | null;
 };
 
 function fmtRemain(iso: string) {
@@ -74,6 +78,8 @@ function MyListings() {
       title: editing.title,
       description: editing.description,
       image_url: editing.image_url,
+      back_image_url: editing.back_image_url,
+      category: editing.category,
       price: editing.price != null ? Number(editing.price) : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
@@ -139,6 +145,11 @@ function MyListings() {
                 </Link>
                 <div className="min-w-0 flex-1">
                   <Link to="/market/$id" params={{ id: l.id }} className="line-clamp-1 text-sm font-semibold">{l.title}</Link>
+                  {l.category && (
+                    <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
+                      {categoryEmoji(l.category)} {categoryLabel(l.category)}
+                    </span>
+                  )}
                   <p className="text-xs text-primary">
                     {l.is_auction
                       ? `Bid $${Number(l.current_bid || l.starting_bid || 0).toFixed(2)}`
@@ -188,9 +199,27 @@ function MyListings() {
                 <textarea value={editing.description ?? ""} rows={2} onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                   className="mt-1 w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" />
               </label>
-              <label className="block text-[11px] text-muted-foreground">Image URL
-                <input value={editing.image_url ?? ""} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="https://…" />
+              <ListingImageUpload
+                value={editing.image_url ?? ""}
+                onChange={(url) => setEditing({ ...editing, image_url: url })}
+                label="Front photo"
+              />
+              <ListingImageUpload
+                value={editing.back_image_url ?? ""}
+                onChange={(url) => setEditing({ ...editing, back_image_url: url })}
+                label="Back photo"
+              />
+              <label className="block text-[11px] text-muted-foreground">Category
+                <select
+                  value={editing.category ?? ""}
+                  onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm"
+                >
+                  <option value="">— Select —</option>
+                  {LISTING_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+                  ))}
+                </select>
               </label>
 
               {!editing.is_auction && (
