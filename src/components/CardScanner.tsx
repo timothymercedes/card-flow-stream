@@ -241,17 +241,32 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
             ) : (
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
-            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/60" />
+            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors" style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }} />
+            {/* Steady progress ring */}
+            {autoCapture && !scanning && (
+              <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
+                {hint} {steadyPct > 0 && steadyPct < 100 ? `· ${Math.round(steadyPct)}%` : ""}
+              </div>
+            )}
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
               Frame the whole card · keep set symbol + card number visible
             </p>
           </div>
-          <div className="p-6">
+          <div className="p-4">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              <button
+                onClick={() => setAutoCapture((a) => !a)}
+                className={`rounded-full px-3 py-1 text-[11px] font-bold ${autoCapture ? "bg-emerald-500 text-white" : "bg-white/10 text-white"}`}
+              >
+                {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
+              </button>
+            </div>
             <button onClick={capture} disabled={scanning || !!error} className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50">
               {scanning ? <Loader2 className="h-7 w-7 animate-spin" /> : <Camera className="h-7 w-7" />}
             </button>
-            <p className="mt-2 text-center text-xs text-white/60">Tap to capture & identify</p>
+            <p className="mt-2 text-center text-xs text-white/60">{autoCapture ? "Hold steady — auto-snaps when ready" : "Tap to capture & identify"}</p>
           </div>
+
         </>
       )}
 
