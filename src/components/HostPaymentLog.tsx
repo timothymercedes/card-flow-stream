@@ -141,7 +141,7 @@ export async function logPaymentEvent(input: {
   itemLabel?: string | null;
   message?: string | null;
 }) {
-  const { error } = await supabase.from("stream_payment_events").insert({
+  const { error } = await supabase.from("stream_payment_events").insert([{
     stream_id: input.streamId,
     buyer_id: input.buyerId ?? null,
     buyer_username: input.buyerUsername ?? null,
@@ -150,6 +150,6 @@ export async function logPaymentEvent(input: {
     amount: input.amount ?? null,
     item_label: input.itemLabel ?? null,
     message: input.message ?? null,
-  });
+  }]);
   if (error) console.error("logPaymentEvent failed:", error);
 }
