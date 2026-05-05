@@ -29,21 +29,26 @@ function PublicStore() {
 
   useEffect(() => {
     (async () => {
-      const { data: prof } = await supabase.from("profiles").select("id,username,avatar_url").eq("username", username).maybeSingle();
+      const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
+      const prof = Array.isArray(profRows) ? profRows[0] : null;
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r, fr, fg] = await Promise.all([
+      const [l, o, r, fr, fg, sc, bc] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
         supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
+        (supabase.rpc as any)("get_seller_completed_count", { _user: prof.id }),
+        (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
       ]);
       setListings(l.data || []);
       setSoldOrders(o.data || []);
       setReviews(r.data || []);
       setFollowers(fr.count || 0);
       setFollowing(fg.count || 0);
+      setSellerCompleted(Number(sc?.data ?? 0));
+      setBuyerCompleted(Number(bc?.data ?? 0));
     })();
   }, [username]);
 
