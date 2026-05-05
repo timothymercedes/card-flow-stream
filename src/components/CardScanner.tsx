@@ -44,6 +44,15 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
 
+  // 🆕 Auto-capture
+  const [autoCapture, setAutoCapture] = useState(true);
+  const [hint, setHint] = useState<string>("Point camera at a card");
+  const [steadyPct, setSteadyPct] = useState(0);
+  const autoTimerRef = useRef<number | null>(null);
+  const prevFrameRef = useRef<ImageData | null>(null);
+  const steadyTicksRef = useRef(0);
+  const capturingRef = useRef(false);
+
   async function start(mode: "environment" | "user") {
     setError(null);
     try {
