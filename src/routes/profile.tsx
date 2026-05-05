@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint, Phone, CheckCircle2, Bell, BellOff } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -447,6 +447,10 @@ function Profile() {
               <Link to="/store" className="flex items-center gap-3 rounded-xl bg-card p-4">
                 <StoreIcon className="h-5 w-5 text-primary" />
                 <div className="flex-1"><p className="text-sm font-semibold">My Store</p><p className="text-xs text-muted-foreground">Items you've sold</p></div>
+              </Link>
+              <Link to="/payouts" className="flex items-center gap-3 rounded-xl bg-card p-4">
+                <Banknote className="h-5 w-5 text-primary" />
+                <div className="flex-1"><p className="text-sm font-semibold">Payouts</p><p className="text-xs text-muted-foreground">Connect Stripe to receive payments</p></div>
               </Link>
             </>
           )}
