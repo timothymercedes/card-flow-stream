@@ -1941,6 +1941,20 @@ function LiveDetail() {
               <button onClick={() => setShowBreakPanel(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
                 <Dice5 className="h-3.5 w-3.5" /> Break
               </button>
+              {stream.break_mode === "open" && (
+                <button
+                  onClick={async () => {
+                    const next = !stream.break_force_visible;
+                    setStream((prev: any) => prev ? { ...prev, break_force_visible: next } : prev);
+                    await supabase.from("live_streams").update({ break_force_visible: next }).eq("id", id);
+                    toast.success(next ? "Break grid pinned for viewers" : "Viewers can collapse the break grid");
+                  }}
+                  className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-card/70 py-2 text-[10px] font-bold text-foreground ring-1 ring-white/15 active:scale-[0.98]"
+                >
+                  {stream.break_force_visible ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                  {stream.break_force_visible ? "Unpin" : "Pin"}
+                </button>
+              )}
               <button onClick={() => setShowWheelEditor(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
                 <RotateCw className="h-3.5 w-3.5" /> Wheel
               </button>
