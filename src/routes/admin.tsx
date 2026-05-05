@@ -99,6 +99,37 @@ function Admin() {
 
   useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
+  useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
+
+  async function loadOrders() {
+    let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
+    if (orderFilter === "issues") {
+      q = q.in("status", ["pending", "disputed"]);
+    }
+    const { data } = await q;
+    setOrders((data as any[]) || []);
+  }
+
+  async function searchUsers() {
+    if (!userQuery.trim()) { setUserResults([]); return; }
+    const { data } = await supabase.from("profiles")
+      .select("id, username, avatar_url, is_seller, seller_status, created_at")
+      .ilike("username", `%${userQuery.trim()}%`).limit(25);
+    setUserResults((data as any[]) || []);
+  }
+
+  async function quickSuspend(u: { id: string; username: string }, days: number, reason: string) {
+    if (!reason) return;
+    const expires_at = days > 0 ? new Date(Date.now() + days * 86400000).toISOString() : null;
+    const { error } = await supabase.from("user_suspensions").insert({
+      user_id: u.id, username: u.username,
+      type: days > 0 ? "suspension" : "ban",
+      reason, by_admin_id: user!.id, expires_at, active: true,
+    });
+    if (error) return toast.error(error.message);
+    toast.success(days > 0 ? `Suspended @${u.username} for ${days}d` : `Banned @${u.username}`);
+    loadAll();
+  }
 
   async function updateReport(id: string, status: "reviewing" | "resolved" | "dismissed") {
     const note = status !== "reviewing" ? window.prompt(`Resolution note for ${status}:`) || "" : "";
