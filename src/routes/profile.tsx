@@ -56,6 +56,7 @@ function Profile() {
     supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id).then(({ count }) => setFollowing(count || 0));
     (supabase.rpc as any)("get_seller_completed_count", { _user: user.id }).then(({ data }: any) => setSellerCompleted(Number(data ?? 0)));
     (supabase.rpc as any)("get_buyer_completed_count", { _user: user.id }).then(({ data }: any) => setBuyerCompleted(Number(data ?? 0)));
+    supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["owner","admin","moderator","support"]).then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
   }, [user]);
 
   async function openList(kind: "followers" | "following") {
