@@ -1374,8 +1374,8 @@ function LiveDetail() {
                 {stream.sudden_death_active && (
                   <span className={`rounded bg-black/30 uppercase tracking-wider ${dramatic ? "px-3 py-1 text-base" : "ml-1 px-1.5 py-0.5 text-[9px]"}`}>Sudden Death</span>
                 )}
-                {Number((stream as any).quick_start_remaining || 0) > 0 && !stream.sudden_death_active && !dramatic && (
-                  <span className="ml-1 rounded bg-black/30 px-1.5 py-0.5 text-[9px]">×{(stream as any).quick_start_remaining + 1}</span>
+                {Number((stream as any).quick_start_remaining || 0) >= 0 && Number((stream as any).quick_start_quantity || 1) > 1 && !stream.sudden_death_active && !dramatic && (
+                  <span className="ml-1 rounded bg-primary/30 px-1.5 py-0.5 text-[9px] font-bold uppercase">Slot {Number((stream as any).quick_start_quantity || 1) - Number((stream as any).quick_start_remaining || 0)}/{Number((stream as any).quick_start_quantity || 1)}</span>
                 )}
               </div>
             ) : (
