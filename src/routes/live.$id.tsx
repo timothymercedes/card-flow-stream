@@ -1527,17 +1527,17 @@ function LiveDetail() {
               <input value={editShipMethod} onChange={(e) => setEditShipMethod(e.target.value)} placeholder="Method" className="rounded-lg bg-input px-3 py-2 text-xs outline-none" />
             </div>
 
-            {/* 🆕 Quantity — runs N back-to-back identical auctions */}
+            {/* 🆕 Quantity — N total slots, one winner per round */}
             <label className="block text-[11px] text-muted-foreground">
-              Quantity (back-to-back rounds)
+              Quantity available (slots)
               <div className="mt-1 flex items-center gap-2">
                 <input type="number" min="1" max="99" value={editQuantity}
                   onChange={(e) => setEditQuantity(e.target.value)}
                   className="w-20 rounded-lg bg-input px-3 py-2 text-sm font-bold outline-none" />
-                <span className="text-[10px] text-muted-foreground">After each win, the next round auto-starts with the same settings.</span>
+                <span className="text-[10px] text-muted-foreground">Multiple winners — each round picks one buyer until all slots are sold.</span>
               </div>
               {Number((stream as any).quick_start_remaining || 0) > 0 && (
-                <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} round(s) queued</p>
+                <p className="mt-1 text-[10px] font-bold text-primary">⏭ {(stream as any).quick_start_remaining} slot(s) remaining</p>
               )}
             </label>
 
