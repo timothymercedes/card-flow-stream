@@ -1954,8 +1954,10 @@ function LiveDetail() {
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            left-2 pb-1 pr-1
-            ${isStaff ? "bottom-44 max-h-[42vh] w-[68%] max-w-[18rem]" : "bottom-28 max-h-[20vh] w-[58%] max-w-[16rem]"}
+            pb-1
+            ${isStaff
+              ? "right-2 bottom-44 max-h-[45vh] w-[62%] max-w-[17rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
+              : "left-2 bottom-28 max-h-[20vh] w-[58%] max-w-[16rem] pr-1"}
             md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
             md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
         >
