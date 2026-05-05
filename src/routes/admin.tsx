@@ -46,6 +46,8 @@ function Admin() {
   const [orderFilter, setOrderFilter] = useState<"all" | "issues">("issues");
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<any[]>([]);
+  const [signupStats, setSignupStats] = useState<{ total: number; last_24h: number; last_7d: number } | null>(null);
+  const [recentSignups, setRecentSignups] = useState<any[]>([]);
 
   const isOwner = myRoles.includes("owner");
   const isAdmin = isOwner || myRoles.includes("admin");
