@@ -194,9 +194,27 @@ function MyListings() {
                 <textarea value={editing.description ?? ""} rows={2} onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                   className="mt-1 w-full resize-none rounded-lg bg-input px-3 py-2 text-sm" placeholder="Description" />
               </label>
-              <label className="block text-[11px] text-muted-foreground">Image URL
-                <input value={editing.image_url ?? ""} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="https://…" />
+              <ListingImageUpload
+                value={editing.image_url ?? ""}
+                onChange={(url) => setEditing({ ...editing, image_url: url })}
+                label="Front photo"
+              />
+              <ListingImageUpload
+                value={editing.back_image_url ?? ""}
+                onChange={(url) => setEditing({ ...editing, back_image_url: url })}
+                label="Back photo"
+              />
+              <label className="block text-[11px] text-muted-foreground">Category
+                <select
+                  value={editing.category ?? ""}
+                  onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm"
+                >
+                  <option value="">— Select —</option>
+                  {LISTING_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+                  ))}
+                </select>
               </label>
 
               {!editing.is_auction && (
