@@ -1934,7 +1934,7 @@ function LiveDetail() {
               </button>
             </div>
             {/* Secondary tools row */}
-            <div className="grid grid-cols-5 gap-1.5">
+            <div className={`grid gap-1.5 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}>
               <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98]">
                 <Camera className="h-3.5 w-3.5" /> Scan
               </button>
@@ -2424,7 +2424,7 @@ function LiveDetail() {
               {stream.break_force_visible ? "Host pinned this break grid" : "Tap a slot to claim · choices save instantly"}
             </p>
             <div className={`grid gap-1.5 overflow-y-auto ${stream.break_force_visible ? "max-h-[58vh] grid-cols-4" : "max-h-[30vh] grid-cols-4"}`}>
-              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
+              {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).filter((n) => !breakSlots.some((s) => s.slot_number === n)).map((n) => {
                 const taken = breakSlots.find((s) => s.slot_number === n);
                 const mine = taken && taken.buyer_id === user?.id;
                 const charLabel =
@@ -2447,6 +2447,9 @@ function LiveDetail() {
                   </button>
                 );
               })}
+              {breakSlots.length >= Number(stream.break_slot_count || 0) && (
+                <p className="col-span-4 py-6 text-center text-xs font-semibold text-muted-foreground">All characters have been claimed.</p>
+              )}
             </div>
             {!stream.break_force_visible && (
               <button
