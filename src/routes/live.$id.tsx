@@ -391,28 +391,41 @@ function LiveDetail() {
     }
   }, [remaining, isSeller, stream?.status]);
 
-  // 🆕 Voice trigger — listens for the seller's phrase and re-fires the next auction round.
+  // 🆕 Voice trigger — seller phrase ends the current round and starts the next.
+  const voiceLastFiredRef = useRef(0);
   useEffect(() => {
     if (!isSeller) return;
     if (!stream?.voice_trigger_enabled) return;
     const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase();
+    if (!SR) { toast.error("Voice trigger not supported in this browser"); return; }
+    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase().trim();
+    if (!phrase) return;
     const rec = new SR();
     rec.continuous = true;
-    rec.interimResults = true;
+    rec.interimResults = false;
     rec.lang = "en-US";
-    rec.onresult = (ev: any) => {
+    rec.onresult = async (ev: any) => {
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const t = String(ev.results[i][0]?.transcript || "").toLowerCase();
-        if (t.includes(phrase)) {
-          // Avoid double-fires while a round is live
-          if (auctionLive) return;
-          startAuction();
-          return;
-        }
+        if (!t.includes(phrase)) continue;
+        const now = Date.now();
+        if (now - voiceLastFiredRef.current < 2500) return;
+        voiceLastFiredRef.current = now;
+        try {
+          if (auctionLive) {
+            // End current round first, then start the next one
+            endedRef.current = true;
+            await finalizeAuctionRound();
+            // small delay so finalize state lands before re-arm
+            setTimeout(() => { startAuction().catch(() => {}); }, 600);
+          } else {
+            startAuction().catch(() => {});
+          }
+        } catch {/* ignore */}
+        return;
       }
     };
+    rec.onerror = () => { try { rec.stop(); } catch {} };
     rec.onend = () => { try { rec.start(); } catch {} };
     try { rec.start(); setVoiceListening(true); } catch {}
     recognitionRef.current = rec;
@@ -422,7 +435,7 @@ function LiveDetail() {
       recognitionRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase]);
+  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase, auctionLive]);
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
