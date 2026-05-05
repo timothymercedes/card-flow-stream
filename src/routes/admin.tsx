@@ -207,7 +207,9 @@ function Admin() {
         </div>
         <div className="flex flex-wrap gap-2 border-b border-border">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
+          <button onClick={() => setTab("orders")} className={`pb-2 text-xs font-bold ${tab === "orders" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Orders</button>
           <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
+          {isAdmin && <button onClick={() => setTab("users")} className={`pb-2 text-xs font-bold ${tab === "users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Users</button>}
           {isAdmin && <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>}
           {isAdmin && <button onClick={() => setTab("roles")} className={`pb-2 text-xs font-bold ${tab === "roles" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Roles</button>}
         </div>
