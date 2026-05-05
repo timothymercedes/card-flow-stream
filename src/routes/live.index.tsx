@@ -1,19 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Radio, Calendar, Plus, X, Trash2 } from "lucide-react";
+import { Radio, Calendar, Plus, X, Trash2, Users, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
-type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null };
+type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string };
 type Show = {
   id: string; seller_id: string; seller_username: string; title: string;
   description: string | null; thumbnail_url: string | null; category: string | null;
   scheduled_for: string;
 };
+
+type ViewerBucket = "any" | "intimate" | "warm" | "hot";
 
 function fmtCountdown(target: string) {
   const ms = new Date(target).getTime() - Date.now();
