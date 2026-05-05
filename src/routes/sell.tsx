@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { CardScanner } from "@/components/CardScanner";
+import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
