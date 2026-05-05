@@ -64,6 +64,7 @@ function Sell() {
   const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
   const [shippingPrice, setShippingPrice] = useState("0");
+  const [category, setCategory] = useState<string>("pokemon");
 
   // Load seller status
   if (user && sellerStatus === null) {
