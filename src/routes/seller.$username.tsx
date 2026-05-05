@@ -25,6 +25,11 @@ function PublicStore() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
+  const [sellerCompleted, setSellerCompleted] = useState(0);
+  const [buyerCompleted, setBuyerCompleted] = useState(0);
+  const [followersList, setFollowersList] = useState<any[] | null>(null);
+  const [followingList, setFollowingList] = useState<any[] | null>(null);
+  const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
 
   useEffect(() => {
