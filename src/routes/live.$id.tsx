@@ -261,6 +261,25 @@ function LiveDetail() {
     setSelectedBreakSlots((slots) => slots.filter((n) => !breakSlots.some((s) => s.slot_number === n)));
   }, [breakSlots]);
 
+  // 🆕 5-second hold: if viewer doesn't claim in time, release selections
+  useEffect(() => {
+    if (!selectionDeadline) { setSelectionCountdown(0); return; }
+    const tick = () => {
+      const ms = selectionDeadline - Date.now();
+      if (ms <= 0) {
+        setSelectedBreakSlots([]);
+        setSelectionDeadline(null);
+        setSelectionCountdown(0);
+        toast.message("Selection expired — slot released");
+      } else {
+        setSelectionCountdown(Math.ceil(ms / 1000));
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 200);
+    return () => clearInterval(iv);
+  }, [selectionDeadline]);
+
   // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   useEffect(() => {
