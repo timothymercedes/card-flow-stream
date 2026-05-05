@@ -1907,30 +1907,23 @@ function LiveDetail() {
         )}
         {isSeller && !ended && (
           <div className="space-y-1.5">
-            {/* Primary action row — Start auction OR snipe input + End live */}
+            {/* Primary action row — always visible Start/End Auction + End Live */}
             <div className="flex items-stretch gap-1.5">
               {!auctionLive ? (
                 <button onClick={() => setShowSettings(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-lg active:scale-[0.98]">
                   <Play className="h-4 w-4" /> Start Auction
                 </button>
               ) : (
-                <div className="flex flex-1 items-center gap-1 rounded-xl bg-yellow-500/20 px-2 ring-1 ring-yellow-400/40">
-                  <Zap className="h-3.5 w-3.5 shrink-0 text-yellow-300" />
-                  <input
-                    type="number" min="1" inputMode="decimal"
-                    value={snipePriceInput} onChange={(e) => setSnipePriceInput(e.target.value)}
-                    placeholder="Snipe $"
-                    className="w-full min-w-0 bg-transparent text-xs text-yellow-100 outline-none placeholder:text-yellow-200/50"
-                  />
-                  <button onClick={setSnipePriceNow} className="shrink-0 rounded-md bg-yellow-400 px-2 py-1 text-[10px] font-bold text-black">Set</button>
-                </div>
+                <button onClick={() => { endedRef.current = true; finalizeAuctionRound(); }} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-orange-500 py-2.5 text-xs font-bold text-white shadow-lg active:scale-[0.98]">
+                  <Square className="h-3.5 w-3.5" /> End Auction
+                </button>
               )}
               <button onClick={endLive} className="flex shrink-0 items-center justify-center gap-1 rounded-xl bg-live px-3 py-2.5 text-xs font-bold text-live-foreground active:scale-[0.98]">
                 <Square className="h-3.5 w-3.5" /> End Live
               </button>
             </div>
-            {/* Secondary tools row — even-width grid, never overlaps */}
-            <div className="grid grid-cols-4 gap-1.5">
+            {/* Secondary tools row */}
+            <div className="grid grid-cols-5 gap-1.5">
               <button onClick={() => setScanning(true)} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-accent py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98]">
                 <Camera className="h-3.5 w-3.5" /> Scan
               </button>
@@ -1942,6 +1935,14 @@ function LiveDetail() {
               </button>
               <button onClick={() => { setGiveawayComposer(true); setShowGiveaway(true); }} className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-[10px] font-bold text-white active:scale-[0.98]">
                 <Gift className="h-3.5 w-3.5" /> Gift
+              </button>
+              <button
+                disabled={!auctionLive}
+                onClick={() => setSnipeOpen(true)}
+                className="flex flex-col items-center justify-center gap-0.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 py-2 text-[10px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
+                title={auctionLive ? "Set buy-now snipe price" : "Available during auction"}
+              >
+                <Zap className="h-3.5 w-3.5" /> Snipe
               </button>
             </div>
           </div>
