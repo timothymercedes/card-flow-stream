@@ -1887,7 +1887,7 @@ function LiveDetail() {
                 <span className="relative">
                   {meBlocked ? "🚫 You're muted/banned"
                     : bidDisabled
-                      ? (auctionFinished || ended ? "Auction Ended" : "Waiting for auction...")
+                      ? (auctionFinished || ended ? "Auction Ended" : "Auction not started")
                       : (holdAdd > 0 ? `+$${holdAdd} — release to bid` : "THIS IS MINE  ↑ hold to bid")}
                 </span>
               </button>
