@@ -28,6 +28,7 @@ function Sell() {
   const nav = useNavigate();
   const [tab, setTab] = useState<"live" | "listing">("live");
   const [sellerStatus, setSellerStatus] = useState<string | null>(null);
+  const [stripeReady, setStripeReady] = useState<boolean | null>(null);
 
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
@@ -71,6 +72,9 @@ function Sell() {
   if (user && sellerStatus === null) {
     supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle().then(({ data }) => setSellerStatus((data as any)?.seller_status || "none"));
   }
+  if (user && stripeReady === null) {
+    supabase.from("stripe_accounts" as any).select("charges_enabled").eq("seller_id", user.id).maybeSingle().then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
+  }
 
   if (!user) return (
     <AppShell>
@@ -90,6 +94,16 @@ function Sell() {
           {sellerStatus === "pending" ? "Your application is awaiting admin approval." : "Apply to sell from your profile (verified ID + mailing address required)."}
         </p>
         <Link to="/profile" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Go to Profile</Link>
+      </div>
+    </AppShell>
+  );
+
+  if (sellerStatus === "approved" && stripeReady === false) return (
+    <AppShell>
+      <div className="px-6 py-16 text-center">
+        <h1 className="text-xl font-bold">Connect payouts to start selling</h1>
+        <p className="mt-2 text-sm text-muted-foreground">You need to connect your Stripe account to receive payments before you can list or go live.</p>
+        <Link to="/payouts" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Connect Stripe</Link>
       </div>
     </AppShell>
   );
