@@ -1,14 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Camera } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/NotificationBell";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
   { to: "/", label: "Home", icon: Home },
   { to: "/live", label: "Live", icon: Radio },
   { to: "/market", label: "Market", icon: Store },
+  { to: "/stories", label: "Stories", icon: Camera },
   { to: "/vault", label: "Vault", icon: Lock },
   { to: "/messages", label: "Chat", icon: MessageCircle },
 ];
