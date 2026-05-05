@@ -241,6 +241,16 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
+  // 🆕 Auto-open viewer break drawer when host forces it visible; close when force is off & break closes
+  useEffect(() => {
+    if (!stream) return;
+    if (stream.break_force_visible && stream.break_mode === "open") {
+      setShowViewerBreak(true);
+    } else if (!stream.break_force_visible && stream.break_mode !== "open") {
+      setShowViewerBreak(false);
+    }
+  }, [stream?.break_force_visible, stream?.break_mode]);
+
   // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   useEffect(() => {
