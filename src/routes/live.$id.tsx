@@ -170,7 +170,8 @@ function LiveDetail() {
         if (Array.isArray(data.break_characters) && data.break_characters.length) {
           setBreakCharacters(data.break_characters as string[]);
         }
-        const { data: sp } = await supabase.from("profiles").select("username").eq("id", data.seller_id).maybeSingle();
+        const { data: spRows } = await (supabase.rpc as any)("public_profiles_by_ids", { _ids: [data.seller_id] });
+        const sp = (spRows && spRows[0]) || null;
         if (sp?.username) setSellerUsername(sp.username);
       }
     });
@@ -1017,7 +1018,7 @@ function LiveDetail() {
 
   async function searchUsers(q: string, setter: (rows: any[]) => void) {
     if (!q.trim()) return setter([]);
-    const { data } = await supabase.from("profiles").select("id,username,avatar_url").ilike("username", `%${q}%`).limit(8);
+    const { data } = await (supabase.rpc as any)("search_public_profiles", { _query: q, _limit: 8 });
     setter(data || []);
   }
 
@@ -1060,7 +1061,8 @@ function LiveDetail() {
     let snapshot = stream.item_image_url;
     if (!snapshot && isSeller) snapshot = await captureSnapshot();
     if (winnerId) {
-      const { data: pubP } = await supabase.from("profiles").select("username").eq("id", winnerId).maybeSingle();
+      const { data: pubRows } = await (supabase.rpc as any)("public_profiles_by_ids", { _ids: [winnerId] });
+      const pubP = (pubRows && pubRows[0]) || null;
       const winnerUsername = pubP?.username || "buyer";
       // Fetch shipping address via RPC (only seller of this stream is allowed to read it)
       const { data: shipRows } = await supabase.rpc("get_winner_shipping", { p_stream_id: id, p_winner_id: winnerId });
@@ -1070,8 +1072,8 @@ function LiveDetail() {
       const itemName = stream.current_item || stream.title;
       const labeledTitle = `Bid #${nextRound} — ${itemName}`;
       // Pull seller's combined-shipping cap (per buyer, per checkout)
-      const { data: sp } = await supabase.from("profiles").select("shipping_cap").eq("id", stream.seller_id).maybeSingle();
-      const cap = sp?.shipping_cap == null ? null : Number(sp.shipping_cap);
+      const { data: capRaw } = await (supabase.rpc as any)("get_seller_shipping_cap", { _user: stream.seller_id });
+      const cap = capRaw == null ? null : Number(capRaw);
       const rawShip = Number(stream.shipping_price || 0);
       // Sum shipping already on this buyer's open orders from this seller — apply cap
       const { data: openOrders } = await supabase.from("orders")

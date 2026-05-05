@@ -37,8 +37,8 @@ function Messages() {
     }
     const otherIds = [...map.keys()];
     if (otherIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("id,username").in("id", otherIds);
-      const byId = Object.fromEntries((profs || []).map((p) => [p.id, p]));
+      const { data: profs } = await (supabase.rpc as any)("public_profiles_by_ids", { _ids: otherIds });
+      const byId = Object.fromEntries((profs || []).map((p: any) => [p.id, p]));
       setThreads([...map.entries()].map(([uid, msg]) => ({ uid, msg, profile: byId[uid] })));
     } else setThreads([]);
 
@@ -60,8 +60,8 @@ function Messages() {
 
   useEffect(() => {
     if (!query.trim()) return setResults([]);
-    supabase.from("profiles").select("id,username").ilike("username", `%${query}%`).limit(8)
-      .then(({ data }) => setResults((data || []).filter((p) => p.id !== user?.id)));
+    (supabase.rpc as any)("search_public_profiles", { _query: query, _limit: 8 })
+      .then(({ data }: any) => setResults(((data || []) as any[]).filter((p) => p.id !== user?.id)));
   }, [query, user]);
 
   async function sendRequest(otherId: string, otherName: string) {

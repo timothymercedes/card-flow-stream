@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
@@ -25,25 +25,35 @@ function PublicStore() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
+  const [sellerCompleted, setSellerCompleted] = useState(0);
+  const [buyerCompleted, setBuyerCompleted] = useState(0);
+  const [followersList, setFollowersList] = useState<any[] | null>(null);
+  const [followingList, setFollowingList] = useState<any[] | null>(null);
+  const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
 
   useEffect(() => {
     (async () => {
-      const { data: prof } = await supabase.from("profiles").select("id,username,avatar_url").eq("username", username).maybeSingle();
+      const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
+      const prof = Array.isArray(profRows) ? profRows[0] : null;
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r, fr, fg] = await Promise.all([
+      const [l, o, r, fr, fg, sc, bc] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
         supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
+        (supabase.rpc as any)("get_seller_completed_count", { _user: prof.id }),
+        (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
       ]);
       setListings(l.data || []);
       setSoldOrders(o.data || []);
       setReviews(r.data || []);
       setFollowers(fr.count || 0);
       setFollowing(fg.count || 0);
+      setSellerCompleted(Number(sc?.data ?? 0));
+      setBuyerCompleted(Number(bc?.data ?? 0));
     })();
   }, [username]);
 
@@ -76,13 +86,43 @@ function PublicStore() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
-                <p className="truncate text-lg font-bold">@{seller.username}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-lg font-bold">@{seller.username}</p>
+                  {sellerCompleted >= 100 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary"><BadgeCheck className="h-3 w-3" /> Verified Seller</span>
+                  )}
+                  {buyerCompleted >= 35 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500"><BadgeCheck className="h-3 w-3" /> Verified Buyer</span>
+                  )}
+                </div>
                 <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
               </div>
 
               <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1"><Users className="h-3 w-3" /> <span className="font-semibold text-foreground">{followers}</span> followers</span>
-                <span><span className="font-semibold text-foreground">{following}</span> following</span>
+                <button
+                  onClick={async () => {
+                    setListOpen("followers");
+                    if (!followersList) {
+                      const { data } = await (supabase.rpc as any)("list_followers", { _user: seller.id });
+                      setFollowersList(data || []);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 hover:text-foreground"
+                >
+                  <Users className="h-3 w-3" /> <span className="font-semibold text-foreground">{followers}</span> followers
+                </button>
+                <button
+                  onClick={async () => {
+                    setListOpen("following");
+                    if (!followingList) {
+                      const { data } = await (supabase.rpc as any)("list_following", { _user: seller.id });
+                      setFollowingList(data || []);
+                    }
+                  }}
+                  className="hover:text-foreground"
+                >
+                  <span className="font-semibold text-foreground">{following}</span> following
+                </button>
               </div>
 
               <div className="mt-1 flex items-center gap-2 text-xs">
@@ -92,9 +132,42 @@ function PublicStore() {
               {stats.count > 0 && (
                 <p className="mt-0.5 text-[10px] text-muted-foreground">📦 Shipping rating <span className="font-semibold text-foreground">{stats.ship.toFixed(1)}</span> / 5</p>
               )}
+
+              {sellerCompleted < 100 && (
+                <div className="mt-2">
+                  <div className="mb-0.5 flex justify-between text-[10px] text-muted-foreground">
+                    <span>Verified Seller progress</span>
+                    <span className="font-semibold text-foreground">{sellerCompleted} / 100</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, (sellerCompleted / 100) * 100)}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {listOpen && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setListOpen(null)}>
+            <div onClick={(e) => e.stopPropagation()} className="max-h-[70vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-4">
+              <p className="mb-3 text-sm font-bold capitalize">{listOpen}</p>
+              {(listOpen === "followers" ? followersList : followingList)?.length === 0 && (
+                <p className="py-8 text-center text-xs text-muted-foreground">No users yet.</p>
+              )}
+              <div className="space-y-2">
+                {(listOpen === "followers" ? followersList : followingList)?.map((u: any) => (
+                  <Link key={u.id} to="/seller/$username" params={{ username: u.username }} onClick={() => setListOpen(null)} className="flex items-center gap-2 rounded-lg bg-muted p-2 hover:bg-muted/70">
+                    <div className="h-8 w-8 overflow-hidden rounded-full bg-card">
+                      {u.avatar_url ? <img src={u.avatar_url} className="h-full w-full object-cover" alt="" /> : <div className="flex h-full w-full items-center justify-center text-xs font-bold">{u.username[0]?.toUpperCase()}</div>}
+                    </div>
+                    <span className="text-xs font-semibold">@{u.username}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mb-3 flex gap-2 border-b border-border text-xs">
           {(["listings", "sold", "reviews"] as const).map((t) => (
