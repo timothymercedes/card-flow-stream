@@ -14,6 +14,7 @@ import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PayoutsRouteImport } from './routes/payouts'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
@@ -34,6 +35,7 @@ import { Route as LegalTosRouteImport } from './routes/legal.tos'
 import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-agreement'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 
 const VaultRoute = VaultRouteImport.update({
@@ -59,6 +61,11 @@ const SellRoute = SellRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PayoutsRoute = PayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -161,6 +168,11 @@ const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
   path: '/legal/buyer-terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe/webhook',
+  path: '/api/public/stripe/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRefreshVaultValuesRoute =
   ApiPublicHooksRefreshVaultValuesRouteImport.update({
     id: '/api/public/hooks/refresh-vault-values',
@@ -178,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/my-listings': typeof MyListingsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
+  '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
@@ -195,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,6 +220,7 @@ export interface FileRoutesByTo {
   '/my-listings': typeof MyListingsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
+  '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
@@ -223,6 +238,7 @@ export interface FileRoutesByTo {
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -235,6 +251,7 @@ export interface FileRoutesById {
   '/my-listings': typeof MyListingsRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
+  '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
   '/store': typeof StoreRoute
@@ -252,6 +269,7 @@ export interface FileRoutesById {
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -265,6 +283,7 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/onboarding'
     | '/orders'
+    | '/payouts'
     | '/profile'
     | '/sell'
     | '/store'
@@ -282,6 +301,7 @@ export interface FileRouteTypes {
     | '/market/'
     | '/messages/'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -293,6 +313,7 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/onboarding'
     | '/orders'
+    | '/payouts'
     | '/profile'
     | '/sell'
     | '/store'
@@ -310,6 +331,7 @@ export interface FileRouteTypes {
     | '/market'
     | '/messages'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/stripe/webhook'
   id:
     | '__root__'
     | '/'
@@ -321,6 +343,7 @@ export interface FileRouteTypes {
     | '/my-listings'
     | '/onboarding'
     | '/orders'
+    | '/payouts'
     | '/profile'
     | '/sell'
     | '/store'
@@ -338,6 +361,7 @@ export interface FileRouteTypes {
     | '/market/'
     | '/messages/'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -350,6 +374,7 @@ export interface RootRouteChildren {
   MyListingsRoute: typeof MyListingsRoute
   OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
+  PayoutsRoute: typeof PayoutsRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
   StoreRoute: typeof StoreRoute
@@ -367,6 +392,7 @@ export interface RootRouteChildren {
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -404,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payouts': {
+      id: '/payouts'
+      path: '/payouts'
+      fullPath: '/payouts'
+      preLoaderRoute: typeof PayoutsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -546,6 +579,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalBuyerTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/stripe/webhook': {
+      id: '/api/public/stripe/webhook'
+      path: '/api/public/stripe/webhook'
+      fullPath: '/api/public/stripe/webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-vault-values': {
       id: '/api/public/hooks/refresh-vault-values'
       path: '/api/public/hooks/refresh-vault-values'
@@ -566,6 +606,7 @@ const rootRouteChildren: RootRouteChildren = {
   MyListingsRoute: MyListingsRoute,
   OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,
+  PayoutsRoute: PayoutsRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
   StoreRoute: StoreRoute,
@@ -583,6 +624,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

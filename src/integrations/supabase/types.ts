@@ -1792,6 +1792,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_accounts: {
+        Row: {
+          charges_enabled: boolean
+          country: string | null
+          created_at: string
+          default_currency: string | null
+          deliveries_count: number
+          details_submitted: boolean
+          id: string
+          payouts_enabled: boolean
+          seller_id: string
+          stripe_account_id: string
+          updated_at: string
+        }
+        Insert: {
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          default_currency?: string | null
+          deliveries_count?: number
+          details_submitted?: boolean
+          id?: string
+          payouts_enabled?: boolean
+          seller_id: string
+          stripe_account_id: string
+          updated_at?: string
+        }
+        Update: {
+          charges_enabled?: boolean
+          country?: string | null
+          created_at?: string
+          default_currency?: string | null
+          deliveries_count?: number
+          details_submitted?: boolean
+          id?: string
+          payouts_enabled?: boolean
+          seller_id?: string
+          stripe_account_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_blocks: {
         Row: {
           blocked_id: string
