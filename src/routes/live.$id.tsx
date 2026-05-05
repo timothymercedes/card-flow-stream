@@ -241,12 +241,12 @@ function LiveDetail() {
       .then(({ data }) => { if (data?.preferred_currency) setViewerCurrency(data.preferred_currency as Currency); });
   }, [user?.id]);
 
-  // 🆕 Auto-open viewer break drawer when host forces it visible; close when force is off & break closes
+  // 🆕 Auto-open viewer break drawer only when host forces it visible; otherwise viewers control it.
   useEffect(() => {
     if (!stream) return;
     if (stream.break_force_visible && stream.break_mode === "open") {
       setShowViewerBreak(true);
-    } else if (!stream.break_force_visible && stream.break_mode !== "open") {
+    } else {
       setShowViewerBreak(false);
     }
   }, [stream?.break_force_visible, stream?.break_mode]);
@@ -704,9 +704,7 @@ function LiveDetail() {
       return toast.error(error.message);
     }
     await sendMsg(`🎟️ @${profile.username} grabbed ${charLabel} ($${price})`, true);
-    toast.success(`${charLabel} is yours!`);
-    // Auto-close the viewer drawer after claiming so the stream is visible again
-    setShowViewerBreak(false);
+    toast.success(`${charLabel} is yours — tap Done to return to the live`);
   }
 
   async function closeBreakClaims() {
