@@ -1752,10 +1752,8 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* 🎁 Persistent giveaway countdown chip — pinned to top-right corner */}
-      <div className="absolute right-3 top-16 z-30">
-        <GiveawayChip streamId={id} />
-      </div>
+      {/* Giveaway chip removed — viewers see the compact floating "Tap to Join" widget only */}
+
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
       {(() => {
