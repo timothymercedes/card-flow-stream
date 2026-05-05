@@ -451,6 +451,7 @@ export type Database = {
           auction_status: string
           back_image_url: string | null
           buy_now_price: number | null
+          category: string | null
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
@@ -477,6 +478,7 @@ export type Database = {
           auction_status?: string
           back_image_url?: string | null
           buy_now_price?: number | null
+          category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
@@ -503,6 +505,7 @@ export type Database = {
           auction_status?: string
           back_image_url?: string | null
           buy_now_price?: number | null
+          category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
