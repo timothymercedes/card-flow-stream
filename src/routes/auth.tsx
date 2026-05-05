@@ -62,10 +62,20 @@ function Auth() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "forgot") {
+      if (!email) return toast.error("Enter your email");
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + "/auth",
+      });
+      setLoading(false);
+      if (error) toast.error(error.message);
+      else { toast.success("Reset link sent — check your email"); setMode("signin"); }
+      return;
+    }
     if (mode === "signup") {
       if (usernameOk === false) return toast.error("Username already taken");
       if (!email || !password) return toast.error("Email and password required");
-      // Open the agreement modal — signup happens after acceptance.
       setShowTerms(true);
       return;
     }
