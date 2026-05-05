@@ -1840,7 +1840,13 @@ function LiveDetail() {
             md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10"
         >
           <div className="flex flex-col items-start gap-1">
-            {messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => {
+            {messages.filter((m) => {
+              if (m.is_system || m.is_announcement) return false;
+              // Hide messages from users I personally blocked, or users banned from this stream (unless I'm staff — keep visibility for context)
+              if (m.user_id && myBlockedIds.has(m.user_id)) return false;
+              if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
+              return true;
+            }).map((m) => {
               const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
               const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
               return (
@@ -1871,6 +1877,15 @@ function LiveDetail() {
                           <Flag className="inline h-2.5 w-2.5" />
                         </button>
                       }
+                    />
+                  )}
+                  {user && m.user_id && m.user_id !== user.id && (
+                    <UserActionsMenu
+                      meId={user.id}
+                      targetUserId={m.user_id}
+                      targetUsername={m.username}
+                      isStreamStaff={isStaff}
+                      streamId={id}
                     />
                   )}
                 </div>
