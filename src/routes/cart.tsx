@@ -3,15 +3,16 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { ShoppingBag, CreditCard, Package } from "lucide-react";
+import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
 import { toast } from "sonner";
+import { StripeCheckout } from "@/components/StripeCheckout";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
 function Cart() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
-  const [paying, setPaying] = useState<string | null>(null);
+  const [checkoutSeller, setCheckoutSeller] = useState<string | null>(null);
 
   async function load() {
     if (!user) return;
@@ -24,7 +25,6 @@ function Cart() {
   }
   useEffect(() => { load(); }, [user]);
 
-  // Group by seller
   const groups = useMemo(() => {
     const m: Record<string, any[]> = {};
     for (const o of orders) {
@@ -34,17 +34,14 @@ function Cart() {
     return m;
   }, [orders]);
 
-  // Pay all from one seller in one click; combined-shipping cap is already
-  // applied at order creation time, so we just mark them paid together.
-  async function paySeller(sellerId: string) {
-    setPaying(sellerId);
+  async function handlePaymentSuccess(sellerId: string) {
     const ids = (groups[sellerId] || []).map((o) => o.id);
-    const { error } = await supabase.from("orders").update({
+    // Webhook will mark orders paid; do a best-effort optimistic update too.
+    await supabase.from("orders").update({
       payment_status: "paid", paid_at: new Date().toISOString(),
     }).in("id", ids);
-    setPaying(null);
-    if (error) return toast.error(error.message);
-    toast.success(`Paid ${ids.length} item${ids.length === 1 ? "" : "s"} (safe mode)`);
+    toast.success(`Paid ${ids.length} item${ids.length === 1 ? "" : "s"}`);
+    setCheckoutSeller(null);
     load();
   }
 
@@ -57,6 +54,10 @@ function Cart() {
       </div>
     </AppShell>
   );
+
+  const checkoutItems = checkoutSeller ? groups[checkoutSeller] || [] : [];
+  const checkoutSubtotal = checkoutItems.reduce((a, o) => a + Number(o.amount || 0), 0);
+  const checkoutOrderId = checkoutItems[0]?.id;
 
   return (
     <AppShell>
@@ -93,17 +94,31 @@ function Cart() {
                   ))}
                 </div>
                 <button
-                  onClick={() => paySeller(sellerId)}
-                  disabled={paying === sellerId}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-60"
+                  onClick={() => setCheckoutSeller(sellerId)}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                 >
                   <CreditCard className="h-4 w-4" />
-                  {paying === sellerId ? "Processing…" : `Pay $${total.toFixed(2)} (1 checkout)`}
+                  {`Checkout $${total.toFixed(2)}`}
                 </button>
               </div>
             );
           })}
         </div>
+
+        {checkoutSeller && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={() => setCheckoutSeller(null)}>
+            <div className="relative w-full max-w-md rounded-t-2xl bg-card p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setCheckoutSeller(null)} className="absolute right-3 top-3 rounded-full bg-muted p-1.5"><X className="h-4 w-4" /></button>
+              <h2 className="mb-3 text-lg font-bold">Checkout</h2>
+              <StripeCheckout
+                sellerId={checkoutSeller}
+                subtotalCents={Math.round(checkoutSubtotal * 100)}
+                orderId={checkoutOrderId}
+                onSuccess={() => handlePaymentSuccess(checkoutSeller)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );
