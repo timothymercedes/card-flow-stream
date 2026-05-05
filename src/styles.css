@@ -188,3 +188,53 @@
   border-radius: 9999px;
 }
 .chat-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.28); }
+
+/* ============= Holographic foil / collector vibes ============= */
+@utility holo-foil {
+  background: linear-gradient(110deg,
+    oklch(0.75 0.18 320) 0%,
+    oklch(0.78 0.18 200) 25%,
+    oklch(0.82 0.16 145) 50%,
+    oklch(0.80 0.18 70)  75%,
+    oklch(0.75 0.20 25)  100%);
+  background-size: 250% 100%;
+  animation: holo-shift 6s linear infinite;
+}
+@keyframes holo-shift {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@utility holo-text {
+  background: linear-gradient(110deg,
+    oklch(0.85 0.18 320),
+    oklch(0.88 0.16 200),
+    oklch(0.90 0.16 145),
+    oklch(0.88 0.18 70),
+    oklch(0.85 0.20 25));
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: holo-shift 5s linear infinite;
+}
+
+@utility card-foil-edge {
+  position: relative;
+  overflow: hidden;
+}
+.card-foil-edge::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%);
+  background-size: 200% 100%;
+  animation: holo-shift 3.5s linear infinite;
+  pointer-events: none;
+}
+
+@utility rare-glow {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 35%, transparent),
+    0 10px 40px -10px color-mix(in oklab, var(--primary-glow) 50%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
