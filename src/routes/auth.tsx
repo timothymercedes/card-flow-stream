@@ -105,7 +105,7 @@ function Auth() {
     setLoading(false);
     setShowTerms(false);
     toast.success("Account created!");
-    nav({ to: "/" });
+    nav({ to: "/onboarding" });
   }
 
   return (
