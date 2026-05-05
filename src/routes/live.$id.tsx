@@ -1348,15 +1348,41 @@ function LiveDetail() {
     }
   }
 
+  const [endLiveOpen, setEndLiveOpen] = useState(false);
   async function endLive() {
+    if (!isSeller) return;
+    setEndLiveOpen(true);
+  }
+  async function pauseLiveFor3h() {
+    if (!isSeller) return;
+    if (auctionLive) await finalizeAuctionRound();
+    const until = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    await supabase.from("live_streams").update({
+      status: "paused", is_active: false, pause_until: until,
+    }).eq("id", id);
+    await sendMsg(`⏸️ Host paused the live — back within 3 hours`, true);
+    toast.success("Live paused — resume within 3 hours");
+    camStream.current?.getTracks().forEach((t) => t.stop());
+    setEndLiveOpen(false);
+  }
+  async function resumeLive() {
+    if (!isSeller) return;
+    await supabase.from("live_streams").update({
+      status: "live", is_active: true, pause_until: null, ended_at: null,
+    }).eq("id", id);
+    await sendMsg(`▶️ Host is back — live resumed`, true);
+    toast.success("Live resumed");
+  }
+  async function confirmEndLive() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
     await supabase.from("live_streams").update({
-      status: "ended", is_active: false, ended_at: new Date().toISOString(),
+      status: "ended", is_active: false, ended_at: new Date().toISOString(), pause_until: null,
     }).eq("id", id);
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
     camStream.current?.getTracks().forEach((t) => t.stop());
+    setEndLiveOpen(false);
     nav({ to: "/store" });
   }
 
@@ -1473,7 +1499,11 @@ function LiveDetail() {
   if (!stream) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const ended = stream.status === "ended";
-  const bidDisabled = isSeller || ended || !auctionLive;
+  const paused = stream.status === "paused";
+  const pauseExpiresAt = paused && stream.pause_until ? new Date(stream.pause_until).getTime() : 0;
+  const pauseExpired = paused && pauseExpiresAt > 0 && pauseExpiresAt < now;
+  const pauseMsLeft = Math.max(0, pauseExpiresAt - now);
+  const bidDisabled = isSeller || ended || paused || !auctionLive;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
@@ -1920,10 +1950,11 @@ function LiveDetail() {
       {showChat && (
         <div
           ref={chatScrollRef}
-          className="chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            bottom-28 left-2 max-h-[20vh] w-[58%] max-w-[16rem] pb-1 pr-1
+          className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
+            left-2 pb-1 pr-1
+            ${isStaff ? "bottom-44 max-h-[42vh] w-[68%] max-w-[18rem]" : "bottom-28 max-h-[20vh] w-[58%] max-w-[16rem]"}
             md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
-            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10"
+            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
         >
           <div className="flex flex-col items-start gap-1">
             {messages.filter((m) => {
@@ -2120,7 +2151,22 @@ function LiveDetail() {
           </div>
           </>
         )}
-        {isSeller && !ended && (
+        {isSeller && paused && (
+          <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
+            <p className="text-center text-[11px] font-bold text-amber-200">
+              ⏸️ Live paused {pauseExpired ? "— window expired" : `· ${Math.floor(pauseMsLeft / 60000)}m ${Math.floor((pauseMsLeft % 60000) / 1000)}s left`}
+            </p>
+            <div className="flex gap-1.5">
+              <button onClick={resumeLive} disabled={pauseExpired} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-[12px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
+                <Play className="h-3.5 w-3.5" /> Resume Live
+              </button>
+              <button onClick={confirmEndLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-3 py-2 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
+                <Square className="h-3 w-3" /> End for good
+              </button>
+            </div>
+          </div>
+        )}
+        {isSeller && !ended && !paused && (
           <div className="space-y-1.5">
             {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
             {!auctionLive && (
@@ -2272,6 +2318,32 @@ function LiveDetail() {
           <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
       </div>
+
+      {/* End Live confirmation — pause for 3h or end for good */}
+      {endLiveOpen && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setEndLiveOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold">End live?</p>
+              <button onClick={() => setEndLiveOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Need a quick break? Pause and come back within <strong>3 hours</strong> — your stream stays open and viewers see a "Be right back" status. Or end for good and finalize sales.
+            </p>
+            <div className="space-y-2">
+              <button onClick={pauseLiveFor3h} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-sm font-extrabold text-white shadow active:scale-[0.98]">
+                ⏸️ Pause for 3 hours
+              </button>
+              <button onClick={confirmEndLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
+                <Square className="h-4 w-4" /> End live for good
+              </button>
+              <button onClick={() => setEndLiveOpen(false)} className="w-full rounded-xl bg-muted py-2 text-xs text-muted-foreground">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Snipe / Buy-Now price popup (seller) */}
       {snipeOpen && isSeller && (
@@ -3002,7 +3074,7 @@ function LiveDetail() {
         <>
           <button
             onClick={() => setShowPaymentLog(true)}
-            className="fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-2 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card sm:bottom-28"
+            className="fixed left-3 top-16 z-40 flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-1.5 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card"
             aria-label="Open payment activity log"
           >
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
