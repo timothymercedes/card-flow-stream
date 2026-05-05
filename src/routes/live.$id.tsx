@@ -2319,6 +2319,32 @@ function LiveDetail() {
         </form>
       </div>
 
+      {/* End Live confirmation — pause for 3h or end for good */}
+      {endLiveOpen && isSeller && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setEndLiveOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-4 text-foreground shadow-2xl">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold">End live?</p>
+              <button onClick={() => setEndLiveOpen(false)}><X className="h-4 w-4" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Need a quick break? Pause and come back within <strong>3 hours</strong> — your stream stays open and viewers see a "Be right back" status. Or end for good and finalize sales.
+            </p>
+            <div className="space-y-2">
+              <button onClick={pauseLiveFor3h} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-sm font-extrabold text-white shadow active:scale-[0.98]">
+                ⏸️ Pause for 3 hours
+              </button>
+              <button onClick={confirmEndLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
+                <Square className="h-4 w-4" /> End live for good
+              </button>
+              <button onClick={() => setEndLiveOpen(false)} className="w-full rounded-xl bg-muted py-2 text-xs text-muted-foreground">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Snipe / Buy-Now price popup (seller) */}
       {snipeOpen && isSeller && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setSnipeOpen(false)}>
