@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (s?.user) {
         setTimeout(async () => {
           // Bump daily login streak (no-op if already today)
-          await (supabase.rpc as any)("bump_login_streak").catch(() => {});
+          try { await (supabase.rpc as any)("bump_login_streak"); } catch {}
           const { data } = await supabase.from("profiles").select("*").eq("id", s.user.id).maybeSingle();
           setProfile(data as Profile | null);
         }, 0);
