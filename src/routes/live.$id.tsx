@@ -1788,46 +1788,18 @@ function LiveDetail() {
           </button>
         )}
 
-        {/* 🆕 Mystery break — compact right-side keypad for buyers (only when host opens it) */}
+        {/* 🆕 Mystery break — small button only; opens drawer on tap */}
         {!isSeller && stream.break_mode === "open" && stream.break_slot_count && (
-          <div className="pointer-events-none absolute right-2 top-32 z-10 w-28">
-            <div className="pointer-events-auto rounded-xl bg-black/65 p-1.5 backdrop-blur ring-1 ring-pink-400/40">
-              <div className="mb-1.5 flex items-center justify-between px-0.5">
-                <span className="flex items-center gap-1 text-[9px] font-extrabold text-pink-300">
-                  <Dice5 className="h-3 w-3" /> Break
-                </span>
-                <span className="rounded bg-pink-500/30 px-1 text-[9px] font-bold text-pink-100">
-                  {breakSlots.length}/{stream.break_slot_count} taken
-                </span>
-              </div>
-              <div className="grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-0.5">
-                {Array.from({ length: stream.break_slot_count }, (_, i) => i + 1).map((n) => {
-                  const taken = breakSlots.find((s) => s.slot_number === n);
-                  const mine = taken && taken.buyer_id === user?.id;
-                  const charLabel =
-                    (Array.isArray(stream.break_characters) && stream.break_characters[n - 1]) ||
-                    `${stream.break_slot_prefix || "#"}${n}`;
-                  return (
-                    <button
-                      key={n}
-                      onClick={() => !taken && claimBreakSlotNumber(n)}
-                      disabled={!!taken}
-                      title={taken ? `${charLabel} — @${taken.buyer_username}` : `Claim ${charLabel}`}
-                      className={`flex h-9 flex-col items-center justify-center rounded text-[8px] font-bold leading-tight ${
-                        mine ? "bg-emerald-500 text-white ring-2 ring-emerald-200" :
-                        taken ? "bg-white/10 text-white/60 cursor-not-allowed ring-1 ring-white/10" :
-                        "bg-white text-black active:scale-95 hover:bg-pink-200"
-                      }`}
-                    >
-                      <span className="text-[9px] font-extrabold">{n}</span>
-                      {taken && <span className="max-w-full truncate px-0.5 text-[7px] opacity-90">@{taken.buyer_username}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-1 px-0.5 text-center text-[8px] text-white/60">${breakPrice}/slot</p>
-            </div>
-          </div>
+          <button
+            onClick={() => setShowViewerBreak(true)}
+            className="mx-auto flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-xs font-extrabold text-white shadow-lg ring-1 ring-pink-300/40 active:scale-[0.98]"
+          >
+            <Dice5 className="h-3.5 w-3.5" />
+            🎴 View Break
+            <span className="rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-bold">
+              {breakSlots.length}/{stream.break_slot_count}
+            </span>
+          </button>
         )}
 
         {/* Mystery break results — shown after host closes claims */}
