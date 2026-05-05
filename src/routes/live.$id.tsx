@@ -3084,6 +3084,72 @@ function LiveDetail() {
             Payments
           </button>
           <HostPaymentLog streamId={id} open={showPaymentLog} onClose={() => setShowPaymentLog(false)} />
+
+          {/* 🆕 Quick Mod Chat — one-tap private DM with mods/host */}
+          {!showQuickMod && (
+            <button
+              onClick={() => setShowQuickMod(true)}
+              className="fixed left-3 top-28 z-40 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
+              aria-label="Open quick mod chat"
+            >
+              <Shield className="h-3.5 w-3.5" /> Mods
+              {modChat.length > 0 && <span className="rounded-full bg-live px-1.5 text-[9px] text-live-foreground">{modChat.length}</span>}
+            </button>
+          )}
+          {showQuickMod && (
+            <div className="fixed left-3 top-28 z-40 w-64 max-w-[80vw] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/15 backdrop-blur">
+              <div className="flex items-center justify-between bg-primary/20 px-3 py-1.5">
+                <p className="flex items-center gap-1 text-[11px] font-bold"><Shield className="h-3 w-3" /> Mod chat</p>
+                <button onClick={() => setShowQuickMod(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+              </div>
+              <div className="max-h-40 space-y-1 overflow-y-auto px-2 py-2">
+                {modChat.length === 0 && <p className="text-center text-[10px] text-muted-foreground">No mod messages yet</p>}
+                {modChat.slice(-30).map((m) => (
+                  <div key={m.id} className="text-[11px] leading-snug">
+                    <span className="font-bold text-primary">@{m.username}:</span> <span className="break-words">{m.content}</span>
+                  </div>
+                ))}
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const t = quickModInput.trim();
+                  if (!t || !user || !profile) return;
+                  await supabase.from("stream_mod_messages").insert({
+                    stream_id: id, user_id: user.id, username: profile.username, content: t,
+                  });
+                  setQuickModInput("");
+                }}
+                className="flex gap-1 border-t border-white/10 p-1.5"
+              >
+                <input
+                  value={quickModInput}
+                  onChange={(e) => setQuickModInput(e.target.value)}
+                  placeholder="Message mods…"
+                  maxLength={200}
+                  className="flex-1 rounded-md bg-muted px-2 py-1 text-[11px] outline-none"
+                />
+                <button type="submit" disabled={!quickModInput.trim()} className="rounded-md bg-primary px-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50">
+                  <Send className="h-3 w-3" />
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
+          {isSeller && usingObs && (
+            <div className="fixed bottom-3 left-3 z-30 w-32 overflow-hidden rounded-xl bg-black/80 shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-40">
+              <div className="flex items-center justify-between bg-black/60 px-2 py-1">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-white/80">Viewer view</p>
+                <button onClick={() => setShowViewerPreview((v) => !v)} className="text-white/60 hover:text-white">
+                  {showViewerPreview ? <X className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                </button>
+              </div>
+              {showViewerPreview && (
+                <HlsPlayer src={stream.cf_playback_hls} className="aspect-video w-full object-cover" autoPlay muted />
+              )}
+            </div>
+          )}
         </>
       )}
 
