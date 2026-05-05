@@ -10,7 +10,7 @@ import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
-import { HostPaymentLog } from "@/components/HostPaymentLog";
+import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
@@ -780,6 +780,11 @@ function LiveDetail() {
     const count = Number(result?.claimed_count || slots.length);
     const total = Number(result?.total_amount || (Number((stream as any).break_slot_price || breakPrice) * count));
     await sendMsg(`🎟️ @${profile.username} claimed ${count} Mystery Break character${count === 1 ? "" : "s"} ($${total.toFixed(2)})`, true);
+    await logPaymentEvent({
+      streamId: id, buyerId: user.id, buyerUsername: profile.username,
+      orderId: result?.order_id || null, eventType: "payment_paid",
+      amount: total, itemLabel: `Mystery Break · ${count} character${count === 1 ? "" : "s"}`,
+    });
     toast.success(`${count} character${count === 1 ? "" : "s"} claimed and paid`);
     setSelectedBreakSlots([]);
     setSelectionDeadline(null);
@@ -1198,8 +1203,11 @@ function LiveDetail() {
         ship_zip: p?.address_zip || "",
         ship_country: p?.address_country || "US",
       });
-      await supabase.from("notifications").insert({
-        user_id: winnerId, type: "won",
+      await logPaymentEvent({
+        streamId: id, buyerId: winnerId, buyerUsername: winnerUsername,
+        eventType: "payment_pending", amount: winningBid + shipForThis,
+        itemLabel: labeledTitle, message: "Awaiting payment from buyer",
+      });
         body: `🎉 You won Bid #${nextRound} "${itemName}" for $${winningBid}`,
         link: `/orders`,
       });
