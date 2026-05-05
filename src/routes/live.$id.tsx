@@ -157,6 +157,10 @@ function LiveDetail() {
   // 🆕 Chat slow-mode (seconds between messages per viewer; 0 = off)
   const [editSlowMode, setEditSlowMode] = useState("0");
   const [editRevealMode, setEditRevealMode] = useState<"none" | "wheel" | "break">("none");
+  // 🆕 Host quick-bar state — start a round in one tap without opening Settings
+  const [quickItem, setQuickItem] = useState("");
+  const [quickBuyNow, setQuickBuyNow] = useState("");
+  const [lastQuick, setLastQuick] = useState<{ item: string; start: string; timer: string; buyNow: string } | null>(null);
   const lastChatTsRef = useRef<number>(0);
 
   useEffect(() => {
