@@ -1748,19 +1748,20 @@ function LiveDetail() {
       )}
 
       {/* Bottom panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6 md:right-[19rem]">
-        <div className="flex items-end justify-between">
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-white/60">
-              <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-bold text-white">Bid #{Number(stream.round_number || 0) + (auctionLive ? 1 : 0) || 1}</span>
-              Current Item
-            </p>
-            <p className="line-clamp-1 text-sm font-bold">{stream.current_item || "—"}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wide text-white/60">{ended || auctionFinished ? "Final" : "Current Bid"}</p>
-            <p key={`bid-${Number(stream.current_bid || 0)}`} className="bid-bump text-2xl font-bold text-primary tabular-nums">{fmtMoney(Number(stream.current_bid || 0))}</p>
-          </div>
+      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
+        {/* PRIORITY 1: Current Bid — centered, large, focal point */}
+        <div className="flex flex-col items-center gap-0.5 text-center">
+          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/60">
+            <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-bold text-white">Bid #{Number(stream.round_number || 0) + (auctionLive ? 1 : 0) || 1}</span>
+            {ended || auctionFinished ? "Final Bid" : "Current Bid"}
+          </p>
+          <p key={`bid-${Number(stream.current_bid || 0)}`} className="bid-bump text-4xl font-extrabold text-primary tabular-nums drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+            {fmtMoney(Number(stream.current_bid || 0))}
+          </p>
+          {/* PRIORITY 3: Item / status (compact) */}
+          <p className="line-clamp-1 max-w-full text-xs font-semibold text-white/90">
+            {stream.current_item || (auctionLive ? "Live auction" : "Waiting for next item")}
+          </p>
         </div>
 
         {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
