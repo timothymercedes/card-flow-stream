@@ -268,10 +268,52 @@ function Vault() {
     load();
   }
 
-  function onScanResult(r: { name: string; category: string; trend: string; image: string }) {
-    setName(r.name); setCategory(r.category); setImageUrl(r.image);
-    setScanning(false); setShowAdd(true);
-    toast.success(`Identified: ${r.name}`);
+  // 🆕 Auto-save the scanned card immediately (with retry) instead of dropping into a form.
+  // The scanner already shows a confirm/edit step before calling this.
+  async function onScanResult(r: {
+    name: string; category: string; trend: string; image: string;
+    set?: string; year?: string; tcg_number?: string; variant?: string; language?: string;
+    estimated_value?: number; condition_prices?: ConditionPrices;
+  }) {
+    if (!user) return;
+    const cp: ConditionPrices | null = r.condition_prices || null;
+    const baseNm = Number(r.estimated_value) > 0 ? Number(r.estimated_value) : (cp?.NM || 1);
+    const value = priceFor("NM", baseNm, cp);
+    const lang = r.language || language || "en";
+
+    const payload = {
+      user_id: user.id,
+      name: r.name,
+      category: r.category || "Trading Card",
+      image_url: r.image || null,
+      back_image_url: null,
+      description: r.variant && r.variant !== "Standard" ? `Variant: ${r.variant}` : null,
+      estimated_value: value,
+      condition_prices: cp as any,
+      price: null,
+      tcg_number: r.tcg_number || null,
+      tcg_set: r.set || null,
+      tcg_year: r.year ? String(r.year) : null,
+      condition: "NM" as Condition,
+      language: lang,
+      last_valued_at: new Date().toISOString(),
+    };
+
+    setScanning(false);
+
+    // Retry up to 3 times on transient failure so we never silently drop a scan.
+    let lastErr: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.from("vault_cards").insert(payload);
+      if (!error) {
+        toast.success(`✅ ${r.name} saved to vault`);
+        load();
+        return;
+      }
+      lastErr = error;
+      await new Promise((res) => setTimeout(res, 400 * (attempt + 1)));
+    }
+    toast.error(`Couldn't save card — ${lastErr?.message || "try again"}`);
   }
 
   async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) {
