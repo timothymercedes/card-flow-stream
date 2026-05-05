@@ -48,12 +48,12 @@ function ListingDetail() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
     setListing(l);
     if (l) {
-      const [{ data: s }, { data: bs }, { data: os }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", l.seller_id).maybeSingle(),
+      const [{ data: sRows }, { data: bs }, { data: os }] = await Promise.all([
+        (supabase.rpc as any)("public_profiles_by_ids", { _ids: [l.seller_id] }),
         supabase.from("listing_bids").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
         supabase.from("offers").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
       ]);
-      setSeller(s);
+      setSeller((sRows && sRows[0]) || null);
       setBids(bs || []);
       setOffers(os || []);
     }
