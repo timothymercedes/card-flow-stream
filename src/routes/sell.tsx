@@ -280,6 +280,37 @@ function Sell() {
         {tab === "live" ? (
           <div className="space-y-3">
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Stream title" value={streamTitle} onChange={(e) => setStreamTitle(e.target.value)} />
+            {/* 🆕 Quick preset chips — tap to add hype tags / standard formats to the title */}
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Quick tags — tap to add</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: "$1 Start", emoji: "💵", apply: () => { setStartingBid("1"); return "$1 Start"; } },
+                  { label: "Vintage Holo", emoji: "✨", apply: () => "Vintage Holo" },
+                  { label: "Mystery Break", emoji: "🎁", apply: () => { setEnableBreak(true); return "Mystery Break"; } },
+                  { label: "Slab Sunday", emoji: "🧊", apply: () => "Slab Sunday" },
+                  { label: "PSA 10s Only", emoji: "🏆", apply: () => "PSA 10s Only" },
+                  { label: "No Reserve", emoji: "🔥", apply: () => "No Reserve" },
+                  { label: "Rookie Cards", emoji: "🌟", apply: () => "Rookie Cards" },
+                  { label: "Modern Chase", emoji: "⚡", apply: () => "Modern Chase" },
+                  { label: "Graded Only", emoji: "🛡️", apply: () => "Graded Only" },
+                  { label: "Personal Collection", emoji: "💎", apply: () => "Personal Collection" },
+                  { label: "10s Auction", emoji: "⏱️", apply: () => { setDefaultTimerSec("10"); return "10s Auctions"; } },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      const tag = p.apply();
+                      setStreamTitle((t) => (t.toLowerCase().includes(tag.toLowerCase()) ? t : `${t ? t + " • " : ""}${tag}`).slice(0, 80));
+                    }}
+                    className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold hover:border-primary hover:bg-primary/10"
+                  >
+                    {p.emoji} {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={2} placeholder="Item description (optional)" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
             <label className="block">
               <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">Category — helps viewers find your stream</span>
