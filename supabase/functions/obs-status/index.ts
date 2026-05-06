@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       return json({ error: "live_input_id required" }, 400);
     }
     const r = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${live_input_id}/lifecycle`,
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${live_input_id}`,
       { headers: { Authorization: `Bearer ${apiToken}` } },
     );
     const { parsed: j, text: providerText } = await readProviderJson(r);
