@@ -70,7 +70,8 @@ export function useCloudflareCalls(opts: {
 
   // ─── Setup: get media, create session, publish tracks, advertise ────────
   useEffect(() => {
-    if (!enabled || !streamId || !userId || !username) return;
+    if (!enabled || !streamId) return;
+    if (!viewerMode && (!userId || !username)) return;
     let cancelled = false;
 
     (async () => {
