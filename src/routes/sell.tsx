@@ -314,10 +314,27 @@ function Sell() {
 
         {tab === "live" ? (
           <div className="space-y-3">
-            <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Stream title" value={streamTitle} onChange={(e) => setStreamTitle(e.target.value)} />
-            {/* 🆕 Quick preset chips — tap to add hype tags / standard formats to the title */}
-            <div>
-              <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Quick tags — tap to add</p>
+            {/* ── Section 1: Title ── */}
+            <div className="rounded-2xl bg-card p-3 space-y-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Stream title</p>
+                <p className="text-[10px] text-muted-foreground">Be specific — viewers see this in the live feed.</p>
+              </div>
+              <input
+                className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                placeholder="e.g. Friday night PSA reveal • $1 starts"
+                value={streamTitle}
+                onChange={(e) => setStreamTitle(e.target.value)}
+                maxLength={80}
+              />
+            </div>
+
+            {/* ── Section 2: Tags / hype chips ── */}
+            <div className="rounded-2xl bg-card p-3 space-y-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quick tags</p>
+                <p className="text-[10px] text-muted-foreground">Tap to append a hype tag to your title.</p>
+              </div>
               <div className="flex flex-wrap gap-1.5">
                 {[
                   { label: "$1 Start", emoji: "💵", apply: () => { setStartingBid("1"); return "$1 Start"; } },
