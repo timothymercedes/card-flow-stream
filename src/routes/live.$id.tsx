@@ -2152,18 +2152,6 @@ function LiveDetail() {
                 </span>
               </button>
             </div>
-            {!ended && (
-              <button
-                onClick={() => user ? setShoutoutOpen(true) : toast.error("Sign in to shout out")}
-                disabled={mySpent >= 50}
-                title={mySpent >= 50 ? "$50 cap reached for this stream" : "Send a shout-out"}
-                className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-accent px-3 py-2 text-[10px] font-bold text-accent-foreground active:scale-[0.98] disabled:opacity-50"
-              >
-                <Megaphone className="h-4 w-4" />
-                Shout
-                <span className="text-[8px] opacity-70">${50 - mySpent} left</span>
-              </button>
-            )}
             {!ended && !isSeller && (
               <button
                 onClick={() => user ? setTipOpen(true) : toast.error("Sign in to tip")}
