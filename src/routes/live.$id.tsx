@@ -1319,8 +1319,15 @@ function LiveDetail() {
       });
       await supabase.from("notifications").insert({
         user_id: winnerId, type: "won",
-        body: `🎉 You won Bid #${nextRound} "${itemName}" for $${winningBid}`,
+        body: `🎉 You won Bid #${nextRound} "${itemName}" for $${winningBid}. Tap to pay now.`,
         link: `/orders`,
+      });
+      // Auto-DM the winner with a clear payment CTA so they don't miss it
+      await supabase.from("direct_messages").insert({
+        sender_id: stream.seller_id,
+        sender_username: profile?.username || "seller",
+        recipient_id: winnerId,
+        content: `🏆 You won "${itemName}" for $${winningBid} on my live stream! Total with shipping: $${(winningBid + shipForThis).toFixed(2)}. Pay here: ${typeof window !== "undefined" ? window.location.origin : ""}/orders`,
       });
       await sendMsg(`🏆 Bid #${nextRound} — "${itemName}" sold to @${winnerUsername} for $${winningBid}`, true);
       await supabase.from("live_streams").update({

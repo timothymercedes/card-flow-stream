@@ -256,6 +256,9 @@ function MyStore() {
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${o.payment_status === "paid" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"}`}>
                       {o.payment_status === "paid" ? "Paid" : "Awaiting Payment"}
                     </span>
+                    {o.stream_id && (
+                      <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-400">🔴 Live</span>
+                    )}
                   </div>
                 </div>
                 <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>

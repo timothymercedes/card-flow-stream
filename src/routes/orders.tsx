@@ -147,6 +147,11 @@ function Orders() {
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold capitalize">
                         <ShipIcon s={o.status} /> {o.status}
                       </span>
+                      {o.stream_id && (
+                        <Link to="/live/$id" params={{ id: o.stream_id }} className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                          🔴 Live sale
+                        </Link>
+                      )}
                       <ReportDialog targetType="order" targetId={o.id} targetLabel={o.title} />
                     </div>
                   </div>
