@@ -28,6 +28,8 @@ import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
 import { useTour } from "@/components/MascotGuide";
+import { useLegalStatus } from "@/hooks/useLegalStatus";
+import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -48,6 +50,7 @@ function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { user, profile } = useAuth();
+  const { needsAcceptance } = useLegalStatus();
   const { triggerOnce } = useTour();
   const [stream, setStream] = useState<any>(null);
   // Mascot tour: fire once when this stream loads, picking the right guide for context.
