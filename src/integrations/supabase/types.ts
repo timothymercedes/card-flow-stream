@@ -1055,6 +1055,60 @@ export type Database = {
         }
         Relationships: []
       }
+      obs_profiles: {
+        Row: {
+          cf_live_input_id: string | null
+          cf_playback_hls: string | null
+          cf_rtmps_url: string | null
+          cf_stream_key: string | null
+          cf_whip_url: string | null
+          created_at: string
+          default_category: string | null
+          default_stream_type: string
+          default_tcg_tags: string[]
+          default_title: string | null
+          last_status: string | null
+          last_status_at: string | null
+          preferred_method: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cf_live_input_id?: string | null
+          cf_playback_hls?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
+          cf_whip_url?: string | null
+          created_at?: string
+          default_category?: string | null
+          default_stream_type?: string
+          default_tcg_tags?: string[]
+          default_title?: string | null
+          last_status?: string | null
+          last_status_at?: string | null
+          preferred_method?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cf_live_input_id?: string | null
+          cf_playback_hls?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
+          cf_whip_url?: string | null
+          created_at?: string
+          default_category?: string | null
+          default_stream_type?: string
+          default_tcg_tags?: string[]
+          default_title?: string | null
+          last_status?: string | null
+          last_status_at?: string | null
+          preferred_method?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           amount: number
