@@ -18,6 +18,8 @@ import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Flag } from "lucide-react";
+import { KOModal, type KODestination } from "@/components/KOModal";
+import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -49,6 +51,8 @@ function LiveDetail() {
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [koOpen, setKoOpen] = useState(false);
+  const [koEnrichedDests, setKoEnrichedDests] = useState<any[]>([]);
   const [pinned, setPinned] = useState(true);
   const [hiddenSysIds, setHiddenSysIds] = useState<Set<string>>(new Set());
   const snapshotRef = useRef(false);
@@ -1400,6 +1404,97 @@ function LiveDetail() {
     nav({ to: "/store" });
   }
 
+  // ===== K.O. (KickOut) =====
+  async function confirmKO(dests: KODestination[], message: string) {
+    if (!isSeller || !stream) return;
+    // Re-validate destinations are still live
+    const ids = dests.map((d) => d.stream_id);
+    const { data: liveCheck } = await supabase.from("live_streams").select("id, status").in("id", ids);
+    const liveSet = new Set((liveCheck || []).filter((s: any) => s.status === "live").map((s: any) => s.id));
+    const validDests = dests.filter((d) => liveSet.has(d.stream_id));
+    if (validDests.length === 0) { toast.error("No live destinations available"); return; }
+
+    if (auctionLive) await finalizeAuctionRound();
+    await supabase.from("live_streams").update({
+      ko_active: true,
+      ko_message: message || null,
+      ko_destinations: validDests as any,
+      ko_started_at: new Date().toISOString(),
+    }).eq("id", id);
+    await sendMsg(`⚡ K.O.! Sending viewers to ${validDests.map((d) => "@" + d.username).join(", ")}`, true);
+    setKoOpen(false);
+    toast.success("Kicking viewers out…");
+
+    // Wait for viewer transition (3s alert + up to 5s pick) then end stream
+    setTimeout(async () => {
+      await supabase.from("live_streams").update({
+        status: "ended", is_active: false, ended_at: new Date().toISOString(), pause_until: null, ko_active: false,
+      }).eq("id", id);
+      camStream.current?.getTracks().forEach((t) => t.stop());
+      nav({ to: "/store" });
+    }, 9000);
+  }
+
+  // Enrich KO destinations with title + viewer counts when overlay active
+  useEffect(() => {
+    if (!stream?.ko_active || !Array.isArray(stream?.ko_destinations) || stream.ko_destinations.length === 0) {
+      setKoEnrichedDests([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const dests = stream.ko_destinations as KODestination[];
+      const ids = dests.map((d) => d.stream_id);
+      const [{ data: streams }, { data: pres }] = await Promise.all([
+        supabase.from("live_streams").select("id, title, category, status").in("id", ids),
+        supabase.from("live_stream_presence").select("stream_id").in("stream_id", ids).gte("last_seen_at", new Date(Date.now() - 90_000).toISOString()),
+      ]);
+      if (cancelled) return;
+      const byId = new Map((streams || []).map((s: any) => [s.id, s]));
+      const counts: Record<string, number> = {};
+      (pres || []).forEach((r: any) => { counts[r.stream_id] = (counts[r.stream_id] || 0) + 1; });
+      const enriched = dests
+        .map((d) => {
+          const meta: any = byId.get(d.stream_id);
+          if (!meta || meta.status !== "live") return null;
+          return { ...d, title: meta.title, category: meta.category, viewers: counts[d.stream_id] || 0 };
+        })
+        .filter(Boolean);
+      setKoEnrichedDests(enriched as any[]);
+    })();
+    return () => { cancelled = true; };
+  }, [stream?.ko_active, JSON.stringify(stream?.ko_destinations || [])]);
+
+  // Viewer-side: send a KO request to this host (only if I'm a live host elsewhere)
+  const [myLiveStream, setMyLiveStream] = useState<any>(null);
+  useEffect(() => {
+    if (!user || isSeller) { setMyLiveStream(null); return; }
+    let cancelled = false;
+    supabase.from("live_streams").select("id, title").eq("seller_id", user.id).eq("status", "live").maybeSingle()
+      .then(({ data }) => { if (!cancelled) setMyLiveStream(data); });
+    return () => { cancelled = true; };
+  }, [user?.id, isSeller, id]);
+
+  async function sendKORequest() {
+    if (!user || !profile || !myLiveStream || !stream) return;
+    // count my viewers
+    const { data: pres } = await supabase
+      .from("live_stream_presence").select("user_id")
+      .eq("stream_id", myLiveStream.id).gte("last_seen_at", new Date(Date.now() - 90_000).toISOString());
+    const viewers = (pres || []).length;
+    const { error } = await supabase.from("ko_requests").insert({
+      from_stream_id: myLiveStream.id,
+      from_seller_id: user.id,
+      from_username: profile.username,
+      from_avatar_url: profile.avatar_url,
+      from_viewer_count: viewers,
+      to_stream_id: stream.id,
+      to_seller_id: stream.seller_id,
+    });
+    if (error) toast.error(error.message);
+    else toast.success("KO request sent");
+  }
+
   async function onScanResult(r: { name: string; category: string; trend: string; image: string; language?: string }) {
     setScanning(false);
     if (!isSeller) return;
@@ -1581,6 +1676,25 @@ function LiveDetail() {
           )}
           {isSeller && !ended && (
             <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Settings className="h-4 w-4" /></button>
+          )}
+          {isSeller && !ended && (
+            <button
+              onClick={() => setKoOpen(true)}
+              title="K.O. — KickOut viewers to other live shows"
+              className="relative rounded-full bg-gradient-to-br from-purple-600 via-fuchsia-600 to-blue-600 p-2 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300/40 hover:scale-105 transition-transform"
+            >
+              <Zap className="h-4 w-4" />
+              <span className="pointer-events-none absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-1 text-[7px] font-extrabold tracking-wider text-white">K.O.</span>
+            </button>
+          )}
+          {!isSeller && !ended && myLiveStream && stream?.ko_accepts_requests && (
+            <button
+              onClick={sendKORequest}
+              title="Request to receive these viewers"
+              className="rounded-full bg-gradient-to-br from-purple-600 to-blue-600 p-2 text-white shadow-[0_0_14px_rgba(168,85,247,0.5)]"
+            >
+              <Zap className="h-4 w-4" />
+            </button>
           )}
           <button onClick={() => setShowChat((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur">
             {showChat ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
@@ -3212,6 +3326,28 @@ function LiveDetail() {
             </div>
           </div>
         </div>
+      )}
+      {/* K.O. viewer overlay */}
+      <KOViewerOverlay
+        active={!!stream?.ko_active}
+        hostUsername={sellerUsername || "host"}
+        hostAvatar={(stream as any)?.host_avatar_url || null}
+        message={stream?.ko_message || null}
+        destinations={koEnrichedDests}
+        isHost={isSeller}
+      />
+
+      {/* K.O. host modal */}
+      {isSeller && stream && (
+        <KOModal
+          open={koOpen}
+          onClose={() => setKoOpen(false)}
+          streamId={stream.id}
+          hostSellerId={stream.seller_id}
+          acceptsRequests={!!stream.ko_accepts_requests}
+          destinations={Array.isArray(stream.ko_destinations) ? stream.ko_destinations : []}
+          onConfirm={confirmKO}
+        />
       )}
     </div>
   );
