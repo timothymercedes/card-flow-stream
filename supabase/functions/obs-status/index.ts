@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
           : "Cloudflare Stream status is unavailable.",
         providerStatus: r.status,
         providerCode: code ?? null,
-        providerMessage: j?.errors?.[0]?.message ?? providerText.slice(0, 160) || null,
+        providerMessage: j?.errors?.[0]?.message ?? (providerText.slice(0, 160) || null),
       }, code === 9106 ? 401 : 502);
     }
     const result = j?.result ?? {};
