@@ -305,6 +305,7 @@ function Sell() {
   );
 
   return (
+    <SellerAgreementGate>
     <AppShell>
       <div className="px-4 py-4">
         <h1 className="mb-4 text-2xl font-bold">Sell</h1>
