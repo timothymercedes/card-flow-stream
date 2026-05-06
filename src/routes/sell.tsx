@@ -323,6 +323,7 @@ function Sell() {
                 <p className="text-[10px] text-muted-foreground">Be specific — viewers see this in the live feed.</p>
               </div>
               <input
+                data-tour="stream-title"
                 className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
                 placeholder="e.g. Friday night PSA reveal • $1 starts"
                 value={streamTitle}
@@ -433,6 +434,7 @@ function Sell() {
             {/* OBS Streamer Hub link */}
             <Link
               to="/obs-hub"
+              data-tour="obs-hub-link"
               className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 hover:bg-primary/10"
             >
               <div>
@@ -459,7 +461,7 @@ function Sell() {
               <input type="checkbox" checked={useCompositor} onChange={(e) => { setUseCompositor(e.target.checked); if (e.target.checked) setUseObs(false); }} className="mt-1 h-5 w-5" />
             </label>
 
-            <button onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
+            <button data-tour="start-stream" onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
           <div className="space-y-3">

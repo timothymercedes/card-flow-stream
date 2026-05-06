@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircleQuestion, X, Send, Sparkles, Play, Shield, ShieldAlert, Flag, Inbox, ChevronLeft, AlertTriangle, LifeBuoy } from "lucide-react";
+import { MessageCircleQuestion, X, Send, Sparkles, Play, Shield, ShieldAlert, Flag, Inbox, ChevronLeft, AlertTriangle, LifeBuoy, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTour } from "@/components/MascotGuide";
 import { MASCOTS, TOURS } from "@/lib/tours";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -58,20 +59,24 @@ export function HelpBubble() {
   const [ticketReply, setTicketReply] = useState("");
   const [me, setMe] = useState<{ id: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { startTour, triggerOnce } = useTour();
+  const { startTour, triggerOnce, resetAllSeen } = useTour();
+  const { profile } = useAuth();
+  const isSeller = !!profile?.is_seller;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMe(data.user ? { id: data.user.id } : null));
   }, []);
 
+  // Auto-fire welcome tour once per user — buyer or seller, never both.
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!localStorage.getItem(FIRST_VISIT_KEY)) {
       localStorage.setItem(FIRST_VISIT_KEY, "1");
-      const t = setTimeout(() => triggerOnce("buyer-welcome"), 800);
+      const tourId = isSeller ? "seller-welcome" : "buyer-welcome";
+      const t = setTimeout(() => triggerOnce(tourId), 800);
       return () => clearTimeout(t);
     }
-  }, [triggerOnce]);
+  }, [triggerOnce, isSeller]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -173,11 +178,17 @@ export function HelpBubble() {
     if (error) toast.error(error.message);
   }
 
-  const guides = [
-    { id: "buyer-welcome", mascotId: "buyer" as const, title: "Buyer guide", desc: "Bid, buy, ship, follow." },
-    { id: "seller-welcome", mascotId: "seller" as const, title: "Seller guide", desc: "Live, OBS, shipping, payouts." },
-    { id: "flex-welcome", mascotId: "flex" as const, title: "Flex Live guide", desc: "Collabs, safety, social." },
+  // Replay menu — filtered by audience so buyers don't see seller tours and vice versa.
+  const allGuides = [
+    { id: "buyer-welcome",       mascotId: "buyer"  as const, title: "Buyer guide",        desc: "Bid, buy, ship, follow.",        forSeller: false },
+    { id: "auction-live-screen", mascotId: "buyer"  as const, title: "Live auction guide", desc: "Bidding, snipes, timers.",       forSeller: false },
+    { id: "seller-welcome",      mascotId: "seller" as const, title: "Seller guide",       desc: "Live, OBS, shipping, payouts.",  forSeller: true  },
+    { id: "seller-first-stream", mascotId: "seller" as const, title: "First stream walkthrough", desc: "Scan, auction controls, voice.", forSeller: true  },
+    { id: "obs-connect",         mascotId: "seller" as const, title: "OBS setup guide",    desc: "Stream key, RTMPS, encode.",     forSeller: true  },
+    { id: "flex-welcome",        mascotId: "flex"   as const, title: "Flex Live guide",    desc: "Collabs, safety, social.",       forSeller: true  },
+    { id: "flex-live-screen",    mascotId: "flex"   as const, title: "Flex room tour",     desc: "Reactions, collab tab.",         forSeller: false },
   ];
+  const guides = allGuides.filter((g) => isSeller ? g.forSeller : !g.forSeller);
 
   const escalateButtons: { cat: TicketCategory; label: string; icon: any; tone: string }[] = [
     { cat: "moderator", label: "Message Moderator", icon: Shield, tone: "bg-emerald-600/15 text-emerald-300 border-emerald-500/30" },
@@ -247,7 +258,16 @@ export function HelpBubble() {
               </button>
 
               <div className="mt-2 border-t border-border pt-2">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">App tours</p>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Replay tutorials</p>
+                  <button
+                    onClick={() => { resetAllSeen(); toast.success("Tutorials reset — they'll show on next visit."); }}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                    title="Re-enable all 'don't show again' tutorials"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Reset all
+                  </button>
+                </div>
                 {guides.map((g) => {
                   const m = MASCOTS[g.mascotId];
                   return (

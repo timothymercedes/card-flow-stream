@@ -55,19 +55,19 @@ function LiveDetail() {
   const { needsAcceptance } = useLegalStatus();
   const { triggerOnce } = useTour();
   const [stream, setStream] = useState<any>(null);
-  // Mascot tour: fire once when this stream loads, picking the right guide for context.
+  // Mascot tour: pick the right guide for the viewer's role + stream type.
+  // Audience gating in MascotGuide is the safety net; we still avoid mismatched
+  // calls so hosts never see buyer hints (and vice versa).
   useEffect(() => {
     if (!stream) return;
-    const isHost = user && stream.seller_id === user.id;
+    const isHost = !!(user && stream.seller_id === user.id);
     const isFlex = stream.mode === "show_off";
-    if (isFlex) {
-      triggerOnce("flex-live-screen");
+    if (isHost) {
+      if (isFlex) triggerOnce("seller-first-stream");
+      else if (stream.cf_rtmps_url || stream.cf_stream_key) triggerOnce("obs-connect");
     } else {
-      triggerOnce("auction-live-screen");
-    }
-    if (isHost && isFlex) triggerOnce("seller-first-stream");
-    if (isHost && !isFlex && (stream.cf_rtmps_url || stream.cf_stream_key)) {
-      triggerOnce("obs-connect");
+      if (isFlex) triggerOnce("flex-live-screen");
+      else triggerOnce("auction-live-screen");
     }
   }, [stream, user, triggerOnce]);
   const [sellerUsername, setSellerUsername] = useState<string>("");

@@ -242,12 +242,14 @@ function ObsHub() {
 
               <div className="mb-3 grid grid-cols-2 gap-2">
                 <button
+                  data-tour="obs-download"
                   onClick={downloadProfile}
                   className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
                 >
                   <Download className="h-3.5 w-3.5" /> Download .ini
                 </button>
                 <button
+                  data-tour="obs-copy"
                   onClick={() => copy(`Server: ${profile.cf_rtmps_url}\nStream Key: ${profile.cf_stream_key}`, "Server + key")}
                   className="flex items-center justify-center gap-1.5 rounded-lg bg-muted py-2 text-xs font-bold"
                 >
