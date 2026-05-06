@@ -23,6 +23,9 @@ function Auth() {
   const [isSeller, setIsSeller] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [ageOk, setAgeOk] = useState(false);
+  const [tosOk, setTosOk] = useState(false);
+  const [guidelinesOk, setGuidelinesOk] = useState(false);
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
