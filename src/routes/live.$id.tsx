@@ -28,6 +28,8 @@ import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
 import { useTour } from "@/components/MascotGuide";
+import { FlexLiveControls } from "@/components/FlexLiveControls";
+import { flexFilterCss } from "@/lib/flexFilters";
 import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 
@@ -1753,7 +1755,7 @@ function LiveDetail() {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {/* Full-screen video */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" style={stream.mode === "show_off" ? { filter: flexFilterCss(stream.video_filter) } : undefined}>
         {usingObs ? (
           <HlsPlayer src={stream.cf_playback_hls} className="h-full w-full object-cover" autoPlay muted={isSeller} />
         ) : isSeller ? (
@@ -2318,6 +2320,16 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
+        {stream.mode === "show_off" && (
+          <FlexLiveControls
+            streamId={id}
+            isHost={isSeller}
+            userId={user?.id || null}
+            username={profile?.username || null}
+            currentFilter={stream.video_filter || "none"}
+          />
+        )}
+        {stream.mode !== "show_off" && (<>
         {/* PRIORITY 1: Current Bid — centered, large, focal point */}
         <div className="flex flex-col items-center gap-0.5 text-center">
           <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/60">
@@ -2646,6 +2658,7 @@ function LiveDetail() {
           />
           <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
+        </>)}
       </div>
 
       {/* End Live confirmation — pause for 3h or end for good */}
