@@ -119,7 +119,7 @@ function ShowOff() {
         {verified === false && (
           <div className="mb-4 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-xs">
             <p className="font-bold text-amber-300">Verification required</p>
-            <p className="mt-1 text-muted-foreground">An admin needs to verify your account before you can host or join Flex Lives. (Gov ID + selfie verification coming soon.)</p>
+            <p className="mt-1 text-muted-foreground">An admin needs to verify your account before you can host or join Flex Lives.</p>
           </div>
         )}
 
