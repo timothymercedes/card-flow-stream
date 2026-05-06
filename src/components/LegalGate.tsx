@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
+import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { supabase } from "@/integrations/supabase/client";
+import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-
-const REQUIRED_DOCS = ["tos", "community_guidelines", "age_18_plus"] as const;
-const VERSION = "1.0";
 
 /**
  * Blocks logged-in users who pre-date the new agreements until they accept:
@@ -17,35 +16,17 @@ const VERSION = "1.0";
  */
 export function LegalGate() {
   const { user, loading } = useAuth();
-  const [needsAccept, setNeedsAccept] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const { loading: legalLoading, needsAcceptance, refresh } = useLegalStatus();
   const [age, setAge] = useState(false);
   const [tos, setTos] = useState(false);
   const [guidelines, setGuidelines] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
-    if (!user) { setNeedsAccept(false); setChecking(false); return; }
-    let cancelled = false;
-    (async () => {
-      setChecking(true);
-      const { data, error } = await supabase
-        .from("legal_acceptances")
-        .select("document_type, version")
-        .eq("user_id", user.id)
-        .in("document_type", REQUIRED_DOCS as unknown as string[]);
-      if (cancelled) return;
-      if (error) { setChecking(false); return; }
-      const have = new Set((data ?? []).map((r) => r.document_type));
-      const missing = REQUIRED_DOCS.some((d) => !have.has(d));
-      setNeedsAccept(missing);
-      setChecking(false);
-    })();
-    return () => { cancelled = true; };
-  }, [user, loading]);
+    if (!needsAcceptance) { setAge(false); setTos(false); setGuidelines(false); }
+  }, [needsAcceptance]);
 
-  if (loading || checking || !user || !needsAccept) return null;
+  if (loading || legalLoading || !user || !needsAcceptance) return null;
 
   const canAccept = age && tos && guidelines && !saving;
 
@@ -53,17 +34,15 @@ export function LegalGate() {
     if (!user) return;
     setSaving(true);
     const ua = navigator.userAgent.slice(0, 200);
-    const rows = REQUIRED_DOCS.map((d) => ({
-      user_id: user.id,
-      document_type: d,
-      version: VERSION,
-      user_agent: ua,
-    }));
-    const { error } = await supabase.from("legal_acceptances").insert(rows);
+    const { error } = await (supabase.rpc as any)("accept_required_legal_documents", {
+      _version: REQUIRED_LEGAL_VERSION,
+      _user_agent: ua,
+    });
+    if (error) { setSaving(false); toast.error("Couldn't save agreement. Please try again."); return; }
+    await supabase.auth.updateUser({ data: legalAcceptanceMetadata() });
+    await refresh();
     setSaving(false);
-    if (error) { toast.error("Couldn't save agreement. Please try again."); return; }
     toast.success("Thanks! You're all set.");
-    setNeedsAccept(false);
   }
 
   return (

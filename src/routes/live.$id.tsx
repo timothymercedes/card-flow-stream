@@ -28,6 +28,8 @@ import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
 import { useTour } from "@/components/MascotGuide";
+import { useLegalStatus } from "@/hooks/useLegalStatus";
+import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -48,6 +50,7 @@ function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { user, profile } = useAuth();
+  const { needsAcceptance } = useLegalStatus();
   const { triggerOnce } = useTour();
   const [stream, setStream] = useState<any>(null);
   // Mascot tour: fire once when this stream loads, picking the right guide for context.
@@ -599,6 +602,15 @@ function LiveDetail() {
     localUsername: profile?.username || "host",
   });
 
+  const safety = useLivestreamSafety({
+    stream,
+    streamId: id,
+    isSeller: !!isSeller,
+    localStream: cfCall.localStream,
+    videoRef,
+    onAutoEnd: () => toast.message("Live auto-ended after extended inactivity"),
+  });
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
@@ -650,6 +662,7 @@ function LiveDetail() {
 
   async function sendMsg(content: string, isSystem = false, opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string } = {}) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
+    if (!isSystem && needsAcceptance) return toast.error("Accept the required agreements before chatting");
     if (!content.trim()) return;
     await supabase.from("chat_messages").insert({
       stream_id: id,
@@ -660,6 +673,7 @@ function LiveDetail() {
       is_announcement: !!opts.isAnnouncement,
       is_hype: !!opts.isHype,
     });
+    if (!isSystem) safety.touch("chat");
   }
 
   // ---- Mod management ----
@@ -793,6 +807,10 @@ function LiveDetail() {
       nav({ to: "/auth" });
       return false;
     }
+    if (needsAcceptance) {
+      toast.error("Accept the required agreements before interacting");
+      return false;
+    }
     if (!buyerReady) {
       toast.error("Complete your shipping profile first");
       nav({ to: "/profile" });
@@ -842,6 +860,7 @@ function LiveDetail() {
 
     const { error } = await supabase.from("live_streams").update(update).eq("id", id);
     if (error) return toast.error(error.message);
+    safety.touch("auction_bid");
 
     if (extended) {
       endedRef.current = false;
@@ -885,6 +904,7 @@ function LiveDetail() {
       snipe_price: null,
     }).eq("id", id);
     if (error) return toast.error(error.message);
+    safety.touch("buy_now_snipe");
     endedRef.current = false; snapshotRef.current = false;
     await sendMsg(`💥 SNIPE! @${profile.username} hit Buy-Now for $${price} — instant win!`, true);
   }
@@ -1240,6 +1260,7 @@ function LiveDetail() {
     endedRef.current = false;
     snapshotRef.current = false;
     await supabase.from("live_streams").update(patch).eq("id", id);
+    safety.touch("auction_started");
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`, true);
     toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
@@ -1292,6 +1313,7 @@ function LiveDetail() {
     endedRef.current = false;
     snapshotRef.current = false;
     await supabase.from("live_streams").update(patch).eq("id", id);
+    safety.touch("auction_started");
     await sendMsg(`▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`, true);
     setLastQuick({ item, start: String(start), timer: String(sec), buyNow: buyNow ? String(buyNow) : "" });
     setQuickItem("");
@@ -1366,6 +1388,7 @@ function LiveDetail() {
 
   async function finalizeAuctionRound() {
     if (!stream) return;
+    safety.touch("auction_finalized");
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
     // Ensure we have a snapshot if not already captured
@@ -1944,6 +1967,11 @@ function LiveDetail() {
               {SUPPORTED_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          {isSeller && !ended && (
+            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/80 ring-1 ring-white/15 backdrop-blur">
+              <ClockIcon className="h-3 w-3" /> {safety.statusLabel} · {stream.stream_type === "show_off" ? "Flex soft limits" : "Auction-friendly"}
+            </div>
+          )}
         </div>
       )}
 
@@ -2423,6 +2451,23 @@ function LiveDetail() {
             )}
           </div>
           </>
+        )}
+        {isSeller && !ended && !paused && (safety.inactiveWarning || safety.flexReminder) && (
+          <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
+            <p className="text-center text-[11px] font-bold text-amber-100">
+              {safety.inactiveWarning ? "Still live? We haven’t detected activity in a while." : "Flex Live session reminder"}
+            </p>
+            <div className="flex gap-1.5">
+              <button onClick={safety.confirmActive} disabled={safety.confirming} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-2 text-[11px] font-extrabold text-primary-foreground disabled:opacity-50">
+                <Check className="h-3.5 w-3.5" /> I’m still live
+              </button>
+              {stream.stream_type === "show_off" && (
+                <button onClick={async () => { await safety.extendFlex(); toast.success("Flex Live extended"); }} className="rounded-lg bg-fuchsia-500 px-3 py-2 text-[11px] font-extrabold text-white">
+                  Extend
+                </button>
+              )}
+            </div>
+          </div>
         )}
         {isSeller && paused && (
           <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
