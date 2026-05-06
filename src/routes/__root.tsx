@@ -3,6 +3,7 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotTourProvider } from "@/components/MascotGuide";
+import { LegalGate } from "@/components/LegalGate";
 
 function NotFoundComponent() {
   return (
