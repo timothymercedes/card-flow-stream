@@ -507,5 +507,6 @@ function Sell() {
         onConfirm={(v) => { setPickerOpen(false); startLive(v); }}
       />
     </AppShell>
+    </SellerAgreementGate>
   );
 }
