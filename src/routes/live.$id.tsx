@@ -51,6 +51,8 @@ function LiveDetail() {
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [koOpen, setKoOpen] = useState(false);
+  const [koEnrichedDests, setKoEnrichedDests] = useState<any[]>([]);
   const [pinned, setPinned] = useState(true);
   const [hiddenSysIds, setHiddenSysIds] = useState<Set<string>>(new Set());
   const snapshotRef = useRef(false);
