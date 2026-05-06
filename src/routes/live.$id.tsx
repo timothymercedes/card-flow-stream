@@ -1727,6 +1727,21 @@ function LiveDetail() {
           onLeave={() => setCallJoined(false)}
         />
       )}
+
+      {/* Viewer-side overlay: shows cohost tiles to regular viewers (read-only). */}
+      {!isSeller && !isCohostParticipant && viewerCall.remotes.length > 0 && (
+        <CoHostStage
+          localStream={null}
+          localUsername=""
+          remotes={viewerCall.remotes}
+          audioOn={true}
+          videoOn={true}
+          onToggleAudio={() => {}}
+          onToggleVideo={() => {}}
+          onLeave={() => {}}
+          readOnly
+        />
+      )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4" /></Link>
         <div className="flex items-center gap-1.5">
