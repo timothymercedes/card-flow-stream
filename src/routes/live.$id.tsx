@@ -27,6 +27,7 @@ import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
+import { useTour } from "@/components/MascotGuide";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -47,6 +48,7 @@ function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { user, profile } = useAuth();
+  const { triggerOnce } = useTour();
   const [stream, setStream] = useState<any>(null);
   const [sellerUsername, setSellerUsername] = useState<string>("");
   const [allStreams, setAllStreams] = useState<any[]>([]);
