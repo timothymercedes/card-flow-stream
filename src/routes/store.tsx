@@ -79,8 +79,22 @@ function MyStore() {
   async function fetchRates(o: any) {
     setRatesLoading((s) => ({ ...s, [o.id]: true }));
     try {
-      const res = await getShippoRates({ data: { orderId: o.id } });
+      const presetKey =
+        preset[o.id] ??
+        suggestPreset({ category: o.category, quantity: o.quantity, title: o.title });
+      const p = SHIPPING_PRESETS[presetKey];
+      if (!preset[o.id]) setPreset((s) => ({ ...s, [o.id]: presetKey }));
+      const res = await getShippoRates({
+        data: {
+          orderId: o.id,
+          weightOz: p.weightOz,
+          lengthIn: p.lengthIn,
+          widthIn: p.widthIn,
+          heightIn: p.heightIn,
+        },
+      });
       setRates((s) => ({ ...s, [o.id]: res.rates }));
+      setRecommended((s) => ({ ...s, [o.id]: res.recommendedRateId ?? null }));
       if (!res.rates.length) toast.error("No rates available — check addresses");
     } catch (e: any) {
       const msg = e.message || "Failed to fetch rates";
