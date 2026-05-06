@@ -1260,6 +1260,7 @@ function LiveDetail() {
     endedRef.current = false;
     snapshotRef.current = false;
     await supabase.from("live_streams").update(patch).eq("id", id);
+    safety.touch("auction_started");
     await sendMsg(`▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`, true);
     toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
@@ -1312,6 +1313,7 @@ function LiveDetail() {
     endedRef.current = false;
     snapshotRef.current = false;
     await supabase.from("live_streams").update(patch).eq("id", id);
+    safety.touch("auction_started");
     await sendMsg(`▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`, true);
     setLastQuick({ item, start: String(start), timer: String(sec), buyNow: buyNow ? String(buyNow) : "" });
     setQuickItem("");
@@ -1386,6 +1388,7 @@ function LiveDetail() {
 
   async function finalizeAuctionRound() {
     if (!stream) return;
+    safety.touch("auction_finalized");
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
     // Ensure we have a snapshot if not already captured
