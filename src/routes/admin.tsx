@@ -342,6 +342,8 @@ function Admin() {
 
         {tab === "support" && <SupportInbox canModerate={isAdmin || myRoles.includes("moderator")} />}
 
+        {tab === "verifications" && <VerificationInbox />}
+
         {tab === "orders" && (
           <div className="space-y-2">
             <div className="flex gap-2">
