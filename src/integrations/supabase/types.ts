@@ -664,6 +664,7 @@ export type Database = {
           cf_rtmps_url: string | null
           cf_stream_key: string | null
           cf_video_uid: string | null
+          cf_whip_url: string | null
           chat_slow_mode_sec: number
           created_at: string
           current_bid: number
@@ -747,6 +748,7 @@ export type Database = {
           cf_rtmps_url?: string | null
           cf_stream_key?: string | null
           cf_video_uid?: string | null
+          cf_whip_url?: string | null
           chat_slow_mode_sec?: number
           created_at?: string
           current_bid?: number
@@ -830,6 +832,7 @@ export type Database = {
           cf_rtmps_url?: string | null
           cf_stream_key?: string | null
           cf_video_uid?: string | null
+          cf_whip_url?: string | null
           chat_slow_mode_sec?: number
           created_at?: string
           current_bid?: number
