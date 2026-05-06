@@ -14,6 +14,7 @@ import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as ShowoffRouteImport } from './routes/showoff'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PayoutsRouteImport } from './routes/payouts'
 import { Route as OrdersRouteImport } from './routes/orders'
@@ -62,6 +63,11 @@ const ShowoffRoute = ShowoffRouteImport.update({
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof OrdersRoute
   '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersRoute
   '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/orders': typeof OrdersRoute
   '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/payouts'
     | '/profile'
+    | '/reset-password'
     | '/sell'
     | '/showoff'
     | '/store'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/payouts'
     | '/profile'
+    | '/reset-password'
     | '/sell'
     | '/showoff'
     | '/store'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/payouts'
     | '/profile'
+    | '/reset-password'
     | '/sell'
     | '/showoff'
     | '/store'
@@ -388,6 +400,7 @@ export interface RootRouteChildren {
   OrdersRoute: typeof OrdersRoute
   PayoutsRoute: typeof PayoutsRoute
   ProfileRoute: typeof ProfileRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SellRoute: typeof SellRoute
   ShowoffRoute: typeof ShowoffRoute
   StoreRoute: typeof StoreRoute
@@ -443,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/sell'
       preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -628,6 +648,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersRoute: OrdersRoute,
   PayoutsRoute: PayoutsRoute,
   ProfileRoute: ProfileRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SellRoute: SellRoute,
   ShowoffRoute: ShowoffRoute,
   StoreRoute: StoreRoute,
