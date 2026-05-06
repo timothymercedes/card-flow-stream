@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Loader2, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -184,22 +184,8 @@ function Profile() {
     toast.success("Avatar updated");
   }
 
-  async function uploadId(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file || !user) return;
-    setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/id-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
-    if (error) { setUploading(false); return toast.error(error.message); }
-    await supabase.from("profiles").update({ id_document_url: path, id_status: "pending" }).eq("id", user.id);
-    setP((x: any) => ({ ...x, id_document_url: path, id_status: "pending" }));
-    setUploading(false);
-    toast.success("ID submitted for review");
-  }
-
   async function applyToSell() {
     if (!user) return;
-    if (!p?.id_document_url) return toast.error("Upload your ID first");
     if (!p?.address_line1) return toast.error("Add your mailing address first");
     const confirmed = window.confirm(
       "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
@@ -256,7 +242,7 @@ function Profile() {
               {buyerCompleted >= 35 && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-500">✓ Verified Buyer</span>}
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
               <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
-              <Badge status={p.id_status || "none"} label="ID" />
+              
               <Badge status={p.seller_status || "none"} label="Seller" />
             </div>
           </div>
@@ -358,14 +344,12 @@ function Profile() {
           </button>
         </section>
 
-        <section className="rounded-xl bg-card p-4 space-y-2">
-          <p className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-4 w-4" /> Identity Verification</p>
-          <p className="text-[11px] text-muted-foreground">Upload a photo of a government-issued ID. Reviewed manually.</p>
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-input/50 py-3 text-xs font-semibold">
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {p.id_document_url ? "Replace ID" : "Upload ID"}
-            <input type="file" accept="image/*,application/pdf" onChange={uploadId} className="hidden" />
-          </label>
+        <section className="rounded-xl bg-card p-4 space-y-1">
+          <p className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-4 w-4" /> Identity & KYC</p>
+          <p className="text-[11px] text-muted-foreground">
+            For your privacy, PullBid Live does <strong>not</strong> store government IDs or selfies.
+            Seller identity (KYC) is verified securely by Stripe during payout onboarding — connect Stripe in <Link to="/payouts" className="text-primary underline">Payouts</Link> to complete verification.
+          </p>
         </section>
 
         <section className="rounded-xl bg-card p-4 space-y-2">
@@ -382,7 +366,7 @@ function Profile() {
         </section>
         <section className="rounded-xl bg-card p-4 space-y-2">
           <p className="text-sm font-bold">Sell on Pull Bid</p>
-          <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Requires verified ID + mailing address. Admin reviews each application.</p>
+          <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Identity verification is handled by Stripe Connect during payout setup.</p>
           {p.seller_status === "approved" ? (
             sellerAgreementAccepted === false ? (
               <div className="space-y-2">

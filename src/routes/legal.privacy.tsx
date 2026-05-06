@@ -13,7 +13,8 @@ function Privacy() {
 
       <h2>1. Data We Collect</h2>
       <ul>
-        <li><strong>Account info:</strong> username, email, password (hashed), phone number, profile photo, optional ID document for seller verification.</li>
+        <li><strong>Account info:</strong> username, email, password (hashed), phone number, profile photo.</li>
+        <li><strong>Payment & seller identity (KYC):</strong> processed by <strong>Stripe</strong>. Sellers complete identity verification (legal name, date of birth, government-issued ID, and any selfie checks) directly with Stripe. <strong>PullBid Live does not store government IDs, selfies, or KYC documents.</strong> We only receive Stripe's verification status and payout readiness.</li>
         <li><strong>Payment info:</strong> processed by Stripe. We do <strong>not</strong> store full card numbers. We store transaction IDs, amounts, payout status, and shipping address.</li>
         <li><strong>Activity:</strong> bids, orders, chat messages, DMs, giveaway entries, stream views, follows, vault entries.</li>
         <li><strong>Device:</strong> IP address, user-agent, push notification tokens.</li>
