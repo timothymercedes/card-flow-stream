@@ -188,6 +188,14 @@ function SellerHub() {
       load();
       return;
     }
+    try {
+      const res = await buyShippoLabel({ data: { orderId: o.id, rateId } });
+      if (res.labelUrl) setLabelUrls((s) => ({ ...s, [o.id]: res.labelUrl }));
+      toast.success("Label purchased — order shipped");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to buy label");
+    }
   }
 
   async function savePweSettings() {
@@ -202,14 +210,6 @@ function SellerHub() {
     setSavingPwe(false);
     if (error) return toast.error(error.message);
     toast.success("Shipping settings saved");
-    try {
-      const res = await buyShippoLabel({ data: { orderId: o.id, rateId } });
-      if (res.labelUrl) setLabelUrls((s) => ({ ...s, [o.id]: res.labelUrl }));
-      toast.success("Label purchased — order shipped");
-      load();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to buy label");
-    }
   }
 
   // Derived counts
