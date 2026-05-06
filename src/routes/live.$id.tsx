@@ -1967,6 +1967,11 @@ function LiveDetail() {
               {SUPPORTED_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          {isSeller && !ended && (
+            <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/80 ring-1 ring-white/15 backdrop-blur">
+              <ClockIcon className="h-3 w-3" /> {safety.statusLabel} · {stream.stream_type === "show_off" ? "Flex soft limits" : "Auction-friendly"}
+            </div>
+          )}
         </div>
       )}
 
@@ -2446,6 +2451,23 @@ function LiveDetail() {
             )}
           </div>
           </>
+        )}
+        {isSeller && !ended && !paused && (safety.inactiveWarning || safety.flexReminder) && (
+          <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
+            <p className="text-center text-[11px] font-bold text-amber-100">
+              {safety.inactiveWarning ? "Still live? We haven’t detected activity in a while." : "Flex Live session reminder"}
+            </p>
+            <div className="flex gap-1.5">
+              <button onClick={safety.confirmActive} disabled={safety.confirming} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-2 text-[11px] font-extrabold text-primary-foreground disabled:opacity-50">
+                <Check className="h-3.5 w-3.5" /> I’m still live
+              </button>
+              {stream.stream_type === "show_off" && (
+                <button onClick={async () => { await safety.extendFlex(); toast.success("Flex Live extended"); }} className="rounded-lg bg-fuchsia-500 px-3 py-2 text-[11px] font-extrabold text-white">
+                  Extend
+                </button>
+              )}
+            </div>
+          </div>
         )}
         {isSeller && paused && (
           <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
