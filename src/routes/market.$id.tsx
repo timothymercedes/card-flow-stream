@@ -32,6 +32,8 @@ function ListingDetail() {
   const [offerAmt, setOfferAmt] = useState("");
   const [now, setNow] = useState(Date.now());
   const [unpaidOrders, setUnpaidOrders] = useState(0);
+  const [qty, setQty] = useState(1);
+  const [cartMode, setCartMode] = useState<"buy" | "cart">("buy");
 
   useEffect(() => {
     if (!user) { setUnpaidOrders(0); return; }
