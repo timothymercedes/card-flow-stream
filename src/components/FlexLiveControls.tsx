@@ -65,12 +65,12 @@ export function FlexLiveControls({
 
   return (
     <>
-      {/* Floating emoji bursts — pointer-events none so they don't cover anything */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 z-20 overflow-hidden">
+      {/* Floating emoji bursts — fixed full-screen so they actually float up over the video */}
+      <div className="pointer-events-none fixed inset-0 z-30 overflow-hidden">
         {floats.map((f) => (
           <span
             key={f.id}
-            className="absolute bottom-32 text-3xl flex-emoji-float"
+            className="absolute bottom-40 text-4xl flex-emoji-float"
             style={{ left: `${f.left}%` }}
           >
             {f.emoji}
