@@ -1703,7 +1703,19 @@ function LiveDetail() {
         )}
       </div>
 
-      {/* Top bar */}
+      {/* Cloudflare Calls multi-guest stage */}
+      {callShouldRun && (
+        <CoHostStage
+          localStream={cfCall.localStream}
+          localUsername={profile?.username || "you"}
+          remotes={cfCall.remotes}
+          audioOn={audioOn}
+          videoOn={videoOn}
+          onToggleAudio={() => { cfCall.toggleAudio(); setAudioOn((v) => !v); }}
+          onToggleVideo={() => { cfCall.toggleVideo(); setVideoOn((v) => !v); }}
+          onLeave={() => setCallJoined(false)}
+        />
+      )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4" /></Link>
         <div className="flex items-center gap-1.5">
