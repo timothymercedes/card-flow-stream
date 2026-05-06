@@ -15,7 +15,7 @@ type Tier = {
 const DEFAULT_TIER: Tier = {
   tier: "standard",
   inactive_warning_minutes: 45,
-  inactive_auto_end_minutes: 75,
+  inactive_auto_end_minutes: 60,
   flex_soft_limit_minutes: 180,
   flex_extension_minutes: 120,
   guest_limit: 4,
