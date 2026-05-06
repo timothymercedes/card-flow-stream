@@ -217,6 +217,13 @@ function ShowOff() {
           ))}
         </div>
       </div>
+      <StreamCategoryPicker
+        open={pickerOpen}
+        lockType
+        initialType="show_off"
+        onCancel={() => setPickerOpen(false)}
+        onConfirm={(v) => { setPickerOpen(false); startShowOff(v.tcg_tags as TcgTag[]); }}
+      />
     </AppShell>
   );
 }
