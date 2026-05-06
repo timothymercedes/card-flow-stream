@@ -2321,7 +2321,7 @@ function LiveDetail() {
       })()}
 
       {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
-      {showChat && !(isStaff && hostFocus) && (
+      {showChat && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
