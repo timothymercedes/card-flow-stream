@@ -43,7 +43,7 @@ export function useLivestreamSafety(opts: {
   useEffect(() => {
     const key = (stream?.creator_tier as string) || "standard";
     supabase.from("creator_stream_tiers" as any).select("*").eq("tier", key).maybeSingle()
-      .then(({ data }) => setTier((data as Tier) || DEFAULT_TIER));
+      .then(({ data }) => setTier((data as unknown as Tier) || DEFAULT_TIER));
   }, [stream?.creator_tier]);
 
   const startedAt = stream?.started_at ? new Date(stream.started_at).getTime() : 0;
