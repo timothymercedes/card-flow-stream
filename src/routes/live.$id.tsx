@@ -436,8 +436,12 @@ function LiveDetail() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
-  // Seller: start camera preview (skip if seller is broadcasting via OBS)
-  const usingObs = !!stream?.cf_playback_hls;
+  // Seller capture modes:
+  //   - usingObs:        Cloudflare HLS exists, no WHIP → seller broadcasts via OBS, no in-browser cam
+  //   - usingCompositor: Cloudflare HLS + WHIP URL → seller broadcasts canvas-composited multi-cam from browser
+  //   - else:            legacy in-app camera preview only
+  const usingCompositor = !!stream?.cf_whip_url;
+  const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || usingObs) return;
     let cancelled = false;
