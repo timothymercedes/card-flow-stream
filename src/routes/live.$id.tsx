@@ -2738,7 +2738,8 @@ function LiveDetail() {
         )}
         </>)}
 
-        {/* Chat input — always visible in BOTH flex and auction modes */}
+        {/* Chat input — hidden in Flex immersive mode */}
+        {!(stream.mode === "show_off" && flexImmersive) && (
         <form onSubmit={handleSend} className="relative flex gap-2">
           {tagOpen && tagResults.length > 0 && (
             <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
