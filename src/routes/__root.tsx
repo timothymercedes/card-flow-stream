@@ -2,6 +2,7 @@ import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/r
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
+import { MascotTourProvider } from "@/components/MascotGuide";
 
 function NotFoundComponent() {
   return (
@@ -41,8 +42,10 @@ export const Route = createRootRoute({
   ),
   component: () => (
     <AuthProvider>
-      <Outlet />
-      <Toaster />
+      <MascotTourProvider>
+        <Outlet />
+        <Toaster />
+      </MascotTourProvider>
     </AuthProvider>
   ),
   notFoundComponent: NotFoundComponent,
