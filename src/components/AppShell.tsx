@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,8 +49,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <img src={logo} alt="PullBid Live" className="h-10 w-10 object-contain" />
           <div className="text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
-        <div className="flex items-center gap-2">
-          <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
+        <div className="flex items-center gap-1.5">
+          <Link to="/showoff" className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
+            <Sparkles className="h-3.5 w-3.5" /> Show Off
+          </Link>
+          <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
             <Plus className="h-3.5 w-3.5" /> Sell
           </Link>
           <NotificationBell />

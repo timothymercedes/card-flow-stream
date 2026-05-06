@@ -124,9 +124,17 @@ function Admin() {
   async function searchUsers() {
     if (!userQuery.trim()) { setUserResults([]); return; }
     const { data } = await supabase.from("profiles")
-      .select("id, username, avatar_url, is_seller, seller_status, created_at")
+      .select("id, username, avatar_url, is_seller, seller_status, created_at, live_verified")
       .ilike("username", `%${userQuery.trim()}%`).limit(25);
     setUserResults((data as any[]) || []);
+  }
+
+  async function toggleLiveVerified(u: { id: string; username: string; live_verified?: boolean }) {
+    const next = !u.live_verified;
+    const { error } = await supabase.from("profiles").update({ live_verified: next }).eq("id", u.id);
+    if (error) return toast.error(error.message);
+    toast.success(next ? `@${u.username} can now host & collab` : `Live access revoked for @${u.username}`);
+    setUserResults((rs) => rs.map((r) => r.id === u.id ? { ...r, live_verified: next } : r));
   }
 
   async function quickSuspend(u: { id: string; username: string }, days: number, reason: string) {
@@ -390,6 +398,10 @@ function Admin() {
                           className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Ban</button>
                       </>
                     )}
+                    <button onClick={() => toggleLiveVerified(u)}
+                      className={`rounded-lg px-3 py-1 text-[10px] font-bold ${u.live_verified ? "bg-primary/20 text-primary" : "bg-muted"}`}>
+                      {u.live_verified ? "✓ Live verified" : "Verify for live"}
+                    </button>
                     {activeSusp && (
                       <button onClick={() => lift(activeSusp.id)} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">Lift {activeSusp.type}</button>
                     )}

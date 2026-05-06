@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
+import { Route as ShowoffRouteImport } from './routes/showoff'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PayoutsRouteImport } from './routes/payouts'
@@ -51,6 +52,11 @@ const StoriesRoute = StoriesRouteImport.update({
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShowoffRoute = ShowoffRouteImport.update({
+  id: '/showoff',
+  path: '/showoff',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellRoute = SellRouteImport.update({
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/payouts': typeof PayoutsRoute
   '/profile': typeof ProfileRoute
   '/sell': typeof SellRoute
+  '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/profile'
     | '/sell'
+    | '/showoff'
     | '/store'
     | '/stories'
     | '/vault'
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/profile'
     | '/sell'
+    | '/showoff'
     | '/store'
     | '/stories'
     | '/vault'
@@ -346,6 +357,7 @@ export interface FileRouteTypes {
     | '/payouts'
     | '/profile'
     | '/sell'
+    | '/showoff'
     | '/store'
     | '/stories'
     | '/vault'
@@ -377,6 +389,7 @@ export interface RootRouteChildren {
   PayoutsRoute: typeof PayoutsRoute
   ProfileRoute: typeof ProfileRoute
   SellRoute: typeof SellRoute
+  ShowoffRoute: typeof ShowoffRoute
   StoreRoute: typeof StoreRoute
   StoriesRoute: typeof StoriesRoute
   VaultRoute: typeof VaultRoute
@@ -416,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/store'
       fullPath: '/store'
       preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/showoff': {
+      id: '/showoff'
+      path: '/showoff'
+      fullPath: '/showoff'
+      preLoaderRoute: typeof ShowoffRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell': {
@@ -609,6 +629,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayoutsRoute: PayoutsRoute,
   ProfileRoute: ProfileRoute,
   SellRoute: SellRoute,
+  ShowoffRoute: ShowoffRoute,
   StoreRoute: StoreRoute,
   StoriesRoute: StoriesRoute,
   VaultRoute: VaultRoute,
@@ -629,12 +650,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -637,6 +637,7 @@ export type Database = {
       }
       live_streams: {
         Row: {
+          allow_collab_requests: boolean
           auction_reveal_mode: string
           break_characters: Json | null
           break_force_visible: boolean
@@ -676,6 +677,7 @@ export type Database = {
           ends_at: string | null
           id: string
           is_active: boolean
+          is_private: boolean
           item_description: string | null
           item_image_url: string | null
           ko_accepts_requests: boolean
@@ -684,7 +686,9 @@ export type Database = {
           ko_message: string | null
           ko_started_at: string | null
           listing_type: string
+          max_collab_count: number
           min_bid_increment: number
+          mode: string
           pause_until: string | null
           quantity: number
           quantity_remaining: number | null
@@ -714,6 +718,7 @@ export type Database = {
           winning_bid: number | null
         }
         Insert: {
+          allow_collab_requests?: boolean
           auction_reveal_mode?: string
           break_characters?: Json | null
           break_force_visible?: boolean
@@ -753,6 +758,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           is_active?: boolean
+          is_private?: boolean
           item_description?: string | null
           item_image_url?: string | null
           ko_accepts_requests?: boolean
@@ -761,7 +767,9 @@ export type Database = {
           ko_message?: string | null
           ko_started_at?: string | null
           listing_type?: string
+          max_collab_count?: number
           min_bid_increment?: number
+          mode?: string
           pause_until?: string | null
           quantity?: number
           quantity_remaining?: number | null
@@ -791,6 +799,7 @@ export type Database = {
           winning_bid?: number | null
         }
         Update: {
+          allow_collab_requests?: boolean
           auction_reveal_mode?: string
           break_characters?: Json | null
           break_force_visible?: boolean
@@ -830,6 +839,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           is_active?: boolean
+          is_private?: boolean
           item_description?: string | null
           item_image_url?: string | null
           ko_accepts_requests?: boolean
@@ -838,7 +848,9 @@ export type Database = {
           ko_message?: string | null
           ko_started_at?: string | null
           listing_type?: string
+          max_collab_count?: number
           min_bid_increment?: number
+          mode?: string
           pause_until?: string | null
           quantity?: number
           quantity_remaining?: number | null
@@ -1252,6 +1264,7 @@ export type Database = {
           interests: string[]
           is_seller: boolean
           last_login_date: string | null
+          live_verified: boolean
           longest_streak: number
           onboarding_completed: boolean
           phone: string | null
@@ -1285,6 +1298,7 @@ export type Database = {
           interests?: string[]
           is_seller?: boolean
           last_login_date?: string | null
+          live_verified?: boolean
           longest_streak?: number
           onboarding_completed?: boolean
           phone?: string | null
@@ -1318,6 +1332,7 @@ export type Database = {
           interests?: string[]
           is_seller?: boolean
           last_login_date?: string | null
+          live_verified?: boolean
           longest_streak?: number
           onboarding_completed?: boolean
           phone?: string | null
@@ -1678,6 +1693,42 @@ export type Database = {
           id?: string
           invitee_id?: string
           invitee_username?: string
+          responded_at?: string | null
+          status?: string
+          stream_id?: string
+        }
+        Relationships: []
+      }
+      stream_collab_join_requests: {
+        Row: {
+          created_at: string
+          host_id: string
+          id: string
+          requester_avatar_url: string | null
+          requester_id: string
+          requester_username: string
+          responded_at: string | null
+          status: string
+          stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          id?: string
+          requester_avatar_url?: string | null
+          requester_id: string
+          requester_username: string
+          responded_at?: string | null
+          status?: string
+          stream_id: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          id?: string
+          requester_avatar_url?: string | null
+          requester_id?: string
+          requester_username?: string
           responded_at?: string | null
           status?: string
           stream_id?: string
