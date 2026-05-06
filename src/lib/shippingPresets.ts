@@ -1,8 +1,8 @@
 // Lightweight package presets optimized for TCG / collectibles.
-// PWE is a stamp-only option — Shippo / USPS APIs do NOT sell PWE labels,
-// so we skip the carrier API and use a flat seller price instead.
+// "stamp" and "pwe" are untracked options — Shippo / USPS APIs do NOT sell
+// these labels, so we skip the carrier API and use a flat seller price.
 
-export type ShippingPresetKey = "pwe" | "bubble" | "small_box";
+export type ShippingPresetKey = "stamp" | "pwe" | "bubble" | "small_box";
 
 export interface ShippingPreset {
   key: ShippingPresetKey;
@@ -14,80 +14,109 @@ export interface ShippingPreset {
   heightIn: number;
   /** When true, skip Shippo and quote a flat seller-set price (PWE / letter mail). */
   flatRate?: boolean;
-  /** Suggested flat price in USD for PWE (covers stamp + sleeve + top loader). */
+  /** Default flat price in USD; sellers can override per profile. */
   flatPriceUsd?: number;
+  /** True if the option is untracked (no tracking number). */
+  untracked?: boolean;
+  /** Mail classification hint for buyer-facing labels. */
+  mailClass?: "letter" | "flat" | "package";
 }
 
 export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
+  stamp: {
+    key: "stamp",
+    label: "Single Card (Stamp)",
+    description: "1 USPS Forever stamp · letter mail · untracked",
+    weightOz: 1,
+    lengthIn: 6,
+    widthIn: 4,
+    heightIn: 0.05,
+    flatRate: true,
+    flatPriceUsd: 0.78,
+    untracked: true,
+    mailClass: "letter",
+  },
   pwe: {
     key: "pwe",
-    label: "Single Card (PWE)",
-    description: "Plain White Envelope, untracked · stamp only",
+    label: "PWE (1 oz+)",
+    description: "Plain White Envelope · 1–3 cards · untracked",
     weightOz: 1,
     lengthIn: 6,
     widthIn: 4,
     heightIn: 0.1,
     flatRate: true,
-    flatPriceUsd: 1.5,
+    flatPriceUsd: 0.99,
+    untracked: true,
+    mailClass: "flat",
   },
   bubble: {
     key: "bubble",
     label: "Bubble Mailer",
-    description: "Up to a few cards / small slab · 4 oz",
+    description: "Tracked · up to a few cards / small slab · 4 oz",
     weightOz: 4,
     lengthIn: 7,
     widthIn: 5,
     heightIn: 1,
+    mailClass: "package",
   },
   small_box: {
     key: "small_box",
     label: "Small TCG Box",
-    description: "Booster box / multiple slabs · 10 oz",
+    description: "Tracked · booster box / multiple slabs · 10 oz",
     weightOz: 10,
     lengthIn: 8,
     widthIn: 6,
     heightIn: 4,
+    mailClass: "package",
   },
 };
 
 const TCG_CATEGORIES = new Set([
-  "pokemon",
-  "one_piece",
-  "magic",
-  "yugioh",
-  "dragon_ball",
-  "lorcana",
-  "digimon",
-  "weiss",
-  "sports",
+  "pokemon", "one_piece", "magic", "yugioh", "dragon_ball",
+  "lorcana", "digimon", "weiss", "sports",
 ]);
 
 /**
- * Auto-pick a preset based on listing category and quantity.
- * - Single TCG card → PWE
- * - 2-4 cards / sealed pack / small slab → Bubble
- * - Booster box, larger sets, supplies → Small Box
+ * Auto-pick a preset based on listing category, quantity and order value.
+ * - High-value or slabbed cards → tracked bubble (never stamp/PWE)
+ * - Single TCG card under $20 → stamp
+ * - 2-3 cards / pack → PWE
+ * - 4+ cards or "box/etb/case" keywords → small box
  */
 export function suggestPreset(opts: {
   category?: string | null;
   quantity?: number | null;
   title?: string | null;
+  /** Order value in USD — used to decide tracked vs untracked. */
+  orderValueUsd?: number | null;
+  /** Seller settings (from profile). */
+  pweEnabled?: boolean;
+  pweMaxOrderValue?: number;
 }): ShippingPresetKey {
   const cat = (opts.category || "").toLowerCase();
   const qty = Math.max(1, opts.quantity ?? 1);
   const title = (opts.title || "").toLowerCase();
+  const value = Number(opts.orderValueUsd ?? 0);
+  const pweOk = opts.pweEnabled !== false;
+  const cap = opts.pweMaxOrderValue ?? 20;
 
   if (/booster\s*box|etb|elite trainer|case|bundle/.test(title)) return "small_box";
   if (/funko|plush|figure|memorabilia|supplies/.test(cat)) return "small_box";
 
+  // Force tracked for slabs or high value
+  const isSlab = /slab|psa|bgs|cgc/.test(title);
+  if (isSlab) return qty <= 4 ? "bubble" : "small_box";
+  if (value > cap) return qty <= 4 ? "bubble" : "small_box";
+
   if (TCG_CATEGORIES.has(cat)) {
-    if (qty === 1 && !/slab|psa|bgs|cgc/.test(title)) return "pwe";
+    if (qty === 1 && pweOk) return "stamp";
+    if (qty <= 3 && pweOk) return "pwe";
     if (qty <= 4) return "bubble";
     return "small_box";
   }
 
-  // Unknown category: be conservative but cheap
-  if (qty === 1) return "bubble";
+  if (qty === 1 && pweOk && value <= cap) return "pwe";
+  if (qty <= 4) return "bubble";
   return "small_box";
 }
 
