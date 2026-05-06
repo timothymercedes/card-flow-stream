@@ -48,6 +48,7 @@ function Sell() {
   const [breakSlotPrice, setBreakSlotPrice] = useState("10");
   const [breakSlotPrefix, setBreakSlotPrefix] = useState("");
   const [streamCategory, setStreamCategory] = useState<string>("pokemon");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
