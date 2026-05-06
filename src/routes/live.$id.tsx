@@ -60,9 +60,15 @@ function LiveDetail() {
     if (!stream) return;
     const isHost = user && stream.seller_id === user.id;
     const isFlex = stream.mode === "show_off";
-    if (isHost) triggerOnce("seller-first-stream");
-    else if (isFlex) triggerOnce("buyer-first-flex");
-    else triggerOnce("buyer-first-live");
+    if (isFlex) {
+      triggerOnce("flex-live-screen");
+    } else {
+      triggerOnce("auction-live-screen");
+    }
+    if (isHost && isFlex) triggerOnce("seller-first-stream");
+    if (isHost && !isFlex && (stream.cf_rtmps_url || stream.cf_stream_key)) {
+      triggerOnce("obs-connect");
+    }
   }, [stream, user, triggerOnce]);
   const [sellerUsername, setSellerUsername] = useState<string>("");
   const [allStreams, setAllStreams] = useState<any[]>([]);
