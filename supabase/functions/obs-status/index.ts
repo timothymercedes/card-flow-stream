@@ -17,6 +17,16 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const readProviderJson = async (response: Response) => {
+  const text = await response.text().catch(() => "");
+  if (!text.trim()) return { parsed: null, text: "" };
+  try {
+    return { parsed: JSON.parse(text), text };
+  } catch {
+    return { parsed: null, text };
+  }
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -35,10 +45,10 @@ Deno.serve(async (req) => {
       return json({ error: "live_input_id required" }, 400);
     }
     const r = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${live_input_id}/lifecycle`,
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${live_input_id}`,
       { headers: { Authorization: `Bearer ${apiToken}` } },
     );
-    const j = await r.json();
+    const { parsed: j, text: providerText } = await readProviderJson(r);
     if (!r.ok || j?.success === false) {
       const code = j?.errors?.[0]?.code;
       return json({
@@ -47,6 +57,7 @@ Deno.serve(async (req) => {
           : "Cloudflare Stream status is unavailable.",
         providerStatus: r.status,
         providerCode: code ?? null,
+        providerMessage: j?.errors?.[0]?.message ?? (providerText.slice(0, 160) || null),
       }, code === 9106 ? 401 : 502);
     }
     const result = j?.result ?? {};
@@ -70,7 +81,6 @@ Deno.serve(async (req) => {
       width: v?.width ?? null,
       height: v?.height ?? null,
       droppedFrames: result?.droppedFrames ?? null,
-      raw: result,
     });
   } catch (e) {
     return json({ error: String(e) }, 500);
