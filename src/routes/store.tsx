@@ -173,8 +173,19 @@ function SellerHub() {
   }
 
   async function buyLabel(o: any, rateId: string) {
-    if (rateId === "flat-pwe") {
-      toast.message("PWE is untracked — drop in any USPS mailbox with a Forever stamp.", { duration: 6000 });
+    if (rateId.startsWith("flat-")) {
+      // Flag the order as shipped via untracked letter mail.
+      await supabase.from("orders").update({
+        status: "shipped", carrier: "USPS (untracked)",
+        shipped_at: new Date().toISOString(),
+      }).eq("id", o.id);
+      await supabase.from("notifications").insert({
+        user_id: o.buyer_id, type: "order",
+        body: `Your "${o.title}" was sent untracked via USPS letter mail. Allow 3–7 business days.`,
+        link: "/orders",
+      });
+      toast.message("Marked as shipped (untracked). Drop in any USPS mailbox.", { duration: 6000 });
+      load();
       return;
     }
     try {
