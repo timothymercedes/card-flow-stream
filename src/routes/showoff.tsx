@@ -51,11 +51,12 @@ function ShowOff() {
     setTagRes(((data as any[]) || []).filter((u) => u.id !== user?.id && !tagged.find((t) => t.id === u.id)));
   }
 
-  async function startShowOff(tcgTags?: TcgTag[]) {
+  async function startShowOff(overrideTags?: TcgTag[]) {
     if (!user || !profile) return toast.error("Sign in first");
     if (!title.trim()) return toast.error("Add a title");
     if (!verified) return toast.error("Get verified by an admin to host live");
-    if (!tcgTags || tcgTags.length === 0) { setPickerOpen(true); return; }
+    const tags = overrideTags ?? tcgTags;
+    if (!tags || tags.length === 0) return toast.error("Pick at least one TCG tag");
     setBusy(true);
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user.id,
