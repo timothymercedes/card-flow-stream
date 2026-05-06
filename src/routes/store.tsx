@@ -188,6 +188,20 @@ function SellerHub() {
       load();
       return;
     }
+  }
+
+  async function savePweSettings() {
+    if (!user) return;
+    setSavingPwe(true);
+    const { error } = await supabase.from("profiles").update({
+      pwe_enabled: pweSettings.enabled,
+      pwe_max_order_value: pweSettings.max,
+      pwe_price_usd: pweSettings.price,
+      pwe_stamp_price_usd: pweSettings.stamp,
+    }).eq("id", user.id);
+    setSavingPwe(false);
+    if (error) return toast.error(error.message);
+    toast.success("Shipping settings saved");
     try {
       const res = await buyShippoLabel({ data: { orderId: o.id, rateId } });
       if (res.labelUrl) setLabelUrls((s) => ({ ...s, [o.id]: res.labelUrl }));
