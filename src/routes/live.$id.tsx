@@ -1495,6 +1495,7 @@ function LiveDetail() {
     else toast.success("KO request sent");
   }
 
+  async function onScanResult(r: { name: string; category: string; trend: string; image: string; language?: string }) {
     setScanning(false);
     if (!isSeller) return;
     const useQuick = !!stream.quick_start_enabled && !auctionLive;
