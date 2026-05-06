@@ -167,6 +167,7 @@ function Market() {
             const remain = fmtRemain(l.is_auction ? l.auction_ends_at : l.expires_at);
             const hot = l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0);
             const endingSoon = l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000;
+            const soldOut = !l.is_auction && Number(l.sold_count ?? 0) >= Number(l.quantity ?? 1);
             return (
               <Link
                 key={l.id}
