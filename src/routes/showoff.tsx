@@ -33,6 +33,7 @@ function ShowOff() {
   const [busy, setBusy] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
 
   useEffect(() => {
     if (!user) { setVerified(false); return; }
