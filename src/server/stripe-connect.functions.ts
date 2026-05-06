@@ -20,7 +20,7 @@ async function getOptionalUserIdFromRequest() {
       auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
     });
     const { data, error } = await supabase.auth.getClaims(token);
-    return error ? null : (data.claims?.sub ?? null);
+    return error ? null : (data?.claims?.sub ?? null);
   } catch (error) {
     console.error("Optional Connect status auth failed", error);
     return null;
