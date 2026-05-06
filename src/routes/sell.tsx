@@ -501,6 +501,7 @@ function Sell() {
       {scanning && (
         <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
       )}
+    </AppShell>
     </SellerAgreementGate>
   );
 }
