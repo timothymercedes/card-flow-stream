@@ -30,10 +30,11 @@ async function shippo<T = any>(path: string, init?: RequestInit): Promise<T> {
 
 const RatesInput = z.object({
   orderId: z.string().uuid(),
-  weightOz: z.number().min(0.1).max(1500).default(4),
-  lengthIn: z.number().min(1).max(108).default(7),
-  widthIn: z.number().min(1).max(108).default(5),
-  heightIn: z.number().min(0.1).max(108).default(0.5),
+  // Defaults sized for a single TCG card in a PWE — never assume a 1lb+ box.
+  weightOz: z.number().min(0.1).max(1500).default(1),
+  lengthIn: z.number().min(1).max(108).default(6),
+  widthIn: z.number().min(1).max(108).default(4),
+  heightIn: z.number().min(0.1).max(108).default(0.1),
 });
 
 export const getShippoRates = createServerFn({ method: "POST" })
