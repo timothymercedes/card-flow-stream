@@ -1765,6 +1765,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_tips: {
+        Row: {
+          amount: number
+          buyer_id: string
+          buyer_username: string
+          created_at: string
+          id: string
+          message: string | null
+          paid_at: string | null
+          seller_id: string
+          status: string
+          stream_id: string
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          buyer_username: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          paid_at?: string | null
+          seller_id: string
+          status?: string
+          stream_id: string
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          buyer_username?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          paid_at?: string | null
+          seller_id?: string
+          status?: string
+          stream_id?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: []
+      }
       stream_user_bans: {
         Row: {
           banned_by: string
