@@ -1433,6 +1433,10 @@ export type Database = {
           phone_verified_at: string | null
           preferred_currency: string | null
           public_id: string | null
+          pwe_enabled: boolean
+          pwe_max_order_value: number
+          pwe_price_usd: number
+          pwe_stamp_price_usd: number
           report_count: number
           seller_agreement_accepted_at: string | null
           seller_agreement_review_required: boolean
@@ -1488,6 +1492,10 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_currency?: string | null
           public_id?: string | null
+          pwe_enabled?: boolean
+          pwe_max_order_value?: number
+          pwe_price_usd?: number
+          pwe_stamp_price_usd?: number
           report_count?: number
           seller_agreement_accepted_at?: string | null
           seller_agreement_review_required?: boolean
@@ -1543,6 +1551,10 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_currency?: string | null
           public_id?: string | null
+          pwe_enabled?: boolean
+          pwe_max_order_value?: number
+          pwe_price_usd?: number
+          pwe_stamp_price_usd?: number
           report_count?: number
           seller_agreement_accepted_at?: string | null
           seller_agreement_review_required?: boolean
