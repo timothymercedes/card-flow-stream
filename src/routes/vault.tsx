@@ -640,7 +640,13 @@ function Vault() {
       {/* Sell modal */}
       {selling && <SellModal card={selling} onClose={() => setSelling(null)} onSubmit={(opts) => listForSale(selling, opts)} />}
 
-      {scanning && <CardScanner onResult={onScanResult} onClose={() => setScanning(false)} />}
+      {scanning && (
+        <CardScanner
+          onResult={onScanResult}
+          onResults={async (rs) => { for (const r of rs) await onScanResult(r as any); }}
+          onClose={() => setScanning(false)}
+        />
+      )}
     </AppShell>
   );
 }
