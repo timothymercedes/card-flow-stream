@@ -59,20 +59,24 @@ export function HelpBubble() {
   const [ticketReply, setTicketReply] = useState("");
   const [me, setMe] = useState<{ id: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { startTour, triggerOnce } = useTour();
+  const { startTour, triggerOnce, resetAllSeen } = useTour();
+  const { profile } = useAuth();
+  const isSeller = !!profile?.is_seller;
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMe(data.user ? { id: data.user.id } : null));
   }, []);
 
+  // Auto-fire welcome tour once per user — buyer or seller, never both.
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!localStorage.getItem(FIRST_VISIT_KEY)) {
       localStorage.setItem(FIRST_VISIT_KEY, "1");
-      const t = setTimeout(() => triggerOnce("buyer-welcome"), 800);
+      const tourId = isSeller ? "seller-welcome" : "buyer-welcome";
+      const t = setTimeout(() => triggerOnce(tourId), 800);
       return () => clearTimeout(t);
     }
-  }, [triggerOnce]);
+  }, [triggerOnce, isSeller]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
