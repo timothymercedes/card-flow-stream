@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 
 export const Route = createFileRoute("/payouts")({
   component: PayoutsPage,
