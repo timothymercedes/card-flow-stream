@@ -1938,11 +1938,14 @@ function LiveDetail() {
                 <input type="checkbox" checked={editVoiceEnabled}
                   onChange={(e) => setEditVoiceEnabled(e.target.checked)} className="h-4 w-4" />
               </label>
-              <p className="mt-1 text-[10px] text-muted-foreground">Say the phrase below to auto-start the next auction round (hands-free).</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Hands-free auction control. Commands: <b>{voicePhrase || "next"}</b>, "start", "sold", "extend", "end live".</p>
               <input value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
-                placeholder='e.g. "next" or "go go go"'
+                placeholder='Custom "next round" phrase (e.g. "next" or "go go go")'
                 className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none" />
+              {!voice.supported && editVoiceEnabled && (
+                <p className="mt-1 text-[10px] font-bold text-amber-400">⚠ Voice not supported in this browser (try Chrome on desktop or Android). Manual buttons still work.</p>
+              )}
               <button onClick={saveAuctionDefaults} className="mt-2 w-full rounded-md bg-card-foreground/10 py-1.5 text-[11px] font-bold">
                 💾 Save voice & quantity
               </button>
