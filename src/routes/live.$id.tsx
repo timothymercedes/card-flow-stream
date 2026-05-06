@@ -23,6 +23,7 @@ import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 import { CollabPanel } from "@/components/CollabPanel";
 import { ViewerListModal } from "@/components/ViewerListModal";
 import { Users2 } from "lucide-react";
+import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
