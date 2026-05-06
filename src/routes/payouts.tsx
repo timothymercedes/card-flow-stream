@@ -50,6 +50,9 @@ function PayoutsPage() {
     try {
       const s = await getStatus();
       setStatus(s);
+    } catch (e: any) {
+      console.error("getMyConnectStatus failed", e);
+      setStatus(null);
     } finally {
       setLoading(false);
     }
