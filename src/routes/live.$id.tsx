@@ -28,6 +28,8 @@ import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
 import { useTour } from "@/components/MascotGuide";
+import { FlexLiveControls } from "@/components/FlexLiveControls";
+import { flexFilterCss } from "@/lib/flexFilters";
 import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 
