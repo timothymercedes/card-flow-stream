@@ -1842,9 +1842,9 @@ function LiveDetail() {
             </button>
           )}
           {isSeller && !ended && (
-            <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Settings className="h-4 w-4" /></button>
+            <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={stream.mode === "show_off" ? "Flex settings" : "Settings"}><Settings className="h-4 w-4" /></button>
           )}
-          {isSeller && !ended && (
+          {isSeller && !ended && stream.mode !== "show_off" && (
             <button
               onClick={() => setKoOpen(true)}
               title="K.O. — KickOut viewers to other live shows"
