@@ -59,6 +59,8 @@ function SellerHub() {
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
+  const [pweSettings, setPweSettings] = useState({ enabled: true, max: 20, price: 0.99, stamp: 0.78 });
+  const [savingPwe, setSavingPwe] = useState(false);
 
   // UI
   const [section, setSection] = useState<Section>("orders");
@@ -83,7 +85,7 @@ function SellerHub() {
       supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("seller_reviews").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("stripe_onboarding_status, pwe_enabled, pwe_max_order_value, pwe_price_usd, pwe_stamp_price_usd").eq("id", user.id).maybeSingle(),
       supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", user.id),
       supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("live_streams").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }).limit(50),
@@ -91,7 +93,14 @@ function SellerHub() {
     setOrders(ord.data || []);
     setListings(list.data || []);
     setReviews(revs.data || []);
-    setPayoutStatus((prof.data as any)?.stripe_onboarding_status || "not_started");
+    const pp = prof.data as any;
+    setPayoutStatus(pp?.stripe_onboarding_status || "not_started");
+    setPweSettings({
+      enabled: pp?.pwe_enabled ?? true,
+      max: Number(pp?.pwe_max_order_value ?? 20),
+      price: Number(pp?.pwe_price_usd ?? 0.99),
+      stamp: Number(pp?.pwe_stamp_price_usd ?? 0.78),
+    });
     setFollowers(fr.count || 0);
     setFollowing(fg.count || 0);
     setStreams(str.data || []);
@@ -118,22 +127,28 @@ function SellerHub() {
   }
 
   async function fetchRates(o: any) {
-    const presetKey = preset[o.id] ?? suggestPreset({ category: o.category, quantity: o.quantity, title: o.title });
+    const presetKey = preset[o.id] ?? suggestPreset({
+      category: o.category, quantity: o.quantity, title: o.title,
+      orderValueUsd: Number(o.amount || 0),
+      pweEnabled: pweSettings.enabled, pweMaxOrderValue: pweSettings.max,
+    });
     const p = SHIPPING_PRESETS[presetKey];
     if (!preset[o.id]) setPreset((s) => ({ ...s, [o.id]: presetKey }));
 
-    // PWE is stamp-only; Shippo can't sell labels for it. Quote a flat price.
+    // Stamp/PWE: untracked letter mail — Shippo doesn't sell these labels.
     if (p.flatRate) {
+      const price = presetKey === "stamp" ? pweSettings.stamp : pweSettings.price;
       setRates((s) => ({ ...s, [o.id]: [{
-        objectId: "flat-pwe",
+        objectId: `flat-${presetKey}`,
         provider: "USPS",
-        service: "Plain White Envelope (untracked)",
-        amount: (p.flatPriceUsd ?? 1.5).toFixed(2),
+        service: `${p.label} · untracked`,
+        amount: price.toFixed(2),
         currency: "USD",
-        days: 3,
+        days: presetKey === "stamp" ? 5 : 4,
         flat: true,
+        untracked: true,
       }] }));
-      setRecommended((s) => ({ ...s, [o.id]: "flat-pwe" }));
+      setRecommended((s) => ({ ...s, [o.id]: `flat-${presetKey}` }));
       return;
     }
 
@@ -158,8 +173,19 @@ function SellerHub() {
   }
 
   async function buyLabel(o: any, rateId: string) {
-    if (rateId === "flat-pwe") {
-      toast.message("PWE is untracked — drop in any USPS mailbox with a Forever stamp.", { duration: 6000 });
+    if (rateId.startsWith("flat-")) {
+      // Flag the order as shipped via untracked letter mail.
+      await supabase.from("orders").update({
+        status: "shipped", carrier: "USPS (untracked)",
+        shipped_at: new Date().toISOString(),
+      }).eq("id", o.id);
+      await supabase.from("notifications").insert({
+        user_id: o.buyer_id, type: "order",
+        body: `Your "${o.title}" was sent untracked via USPS letter mail. Allow 3–7 business days.`,
+        link: "/orders",
+      });
+      toast.message("Marked as shipped (untracked). Drop in any USPS mailbox.", { duration: 6000 });
+      load();
       return;
     }
     try {
@@ -170,6 +196,20 @@ function SellerHub() {
     } catch (e: any) {
       toast.error(e.message || "Failed to buy label");
     }
+  }
+
+  async function savePweSettings() {
+    if (!user) return;
+    setSavingPwe(true);
+    const { error } = await supabase.from("profiles").update({
+      pwe_enabled: pweSettings.enabled,
+      pwe_max_order_value: pweSettings.max,
+      pwe_price_usd: pweSettings.price,
+      pwe_stamp_price_usd: pweSettings.stamp,
+    }).eq("id", user.id);
+    setSavingPwe(false);
+    if (error) return toast.error(error.message);
+    toast.success("Shipping settings saved");
   }
 
   // Derived counts
@@ -391,22 +431,37 @@ function SellerHub() {
                               {ratesLoading[o.id] ? "Loading..." : (rates[o.id] ? "Refresh" : "Get Rates")}
                             </button>
                           </div>
-                          <div className="mt-2 grid grid-cols-3 gap-1">
-                            {(Object.keys(SHIPPING_PRESETS) as ShippingPresetKey[]).map((k) => {
-                              const p = SHIPPING_PRESETS[k];
-                              const active = (preset[o.id] ?? suggestPreset({ category: o.category, quantity: o.quantity, title: o.title })) === k;
-                              return (
-                                <button
-                                  key={k}
-                                  onClick={() => { setPreset((s) => ({ ...s, [o.id]: k })); setRates((s) => ({ ...s, [o.id]: [] })); }}
-                                  className={`rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
-                                  title={p.description}
-                                >
-                                  {p.label}
-                                  <div className="text-[9px] opacity-75">{p.flatRate ? "untracked" : `${p.weightOz}oz`}</div>
-                                </button>
-                              );
-                            })}
+                          <div className="mt-2 grid grid-cols-4 gap-1">
+                            {(Object.keys(SHIPPING_PRESETS) as ShippingPresetKey[])
+                              .filter((k) => {
+                                const p = SHIPPING_PRESETS[k];
+                                if (!p.untracked) return true;
+                                if (!pweSettings.enabled) return false;
+                                // Auto-upgrade: hide untracked if order value above cap
+                                return Number(o.amount || 0) <= pweSettings.max;
+                              })
+                              .map((k) => {
+                                const p = SHIPPING_PRESETS[k];
+                                const active = (preset[o.id] ?? suggestPreset({
+                                  category: o.category, quantity: o.quantity, title: o.title,
+                                  orderValueUsd: Number(o.amount || 0),
+                                  pweEnabled: pweSettings.enabled, pweMaxOrderValue: pweSettings.max,
+                                })) === k;
+                                const flatPrice = k === "stamp" ? pweSettings.stamp : pweSettings.price;
+                                return (
+                                  <button
+                                    key={k}
+                                    onClick={() => { setPreset((s) => ({ ...s, [o.id]: k })); setRates((s) => ({ ...s, [o.id]: [] })); }}
+                                    className={`rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                                    title={p.description}
+                                  >
+                                    {p.label}
+                                    <div className="text-[9px] opacity-75">
+                                      {p.flatRate ? `~$${flatPrice.toFixed(2)} · untracked` : `${p.weightOz}oz · tracked`}
+                                    </div>
+                                  </button>
+                                );
+                              })}
                           </div>
                           {rates[o.id]?.length > 0 && (
                             <div className="mt-2 space-y-1">
@@ -420,6 +475,9 @@ function SellerHub() {
                                   >
                                     <span className="font-semibold">
                                       {isRec && <span className="mr-1 rounded bg-primary px-1 py-0.5 text-[9px] font-bold text-primary-foreground">CHEAPEST</span>}
+                                      <span className={`mr-1 rounded px-1 py-0.5 text-[9px] font-bold ${r.untracked ? "bg-amber-500/20 text-amber-600" : "bg-emerald-500/20 text-emerald-600"}`}>
+                                        {r.untracked ? "UNTRACKED" : "TRACKED"}
+                                      </span>
                                       {r.provider} · {r.service}
                                     </span>
                                     <span className="font-bold text-primary">${r.amount}{r.days ? ` · ${r.days}d` : ""}</span>
@@ -514,7 +572,56 @@ function SellerHub() {
                     </div>
                   );
                 })}
-                <p className="px-1 text-[11px] text-muted-foreground">Custom saved presets are coming soon — currently using these defaults.</p>
+                <div className="rounded-xl border border-primary/30 bg-card p-3 space-y-2">
+                  <p className="text-sm font-bold">Economy / PWE settings</p>
+                  <p className="text-[11px] text-muted-foreground">Control untracked stamp & PWE shipping for low-value cards. Orders above the cap automatically upgrade to a tracked option.</p>
+                  <label className="flex items-center justify-between text-xs">
+                    <span>Offer untracked stamp / PWE</span>
+                    <input
+                      type="checkbox"
+                      checked={pweSettings.enabled}
+                      onChange={(e) => setPweSettings({ ...pweSettings, enabled: e.target.checked })}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="text-muted-foreground">Max order value for untracked ($)</span>
+                    <input
+                      type="number" min={0} step="1"
+                      value={pweSettings.max}
+                      onChange={(e) => setPweSettings({ ...pweSettings, max: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 outline-none"
+                    />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs">
+                      <span className="text-muted-foreground">Stamp price ($)</span>
+                      <input
+                        type="number" min={0} step="0.01"
+                        value={pweSettings.stamp}
+                        onChange={(e) => setPweSettings({ ...pweSettings, stamp: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 outline-none"
+                      />
+                    </label>
+                    <label className="block text-xs">
+                      <span className="text-muted-foreground">PWE price ($)</span>
+                      <input
+                        type="number" min={0} step="0.01"
+                        value={pweSettings.price}
+                        onChange={(e) => setPweSettings({ ...pweSettings, price: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 outline-none"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={savePweSettings}
+                    disabled={savingPwe}
+                    className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    {savingPwe ? "Saving..." : "Save shipping settings"}
+                  </button>
+                </div>
+                <p className="px-1 text-[11px] text-muted-foreground">Stamp / PWE are untracked letter mail and aren't sold via Shippo — drop in any USPS mailbox with the appropriate postage.</p>
               </div>
             )}
             {shippingTab === "auto" && (
