@@ -127,7 +127,7 @@ export function useCloudflareCalls(opts: {
           const audioName = `${userId}-audio`;
           const videoName = `${userId}-video`;
           await supabase.from("stream_cohost_tracks").upsert({
-            stream_id: streamId, user_id: userId, username, avatar_url: avatarUrl,
+            stream_id: streamId!, user_id: userId!, username: username!, avatar_url: avatarUrl,
             session_id: session.sessionId, audio_track_name: audioName, video_track_name: videoName,
             is_audio_enabled: true, is_video_enabled: true,
           }, { onConflict: "stream_id,user_id" });
