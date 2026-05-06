@@ -82,6 +82,7 @@ function LiveDetail() {
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
   const [showModPanel, setShowModPanel] = useState(false);
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
