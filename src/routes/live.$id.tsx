@@ -1404,7 +1404,97 @@ function LiveDetail() {
     nav({ to: "/store" });
   }
 
-  async function onScanResult(r: { name: string; category: string; trend: string; image: string; language?: string }) {
+  // ===== K.O. (KickOut) =====
+  async function confirmKO(dests: KODestination[], message: string) {
+    if (!isSeller || !stream) return;
+    // Re-validate destinations are still live
+    const ids = dests.map((d) => d.stream_id);
+    const { data: liveCheck } = await supabase.from("live_streams").select("id, status").in("id", ids);
+    const liveSet = new Set((liveCheck || []).filter((s: any) => s.status === "live").map((s: any) => s.id));
+    const validDests = dests.filter((d) => liveSet.has(d.stream_id));
+    if (validDests.length === 0) { toast.error("No live destinations available"); return; }
+
+    if (auctionLive) await finalizeAuctionRound();
+    await supabase.from("live_streams").update({
+      ko_active: true,
+      ko_message: message || null,
+      ko_destinations: validDests as any,
+      ko_started_at: new Date().toISOString(),
+    }).eq("id", id);
+    await sendMsg(`⚡ K.O.! Sending viewers to ${validDests.map((d) => "@" + d.username).join(", ")}`, true);
+    setKoOpen(false);
+    toast.success("Kicking viewers out…");
+
+    // Wait for viewer transition (3s alert + up to 5s pick) then end stream
+    setTimeout(async () => {
+      await supabase.from("live_streams").update({
+        status: "ended", is_active: false, ended_at: new Date().toISOString(), pause_until: null, ko_active: false,
+      }).eq("id", id);
+      camStream.current?.getTracks().forEach((t) => t.stop());
+      nav({ to: "/store" });
+    }, 9000);
+  }
+
+  // Enrich KO destinations with title + viewer counts when overlay active
+  useEffect(() => {
+    if (!stream?.ko_active || !Array.isArray(stream?.ko_destinations) || stream.ko_destinations.length === 0) {
+      setKoEnrichedDests([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const dests = stream.ko_destinations as KODestination[];
+      const ids = dests.map((d) => d.stream_id);
+      const [{ data: streams }, { data: pres }] = await Promise.all([
+        supabase.from("live_streams").select("id, title, category, status").in("id", ids),
+        supabase.from("live_stream_presence").select("stream_id").in("stream_id", ids).gte("last_seen_at", new Date(Date.now() - 90_000).toISOString()),
+      ]);
+      if (cancelled) return;
+      const byId = new Map((streams || []).map((s: any) => [s.id, s]));
+      const counts: Record<string, number> = {};
+      (pres || []).forEach((r: any) => { counts[r.stream_id] = (counts[r.stream_id] || 0) + 1; });
+      const enriched = dests
+        .map((d) => {
+          const meta: any = byId.get(d.stream_id);
+          if (!meta || meta.status !== "live") return null;
+          return { ...d, title: meta.title, category: meta.category, viewers: counts[d.stream_id] || 0 };
+        })
+        .filter(Boolean);
+      setKoEnrichedDests(enriched as any[]);
+    })();
+    return () => { cancelled = true; };
+  }, [stream?.ko_active, JSON.stringify(stream?.ko_destinations || [])]);
+
+  // Viewer-side: send a KO request to this host (only if I'm a live host elsewhere)
+  const [myLiveStream, setMyLiveStream] = useState<any>(null);
+  useEffect(() => {
+    if (!user || isSeller) { setMyLiveStream(null); return; }
+    let cancelled = false;
+    supabase.from("live_streams").select("id, title").eq("seller_id", user.id).eq("status", "live").maybeSingle()
+      .then(({ data }) => { if (!cancelled) setMyLiveStream(data); });
+    return () => { cancelled = true; };
+  }, [user?.id, isSeller, id]);
+
+  async function sendKORequest() {
+    if (!user || !profile || !myLiveStream || !stream) return;
+    // count my viewers
+    const { data: pres } = await supabase
+      .from("live_stream_presence").select("user_id")
+      .eq("stream_id", myLiveStream.id).gte("last_seen_at", new Date(Date.now() - 90_000).toISOString());
+    const viewers = (pres || []).length;
+    const { error } = await supabase.from("ko_requests").insert({
+      from_stream_id: myLiveStream.id,
+      from_seller_id: user.id,
+      from_username: profile.username,
+      from_avatar_url: profile.avatar_url,
+      from_viewer_count: viewers,
+      to_stream_id: stream.id,
+      to_seller_id: stream.seller_id,
+    });
+    if (error) toast.error(error.message);
+    else toast.success("KO request sent");
+  }
+
     setScanning(false);
     if (!isSeller) return;
     const useQuick = !!stream.quick_start_enabled && !auctionLive;
