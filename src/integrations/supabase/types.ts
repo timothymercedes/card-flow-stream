@@ -202,6 +202,48 @@ export type Database = {
           },
         ]
       }
+      creator_stream_tiers: {
+        Row: {
+          created_at: string
+          enhanced_obs_features: boolean
+          flex_extension_minutes: number
+          flex_soft_limit_minutes: number
+          guest_limit: number
+          inactive_auto_end_minutes: number
+          inactive_warning_minutes: number
+          label: string
+          priority_stream_quality: boolean
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enhanced_obs_features?: boolean
+          flex_extension_minutes?: number
+          flex_soft_limit_minutes?: number
+          guest_limit?: number
+          inactive_auto_end_minutes?: number
+          inactive_warning_minutes?: number
+          label: string
+          priority_stream_quality?: boolean
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enhanced_obs_features?: boolean
+          flex_extension_minutes?: number
+          flex_soft_limit_minutes?: number
+          guest_limit?: number
+          inactive_auto_end_minutes?: number
+          inactive_warning_minutes?: number
+          label?: string
+          priority_stream_quality?: boolean
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           content: string
@@ -645,6 +687,7 @@ export type Database = {
         Row: {
           allow_collab_requests: boolean
           auction_reveal_mode: string
+          auto_end_reason: string | null
           break_characters: Json | null
           break_force_visible: boolean
           break_mode: string | null
@@ -667,6 +710,7 @@ export type Database = {
           cf_whip_url: string | null
           chat_slow_mode_sec: number
           created_at: string
+          creator_tier: string
           current_bid: number
           current_bidder_id: string | null
           current_condition:
@@ -682,7 +726,10 @@ export type Database = {
           default_timer_sec: number
           ended_at: string | null
           ends_at: string | null
+          flex_extended_until: string | null
           id: string
+          inactivity_auto_end_after: string | null
+          inactivity_warning_at: string | null
           is_active: boolean
           is_private: boolean
           item_description: string | null
@@ -692,6 +739,9 @@ export type Database = {
           ko_destinations: Json
           ko_message: string | null
           ko_started_at: string | null
+          last_activity_at: string
+          last_activity_type: string
+          last_host_confirmed_at: string | null
           listing_type: string
           max_collab_count: number
           min_bid_increment: number
@@ -711,6 +761,7 @@ export type Database = {
           started_at: string | null
           starting_bid: number
           status: string
+          stream_soft_reminder_at: string | null
           stream_type: string
           sudden_death_active: boolean
           sudden_death_enabled: boolean
@@ -729,6 +780,7 @@ export type Database = {
         Insert: {
           allow_collab_requests?: boolean
           auction_reveal_mode?: string
+          auto_end_reason?: string | null
           break_characters?: Json | null
           break_force_visible?: boolean
           break_mode?: string | null
@@ -751,6 +803,7 @@ export type Database = {
           cf_whip_url?: string | null
           chat_slow_mode_sec?: number
           created_at?: string
+          creator_tier?: string
           current_bid?: number
           current_bidder_id?: string | null
           current_condition?:
@@ -766,7 +819,10 @@ export type Database = {
           default_timer_sec?: number
           ended_at?: string | null
           ends_at?: string | null
+          flex_extended_until?: string | null
           id?: string
+          inactivity_auto_end_after?: string | null
+          inactivity_warning_at?: string | null
           is_active?: boolean
           is_private?: boolean
           item_description?: string | null
@@ -776,6 +832,9 @@ export type Database = {
           ko_destinations?: Json
           ko_message?: string | null
           ko_started_at?: string | null
+          last_activity_at?: string
+          last_activity_type?: string
+          last_host_confirmed_at?: string | null
           listing_type?: string
           max_collab_count?: number
           min_bid_increment?: number
@@ -795,6 +854,7 @@ export type Database = {
           started_at?: string | null
           starting_bid?: number
           status?: string
+          stream_soft_reminder_at?: string | null
           stream_type?: string
           sudden_death_active?: boolean
           sudden_death_enabled?: boolean
@@ -813,6 +873,7 @@ export type Database = {
         Update: {
           allow_collab_requests?: boolean
           auction_reveal_mode?: string
+          auto_end_reason?: string | null
           break_characters?: Json | null
           break_force_visible?: boolean
           break_mode?: string | null
@@ -835,6 +896,7 @@ export type Database = {
           cf_whip_url?: string | null
           chat_slow_mode_sec?: number
           created_at?: string
+          creator_tier?: string
           current_bid?: number
           current_bidder_id?: string | null
           current_condition?:
@@ -850,7 +912,10 @@ export type Database = {
           default_timer_sec?: number
           ended_at?: string | null
           ends_at?: string | null
+          flex_extended_until?: string | null
           id?: string
+          inactivity_auto_end_after?: string | null
+          inactivity_warning_at?: string | null
           is_active?: boolean
           is_private?: boolean
           item_description?: string | null
@@ -860,6 +925,9 @@ export type Database = {
           ko_destinations?: Json
           ko_message?: string | null
           ko_started_at?: string | null
+          last_activity_at?: string
+          last_activity_type?: string
+          last_host_confirmed_at?: string | null
           listing_type?: string
           max_collab_count?: number
           min_bid_increment?: number
@@ -879,6 +947,7 @@ export type Database = {
           started_at?: string | null
           starting_bid?: number
           status?: string
+          stream_soft_reminder_at?: string | null
           stream_type?: string
           sudden_death_active?: boolean
           sudden_death_enabled?: boolean
@@ -1271,11 +1340,19 @@ export type Database = {
           address_line1: string | null
           address_state: string | null
           address_zip: string | null
+          age_verified: boolean
+          age_verified_at: string | null
+          agreements_completed_at: string | null
+          agreements_review_required: boolean
+          agreements_version: string
           avatar_url: string | null
           buyer_verified: boolean
           created_at: string
+          creator_tier: string
           current_streak: number
           full_name: string | null
+          guidelines_accepted: boolean
+          guidelines_accepted_at: string | null
           id: string
           id_document_url: string | null
           id_status: string
@@ -1297,6 +1374,8 @@ export type Database = {
           stripe_charges_enabled: boolean
           stripe_onboarding_status: string
           stripe_payouts_enabled: boolean
+          tos_accepted: boolean
+          tos_accepted_at: string | null
           username: string
         }
         Insert: {
@@ -1305,11 +1384,19 @@ export type Database = {
           address_line1?: string | null
           address_state?: string | null
           address_zip?: string | null
+          age_verified?: boolean
+          age_verified_at?: string | null
+          agreements_completed_at?: string | null
+          agreements_review_required?: boolean
+          agreements_version?: string
           avatar_url?: string | null
           buyer_verified?: boolean
           created_at?: string
+          creator_tier?: string
           current_streak?: number
           full_name?: string | null
+          guidelines_accepted?: boolean
+          guidelines_accepted_at?: string | null
           id: string
           id_document_url?: string | null
           id_status?: string
@@ -1331,6 +1418,8 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
+          tos_accepted?: boolean
+          tos_accepted_at?: string | null
           username: string
         }
         Update: {
@@ -1339,11 +1428,19 @@ export type Database = {
           address_line1?: string | null
           address_state?: string | null
           address_zip?: string | null
+          age_verified?: boolean
+          age_verified_at?: string | null
+          agreements_completed_at?: string | null
+          agreements_review_required?: boolean
+          agreements_version?: string
           avatar_url?: string | null
           buyer_verified?: boolean
           created_at?: string
+          creator_tier?: string
           current_streak?: number
           full_name?: string | null
+          guidelines_accepted?: boolean
+          guidelines_accepted_at?: string | null
           id?: string
           id_document_url?: string | null
           id_status?: string
@@ -1365,6 +1462,8 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
+          tos_accepted?: boolean
+          tos_accepted_at?: string | null
           username?: string
         }
         Relationships: []
@@ -2520,6 +2619,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      accept_required_legal_documents: {
+        Args: { _user_agent?: string; _version?: string }
+        Returns: Json
+      }
       admin_assign_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2581,7 +2684,15 @@ export type Database = {
           total_amount: number
         }[]
       }
+      confirm_live_stream_active: {
+        Args: { _stream_id: string }
+        Returns: undefined
+      }
       create_giveaway_order: { Args: { _giveaway_id: string }; Returns: string }
+      extend_flex_live_session: {
+        Args: { _stream_id: string }
+        Returns: string
+      }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
       get_seller_completed_count: { Args: { _user: string }; Returns: number }
@@ -2664,6 +2775,10 @@ export type Database = {
           seller_status: string
           username: string
         }[]
+      }
+      touch_live_stream_activity: {
+        Args: { _activity_type?: string; _stream_id: string }
+        Returns: undefined
       }
     }
     Enums: {
