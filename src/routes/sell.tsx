@@ -131,9 +131,9 @@ function Sell() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
 
-  async function startLive(meta?: { stream_type: StreamType; tcg_tags: TcgTag[] }) {
+  async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
-    if (!meta) { setPickerOpen(true); return; }
+    if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
     // Block if host already has an open (live or paused) stream
     const { data: openStream } = await supabase.from("live_streams")
       .select("id, mode, status").eq("seller_id", user!.id).in("status", ["live", "paused"]).maybeSingle();
@@ -166,8 +166,9 @@ function Sell() {
       seller_id: user!.id,
       title: streamTitle,
       category: streamCategory || null,
-      stream_type: meta.stream_type,
-      tcg_tags: meta.tcg_tags,
+      stream_type: "auction",
+      tcg_tags: tcgTags,
+      hype_tags: hypeTags,
       item_description: streamDesc || null,
       listing_type: "auction",
       starting_bid: Number(startingBid) || 1,
