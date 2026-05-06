@@ -20,6 +20,8 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { Flag } from "lucide-react";
 import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
+import { CollabPanel } from "@/components/CollabPanel";
+import { Users2 } from "lucide-react";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -80,6 +82,7 @@ function LiveDetail() {
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
   const [showModPanel, setShowModPanel] = useState(false);
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
@@ -1676,6 +1679,11 @@ function LiveDetail() {
               )}
             </button>
           )}
+          {!ended && (isSeller || (!isSeller && stream.allow_collab_requests)) && (
+            <button onClick={() => setShowCollabPanel(true)} className="rounded-full bg-fuchsia-600/80 p-2 backdrop-blur" title="Collab">
+              <Users2 className="h-4 w-4" />
+            </button>
+          )}
           {(auctionLive || stream.current_item) && (
             <button onClick={() => setPinned((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
@@ -2719,7 +2727,19 @@ function LiveDetail() {
           </div>
         </div>
       )}
-      {/* 🆕 Chat-action menu (mod taps a username) */}
+
+      {/* Collab panel — host invites/manages co-hosts; viewers can request to join */}
+      {showCollabPanel && stream && (
+        <CollabPanel
+          streamId={id}
+          hostId={stream.seller_id}
+          hostUsername={sellerUsername || profile?.username || "host"}
+          currentUserId={user?.id || null}
+          isHost={isSeller}
+          allowRequests={!!stream.allow_collab_requests}
+          onClose={() => setShowCollabPanel(false)}
+        />
+      )}
       {chatActionMenu && isStaff && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setChatActionMenu(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">

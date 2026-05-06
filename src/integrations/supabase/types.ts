@@ -1750,6 +1750,36 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_collab_participants: {
+        Row: {
+          avatar_url: string | null
+          id: string
+          is_muted: boolean
+          joined_at: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          id?: string
+          is_muted?: boolean
+          joined_at?: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          id?: string
+          is_muted?: boolean
+          joined_at?: string
+          stream_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       stream_mod_messages: {
         Row: {
           content: string
