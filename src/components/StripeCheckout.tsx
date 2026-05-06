@@ -10,6 +10,7 @@ interface Props {
   sellerId: string;
   subtotalCents: number;
   orderId?: string;
+  orderIds?: string[];
   onSuccess?: (paymentIntentId: string) => void;
   returnUrl?: string;
 }
