@@ -8,7 +8,7 @@ import type { RemoteCohost } from "@/hooks/useCloudflareCalls";
  */
 export function CoHostStage({
   localStream, localUsername, remotes, audioOn, videoOn,
-  onToggleAudio, onToggleVideo, onLeave,
+  onToggleAudio, onToggleVideo, onLeave, readOnly = false,
 }: {
   localStream: MediaStream | null;
   localUsername: string;
@@ -18,6 +18,8 @@ export function CoHostStage({
   onToggleAudio: () => void;
   onToggleVideo: () => void;
   onLeave: () => void;
+  /** Hide mute/cam/leave controls (used for read-only viewer overlay). */
+  readOnly?: boolean;
 }) {
   const total = (localStream ? 1 : 0) + remotes.length;
   if (total === 0) return null;
