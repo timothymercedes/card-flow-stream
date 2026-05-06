@@ -704,11 +704,13 @@ export type Database = {
           started_at: string | null
           starting_bid: number
           status: string
+          stream_type: string
           sudden_death_active: boolean
           sudden_death_enabled: boolean
           sudden_death_max_triggers: number
           sudden_death_seconds_added: number
           sudden_death_triggers_used: number
+          tcg_tags: string[]
           thumbnail_url: string | null
           title: string
           voice_trigger_enabled: boolean
@@ -785,11 +787,13 @@ export type Database = {
           started_at?: string | null
           starting_bid?: number
           status?: string
+          stream_type?: string
           sudden_death_active?: boolean
           sudden_death_enabled?: boolean
           sudden_death_max_triggers?: number
           sudden_death_seconds_added?: number
           sudden_death_triggers_used?: number
+          tcg_tags?: string[]
           thumbnail_url?: string | null
           title: string
           voice_trigger_enabled?: boolean
@@ -866,11 +870,13 @@ export type Database = {
           started_at?: string | null
           starting_bid?: number
           status?: string
+          stream_type?: string
           sudden_death_active?: boolean
           sudden_death_enabled?: boolean
           sudden_death_max_triggers?: number
           sudden_death_seconds_added?: number
           sudden_death_triggers_used?: number
+          tcg_tags?: string[]
           thumbnail_url?: string | null
           title?: string
           voice_trigger_enabled?: boolean
