@@ -533,6 +533,47 @@ function LiveDetail() {
   // Keep `voiceListening` flag in sync for the existing badge UI
   useEffect(() => { setVoiceListening(voice.listening); }, [voice.listening]);
 
+  // ─── Cloudflare Calls multi-guest video ───────────────────────────
+  const [callJoined, setCallJoined] = useState(false);
+  const [isCohostParticipant, setIsCohostParticipant] = useState(false);
+  useEffect(() => {
+    if (!user || !stream || isSeller) { setIsCohostParticipant(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("stream_collab_participants")
+        .select("id").eq("stream_id", id).eq("user_id", user.id).maybeSingle();
+      if (!cancelled) setIsCohostParticipant(!!data);
+    })();
+    const ch = supabase.channel(`collab-self-${id}-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stream_collab_participants", filter: `stream_id=eq.${id}` },
+        async () => {
+          const { data } = await supabase.from("stream_collab_participants")
+            .select("id").eq("stream_id", id).eq("user_id", user.id).maybeSingle();
+          if (!cancelled) setIsCohostParticipant(!!data);
+        })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user?.id, stream?.id, id, isSeller]);
+
+  // Host auto-joins when streaming via in-browser camera (not OBS); co-hosts auto-join when accepted.
+  const callShouldRun = !!stream && !ended && (
+    (isSeller && !usingObs) || isCohostParticipant
+  ) && callJoined;
+
+  const cfCall = useCloudflareCalls({
+    enabled: callShouldRun,
+    streamId: stream?.id ?? null,
+    userId: user?.id ?? null,
+    username: profile?.username ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+  });
+  const [audioOn, setAudioOn] = useState(true);
+  const [videoOn, setVideoOn] = useState(true);
+  // Auto-join prompt for cohosts on acceptance
+  useEffect(() => { if (isCohostParticipant && !callJoined) setCallJoined(true); }, [isCohostParticipant, callJoined]);
+
+
+
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
