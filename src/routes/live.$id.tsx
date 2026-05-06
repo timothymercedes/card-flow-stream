@@ -2251,11 +2251,37 @@ function LiveDetail() {
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
 
-            {/* OBS / Cloudflare Stream credentials */}
+            {/* OBS Connect Hub — one-tap profile download + copy */}
             {usingObs && (
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-[11px]">
-                <p className="mb-2 flex items-center gap-1.5 font-bold text-primary"><Radio className="h-3.5 w-3.5" /> OBS / Streamlabs setup</p>
-                <p className="mb-2 text-muted-foreground">In OBS → Settings → Stream → Service "Custom...", paste these values:</p>
+                <p className="mb-1 flex items-center gap-1.5 font-bold text-primary"><Radio className="h-3.5 w-3.5" /> OBS Connect Hub</p>
+                <p className="mb-2 text-muted-foreground">One tap below downloads a ready-to-import OBS profile with your server + key already filled in.</p>
+                <div className="mb-2 grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => {
+                      const profile = `[General]\nName=PullBidLive\n\n[Stream]\nservice=Custom\nserver=${stream.cf_rtmps_url}\nkey=${stream.cf_stream_key}\nuse_auth=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4500\nABitrate=160\nStreamEncoder=x264\n\n[Video]\nBaseCX=1920\nBaseCY=1080\nOutputCX=1920\nOutputCY=1080\nFPSCommon=30\n`;
+                      const blob = new Blob([profile], { type: "text/plain" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url; a.download = "PullBidLive.ini";
+                      a.click(); URL.revokeObjectURL(url);
+                      toast.success("Profile downloaded — import in OBS → Profile → Import");
+                    }}
+                    className="flex items-center justify-center gap-1 rounded bg-primary px-2 py-1.5 text-[10px] font-bold text-primary-foreground"
+                  >
+                    📥 Download OBS profile
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(`Server: ${stream.cf_rtmps_url}\nStream Key: ${stream.cf_stream_key}`);
+                      toast.success("Server + key copied");
+                    }}
+                    className="flex items-center justify-center gap-1 rounded bg-muted px-2 py-1.5 text-[10px] font-bold"
+                  >
+                    📋 Copy both
+                  </button>
+                </div>
+                <p className="mb-2 text-muted-foreground">Or paste manually into OBS → Settings → Stream → Service "Custom":</p>
                 <div className="space-y-2">
                   <div>
                     <p className="mb-0.5 font-semibold">Server (RTMPS URL)</p>
@@ -2273,6 +2299,7 @@ function LiveDetail() {
                     <p className="mt-1 text-[10px] text-muted-foreground">Keep this private. Anyone with this key can broadcast to your stream.</p>
                   </div>
                 </div>
+                <p className="mt-2 text-[10px] text-muted-foreground">Recommended: 1080p · 30fps · 4500 kbps · Keyframe 2s · x264.</p>
               </div>
             )}
           </div>
