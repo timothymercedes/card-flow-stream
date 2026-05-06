@@ -9,6 +9,8 @@ import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
+import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
+import type { StreamType, TcgTag } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -46,6 +48,7 @@ function Sell() {
   const [breakSlotPrice, setBreakSlotPrice] = useState("10");
   const [breakSlotPrefix, setBreakSlotPrefix] = useState("");
   const [streamCategory, setStreamCategory] = useState<string>("pokemon");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
@@ -123,8 +126,9 @@ function Sell() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
 
-  async function startLive() {
+  async function startLive(meta?: { stream_type: StreamType; tcg_tags: TcgTag[] }) {
     if (!streamTitle.trim()) return toast.error("Add a title");
+    if (!meta) { setPickerOpen(true); return; }
     await ensureSeller();
     // Timer never starts on go-live — only starts when seller hits "Start Auction" inside the live page
     const ends_at: string | null = null;
@@ -149,6 +153,8 @@ function Sell() {
       seller_id: user!.id,
       title: streamTitle,
       category: streamCategory || null,
+      stream_type: meta.stream_type,
+      tcg_tags: meta.tcg_tags,
       item_description: streamDesc || null,
       listing_type: "auction",
       starting_bid: Number(startingBid) || 1,
@@ -374,7 +380,7 @@ function Sell() {
               <input type="checkbox" checked={useObs} onChange={(e) => setUseObs(e.target.checked)} className="mt-1 h-5 w-5" />
             </label>
 
-            <button onClick={startLive} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
+            <button onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
           <div className="space-y-3">
@@ -456,6 +462,11 @@ function Sell() {
       {scanning && (
         <CardScanner onClose={() => setScanning(false)} onResult={onScanResult} />
       )}
+      <StreamCategoryPicker
+        open={pickerOpen}
+        onCancel={() => setPickerOpen(false)}
+        onConfirm={(v) => { setPickerOpen(false); startLive(v); }}
+      />
     </AppShell>
   );
 }

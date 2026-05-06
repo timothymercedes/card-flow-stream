@@ -38,6 +38,7 @@ function Home() {
   const { profile, user } = useAuth();
   const interests = (profile?.interests as string[] | undefined) || [];
   const [streams, setStreams] = useState<any[]>([]);
+  const [showOffStreams, setShowOffStreams] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [vault, setVault] = useState<any[]>([]);
@@ -52,6 +53,12 @@ function Home() {
         const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6);
         setStreams(fallback || []);
       } else setStreams(sData || []);
+
+      // Show Off discovery (public only)
+      const { data: showData } = await supabase.from("live_streams")
+        .select("*").eq("status", "live").eq("stream_type", "show_off").eq("is_private", false)
+        .order("created_at", { ascending: false }).limit(6);
+      setShowOffStreams(showData || []);
 
       let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4);
       if (interests.length > 0) lQ = lQ.in("category", interests);
@@ -165,6 +172,30 @@ function Home() {
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                   <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
                   <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="✨ Show Off — Live Now" to="/showoff" viewLabel="Open Show Off">
+        <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+          {showOffStreams.length === 0 && <EmptyMini text="No Show Off streams yet — flex your collection!" />}
+          {showOffStreams.map((s) => (
+            <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
+                {s.thumbnail_url
+                  ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
+                  : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
+                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+                </div>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                  <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
+                  {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
+                    <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
+                  )}
                 </div>
               </div>
             </Link>

@@ -6,10 +6,11 @@ import { AppShell } from "@/components/AppShell";
 import { Radio, Calendar, Plus, X, Trash2, Users, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
+import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
-type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string };
+type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null };
 type Show = {
   id: string; seller_id: string; seller_username: string; title: string;
   description: string | null; thumbnail_url: string | null; category: string | null;
@@ -58,6 +59,8 @@ function LiveList() {
   const [days, setDays] = useState<number[]>([]);
   // Filters
   const [catFilter, setCatFilter] = useState<string>("all");
+  const [tcgFilter, setTcgFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewerBucket, setViewerBucket] = useState<ViewerBucket>("any");
 
   async function load() {
@@ -89,13 +92,15 @@ function LiveList() {
   const filteredStreams = useMemo(() => {
     return streams.filter((s) => {
       if (catFilter !== "all" && s.category !== catFilter) return false;
+      if (typeFilter !== "all" && (s.stream_type || "auction") !== typeFilter) return false;
+      if (tcgFilter !== "all" && !(s.tcg_tags || []).includes(tcgFilter)) return false;
       const v = viewerCounts[s.id] || 0;
       if (viewerBucket === "intimate" && v > 10) return false;
       if (viewerBucket === "warm" && (v < 11 || v > 50)) return false;
       if (viewerBucket === "hot" && v < 51) return false;
       return true;
     });
-  }, [streams, catFilter, viewerBucket, viewerCounts]);
+  }, [streams, catFilter, typeFilter, tcgFilter, viewerBucket, viewerCounts]);
 
   useEffect(() => {
     load();
@@ -199,6 +204,22 @@ function LiveList() {
                   </button>
                 ))}
               </div>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                <button onClick={() => setTypeFilter("all")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${typeFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}>All types</button>
+                {STREAM_TYPES.map((s) => (
+                  <button key={s.value} onClick={() => setTypeFilter(s.value)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${typeFilter === s.value ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                    {s.emoji} {s.label}
+                  </button>
+                ))}
+              </div>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                <button onClick={() => setTcgFilter("all")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${tcgFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}>All TCGs</button>
+                {TCG_TAGS.map((t) => (
+                  <button key={t.value} onClick={() => setTcgFilter(t.value)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${tcgFilter === t.value ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                    {t.emoji} {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {filteredStreams.length === 0 && (
@@ -230,6 +251,11 @@ function LiveList() {
                   </div>
                   <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
                   <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>
+                  {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
+                    <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
+                      {s.tcg_tags.slice(0, 3).map((t) => `${tcgTagMeta(t)?.emoji ?? ""} ${tcgTagMeta(t)?.label ?? t}`).join(" · ")}
+                    </p>
+                  )}
                 </Link>
               ))}
             </div>
