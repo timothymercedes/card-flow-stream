@@ -572,6 +572,17 @@ function LiveDetail() {
   // Auto-join prompt for cohosts on acceptance
   useEffect(() => { if (isCohostParticipant && !callJoined) setCallJoined(true); }, [isCohostParticipant, callJoined]);
 
+  // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
+  // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
+  const viewerCall = useCloudflareCalls({
+    enabled: !!stream && stream.status !== "ended" && !isSeller && !isCohostParticipant,
+    streamId: stream?.id ?? null,
+    userId: user?.id ?? null,
+    username: profile?.username ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+    viewerMode: true,
+  });
+
 
 
 
@@ -1714,6 +1725,21 @@ function LiveDetail() {
           onToggleAudio={() => { cfCall.toggleAudio(); setAudioOn((v) => !v); }}
           onToggleVideo={() => { cfCall.toggleVideo(); setVideoOn((v) => !v); }}
           onLeave={() => setCallJoined(false)}
+        />
+      )}
+
+      {/* Viewer-side overlay: shows cohost tiles to regular viewers (read-only). */}
+      {!isSeller && !isCohostParticipant && viewerCall.remotes.length > 0 && (
+        <CoHostStage
+          localStream={null}
+          localUsername=""
+          remotes={viewerCall.remotes}
+          audioOn={true}
+          videoOn={true}
+          onToggleAudio={() => {}}
+          onToggleVideo={() => {}}
+          onLeave={() => {}}
+          readOnly
         />
       )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">

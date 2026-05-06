@@ -40,8 +40,10 @@ export function useCloudflareCalls(opts: {
   userId: string | null;
   username: string | null;
   avatarUrl: string | null;
+  /** When true: don't publish local cam/mic — only pull remote cohost tracks (for normal viewers). */
+  viewerMode?: boolean;
 }) {
-  const { enabled, streamId, userId, username, avatarUrl } = opts;
+  const { enabled, streamId, userId, username, avatarUrl, viewerMode } = opts;
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
@@ -68,17 +70,21 @@ export function useCloudflareCalls(opts: {
 
   // ─── Setup: get media, create session, publish tracks, advertise ────────
   useEffect(() => {
-    if (!enabled || !streamId || !userId || !username) return;
+    if (!enabled || !streamId) return;
+    if (!viewerMode && (!userId || !username)) return;
     let cancelled = false;
 
     (async () => {
       try {
-        // 1. Get camera + mic
-        const local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
-        if (cancelled) { local.getTracks().forEach((t) => t.stop()); return; }
-        setLocalStream(local);
+        let local: MediaStream | null = null;
 
-        // 2. Create RTCPeerConnection
+        // Viewers skip mic/cam capture entirely — they only consume.
+        if (!viewerMode) {
+          local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
+          if (cancelled) { local.getTracks().forEach((t) => t.stop()); return; }
+          setLocalStream(local);
+        }
+
         const pc = new RTCPeerConnection({
           iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
           bundlePolicy: "max-bundle",
@@ -86,8 +92,6 @@ export function useCloudflareCalls(opts: {
         pcRef.current = pc;
 
         pc.ontrack = (ev) => {
-          // Cloudflare encodes the remote sessionId in transceiver.mid; we match below by mid.
-          // Add the track to whichever MediaStream is awaiting it (handled in pullRemote).
           const mid = ev.transceiver.mid;
           const targetUserId = (pc as any).__midToUser?.[mid as string];
           if (!targetUserId) return;
@@ -97,40 +101,39 @@ export function useCloudflareCalls(opts: {
           }
         };
 
-        // 3. Add local tracks as transceivers (sendonly)
-        const transceivers = local.getTracks().map((t) => pc.addTransceiver(t, { direction: "sendonly" }));
-
-        // 4. Create session
+        // Create session
         const session = await sfu("/sessions/new", { method: "POST" });
         sessionIdRef.current = session.sessionId;
 
-        // 5. Local offer
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
+        if (local) {
+          // Publishing path (host / cohost)
+          const transceivers = local.getTracks().map((t) => pc.addTransceiver(t, { direction: "sendonly" }));
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          const pubBody = {
+            sessionDescription: { type: offer.type, sdp: offer.sdp },
+            tracks: transceivers.map((tr) => ({
+              location: "local",
+              mid: tr.mid,
+              trackName: `${userId}-${tr.sender.track?.kind}`,
+            })),
+          };
+          const pubResp = await sfu(`/sessions/${session.sessionId}/tracks/new`, {
+            method: "POST", body: JSON.stringify(pubBody),
+          });
+          await pc.setRemoteDescription(pubResp.sessionDescription);
+          await waitForConnState(pc, "connected");
 
-        // 6. Publish local tracks via Calls API
-        const pubBody = {
-          sessionDescription: { type: offer.type, sdp: offer.sdp },
-          tracks: transceivers.map((tr) => ({
-            location: "local",
-            mid: tr.mid,
-            trackName: `${userId}-${tr.sender.track?.kind}`,
-          })),
-        };
-        const pubResp = await sfu(`/sessions/${session.sessionId}/tracks/new`, {
-          method: "POST", body: JSON.stringify(pubBody),
-        });
-        await pc.setRemoteDescription(pubResp.sessionDescription);
-        await waitForConnState(pc, "connected");
-
-        // 7. Advertise our session+track names so peers can pull us
-        const audioName = `${userId}-audio`;
-        const videoName = `${userId}-video`;
-        await supabase.from("stream_cohost_tracks").upsert({
-          stream_id: streamId, user_id: userId, username, avatar_url: avatarUrl,
-          session_id: session.sessionId, audio_track_name: audioName, video_track_name: videoName,
-          is_audio_enabled: true, is_video_enabled: true,
-        }, { onConflict: "stream_id,user_id" });
+          const audioName = `${userId}-audio`;
+          const videoName = `${userId}-video`;
+          await supabase.from("stream_cohost_tracks").upsert({
+            stream_id: streamId!, user_id: userId!, username: username!, avatar_url: avatarUrl,
+            session_id: session.sessionId, audio_track_name: audioName, video_track_name: videoName,
+            is_audio_enabled: true, is_video_enabled: true,
+          }, { onConflict: "stream_id,user_id" });
+        }
+        // Viewer-mode session is created empty; pullRemote() in next effect adds recvonly tracks
+        // and triggers the first SDP exchange via requiresImmediateRenegotiation.
 
         if (!cancelled) setReady(true);
       } catch (e: any) {
@@ -144,7 +147,7 @@ export function useCloudflareCalls(opts: {
       try { pcRef.current?.close(); } catch {}
       pcRef.current = null;
       setLocalStream((s) => { s?.getTracks().forEach((t) => t.stop()); return null; });
-      if (streamId && userId) {
+      if (streamId && userId && !viewerMode) {
         supabase.from("stream_cohost_tracks").delete().eq("stream_id", streamId).eq("user_id", userId);
       }
       sessionIdRef.current = null;
@@ -153,7 +156,7 @@ export function useCloudflareCalls(opts: {
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, waitForConnState]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, waitForConnState]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
