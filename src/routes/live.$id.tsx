@@ -468,51 +468,69 @@ function LiveDetail() {
     }
   }, [remaining, isSeller, stream?.status]);
 
-  // 🆕 Voice trigger — seller phrase ends the current round and starts the next.
-  const voiceLastFiredRef = useRef(0);
-  useEffect(() => {
-    if (!isSeller) return;
-    if (!stream?.voice_trigger_enabled) return;
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { toast.error("Voice trigger not supported in this browser"); return; }
-    const phrase = (stream.voice_trigger_phrase || "next").toLowerCase().trim();
-    if (!phrase) return;
-    const rec = new SR();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = async (ev: any) => {
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const t = String(ev.results[i][0]?.transcript || "").toLowerCase();
-        if (!t.includes(phrase)) continue;
-        const now = Date.now();
-        if (now - voiceLastFiredRef.current < 2500) return;
-        voiceLastFiredRef.current = now;
-        try {
+  // 🆕 Voice trigger — hybrid multi-command (Web Speech API local keyword spotting).
+  // Commands: "start" / "next" / "sold" / "extend" (+10s) / "end".
+  // Falls back gracefully on unsupported browsers (e.g. iOS Safari) — host can use manual buttons.
+  async function extendCurrentTimer(addSec = 10) {
+    if (!isSeller || !stream || !auctionLive) return;
+    const cur = stream.ends_at ? new Date(stream.ends_at).getTime() : Date.now();
+    const next = new Date(Math.max(cur, Date.now()) + addSec * 1000).toISOString();
+    setStream((prev: any) => prev ? { ...prev, ends_at: next } : prev);
+    await supabase.from("live_streams").update({ ends_at: next }).eq("id", id);
+    await sendMsg(`⏱ Timer extended +${addSec}s`, true);
+  }
+
+  const voicePhrase = (stream?.voice_trigger_phrase || "next").toLowerCase().trim();
+  const voice = useVoiceCommands({
+    enabled: !!isSeller && !!stream?.voice_trigger_enabled,
+    commands: [
+      // "next" / custom phrase: end current round and start the next (or just start if idle)
+      {
+        phrase: `${voicePhrase}|next round|go go go`,
+        cooldownMs: 2500,
+        action: async () => {
           if (auctionLive) {
-            // End current round first, then start the next one
             endedRef.current = true;
             await finalizeAuctionRound();
-            // small delay so finalize state lands before re-arm
             setTimeout(() => { startAuction().catch(() => {}); }, 600);
           } else {
             startAuction().catch(() => {});
           }
-        } catch {/* ignore */}
-        return;
-      }
-    };
-    rec.onerror = () => { try { rec.stop(); } catch {} };
-    rec.onend = () => { try { rec.start(); } catch {} };
-    try { rec.start(); setVoiceListening(true); } catch {}
-    recognitionRef.current = rec;
-    return () => {
-      setVoiceListening(false);
-      try { rec.onend = null; rec.stop(); } catch {}
-      recognitionRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSeller, stream?.voice_trigger_enabled, stream?.voice_trigger_phrase, auctionLive]);
+        },
+      },
+      // "start" — start a round when idle
+      {
+        phrase: "start auction|start round|start now",
+        cooldownMs: 2500,
+        action: async () => { if (!auctionLive) startAuction().catch(() => {}); },
+      },
+      // "sold" — finalize current round immediately
+      {
+        phrase: "sold|going once going twice",
+        cooldownMs: 2500,
+        action: async () => {
+          if (!auctionLive) return;
+          endedRef.current = true;
+          await finalizeAuctionRound();
+        },
+      },
+      // "extend" — add 10 seconds to running timer
+      {
+        phrase: "extend|add time|more time",
+        cooldownMs: 1500,
+        action: async () => { await extendCurrentTimer(10); },
+      },
+      // "end live" — end the entire stream
+      {
+        phrase: "end live|stop live|end stream",
+        cooldownMs: 4000,
+        action: async () => { setEndLiveOpen(true); },
+      },
+    ],
+  });
+  // Keep `voiceListening` flag in sync for the existing badge UI
+  useEffect(() => { setVoiceListening(voice.listening); }, [voice.listening]);
+
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
