@@ -153,6 +153,8 @@ function Sell() {
       seller_id: user!.id,
       title: streamTitle,
       category: streamCategory || null,
+      stream_type: meta.stream_type,
+      tcg_tags: meta.tcg_tags,
       item_description: streamDesc || null,
       listing_type: "auction",
       starting_bid: Number(startingBid) || 1,
