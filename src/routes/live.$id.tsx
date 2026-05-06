@@ -1679,6 +1679,11 @@ function LiveDetail() {
               )}
             </button>
           )}
+          {!ended && (isSeller || (!isSeller && stream.allow_collab_requests)) && (
+            <button onClick={() => setShowCollabPanel(true)} className="rounded-full bg-fuchsia-600/80 p-2 backdrop-blur" title="Collab">
+              <Users2 className="h-4 w-4" />
+            </button>
+          )}
           {(auctionLive || stream.current_item) && (
             <button onClick={() => setPinned((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
