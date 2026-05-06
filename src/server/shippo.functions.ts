@@ -147,6 +147,28 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
       link: "/orders",
     });
 
+    // Email buyer (best-effort)
+    try {
+      const { data: buyer } = await supabaseAdmin.auth.admin.getUserById(order.buyer_id);
+      const email = buyer?.user?.email;
+      if (email) {
+        const carrier = tx.rate?.provider || "carrier";
+        await sendEmail({
+          to: email,
+          subject: `📦 Your order has shipped — ${order.title}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
+            <h2>Your order is on its way!</h2>
+            <p><strong>${order.title}</strong></p>
+            <p>Carrier: ${carrier}<br/>Tracking: <strong>${tx.tracking_number}</strong></p>
+            ${tx.tracking_url_provider ? `<p><a href="${tx.tracking_url_provider}" style="background:#7c3aed;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;display:inline-block">Track Package</a></p>` : ""}
+            <p style="color:#666;font-size:12px">Thanks for shopping on PullBidLive.</p>
+          </div>`,
+        });
+      }
+    } catch (e) {
+      console.error("Buyer email failed", e);
+    }
+
     return {
       trackingNumber: tx.tracking_number,
       trackingUrl: tx.tracking_url_provider,
