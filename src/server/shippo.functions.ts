@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail } from "./email.server";
+import { sortRatesCheapestFirst, pickRecommendedRate } from "@/lib/shippingPresets";
 import { z } from "zod";
 
 const SHIPPO_BASE = "https://api.goshippo.com";
