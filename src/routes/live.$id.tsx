@@ -61,6 +61,8 @@ function LiveDetail() {
   const [shoutoutAmt, setShoutoutAmt] = useState(5);
   const [shoutouts, setShoutouts] = useState<any[]>([]);
   const [mySpent, setMySpent] = useState(0);
+  const [tipOpen, setTipOpen] = useState(false);
+  const [tipOverlay, setTipOverlay] = useState<{ id: string; username: string; amount: number; message?: string } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
