@@ -211,7 +211,7 @@ function ShowOff() {
 
           <button
             onClick={() => startShowOff()}
-            disabled={busy || !title.trim() || !verified}
+            disabled={busy || !title.trim() || !verified || tcgTags.length === 0}
             className="w-full rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 py-3 text-sm font-bold text-white disabled:opacity-50"
           >
             {busy ? "Starting…" : "🎉 Go Live (Show Off)"}
