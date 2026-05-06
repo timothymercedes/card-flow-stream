@@ -126,7 +126,7 @@ function Cart() {
               <StripeCheckout
                 sellerId={checkoutSeller}
                 subtotalCents={Math.round(checkoutSubtotal * 100)}
-                orderId={checkoutOrderId}
+                orderIds={checkoutOrderIds}
                 onSuccess={() => handlePaymentSuccess(checkoutSeller)}
               />
             </div>
