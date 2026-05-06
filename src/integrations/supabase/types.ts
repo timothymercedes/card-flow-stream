@@ -1380,6 +1380,9 @@ export type Database = {
           preferred_currency: string | null
           public_id: string | null
           report_count: number
+          seller_agreement_accepted_at: string | null
+          seller_agreement_review_required: boolean
+          seller_agreement_version: string | null
           seller_status: string
           shipping_cap: number | null
           shop_name: string | null
@@ -1432,6 +1435,9 @@ export type Database = {
           preferred_currency?: string | null
           public_id?: string | null
           report_count?: number
+          seller_agreement_accepted_at?: string | null
+          seller_agreement_review_required?: boolean
+          seller_agreement_version?: string | null
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
@@ -1484,6 +1490,9 @@ export type Database = {
           preferred_currency?: string | null
           public_id?: string | null
           report_count?: number
+          seller_agreement_accepted_at?: string | null
+          seller_agreement_review_required?: boolean
+          seller_agreement_version?: string | null
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
@@ -2694,6 +2703,10 @@ export type Database = {
         Args: { _user_agent?: string; _version?: string }
         Returns: Json
       }
+      accept_seller_agreement: {
+        Args: { _user_agent?: string; _version?: string }
+        Returns: Json
+      }
       add_stream_minutes: {
         Args: { _minutes: number; _user_id: string }
         Returns: undefined
@@ -2703,6 +2716,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _target_user: string
         }
+        Returns: undefined
+      }
+      admin_force_seller_reaccept: {
+        Args: { _reason?: string; _target_user: string }
         Returns: undefined
       }
       admin_get_signup_stats: {
