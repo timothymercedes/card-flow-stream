@@ -127,22 +127,28 @@ function SellerHub() {
   }
 
   async function fetchRates(o: any) {
-    const presetKey = preset[o.id] ?? suggestPreset({ category: o.category, quantity: o.quantity, title: o.title });
+    const presetKey = preset[o.id] ?? suggestPreset({
+      category: o.category, quantity: o.quantity, title: o.title,
+      orderValueUsd: Number(o.amount || 0),
+      pweEnabled: pweSettings.enabled, pweMaxOrderValue: pweSettings.max,
+    });
     const p = SHIPPING_PRESETS[presetKey];
     if (!preset[o.id]) setPreset((s) => ({ ...s, [o.id]: presetKey }));
 
-    // PWE is stamp-only; Shippo can't sell labels for it. Quote a flat price.
+    // Stamp/PWE: untracked letter mail — Shippo doesn't sell these labels.
     if (p.flatRate) {
+      const price = presetKey === "stamp" ? pweSettings.stamp : pweSettings.price;
       setRates((s) => ({ ...s, [o.id]: [{
-        objectId: "flat-pwe",
+        objectId: `flat-${presetKey}`,
         provider: "USPS",
-        service: "Plain White Envelope (untracked)",
-        amount: (p.flatPriceUsd ?? 1.5).toFixed(2),
+        service: `${p.label} · untracked`,
+        amount: price.toFixed(2),
         currency: "USD",
-        days: 3,
+        days: presetKey === "stamp" ? 5 : 4,
         flat: true,
+        untracked: true,
       }] }));
-      setRecommended((s) => ({ ...s, [o.id]: "flat-pwe" }));
+      setRecommended((s) => ({ ...s, [o.id]: `flat-${presetKey}` }));
       return;
     }
 
