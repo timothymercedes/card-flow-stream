@@ -3443,7 +3443,7 @@ function LiveDetail() {
       )}
 
       {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
-      {isStaff && !hostFocus && (
+      {isStaff && !hostFocus && stream.mode !== "show_off" && (
         <>
           <button
             onClick={() => setShowPaymentLog(true)}
