@@ -258,7 +258,16 @@ export function HelpBubble() {
               </button>
 
               <div className="mt-2 border-t border-border pt-2">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">App tours</p>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Replay tutorials</p>
+                  <button
+                    onClick={() => { resetAllSeen(); toast.success("Tutorials reset — they'll show on next visit."); }}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+                    title="Re-enable all 'don't show again' tutorials"
+                  >
+                    <RotateCcw className="h-3 w-3" /> Reset all
+                  </button>
+                </div>
                 {guides.map((g) => {
                   const m = MASCOTS[g.mascotId];
                   return (
