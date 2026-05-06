@@ -9,6 +9,8 @@ import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
+import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
+import type { StreamType, TcgTag } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
