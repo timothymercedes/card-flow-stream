@@ -123,6 +123,16 @@ function ShowOff() {
           <div className="mb-4 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-xs">
             <p className="font-bold text-amber-300">Verification required</p>
             <p className="mt-1 text-muted-foreground">An admin needs to verify your account before you can host or join Flex Lives.</p>
+            <button
+              onClick={async () => {
+                const { error } = await (supabase.rpc as any)("request_verification", { _kind: "live_host", _note: null });
+                if (error) return toast.error(error.message);
+                toast.success("Verification requested — admins have been notified");
+              }}
+              className="mt-2 rounded-lg bg-amber-500/20 px-3 py-1.5 text-[11px] font-bold text-amber-400"
+            >
+              Request verification
+            </button>
           </div>
         )}
 
