@@ -124,9 +124,17 @@ function Admin() {
   async function searchUsers() {
     if (!userQuery.trim()) { setUserResults([]); return; }
     const { data } = await supabase.from("profiles")
-      .select("id, username, avatar_url, is_seller, seller_status, created_at")
+      .select("id, username, avatar_url, is_seller, seller_status, created_at, live_verified")
       .ilike("username", `%${userQuery.trim()}%`).limit(25);
     setUserResults((data as any[]) || []);
+  }
+
+  async function toggleLiveVerified(u: { id: string; username: string; live_verified?: boolean }) {
+    const next = !u.live_verified;
+    const { error } = await supabase.from("profiles").update({ live_verified: next }).eq("id", u.id);
+    if (error) return toast.error(error.message);
+    toast.success(next ? `@${u.username} can now host & collab` : `Live access revoked for @${u.username}`);
+    setUserResults((rs) => rs.map((r) => r.id === u.id ? { ...r, live_verified: next } : r));
   }
 
   async function quickSuspend(u: { id: string; username: string }, days: number, reason: string) {
