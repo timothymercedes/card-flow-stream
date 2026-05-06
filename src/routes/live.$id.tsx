@@ -2393,17 +2393,31 @@ function LiveDetail() {
       <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
         {stream.mode === "show_off" && (
           <>
-            <FlexLiveControls
-              streamId={id}
-              isHost={isSeller}
-              userId={user?.id || null}
-              username={profile?.username || null}
-              currentFilter={stream.video_filter || "none"}
-            />
-            {isSeller && !paused && (
-              <button onClick={endLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
-                <Square className="h-3.5 w-3.5" /> End Flex
+            {/* Collapse / full-screen toggle for Flex Live */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => setFlexImmersive((v) => !v)}
+                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 ring-1 ring-white/15 backdrop-blur active:scale-[0.98]"
+                title={flexImmersive ? "Show panels" : "Hide everything for full screen"}
+              >
+                {flexImmersive ? "▣ Show panels" : "⛶ Full-screen vibe"}
               </button>
+            </div>
+            {!flexImmersive && (
+              <>
+                <FlexLiveControls
+                  streamId={id}
+                  isHost={isSeller}
+                  userId={user?.id || null}
+                  username={profile?.username || null}
+                  currentFilter={stream.video_filter || "none"}
+                />
+                {isSeller && !paused && (
+                  <button onClick={endLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
+                    <Square className="h-3.5 w-3.5" /> End Flex
+                  </button>
+                )}
+              </>
             )}
           </>
         )}
