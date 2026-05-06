@@ -9,6 +9,7 @@ import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@
 import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { AgreementModal } from "@/components/AgreementModal";
+import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
@@ -102,13 +103,11 @@ function Auth() {
     if (error) { toast.error(error.message); setLoading(false); return; }
     const uid = signupData.user?.id;
     if (uid) {
-      await supabase.from("legal_acceptances").insert([
-        { user_id: uid, document_type: "tos", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-        { user_id: uid, document_type: "privacy", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-        { user_id: uid, document_type: "buyer_terms", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-        { user_id: uid, document_type: "community_guidelines", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-        { user_id: uid, document_type: "age_18_plus", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
-      ]);
+      await (supabase.rpc as any)("accept_required_legal_documents", {
+        _version: REQUIRED_LEGAL_VERSION,
+        _user_agent: navigator.userAgent.slice(0, 200),
+      });
+      await supabase.auth.updateUser({ data: legalAcceptanceMetadata() });
     }
     setLoading(false);
     setShowTerms(false);
