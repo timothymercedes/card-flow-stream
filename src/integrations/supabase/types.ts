@@ -2082,6 +2082,89 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_staff: boolean
+          sender_id: string
+          ticket_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          sender_id: string
+          ticket_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          sender_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          ai_conversation: Json | null
+          attachments: string[] | null
+          category: string
+          created_at: string
+          id: string
+          order_id: string | null
+          priority: string
+          reported_user_id: string | null
+          status: string
+          stream_id: string | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_conversation?: Json | null
+          attachments?: string[] | null
+          category: string
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          priority?: string
+          reported_user_id?: string | null
+          status?: string
+          stream_id?: string | null
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_conversation?: Json | null
+          attachments?: string[] | null
+          category?: string
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          priority?: string
+          reported_user_id?: string | null
+          status?: string
+          stream_id?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_blocks: {
         Row: {
           blocked_id: string
