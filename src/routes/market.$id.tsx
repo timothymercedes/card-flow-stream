@@ -346,14 +346,15 @@ function ListingDetail() {
           const total = itemPrice + shipPrice;
           return (
             <div className="mt-4 space-y-2 rounded-xl bg-card p-4">
-              <p className="text-sm font-bold">Shipping address</p>
-              <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Full name" value={ship.name} onChange={(e) => setShip({ ...ship, name: e.target.value })} />
-              <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Street address" value={ship.address} onChange={(e) => setShip({ ...ship, address: e.target.value })} />
-              <div className="grid grid-cols-2 gap-2">
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="City" value={ship.city} onChange={(e) => setShip({ ...ship, city: e.target.value })} />
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="State" value={ship.state} onChange={(e) => setShip({ ...ship, state: e.target.value })} />
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="ZIP" value={ship.zip} onChange={(e) => setShip({ ...ship, zip: e.target.value })} />
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Country" value={ship.country} onChange={(e) => setShip({ ...ship, country: e.target.value })} />
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold">Ship to</p>
+                <Link to="/profile" className="text-[11px] font-semibold text-primary">Edit in profile</Link>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-3 text-xs leading-relaxed">
+                <p className="font-semibold text-foreground">{ship.name}</p>
+                <p className="text-muted-foreground">{ship.address}</p>
+                <p className="text-muted-foreground">{ship.city}, {ship.state} {ship.zip}</p>
+                <p className="text-muted-foreground">{ship.country}</p>
               </div>
               <div className="rounded-lg bg-muted/50 p-2 text-xs space-y-1">
                 <div className="flex justify-between"><span>Item{qty > 1 ? ` × ${qty}` : ""}</span><span>${itemPrice.toFixed(2)}</span></div>
