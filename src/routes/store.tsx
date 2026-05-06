@@ -572,7 +572,56 @@ function SellerHub() {
                     </div>
                   );
                 })}
-                <p className="px-1 text-[11px] text-muted-foreground">Custom saved presets are coming soon — currently using these defaults.</p>
+                <div className="rounded-xl border border-primary/30 bg-card p-3 space-y-2">
+                  <p className="text-sm font-bold">Economy / PWE settings</p>
+                  <p className="text-[11px] text-muted-foreground">Control untracked stamp & PWE shipping for low-value cards. Orders above the cap automatically upgrade to a tracked option.</p>
+                  <label className="flex items-center justify-between text-xs">
+                    <span>Offer untracked stamp / PWE</span>
+                    <input
+                      type="checkbox"
+                      checked={pweSettings.enabled}
+                      onChange={(e) => setPweSettings({ ...pweSettings, enabled: e.target.checked })}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="text-muted-foreground">Max order value for untracked ($)</span>
+                    <input
+                      type="number" min={0} step="1"
+                      value={pweSettings.max}
+                      onChange={(e) => setPweSettings({ ...pweSettings, max: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 outline-none"
+                    />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-xs">
+                      <span className="text-muted-foreground">Stamp price ($)</span>
+                      <input
+                        type="number" min={0} step="0.01"
+                        value={pweSettings.stamp}
+                        onChange={(e) => setPweSettings({ ...pweSettings, stamp: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 outline-none"
+                      />
+                    </label>
+                    <label className="block text-xs">
+                      <span className="text-muted-foreground">PWE price ($)</span>
+                      <input
+                        type="number" min={0} step="0.01"
+                        value={pweSettings.price}
+                        onChange={(e) => setPweSettings({ ...pweSettings, price: Number(e.target.value) })}
+                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 outline-none"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    onClick={savePweSettings}
+                    disabled={savingPwe}
+                    className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    {savingPwe ? "Saving..." : "Save shipping settings"}
+                  </button>
+                </div>
+                <p className="px-1 text-[11px] text-muted-foreground">Stamp / PWE are untracked letter mail and aren't sold via Shippo — drop in any USPS mailbox with the appropriate postage.</p>
               </div>
             )}
             {shippingTab === "auto" && (
