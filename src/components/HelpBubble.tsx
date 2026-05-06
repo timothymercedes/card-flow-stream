@@ -1,56 +1,38 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircleQuestion, X, Send, Play, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { MessageCircleQuestion, X, Send, Sparkles, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import tourWelcome from "@/assets/tour-welcome.png";
-import tourLive from "@/assets/tour-live.png";
-import tourMarket from "@/assets/tour-market.png";
-import tourSell from "@/assets/tour-sell.png";
-import tourVault from "@/assets/tour-vault.png";
-import tourHelp from "@/assets/tour-help.png";
+import { useTour } from "@/components/MascotGuide";
+import { MASCOTS, TOURS } from "@/lib/tours";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const TOUR_STEPS = [
-  { img: tourWelcome, title: "Welcome to PullBid Live 👋", body: "The fastest way to buy, sell & trade cards live. Here's a 60-second tour." },
-  { img: tourLive, title: "🔴 Watch & Bid Live", body: "Tap the Live tab to join sellers running real-time auctions. Bid with one tap — highest bid wins when the timer ends." },
-  { img: tourMarket, title: "🛒 Shop the Market", body: "Browse Buy Now listings, place bids on auctions, or send custom offers from the Market tab." },
-  { img: tourSell, title: "📸 Sell Your Cards", body: "Hit the Sell button. Scan a card with your camera — AI identifies it and prices it for you." },
-  { img: tourVault, title: "🔒 Track in your Vault", body: "Every card you scan or buy goes in your Vault with live market value." },
-  { img: tourHelp, title: "💬 Need help anytime?", body: "Tap this floating chat bubble to ask the AI assistant or replay this tour." },
-];
-
-const LS_KEY = "pbl_tour_seen";
+const FIRST_VISIT_KEY = "pbl_first_visit_seen";
 
 export function HelpBubble() {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"menu" | "chat" | "tour">("menu");
-  const [tourStep, setTourStep] = useState(0);
+  const [mode, setMode] = useState<"menu" | "chat">("menu");
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: "Hi! I'm your PullBid assistant. Ask me anything — how to go live, list a card, bid, ship, etc." },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { startTour, triggerOnce } = useTour();
 
-  // Auto-show tour on first visit
+  // Fire the buyer-welcome mascot tour on first visit (once ever).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!localStorage.getItem(LS_KEY)) {
-      setOpen(true);
-      setMode("tour");
+    if (!localStorage.getItem(FIRST_VISIT_KEY)) {
+      localStorage.setItem(FIRST_VISIT_KEY, "1");
+      // small delay so it lands after first paint
+      const t = setTimeout(() => triggerOnce("buyer-welcome"), 800);
+      return () => clearTimeout(t);
     }
-  }, []);
+  }, [triggerOnce]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, mode]);
-
-  function dismissTour(dontShowAgain: boolean) {
-    if (dontShowAgain && typeof window !== "undefined") localStorage.setItem(LS_KEY, "1");
-    setMode("menu");
-    setOpen(false);
-    setTourStep(0);
-  }
 
   async function send() {
     const text = input.trim();
@@ -71,9 +53,14 @@ export function HelpBubble() {
     }
   }
 
+  const guides = [
+    { id: "buyer-welcome", mascotId: "buyer" as const, title: "Buyer guide", desc: "Bid, buy, ship, follow — the basics." },
+    { id: "seller-welcome", mascotId: "seller" as const, title: "Seller guide", desc: "Going live, OBS, shipping, payouts." },
+    { id: "flex-welcome", mascotId: "flex" as const, title: "Flex Live guide", desc: "Collabs, safety, social streaming." },
+  ];
+
   return (
     <>
-      {/* Floating bubble */}
       {!open && (
         <button
           onClick={() => { setOpen(true); setMode("menu"); }}
@@ -84,13 +71,12 @@ export function HelpBubble() {
         </button>
       )}
 
-      {/* Panel */}
       {open && (
         <div className="fixed bottom-24 right-4 z-40 flex h-[520px] w-[340px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
           <div className="flex items-center justify-between border-b border-border bg-background/60 px-3 py-2.5">
             <div className="flex items-center gap-2 text-sm font-bold">
               <Sparkles className="h-4 w-4 text-primary" />
-              {mode === "chat" ? "AI Help" : mode === "tour" ? "App Tour" : "How can we help?"}
+              {mode === "chat" ? "AI Help" : "Meet your guides"}
             </div>
             <button onClick={() => setOpen(false)} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
               <X className="h-4 w-4" />
@@ -98,66 +84,34 @@ export function HelpBubble() {
           </div>
 
           {mode === "menu" && (
-            <div className="flex flex-1 flex-col gap-2 p-3">
-              <button onClick={() => setMode("chat")} className="flex items-center gap-3 rounded-xl bg-primary/10 p-3 text-left text-sm hover:bg-primary/15">
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+              {guides.map((g) => {
+                const m = MASCOTS[g.mascotId];
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => { setOpen(false); startTour(g.id as keyof typeof TOURS, true); }}
+                    className={`flex items-center gap-3 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br ${m.glow} p-2.5 text-left text-sm transition hover:scale-[1.02]`}
+                  >
+                    <img src={m.image} alt={m.name} width={48} height={48} loading="lazy" className="h-12 w-12 flex-shrink-0 rounded-xl bg-background/40 object-contain" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold uppercase tracking-wider text-white/80">{m.name}</p>
+                      <p className="truncate font-semibold text-white">{g.title}</p>
+                      <p className="truncate text-[10px] text-white/70">{g.desc}</p>
+                    </div>
+                    <Play className="h-4 w-4 flex-shrink-0 text-white" />
+                  </button>
+                );
+              })}
+
+              <button onClick={() => setMode("chat")} className="mt-1 flex items-center gap-3 rounded-xl bg-primary/10 p-3 text-left text-sm hover:bg-primary/15">
                 <MessageCircleQuestion className="h-5 w-5 text-primary" />
                 <div>
                   <p className="font-semibold">Ask the AI assistant</p>
                   <p className="text-[11px] text-muted-foreground">Get instant answers about the app</p>
                 </div>
               </button>
-              <button onClick={() => { setTourStep(0); setMode("tour"); }} className="flex items-center gap-3 rounded-xl bg-accent/10 p-3 text-left text-sm hover:bg-accent/15">
-                <Play className="h-5 w-5 text-accent" />
-                <div>
-                  <p className="font-semibold">Replay the app tour</p>
-                  <p className="text-[11px] text-muted-foreground">60-second walkthrough</p>
-                </div>
-              </button>
               <p className="mt-auto text-center text-[10px] text-muted-foreground">Powered by Lovable AI</p>
-            </div>
-          )}
-
-          {mode === "tour" && (
-            <div className="flex flex-1 flex-col p-4">
-              <div className="mb-3 flex gap-1">
-                {TOUR_STEPS.map((_, i) => (
-                  <div key={i} className={`h-1 flex-1 rounded-full ${i <= tourStep ? "bg-primary" : "bg-muted"}`} />
-                ))}
-              </div>
-              <div className="flex flex-1 flex-col items-center text-center">
-                <div className="mb-2 flex h-40 w-40 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 via-accent/10 to-live/15">
-                  <img src={TOUR_STEPS[tourStep].img} alt="" loading="lazy" width={160} height={160} className="h-36 w-36 object-contain drop-shadow-lg" />
-                </div>
-                <h3 className="text-lg font-bold">{TOUR_STEPS[tourStep].title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{TOUR_STEPS[tourStep].body}</p>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => setTourStep((s) => Math.max(0, s - 1))}
-                  disabled={tourStep === 0}
-                  className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-semibold text-muted-foreground disabled:opacity-30"
-                >
-                  <ChevronLeft className="h-4 w-4" /> Back
-                </button>
-                {tourStep < TOUR_STEPS.length - 1 ? (
-                  <button
-                    onClick={() => setTourStep((s) => s + 1)}
-                    className="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground"
-                  >
-                    Next <ChevronRight className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => dismissTour(true)}
-                    className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground"
-                  >
-                    Got it 🎉
-                  </button>
-                )}
-              </div>
-              <button onClick={() => dismissTour(true)} className="mt-2 text-center text-[10px] text-muted-foreground underline">
-                Don't show this again
-              </button>
             </div>
           )}
 
