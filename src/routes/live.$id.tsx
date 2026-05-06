@@ -3327,6 +3327,28 @@ function LiveDetail() {
           </div>
         </div>
       )}
+      {/* K.O. viewer overlay */}
+      <KOViewerOverlay
+        active={!!stream?.ko_active}
+        hostUsername={sellerUsername || "host"}
+        hostAvatar={(stream as any)?.host_avatar_url || null}
+        message={stream?.ko_message || null}
+        destinations={koEnrichedDests}
+        isHost={isSeller}
+      />
+
+      {/* K.O. host modal */}
+      {isSeller && stream && (
+        <KOModal
+          open={koOpen}
+          onClose={() => setKoOpen(false)}
+          streamId={stream.id}
+          hostSellerId={stream.seller_id}
+          acceptsRequests={!!stream.ko_accepts_requests}
+          destinations={Array.isArray(stream.ko_destinations) ? stream.ko_destinations : []}
+          onConfirm={confirmKO}
+        />
+      )}
     </div>
   );
 }
