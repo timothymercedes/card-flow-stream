@@ -224,6 +224,13 @@ function LiveDetail() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_chat_actions", filter: `stream_id=eq.${id}` }, (p) => setChatActions((a) => [p.new, ...a]))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => [...s, p.new]))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => s.map((x) => x.id === (p.new as any).id ? p.new : x)))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "stream_tips", filter: `stream_id=eq.${id}` }, (p) => {
+        const t: any = p.new;
+        if (t.status === "paid") {
+          setTipOverlay({ id: t.id, username: t.buyer_username, amount: Number(t.amount), message: t.message });
+          setTimeout(() => setTipOverlay((cur) => (cur && cur.id === t.id ? null : cur)), 6000);
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
