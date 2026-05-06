@@ -273,14 +273,6 @@ function Sell() {
     }
   }
 
-  // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
-  useEffect(() => {
-    if (!condPrices) return;
-    const base = Number(condPrices.NM) || 0;
-    if (!base) return;
-    setBuyNowPrice(String(priceFor(condition, base, condPrices)));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [condition, condPrices]);
 
 
   const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
