@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail } from "./email.server";
+import { sortRatesCheapestFirst, pickRecommendedRate } from "@/lib/shippingPresets";
 import { z } from "zod";
 
 const SHIPPO_BASE = "https://api.goshippo.com";
@@ -29,10 +30,11 @@ async function shippo<T = any>(path: string, init?: RequestInit): Promise<T> {
 
 const RatesInput = z.object({
   orderId: z.string().uuid(),
-  weightOz: z.number().min(0.1).max(1500).default(4),
-  lengthIn: z.number().min(1).max(108).default(7),
-  widthIn: z.number().min(1).max(108).default(5),
-  heightIn: z.number().min(0.1).max(108).default(0.5),
+  // Defaults sized for a single TCG card in a PWE — never assume a 1lb+ box.
+  weightOz: z.number().min(0.1).max(1500).default(1),
+  lengthIn: z.number().min(1).max(108).default(6),
+  widthIn: z.number().min(1).max(108).default(4),
+  heightIn: z.number().min(0.1).max(108).default(0.1),
 });
 
 export const getShippoRates = createServerFn({ method: "POST" })
@@ -90,7 +92,7 @@ export const getShippoRates = createServerFn({ method: "POST" })
       }),
     });
 
-    const rates = (shipment.rates || []).map((r: any) => ({
+    const rawRates = (shipment.rates || []).map((r: any) => ({
       objectId: r.object_id,
       provider: r.provider,
       service: r.servicelevel?.name,
@@ -98,7 +100,9 @@ export const getShippoRates = createServerFn({ method: "POST" })
       currency: r.currency,
       days: r.estimated_days,
     }));
-    return { shipmentId: shipment.object_id, rates };
+    const rates = sortRatesCheapestFirst(rawRates);
+    const recommended = pickRecommendedRate(rates) as any;
+    return { shipmentId: shipment.object_id, rates, recommendedRateId: recommended?.objectId ?? null };
   });
 
 const BuyInput = z.object({
