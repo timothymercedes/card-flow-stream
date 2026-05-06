@@ -83,7 +83,7 @@ function SellerHub() {
       supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("seller_reviews").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("stripe_onboarding_status").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("stripe_onboarding_status, pwe_enabled, pwe_max_order_value, pwe_price_usd, pwe_stamp_price_usd").eq("id", user.id).maybeSingle(),
       supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", user.id),
       supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("live_streams").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }).limit(50),
