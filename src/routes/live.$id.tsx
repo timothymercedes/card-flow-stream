@@ -1921,7 +1921,7 @@ function LiveDetail() {
                   <span className="ml-1 rounded bg-primary/30 px-1.5 py-0.5 text-[9px] font-bold uppercase">Slot {Number((stream as any).quick_start_quantity || 1) - Number((stream as any).quick_start_remaining || 0)}/{Number((stream as any).quick_start_quantity || 1)}</span>
                 )}
               </div>
-            ) : (
+            ) : stream.mode === "show_off" ? null : (
               <div className="flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 shadow-md ring-1 ring-white/15 backdrop-blur">
                 {ended ? "Ended" : (stream.current_item ? "Ready" : "Auction not started")}
               </div>
