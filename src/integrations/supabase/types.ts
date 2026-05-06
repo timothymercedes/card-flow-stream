@@ -1678,6 +1678,59 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_cohost_tracks: {
+        Row: {
+          audio_track_name: string | null
+          avatar_url: string | null
+          created_at: string
+          id: string
+          is_audio_enabled: boolean
+          is_video_enabled: boolean
+          session_id: string
+          stream_id: string
+          updated_at: string
+          user_id: string
+          username: string
+          video_track_name: string | null
+        }
+        Insert: {
+          audio_track_name?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_audio_enabled?: boolean
+          is_video_enabled?: boolean
+          session_id: string
+          stream_id: string
+          updated_at?: string
+          user_id: string
+          username: string
+          video_track_name?: string | null
+        }
+        Update: {
+          audio_track_name?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_audio_enabled?: boolean
+          is_video_enabled?: boolean
+          session_id?: string
+          stream_id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+          video_track_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_cohost_tracks_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stream_collab_invites: {
         Row: {
           created_at: string
