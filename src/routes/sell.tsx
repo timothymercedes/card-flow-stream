@@ -12,6 +12,7 @@ import { notifyGoingLive } from "@/server/push.functions";
 import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
 import type { StreamType, TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
+import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
