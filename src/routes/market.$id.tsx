@@ -259,15 +259,42 @@ function ListingDetail() {
               )}
             </>
 
-          ) : (
-            <>
-              <div>
-                <p className="text-xs text-muted-foreground">Price</p>
-                <p className="text-2xl font-bold text-primary">${Number(listing.price || 0).toFixed(2)}</p>
-              </div>
-              {!isSeller && type === "buy_now" && <button onClick={buyNow} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Buy Now</button>}
-            </>
-          )}
+          ) : (() => {
+            const totalQty = Number(listing.quantity ?? 1);
+            const sold = Number(listing.sold_count ?? 0);
+            const available = Math.max(0, totalQty - sold);
+            const soldOut = available <= 0;
+            return (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  <p className="text-2xl font-bold text-primary">${Number(listing.price || 0).toFixed(2)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                    {soldOut ? <span className="text-destructive">Sold out</span> : `${available} available`}
+                  </p>
+                </div>
+                {!isSeller && type === "buy_now" && !soldOut && (
+                  <>
+                    {totalQty > 1 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Qty</span>
+                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="rounded-lg bg-muted px-3 py-1 text-sm font-bold">−</button>
+                        <span className="w-8 text-center text-sm font-bold">{qty}</span>
+                        <button onClick={() => setQty(Math.min(available, qty + 1))} className="rounded-lg bg-muted px-3 py-1 text-sm font-bold">+</button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={addToCart} className="flex-1 rounded-xl bg-muted py-3 text-sm font-bold">Add to Cart</button>
+                      <button onClick={buyNow} className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Buy Now</button>
+                    </div>
+                  </>
+                )}
+                {soldOut && !isSeller && (
+                  <div className="rounded-lg bg-muted/40 p-2 text-center text-xs text-muted-foreground">This listing is sold out.</div>
+                )}
+              </>
+            );
+          })()}
 
           {!isSeller && (type === "offer" || listing.accepts_offers) && (
             <div className="border-t border-border pt-3">
