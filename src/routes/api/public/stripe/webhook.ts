@@ -43,6 +43,13 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
             case "payment_intent.succeeded": {
               const pi: any = event.data.object;
               const orderId = pi.metadata?.order_id;
+              const tipId = pi.metadata?.tip_id;
+              if (tipId) {
+                await supabaseAdmin
+                  .from("stream_tips")
+                  .update({ status: "paid", paid_at: new Date().toISOString() })
+                  .eq("id", tipId);
+              }
               if (orderId) {
                 await supabaseAdmin
                   .from("orders")
