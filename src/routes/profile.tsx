@@ -184,22 +184,8 @@ function Profile() {
     toast.success("Avatar updated");
   }
 
-  async function uploadId(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file || !user) return;
-    setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/id-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("id-documents").upload(path, file, { upsert: true });
-    if (error) { setUploading(false); return toast.error(error.message); }
-    await supabase.from("profiles").update({ id_document_url: path, id_status: "pending" }).eq("id", user.id);
-    setP((x: any) => ({ ...x, id_document_url: path, id_status: "pending" }));
-    setUploading(false);
-    toast.success("ID submitted for review");
-  }
-
   async function applyToSell() {
     if (!user) return;
-    if (!p?.id_document_url) return toast.error("Upload your ID first");
     if (!p?.address_line1) return toast.error("Add your mailing address first");
     const confirmed = window.confirm(
       "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
