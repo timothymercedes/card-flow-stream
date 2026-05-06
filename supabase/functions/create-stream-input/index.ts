@@ -27,7 +27,25 @@ Deno.serve(async (req) => {
       return json({ error: "Cloudflare Stream is not configured yet." }, 503);
     }
 
-    const { meta_name } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const { meta_name, diagnose } = body || {};
+
+    if (diagnose) {
+      const verify = await fetch("https://api.cloudflare.com/client/v4/user/tokens/verify", {
+        headers: { "Authorization": `Bearer ${apiToken}` },
+      }).then(r => r.json()).catch(e => ({ error: String(e) }));
+      const accts = await fetch("https://api.cloudflare.com/client/v4/accounts", {
+        headers: { "Authorization": `Bearer ${apiToken}` },
+      }).then(r => r.json()).catch(e => ({ error: String(e) }));
+      return json({
+        configured_account_id: accountId,
+        account_id_length: accountId.length,
+        token_length: apiToken.length,
+        verify,
+        accounts_visible_to_token: (accts?.result || []).map((a: any) => ({ id: a.id, name: a.name })),
+        accounts_raw_errors: accts?.errors,
+      });
+    }
 
     const cf = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`,
