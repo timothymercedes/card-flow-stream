@@ -807,6 +807,10 @@ function LiveDetail() {
       nav({ to: "/auth" });
       return false;
     }
+    if (needsAcceptance) {
+      toast.error("Accept the required agreements before interacting");
+      return false;
+    }
     if (!buyerReady) {
       toast.error("Complete your shipping profile first");
       nav({ to: "/profile" });
@@ -856,6 +860,7 @@ function LiveDetail() {
 
     const { error } = await supabase.from("live_streams").update(update).eq("id", id);
     if (error) return toast.error(error.message);
+    safety.touch("auction_bid");
 
     if (extended) {
       endedRef.current = false;
@@ -899,6 +904,7 @@ function LiveDetail() {
       snipe_price: null,
     }).eq("id", id);
     if (error) return toast.error(error.message);
+    safety.touch("buy_now_snipe");
     endedRef.current = false; snapshotRef.current = false;
     await sendMsg(`💥 SNIPE! @${profile.username} hit Buy-Now for $${price} — instant win!`, true);
   }
