@@ -12,6 +12,7 @@ import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
+import { TipCheckout } from "@/components/TipCheckout";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
