@@ -6,8 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Sparkles, Lock, Globe, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
-import type { TcgTag } from "@/lib/streamTaxonomy";
-import { tcgTagMeta } from "@/lib/streamTaxonomy";
+import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/showoff")({
   head: () => ({ meta: [{ title: "Show Off — PullBid Live" }] }),
@@ -34,6 +33,7 @@ function ShowOff() {
   const [busy, setBusy] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
 
   useEffect(() => {
     if (!user) { setVerified(false); return; }
@@ -51,18 +51,19 @@ function ShowOff() {
     setTagRes(((data as any[]) || []).filter((u) => u.id !== user?.id && !tagged.find((t) => t.id === u.id)));
   }
 
-  async function startShowOff(tcgTags?: TcgTag[]) {
+  async function startShowOff(overrideTags?: TcgTag[]) {
     if (!user || !profile) return toast.error("Sign in first");
     if (!title.trim()) return toast.error("Add a title");
     if (!verified) return toast.error("Get verified by an admin to host live");
-    if (!tcgTags || tcgTags.length === 0) { setPickerOpen(true); return; }
+    const tags = overrideTags ?? tcgTags;
+    if (!tags || tags.length === 0) return toast.error("Pick at least one TCG tag");
     setBusy(true);
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user.id,
       title: title.trim(),
       mode: "show_off",
       stream_type: "show_off",
-      tcg_tags: tcgTags,
+      tcg_tags: tags,
       is_private: isPrivate,
       allow_collab_requests: !isPrivate,
       max_collab_count: 6,
@@ -128,6 +129,27 @@ function ShowOff() {
             className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none"
           />
 
+          <div>
+            <p className="mb-1.5 text-[11px] font-bold text-muted-foreground">
+              TCG / category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {TCG_TAGS.map((t) => {
+                const on = tcgTags.includes(t.value);
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    {t.emoji} {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -189,7 +211,7 @@ function ShowOff() {
 
           <button
             onClick={() => startShowOff()}
-            disabled={busy || !title.trim() || !verified}
+            disabled={busy || !title.trim() || !verified || tcgTags.length === 0}
             className="w-full rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 py-3 text-sm font-bold text-white disabled:opacity-50"
           >
             {busy ? "Starting…" : "🎉 Go Live (Show Off)"}
