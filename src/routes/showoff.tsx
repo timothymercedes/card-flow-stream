@@ -167,24 +167,25 @@ function ShowOff() {
             </p>
             <p className="text-[10px] text-muted-foreground">Helps viewers find your vibe.</p>
           </div>
-          <div>
-            <div className="flex flex-wrap gap-1.5">
-              {TCG_TAGS.map((t) => {
-                const on = tcgTags.includes(t.value);
-                return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                  >
-                    {t.emoji} {t.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TCG_TAGS.map((t) => {
+              const on = tcgTags.includes(t.value);
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                >
+                  {t.emoji} {t.label}
+                </button>
+              );
+            })}
           </div>
+        </div>
 
+        {/* ── Section 3: Privacy + collab ── */}
+        <div className="mb-5 space-y-3 rounded-2xl bg-card p-4">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
