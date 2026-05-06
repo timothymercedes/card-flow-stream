@@ -203,6 +203,7 @@ function Home() {
         </div>
       </Section>
 
+      <Section title="🛒 Hot Market" to="/market">
         <div className="grid grid-cols-2 gap-3 px-4">
           {listings.length === 0 && <EmptyMini text="No listings yet" />}
           {listings.map((l) => (
