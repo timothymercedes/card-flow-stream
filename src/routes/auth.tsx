@@ -143,8 +143,24 @@ function Auth() {
             I want to sell & host live auctions
           </label>
         )}
-        <button disabled={loading || (mode === "signup" && usernameOk === false)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
-          {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Terms & Sign Up"}
+        {mode === "signup" && (
+          <div className="space-y-2 rounded-xl border border-border bg-card/40 p-3 text-[12px]">
+            <label className="flex items-start gap-2">
+              <input type="checkbox" checked={ageOk} onChange={(e) => setAgeOk(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
+              <span>I confirm I am <strong>18 years or older</strong> (or the age of majority where I live).</span>
+            </label>
+            <label className="flex items-start gap-2">
+              <input type="checkbox" checked={tosOk} onChange={(e) => setTosOk(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
+              <span>I agree to the <a href="/legal/tos" target="_blank" className="text-primary underline">Terms of Service</a> and <a href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</a>.</span>
+            </label>
+            <label className="flex items-start gap-2">
+              <input type="checkbox" checked={guidelinesOk} onChange={(e) => setGuidelinesOk(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
+              <span>I agree to follow the <a href="/legal/community-guidelines" target="_blank" className="text-primary underline">Community Guidelines</a>.</span>
+            </label>
+          </div>
+        )}
+        <button disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
+          {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Buyer Terms & Sign Up"}
         </button>
         {mode === "signup" && (
           <p className="text-center text-[11px] text-muted-foreground">
