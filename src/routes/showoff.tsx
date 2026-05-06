@@ -63,6 +63,13 @@ function ShowOff() {
     if (!verified) return toast.error("Get verified by an admin to host live");
     const tags = overrideTags ?? tcgTags;
     if (!tags || tags.length === 0) return toast.error("Pick at least one TCG tag");
+    // Block if host already has an open stream
+    const { data: openStream } = await supabase.from("live_streams")
+      .select("id, mode").eq("seller_id", user.id).in("status", ["live", "paused"]).maybeSingle();
+    if (openStream) {
+      toast.error(`You already have an open ${openStream.mode === "show_off" ? "Flex" : "auction"} — end it first`);
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user.id,

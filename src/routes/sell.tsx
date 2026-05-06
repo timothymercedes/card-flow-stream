@@ -133,6 +133,13 @@ function Sell() {
   async function startLive(meta?: { stream_type: StreamType; tcg_tags: TcgTag[] }) {
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!meta) { setPickerOpen(true); return; }
+    // Block if host already has an open (live or paused) stream
+    const { data: openStream } = await supabase.from("live_streams")
+      .select("id, mode, status").eq("seller_id", user!.id).in("status", ["live", "paused"]).maybeSingle();
+    if (openStream) {
+      toast.error(`You already have an open ${openStream.mode === "show_off" ? "Flex" : "live"} — end it first`);
+      return;
+    }
     await ensureSeller();
     // Timer never starts on go-live — only starts when seller hits "Start Auction" inside the live page
     const ends_at: string | null = null;
