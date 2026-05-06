@@ -1818,7 +1818,7 @@ function LiveDetail() {
               <Megaphone className="h-4 w-4" />
             </button>
           )}
-          {isStaff && !ended && (
+          {isStaff && !ended && stream.mode !== "show_off" && (
             <button onClick={() => setShowModPanel((v) => !v)} className="relative rounded-full bg-primary/80 p-2 backdrop-blur" title="Mod panel">
               <Shield className="h-4 w-4" />
               {modChat.length > 0 && (
