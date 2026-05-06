@@ -2630,7 +2630,9 @@ function LiveDetail() {
             {stream.winner_id ? `Sold to @${stream.winner_username || "buyer"} for $${Number(stream.winning_bid || 0).toFixed(2)}` : "Live ended"}
           </div>
         )}
+        </>)}
 
+        {/* Chat input — always visible in BOTH flex and auction modes */}
         <form onSubmit={handleSend} className="relative flex gap-2">
           {tagOpen && tagResults.length > 0 && (
             <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
@@ -2658,7 +2660,6 @@ function LiveDetail() {
           />
           <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
-        </>)}
       </div>
 
       {/* End Live confirmation — pause for 3h or end for good */}
