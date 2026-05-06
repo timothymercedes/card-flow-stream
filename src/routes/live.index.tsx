@@ -10,7 +10,7 @@ import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
-type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string };
+type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null };
 type Show = {
   id: string; seller_id: string; seller_username: string; title: string;
   description: string | null; thumbnail_url: string | null; category: string | null;
