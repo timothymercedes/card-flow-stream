@@ -45,6 +45,13 @@ function Cart() {
     load();
   }
 
+  async function removeItem(orderId: string) {
+    const { error } = await supabase.from("orders").delete().eq("id", orderId).eq("payment_status", "awaiting_payment");
+    if (error) return toast.error(error.message);
+    toast.success("Removed");
+    load();
+  }
+
   if (!user) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
