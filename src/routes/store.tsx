@@ -417,22 +417,37 @@ function SellerHub() {
                               {ratesLoading[o.id] ? "Loading..." : (rates[o.id] ? "Refresh" : "Get Rates")}
                             </button>
                           </div>
-                          <div className="mt-2 grid grid-cols-3 gap-1">
-                            {(Object.keys(SHIPPING_PRESETS) as ShippingPresetKey[]).map((k) => {
-                              const p = SHIPPING_PRESETS[k];
-                              const active = (preset[o.id] ?? suggestPreset({ category: o.category, quantity: o.quantity, title: o.title })) === k;
-                              return (
-                                <button
-                                  key={k}
-                                  onClick={() => { setPreset((s) => ({ ...s, [o.id]: k })); setRates((s) => ({ ...s, [o.id]: [] })); }}
-                                  className={`rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
-                                  title={p.description}
-                                >
-                                  {p.label}
-                                  <div className="text-[9px] opacity-75">{p.flatRate ? "untracked" : `${p.weightOz}oz`}</div>
-                                </button>
-                              );
-                            })}
+                          <div className="mt-2 grid grid-cols-4 gap-1">
+                            {(Object.keys(SHIPPING_PRESETS) as ShippingPresetKey[])
+                              .filter((k) => {
+                                const p = SHIPPING_PRESETS[k];
+                                if (!p.untracked) return true;
+                                if (!pweSettings.enabled) return false;
+                                // Auto-upgrade: hide untracked if order value above cap
+                                return Number(o.amount || 0) <= pweSettings.max;
+                              })
+                              .map((k) => {
+                                const p = SHIPPING_PRESETS[k];
+                                const active = (preset[o.id] ?? suggestPreset({
+                                  category: o.category, quantity: o.quantity, title: o.title,
+                                  orderValueUsd: Number(o.amount || 0),
+                                  pweEnabled: pweSettings.enabled, pweMaxOrderValue: pweSettings.max,
+                                })) === k;
+                                const flatPrice = k === "stamp" ? pweSettings.stamp : pweSettings.price;
+                                return (
+                                  <button
+                                    key={k}
+                                    onClick={() => { setPreset((s) => ({ ...s, [o.id]: k })); setRates((s) => ({ ...s, [o.id]: [] })); }}
+                                    className={`rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                                    title={p.description}
+                                  >
+                                    {p.label}
+                                    <div className="text-[9px] opacity-75">
+                                      {p.flatRate ? `~$${flatPrice.toFixed(2)} · untracked` : `${p.weightOz}oz · tracked`}
+                                    </div>
+                                  </button>
+                                );
+                              })}
                           </div>
                           {rates[o.id]?.length > 0 && (
                             <div className="mt-2 space-y-1">
