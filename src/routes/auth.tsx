@@ -81,6 +81,9 @@ function Auth() {
     if (mode === "signup") {
       if (usernameOk === false) return toast.error("Username already taken");
       if (!email || !password) return toast.error("Email and password required");
+      if (!ageOk) return toast.error("You must confirm you are 18 or older");
+      if (!tosOk) return toast.error("You must agree to the Terms & Privacy Policy");
+      if (!guidelinesOk) return toast.error("You must agree to the Community Guidelines");
       setShowTerms(true);
       return;
     }
