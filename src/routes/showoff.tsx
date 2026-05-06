@@ -33,7 +33,7 @@ function ShowOff() {
   const [tagged, setTagged] = useState<{ id: string; username: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // category is selected inline via TCG tag chips below — no separate popup
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
   const { triggerOnce } = useTour();
   useEffect(() => { triggerOnce("flex-welcome"); }, [triggerOnce]);
