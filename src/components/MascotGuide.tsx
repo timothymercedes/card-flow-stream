@@ -84,11 +84,12 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
 
 function MascotBubble({
   tour, step, minimized,
-  onMinimize, onMaximize, onPrev, onNext, onSkip,
+  onMinimize, onMaximize, onPrev, onNext, onSkipTemp, onDontShow,
 }: {
   tour: Tour; step: number; minimized: boolean;
   onMinimize: () => void; onMaximize: () => void;
-  onPrev: () => void; onNext: () => void; onSkip: () => void;
+  onPrev: () => void; onNext: () => void;
+  onSkipTemp: () => void; onDontShow: () => void;
 }) {
   const m = MASCOTS[tour.mascot];
   const s = tour.steps[step];
