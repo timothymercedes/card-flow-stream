@@ -2561,16 +2561,30 @@ function LiveDetail() {
         {isSeller && paused && (
           <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
             <p className="text-center text-[11px] font-bold text-amber-200">
-              ⏸️ Live paused {pauseExpired ? "— window expired" : `· ${Math.floor(pauseMsLeft / 60000)}m ${Math.floor((pauseMsLeft % 60000) / 1000)}s left`}
+              ⏸️ Paused {pauseExpired ? "— window expired" : `· ${Math.floor(pauseMsLeft / 60000)}m ${Math.floor((pauseMsLeft % 60000) / 1000)}s left`}
             </p>
+            {(stream as any).pause_message && (
+              <p className="rounded-md bg-black/30 p-2 text-center text-[11px] italic text-amber-100">"{(stream as any).pause_message}"</p>
+            )}
             <div className="flex gap-1.5">
               <button onClick={resumeLive} disabled={pauseExpired} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-[12px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
-                <Play className="h-3.5 w-3.5" /> Resume Live
+                <Play className="h-3.5 w-3.5" /> Resume
               </button>
               <button onClick={confirmEndLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-3 py-2 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
                 <Square className="h-3 w-3" /> End for good
               </button>
             </div>
+          </div>
+        )}
+        {!isSeller && paused && !pauseExpired && (
+          <div className="space-y-1.5 rounded-xl bg-amber-500/15 p-3 text-center ring-1 ring-amber-400/40 backdrop-blur">
+            <p className="text-xs font-extrabold text-amber-100">⏸️ Host is on a quick break</p>
+            <p className="text-[11px] tabular-nums text-amber-200">
+              Back within {Math.floor(pauseMsLeft / 3600000)}h {Math.floor((pauseMsLeft % 3600000) / 60000)}m {Math.floor((pauseMsLeft % 60000) / 1000)}s
+            </p>
+            {(stream as any).pause_message && (
+              <p className="rounded-md bg-black/30 p-2 text-[11px] italic text-amber-100">"{(stream as any).pause_message}"</p>
+            )}
           </div>
         )}
         {isSeller && !ended && !paused && (
