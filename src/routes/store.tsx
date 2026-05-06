@@ -332,14 +332,41 @@ function MyStore() {
                           {ratesLoading[o.id] ? "Loading..." : (rates[o.id] ? "Refresh" : "Get Rates")}
                         </button>
                       </div>
+                      <div className="mt-2 grid grid-cols-3 gap-1">
+                        {(Object.keys(SHIPPING_PRESETS) as ShippingPresetKey[]).map((k) => {
+                          const p = SHIPPING_PRESETS[k];
+                          const active = (preset[o.id] ?? suggestPreset({ category: o.category, quantity: o.quantity, title: o.title })) === k;
+                          return (
+                            <button
+                              key={k}
+                              onClick={() => setPreset((s) => ({ ...s, [o.id]: k }))}
+                              className={`rounded-md px-1.5 py-1 text-[10px] font-semibold leading-tight ${active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}
+                              title={p.description}
+                            >
+                              {p.label}
+                              <div className="text-[9px] opacity-75">{p.weightOz}oz</div>
+                            </button>
+                          );
+                        })}
+                      </div>
                       {rates[o.id]?.length > 0 && (
                         <div className="mt-2 space-y-1">
-                          {rates[o.id].slice(0, 5).map((r: any) => (
-                            <button key={r.objectId} onClick={() => buyLabel(o, r.objectId)} className="flex w-full items-center justify-between rounded-md bg-card px-2 py-1.5 text-left text-[11px] hover:bg-muted">
-                              <span className="font-semibold">{r.provider} · {r.service}</span>
-                              <span className="font-bold text-primary">${r.amount}{r.days ? ` · ${r.days}d` : ""}</span>
-                            </button>
-                          ))}
+                          {rates[o.id].slice(0, 6).map((r: any) => {
+                            const isRec = recommended[o.id] === r.objectId;
+                            return (
+                              <button
+                                key={r.objectId}
+                                onClick={() => buyLabel(o, r.objectId)}
+                                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-[11px] ${isRec ? "border border-primary bg-primary/15" : "bg-card hover:bg-muted"}`}
+                              >
+                                <span className="font-semibold">
+                                  {isRec && <span className="mr-1 rounded bg-primary px-1 py-0.5 text-[9px] font-bold text-primary-foreground">CHEAPEST</span>}
+                                  {r.provider} · {r.service}
+                                </span>
+                                <span className="font-bold text-primary">${r.amount}{r.days ? ` · ${r.days}d` : ""}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                       {labelUrls[o.id] && (
