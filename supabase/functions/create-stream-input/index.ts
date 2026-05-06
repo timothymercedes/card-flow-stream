@@ -6,16 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const normalizeSecret = (value: string | undefined) => {
+  const trimmed = value?.trim().replace(/^['"]|['"]$/g, "") ?? "";
+  return trimmed.replace(/^Bearer\s+/i, "").trim();
+};
+
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-    const apiToken = Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN");
+    const accountId = normalizeSecret(Deno.env.get("CLOUDFLARE_ACCOUNT_ID"));
+    const apiToken = normalizeSecret(Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN"));
     if (!accountId || !apiToken) {
-      return new Response(JSON.stringify({ error: "Cloudflare Stream not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Cloudflare Stream is not configured yet." }, 503);
     }
 
     const { meta_name } = await req.json().catch(() => ({}));
@@ -38,9 +47,16 @@ Deno.serve(async (req) => {
 
     const data = await cf.json();
     if (!cf.ok || !data.success) {
-      return new Response(JSON.stringify({ error: "Cloudflare error", details: data }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const code = data?.errors?.[0]?.code;
+      const isAuthFailure = cf.status === 400 && code === 9106;
+      return json({
+        error: isAuthFailure
+          ? "Cloudflare Stream authentication failed. Check the account ID and Stream API token."
+          : "Cloudflare Stream could not create a live input.",
+        providerStatus: cf.status,
+        providerCode: code ?? null,
+        details: data?.errors ?? data,
+      }, isAuthFailure ? 401 : 502);
     }
 
     const r = data.result;
@@ -58,16 +74,14 @@ Deno.serve(async (req) => {
     // HLS playback (works as soon as broadcaster goes live)
     const hls_url = `https://customer-${accountId}.cloudflarestream.com/${live_input_id}/manifest/video.m3u8`;
 
-    return new Response(JSON.stringify({
+    return json({
       live_input_id,
       rtmps_url,
       stream_key,
       hls_url,
       whip_url,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  } catch (e) {
+    return json({ error: String(e) }, 500);
   }
 });
