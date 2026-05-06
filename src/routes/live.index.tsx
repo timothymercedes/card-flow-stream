@@ -59,6 +59,8 @@ function LiveList() {
   const [days, setDays] = useState<number[]>([]);
   // Filters
   const [catFilter, setCatFilter] = useState<string>("all");
+  const [tcgFilter, setTcgFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewerBucket, setViewerBucket] = useState<ViewerBucket>("any");
 
   async function load() {
