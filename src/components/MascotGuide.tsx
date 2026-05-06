@@ -128,7 +128,7 @@ function MascotBubble({
               <button onClick={onMinimize} aria-label="Minimize" className="rounded-full p-1 text-muted-foreground hover:bg-muted">
                 <Minimize2 className="h-3.5 w-3.5" />
               </button>
-              <button onClick={onSkip} aria-label="Close" className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+              <button onClick={onSkipTemp} aria-label="Close" className="rounded-full p-1 text-muted-foreground hover:bg-muted">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
