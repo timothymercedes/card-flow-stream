@@ -178,11 +178,17 @@ export function HelpBubble() {
     if (error) toast.error(error.message);
   }
 
-  const guides = [
-    { id: "buyer-welcome", mascotId: "buyer" as const, title: "Buyer guide", desc: "Bid, buy, ship, follow." },
-    { id: "seller-welcome", mascotId: "seller" as const, title: "Seller guide", desc: "Live, OBS, shipping, payouts." },
-    { id: "flex-welcome", mascotId: "flex" as const, title: "Flex Live guide", desc: "Collabs, safety, social." },
+  // Replay menu — filtered by audience so buyers don't see seller tours and vice versa.
+  const allGuides = [
+    { id: "buyer-welcome",       mascotId: "buyer"  as const, title: "Buyer guide",        desc: "Bid, buy, ship, follow.",        forSeller: false },
+    { id: "auction-live-screen", mascotId: "buyer"  as const, title: "Live auction guide", desc: "Bidding, snipes, timers.",       forSeller: false },
+    { id: "seller-welcome",      mascotId: "seller" as const, title: "Seller guide",       desc: "Live, OBS, shipping, payouts.",  forSeller: true  },
+    { id: "seller-first-stream", mascotId: "seller" as const, title: "First stream walkthrough", desc: "Scan, auction controls, voice.", forSeller: true  },
+    { id: "obs-connect",         mascotId: "seller" as const, title: "OBS setup guide",    desc: "Stream key, RTMPS, encode.",     forSeller: true  },
+    { id: "flex-welcome",        mascotId: "flex"   as const, title: "Flex Live guide",    desc: "Collabs, safety, social.",       forSeller: true  },
+    { id: "flex-live-screen",    mascotId: "flex"   as const, title: "Flex room tour",     desc: "Reactions, collab tab.",         forSeller: false },
   ];
+  const guides = allGuides.filter((g) => isSeller ? g.forSeller : !g.forSeller);
 
   const escalateButtons: { cat: TicketCategory; label: string; icon: any; tone: string }[] = [
     { cat: "moderator", label: "Message Moderator", icon: Shield, tone: "bg-emerald-600/15 text-emerald-300 border-emerald-500/30" },
