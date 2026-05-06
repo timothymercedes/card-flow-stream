@@ -501,12 +501,6 @@ function Sell() {
       {scanning && (
         <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
       )}
-      <StreamCategoryPicker
-        open={pickerOpen}
-        onCancel={() => setPickerOpen(false)}
-        onConfirm={(v) => { setPickerOpen(false); startLive(v); }}
-      />
-    </AppShell>
     </SellerAgreementGate>
   );
 }
