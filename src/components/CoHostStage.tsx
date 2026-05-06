@@ -36,17 +36,19 @@ export function CoHostStage({
             <Tile key={r.userId} stream={r.stream} label={`@${r.username}`} muted={false} videoOn={r.videoEnabled} audioOn={r.audioEnabled} />
           ))}
         </div>
-        <div className="mt-2 flex items-center justify-center gap-2">
-          <button onClick={onToggleAudio} className={`rounded-full p-2 ${audioOn ? "bg-white/10" : "bg-destructive/80"}`} title={audioOn ? "Mute" : "Unmute"}>
-            {audioOn ? <Mic className="h-4 w-4 text-white" /> : <MicOff className="h-4 w-4 text-white" />}
-          </button>
-          <button onClick={onToggleVideo} className={`rounded-full p-2 ${videoOn ? "bg-white/10" : "bg-destructive/80"}`} title={videoOn ? "Camera off" : "Camera on"}>
-            {videoOn ? <Video className="h-4 w-4 text-white" /> : <VideoOff className="h-4 w-4 text-white" />}
-          </button>
-          <button onClick={onLeave} className="rounded-full bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground" title="Leave call">
-            <X className="inline h-3 w-3" /> Leave
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <button onClick={onToggleAudio} className={`rounded-full p-2 ${audioOn ? "bg-white/10" : "bg-destructive/80"}`} title={audioOn ? "Mute" : "Unmute"}>
+              {audioOn ? <Mic className="h-4 w-4 text-white" /> : <MicOff className="h-4 w-4 text-white" />}
+            </button>
+            <button onClick={onToggleVideo} className={`rounded-full p-2 ${videoOn ? "bg-white/10" : "bg-destructive/80"}`} title={videoOn ? "Camera off" : "Camera on"}>
+              {videoOn ? <Video className="h-4 w-4 text-white" /> : <VideoOff className="h-4 w-4 text-white" />}
+            </button>
+            <button onClick={onLeave} className="rounded-full bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground" title="Leave call">
+              <X className="inline h-3 w-3" /> Leave
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
