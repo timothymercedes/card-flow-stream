@@ -1,7 +1,31 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
 import { getStripe, calculateFees } from "@/lib/stripe.server";
+import type { Database } from "@/integrations/supabase/types";
+
+async function getOptionalUserIdFromRequest() {
+  try {
+    const request = getRequest();
+    const authHeader = request.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+
+    if (!token || !url || !key) return null;
+
+    const supabase = createClient<Database>(url, key, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase.auth.getClaims(token);
+    return error ? null : (data.claims?.sub ?? null);
+  } catch (error) {
+    console.error("Optional Connect status auth failed", error);
+    return null;
+  }
+}
 
 export const getStripePublishableKey = createServerFn({ method: "GET" }).handler(async () => {
   const key = process.env.STRIPE_PUBLISHABLE_KEY;
@@ -104,17 +128,23 @@ export const syncConnectAccountStatus = createServerFn({ method: "POST" })
 /**
  * Get the seller's current Connect status from our database.
  */
-export const getMyConnectStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { userId } = context;
-    const { data } = await supabaseAdmin
+export const getMyConnectStatus = createServerFn({ method: "GET" }).handler(async () => {
+  const userId = await getOptionalUserIdFromRequest();
+  if (!userId) return null;
+
+  try {
+    const { data, error } = await supabaseAdmin
       .from("stripe_accounts")
       .select("stripe_account_id, charges_enabled, payouts_enabled, details_submitted, deliveries_count")
       .eq("seller_id", userId)
       .maybeSingle();
+    if (error) throw error;
     return data ?? null;
-  });
+  } catch (error) {
+    console.error("getMyConnectStatus failed", error);
+    return null;
+  }
+});
 
 /**
  * Create a marketplace PaymentIntent for a buyer purchasing from a seller.
