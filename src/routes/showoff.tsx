@@ -33,6 +33,7 @@ function ShowOff() {
   const [tagged, setTagged] = useState<{ id: string; username: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!user) { setVerified(false); return; }
