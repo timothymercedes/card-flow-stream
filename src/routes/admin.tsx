@@ -34,7 +34,8 @@ function Admin() {
   const { user } = useAuth();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
+  const [tab, setTab] = useState<"reports" | "support" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
+  const [openSupport, setOpenSupport] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
