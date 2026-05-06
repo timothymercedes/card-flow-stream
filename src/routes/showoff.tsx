@@ -144,36 +144,48 @@ function ShowOff() {
           </div>
         )}
 
-        <div className="mb-5 space-y-3 rounded-2xl bg-card p-4">
+        {/* ── Section 1: Title ── */}
+        <div className="mb-3 space-y-2 rounded-2xl bg-card p-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Stream title</p>
+            <p className="text-[10px] text-muted-foreground">Be specific — viewers see this in the live feed.</p>
+          </div>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Stream title — e.g. 'Friday night PSA reveal'"
+            placeholder="e.g. 'Friday night PSA reveal'"
             maxLength={80}
             className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none"
           />
+        </div>
 
+        {/* ── Section 2: TCG tags ── */}
+        <div className="mb-3 space-y-2 rounded-2xl bg-card p-4">
           <div>
-            <p className="mb-1.5 text-[11px] font-bold text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               TCG / category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {TCG_TAGS.map((t) => {
-                const on = tcgTags.includes(t.value);
-                return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                  >
-                    {t.emoji} {t.label}
-                  </button>
-                );
-              })}
-            </div>
+            <p className="text-[10px] text-muted-foreground">Helps viewers find your vibe.</p>
           </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TCG_TAGS.map((t) => {
+              const on = tcgTags.includes(t.value);
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                >
+                  {t.emoji} {t.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
+        {/* ── Section 3: Privacy + collab ── */}
+        <div className="mb-5 space-y-3 rounded-2xl bg-card p-4">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"

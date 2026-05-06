@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { CardScanner } from "@/components/CardScanner";
-import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import { Camera, Radio } from "lucide-react";
@@ -445,8 +445,8 @@ function Sell() {
               <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="# (e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <ListingImageUpload value={imageUrl} onChange={setImageUrl} label="Front photo *" />
-              <ListingImageUpload value={backImageUrl} onChange={setBackImageUrl} label="Back photo *" />
+              <ListingPhotoCapture value={imageUrl} onChange={setImageUrl} label="Front photo * (camera only)" />
+              <ListingPhotoCapture value={backImageUrl} onChange={setBackImageUrl} label="Back photo * (camera only)" />
             </div>
             <label className="block">
               <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Category *</p>
