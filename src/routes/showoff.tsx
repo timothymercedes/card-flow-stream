@@ -9,7 +9,7 @@ import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/showoff")({
-  head: () => ({ meta: [{ title: "Show Off — PullBid Live" }] }),
+  head: () => ({ meta: [{ title: "Flex Live — PullBid Live" }] }),
   component: ShowOff,
 });
 
@@ -84,7 +84,7 @@ function ShowOff() {
       await supabase.from("notifications").insert(
         tagged.map((t) => ({
           user_id: t.id, type: "collab_invite",
-          body: `✨ @${profile.username} invited you to a Show Off live`,
+          body: `✨ @${profile.username} invited you to a Flex Live`,
           link: `/live/${data.id}`,
         }))
       );
@@ -96,8 +96,8 @@ function ShowOff() {
     return (
       <AppShell>
         <div className="px-6 py-16 text-center">
-          <h1 className="text-xl font-bold">Show Off your collection</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Sign in to start a casual show-off live.</p>
+          <h1 className="text-xl font-bold">Flex Live your collection</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to start a casual Flex Live.</p>
           <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Sign In</Link>
         </div>
       </AppShell>
@@ -109,14 +109,14 @@ function ShowOff() {
       <div className="px-4 py-4">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-fuchsia-400" />
-          <h1 className="text-2xl font-bold">Show Off</h1>
+          <h1 className="text-2xl font-bold">Flex Live</h1>
         </div>
         <p className="mb-4 text-xs text-muted-foreground">Casual collector hangouts — no selling, just vibes. Talk cards, show pulls, collab with friends.</p>
 
         {verified === false && (
           <div className="mb-4 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-xs">
             <p className="font-bold text-amber-300">Verification required</p>
-            <p className="mt-1 text-muted-foreground">An admin needs to verify your account before you can host or join Show Off lives. (Gov ID + selfie verification coming soon.)</p>
+            <p className="mt-1 text-muted-foreground">An admin needs to verify your account before you can host or join Flex Lives. (Gov ID + selfie verification coming soon.)</p>
           </div>
         )}
 
@@ -214,12 +214,12 @@ function ShowOff() {
             disabled={busy || !title.trim() || !verified || tcgTags.length === 0}
             className="w-full rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 py-3 text-sm font-bold text-white disabled:opacity-50"
           >
-            {busy ? "Starting…" : "🎉 Go Live (Show Off)"}
+            {busy ? "Starting…" : "🎉 Go Flex Live"}
           </button>
         </div>
 
         <h2 className="mb-2 text-sm font-bold">Live now</h2>
-        {streams.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No Show Off lives right now.</p>}
+        {streams.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No Flex Lives right now.</p>}
         <div className="grid grid-cols-2 gap-3">
           {streams.map((s) => (
             <Link key={s.id} to="/live/$id" params={{ id: s.id }}>
