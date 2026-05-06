@@ -81,7 +81,6 @@ Deno.serve(async (req) => {
       width: v?.width ?? null,
       height: v?.height ?? null,
       droppedFrames: result?.droppedFrames ?? null,
-      raw: result,
     });
   } catch (e) {
     return json({ error: String(e) }, 500);
