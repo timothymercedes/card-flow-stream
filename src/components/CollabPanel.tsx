@@ -9,7 +9,7 @@ type Invite = { id: string; invitee_id: string; invitee_username: string; status
 type JoinReq = { id: string; requester_id: string; requester_username: string; requester_avatar_url: string | null; status: string; created_at: string };
 
 export function CollabPanel({
-  streamId, hostId, hostUsername, currentUserId, isHost, allowRequests, onClose,
+  streamId, hostId, hostUsername, currentUserId, isHost, allowRequests, onClose, maxParticipants = 4,
 }: {
   streamId: string;
   hostId: string;
@@ -18,6 +18,7 @@ export function CollabPanel({
   isHost: boolean;
   allowRequests: boolean;
   onClose: () => void;
+  maxParticipants?: number;
 }) {
   const [tab, setTab] = useState<"invite" | "requests" | "participants">(isHost ? "invite" : "participants");
   const [q, setQ] = useState("");
@@ -148,7 +149,7 @@ export function CollabPanel({
   }
 
   const pendingReqs = joinReqs.filter((r) => r.status === "pending");
-  const MAX = 4;
+  const MAX = maxParticipants;
   const atMax = participants.length >= MAX;
 
   return (
