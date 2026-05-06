@@ -50,8 +50,8 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
     startTour(id);
   }, [hasSeen, startTour]);
 
-  const close = useCallback((completed: boolean) => {
-    if (active) markSeen(active.id);
+  const close = useCallback((persist: boolean) => {
+    if (persist && active) markSeen(active.id);
     setActive(null);
     setStep(0);
     setMinimized(false);
@@ -74,7 +74,8 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
             if (step >= active.steps.length - 1) close(true);
             else setStep((s) => s + 1);
           }}
-          onSkip={() => close(false)}
+          onSkipTemp={() => close(false)}
+          onDontShow={() => close(true)}
         />
       )}
     </TourCtx.Provider>
