@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy } from "lucide-react";
+import { SupportInbox } from "@/components/admin/SupportInbox";
 
 type Role = "owner" | "admin" | "moderator" | "support";
 const ROLE_BADGES: Record<Role, string> = {
@@ -33,7 +34,8 @@ function Admin() {
   const { user } = useAuth();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
+  const [tab, setTab] = useState<"reports" | "support" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
+  const [openSupport, setOpenSupport] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
@@ -100,6 +102,21 @@ function Admin() {
   }
 
   useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
+  useEffect(() => {
+    if (!canViewAdmin) return;
+    const refresh = async () => {
+      const { count } = await supabase
+        .from("support_tickets")
+        .select("id", { head: true, count: "exact" })
+        .in("status", ["open", "pending"]);
+      setOpenSupport(count || 0);
+    };
+    refresh();
+    const ch = supabase.channel("admin-support-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [canViewAdmin]);
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
   useEffect(() => {
@@ -242,6 +259,9 @@ function Admin() {
         )}
         <div className="flex flex-wrap gap-2 border-b border-border">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
+          <button onClick={() => setTab("support")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "support" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
+            <LifeBuoy className="h-3.5 w-3.5" /> Support ({openSupport})
+          </button>
           <button onClick={() => setTab("orders")} className={`pb-2 text-xs font-bold ${tab === "orders" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Orders</button>
           <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
           {isAdmin && <button onClick={() => setTab("users")} className={`pb-2 text-xs font-bold ${tab === "users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Users</button>}
@@ -299,6 +319,8 @@ function Admin() {
             </div>
           );
         })()}
+
+        {tab === "support" && <SupportInbox canModerate={isAdmin || myRoles.includes("moderator")} />}
 
         {tab === "orders" && (
           <div className="space-y-2">
