@@ -36,6 +36,7 @@ import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as LegalTosRouteImport } from './routes/legal.tos'
 import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-agreement'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
@@ -175,6 +176,12 @@ const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalCommunityGuidelinesRoute =
+  LegalCommunityGuidelinesRouteImport.update({
+    id: '/legal/community-guidelines',
+    path: '/legal/community-guidelines',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
   id: '/legal/buyer-terms',
   path: '/legal/buyer-terms',
@@ -211,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
   '/legal/tos': typeof LegalTosRoute
@@ -243,6 +251,7 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
   '/legal/tos': typeof LegalTosRoute
@@ -276,6 +285,7 @@ export interface FileRoutesById {
   '/stories': typeof StoriesRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
+  '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
   '/legal/tos': typeof LegalTosRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/vault'
     | '/legal/buyer-terms'
+    | '/legal/community-guidelines'
     | '/legal/privacy'
     | '/legal/seller-agreement'
     | '/legal/tos'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/vault'
     | '/legal/buyer-terms'
+    | '/legal/community-guidelines'
     | '/legal/privacy'
     | '/legal/seller-agreement'
     | '/legal/tos'
@@ -374,6 +386,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/vault'
     | '/legal/buyer-terms'
+    | '/legal/community-guidelines'
     | '/legal/privacy'
     | '/legal/seller-agreement'
     | '/legal/tos'
@@ -407,6 +420,7 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   VaultRoute: typeof VaultRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
+  LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalSellerAgreementRoute: typeof LegalSellerAgreementRoute
   LegalTosRoute: typeof LegalTosRoute
@@ -612,6 +626,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/community-guidelines': {
+      id: '/legal/community-guidelines'
+      path: '/legal/community-guidelines'
+      fullPath: '/legal/community-guidelines'
+      preLoaderRoute: typeof LegalCommunityGuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/buyer-terms': {
       id: '/legal/buyer-terms'
       path: '/legal/buyer-terms'
@@ -655,6 +676,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   VaultRoute: VaultRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
+  LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalSellerAgreementRoute: LegalSellerAgreementRoute,
   LegalTosRoute: LegalTosRoute,
