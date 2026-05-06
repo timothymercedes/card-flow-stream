@@ -24,6 +24,8 @@ import { CollabPanel } from "@/components/CollabPanel";
 import { ViewerListModal } from "@/components/ViewerListModal";
 import { Users2 } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
+import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
+import { CoHostStage } from "@/components/CoHostStage";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
