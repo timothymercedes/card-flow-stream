@@ -106,6 +106,8 @@ function Auth() {
         { user_id: uid, document_type: "tos", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
         { user_id: uid, document_type: "privacy", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
         { user_id: uid, document_type: "buyer_terms", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
+        { user_id: uid, document_type: "community_guidelines", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
+        { user_id: uid, document_type: "age_18_plus", version: "1.0", user_agent: navigator.userAgent.slice(0, 200) },
       ]);
     }
     setLoading(false);
