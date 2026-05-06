@@ -45,6 +45,13 @@ function Cart() {
     load();
   }
 
+  async function removeItem(orderId: string) {
+    const { error } = await supabase.from("orders").delete().eq("id", orderId).eq("payment_status", "awaiting_payment");
+    if (error) return toast.error(error.message);
+    toast.success("Removed");
+    load();
+  }
+
   if (!user) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
@@ -57,7 +64,7 @@ function Cart() {
 
   const checkoutItems = checkoutSeller ? groups[checkoutSeller] || [] : [];
   const checkoutSubtotal = checkoutItems.reduce((a, o) => a + Number(o.amount || 0), 0);
-  const checkoutOrderId = checkoutItems[0]?.id;
+  const checkoutOrderIds = checkoutItems.map((o) => o.id);
 
   return (
     <AppShell>
@@ -88,8 +95,14 @@ function Cart() {
                       {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-12 w-12 shrink-0 rounded object-cover" />}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold">{o.title}</p>
-                        <p className="text-[11px] text-muted-foreground">${Number(o.amount).toFixed(2)}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {(o.quantity ?? 1) > 1 && <span>Qty {o.quantity} · </span>}
+                          ${Number(o.amount).toFixed(2)}
+                        </p>
                       </div>
+                      <button onClick={() => removeItem(o.id)} className="rounded-full p-1.5 hover:bg-muted" aria-label="Remove">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -113,7 +126,7 @@ function Cart() {
               <StripeCheckout
                 sellerId={checkoutSeller}
                 subtotalCents={Math.round(checkoutSubtotal * 100)}
-                orderId={checkoutOrderId}
+                orderIds={checkoutOrderIds}
                 onSuccess={() => handlePaymentSuccess(checkoutSeller)}
               />
             </div>

@@ -167,6 +167,7 @@ function Market() {
             const remain = fmtRemain(l.is_auction ? l.auction_ends_at : l.expires_at);
             const hot = l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0);
             const endingSoon = l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000;
+            const soldOut = !l.is_auction && Number(l.sold_count ?? 0) >= Number(l.quantity ?? 1);
             return (
               <Link
                 key={l.id}
@@ -193,6 +194,11 @@ function Market() {
                       </span>
                     )}
                   </div>
+                  {soldOut && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                      <span className="rounded-full bg-destructive px-3 py-1 text-[11px] font-extrabold text-white">SOLD OUT</span>
+                    </div>
+                  )}
                   {l.category && (
                     <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
                       {categoryEmoji(l.category)}

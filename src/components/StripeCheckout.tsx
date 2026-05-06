@@ -10,6 +10,7 @@ interface Props {
   sellerId: string;
   subtotalCents: number;
   orderId?: string;
+  orderIds?: string[];
   onSuccess?: (paymentIntentId: string) => void;
   returnUrl?: string;
 }
@@ -36,7 +37,7 @@ export function StripeCheckout(props: Props) {
     (async () => {
       try {
         const res = await createIntent({
-          data: { sellerId: props.sellerId, subtotalCents: props.subtotalCents, orderId: props.orderId },
+          data: { sellerId: props.sellerId, subtotalCents: props.subtotalCents, orderId: props.orderId, orderIds: props.orderIds },
         });
         if (cancelled) return;
         setClientSecret(res.clientSecret!);

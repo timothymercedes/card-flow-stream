@@ -32,6 +32,8 @@ function ListingDetail() {
   const [offerAmt, setOfferAmt] = useState("");
   const [now, setNow] = useState(Date.now());
   const [unpaidOrders, setUnpaidOrders] = useState(0);
+  const [qty, setQty] = useState(1);
+  const [cartMode, setCartMode] = useState<"buy" | "cart">("buy");
 
   useEffect(() => {
     if (!user) { setUnpaidOrders(0); return; }
@@ -119,6 +121,13 @@ function ListingDetail() {
   async function buyNow() {
     if (!profile) return toast.error("Sign in first");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
+    setCartMode("buy");
+    setShowShip(true);
+  }
+
+  async function addToCart() {
+    if (!profile) return toast.error("Sign in first");
+    setCartMode("cart");
     setShowShip(true);
   }
 
@@ -127,15 +136,25 @@ function ListingDetail() {
     const { error } = await supabase.from("orders").insert({
       listing_id: id, buyer_id: profile!.id, seller_id: listing.seller_id,
       title: listing.title, amount,
+      quantity: qty,
+      item_image_url: listing.image_url,
       status: "pending",
       payment_status: "awaiting_payment",
       ship_name: ship.name, ship_address: ship.address, ship_city: ship.city, ship_state: ship.state, ship_zip: ship.zip, ship_country: ship.country,
     });
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (error.message?.includes("inventory")) return toast.error(error.message);
+      return toast.error(error.message);
+    }
     await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "order", body: `New order from @${profile!.username} for "${listing.title}"`, link: "/orders" });
-    toast.success("Order placed!");
     setShowShip(false);
-    nav({ to: "/orders" });
+    if (cartMode === "cart") {
+      toast.success("Added to cart");
+      nav({ to: "/cart" });
+    } else {
+      toast.success("Order placed!");
+      nav({ to: "/cart" });
+    }
   }
 
   async function respondOffer(o: any, status: "accepted" | "rejected") {
@@ -240,15 +259,42 @@ function ListingDetail() {
               )}
             </>
 
-          ) : (
-            <>
-              <div>
-                <p className="text-xs text-muted-foreground">Price</p>
-                <p className="text-2xl font-bold text-primary">${Number(listing.price || 0).toFixed(2)}</p>
-              </div>
-              {!isSeller && type === "buy_now" && <button onClick={buyNow} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Buy Now</button>}
-            </>
-          )}
+          ) : (() => {
+            const totalQty = Number(listing.quantity ?? 1);
+            const sold = Number(listing.sold_count ?? 0);
+            const available = Math.max(0, totalQty - sold);
+            const soldOut = available <= 0;
+            return (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  <p className="text-2xl font-bold text-primary">${Number(listing.price || 0).toFixed(2)}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                    {soldOut ? <span className="text-destructive">Sold out</span> : `${available} available`}
+                  </p>
+                </div>
+                {!isSeller && type === "buy_now" && !soldOut && (
+                  <>
+                    {totalQty > 1 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Qty</span>
+                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="rounded-lg bg-muted px-3 py-1 text-sm font-bold">−</button>
+                        <span className="w-8 text-center text-sm font-bold">{qty}</span>
+                        <button onClick={() => setQty(Math.min(available, qty + 1))} className="rounded-lg bg-muted px-3 py-1 text-sm font-bold">+</button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={addToCart} className="flex-1 rounded-xl bg-muted py-3 text-sm font-bold">Add to Cart</button>
+                      <button onClick={buyNow} className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Buy Now</button>
+                    </div>
+                  </>
+                )}
+                {soldOut && !isSeller && (
+                  <div className="rounded-lg bg-muted/40 p-2 text-center text-xs text-muted-foreground">This listing is sold out.</div>
+                )}
+              </>
+            );
+          })()}
 
           {!isSeller && (type === "offer" || listing.accepts_offers) && (
             <div className="border-t border-border pt-3">
@@ -262,7 +308,7 @@ function ListingDetail() {
         </div>
 
         {showShip && (() => {
-          const itemPrice = Number(listing.price || 0);
+          const itemPrice = Number(listing.price || 0) * qty;
           const shipPrice = Number(listing.shipping_price || 0);
           const total = itemPrice + shipPrice;
           return (
@@ -277,11 +323,13 @@ function ListingDetail() {
                 <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Country" value={ship.country} onChange={(e) => setShip({ ...ship, country: e.target.value })} />
               </div>
               <div className="rounded-lg bg-muted/50 p-2 text-xs space-y-1">
-                <div className="flex justify-between"><span>Item</span><span>${itemPrice.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Item{qty > 1 ? ` × ${qty}` : ""}</span><span>${itemPrice.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Shipping</span><span>{shipPrice > 0 ? `$${shipPrice.toFixed(2)}` : "Free"}</span></div>
                 <div className="flex justify-between font-bold pt-1 border-t border-border"><span>Total</span><span>${total.toFixed(2)}</span></div>
               </div>
-              <button onClick={() => placeOrder(total)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Place Order</button>
+              <button onClick={() => placeOrder(total)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
+                {cartMode === "cart" ? "Add to Cart" : "Place Order"}
+              </button>
             </div>
           );
         })()}

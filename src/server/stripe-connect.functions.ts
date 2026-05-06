@@ -152,7 +152,7 @@ export const getMyConnectStatus = createServerFn({ method: "GET" }).handler(asyn
  */
 export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sellerId: string; subtotalCents: number; orderId?: string }) => {
+  .inputValidator((data: { sellerId: string; subtotalCents: number; orderId?: string; orderIds?: string[] }) => {
     if (!data.sellerId) throw new Error("sellerId required");
     if (!Number.isFinite(data.subtotalCents) || data.subtotalCents < 50) {
       throw new Error("Invalid amount");
@@ -174,6 +174,9 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     }
 
     const fees = calculateFees(data.subtotalCents);
+    const orderIds = data.orderIds && data.orderIds.length > 0
+      ? data.orderIds
+      : (data.orderId ? [data.orderId] : []);
 
     const intent = await stripe.paymentIntents.create({
       amount: fees.buyerTotal,
@@ -184,7 +187,8 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       metadata: {
         buyer_id: userId,
         seller_id: data.sellerId,
-        order_id: data.orderId ?? "",
+        order_id: orderIds[0] ?? "",
+        order_ids: orderIds.join(","),
         subtotal_cents: String(fees.subtotalCents),
         platform_fee_cents: String(fees.platformFee),
         buyer_service_fee_cents: String(fees.buyerServiceFee),
