@@ -43,6 +43,7 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
             case "payment_intent.succeeded": {
               const pi: any = event.data.object;
               const orderId = pi.metadata?.order_id;
+              const orderIdsStr = pi.metadata?.order_ids as string | undefined;
               const tipId = pi.metadata?.tip_id;
               if (tipId) {
                 await supabaseAdmin
@@ -50,11 +51,12 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   .update({ status: "paid", paid_at: new Date().toISOString() })
                   .eq("id", tipId);
               }
-              if (orderId) {
+              const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
+              if (ids.length > 0) {
                 await supabaseAdmin
                   .from("orders")
                   .update({ payment_status: "paid", paid_at: new Date().toISOString() })
-                  .eq("id", orderId);
+                  .in("id", ids);
               }
               break;
             }
