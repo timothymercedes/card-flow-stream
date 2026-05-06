@@ -398,6 +398,10 @@ function Admin() {
                           className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Ban</button>
                       </>
                     )}
+                    <button onClick={() => toggleLiveVerified(u)}
+                      className={`rounded-lg px-3 py-1 text-[10px] font-bold ${u.live_verified ? "bg-primary/20 text-primary" : "bg-muted"}`}>
+                      {u.live_verified ? "✓ Live verified" : "Verify for live"}
+                    </button>
                     {activeSusp && (
                       <button onClick={() => lift(activeSusp.id)} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">Lift {activeSusp.type}</button>
                     )}
