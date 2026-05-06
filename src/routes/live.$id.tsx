@@ -18,6 +18,8 @@ import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
 import { ReportDialog } from "@/components/ReportDialog";
 import { Flag } from "lucide-react";
+import { KOModal, type KODestination } from "@/components/KOModal";
+import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
