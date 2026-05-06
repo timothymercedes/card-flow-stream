@@ -1,5 +1,6 @@
 // Lightweight package presets optimized for TCG / collectibles.
-// Defaults must NEVER assume a 1lb+ box for single cards.
+// PWE is a stamp-only option — Shippo / USPS APIs do NOT sell PWE labels,
+// so we skip the carrier API and use a flat seller price instead.
 
 export type ShippingPresetKey = "pwe" | "bubble" | "small_box";
 
@@ -11,17 +12,23 @@ export interface ShippingPreset {
   lengthIn: number;
   widthIn: number;
   heightIn: number;
+  /** When true, skip Shippo and quote a flat seller-set price (PWE / letter mail). */
+  flatRate?: boolean;
+  /** Suggested flat price in USD for PWE (covers stamp + sleeve + top loader). */
+  flatPriceUsd?: number;
 }
 
 export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
   pwe: {
     key: "pwe",
     label: "Single Card (PWE)",
-    description: "Plain White Envelope · 1 oz",
+    description: "Plain White Envelope, untracked · stamp only",
     weightOz: 1,
     lengthIn: 6,
     widthIn: 4,
     heightIn: 0.1,
+    flatRate: true,
+    flatPriceUsd: 1.5,
   },
   bubble: {
     key: "bubble",

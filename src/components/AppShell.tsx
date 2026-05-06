@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const tabs = [
     ...baseTabs,
-    ...(isSeller ? [{ to: "/store", label: "Store", icon: Package }] : []),
+    ...(isSeller ? [{ to: "/store", label: "Seller Hub", icon: Package }] : []),
     { to: "/profile", label: "Profile", icon: User },
   ];
 
