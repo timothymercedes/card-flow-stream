@@ -146,7 +146,7 @@ export function useCloudflareCalls(opts: {
       try { pcRef.current?.close(); } catch {}
       pcRef.current = null;
       setLocalStream((s) => { s?.getTracks().forEach((t) => t.stop()); return null; });
-      if (streamId && userId) {
+      if (streamId && userId && !viewerMode) {
         supabase.from("stream_cohost_tracks").delete().eq("stream_id", streamId).eq("user_id", userId);
       }
       sessionIdRef.current = null;
@@ -155,7 +155,7 @@ export function useCloudflareCalls(opts: {
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, waitForConnState]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, waitForConnState]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
