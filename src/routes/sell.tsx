@@ -42,6 +42,7 @@ function Sell() {
   const [quickStart, setQuickStart] = useState(true);
   const [defaultTimerSec, setDefaultTimerSec] = useState("30");
   const [useObs, setUseObs] = useState(false);
+  const [useCompositor, setUseCompositor] = useState(false); // browser-side canvas compositor → WHIP
   // 🆕 Pre-live Mystery Break setup
   const [enableBreak, setEnableBreak] = useState(false);
   const [breakSlotCount, setBreakSlotCount] = useState("20");
@@ -135,10 +136,10 @@ function Sell() {
 
     // Optional: provision OBS / Cloudflare Stream input
     let cf: any = {};
-    if (useObs) {
+    if (useObs || useCompositor) {
       const { data, error } = await supabase.functions.invoke("create-stream-input", { body: { meta_name: streamTitle } });
       if (error || (data as any)?.error) {
-        toast.error("Could not set up OBS streaming — check Cloudflare keys");
+        toast.error("Could not set up Cloudflare Stream — check keys");
         return;
       }
       cf = {
@@ -146,6 +147,7 @@ function Sell() {
         cf_rtmps_url: (data as any).rtmps_url,
         cf_stream_key: (data as any).stream_key,
         cf_playback_hls: (data as any).hls_url,
+        cf_whip_url: (data as any).whip_url,
       };
     }
 
@@ -375,9 +377,17 @@ function Sell() {
             <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
               <div>
                 <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> Broadcast from OBS / Streamlabs</p>
-                <p className="text-[11px] text-muted-foreground">Pro mode: get an RTMPS URL + stream key to use in OBS instead of the in-app camera.</p>
+                <p className="text-[11px] text-muted-foreground">Pro mode: get an RTMPS URL + stream key to use in OBS.</p>
               </div>
-              <input type="checkbox" checked={useObs} onChange={(e) => setUseObs(e.target.checked)} className="mt-1 h-5 w-5" />
+              <input type="checkbox" checked={useObs} onChange={(e) => { setUseObs(e.target.checked); if (e.target.checked) setUseCompositor(false); }} className="mt-1 h-5 w-5" />
+            </label>
+
+            <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
+              <div>
+                <p className="flex items-center gap-1.5 text-sm font-semibold"><Camera className="h-4 w-4 text-fuchsia-400" /> Multi-cam in-browser (composited)</p>
+                <p className="text-[11px] text-muted-foreground">Broadcast from this browser with all co-host video tiles baked into one stream — viewers + recording see everyone.</p>
+              </div>
+              <input type="checkbox" checked={useCompositor} onChange={(e) => { setUseCompositor(e.target.checked); if (e.target.checked) setUseObs(false); }} className="mt-1 h-5 w-5" />
             </label>
 
             <button onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>

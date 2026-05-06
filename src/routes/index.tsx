@@ -179,9 +179,9 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="✨ Show Off — Live Now" to="/showoff" viewLabel="Open Show Off">
+      <Section title="✨ Flex Live — Live Now" to="/showoff" viewLabel="Open Flex Live">
         <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {showOffStreams.length === 0 && <EmptyMini text="No Show Off streams yet — flex your collection!" />}
+          {showOffStreams.length === 0 && <EmptyMini text="No Flex Lives yet — flex your collection!" />}
           {showOffStreams.map((s) => (
             <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">

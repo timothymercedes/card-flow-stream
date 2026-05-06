@@ -25,6 +25,7 @@ import { ViewerListModal } from "@/components/ViewerListModal";
 import { Users2 } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
+import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
@@ -436,8 +437,12 @@ function LiveDetail() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
 
-  // Seller: start camera preview (skip if seller is broadcasting via OBS)
-  const usingObs = !!stream?.cf_playback_hls;
+  // Seller capture modes:
+  //   - usingObs:        Cloudflare HLS exists, no WHIP → seller broadcasts via OBS, no in-browser cam
+  //   - usingCompositor: Cloudflare HLS + WHIP URL → seller broadcasts canvas-composited multi-cam from browser
+  //   - else:            legacy in-app camera preview only
+  const usingCompositor = !!stream?.cf_whip_url;
+  const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || usingObs) return;
     let cancelled = false;
@@ -571,6 +576,18 @@ function LiveDetail() {
   const [videoOn, setVideoOn] = useState(true);
   // Auto-join prompt for cohosts on acceptance
   useEffect(() => { if (isCohostParticipant && !callJoined) setCallJoined(true); }, [isCohostParticipant, callJoined]);
+  // In compositor mode, host auto-joins on stream load so the canvas has the local cam immediately.
+  useEffect(() => { if (isSeller && usingCompositor && !callJoined) setCallJoined(true); }, [isSeller, usingCompositor, callJoined]);
+
+  // Canvas compositor → WHIP publish (host only, when WHIP URL is set on the stream)
+  useCanvasCompositor({
+    enabled: !!isSeller && usingCompositor && !!cfCall.localStream,
+    whipUrl: stream?.cf_whip_url ?? null,
+    localStream: cfCall.localStream,
+    remotes: cfCall.remotes,
+    localUsername: profile?.username || "host",
+  });
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.

@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="flex items-center gap-1.5">
           <Link to="/showoff" className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
-            <Sparkles className="h-3.5 w-3.5" /> Show Off
+            <Sparkles className="h-3.5 w-3.5" /> Flex Live
           </Link>
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
             <Plus className="h-3.5 w-3.5" /> Sell
