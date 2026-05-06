@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck } from "lucide-react";
 import { SupportInbox } from "@/components/admin/SupportInbox";
+import { VerificationInbox } from "@/components/admin/VerificationInbox";
 
 type Role = "owner" | "admin" | "moderator" | "support";
 const ROLE_BADGES: Record<Role, string> = {
