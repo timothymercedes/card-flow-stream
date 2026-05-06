@@ -73,6 +73,30 @@ function MyStore() {
     load();
   }
 
+  async function fetchRates(o: any) {
+    setRatesLoading((s) => ({ ...s, [o.id]: true }));
+    try {
+      const res = await getShippoRates({ data: { orderId: o.id } });
+      setRates((s) => ({ ...s, [o.id]: res.rates }));
+      if (!res.rates.length) toast.error("No rates available — check addresses");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to fetch rates");
+    } finally {
+      setRatesLoading((s) => ({ ...s, [o.id]: false }));
+    }
+  }
+
+  async function buyLabel(o: any, rateId: string) {
+    try {
+      const res = await buyShippoLabel({ data: { orderId: o.id, rateId } });
+      if (res.labelUrl) setLabelUrls((s) => ({ ...s, [o.id]: res.labelUrl }));
+      toast.success("Label purchased — order shipped");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to buy label");
+    }
+  }
+
   const totals = useMemo(() => {
     const gross = orders.reduce((s, o) => s + Number(o.amount || 0), 0);
     const rate = COMMISSION;
