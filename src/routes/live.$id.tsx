@@ -20,6 +20,8 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { Flag } from "lucide-react";
 import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
+import { CollabPanel } from "@/components/CollabPanel";
+import { Users2 } from "lucide-react";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
