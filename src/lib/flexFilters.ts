@@ -9,18 +9,30 @@ export type FlexFilterId =
   | "dream"
   | "sunset"
   | "ice"
-  | "candy";
+  | "candy"
+  // 🤖 AI face-style looks (CSS-based approximations — playful, no GPU/WebGL)
+  | "anime"
+  | "comic"
+  | "glow_skin"
+  | "vhs_face"
+  | "cyber";
 
 export const FLEX_FILTERS: { id: FlexFilterId; label: string; emoji: string; css: string }[] = [
-  { id: "none",    label: "Off",      emoji: "🚫", css: "none" },
-  { id: "vibrant", label: "Vibrant",  emoji: "🌈", css: "saturate(1.55) contrast(1.1)" },
-  { id: "retro",   label: "Retro",    emoji: "📼", css: "sepia(0.45) contrast(1.05) saturate(1.1) hue-rotate(-10deg)" },
-  { id: "noir",    label: "Noir",     emoji: "🎬", css: "grayscale(1) contrast(1.15) brightness(0.95)" },
-  { id: "holo",    label: "Holo",     emoji: "💎", css: "saturate(1.8) hue-rotate(20deg) contrast(1.1) brightness(1.05)" },
-  { id: "dream",   label: "Dream",    emoji: "💭", css: "blur(0.4px) saturate(1.3) brightness(1.08) contrast(0.95)" },
-  { id: "sunset",  label: "Sunset",   emoji: "🌅", css: "saturate(1.4) hue-rotate(-18deg) sepia(0.15) brightness(1.05)" },
-  { id: "ice",     label: "Ice",      emoji: "❄️",  css: "saturate(0.9) hue-rotate(180deg) brightness(1.05) contrast(1.05)" },
-  { id: "candy",   label: "Candy",    emoji: "🍭", css: "saturate(1.7) hue-rotate(310deg) brightness(1.06)" },
+  { id: "none",      label: "Off",      emoji: "🚫", css: "none" },
+  { id: "vibrant",   label: "Vibrant",  emoji: "🌈", css: "saturate(1.55) contrast(1.1)" },
+  { id: "retro",     label: "Retro",    emoji: "📼", css: "sepia(0.45) contrast(1.05) saturate(1.1) hue-rotate(-10deg)" },
+  { id: "noir",      label: "Noir",     emoji: "🎬", css: "grayscale(1) contrast(1.15) brightness(0.95)" },
+  { id: "holo",      label: "Holo",     emoji: "💎", css: "saturate(1.8) hue-rotate(20deg) contrast(1.1) brightness(1.05)" },
+  { id: "dream",     label: "Dream",    emoji: "💭", css: "blur(0.4px) saturate(1.3) brightness(1.08) contrast(0.95)" },
+  { id: "sunset",    label: "Sunset",   emoji: "🌅", css: "saturate(1.4) hue-rotate(-18deg) sepia(0.15) brightness(1.05)" },
+  { id: "ice",       label: "Ice",      emoji: "❄️",  css: "saturate(0.9) hue-rotate(180deg) brightness(1.05) contrast(1.05)" },
+  { id: "candy",     label: "Candy",    emoji: "🍭", css: "saturate(1.7) hue-rotate(310deg) brightness(1.06)" },
+  // AI face filters
+  { id: "anime",     label: "Anime",    emoji: "✨", css: "saturate(1.9) contrast(1.25) brightness(1.08)" },
+  { id: "comic",     label: "Comic",    emoji: "💥", css: "contrast(1.6) saturate(1.4) brightness(1.05)" },
+  { id: "glow_skin", label: "Glow",     emoji: "🌟", css: "brightness(1.12) saturate(1.2) blur(0.3px) contrast(0.97)" },
+  { id: "vhs_face",  label: "VHS",      emoji: "📺", css: "saturate(1.3) hue-rotate(-8deg) contrast(1.1) blur(0.5px)" },
+  { id: "cyber",     label: "Cyber",    emoji: "🦾", css: "saturate(1.6) hue-rotate(190deg) contrast(1.2) brightness(1.05)" },
 ];
 
 export function flexFilterCss(id: string | null | undefined): string {
