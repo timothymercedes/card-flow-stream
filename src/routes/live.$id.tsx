@@ -1921,7 +1921,9 @@ function LiveDetail() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
               {sellerUsername && (
-                <Link to="/seller/$username" params={{ username: sellerUsername }} className="text-[10px] font-semibold text-primary hover:underline">@{sellerUsername} · view store</Link>
+                <Link to="/seller/$username" params={{ username: sellerUsername }} className="text-[10px] font-semibold text-primary hover:underline">
+                  @{sellerUsername}{stream.mode !== "show_off" ? " · view store" : ""}
+                </Link>
               )}
             </div>
             {stream.current_condition && (
