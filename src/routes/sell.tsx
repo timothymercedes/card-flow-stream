@@ -323,6 +323,7 @@ function Sell() {
                 <p className="text-[10px] text-muted-foreground">Be specific — viewers see this in the live feed.</p>
               </div>
               <input
+                data-tour="stream-title"
                 className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
                 placeholder="e.g. Friday night PSA reveal • $1 starts"
                 value={streamTitle}
