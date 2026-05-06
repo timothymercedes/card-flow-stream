@@ -92,13 +92,15 @@ function LiveList() {
   const filteredStreams = useMemo(() => {
     return streams.filter((s) => {
       if (catFilter !== "all" && s.category !== catFilter) return false;
+      if (typeFilter !== "all" && (s.stream_type || "auction") !== typeFilter) return false;
+      if (tcgFilter !== "all" && !(s.tcg_tags || []).includes(tcgFilter)) return false;
       const v = viewerCounts[s.id] || 0;
       if (viewerBucket === "intimate" && v > 10) return false;
       if (viewerBucket === "warm" && (v < 11 || v > 50)) return false;
       if (viewerBucket === "hot" && v < 51) return false;
       return true;
     });
-  }, [streams, catFilter, viewerBucket, viewerCounts]);
+  }, [streams, catFilter, typeFilter, tcgFilter, viewerBucket, viewerCounts]);
 
   useEffect(() => {
     load();
