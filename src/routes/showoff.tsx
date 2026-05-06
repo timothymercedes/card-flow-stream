@@ -63,7 +63,7 @@ function ShowOff() {
       title: title.trim(),
       mode: "show_off",
       stream_type: "show_off",
-      tcg_tags: tcgTags,
+      tcg_tags: tags,
       is_private: isPrivate,
       allow_collab_requests: !isPrivate,
       max_collab_count: 6,
