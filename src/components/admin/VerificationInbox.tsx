@@ -96,6 +96,21 @@ export function VerificationInbox() {
               className="inline-flex items-center gap-1 rounded-lg bg-amber-500/20 px-3 py-1 text-[10px] font-bold text-amber-500 disabled:opacity-50">
               <RefreshCw className="h-3 w-3" /> Force re-verify
             </button>
+            <button
+              disabled={busy === u.id}
+              onClick={async () => {
+                const reason = window.prompt("Reason for forcing seller agreement re-acceptance?") || "";
+                if (!reason) return;
+                setBusy(u.id);
+                const { error } = await (supabase.rpc as any)("admin_force_seller_reaccept", { _target_user: u.id, _reason: reason });
+                setBusy(null);
+                if (error) return toast.error(error.message);
+                toast.success(`@${u.username} must re-accept the Seller Agreement`);
+              }}
+              className="inline-flex items-center gap-1 rounded-lg bg-fuchsia-500/15 px-3 py-1 text-[10px] font-bold text-fuchsia-400 disabled:opacity-50"
+            >
+              📝 Force re-accept agreement
+            </button>
             <a href={`/seller/${u.username}`} target="_blank" rel="noreferrer"
               className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">View profile</a>
           </div>

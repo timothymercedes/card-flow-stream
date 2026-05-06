@@ -32,6 +32,24 @@ function Guidelines() {
         <li>No promotion of off-platform deals to circumvent platform protections.</li>
       </ul>
 
+      <h2>4. Prohibited Conduct</h2>
+      <p>The following are strictly prohibited anywhere on PullBid Live (streams, chat, DMs, profiles, listings):</p>
+      <ul>
+        <li>Nudity, sexual or exploitative content, inappropriate exposure</li>
+        <li>Harassment, bullying, hate speech, threats, doxxing</li>
+        <li>Scam or fraudulent behavior, off-platform payment requests, fake giveaways</li>
+        <li>Dangerous or illegal activity, weapons, drugs, self-harm content</li>
+        <li>Counterfeit, reproduction, or knowingly altered items</li>
+      </ul>
+
+      <h2>5. AI Moderation & Recording Disclosure</h2>
+      <ul>
+        <li>Livestreams may be <strong>AI-moderated</strong> in real time for safety.</li>
+        <li>Livestreams may be <strong>recorded</strong> for moderation, dispute, and safety review.</li>
+        <li>Admins and moderators may review flagged streams and chats.</li>
+        <li>Hosts and co-hosts are responsible for their stream's content. Violations may result in stream termination, suspension, payout holds, or permanent ban.</li>
+      </ul>
+
       <h2>4. Protect Minors</h2>
       <p>You must be 18+ (or the age of majority in your jurisdiction) to use PullBid Live. Accounts found to belong to minors will be removed.</p>
 

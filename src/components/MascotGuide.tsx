@@ -50,8 +50,8 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
     startTour(id);
   }, [hasSeen, startTour]);
 
-  const close = useCallback((completed: boolean) => {
-    if (active) markSeen(active.id);
+  const close = useCallback((persist: boolean) => {
+    if (persist && active) markSeen(active.id);
     setActive(null);
     setStep(0);
     setMinimized(false);
@@ -74,7 +74,8 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
             if (step >= active.steps.length - 1) close(true);
             else setStep((s) => s + 1);
           }}
-          onSkip={() => close(false)}
+          onSkipTemp={() => close(false)}
+          onDontShow={() => close(true)}
         />
       )}
     </TourCtx.Provider>
@@ -83,11 +84,12 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
 
 function MascotBubble({
   tour, step, minimized,
-  onMinimize, onMaximize, onPrev, onNext, onSkip,
+  onMinimize, onMaximize, onPrev, onNext, onSkipTemp, onDontShow,
 }: {
   tour: Tour; step: number; minimized: boolean;
   onMinimize: () => void; onMaximize: () => void;
-  onPrev: () => void; onNext: () => void; onSkip: () => void;
+  onPrev: () => void; onNext: () => void;
+  onSkipTemp: () => void; onDontShow: () => void;
 }) {
   const m = MASCOTS[tour.mascot];
   const s = tour.steps[step];
@@ -126,7 +128,7 @@ function MascotBubble({
               <button onClick={onMinimize} aria-label="Minimize" className="rounded-full p-1 text-muted-foreground hover:bg-muted">
                 <Minimize2 className="h-3.5 w-3.5" />
               </button>
-              <button onClick={onSkip} aria-label="Close" className="rounded-full p-1 text-muted-foreground hover:bg-muted">
+              <button onClick={onSkipTemp} aria-label="Close" className="rounded-full p-1 text-muted-foreground hover:bg-muted">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -167,13 +169,13 @@ function MascotBubble({
             {/* Controls */}
             <div className="mt-3 flex items-center justify-between gap-2">
               <button
-                onClick={step === 0 ? onSkip : onPrev}
+                onClick={step === 0 ? onSkipTemp : onPrev}
                 className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
               >
-                {step === 0 ? "Skip · don't show again" : (<><ChevronLeft className="h-3.5 w-3.5" /> Back</>)}
+                {step === 0 ? "Skip for now" : (<><ChevronLeft className="h-3.5 w-3.5" /> Back</>)}
               </button>
               <button
-                onClick={onSkip}
+                onClick={onDontShow}
                 className="text-[10px] text-muted-foreground underline-offset-2 hover:underline"
                 title="Don't show this again"
               >

@@ -34,6 +34,7 @@ import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as LegalTosRouteImport } from './routes/legal.tos'
+import { Route as LegalSellerHostAgreementRouteImport } from './routes/legal.seller-host-agreement'
 import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-agreement'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
@@ -166,6 +167,12 @@ const LegalTosRoute = LegalTosRouteImport.update({
   path: '/legal/tos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalSellerHostAgreementRoute =
+  LegalSellerHostAgreementRouteImport.update({
+    id: '/legal/seller-host-agreement',
+    path: '/legal/seller-host-agreement',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LegalSellerAgreementRoute = LegalSellerAgreementRouteImport.update({
   id: '/legal/seller-agreement',
   path: '/legal/seller-agreement',
@@ -221,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/seller-host-agreement': typeof LegalSellerHostAgreementRoute
   '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
@@ -254,6 +262,7 @@ export interface FileRoutesByTo {
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/seller-host-agreement': typeof LegalSellerHostAgreementRoute
   '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
@@ -288,6 +297,7 @@ export interface FileRoutesById {
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
+  '/legal/seller-host-agreement': typeof LegalSellerHostAgreementRoute
   '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/legal/community-guidelines'
     | '/legal/privacy'
     | '/legal/seller-agreement'
+    | '/legal/seller-host-agreement'
     | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/legal/community-guidelines'
     | '/legal/privacy'
     | '/legal/seller-agreement'
+    | '/legal/seller-host-agreement'
     | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
@@ -389,6 +401,7 @@ export interface FileRouteTypes {
     | '/legal/community-guidelines'
     | '/legal/privacy'
     | '/legal/seller-agreement'
+    | '/legal/seller-host-agreement'
     | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
@@ -423,6 +436,7 @@ export interface RootRouteChildren {
   LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalSellerAgreementRoute: typeof LegalSellerAgreementRoute
+  LegalSellerHostAgreementRoute: typeof LegalSellerHostAgreementRoute
   LegalTosRoute: typeof LegalTosRoute
   LiveIdRoute: typeof LiveIdRoute
   MarketIdRoute: typeof MarketIdRoute
@@ -612,6 +626,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalTosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/seller-host-agreement': {
+      id: '/legal/seller-host-agreement'
+      path: '/legal/seller-host-agreement'
+      fullPath: '/legal/seller-host-agreement'
+      preLoaderRoute: typeof LegalSellerHostAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/seller-agreement': {
       id: '/legal/seller-agreement'
       path: '/legal/seller-agreement'
@@ -679,6 +700,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalSellerAgreementRoute: LegalSellerAgreementRoute,
+  LegalSellerHostAgreementRoute: LegalSellerHostAgreementRoute,
   LegalTosRoute: LegalTosRoute,
   LiveIdRoute: LiveIdRoute,
   MarketIdRoute: MarketIdRoute,

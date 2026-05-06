@@ -5,9 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Sparkles, Lock, Globe, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
+import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 
 export const Route = createFileRoute("/showoff")({
   head: () => ({ meta: [{ title: "Flex Live — PullBid Live" }] }),
@@ -33,7 +33,7 @@ function ShowOff() {
   const [tagged, setTagged] = useState<{ id: string; username: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // category is selected inline via TCG tag chips below — no separate popup
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
   const { triggerOnce } = useTour();
   useEffect(() => { triggerOnce("flex-welcome"); }, [triggerOnce]);
@@ -118,6 +118,7 @@ function ShowOff() {
   }
 
   return (
+    <SellerAgreementGate>
     <AppShell>
       <div className="px-4 py-4">
         <div className="mb-4 flex items-center gap-2">
@@ -262,13 +263,7 @@ function ShowOff() {
           ))}
         </div>
       </div>
-      <StreamCategoryPicker
-        open={pickerOpen}
-        lockType
-        initialType="show_off"
-        onCancel={() => setPickerOpen(false)}
-        onConfirm={(v) => { setPickerOpen(false); startShowOff(v.tcg_tags as TcgTag[]); }}
-      />
     </AppShell>
+    </SellerAgreementGate>
   );
 }
