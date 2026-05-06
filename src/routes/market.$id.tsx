@@ -308,7 +308,7 @@ function ListingDetail() {
         </div>
 
         {showShip && (() => {
-          const itemPrice = Number(listing.price || 0);
+          const itemPrice = Number(listing.price || 0) * qty;
           const shipPrice = Number(listing.shipping_price || 0);
           const total = itemPrice + shipPrice;
           return (
