@@ -771,6 +771,7 @@ export type Database = {
           tcg_tags: string[]
           thumbnail_url: string | null
           title: string
+          video_filter: string
           voice_trigger_enabled: boolean
           voice_trigger_phrase: string | null
           winner_id: string | null
@@ -864,6 +865,7 @@ export type Database = {
           tcg_tags?: string[]
           thumbnail_url?: string | null
           title: string
+          video_filter?: string
           voice_trigger_enabled?: boolean
           voice_trigger_phrase?: string | null
           winner_id?: string | null
@@ -957,6 +959,7 @@ export type Database = {
           tcg_tags?: string[]
           thumbnail_url?: string | null
           title?: string
+          video_filter?: string
           voice_trigger_enabled?: boolean
           voice_trigger_phrase?: string | null
           winner_id?: string | null
@@ -2048,6 +2051,41 @@ export type Database = {
           stream_id?: string
         }
         Relationships: []
+      }
+      stream_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          stream_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_reactions_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stream_shoutouts: {
         Row: {
