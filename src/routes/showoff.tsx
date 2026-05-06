@@ -7,6 +7,7 @@ import { Sparkles, Lock, Globe, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
+import { useTour } from "@/components/MascotGuide";
 
 export const Route = createFileRoute("/showoff")({
   head: () => ({ meta: [{ title: "Flex Live — PullBid Live" }] }),
@@ -34,6 +35,8 @@ function ShowOff() {
   const [streams, setStreams] = useState<ShowStream[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
+  const { triggerOnce } = useTour();
+  useEffect(() => { triggerOnce("flex-welcome"); }, [triggerOnce]);
 
   useEffect(() => {
     if (!user) { setVerified(false); return; }

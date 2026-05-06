@@ -11,6 +11,7 @@ import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
 import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
 import type { StreamType, TcgTag } from "@/lib/streamTaxonomy";
+import { useTour } from "@/components/MascotGuide";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -28,6 +29,8 @@ function priceFor(cond: Condition, base: number, cp: ConditionPrices | null | un
 function Sell() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
+  const { triggerOnce } = useTour();
+  useEffect(() => { triggerOnce("seller-welcome"); }, [triggerOnce]);
   const [tab, setTab] = useState<"live" | "listing">("live");
   const [sellerStatus, setSellerStatus] = useState<string | null>(null);
   const [stripeReady, setStripeReady] = useState<boolean | null>(null);

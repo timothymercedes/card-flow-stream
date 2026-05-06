@@ -27,6 +27,7 @@ import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
+import { useTour } from "@/components/MascotGuide";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -47,7 +48,17 @@ function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { user, profile } = useAuth();
+  const { triggerOnce } = useTour();
   const [stream, setStream] = useState<any>(null);
+  // Mascot tour: fire once when this stream loads, picking the right guide for context.
+  useEffect(() => {
+    if (!stream) return;
+    const isHost = user && stream.seller_id === user.id;
+    const isFlex = stream.mode === "show_off";
+    if (isHost) triggerOnce("seller-first-stream");
+    else if (isFlex) triggerOnce("buyer-first-flex");
+    else triggerOnce("buyer-first-live");
+  }, [stream, user, triggerOnce]);
   const [sellerUsername, setSellerUsername] = useState<string>("");
   const [allStreams, setAllStreams] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
