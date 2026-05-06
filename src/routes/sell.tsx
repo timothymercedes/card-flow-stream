@@ -461,7 +461,7 @@ function Sell() {
               <input type="checkbox" checked={useCompositor} onChange={(e) => { setUseCompositor(e.target.checked); if (e.target.checked) setUseObs(false); }} className="mt-1 h-5 w-5" />
             </label>
 
-            <button onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
+            <button data-tour="start-stream" onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
           </div>
         ) : (
           <div className="space-y-3">
