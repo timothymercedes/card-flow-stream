@@ -2912,6 +2912,7 @@ function LiveDetail() {
           currentUserId={user?.id || null}
           isHost={isSeller}
           allowRequests={!!stream.allow_collab_requests}
+          maxParticipants={stream.max_collab_count || 4}
           onClose={() => setShowCollabPanel(false)}
         />
       )}
