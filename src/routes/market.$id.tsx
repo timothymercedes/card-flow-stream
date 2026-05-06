@@ -152,18 +152,20 @@ function ListingDetail() {
   async function buyNow() {
     if (!profile) return toast.error("Sign in first");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
+    if (!ensureBuyerAddress()) return;
     setCartMode("buy");
     setShowShip(true);
   }
 
   async function addToCart() {
     if (!profile) return toast.error("Sign in first");
+    if (!ensureBuyerAddress()) return;
     setCartMode("cart");
     setShowShip(true);
   }
 
   async function placeOrder(amount: number) {
-    if (!ship.name || !ship.address || !ship.city || !ship.zip) return toast.error("Fill shipping address");
+    if (!ensureBuyerAddress()) return;
     const { error } = await supabase.from("orders").insert({
       listing_id: id, buyer_id: profile!.id, seller_id: listing.seller_id,
       title: listing.title, amount,
