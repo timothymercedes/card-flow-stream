@@ -122,6 +122,7 @@ function PayoutsPage() {
   const ready = status?.charges_enabled && status?.payouts_enabled;
 
   return (
+    <SellerAgreementGate>
     <div className="container max-w-2xl py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Payouts</h1>
