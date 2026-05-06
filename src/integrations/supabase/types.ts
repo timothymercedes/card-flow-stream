@@ -537,9 +537,11 @@ export type Database = {
           is_auction: boolean
           listing_type: string
           price: number | null
+          quantity: number
           reserve_price: number | null
           seller_id: string
           shipping_price: number | null
+          sold_count: number
           starting_bid: number | null
           tcg_number: string | null
           tcg_set: string | null
@@ -564,9 +566,11 @@ export type Database = {
           is_auction?: boolean
           listing_type?: string
           price?: number | null
+          quantity?: number
           reserve_price?: number | null
           seller_id: string
           shipping_price?: number | null
+          sold_count?: number
           starting_bid?: number | null
           tcg_number?: string | null
           tcg_set?: string | null
@@ -591,9 +595,11 @@ export type Database = {
           is_auction?: boolean
           listing_type?: string
           price?: number | null
+          quantity?: number
           reserve_price?: number | null
           seller_id?: string
           shipping_price?: number | null
+          sold_count?: number
           starting_bid?: number | null
           tcg_number?: string | null
           tcg_set?: string | null
@@ -1026,6 +1032,7 @@ export type Database = {
           order_group_id: string | null
           paid_at: string | null
           payment_status: string
+          quantity: number
           seller_id: string
           seller_payout_amount: number | null
           seller_stripe_account_id: string | null
@@ -1058,6 +1065,7 @@ export type Database = {
           order_group_id?: string | null
           paid_at?: string | null
           payment_status?: string
+          quantity?: number
           seller_id: string
           seller_payout_amount?: number | null
           seller_stripe_account_id?: string | null
@@ -1090,6 +1098,7 @@ export type Database = {
           order_group_id?: string | null
           paid_at?: string | null
           payment_status?: string
+          quantity?: number
           seller_id?: string
           seller_payout_amount?: number | null
           seller_stripe_account_id?: string | null
