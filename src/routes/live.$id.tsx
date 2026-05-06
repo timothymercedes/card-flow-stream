@@ -1677,6 +1677,25 @@ function LiveDetail() {
           {isSeller && !ended && (
             <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Settings className="h-4 w-4" /></button>
           )}
+          {isSeller && !ended && (
+            <button
+              onClick={() => setKoOpen(true)}
+              title="K.O. — KickOut viewers to other live shows"
+              className="relative rounded-full bg-gradient-to-br from-purple-600 via-fuchsia-600 to-blue-600 p-2 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300/40 hover:scale-105 transition-transform"
+            >
+              <Zap className="h-4 w-4" />
+              <span className="pointer-events-none absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/80 px-1 text-[7px] font-extrabold tracking-wider text-white">K.O.</span>
+            </button>
+          )}
+          {!isSeller && !ended && myLiveStream && stream?.ko_accepts_requests && (
+            <button
+              onClick={sendKORequest}
+              title="Request to receive these viewers"
+              className="rounded-full bg-gradient-to-br from-purple-600 to-blue-600 p-2 text-white shadow-[0_0_14px_rgba(168,85,247,0.5)]"
+            >
+              <Zap className="h-4 w-4" />
+            </button>
+          )}
           <button onClick={() => setShowChat((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur">
             {showChat ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
           </button>
