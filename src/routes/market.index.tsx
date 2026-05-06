@@ -194,6 +194,11 @@ function Market() {
                       </span>
                     )}
                   </div>
+                  {soldOut && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                      <span className="rounded-full bg-destructive px-3 py-1 text-[11px] font-extrabold text-white">SOLD OUT</span>
+                    </div>
+                  )}
                   {l.category && (
                     <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
                       {categoryEmoji(l.category)}
