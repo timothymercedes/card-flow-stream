@@ -9,8 +9,7 @@ import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import { Camera, Radio } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
-import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
-import type { StreamType, TcgTag } from "@/lib/streamTaxonomy";
+import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 
@@ -53,7 +52,8 @@ function Sell() {
   const [breakSlotPrice, setBreakSlotPrice] = useState("10");
   const [breakSlotPrefix, setBreakSlotPrefix] = useState("");
   const [streamCategory, setStreamCategory] = useState<string>("pokemon");
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
+  const [hypeTags, setHypeTags] = useState<string[]>([]);
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
@@ -131,9 +131,9 @@ function Sell() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
 
-  async function startLive(meta?: { stream_type: StreamType; tcg_tags: TcgTag[] }) {
+  async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
-    if (!meta) { setPickerOpen(true); return; }
+    if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
     // Block if host already has an open (live or paused) stream
     const { data: openStream } = await supabase.from("live_streams")
       .select("id, mode, status").eq("seller_id", user!.id).in("status", ["live", "paused"]).maybeSingle();
@@ -166,9 +166,9 @@ function Sell() {
       seller_id: user!.id,
       title: streamTitle,
       category: streamCategory || null,
-      stream_type: meta.stream_type,
-      tcg_tags: meta.tcg_tags,
-      item_description: streamDesc || null,
+      stream_type: "auction",
+      tcg_tags: tcgTags,
+      item_description: [streamDesc, hypeTags.length ? `Tags: ${hypeTags.join(", ")}` : ""].filter(Boolean).join(" — ") || null,
       listing_type: "auction",
       starting_bid: Number(startingBid) || 1,
       current_bid: Number(startingBid) || 1,
@@ -331,38 +331,66 @@ function Sell() {
               />
             </div>
 
-            {/* ── Section 2: Tags / hype chips ── */}
+            {/* ── Section 2: TCG / category tags (separate from title) ── */}
             <div className="rounded-2xl bg-card p-3 space-y-2">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quick tags</p>
-                <p className="text-[10px] text-muted-foreground">Tap to append a hype tag to your title.</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  TCG / category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground">Helps viewers find your stream. Stored separately from the title.</p>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {TCG_TAGS.map((t) => {
+                  const on = tcgTags.includes(t.value);
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                    >
+                      {t.emoji} {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Section 3: Hype tags (separate array, not appended to title) ── */}
+            <div className="rounded-2xl bg-card p-3 space-y-2">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quick hype tags</p>
+                <p className="text-[10px] text-muted-foreground">Tap to toggle — saved as separate tags, not appended to your title.</p>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: "$1 Start", emoji: "💵", apply: () => { setStartingBid("1"); return "$1 Start"; } },
-                  { label: "Vintage Holo", emoji: "✨", apply: () => "Vintage Holo" },
-                  { label: "Mystery Break", emoji: "🎁", apply: () => { setEnableBreak(true); return "Mystery Break"; } },
-                  { label: "Slab Sunday", emoji: "🧊", apply: () => "Slab Sunday" },
-                  { label: "PSA 10s Only", emoji: "🏆", apply: () => "PSA 10s Only" },
-                  { label: "No Reserve", emoji: "🔥", apply: () => "No Reserve" },
-                  { label: "Rookie Cards", emoji: "🌟", apply: () => "Rookie Cards" },
-                  { label: "Modern Chase", emoji: "⚡", apply: () => "Modern Chase" },
-                  { label: "Graded Only", emoji: "🛡️", apply: () => "Graded Only" },
-                  { label: "Personal Collection", emoji: "💎", apply: () => "Personal Collection" },
-                  { label: "10s Auction", emoji: "⏱️", apply: () => { setDefaultTimerSec("10"); return "10s Auctions"; } },
-                ].map((p) => (
-                  <button
-                    key={p.label}
-                    type="button"
-                    onClick={() => {
-                      const tag = p.apply();
-                      setStreamTitle((t) => (t.toLowerCase().includes(tag.toLowerCase()) ? t : `${t ? t + " • " : ""}${tag}`).slice(0, 80));
-                    }}
-                    className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold hover:border-primary hover:bg-primary/10"
-                  >
-                    {p.emoji} {p.label}
-                  </button>
-                ))}
+                  { label: "$1 Start", emoji: "💵", apply: () => setStartingBid("1") },
+                  { label: "Vintage Holo", emoji: "✨" },
+                  { label: "Mystery Break", emoji: "🎁", apply: () => setEnableBreak(true) },
+                  { label: "Slab Sunday", emoji: "🧊" },
+                  { label: "PSA 10s Only", emoji: "🏆" },
+                  { label: "No Reserve", emoji: "🔥" },
+                  { label: "Rookie Cards", emoji: "🌟" },
+                  { label: "Modern Chase", emoji: "⚡" },
+                  { label: "Graded Only", emoji: "🛡️" },
+                  { label: "Personal Collection", emoji: "💎" },
+                  { label: "10s Auction", emoji: "⏱️", apply: () => setDefaultTimerSec("10") },
+                ].map((p: { label: string; emoji: string; apply?: () => void }) => {
+                  const on = hypeTags.includes(p.label);
+                  return (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => {
+                        setHypeTags((cur) => on ? cur.filter((x) => x !== p.label) : [...cur, p.label]);
+                        if (!on && p.apply) p.apply();
+                      }}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${on ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:border-primary hover:bg-primary/10"}`}
+                    >
+                      {p.emoji} {p.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={2} placeholder="Item description (optional)" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
@@ -501,11 +529,6 @@ function Sell() {
       {scanning && (
         <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
       )}
-      <StreamCategoryPicker
-        open={pickerOpen}
-        onCancel={() => setPickerOpen(false)}
-        onConfirm={(v) => { setPickerOpen(false); startLive(v); }}
-      />
     </AppShell>
     </SellerAgreementGate>
   );
