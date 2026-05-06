@@ -49,6 +49,12 @@ Deno.serve(async (req) => {
     const stream_key: string = r?.rtmps?.streamKey || "";
     const live_input_id: string = r?.uid || "";
 
+    // WebRTC/WHIP ingest URL — used by the in-browser canvas compositor.
+    // Falls back to the documented format if the API doesn't echo it back.
+    const whip_url: string =
+      r?.webRTC?.url ||
+      `https://customer-${accountId}.cloudflarestream.com/${live_input_id}/webRTC/publish`;
+
     // HLS playback (works as soon as broadcaster goes live)
     const hls_url = `https://customer-${accountId}.cloudflarestream.com/${live_input_id}/manifest/video.m3u8`;
 
@@ -57,6 +63,7 @@ Deno.serve(async (req) => {
       rtmps_url,
       stream_key,
       hls_url,
+      whip_url,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
