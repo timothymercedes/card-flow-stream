@@ -149,7 +149,7 @@ export function CollabPanel({
   }
 
   const pendingReqs = joinReqs.filter((r) => r.status === "pending");
-  const MAX = 4;
+  const MAX = maxParticipants;
   const atMax = participants.length >= MAX;
 
   return (
