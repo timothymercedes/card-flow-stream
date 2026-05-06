@@ -40,8 +40,11 @@ function ShowOff() {
 
   useEffect(() => {
     if (!user) { setVerified(false); return; }
-    supabase.from("profiles").select("live_verified").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setVerified(!!(data as any)?.live_verified));
+    supabase.from("profiles").select("live_verified, verification_status").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        const d: any = data || {};
+        setVerified(!!d.live_verified || d.verification_status === "approved");
+      });
     supabase.from("live_streams").select("id, seller_id, title, thumbnail_url, is_private")
       .eq("status", "live").eq("mode", "show_off").order("created_at", { ascending: false })
       .then(({ data }) => setStreams((data as any[]) || []));
