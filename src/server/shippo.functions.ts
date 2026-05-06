@@ -92,7 +92,7 @@ export const getShippoRates = createServerFn({ method: "POST" })
       }),
     });
 
-    const rates = (shipment.rates || []).map((r: any) => ({
+    const rawRates = (shipment.rates || []).map((r: any) => ({
       objectId: r.object_id,
       provider: r.provider,
       service: r.servicelevel?.name,
@@ -100,7 +100,9 @@ export const getShippoRates = createServerFn({ method: "POST" })
       currency: r.currency,
       days: r.estimated_days,
     }));
-    return { shipmentId: shipment.object_id, rates };
+    const rates = sortRatesCheapestFirst(rawRates);
+    const recommended = pickRecommendedRate(rates);
+    return { shipmentId: shipment.object_id, rates, recommendedRateId: recommended?.objectId ?? null };
   });
 
 const BuyInput = z.object({
