@@ -5,9 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Sparkles, Lock, Globe, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
+import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 
 export const Route = createFileRoute("/showoff")({
   head: () => ({ meta: [{ title: "Flex Live — PullBid Live" }] }),
