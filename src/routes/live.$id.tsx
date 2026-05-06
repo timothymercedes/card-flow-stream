@@ -12,6 +12,7 @@ import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
+import { TipCheckout } from "@/components/TipCheckout";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
@@ -61,6 +62,8 @@ function LiveDetail() {
   const [shoutoutAmt, setShoutoutAmt] = useState(5);
   const [shoutouts, setShoutouts] = useState<any[]>([]);
   const [mySpent, setMySpent] = useState(0);
+  const [tipOpen, setTipOpen] = useState(false);
+  const [tipOverlay, setTipOverlay] = useState<{ id: string; username: string; amount: number; message?: string } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
@@ -222,6 +225,13 @@ function LiveDetail() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_chat_actions", filter: `stream_id=eq.${id}` }, (p) => setChatActions((a) => [p.new, ...a]))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => [...s, p.new]))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "break_slots", filter: `stream_id=eq.${id}` }, (p) => setBreakSlots((s) => s.map((x) => x.id === (p.new as any).id ? p.new : x)))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "stream_tips", filter: `stream_id=eq.${id}` }, (p) => {
+        const t: any = p.new;
+        if (t.status === "paid") {
+          setTipOverlay({ id: t.id, username: t.buyer_username, amount: Number(t.amount), message: t.message });
+          setTimeout(() => setTipOverlay((cur) => (cur && cur.id === t.id ? null : cur)), 6000);
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id]);
@@ -2154,6 +2164,16 @@ function LiveDetail() {
                 <span className="text-[8px] opacity-70">${50 - mySpent} left</span>
               </button>
             )}
+            {!ended && !isSeller && (
+              <button
+                onClick={() => user ? setTipOpen(true) : toast.error("Sign in to tip")}
+                title="Send a tip"
+                className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 px-3 py-2 text-[10px] font-bold text-white active:scale-[0.98]"
+              >
+                <Gift className="h-4 w-4" />
+                Tip
+              </button>
+            )}
           </div>
           </>
         )}
@@ -3183,6 +3203,27 @@ function LiveDetail() {
           hostOpenComposer={giveawayComposer}
           setHostOpenComposer={setGiveawayComposer}
         />
+      )}
+
+      {tipOpen && (
+        <TipCheckout
+          streamId={id}
+          streamerName={sellerUsername}
+          onClose={() => setTipOpen(false)}
+        />
+      )}
+
+      {tipOverlay && (
+        <div className="pointer-events-none fixed left-1/2 top-24 z-[150] -translate-x-1/2 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-pink-400/50 bg-gradient-to-r from-pink-500 to-rose-600 px-5 py-3 shadow-2xl shadow-pink-500/40">
+            <Gift className="h-6 w-6 text-white" />
+            <div className="text-white">
+              <div className="text-xs opacity-90">@{tipOverlay.username} tipped</div>
+              <div className="text-xl font-black">${tipOverlay.amount.toFixed(2)}</div>
+              {tipOverlay.message && <div className="mt-0.5 max-w-[260px] text-xs italic opacity-95">"{tipOverlay.message}"</div>}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
