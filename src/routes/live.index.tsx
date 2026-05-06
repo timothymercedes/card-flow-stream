@@ -204,6 +204,22 @@ function LiveList() {
                   </button>
                 ))}
               </div>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                <button onClick={() => setTypeFilter("all")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${typeFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}>All types</button>
+                {STREAM_TYPES.map((s) => (
+                  <button key={s.value} onClick={() => setTypeFilter(s.value)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${typeFilter === s.value ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                    {s.emoji} {s.label}
+                  </button>
+                ))}
+              </div>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                <button onClick={() => setTcgFilter("all")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${tcgFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}>All TCGs</button>
+                {TCG_TAGS.map((t) => (
+                  <button key={t.value} onClick={() => setTcgFilter(t.value)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${tcgFilter === t.value ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                    {t.emoji} {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {filteredStreams.length === 0 && (
