@@ -121,6 +121,13 @@ function ListingDetail() {
   async function buyNow() {
     if (!profile) return toast.error("Sign in first");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
+    setCartMode("buy");
+    setShowShip(true);
+  }
+
+  async function addToCart() {
+    if (!profile) return toast.error("Sign in first");
+    setCartMode("cart");
     setShowShip(true);
   }
 
@@ -129,15 +136,25 @@ function ListingDetail() {
     const { error } = await supabase.from("orders").insert({
       listing_id: id, buyer_id: profile!.id, seller_id: listing.seller_id,
       title: listing.title, amount,
+      quantity: qty,
+      item_image_url: listing.image_url,
       status: "pending",
       payment_status: "awaiting_payment",
       ship_name: ship.name, ship_address: ship.address, ship_city: ship.city, ship_state: ship.state, ship_zip: ship.zip, ship_country: ship.country,
     });
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (error.message?.includes("inventory")) return toast.error(error.message);
+      return toast.error(error.message);
+    }
     await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "order", body: `New order from @${profile!.username} for "${listing.title}"`, link: "/orders" });
-    toast.success("Order placed!");
     setShowShip(false);
-    nav({ to: "/orders" });
+    if (cartMode === "cart") {
+      toast.success("Added to cart");
+      nav({ to: "/cart" });
+    } else {
+      toast.success("Order placed!");
+      nav({ to: "/cart" });
+    }
   }
 
   async function respondOffer(o: any, status: "accepted" | "rejected") {
