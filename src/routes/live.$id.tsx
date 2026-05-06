@@ -1649,21 +1649,13 @@ function LiveDetail() {
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />} {ended ? "ENDED" : "LIVE"}
           </div>
           {!ended && (
-            <details className="relative">
-              <summary className="flex list-none cursor-pointer items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur" title="Viewers in the live">
-                <Users className="h-3 w-3" /> {Math.max(viewerCount, liveViewers.length).toLocaleString()}
-              </summary>
-              <div className="absolute left-0 top-full z-40 mt-1 max-h-60 w-44 overflow-y-auto rounded-lg bg-card p-2 text-xs shadow-2xl ring-1 ring-border">
-                <p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">In the live ({liveViewers.length})</p>
-                {liveViewers.length === 0 && <p className="px-1 py-2 text-muted-foreground">Just you.</p>}
-                {liveViewers.map((v) => (
-                  <div key={v.user_id} className="flex items-center gap-1.5 rounded px-1 py-1 hover:bg-muted">
-                    {v.avatar_url ? <img src={v.avatar_url} className="h-4 w-4 rounded-full object-cover" /> : <div className="h-4 w-4 rounded-full bg-primary/30" />}
-                    <span className="truncate font-semibold">@{v.username}</span>
-                  </div>
-                ))}
-              </div>
-            </details>
+            <button
+              onClick={() => setShowViewerList(true)}
+              className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur transition active:scale-95"
+              title="See who's watching"
+            >
+              <Users className="h-3 w-3" /> {Math.max(viewerCount, liveViewers.length).toLocaleString()}
+            </button>
           )}
         </div>
         <div className="flex gap-1">
