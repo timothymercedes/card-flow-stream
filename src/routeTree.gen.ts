@@ -19,6 +19,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PayoutsRouteImport } from './routes/payouts'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ObsHubRouteImport } from './routes/obs-hub'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as DisputesRouteImport } from './routes/disputes'
@@ -90,6 +91,11 @@ const OrdersRoute = OrdersRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObsHubRoute = ObsHubRouteImport.update({
+  id: '/obs-hub',
+  path: '/obs-hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
+  '/obs-hub': typeof ObsHubRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/payouts': typeof PayoutsRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
+  '/obs-hub': typeof ObsHubRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/payouts': typeof PayoutsRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
+  '/obs-hub': typeof ObsHubRoute
   '/onboarding': typeof OnboardingRoute
   '/orders': typeof OrdersRoute
   '/payouts': typeof PayoutsRoute
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/disputes'
     | '/feed'
     | '/my-listings'
+    | '/obs-hub'
     | '/onboarding'
     | '/orders'
     | '/payouts'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
     | '/disputes'
     | '/feed'
     | '/my-listings'
+    | '/obs-hub'
     | '/onboarding'
     | '/orders'
     | '/payouts'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/disputes'
     | '/feed'
     | '/my-listings'
+    | '/obs-hub'
     | '/onboarding'
     | '/orders'
     | '/payouts'
@@ -422,6 +434,7 @@ export interface RootRouteChildren {
   DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
   MyListingsRoute: typeof MyListingsRoute
+  ObsHubRoute: typeof ObsHubRoute
   OnboardingRoute: typeof OnboardingRoute
   OrdersRoute: typeof OrdersRoute
   PayoutsRoute: typeof PayoutsRoute
@@ -519,6 +532,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/obs-hub': {
+      id: '/obs-hub'
+      path: '/obs-hub'
+      fullPath: '/obs-hub'
+      preLoaderRoute: typeof ObsHubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -686,6 +706,7 @@ const rootRouteChildren: RootRouteChildren = {
   DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
   MyListingsRoute: MyListingsRoute,
+  ObsHubRoute: ObsHubRoute,
   OnboardingRoute: OnboardingRoute,
   OrdersRoute: OrdersRoute,
   PayoutsRoute: PayoutsRoute,

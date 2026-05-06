@@ -430,11 +430,23 @@ function Sell() {
               </div>
             </div>
 
-            {/* OBS / Pro broadcaster toggle */}
+            {/* OBS Streamer Hub link */}
+            <Link
+              to="/obs-hub"
+              className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 hover:bg-primary/10"
+            >
+              <div>
+                <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> OBS Streamer Hub</p>
+                <p className="text-[11px] text-muted-foreground">Set up OBS once, save defaults, monitor stream health, and go live in 1 tap.</p>
+              </div>
+              <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Open hub →</span>
+            </Link>
+
+            {/* OBS / Pro broadcaster toggle (legacy quick toggle) */}
             <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
               <div>
-                <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> Broadcast from OBS / Streamlabs</p>
-                <p className="text-[11px] text-muted-foreground">Pro mode: get an RTMPS URL + stream key to use in OBS.</p>
+                <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> Provision OBS for this stream</p>
+                <p className="text-[11px] text-muted-foreground">Quick toggle — generates a one-off RTMPS URL + key for this stream only.</p>
               </div>
               <input type="checkbox" checked={useObs} onChange={(e) => { setUseObs(e.target.checked); if (e.target.checked) setUseCompositor(false); }} className="mt-1 h-5 w-5" />
             </label>
