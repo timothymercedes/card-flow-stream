@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 type Tier = {
@@ -28,7 +28,7 @@ export function useLivestreamSafety(opts: {
   streamId: string;
   isSeller: boolean;
   localStream?: MediaStream | null;
-  videoRef?: React.RefObject<HTMLVideoElement | null>;
+  videoRef?: RefObject<HTMLVideoElement | null>;
   onAutoEnd?: () => void;
 }) {
   const { stream, streamId, isSeller, localStream, videoRef, onAutoEnd } = opts;
