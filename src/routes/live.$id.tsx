@@ -576,6 +576,18 @@ function LiveDetail() {
   const [videoOn, setVideoOn] = useState(true);
   // Auto-join prompt for cohosts on acceptance
   useEffect(() => { if (isCohostParticipant && !callJoined) setCallJoined(true); }, [isCohostParticipant, callJoined]);
+  // In compositor mode, host auto-joins on stream load so the canvas has the local cam immediately.
+  useEffect(() => { if (isSeller && usingCompositor && !callJoined) setCallJoined(true); }, [isSeller, usingCompositor, callJoined]);
+
+  // Canvas compositor → WHIP publish (host only, when WHIP URL is set on the stream)
+  useCanvasCompositor({
+    enabled: !!isSeller && usingCompositor && !!cfCall.localStream,
+    whipUrl: stream?.cf_whip_url ?? null,
+    localStream: cfCall.localStream,
+    remotes: cfCall.remotes,
+    localUsername: profile?.username || "host",
+  });
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
