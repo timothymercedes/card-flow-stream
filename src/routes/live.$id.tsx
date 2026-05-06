@@ -2035,8 +2035,60 @@ function LiveDetail() {
         </>
       )}
 
-      {/* Seller settings panel */}
-      {isSeller && showSettings && !ended && (
+      {/* Flex Live settings panel — host controls chat + co-hosts (no auction stuff) */}
+      {isSeller && showSettings && !ended && stream.mode === "show_off" && (
+        <div className="absolute inset-x-3 top-24 z-30 max-h-[60vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl backdrop-blur">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-bold">✨ Flex settings</p>
+            <button onClick={() => setShowSettings(false)}><X className="h-4 w-4" /></button>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center justify-between text-xs font-bold">
+                <span>🐢 Slow chat
+                  {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
+                    <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
+                      {(stream as any).chat_slow_mode_sec}s
+                    </span>
+                  )}
+                </span>
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Slow viewer chat. Host & co-hosts bypass.</p>
+              <div className="mt-2 grid grid-cols-5 gap-1">
+                {[0, 3, 5, 10, 30].map((s) => (
+                  <button key={s} type="button"
+                    onClick={async () => {
+                      setEditSlowMode(String(s));
+                      await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                      sendMsg(s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s`, true);
+                    }}
+                    className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                    {s === 0 ? "Off" : `${s}s`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setShowSettings(false); setShowCollabPanel(true); }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-500 py-2.5 text-xs font-bold text-white"
+            >
+              <Users2 className="h-3.5 w-3.5" /> Manage co-hosts (add / remove collab)
+            </button>
+            <p className="text-[10px] text-muted-foreground">Removing a co-host kicks them off the video stage but does <b>not</b> ban them — they can still watch &amp; chat.</p>
+
+            <label className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs font-bold">
+              <span>🎙️ Allow collab requests</span>
+              <input type="checkbox" checked={!!stream.allow_collab_requests}
+                onChange={async (e) => { await supabase.from("live_streams").update({ allow_collab_requests: e.target.checked }).eq("id", id); }}
+                className="h-4 w-4" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Seller settings panel (auction mode) */}
+      {isSeller && showSettings && !ended && stream.mode !== "show_off" && (
         <div className="absolute inset-x-3 top-24 z-30 max-h-[60vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-bold">Item & Auction</p>
