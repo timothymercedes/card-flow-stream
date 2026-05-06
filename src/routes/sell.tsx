@@ -126,8 +126,9 @@ function Sell() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
 
-  async function startLive() {
+  async function startLive(meta?: { stream_type: StreamType; tcg_tags: TcgTag[] }) {
     if (!streamTitle.trim()) return toast.error("Add a title");
+    if (!meta) { setPickerOpen(true); return; }
     await ensureSeller();
     // Timer never starts on go-live — only starts when seller hits "Start Auction" inside the live page
     const ends_at: string | null = null;
