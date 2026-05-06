@@ -42,9 +42,40 @@ function ListingDetail() {
       .then(({ count }) => setUnpaidOrders(count ?? 0));
   }, [user?.id]);
 
-  // shipping
+  // shipping — pulled from buyer profile, never typed at checkout
   const [showShip, setShowShip] = useState(false);
   const [ship, setShip] = useState({ name: "", address: "", city: "", state: "", zip: "", country: "US" });
+
+  // Load buyer's saved shipping address from their profile
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles")
+      .select("full_name,address_line1,address_city,address_state,address_zip,address_country")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setShip({
+          name: data.full_name || "",
+          address: data.address_line1 || "",
+          city: data.address_city || "",
+          state: data.address_state || "",
+          zip: data.address_zip || "",
+          country: data.address_country || "US",
+        });
+      });
+  }, [user?.id]);
+
+  function profileAddressComplete() {
+    return !!(ship.name && ship.address && ship.city && ship.state && ship.zip);
+  }
+  function ensureBuyerAddress(): boolean {
+    if (!profileAddressComplete()) {
+      toast.error("Add your shipping address in your profile before purchasing");
+      nav({ to: "/profile" });
+      return false;
+    }
+    return true;
+  }
 
   async function load() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
@@ -121,18 +152,20 @@ function ListingDetail() {
   async function buyNow() {
     if (!profile) return toast.error("Sign in first");
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
+    if (!ensureBuyerAddress()) return;
     setCartMode("buy");
     setShowShip(true);
   }
 
   async function addToCart() {
     if (!profile) return toast.error("Sign in first");
+    if (!ensureBuyerAddress()) return;
     setCartMode("cart");
     setShowShip(true);
   }
 
   async function placeOrder(amount: number) {
-    if (!ship.name || !ship.address || !ship.city || !ship.zip) return toast.error("Fill shipping address");
+    if (!ensureBuyerAddress()) return;
     const { error } = await supabase.from("orders").insert({
       listing_id: id, buyer_id: profile!.id, seller_id: listing.seller_id,
       title: listing.title, amount,
@@ -313,14 +346,15 @@ function ListingDetail() {
           const total = itemPrice + shipPrice;
           return (
             <div className="mt-4 space-y-2 rounded-xl bg-card p-4">
-              <p className="text-sm font-bold">Shipping address</p>
-              <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Full name" value={ship.name} onChange={(e) => setShip({ ...ship, name: e.target.value })} />
-              <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Street address" value={ship.address} onChange={(e) => setShip({ ...ship, address: e.target.value })} />
-              <div className="grid grid-cols-2 gap-2">
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="City" value={ship.city} onChange={(e) => setShip({ ...ship, city: e.target.value })} />
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="State" value={ship.state} onChange={(e) => setShip({ ...ship, state: e.target.value })} />
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="ZIP" value={ship.zip} onChange={(e) => setShip({ ...ship, zip: e.target.value })} />
-                <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Country" value={ship.country} onChange={(e) => setShip({ ...ship, country: e.target.value })} />
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold">Ship to</p>
+                <Link to="/profile" className="text-[11px] font-semibold text-primary">Edit in profile</Link>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-3 text-xs leading-relaxed">
+                <p className="font-semibold text-foreground">{ship.name}</p>
+                <p className="text-muted-foreground">{ship.address}</p>
+                <p className="text-muted-foreground">{ship.city}, {ship.state} {ship.zip}</p>
+                <p className="text-muted-foreground">{ship.country}</p>
               </div>
               <div className="rounded-lg bg-muted/50 p-2 text-xs space-y-1">
                 <div className="flex justify-between"><span>Item{qty > 1 ? ` × ${qty}` : ""}</span><span>${itemPrice.toFixed(2)}</span></div>
