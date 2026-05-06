@@ -2154,12 +2154,12 @@ function LiveDetail() {
             </div>
             {!ended && !isSeller && (
               <button
-                onClick={() => user ? setTipOpen(true) : toast.error("Sign in to tip")}
-                title="Send a tip"
+                onClick={() => user ? setTipOpen(true) : toast.error("Sign in to shout out")}
+                title="Send a shout-out tip"
                 className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 px-3 py-2 text-[10px] font-bold text-white active:scale-[0.98]"
               >
-                <Gift className="h-4 w-4" />
-                Tip
+                <Megaphone className="h-4 w-4" />
+                Shout
               </button>
             )}
           </div>
