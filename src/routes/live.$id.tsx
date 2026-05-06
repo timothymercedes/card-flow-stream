@@ -24,6 +24,8 @@ import { CollabPanel } from "@/components/CollabPanel";
 import { ViewerListModal } from "@/components/ViewerListModal";
 import { Users2 } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
+import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
+import { CoHostStage } from "@/components/CoHostStage";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -530,6 +532,47 @@ function LiveDetail() {
   });
   // Keep `voiceListening` flag in sync for the existing badge UI
   useEffect(() => { setVoiceListening(voice.listening); }, [voice.listening]);
+
+  // ─── Cloudflare Calls multi-guest video ───────────────────────────
+  const [callJoined, setCallJoined] = useState(false);
+  const [isCohostParticipant, setIsCohostParticipant] = useState(false);
+  useEffect(() => {
+    if (!user || !stream || isSeller) { setIsCohostParticipant(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("stream_collab_participants")
+        .select("id").eq("stream_id", id).eq("user_id", user.id).maybeSingle();
+      if (!cancelled) setIsCohostParticipant(!!data);
+    })();
+    const ch = supabase.channel(`collab-self-${id}-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stream_collab_participants", filter: `stream_id=eq.${id}` },
+        async () => {
+          const { data } = await supabase.from("stream_collab_participants")
+            .select("id").eq("stream_id", id).eq("user_id", user.id).maybeSingle();
+          if (!cancelled) setIsCohostParticipant(!!data);
+        })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user?.id, stream?.id, id, isSeller]);
+
+  // Host auto-joins when streaming via in-browser camera (not OBS); co-hosts auto-join when accepted.
+  const callShouldRun = !!stream && stream.status !== "ended" && (
+    (isSeller && !usingObs) || isCohostParticipant
+  ) && callJoined;
+
+  const cfCall = useCloudflareCalls({
+    enabled: callShouldRun,
+    streamId: stream?.id ?? null,
+    userId: user?.id ?? null,
+    username: profile?.username ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+  });
+  const [audioOn, setAudioOn] = useState(true);
+  const [videoOn, setVideoOn] = useState(true);
+  // Auto-join prompt for cohosts on acceptance
+  useEffect(() => { if (isCohostParticipant && !callJoined) setCallJoined(true); }, [isCohostParticipant, callJoined]);
+
+
 
 
   // Auto-hide system notifications after 5s
@@ -1660,7 +1703,19 @@ function LiveDetail() {
         )}
       </div>
 
-      {/* Top bar */}
+      {/* Cloudflare Calls multi-guest stage */}
+      {callShouldRun && (
+        <CoHostStage
+          localStream={cfCall.localStream}
+          localUsername={profile?.username || "you"}
+          remotes={cfCall.remotes}
+          audioOn={audioOn}
+          videoOn={videoOn}
+          onToggleAudio={() => { cfCall.toggleAudio(); setAudioOn((v) => !v); }}
+          onToggleVideo={() => { cfCall.toggleVideo(); setVideoOn((v) => !v); }}
+          onLeave={() => setCallJoined(false)}
+        />
+      )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4" /></Link>
         <div className="flex items-center gap-1.5">
@@ -1695,6 +1750,11 @@ function LiveDetail() {
           {!ended && (isSeller || (!isSeller && stream.allow_collab_requests)) && (
             <button onClick={() => setShowCollabPanel(true)} className="rounded-full bg-fuchsia-600/80 p-2 backdrop-blur" title="Collab">
               <Users2 className="h-4 w-4" />
+            </button>
+          )}
+          {!ended && (isSeller || isCohostParticipant) && !callJoined && (
+            <button onClick={() => setCallJoined(true)} className="rounded-full bg-emerald-600/80 p-2 backdrop-blur" title="Go on camera">
+              <Camera className="h-4 w-4" />
             </button>
           )}
           {(auctionLive || stream.current_item) && (
