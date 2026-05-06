@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircleQuestion, X, Send, Sparkles, Play, Shield, ShieldAlert, Flag, Inbox, ChevronLeft, AlertTriangle, LifeBuoy } from "lucide-react";
+import { MessageCircleQuestion, X, Send, Sparkles, Play, Shield, ShieldAlert, Flag, Inbox, ChevronLeft, AlertTriangle, LifeBuoy, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTour } from "@/components/MascotGuide";
 import { MASCOTS, TOURS } from "@/lib/tours";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 type Msg = { role: "user" | "assistant"; content: string };
