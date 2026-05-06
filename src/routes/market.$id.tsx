@@ -323,11 +323,13 @@ function ListingDetail() {
                 <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Country" value={ship.country} onChange={(e) => setShip({ ...ship, country: e.target.value })} />
               </div>
               <div className="rounded-lg bg-muted/50 p-2 text-xs space-y-1">
-                <div className="flex justify-between"><span>Item</span><span>${itemPrice.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Item{qty > 1 ? ` × ${qty}` : ""}</span><span>${itemPrice.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Shipping</span><span>{shipPrice > 0 ? `$${shipPrice.toFixed(2)}` : "Free"}</span></div>
                 <div className="flex justify-between font-bold pt-1 border-t border-border"><span>Total</span><span>${total.toFixed(2)}</span></div>
               </div>
-              <button onClick={() => placeOrder(total)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Place Order</button>
+              <button onClick={() => placeOrder(total)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
+                {cartMode === "cart" ? "Add to Cart" : "Place Order"}
+              </button>
             </div>
           );
         })()}
