@@ -179,7 +179,30 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="🛒 Hot Market" to="/market">
+      <Section title="✨ Show Off — Live Now" to="/showoff" viewLabel="Open Show Off">
+        <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+          {showOffStreams.length === 0 && <EmptyMini text="No Show Off streams yet — flex your collection!" />}
+          {showOffStreams.map((s) => (
+            <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
+                {s.thumbnail_url
+                  ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
+                  : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
+                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+                </div>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                  <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
+                  {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
+                    <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </Section>
+
         <div className="grid grid-cols-2 gap-3 px-4">
           {listings.length === 0 && <EmptyMini text="No listings yet" />}
           {listings.map((l) => (
