@@ -119,6 +119,21 @@ function Admin() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [canViewAdmin]);
+  useEffect(() => {
+    if (!canViewAdmin) return;
+    const refresh = async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { head: true, count: "exact" })
+        .in("verification_status", ["pending", "reverify_required"]);
+      setPendingVerifications(count || 0);
+    };
+    refresh();
+    const ch = supabase.channel("admin-verif-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [canViewAdmin]);
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
   useEffect(() => {
