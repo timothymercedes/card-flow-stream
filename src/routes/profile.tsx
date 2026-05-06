@@ -344,14 +344,12 @@ function Profile() {
           </button>
         </section>
 
-        <section className="rounded-xl bg-card p-4 space-y-2">
-          <p className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-4 w-4" /> Identity Verification</p>
-          <p className="text-[11px] text-muted-foreground">Upload a photo of a government-issued ID. Reviewed manually.</p>
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-input/50 py-3 text-xs font-semibold">
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {p.id_document_url ? "Replace ID" : "Upload ID"}
-            <input type="file" accept="image/*,application/pdf" onChange={uploadId} className="hidden" />
-          </label>
+        <section className="rounded-xl bg-card p-4 space-y-1">
+          <p className="flex items-center gap-2 text-sm font-bold"><ShieldCheck className="h-4 w-4" /> Identity & KYC</p>
+          <p className="text-[11px] text-muted-foreground">
+            For your privacy, PullBid Live does <strong>not</strong> store government IDs or selfies.
+            Seller identity (KYC) is verified securely by Stripe during payout onboarding — connect Stripe in <Link to="/payouts" className="text-primary underline">Payouts</Link> to complete verification.
+          </p>
         </section>
 
         <section className="rounded-xl bg-card p-4 space-y-2">
