@@ -6,8 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Sparkles, Lock, Globe, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { StreamCategoryPicker } from "@/components/StreamCategoryPicker";
-import type { TcgTag } from "@/lib/streamTaxonomy";
-import { tcgTagMeta } from "@/lib/streamTaxonomy";
+import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/showoff")({
   head: () => ({ meta: [{ title: "Show Off — PullBid Live" }] }),
