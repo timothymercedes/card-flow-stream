@@ -178,6 +178,7 @@ function PayoutsPage() {
         </CardContent>
       </Card>
     </div>
+    </SellerAgreementGate>
   );
 }
 
