@@ -170,9 +170,15 @@ function MascotBubble({
                 onClick={step === 0 ? onSkip : onPrev}
                 className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
               >
-                {step === 0 ? "Skip" : (<><ChevronLeft className="h-3.5 w-3.5" /> Back</>)}
+                {step === 0 ? "Skip · don't show again" : (<><ChevronLeft className="h-3.5 w-3.5" /> Back</>)}
               </button>
-              <span className="text-[10px] text-muted-foreground">{step + 1} / {tour.steps.length}</span>
+              <button
+                onClick={onSkip}
+                className="text-[10px] text-muted-foreground underline-offset-2 hover:underline"
+                title="Don't show this again"
+              >
+                {step + 1} / {tour.steps.length} · don't show again
+              </button>
               <button
                 onClick={onNext}
                 className={`flex items-center gap-1 rounded-lg px-4 py-2 text-xs font-bold shadow-lg ${m.accent}`}

@@ -60,9 +60,15 @@ function LiveDetail() {
     if (!stream) return;
     const isHost = user && stream.seller_id === user.id;
     const isFlex = stream.mode === "show_off";
-    if (isHost) triggerOnce("seller-first-stream");
-    else if (isFlex) triggerOnce("buyer-first-flex");
-    else triggerOnce("buyer-first-live");
+    if (isFlex) {
+      triggerOnce("flex-live-screen");
+    } else {
+      triggerOnce("auction-live-screen");
+    }
+    if (isHost && isFlex) triggerOnce("seller-first-stream");
+    if (isHost && !isFlex && (stream.cf_rtmps_url || stream.cf_stream_key)) {
+      triggerOnce("obs-connect");
+    }
   }, [stream, user, triggerOnce]);
   const [sellerUsername, setSellerUsername] = useState<string>("");
   const [allStreams, setAllStreams] = useState<any[]>([]);
@@ -70,6 +76,7 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
+  const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
@@ -1921,7 +1928,7 @@ function LiveDetail() {
                   <span className="ml-1 rounded bg-primary/30 px-1.5 py-0.5 text-[9px] font-bold uppercase">Slot {Number((stream as any).quick_start_quantity || 1) - Number((stream as any).quick_start_remaining || 0)}/{Number((stream as any).quick_start_quantity || 1)}</span>
                 )}
               </div>
-            ) : (
+            ) : stream.mode === "show_off" ? null : (
               <div className="flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 shadow-md ring-1 ring-white/15 backdrop-blur">
                 {ended ? "Ended" : (stream.current_item ? "Ready" : "Auction not started")}
               </div>
@@ -1960,7 +1967,7 @@ function LiveDetail() {
             </div>
           )}
           {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
-          {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
+          {stream.mode !== "show_off" && ((stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method) ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
               📦 {stream.shipping_method || "Shipping"} — {fmtMoney(Number(stream.shipping_price || 0))}
             </p>
@@ -2250,11 +2257,37 @@ function LiveDetail() {
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
             </button>
 
-            {/* OBS / Cloudflare Stream credentials */}
+            {/* OBS Connect Hub — one-tap profile download + copy */}
             {usingObs && (
               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-[11px]">
-                <p className="mb-2 flex items-center gap-1.5 font-bold text-primary"><Radio className="h-3.5 w-3.5" /> OBS / Streamlabs setup</p>
-                <p className="mb-2 text-muted-foreground">In OBS → Settings → Stream → Service "Custom...", paste these values:</p>
+                <p className="mb-1 flex items-center gap-1.5 font-bold text-primary"><Radio className="h-3.5 w-3.5" /> OBS Connect Hub</p>
+                <p className="mb-2 text-muted-foreground">One tap below downloads a ready-to-import OBS profile with your server + key already filled in.</p>
+                <div className="mb-2 grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => {
+                      const profile = `[General]\nName=PullBidLive\n\n[Stream]\nservice=Custom\nserver=${stream.cf_rtmps_url}\nkey=${stream.cf_stream_key}\nuse_auth=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4500\nABitrate=160\nStreamEncoder=x264\n\n[Video]\nBaseCX=1920\nBaseCY=1080\nOutputCX=1920\nOutputCY=1080\nFPSCommon=30\n`;
+                      const blob = new Blob([profile], { type: "text/plain" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url; a.download = "PullBidLive.ini";
+                      a.click(); URL.revokeObjectURL(url);
+                      toast.success("Profile downloaded — import in OBS → Profile → Import");
+                    }}
+                    className="flex items-center justify-center gap-1 rounded bg-primary px-2 py-1.5 text-[10px] font-bold text-primary-foreground"
+                  >
+                    📥 Download OBS profile
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(`Server: ${stream.cf_rtmps_url}\nStream Key: ${stream.cf_stream_key}`);
+                      toast.success("Server + key copied");
+                    }}
+                    className="flex items-center justify-center gap-1 rounded bg-muted px-2 py-1.5 text-[10px] font-bold"
+                  >
+                    📋 Copy both
+                  </button>
+                </div>
+                <p className="mb-2 text-muted-foreground">Or paste manually into OBS → Settings → Stream → Service "Custom":</p>
                 <div className="space-y-2">
                   <div>
                     <p className="mb-0.5 font-semibold">Server (RTMPS URL)</p>
@@ -2272,6 +2305,7 @@ function LiveDetail() {
                     <p className="mt-1 text-[10px] text-muted-foreground">Keep this private. Anyone with this key can broadcast to your stream.</p>
                   </div>
                 </div>
+                <p className="mt-2 text-[10px] text-muted-foreground">Recommended: 1080p · 30fps · 4500 kbps · Keyframe 2s · x264.</p>
               </div>
             )}
           </div>
@@ -2320,7 +2354,7 @@ function LiveDetail() {
       })()}
 
       {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
-      {showChat && !(isStaff && hostFocus) && (
+      {showChat && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
@@ -2392,17 +2426,31 @@ function LiveDetail() {
       <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
         {stream.mode === "show_off" && (
           <>
-            <FlexLiveControls
-              streamId={id}
-              isHost={isSeller}
-              userId={user?.id || null}
-              username={profile?.username || null}
-              currentFilter={stream.video_filter || "none"}
-            />
-            {isSeller && !paused && (
-              <button onClick={endLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
-                <Square className="h-3.5 w-3.5" /> End Flex
+            {/* Collapse / full-screen toggle for Flex Live */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => setFlexImmersive((v) => !v)}
+                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 ring-1 ring-white/15 backdrop-blur active:scale-[0.98]"
+                title={flexImmersive ? "Show panels" : "Hide everything for full screen"}
+              >
+                {flexImmersive ? "▣ Show panels" : "⛶ Full-screen vibe"}
               </button>
+            </div>
+            {!flexImmersive && (
+              <>
+                <FlexLiveControls
+                  streamId={id}
+                  isHost={isSeller}
+                  userId={user?.id || null}
+                  username={profile?.username || null}
+                  currentFilter={stream.video_filter || "none"}
+                />
+                {isSeller && !paused && (
+                  <button onClick={endLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
+                    <Square className="h-3.5 w-3.5" /> End Flex
+                  </button>
+                )}
+              </>
             )}
           </>
         )}
@@ -2723,7 +2771,8 @@ function LiveDetail() {
         )}
         </>)}
 
-        {/* Chat input — always visible in BOTH flex and auction modes */}
+        {/* Chat input — hidden in Flex immersive mode */}
+        {!(stream.mode === "show_off" && flexImmersive) && (
         <form onSubmit={handleSend} className="relative flex gap-2">
           {tagOpen && tagResults.length > 0 && (
             <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
@@ -2751,6 +2800,7 @@ function LiveDetail() {
           />
           <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
+        )}
       </div>
 
       {/* End Live confirmation — pause for 3h (with custom message) or end for good */}

@@ -129,6 +129,46 @@ export const TOURS: Record<string, Tour> = {
       { title: "Safety first 🛡️", body: "AI moderation runs 24/7 — slurs, nudity, scams get nuked. Verified-only hosts means no bots." },
     ],
   },
+
+  "flex-live-screen": {
+    id: "flex-live-screen",
+    mascot: "flex",
+    steps: [
+      { title: "Welcome to your Flex room 🎉", body: "I'm Krome. Quick tour — tap Skip any time, I won't show this again." },
+      { title: "Weekly Vibe ✨", body: "Top banner = this week's theme. Match it for bonus reactions and shoutouts." },
+      { title: "Reactions 💜🔥", body: "Tap any emoji to send a floating burst over the video. Spam-friendly!" },
+      { title: "AI Filters 🪄", body: "Hosts: tap Filter to drop anime, comic, glow-skin, VHS, cyber, and more — viewers see it instantly." },
+      { title: "Collab tab 👥", body: "Up to 6 co-hosts. Invite verified friends or approve join requests right from the panel." },
+      { title: "Settings ⚙️", body: "Slow chat, manage co-hosts (add/remove), and toggle requests — all Flex-specific, no auction stuff." },
+      { title: "Full screen ⛶", body: "Tap 'Full-screen vibe' above the reactions to hide every panel and just enjoy the cam." },
+      { title: "End Flex 🛑", body: "Done? Tap End Flex. You can pause for up to 3h with a custom 'be right back' message." },
+    ],
+  },
+  "auction-live-screen": {
+    id: "auction-live-screen",
+    mascot: "buyer",
+    steps: [
+      { title: "Live auction tour 🎬", body: "I'm Hoshi! Quick walk-through — Skip any time, this won't pop up again." },
+      { title: "Current Bid 💸", body: "Big number at the bottom = current bid. Tap +$1/+$5/+$10/+$25 to jump fast." },
+      { title: "Hold to bid ⏳", body: "Press and hold the red button — the longer you hold, the higher you bid. Release to submit." },
+      { title: "Snipe ⚡", body: "If the host sets a Snipe price, you can buy-now and skip the timer entirely." },
+      { title: "Shout-out 📣", body: "Tip the host to get your name read on stream. Capped at $50 per stream — keeps it fun." },
+      { title: "Timer 🕒", body: "Bursts huge in the last 5s. Last-second bids extend it (snipe protection)." },
+      { title: "Chat & tags 💬", body: "Type @ to mention users. Tap a username to follow / report / DM." },
+      { title: "Win & ship 📦", body: "Win? We auto-charge your saved card and the seller prints a label. Track from Orders." },
+    ],
+  },
+  "obs-connect": {
+    id: "obs-connect",
+    mascot: "seller",
+    steps: [
+      { title: "OBS Connect Hub 🎥", body: "I'm Vexa. Let's get OBS hooked up in under a minute — tap Skip to do it yourself." },
+      { title: "One-tap profile 📥", body: "Tap 'Download OBS profile'. It pre-fills your server + stream key — zero typing." },
+      { title: "Import in OBS ⚙️", body: "Open OBS → Profile menu → Import → pick the .ini file you just downloaded. Done." },
+      { title: "Or copy + paste 📋", body: "Prefer manual? Tap 'Copy both' and paste into OBS → Settings → Stream (Service: Custom)." },
+      { title: "Recommended encode 📺", body: "1080p · 30fps · 4500 kbps · keyframe 2s · x264. Hit Start Streaming in OBS — you're live." },
+    ],
+  },
 };
 
 export const MASCOT_NAMES = ["Hoshi", "Vexa", "Krome"] as const;
