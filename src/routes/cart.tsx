@@ -64,7 +64,7 @@ function Cart() {
 
   const checkoutItems = checkoutSeller ? groups[checkoutSeller] || [] : [];
   const checkoutSubtotal = checkoutItems.reduce((a, o) => a + Number(o.amount || 0), 0);
-  const checkoutOrderId = checkoutItems[0]?.id;
+  const checkoutOrderIds = checkoutItems.map((o) => o.id);
 
   return (
     <AppShell>
