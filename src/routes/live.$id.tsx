@@ -1755,7 +1755,7 @@ function LiveDetail() {
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {/* Full-screen video */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" style={stream.mode === "show_off" ? { filter: flexFilterCss(stream.video_filter) } : undefined}>
         {usingObs ? (
           <HlsPlayer src={stream.cf_playback_hls} className="h-full w-full object-cover" autoPlay muted={isSeller} />
         ) : isSeller ? (
