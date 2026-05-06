@@ -408,6 +408,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ko_requests: {
+        Row: {
+          created_at: string
+          from_avatar_url: string | null
+          from_seller_id: string
+          from_stream_id: string
+          from_username: string
+          from_viewer_count: number
+          id: string
+          status: string
+          to_seller_id: string
+          to_stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_avatar_url?: string | null
+          from_seller_id: string
+          from_stream_id: string
+          from_username: string
+          from_viewer_count?: number
+          id?: string
+          status?: string
+          to_seller_id: string
+          to_stream_id: string
+        }
+        Update: {
+          created_at?: string
+          from_avatar_url?: string | null
+          from_seller_id?: string
+          from_stream_id?: string
+          from_username?: string
+          from_viewer_count?: number
+          id?: string
+          status?: string
+          to_seller_id?: string
+          to_stream_id?: string
+        }
+        Relationships: []
+      }
       legal_acceptances: {
         Row: {
           accepted_at: string
@@ -639,6 +678,11 @@ export type Database = {
           is_active: boolean
           item_description: string | null
           item_image_url: string | null
+          ko_accepts_requests: boolean
+          ko_active: boolean
+          ko_destinations: Json
+          ko_message: string | null
+          ko_started_at: string | null
           listing_type: string
           min_bid_increment: number
           pause_until: string | null
@@ -711,6 +755,11 @@ export type Database = {
           is_active?: boolean
           item_description?: string | null
           item_image_url?: string | null
+          ko_accepts_requests?: boolean
+          ko_active?: boolean
+          ko_destinations?: Json
+          ko_message?: string | null
+          ko_started_at?: string | null
           listing_type?: string
           min_bid_increment?: number
           pause_until?: string | null
@@ -783,6 +832,11 @@ export type Database = {
           is_active?: boolean
           item_description?: string | null
           item_image_url?: string | null
+          ko_accepts_requests?: boolean
+          ko_active?: boolean
+          ko_destinations?: Json
+          ko_message?: string | null
+          ko_started_at?: string | null
           listing_type?: string
           min_bid_increment?: number
           pause_until?: string | null
