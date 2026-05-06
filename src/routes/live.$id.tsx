@@ -70,6 +70,7 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
+  const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
