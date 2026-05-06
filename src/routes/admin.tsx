@@ -102,6 +102,21 @@ function Admin() {
   }
 
   useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
+  useEffect(() => {
+    if (!canViewAdmin) return;
+    const refresh = async () => {
+      const { count } = await supabase
+        .from("support_tickets")
+        .select("id", { head: true, count: "exact" })
+        .in("status", ["open", "pending"]);
+      setOpenSupport(count || 0);
+    };
+    refresh();
+    const ch = supabase.channel("admin-support-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [canViewAdmin]);
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
   useEffect(() => {
