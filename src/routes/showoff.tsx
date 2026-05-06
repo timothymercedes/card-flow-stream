@@ -129,6 +129,27 @@ function ShowOff() {
             className="w-full rounded-lg bg-input px-3 py-2.5 text-sm outline-none"
           />
 
+          <div>
+            <p className="mb-1.5 text-[11px] font-bold text-muted-foreground">
+              TCG / category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {TCG_TAGS.map((t) => {
+                const on = tcgTags.includes(t.value);
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    {t.emoji} {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
