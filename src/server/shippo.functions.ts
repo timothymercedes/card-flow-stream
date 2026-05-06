@@ -101,7 +101,7 @@ export const getShippoRates = createServerFn({ method: "POST" })
       days: r.estimated_days,
     }));
     const rates = sortRatesCheapestFirst(rawRates);
-    const recommended = pickRecommendedRate(rates);
+    const recommended = pickRecommendedRate(rates) as any;
     return { shipmentId: shipment.object_id, rates, recommendedRateId: recommended?.objectId ?? null };
   });
 
