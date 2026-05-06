@@ -1505,18 +1505,32 @@ function LiveDetail() {
   }
 
   const [endLiveOpen, setEndLiveOpen] = useState(false);
+  const [pauseMessageDraft, setPauseMessageDraft] = useState("");
   async function endLive() {
     if (!isSeller) return;
+    setPauseMessageDraft("");
     setEndLiveOpen(true);
+  }
+  // Track minutes streamed; called from pause / end paths.
+  async function recordStreamMinutes() {
+    try {
+      const startedAt = stream?.started_at ? new Date(stream.started_at).getTime() : 0;
+      if (!startedAt || !user) return;
+      const mins = Math.max(0, Math.floor((Date.now() - startedAt) / 60_000));
+      if (mins > 0) await (supabase.rpc as any)("add_stream_minutes", { _user_id: user.id, _minutes: mins });
+    } catch {}
   }
   async function pauseLiveFor3h() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
     const until = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    const msg = pauseMessageDraft.trim().slice(0, 140) || null;
     await supabase.from("live_streams").update({
       status: "paused", is_active: false, pause_until: until,
-    }).eq("id", id);
-    await sendMsg(`⏸️ Host paused the live — back within 3 hours`, true);
+      pause_message: msg, pause_started_at: new Date().toISOString(),
+    } as any).eq("id", id);
+    await recordStreamMinutes();
+    await sendMsg(msg ? `⏸️ Host paused: ${msg}` : `⏸️ Host paused — back within 3 hours`, true);
     toast.success("Live paused — resume within 3 hours");
     camStream.current?.getTracks().forEach((t) => t.stop());
     setEndLiveOpen(false);
@@ -1525,7 +1539,8 @@ function LiveDetail() {
     if (!isSeller) return;
     await supabase.from("live_streams").update({
       status: "live", is_active: true, pause_until: null, ended_at: null,
-    }).eq("id", id);
+      pause_message: null, pause_started_at: null,
+    } as any).eq("id", id);
     await sendMsg(`▶️ Host is back — live resumed`, true);
     toast.success("Live resumed");
   }
@@ -1535,6 +1550,7 @@ function LiveDetail() {
     await supabase.from("live_streams").update({
       status: "ended", is_active: false, ended_at: new Date().toISOString(), pause_until: null,
     }).eq("id", id);
+    await recordStreamMinutes();
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
     camStream.current?.getTracks().forEach((t) => t.stop());
