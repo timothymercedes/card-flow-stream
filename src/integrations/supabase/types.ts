@@ -2656,6 +2656,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_live_stream_safety: {
+        Args: { _stream_id?: string }
+        Returns: number
+      }
       bump_login_streak: {
         Args: never
         Returns: {
