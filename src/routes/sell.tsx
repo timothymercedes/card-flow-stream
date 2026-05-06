@@ -434,6 +434,7 @@ function Sell() {
             {/* OBS Streamer Hub link */}
             <Link
               to="/obs-hub"
+              data-tour="obs-hub-link"
               className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 hover:bg-primary/10"
             >
               <div>
