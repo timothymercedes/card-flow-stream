@@ -1505,18 +1505,32 @@ function LiveDetail() {
   }
 
   const [endLiveOpen, setEndLiveOpen] = useState(false);
+  const [pauseMessageDraft, setPauseMessageDraft] = useState("");
   async function endLive() {
     if (!isSeller) return;
+    setPauseMessageDraft("");
     setEndLiveOpen(true);
+  }
+  // Track minutes streamed; called from pause / end paths.
+  async function recordStreamMinutes() {
+    try {
+      const startedAt = stream?.started_at ? new Date(stream.started_at).getTime() : 0;
+      if (!startedAt || !user) return;
+      const mins = Math.max(0, Math.floor((Date.now() - startedAt) / 60_000));
+      if (mins > 0) await (supabase.rpc as any)("add_stream_minutes", { _user_id: user.id, _minutes: mins });
+    } catch {}
   }
   async function pauseLiveFor3h() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
     const until = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    const msg = pauseMessageDraft.trim().slice(0, 140) || null;
     await supabase.from("live_streams").update({
       status: "paused", is_active: false, pause_until: until,
-    }).eq("id", id);
-    await sendMsg(`⏸️ Host paused the live — back within 3 hours`, true);
+      pause_message: msg, pause_started_at: new Date().toISOString(),
+    } as any).eq("id", id);
+    await recordStreamMinutes();
+    await sendMsg(msg ? `⏸️ Host paused: ${msg}` : `⏸️ Host paused — back within 3 hours`, true);
     toast.success("Live paused — resume within 3 hours");
     camStream.current?.getTracks().forEach((t) => t.stop());
     setEndLiveOpen(false);
@@ -1525,7 +1539,8 @@ function LiveDetail() {
     if (!isSeller) return;
     await supabase.from("live_streams").update({
       status: "live", is_active: true, pause_until: null, ended_at: null,
-    }).eq("id", id);
+      pause_message: null, pause_started_at: null,
+    } as any).eq("id", id);
     await sendMsg(`▶️ Host is back — live resumed`, true);
     toast.success("Live resumed");
   }
@@ -1535,6 +1550,7 @@ function LiveDetail() {
     await supabase.from("live_streams").update({
       status: "ended", is_active: false, ended_at: new Date().toISOString(), pause_until: null,
     }).eq("id", id);
+    await recordStreamMinutes();
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
     camStream.current?.getTracks().forEach((t) => t.stop());
@@ -1842,9 +1858,9 @@ function LiveDetail() {
             </button>
           )}
           {isSeller && !ended && (
-            <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur"><Settings className="h-4 w-4" /></button>
+            <button onClick={() => setShowSettings((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={stream.mode === "show_off" ? "Flex settings" : "Settings"}><Settings className="h-4 w-4" /></button>
           )}
-          {isSeller && !ended && (
+          {isSeller && !ended && stream.mode !== "show_off" && (
             <button
               onClick={() => setKoOpen(true)}
               title="K.O. — KickOut viewers to other live shows"
@@ -2035,8 +2051,60 @@ function LiveDetail() {
         </>
       )}
 
-      {/* Seller settings panel */}
-      {isSeller && showSettings && !ended && (
+      {/* Flex Live settings panel — host controls chat + co-hosts (no auction stuff) */}
+      {isSeller && showSettings && !ended && stream.mode === "show_off" && (
+        <div className="absolute inset-x-3 top-24 z-30 max-h-[60vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl backdrop-blur">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-bold">✨ Flex settings</p>
+            <button onClick={() => setShowSettings(false)}><X className="h-4 w-4" /></button>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
+              <p className="flex items-center justify-between text-xs font-bold">
+                <span>🐢 Slow chat
+                  {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
+                    <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
+                      {(stream as any).chat_slow_mode_sec}s
+                    </span>
+                  )}
+                </span>
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Slow viewer chat. Host & co-hosts bypass.</p>
+              <div className="mt-2 grid grid-cols-5 gap-1">
+                {[0, 3, 5, 10, 30].map((s) => (
+                  <button key={s} type="button"
+                    onClick={async () => {
+                      setEditSlowMode(String(s));
+                      await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                      sendMsg(s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s`, true);
+                    }}
+                    className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}>
+                    {s === 0 ? "Off" : `${s}s`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setShowSettings(false); setShowCollabPanel(true); }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-violet-500 py-2.5 text-xs font-bold text-white"
+            >
+              <Users2 className="h-3.5 w-3.5" /> Manage co-hosts (add / remove collab)
+            </button>
+            <p className="text-[10px] text-muted-foreground">Removing a co-host kicks them off the video stage but does <b>not</b> ban them — they can still watch &amp; chat.</p>
+
+            <label className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs font-bold">
+              <span>🎙️ Allow collab requests</span>
+              <input type="checkbox" checked={!!stream.allow_collab_requests}
+                onChange={async (e) => { await supabase.from("live_streams").update({ allow_collab_requests: e.target.checked }).eq("id", id); }}
+                className="h-4 w-4" />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Seller settings panel (auction mode) */}
+      {isSeller && showSettings && !ended && stream.mode !== "show_off" && (
         <div className="absolute inset-x-3 top-24 z-30 max-h-[60vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-bold">Item & Auction</p>
@@ -2323,13 +2391,20 @@ function LiveDetail() {
       {/* Bottom panel */}
       <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
         {stream.mode === "show_off" && (
-          <FlexLiveControls
-            streamId={id}
-            isHost={isSeller}
-            userId={user?.id || null}
-            username={profile?.username || null}
-            currentFilter={stream.video_filter || "none"}
-          />
+          <>
+            <FlexLiveControls
+              streamId={id}
+              isHost={isSeller}
+              userId={user?.id || null}
+              username={profile?.username || null}
+              currentFilter={stream.video_filter || "none"}
+            />
+            {isSeller && !paused && (
+              <button onClick={endLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
+                <Square className="h-3.5 w-3.5" /> End Flex
+              </button>
+            )}
+          </>
         )}
         {stream.mode !== "show_off" && (<>
         {/* PRIORITY 1: Current Bid — centered, large, focal point */}
@@ -2486,16 +2561,30 @@ function LiveDetail() {
         {isSeller && paused && (
           <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
             <p className="text-center text-[11px] font-bold text-amber-200">
-              ⏸️ Live paused {pauseExpired ? "— window expired" : `· ${Math.floor(pauseMsLeft / 60000)}m ${Math.floor((pauseMsLeft % 60000) / 1000)}s left`}
+              ⏸️ Paused {pauseExpired ? "— window expired" : `· ${Math.floor(pauseMsLeft / 60000)}m ${Math.floor((pauseMsLeft % 60000) / 1000)}s left`}
             </p>
+            {(stream as any).pause_message && (
+              <p className="rounded-md bg-black/30 p-2 text-center text-[11px] italic text-amber-100">"{(stream as any).pause_message}"</p>
+            )}
             <div className="flex gap-1.5">
               <button onClick={resumeLive} disabled={pauseExpired} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-[12px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
-                <Play className="h-3.5 w-3.5" /> Resume Live
+                <Play className="h-3.5 w-3.5" /> Resume
               </button>
               <button onClick={confirmEndLive} className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-3 py-2 text-[11px] font-bold text-live-foreground active:scale-[0.98]">
                 <Square className="h-3 w-3" /> End for good
               </button>
             </div>
+          </div>
+        )}
+        {!isSeller && paused && !pauseExpired && (
+          <div className="space-y-1.5 rounded-xl bg-amber-500/15 p-3 text-center ring-1 ring-amber-400/40 backdrop-blur">
+            <p className="text-xs font-extrabold text-amber-100">⏸️ Host is on a quick break</p>
+            <p className="text-[11px] tabular-nums text-amber-200">
+              Back within {Math.floor(pauseMsLeft / 3600000)}h {Math.floor((pauseMsLeft % 3600000) / 60000)}m {Math.floor((pauseMsLeft % 60000) / 1000)}s
+            </p>
+            {(stream as any).pause_message && (
+              <p className="rounded-md bg-black/30 p-2 text-[11px] italic text-amber-100">"{(stream as any).pause_message}"</p>
+            )}
           </div>
         )}
         {isSeller && !ended && !paused && (
@@ -2664,23 +2753,29 @@ function LiveDetail() {
         </form>
       </div>
 
-      {/* End Live confirmation — pause for 3h or end for good */}
+      {/* End Live confirmation — pause for 3h (with custom message) or end for good */}
       {endLiveOpen && isSeller && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setEndLiveOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-3 rounded-2xl bg-card p-4 text-foreground shadow-2xl">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-bold">End live?</p>
+              <p className="text-sm font-bold">{stream.mode === "show_off" ? "End Flex?" : "End live?"}</p>
               <button onClick={() => setEndLiveOpen(false)}><X className="h-4 w-4" /></button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Need a quick break? Pause and come back within <strong>3 hours</strong> — your stream stays open and viewers see a "Be right back" status. Or end for good and finalize sales.
+              Quick break? Pause for up to <strong>3 hours</strong> — viewers see a "Be right back" countdown with your message. After 3h the stream auto-disappears.
             </p>
+            <input
+              value={pauseMessageDraft}
+              onChange={(e) => setPauseMessageDraft(e.target.value.slice(0, 140))}
+              placeholder='Optional message — e.g. "Bathroom break, back at 9pm"'
+              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
+            />
             <div className="space-y-2">
               <button onClick={pauseLiveFor3h} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-sm font-extrabold text-white shadow active:scale-[0.98]">
-                ⏸️ Pause for 3 hours
+                ⏸️ Pause up to 3 hours
               </button>
               <button onClick={confirmEndLive} className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]">
-                <Square className="h-4 w-4" /> End live for good
+                <Square className="h-4 w-4" /> {stream.mode === "show_off" ? "End Flex for good" : "End live for good"}
               </button>
               <button onClick={() => setEndLiveOpen(false)} className="w-full rounded-xl bg-muted py-2 text-xs text-muted-foreground">
                 Cancel

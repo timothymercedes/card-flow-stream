@@ -17,6 +17,8 @@ function Messages() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTarget, setComposeTarget] = useState<{ id: string; username: string } | null>(null);
+  const [composeMsg, setComposeMsg] = useState("");
 
   async function load() {
     if (!user) return;
@@ -64,8 +66,9 @@ function Messages() {
       .then(({ data }: any) => setResults(((data || []) as any[]).filter((p) => p.id !== user?.id)));
   }, [query, user]);
 
-  async function sendRequest(otherId: string, otherName: string) {
+  async function sendRequest(otherId: string, otherName: string, message?: string) {
     if (!user || !profile) return;
+    const msg = (message || "").trim() || null;
     // Check if pair already exists
     const { data: existing } = await supabase.from("message_requests").select("*")
       .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${user.id})`)
@@ -74,10 +77,9 @@ function Messages() {
       if (existing.status === "accepted") { nav({ to: "/messages/$userId", params: { userId: otherId } }); return; }
       if (existing.status === "pending") {
         if (existing.sender_id === user.id) {
-          // throttle re-request to 1/day
           const last = new Date(existing.last_request_at).getTime();
           if (Date.now() - last < 24 * 60 * 60 * 1000) return toast.error("Request already pending — try again later");
-          await supabase.from("message_requests").update({ last_request_at: new Date().toISOString() }).eq("id", existing.id);
+          await supabase.from("message_requests").update({ last_request_at: new Date().toISOString(), ...(msg ? { request_message: msg } as any : {}) }).eq("id", existing.id);
           return toast.success("Request resent");
         } else {
           return toast.message("They already sent you a request — check Requests tab");
@@ -87,13 +89,16 @@ function Messages() {
     }
     const { error } = await supabase.from("message_requests").insert({
       sender_id: user.id, sender_username: profile.username, recipient_id: otherId,
-    });
+      ...(msg ? { request_message: msg } as any : {}),
+    } as any);
     if (error) return toast.error(error.message);
     await supabase.from("notifications").insert({
-      user_id: otherId, type: "msg_request", body: `@${profile.username} wants to message you`, link: `/messages`,
+      user_id: otherId, type: "msg_request",
+      body: msg ? `@${profile.username}: ${msg.slice(0, 80)}` : `@${profile.username} wants to message you`,
+      link: `/messages`,
     });
     toast.success("Request sent");
-    setQuery(""); setResults([]);
+    setQuery(""); setResults([]); setComposeMsg(""); setComposeTarget(null);
   }
 
   async function respondRequest(req: any, accept: boolean) {
@@ -156,9 +161,12 @@ function Messages() {
             {requests.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground"><Inbox className="mx-auto mb-2 h-6 w-6" />No pending requests</p>}
             <div className="space-y-2">
               {requests.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 rounded-xl bg-card p-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20"><MessageCircle className="h-5 w-5" /></div>
-                  <p className="flex-1 text-sm font-semibold">@{r.sender_username}</p>
+                <div key={r.id} className="flex items-start gap-3 rounded-xl bg-card p-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20"><MessageCircle className="h-5 w-5" /></div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold">@{r.sender_username}</p>
+                    {r.request_message && <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground">"{r.request_message}"</p>}
+                  </div>
                   <button onClick={() => respondRequest(r, true)} className="rounded-full bg-primary p-2 text-primary-foreground"><Check className="h-4 w-4" /></button>
                   <button onClick={() => respondRequest(r, false)} className="rounded-full bg-muted p-2"><XIcon className="h-4 w-4" /></button>
                 </div>
@@ -169,37 +177,66 @@ function Messages() {
       </div>
 
       {composeOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setComposeOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => { setComposeOpen(false); setComposeTarget(null); setComposeMsg(""); }}>
           <div className="w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <p className="font-bold">New message</p>
-              <button onClick={() => setComposeOpen(false)}><XIcon className="h-4 w-4" /></button>
+              <p className="font-bold">{composeTarget ? `Message @${composeTarget.username}` : "New message"}</p>
+              <button onClick={() => { setComposeOpen(false); setComposeTarget(null); setComposeMsg(""); }}><XIcon className="h-4 w-4" /></button>
             </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by username..."
-                className="w-full rounded-xl bg-input py-2 pl-9 pr-3 text-sm outline-none"
-              />
-            </div>
-            <div className="max-h-72 space-y-1 overflow-y-auto">
-              {query.trim() && results.length === 0 && (
-                <p className="py-6 text-center text-xs text-muted-foreground">No users found</p>
-              )}
-              {results.map((p) => (
+            {!composeTarget ? (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by username..."
+                    className="w-full rounded-xl bg-input py-2 pl-9 pr-3 text-sm outline-none"
+                  />
+                </div>
+                <div className="max-h-72 space-y-1 overflow-y-auto">
+                  {query.trim() && results.length === 0 && (
+                    <p className="py-6 text-center text-xs text-muted-foreground">No users found</p>
+                  )}
+                  {results.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setComposeTarget({ id: p.id, username: p.username })}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span>@{p.username}</span>
+                      <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">Select</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">Add an optional intro so they know who you are. They'll see this with your request.</p>
+                <textarea
+                  autoFocus
+                  value={composeMsg}
+                  onChange={(e) => setComposeMsg(e.target.value.slice(0, 280))}
+                  placeholder="Hey! Saw your stream — wanted to chat about that Charizard…"
+                  rows={4}
+                  className="w-full resize-none rounded-xl bg-input p-3 text-sm outline-none"
+                />
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <button onClick={() => setComposeTarget(null)} className="rounded-full bg-muted px-3 py-1 font-bold">← Back</button>
+                  <span>{composeMsg.length}/280</span>
+                </div>
                 <button
-                  key={p.id}
-                  onClick={() => { sendRequest(p.id, p.username); setComposeOpen(false); }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                  onClick={async () => {
+                    await sendRequest(composeTarget.id, composeTarget.username, composeMsg);
+                    setComposeOpen(false);
+                  }}
+                  className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                 >
-                  <span>@{p.username}</span>
-                  <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">Send Request</span>
+                  Send request
                 </button>
-              ))}
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}

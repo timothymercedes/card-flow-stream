@@ -746,6 +746,8 @@ export type Database = {
           max_collab_count: number
           min_bid_increment: number
           mode: string
+          pause_message: string | null
+          pause_started_at: string | null
           pause_until: string | null
           quantity: number
           quantity_remaining: number | null
@@ -840,6 +842,8 @@ export type Database = {
           max_collab_count?: number
           min_bid_increment?: number
           mode?: string
+          pause_message?: string | null
+          pause_started_at?: string | null
           pause_until?: string | null
           quantity?: number
           quantity_remaining?: number | null
@@ -934,6 +938,8 @@ export type Database = {
           max_collab_count?: number
           min_bid_increment?: number
           mode?: string
+          pause_message?: string | null
+          pause_started_at?: string | null
           pause_until?: string | null
           quantity?: number
           quantity_remaining?: number | null
@@ -989,6 +995,7 @@ export type Database = {
           id: string
           last_request_at: string
           recipient_id: string
+          request_message: string | null
           sender_id: string
           sender_username: string
           status: string
@@ -998,6 +1005,7 @@ export type Database = {
           id?: string
           last_request_at?: string
           recipient_id: string
+          request_message?: string | null
           sender_id: string
           sender_username: string
           status?: string
@@ -1007,6 +1015,7 @@ export type Database = {
           id?: string
           last_request_at?: string
           recipient_id?: string
+          request_message?: string | null
           sender_id?: string
           sender_username?: string
           status?: string
@@ -1374,12 +1383,14 @@ export type Database = {
           seller_status: string
           shipping_cap: number | null
           shop_name: string | null
+          streaming_badge: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
           stripe_onboarding_status: string
           stripe_payouts_enabled: boolean
           tos_accepted: boolean
           tos_accepted_at: string | null
+          total_stream_minutes: number
           username: string
           verification_history: Json
           verification_reason: string | null
@@ -1424,12 +1435,14 @@ export type Database = {
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
+          streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
           tos_accepted?: boolean
           tos_accepted_at?: string | null
+          total_stream_minutes?: number
           username: string
           verification_history?: Json
           verification_reason?: string | null
@@ -1474,12 +1487,14 @@ export type Database = {
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
+          streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
           tos_accepted?: boolean
           tos_accepted_at?: string | null
+          total_stream_minutes?: number
           username?: string
           verification_history?: Json
           verification_reason?: string | null
@@ -2678,6 +2693,10 @@ export type Database = {
       accept_required_legal_documents: {
         Args: { _user_agent?: string; _version?: string }
         Returns: Json
+      }
+      add_stream_minutes: {
+        Args: { _minutes: number; _user_id: string }
+        Returns: undefined
       }
       admin_assign_role: {
         Args: {
