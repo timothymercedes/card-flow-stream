@@ -53,6 +53,7 @@ function ObsHub() {
   const [health, setHealth] = useState<Health | null>(null);
   const [polling, setPolling] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
   useEffect(() => { triggerOnce("obs-connect"); }, [triggerOnce]);
@@ -93,12 +94,15 @@ function ObsHub() {
   async function provision() {
     if (!user) return;
     setProvisioning(true);
+    setSetupError(null);
     const { data, error } = await supabase.functions.invoke("create-stream-input", {
       body: { meta_name: `OBS Hub — ${user.id.slice(0, 6)}` },
     });
     if (error || (data as any)?.error) {
       setProvisioning(false);
-      return toast.error("Could not provision OBS — Cloudflare keys missing");
+      const message = (data as any)?.error || error?.message || "Could not provision OBS.";
+      setSetupError(message);
+      return toast.error(message);
     }
     const d = data as any;
     const row = {
@@ -201,6 +205,13 @@ function ObsHub() {
         <p className="text-xs text-muted-foreground">
           One central place to connect OBS, save your defaults, and go live in under a minute.
         </p>
+
+        {setupError ? (
+          <div className="flex gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{setupError}</p>
+          </div>
+        ) : null}
 
         {/* Status pill */}
         <StatusPill profile={profile} health={health} polling={polling} />
