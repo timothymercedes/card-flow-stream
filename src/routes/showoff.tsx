@@ -51,15 +51,18 @@ function ShowOff() {
     setTagRes(((data as any[]) || []).filter((u) => u.id !== user?.id && !tagged.find((t) => t.id === u.id)));
   }
 
-  async function startShowOff() {
+  async function startShowOff(tcgTags?: TcgTag[]) {
     if (!user || !profile) return toast.error("Sign in first");
     if (!title.trim()) return toast.error("Add a title");
     if (!verified) return toast.error("Get verified by an admin to host live");
+    if (!tcgTags || tcgTags.length === 0) { setPickerOpen(true); return; }
     setBusy(true);
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user.id,
       title: title.trim(),
       mode: "show_off",
+      stream_type: "show_off",
+      tcg_tags: tcgTags,
       is_private: isPrivate,
       allow_collab_requests: !isPrivate,
       max_collab_count: 6,
