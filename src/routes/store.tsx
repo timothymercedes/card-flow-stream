@@ -461,6 +461,9 @@ function SellerHub() {
                                   >
                                     <span className="font-semibold">
                                       {isRec && <span className="mr-1 rounded bg-primary px-1 py-0.5 text-[9px] font-bold text-primary-foreground">CHEAPEST</span>}
+                                      <span className={`mr-1 rounded px-1 py-0.5 text-[9px] font-bold ${r.untracked ? "bg-amber-500/20 text-amber-600" : "bg-emerald-500/20 text-emerald-600"}`}>
+                                        {r.untracked ? "UNTRACKED" : "TRACKED"}
+                                      </span>
                                       {r.provider} · {r.service}
                                     </span>
                                     <span className="font-bold text-primary">${r.amount}{r.days ? ` · ${r.days}d` : ""}</span>
