@@ -2727,7 +2727,19 @@ function LiveDetail() {
           </div>
         </div>
       )}
-      {/* 🆕 Chat-action menu (mod taps a username) */}
+
+      {/* Collab panel — host invites/manages co-hosts; viewers can request to join */}
+      {showCollabPanel && stream && (
+        <CollabPanel
+          streamId={id}
+          hostId={stream.seller_id}
+          hostUsername={sellerUsername || profile?.username || "host"}
+          currentUserId={user?.id || null}
+          isHost={isSeller}
+          allowRequests={!!stream.allow_collab_requests}
+          onClose={() => setShowCollabPanel(false)}
+        />
+      )}
       {chatActionMenu && isStaff && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setChatActionMenu(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
