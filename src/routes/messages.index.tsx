@@ -17,6 +17,8 @@ function Messages() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTarget, setComposeTarget] = useState<{ id: string; username: string } | null>(null);
+  const [composeMsg, setComposeMsg] = useState("");
 
   async function load() {
     if (!user) return;
@@ -64,8 +66,9 @@ function Messages() {
       .then(({ data }: any) => setResults(((data || []) as any[]).filter((p) => p.id !== user?.id)));
   }, [query, user]);
 
-  async function sendRequest(otherId: string, otherName: string) {
+  async function sendRequest(otherId: string, otherName: string, message?: string) {
     if (!user || !profile) return;
+    const msg = (message || "").trim() || null;
     // Check if pair already exists
     const { data: existing } = await supabase.from("message_requests").select("*")
       .or(`and(sender_id.eq.${user.id},recipient_id.eq.${otherId}),and(sender_id.eq.${otherId},recipient_id.eq.${user.id})`)
@@ -74,10 +77,9 @@ function Messages() {
       if (existing.status === "accepted") { nav({ to: "/messages/$userId", params: { userId: otherId } }); return; }
       if (existing.status === "pending") {
         if (existing.sender_id === user.id) {
-          // throttle re-request to 1/day
           const last = new Date(existing.last_request_at).getTime();
           if (Date.now() - last < 24 * 60 * 60 * 1000) return toast.error("Request already pending — try again later");
-          await supabase.from("message_requests").update({ last_request_at: new Date().toISOString() }).eq("id", existing.id);
+          await supabase.from("message_requests").update({ last_request_at: new Date().toISOString(), ...(msg ? { request_message: msg } as any : {}) }).eq("id", existing.id);
           return toast.success("Request resent");
         } else {
           return toast.message("They already sent you a request — check Requests tab");
@@ -87,13 +89,16 @@ function Messages() {
     }
     const { error } = await supabase.from("message_requests").insert({
       sender_id: user.id, sender_username: profile.username, recipient_id: otherId,
-    });
+      ...(msg ? { request_message: msg } as any : {}),
+    } as any);
     if (error) return toast.error(error.message);
     await supabase.from("notifications").insert({
-      user_id: otherId, type: "msg_request", body: `@${profile.username} wants to message you`, link: `/messages`,
+      user_id: otherId, type: "msg_request",
+      body: msg ? `@${profile.username}: ${msg.slice(0, 80)}` : `@${profile.username} wants to message you`,
+      link: `/messages`,
     });
     toast.success("Request sent");
-    setQuery(""); setResults([]);
+    setQuery(""); setResults([]); setComposeMsg(""); setComposeTarget(null);
   }
 
   async function respondRequest(req: any, accept: boolean) {
