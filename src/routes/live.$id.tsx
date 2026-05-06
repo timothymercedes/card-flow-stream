@@ -2734,7 +2734,19 @@ function LiveDetail() {
           onClose={() => setShowCollabPanel(false)}
         />
       )}
-      {chatActionMenu && isStaff && (
+
+      {/* Live viewer list modal — clickable count opens this; host can invite to collab */}
+      {showViewerList && stream && (
+        <ViewerListModal
+          streamId={id}
+          hostId={stream.seller_id}
+          hostUsername={sellerUsername || profile?.username || "host"}
+          currentUserId={user?.id || null}
+          isHost={isSeller}
+          modIds={new Set(mods.map((m: any) => m.mod_user_id))}
+          onClose={() => setShowViewerList(false)}
+        />
+      )}
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setChatActionMenu(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
