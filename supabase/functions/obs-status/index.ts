@@ -25,7 +25,12 @@ Deno.serve(async (req) => {
     if (!accountId || !apiToken) {
       return json({ error: "Cloudflare Stream is not configured yet." }, 503);
     }
-    const { live_input_id } = await req.json().catch(() => ({}));
+    const raw = await req.text().catch(() => "");
+    let body: any = {};
+    if (raw) {
+      try { body = JSON.parse(raw); } catch { body = {}; }
+    }
+    const { live_input_id } = body;
     if (!live_input_id) {
       return json({ error: "live_input_id required" }, 400);
     }
