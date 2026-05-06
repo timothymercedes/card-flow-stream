@@ -1960,7 +1960,7 @@ function LiveDetail() {
             </div>
           )}
           {stream.item_description && <p className="mt-1 line-clamp-2 rounded-lg bg-black/30 px-3 py-1 text-[11px] backdrop-blur">{stream.item_description}</p>}
-          {(stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method ? (
+          {stream.mode !== "show_off" && ((stream.shipping_price != null && Number(stream.shipping_price) > 0) || stream.shipping_method) ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
               📦 {stream.shipping_method || "Shipping"} — {fmtMoney(Number(stream.shipping_price || 0))}
             </p>
