@@ -118,6 +118,7 @@ function ShowOff() {
   }
 
   return (
+    <SellerAgreementGate>
     <AppShell>
       <div className="px-4 py-4">
         <div className="mb-4 flex items-center gap-2">
