@@ -214,7 +214,7 @@ export function useCloudflareCalls(opts: {
     }
 
     async function load() {
-      const { data } = await supabase.from("stream_cohost_tracks").select("*").eq("stream_id", streamId);
+      const { data } = await supabase.from("stream_cohost_tracks").select("*").eq("stream_id", streamId!);
       for (const row of data || []) await pullRemote(row);
     }
     load();
