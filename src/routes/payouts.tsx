@@ -80,9 +80,19 @@ function PayoutsPage() {
           refreshUrl: `${origin}/payouts`,
         },
       });
-      window.location.href = url;
+      // Stripe blocks iframes — open in top-level window / new tab
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        // Popup blocked — break out of iframe
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = url;
+        } else {
+          window.location.href = url;
+        }
+      }
     } catch (e: any) {
       toast.error(e.message ?? "Could not start onboarding");
+    } finally {
       setBusy(false);
     }
   }
