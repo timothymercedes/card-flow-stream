@@ -2747,6 +2747,9 @@ function LiveDetail() {
           onClose={() => setShowViewerList(false)}
         />
       )}
+
+      {/* Chat-action menu (mod taps a username) */}
+      {chatActionMenu && isStaff && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center" onClick={() => setChatActionMenu(null)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
