@@ -366,7 +366,7 @@ function Profile() {
         </section>
         <section className="rounded-xl bg-card p-4 space-y-2">
           <p className="text-sm font-bold">Sell on Pull Bid</p>
-          <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Requires verified ID + mailing address. Admin reviews each application.</p>
+          <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Identity verification is handled by Stripe Connect during payout setup.</p>
           {p.seller_status === "approved" ? (
             sellerAgreementAccepted === false ? (
               <div className="space-y-2">
