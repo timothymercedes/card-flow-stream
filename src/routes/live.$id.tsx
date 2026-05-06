@@ -2658,6 +2658,7 @@ function LiveDetail() {
           />
           <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
+        </>)}
       </div>
 
       {/* End Live confirmation — pause for 3h or end for good */}
