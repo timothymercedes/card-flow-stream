@@ -80,7 +80,14 @@ function MyStore() {
       setRates((s) => ({ ...s, [o.id]: res.rates }));
       if (!res.rates.length) toast.error("No rates available — check addresses");
     } catch (e: any) {
-      toast.error(e.message || "Failed to fetch rates");
+      const msg = e.message || "Failed to fetch rates";
+      if (msg.includes("seller shipping address")) {
+        toast.error("Add your shipping address in your profile first", {
+          action: { label: "Open profile", onClick: () => { window.location.href = "/profile"; } },
+        });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setRatesLoading((s) => ({ ...s, [o.id]: false }));
     }
