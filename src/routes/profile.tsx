@@ -242,7 +242,7 @@ function Profile() {
               {buyerCompleted >= 35 && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-500">✓ Verified Buyer</span>}
               <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
               <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
-              <Badge status={p.id_status || "none"} label="ID" />
+              
               <Badge status={p.seller_status || "none"} label="Seller" />
             </div>
           </div>
