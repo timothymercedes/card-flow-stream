@@ -69,12 +69,23 @@ function Sell() {
   const [category, setCategory] = useState<string>("pokemon");
 
   // Load seller status
-  if (user && sellerStatus === null) {
-    supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle().then(({ data }) => setSellerStatus((data as any)?.seller_status || "none"));
-  }
-  if (user && stripeReady === null) {
-    supabase.from("stripe_accounts" as any).select("charges_enabled").eq("seller_id", user.id).maybeSingle().then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
-  }
+  useEffect(() => {
+    if (user && sellerStatus === null) {
+      supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle().then(({ data }) => setSellerStatus((data as any)?.seller_status || "none"));
+    }
+    if (user && stripeReady === null) {
+      supabase.from("stripe_accounts" as any).select("charges_enabled").eq("seller_id", user.id).maybeSingle().then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
+    }
+  }, [user, sellerStatus, stripeReady]);
+
+  // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
+  useEffect(() => {
+    if (!condPrices) return;
+    const base = Number(condPrices.NM) || 0;
+    if (!base) return;
+    setBuyNowPrice(String(priceFor(condition, base, condPrices)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [condition, condPrices]);
 
   if (!user) return (
     <AppShell>
