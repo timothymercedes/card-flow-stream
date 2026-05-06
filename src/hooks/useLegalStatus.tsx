@@ -42,7 +42,14 @@ export function useLegalStatus(): LegalStatus {
       (profile as any).agreements_review_required !== true;
     const docsHave = new Set((docs ?? []).map((r) => r.document_type));
     const docsOk = REQUIRED_LEGAL_DOCS.every((doc) => docsHave.has(doc));
-    setNeedsAcceptance(!(profileOk || docsOk || hasCompletedRequiredAgreementsFromMetadata(user)));
+    const metadataOk = hasCompletedRequiredAgreementsFromMetadata(user);
+    if (metadataOk && (!profileOk || !docsOk)) {
+      await (supabase.rpc as any)("accept_required_legal_documents", {
+        _version: REQUIRED_LEGAL_VERSION,
+        _user_agent: typeof navigator !== "undefined" ? navigator.userAgent.slice(0, 200) : "metadata-sync",
+      });
+    }
+    setNeedsAcceptance(!(profileOk || docsOk || metadataOk));
     setChecking(false);
   }
 
