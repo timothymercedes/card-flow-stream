@@ -54,6 +54,12 @@ function Home() {
         setStreams(fallback || []);
       } else setStreams(sData || []);
 
+      // Show Off discovery (public only)
+      const { data: showData } = await supabase.from("live_streams")
+        .select("*").eq("status", "live").eq("stream_type", "show_off").eq("is_private", false)
+        .order("created_at", { ascending: false }).limit(6);
+      setShowOffStreams(showData || []);
+
       let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4);
       if (interests.length > 0) lQ = lQ.in("category", interests);
       const { data: lData } = await lQ;
