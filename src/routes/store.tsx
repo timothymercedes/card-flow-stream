@@ -93,7 +93,14 @@ function SellerHub() {
     setOrders(ord.data || []);
     setListings(list.data || []);
     setReviews(revs.data || []);
-    setPayoutStatus((prof.data as any)?.stripe_onboarding_status || "not_started");
+    const pp = prof.data as any;
+    setPayoutStatus(pp?.stripe_onboarding_status || "not_started");
+    setPweSettings({
+      enabled: pp?.pwe_enabled ?? true,
+      max: Number(pp?.pwe_max_order_value ?? 20),
+      price: Number(pp?.pwe_price_usd ?? 0.99),
+      stamp: Number(pp?.pwe_stamp_price_usd ?? 0.78),
+    });
     setFollowers(fr.count || 0);
     setFollowing(fg.count || 0);
     setStreams(str.data || []);
