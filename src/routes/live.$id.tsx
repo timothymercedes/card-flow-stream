@@ -602,6 +602,15 @@ function LiveDetail() {
     localUsername: profile?.username || "host",
   });
 
+  const safety = useLivestreamSafety({
+    stream,
+    streamId: id,
+    isSeller: !!isSeller,
+    localStream: cfCall.localStream,
+    videoRef,
+    onAutoEnd: () => toast.message("Live auto-ended after extended inactivity"),
+  });
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
@@ -653,6 +662,7 @@ function LiveDetail() {
 
   async function sendMsg(content: string, isSystem = false, opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string } = {}) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
+    if (!isSystem && needsAcceptance) return toast.error("Accept the required agreements before chatting");
     if (!content.trim()) return;
     await supabase.from("chat_messages").insert({
       stream_id: id,
@@ -663,6 +673,7 @@ function LiveDetail() {
       is_announcement: !!opts.isAnnouncement,
       is_hype: !!opts.isHype,
     });
+    if (!isSystem) safety.touch("chat");
   }
 
   // ---- Mod management ----
