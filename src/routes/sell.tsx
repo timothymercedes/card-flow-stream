@@ -460,7 +460,7 @@ function Sell() {
         )}
       </div>
       {scanning && (
-        <CardScanner onClose={() => setScanning(false)} onResult={onScanResult} />
+        <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
       )}
       <StreamCategoryPicker
         open={pickerOpen}

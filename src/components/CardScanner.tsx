@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, RefreshCw, X, Loader2, Check, Pencil } from "lucide-react";
+import { Camera, RefreshCw, X, Loader2, Check, Pencil, Layers, Square, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,6 +10,7 @@ export type ScanResult = {
   year?: string;
   tcg_number?: string;
   variant?: string;
+  rarity?: string;
   language?: string;
   estimated_value?: number;
   condition_prices?: { NM?: number; LP?: number; MP?: number; Damaged?: number };
@@ -19,20 +20,21 @@ export type ScanResult = {
 };
 
 const LANGUAGES = [
-  { v: "auto", l: "Auto" },
-  { v: "en", l: "English" },
-  { v: "jp", l: "Japanese" },
-  { v: "kr", l: "Korean" },
-  { v: "zh", l: "Chinese" },
-  { v: "de", l: "German" },
-  { v: "fr", l: "French" },
-  { v: "es", l: "Spanish" },
-  { v: "it", l: "Italian" },
-  { v: "pt", l: "Portuguese" },
-  { v: "ru", l: "Russian" },
+  { v: "auto", l: "Auto" }, { v: "en", l: "English" }, { v: "jp", l: "Japanese" },
+  { v: "kr", l: "Korean" }, { v: "zh", l: "Chinese" }, { v: "de", l: "German" },
+  { v: "fr", l: "French" }, { v: "es", l: "Spanish" }, { v: "it", l: "Italian" },
+  { v: "pt", l: "Portuguese" }, { v: "ru", l: "Russian" },
 ] as const;
 
-export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { onResult: (r: ScanResult) => void; onClose: () => void; defaultLanguage?: string }) {
+type Props = {
+  onResult: (r: ScanResult) => void;
+  onResults?: (rs: ScanResult[]) => void; // optional batch handler (multi-card)
+  onClose: () => void;
+  defaultLanguage?: string;
+  allowMulti?: boolean; // shows the multi-card toggle (default true)
+};
+
+export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "auto", allowMulti = true }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
@@ -40,11 +42,16 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<string>(defaultLanguage);
 
-  // 🆕 Confirm-before-save step
+  // Multi-card mode
+  const [multi, setMulti] = useState(false);
+  const [batch, setBatch] = useState<ScanResult[] | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  // Confirm-before-save (single)
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
 
-  // 🆕 Auto-capture
+  // Auto-capture
   const [autoCapture, setAutoCapture] = useState(true);
   const [hint, setHint] = useState<string>("Point camera at a card");
   const [steadyPct, setSteadyPct] = useState(0);
@@ -58,7 +65,6 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
     try {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
-        // Higher resolution → better small-text recognition (set symbol, card number, ©year)
         video: { facingMode: { ideal: mode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
@@ -73,11 +79,11 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
   }
 
   useEffect(() => {
-    if (pending) return; // pause camera once we have a candidate
+    if (pending || batch) return;
     start(facing);
     return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facing, pending]);
+  }, [facing, pending, batch]);
 
   async function capture() {
     if (!videoRef.current || capturingRef.current) return;
@@ -87,7 +93,8 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
       const v = videoRef.current;
       const srcW = v.videoWidth || 1280;
       const srcH = v.videoHeight || 720;
-      const MAX = 1024;
+      // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
+      const MAX = multi ? 1600 : 1024;
       const scale = Math.min(1, MAX / Math.max(srcW, srcH));
       const canvas = document.createElement("canvas");
       canvas.width = Math.round(srcW * scale);
@@ -95,14 +102,27 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas error");
       ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
 
       const { data, error } = await supabase.functions.invoke("scan-card", {
-        body: { image: dataUrl, language: language === "auto" ? undefined : language },
+        body: { image: dataUrl, language: language === "auto" ? undefined : language, multi },
       });
       if (error) throw error;
-      const result: ScanResult = { ...(data as any), image: dataUrl, language };
-      setPending(result);
+
+      if (multi) {
+        const cards: ScanResult[] = (data as any)?.cards?.map((c: any) => ({ ...c, image: dataUrl, language: c.language || language })) || [];
+        if (cards.length === 0) {
+          toast.error("No cards detected — try better lighting or fewer cards");
+        } else {
+          setBatch(cards);
+          setSelected(new Set(cards.map((_, i) => i))); // pre-select all
+          // stop camera while reviewing
+          streamRef.current?.getTracks().forEach((t) => t.stop());
+        }
+      } else {
+        const result: ScanResult = { ...(data as any), image: dataUrl, language };
+        setPending(result);
+      }
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
     } finally {
@@ -111,9 +131,9 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
     }
   }
 
-  // 🆕 Auto-capture loop: detect a stable, well-framed card and snap automatically.
+  // Auto-capture: detect a stable, well-framed card and snap automatically — tuned faster.
   useEffect(() => {
-    if (pending || !autoCapture) {
+    if (pending || batch || !autoCapture) {
       if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
       return;
     }
@@ -128,7 +148,6 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
       sctx.drawImage(v, 0, 0, small.width, small.height);
       const frame = sctx.getImageData(0, 0, small.width, small.height);
 
-      // Compute brightness + edge density (proxy for "card in frame")
       let lumaSum = 0;
       let edgeCount = 0;
       const d = frame.data;
@@ -138,40 +157,34 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
           const i = (y * w + x) * 4;
           const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
           lumaSum += l;
-          const ir = ((y) * w + (x + 1)) * 4;
+          const ir = (y * w + (x + 1)) * 4;
           const lr = 0.299 * d[ir] + 0.587 * d[ir + 1] + 0.114 * d[ir + 2];
-          if (Math.abs(l - lr) > 30) edgeCount++;
+          if (Math.abs(l - lr) > 28) edgeCount++;
         }
       }
       const avgLuma = lumaSum / (w * small.height);
       const edgeRatio = edgeCount / (w * small.height);
 
-      // Compare to previous frame for steadiness
       let diff = 0;
       const prev = prevFrameRef.current;
       if (prev && prev.data.length === d.length) {
-        for (let i = 0; i < d.length; i += 16) {
-          diff += Math.abs(d[i] - prev.data[i]);
-        }
+        for (let i = 0; i < d.length; i += 16) diff += Math.abs(d[i] - prev.data[i]);
         diff = diff / (d.length / 16);
       }
       prevFrameRef.current = frame;
 
-      const wellLit = avgLuma > 40 && avgLuma < 230;
-      const hasCard = edgeRatio > 0.05; // enough detail in frame
-      const steady = diff < 6;
+      const wellLit = avgLuma > 35 && avgLuma < 235;
+      const hasCard = edgeRatio > (multi ? 0.06 : 0.045);
+      const steady = diff < 8; // a touch more forgiving — feels near-instant
 
-      if (wellLit && hasCard && steady) {
-        steadyTicksRef.current += 1;
-      } else {
-        steadyTicksRef.current = Math.max(0, steadyTicksRef.current - 1);
-      }
+      if (wellLit && hasCard && steady) steadyTicksRef.current += 1;
+      else steadyTicksRef.current = Math.max(0, steadyTicksRef.current - 1);
 
-      const need = 6; // ~600ms steady
+      const need = 3; // ~300ms steady → near-instant capture
       const pct = Math.min(100, (steadyTicksRef.current / need) * 100);
       setSteadyPct(pct);
 
-      if (!hasCard) setHint("Point camera at a card");
+      if (!hasCard) setHint(multi ? "Show your cards" : "Point camera at a card");
       else if (!wellLit) setHint("More light needed");
       else if (!steady) setHint("Hold steady…");
       else setHint("Locking…");
@@ -186,8 +199,7 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
 
     return () => { if (autoTimerRef.current) window.clearInterval(autoTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, autoCapture, scanning]);
-
+  }, [pending, batch, autoCapture, scanning, multi]);
 
   function confirmResult() {
     if (!pending) return;
@@ -200,38 +212,78 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
 
   function rescan() {
     setPending(null);
+    setBatch(null);
+    setSelected(new Set());
     setEditing(false);
   }
 
   function lowConf(v?: number) { return (v ?? 1) < 0.7; }
 
+  function toggleSel(i: number) {
+    setSelected((s) => {
+      const n = new Set(s);
+      n.has(i) ? n.delete(i) : n.add(i);
+      return n;
+    });
+  }
+  function toggleSelectAll() {
+    if (!batch) return;
+    setSelected((s) => (s.size === batch.length ? new Set() : new Set(batch.map((_, i) => i))));
+  }
+  function addSelected() {
+    if (!batch) return;
+    const picks = batch.filter((_, i) => selected.has(i));
+    if (picks.length === 0) return toast.error("Select at least one card");
+    if (onResults) onResults(picks);
+    else picks.forEach((p) => onResult(p)); // fallback for callers w/o batch handler
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex items-center justify-between p-3">
         <button onClick={onClose} className="rounded-full bg-white/10 p-2 text-white"><X className="h-5 w-5" /></button>
-        <p className="text-sm font-semibold text-white">{pending ? "Confirm card" : "Scan Card"}</p>
-        {!pending ? (
+        <p className="text-sm font-semibold text-white">
+          {pending ? "Confirm card" : batch ? `Detected ${batch.length} cards` : multi ? "Scan multiple cards" : "Scan Card"}
+        </p>
+        {!pending && !batch ? (
           <button onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))} className="rounded-full bg-white/10 p-2 text-white"><RefreshCw className="h-5 w-5" /></button>
         ) : (
           <button onClick={rescan} className="rounded-full bg-white/10 p-2 text-white" title="Rescan"><RefreshCw className="h-5 w-5" /></button>
         )}
       </div>
 
-      {!pending && (
+      {!pending && !batch && (
         <>
-          {/* Language picker — helps pull the right printing (EN/JP/KR/CN…) */}
-          <div className="px-3 pb-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">Card language</p>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {LANGUAGES.map((lang) => (
+          <div className="px-3 pb-2 space-y-2">
+            {allowMulti && (
+              <div className="flex gap-1.5">
                 <button
-                  key={lang.v}
-                  onClick={() => setLanguage(lang.v)}
-                  className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${language === lang.v ? "bg-white text-black" : "bg-white/10 text-white"}`}
+                  onClick={() => setMulti(false)}
+                  className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ${!multi ? "bg-white text-black" : "bg-white/10 text-white"}`}
                 >
-                  {lang.l}
+                  Single card
                 </button>
-              ))}
+                <button
+                  onClick={() => setMulti(true)}
+                  className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold flex items-center justify-center gap-1 ${multi ? "bg-emerald-500 text-white" : "bg-white/10 text-white"}`}
+                >
+                  <Layers className="h-3.5 w-3.5" /> Multi-card
+                </button>
+              </div>
+            )}
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">Card language</p>
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.v}
+                    onClick={() => setLanguage(lang.v)}
+                    className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${language === lang.v ? "bg-white text-black" : "bg-white/10 text-white"}`}
+                  >
+                    {lang.l}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -242,14 +294,13 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
             <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors" style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }} />
-            {/* Steady progress ring */}
             {autoCapture && !scanning && (
               <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
                 {hint} {steadyPct > 0 && steadyPct < 100 ? `· ${Math.round(steadyPct)}%` : ""}
               </div>
             )}
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
-              Frame the whole card · keep set symbol + card number visible
+              {multi ? "Lay cards flat, no overlap · keep all set symbols visible" : "Frame the whole card · keep set symbol + card number visible"}
             </p>
           </div>
           <div className="p-4">
@@ -264,10 +315,60 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
             <button onClick={capture} disabled={scanning || !!error} className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50">
               {scanning ? <Loader2 className="h-7 w-7 animate-spin" /> : <Camera className="h-7 w-7" />}
             </button>
-            <p className="mt-2 text-center text-xs text-white/60">{autoCapture ? "Hold steady — auto-snaps when ready" : "Tap to capture & identify"}</p>
+            <p className="mt-2 text-center text-xs text-white/60">
+              {scanning ? (multi ? "Reading every card…" : "Identifying…") : autoCapture ? "Hold steady — auto-snaps when ready" : "Tap to capture"}
+            </p>
           </div>
-
         </>
+      )}
+
+      {/* Multi-card review */}
+      {batch && (
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex items-center justify-between gap-2 px-4 py-2">
+            <button onClick={toggleSelectAll} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white">
+              {selected.size === batch.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+              {selected.size === batch.length ? "Deselect all" : "Select all"}
+            </button>
+            <p className="text-[11px] text-white/60">{selected.size} / {batch.length} selected</p>
+          </div>
+          <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto px-4 pb-2 sm:grid-cols-3">
+            {batch.map((c, i) => {
+              const on = selected.has(i);
+              const warn = lowConf(c.confidence?.name) || lowConf(c.confidence?.set) || lowConf(c.confidence?.tcg_number);
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggleSel(i)}
+                  className={`relative overflow-hidden rounded-xl border-2 text-left transition ${on ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-white/5"}`}
+                >
+                  <div className="absolute right-1.5 top-1.5 z-10 rounded-md bg-black/60 p-1 text-white">
+                    {on ? <CheckSquare className="h-4 w-4 text-emerald-400" /> : <Square className="h-4 w-4" />}
+                  </div>
+                  <div className="aspect-[3/4] w-full bg-black">
+                    <img src={c.image} alt="" className="h-full w-full object-cover opacity-90" />
+                  </div>
+                  <div className="space-y-0.5 p-2 text-white">
+                    <p className="truncate text-[12px] font-bold">{c.name}</p>
+                    <p className="truncate text-[10px] text-white/60">{c.set || "—"} {c.tcg_number ? `· #${c.tcg_number}` : ""}</p>
+                    <p className="text-[10px] text-emerald-300">${Number(c.estimated_value || 0).toFixed(2)}</p>
+                    {warn && <p className="text-[9px] text-yellow-300">⚠ Low confidence — verify</p>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            <button onClick={rescan} className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white">Rescan</button>
+            <button
+              onClick={addSelected}
+              disabled={selected.size === 0}
+              className="rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white disabled:opacity-50"
+            >
+              Add {selected.size > 0 ? `${selected.size} ` : ""}selected
+            </button>
+          </div>
+        </div>
       )}
 
       {pending && (
@@ -275,74 +376,34 @@ export function CardScanner({ onResult, onClose, defaultLanguage = "auto" }: { o
           <div className="flex gap-3">
             <img src={pending.image} alt="" className="h-40 w-28 shrink-0 rounded-lg object-cover ring-1 ring-white/20" />
             <div className="min-w-0 flex-1 space-y-1.5 text-white">
-              <Field
-                label="Name"
-                value={pending.name}
-                editing={editing}
-                onChange={(v) => patch("name", v)}
-                warn={lowConf(pending.confidence?.name)}
-              />
-              <Field
-                label="Set"
-                value={pending.set || ""}
-                editing={editing}
-                onChange={(v) => patch("set", v)}
-                warn={lowConf(pending.confidence?.set)}
-              />
+              <Field label="Name" value={pending.name} editing={editing} onChange={(v) => patch("name", v)} warn={lowConf(pending.confidence?.name)} />
+              <Field label="Set" value={pending.set || ""} editing={editing} onChange={(v) => patch("set", v)} warn={lowConf(pending.confidence?.set)} />
               <div className="grid grid-cols-3 gap-2">
-                <Field
-                  label="Year"
-                  value={pending.year || ""}
-                  editing={editing}
-                  onChange={(v) => patch("year", v)}
-                  warn={lowConf(pending.confidence?.year)}
-                />
-                <Field
-                  label="Number"
-                  value={pending.tcg_number || ""}
-                  editing={editing}
-                  onChange={(v) => patch("tcg_number", v)}
-                  warn={lowConf(pending.confidence?.tcg_number)}
-                />
-                <Field
-                  label="Lang"
-                  value={pending.language || "EN"}
-                  editing={editing}
-                  onChange={(v) => patch("language", v)}
-                />
+                <Field label="Year" value={pending.year || ""} editing={editing} onChange={(v) => patch("year", v)} warn={lowConf(pending.confidence?.year)} />
+                <Field label="Number" value={pending.tcg_number || ""} editing={editing} onChange={(v) => patch("tcg_number", v)} warn={lowConf(pending.confidence?.tcg_number)} />
+                <Field label="Lang" value={pending.language || "EN"} editing={editing} onChange={(v) => patch("language", v)} />
               </div>
-              <Field
-                label="Variant"
-                value={pending.variant || "Standard"}
-                editing={editing}
-                onChange={(v) => patch("variant", v)}
-                warn={lowConf(pending.confidence?.variant)}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Variant" value={pending.variant || "Standard"} editing={editing} onChange={(v) => patch("variant", v)} warn={lowConf(pending.confidence?.variant)} />
+                <Field label="Rarity" value={pending.rarity || ""} editing={editing} onChange={(v) => patch("rarity", v)} />
+              </div>
               <p className="text-[11px] text-white/70">
                 Est. value: <b className="text-emerald-300">${Number(pending.estimated_value || 0).toFixed(2)}</b> · {pending.trend}
               </p>
             </div>
           </div>
 
-          {(lowConf(pending.confidence?.set) ||
-            lowConf(pending.confidence?.year) ||
-            lowConf(pending.confidence?.tcg_number)) && (
+          {(lowConf(pending.confidence?.set) || lowConf(pending.confidence?.year) || lowConf(pending.confidence?.tcg_number)) && (
             <div className="rounded-lg bg-yellow-500/15 px-3 py-2 text-[11px] text-yellow-200">
               ⚠ Low confidence on highlighted fields — please verify or edit before saving.
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setEditing((e) => !e)}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
-            >
+            <button onClick={() => setEditing((e) => !e)} className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white">
               <Pencil className="h-4 w-4" /> {editing ? "Done editing" : "Edit fields"}
             </button>
-            <button
-              onClick={confirmResult}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
-            >
+            <button onClick={confirmResult} className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white">
               <Check className="h-4 w-4" /> Confirm & save
             </button>
           </div>
