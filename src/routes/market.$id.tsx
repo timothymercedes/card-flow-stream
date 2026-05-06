@@ -42,9 +42,40 @@ function ListingDetail() {
       .then(({ count }) => setUnpaidOrders(count ?? 0));
   }, [user?.id]);
 
-  // shipping
+  // shipping — pulled from buyer profile, never typed at checkout
   const [showShip, setShowShip] = useState(false);
   const [ship, setShip] = useState({ name: "", address: "", city: "", state: "", zip: "", country: "US" });
+
+  // Load buyer's saved shipping address from their profile
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles")
+      .select("full_name,address_line1,address_city,address_state,address_zip,address_country")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (!data) return;
+        setShip({
+          name: data.full_name || "",
+          address: data.address_line1 || "",
+          city: data.address_city || "",
+          state: data.address_state || "",
+          zip: data.address_zip || "",
+          country: data.address_country || "US",
+        });
+      });
+  }, [user?.id]);
+
+  function profileAddressComplete() {
+    return !!(ship.name && ship.address && ship.city && ship.state && ship.zip);
+  }
+  function ensureBuyerAddress(): boolean {
+    if (!profileAddressComplete()) {
+      toast.error("Add your shipping address in your profile before purchasing");
+      nav({ to: "/profile" });
+      return false;
+    }
+    return true;
+  }
 
   async function load() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
