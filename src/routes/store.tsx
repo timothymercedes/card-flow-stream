@@ -24,6 +24,9 @@ function MyStore() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [carrier, setCarrier] = useState<Record<string, string>>({});
+  const [rates, setRates] = useState<Record<string, any[]>>({});
+  const [ratesLoading, setRatesLoading] = useState<Record<string, boolean>>({});
+  const [labelUrls, setLabelUrls] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"listings" | "to_ship" | "in_transit" | "delivered" | "reviews">("listings");
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
   const [followers, setFollowers] = useState(0);
