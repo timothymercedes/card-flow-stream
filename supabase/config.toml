@@ -1,7 +1,4 @@
 project_id = "yklpitgmqyclscnsswte"
 
-[functions.generate-hype-post]
-verify_jwt = false
-
-[functions.help-chat]
+[functions.cf-calls]
 verify_jwt = false
