@@ -96,9 +96,10 @@ function Auth() {
 
   async function completeSignup() {
     setLoading(true);
+    const acceptanceMeta = legalAcceptanceMetadata();
     const { data: signupData, error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller } },
+      options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller, ...acceptanceMeta } },
     });
     if (error) { toast.error(error.message); setLoading(false); return; }
     const uid = signupData.user?.id;
@@ -107,7 +108,7 @@ function Auth() {
         _version: REQUIRED_LEGAL_VERSION,
         _user_agent: navigator.userAgent.slice(0, 200),
       });
-      await supabase.auth.updateUser({ data: legalAcceptanceMetadata() });
+      await supabase.auth.updateUser({ data: acceptanceMeta });
     }
     setLoading(false);
     setShowTerms(false);
