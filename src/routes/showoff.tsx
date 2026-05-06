@@ -188,7 +188,7 @@ function ShowOff() {
           </div>
 
           <button
-            onClick={startShowOff}
+            onClick={() => startShowOff()}
             disabled={busy || !title.trim() || !verified}
             className="w-full rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 py-3 text-sm font-bold text-white disabled:opacity-50"
           >
