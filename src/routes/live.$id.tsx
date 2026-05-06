@@ -2320,6 +2320,16 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
+        {stream.mode === "show_off" && (
+          <FlexLiveControls
+            streamId={id}
+            isHost={isSeller}
+            userId={user?.id || null}
+            username={profile?.username || null}
+            currentFilter={stream.video_filter || "none"}
+          />
+        )}
+        {stream.mode !== "show_off" && (<>
         {/* PRIORITY 1: Current Bid — centered, large, focal point */}
         <div className="flex flex-col items-center gap-0.5 text-center">
           <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/60">
