@@ -556,7 +556,7 @@ function LiveDetail() {
   }, [user?.id, stream?.id, id, isSeller]);
 
   // Host auto-joins when streaming via in-browser camera (not OBS); co-hosts auto-join when accepted.
-  const callShouldRun = !!stream && !ended && (
+  const callShouldRun = !!stream && stream.status !== "ended" && (
     (isSeller && !usingObs) || isCohostParticipant
   ) && callJoined;
 
