@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Radio, Calendar, Plus, X, Trash2, Users, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
+import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
