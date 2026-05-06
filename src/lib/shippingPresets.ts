@@ -22,11 +22,13 @@ export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
   pwe: {
     key: "pwe",
     label: "Single Card (PWE)",
-    description: "Plain White Envelope · 1 oz",
+    description: "Plain White Envelope, untracked · stamp only",
     weightOz: 1,
     lengthIn: 6,
     widthIn: 4,
     heightIn: 0.1,
+    flatRate: true,
+    flatPriceUsd: 1.5,
   },
   bubble: {
     key: "bubble",
