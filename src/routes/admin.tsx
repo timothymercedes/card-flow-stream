@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck } from "lucide-react";
 import { SupportInbox } from "@/components/admin/SupportInbox";
+import { VerificationInbox } from "@/components/admin/VerificationInbox";
 
 type Role = "owner" | "admin" | "moderator" | "support";
 const ROLE_BADGES: Record<Role, string> = {
@@ -34,8 +35,9 @@ function Admin() {
   const { user } = useAuth();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "support" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
+  const [tab, setTab] = useState<"reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
   const [openSupport, setOpenSupport] = useState(0);
+  const [pendingVerifications, setPendingVerifications] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [suspensions, setSuspensions] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
@@ -114,6 +116,21 @@ function Admin() {
     refresh();
     const ch = supabase.channel("admin-support-count")
       .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, refresh)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [canViewAdmin]);
+  useEffect(() => {
+    if (!canViewAdmin) return;
+    const refresh = async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { head: true, count: "exact" })
+        .in("verification_status", ["pending", "reverify_required"]);
+      setPendingVerifications(count || 0);
+    };
+    refresh();
+    const ch = supabase.channel("admin-verif-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [canViewAdmin]);
@@ -262,6 +279,9 @@ function Admin() {
           <button onClick={() => setTab("support")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "support" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
             <LifeBuoy className="h-3.5 w-3.5" /> Support ({openSupport})
           </button>
+          <button onClick={() => setTab("verifications")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "verifications" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
+            <BadgeCheck className="h-3.5 w-3.5" /> Verifications ({pendingVerifications})
+          </button>
           <button onClick={() => setTab("orders")} className={`pb-2 text-xs font-bold ${tab === "orders" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Orders</button>
           <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
           {isAdmin && <button onClick={() => setTab("users")} className={`pb-2 text-xs font-bold ${tab === "users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Users</button>}
@@ -321,6 +341,8 @@ function Admin() {
         })()}
 
         {tab === "support" && <SupportInbox canModerate={isAdmin || myRoles.includes("moderator")} />}
+
+        {tab === "verifications" && <VerificationInbox />}
 
         {tab === "orders" && (
           <div className="space-y-2">

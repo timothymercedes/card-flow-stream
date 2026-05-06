@@ -1367,6 +1367,7 @@ export type Database = {
           phone_verified_at: string | null
           preferred_currency: string | null
           public_id: string | null
+          report_count: number
           seller_status: string
           shipping_cap: number | null
           shop_name: string | null
@@ -1377,6 +1378,11 @@ export type Database = {
           tos_accepted: boolean
           tos_accepted_at: string | null
           username: string
+          verification_history: Json
+          verification_reason: string | null
+          verification_requested_at: string | null
+          verification_status: string
+          verified_at: string | null
         }
         Insert: {
           address_city?: string | null
@@ -1411,6 +1417,7 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_currency?: string | null
           public_id?: string | null
+          report_count?: number
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
@@ -1421,6 +1428,11 @@ export type Database = {
           tos_accepted?: boolean
           tos_accepted_at?: string | null
           username: string
+          verification_history?: Json
+          verification_reason?: string | null
+          verification_requested_at?: string | null
+          verification_status?: string
+          verified_at?: string | null
         }
         Update: {
           address_city?: string | null
@@ -1455,6 +1467,7 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_currency?: string | null
           public_id?: string | null
+          report_count?: number
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
@@ -1465,6 +1478,11 @@ export type Database = {
           tos_accepted?: boolean
           tos_accepted_at?: string | null
           username?: string
+          verification_history?: Json
+          verification_reason?: string | null
+          verification_requested_at?: string | null
+          verification_status?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -2649,11 +2667,31 @@ export type Database = {
           username: string
         }[]
       }
+      admin_list_verification_requests: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          id: string
+          live_verified: boolean
+          report_count: number
+          seller_status: string
+          username: string
+          verification_reason: string
+          verification_requested_at: string
+          verification_status: string
+          verified_at: string
+        }[]
+      }
       admin_remove_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _target_user: string
         }
+        Returns: undefined
+      }
+      admin_set_verification_status: {
+        Args: { _reason?: string; _status: string; _target_user: string }
         Returns: undefined
       }
       apply_live_stream_safety: {
@@ -2769,6 +2807,10 @@ export type Database = {
           seller_status: string
           username: string
         }[]
+      }
+      request_verification: {
+        Args: { _kind?: string; _note?: string }
+        Returns: Json
       }
       search_public_profiles: {
         Args: { _limit?: number; _query: string }

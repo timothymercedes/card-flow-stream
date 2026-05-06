@@ -197,8 +197,12 @@ function Profile() {
       _user_agent: navigator.userAgent.slice(0, 200),
     });
     if (agreementError) return toast.error(agreementError.message);
-    await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id);
-    setP({ ...p, seller_status: "pending" });
+    const { error: rpcError } = await (supabase.rpc as any)("request_verification", {
+      _kind: "seller",
+      _note: null,
+    });
+    if (rpcError) return toast.error(rpcError.message);
+    setP({ ...p, seller_status: "pending", verification_status: "pending" });
     toast.success("Application submitted — awaiting admin approval");
   }
 
