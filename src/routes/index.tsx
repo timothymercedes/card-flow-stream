@@ -38,6 +38,7 @@ function Home() {
   const { profile, user } = useAuth();
   const interests = (profile?.interests as string[] | undefined) || [];
   const [streams, setStreams] = useState<any[]>([]);
+  const [showOffStreams, setShowOffStreams] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [vault, setVault] = useState<any[]>([]);
