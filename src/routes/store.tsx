@@ -59,6 +59,8 @@ function SellerHub() {
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
+  const [pweSettings, setPweSettings] = useState({ enabled: true, max: 20, price: 0.99, stamp: 0.78 });
+  const [savingPwe, setSavingPwe] = useState(false);
 
   // UI
   const [section, setSection] = useState<Section>("orders");
