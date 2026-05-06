@@ -1818,7 +1818,7 @@ function LiveDetail() {
               <Megaphone className="h-4 w-4" />
             </button>
           )}
-          {isStaff && !ended && (
+          {isStaff && !ended && stream.mode !== "show_off" && (
             <button onClick={() => setShowModPanel((v) => !v)} className="relative rounded-full bg-primary/80 p-2 backdrop-blur" title="Mod panel">
               <Shield className="h-4 w-4" />
               {modChat.length > 0 && (
@@ -1921,7 +1921,9 @@ function LiveDetail() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
               {sellerUsername && (
-                <Link to="/seller/$username" params={{ username: sellerUsername }} className="text-[10px] font-semibold text-primary hover:underline">@{sellerUsername} · view store</Link>
+                <Link to="/seller/$username" params={{ username: sellerUsername }} className="text-[10px] font-semibold text-primary hover:underline">
+                  @{sellerUsername}{stream.mode !== "show_off" ? " · view store" : ""}
+                </Link>
               )}
             </div>
             {stream.current_condition && (
@@ -2630,7 +2632,9 @@ function LiveDetail() {
             {stream.winner_id ? `Sold to @${stream.winner_username || "buyer"} for $${Number(stream.winning_bid || 0).toFixed(2)}` : "Live ended"}
           </div>
         )}
+        </>)}
 
+        {/* Chat input — always visible in BOTH flex and auction modes */}
         <form onSubmit={handleSend} className="relative flex gap-2">
           {tagOpen && tagResults.length > 0 && (
             <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
@@ -2658,7 +2662,6 @@ function LiveDetail() {
           />
           <button type="submit" disabled={meBlockedOrBanned} className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"><Send className="h-4 w-4" /></button>
         </form>
-        </>)}
       </div>
 
       {/* End Live confirmation — pause for 3h or end for good */}
@@ -3440,7 +3443,7 @@ function LiveDetail() {
       )}
 
       {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
-      {isStaff && !hostFocus && (
+      {isStaff && !hostFocus && stream.mode !== "show_off" && (
         <>
           <button
             onClick={() => setShowPaymentLog(true)}

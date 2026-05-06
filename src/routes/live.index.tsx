@@ -65,7 +65,7 @@ function LiveList() {
 
   async function load() {
     const [{ data: s }, { data: sh }] = await Promise.all([
-      supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }),
+      supabase.from("live_streams").select("*").eq("status", "live").neq("mode", "show_off").order("created_at", { ascending: false }),
       supabase.from("scheduled_shows").select("*").gte("scheduled_for", new Date().toISOString()).order("scheduled_for", { ascending: true }),
     ]);
     setStreams((s as Stream[]) || []);
