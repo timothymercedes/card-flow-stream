@@ -6,6 +6,8 @@ import { Radio, ChevronRight, Heart, Sparkles, Flame, ShieldCheck, Zap, Trophy, 
 import { useAuth } from "@/hooks/useAuth";
 import { Link as RLink } from "@tanstack/react-router";
 import heroCards from "@/assets/hero-cards.jpg";
+import { SellerBadge } from "@/components/SellerBadge";
+import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -60,13 +62,13 @@ function Home() {
         .order("created_at", { ascending: false }).limit(6);
       setShowOffStreams(showData || []);
 
-      let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4);
+      let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(8);
       if (interests.length > 0) lQ = lQ.in("category", interests);
       const { data: lData } = await lQ;
       if ((lData?.length || 0) === 0 && interests.length > 0) {
-        const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(4);
-        setListings(fb || []);
-      } else setListings(lData || []);
+        const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(8);
+        setListings((fb || []).filter(isPublicListingVisible).slice(0, 4));
+      } else setListings((lData || []).filter(isPublicListingVisible).slice(0, 4));
 
       supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
       supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
@@ -171,7 +173,7 @@ function Home() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                   <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                  <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>
+                  {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
                 </div>
               </div>
             </Link>
@@ -206,17 +208,25 @@ function Home() {
       <Section title="🛒 Hot Market" to="/market">
         <div className="grid grid-cols-2 gap-3 px-4">
           {listings.length === 0 && <EmptyMini text="No listings yet" />}
-          {listings.map((l) => (
-            <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card ring-1 ring-border hover:ring-primary/50 transition-all">
-              <div className="card-foil-edge aspect-square bg-muted">
-                {l.image_url ? <img src={l.image_url} loading="lazy" className="h-full w-full object-cover" alt={l.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
-              </div>
-              <div className="p-2.5">
-                <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
-                <p className="text-xs font-bold text-primary">${Number(l.is_auction ? l.current_bid || 0 : l.price || 0).toFixed(0)}{l.is_auction ? " bid" : ""}</p>
-              </div>
-            </Link>
-          ))}
+          {listings.map((l) => {
+            const display = getListingPriceDisplay(l, true);
+            return (
+              <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card ring-1 ring-border hover:ring-primary/50 transition-all">
+                <div className="card-foil-edge aspect-square bg-muted">
+                  {l.image_url ? <img src={l.image_url} loading="lazy" className="h-full w-full object-cover" alt={l.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                </div>
+                <div className="p-2.5">
+                  <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
+                  <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} className="max-w-full flex-wrap" /></div>
+                  {display.kind === "offer" ? (
+                    <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
+                  ) : (
+                    <p className="mt-1 text-xs font-bold text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </Section>
 

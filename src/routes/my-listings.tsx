@@ -7,6 +7,7 @@ import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { getListingPriceDisplay } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
 
@@ -74,17 +75,22 @@ function MyListings() {
   async function saveEdit() {
     if (!editing) return;
     const hasBids = editing.is_auction && (editing.current_bid ?? 0) > (editing.starting_bid ?? 0);
+    const fixedPrice = Number(editing.price ?? 0);
+    const startingBid = Number(editing.starting_bid ?? 0);
+    if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price or turn on offers");
+    if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid");
     const update: any = {
       title: editing.title,
       description: editing.description,
       image_url: editing.image_url,
       back_image_url: editing.back_image_url,
       category: editing.category,
-      price: editing.price != null ? Number(editing.price) : null,
+      price: !editing.is_auction && fixedPrice > 0 ? fixedPrice : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
       shipping_price: editing.shipping_price != null ? Number(editing.shipping_price) : 0,
       accepts_offers: editing.accepts_offers,
+      listing_type: editing.is_auction ? "auction" : fixedPrice > 0 ? "buy_now" : "offer",
     };
     // Starting bid only editable if no real bids yet
     if (editing.is_auction && !hasBids && editing.starting_bid != null) {
@@ -136,6 +142,7 @@ function MyListings() {
         <div className="space-y-2">
           {filtered.map((l) => {
             const expired = new Date(l.expires_at).getTime() <= now || l.auction_status === "cancelled";
+            const display = getListingPriceDisplay(l);
             return (
               <div key={l.id} className="flex gap-3 rounded-xl bg-card p-3">
                 <Link to="/market/$id" params={{ id: l.id }} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -151,9 +158,7 @@ function MyListings() {
                     </span>
                   )}
                   <p className="text-xs text-primary">
-                    {l.is_auction
-                      ? `Bid $${Number(l.current_bid || l.starting_bid || 0).toFixed(2)}`
-                      : `$${Number(l.price || 0).toFixed(2)}`}
+                    {display.kind === "offer" ? "Make Offer" : display.suffix ? `Bid ${display.label}` : display.label}
                     {l.accepts_offers && <span className="ml-1 text-muted-foreground">• Offers</span>}
                   </p>
                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -224,7 +229,7 @@ function MyListings() {
 
               {!editing.is_auction && (
                 <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
-                  <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
+                  <input type="number" min="0.01" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
                     className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
                 </label>
               )}
@@ -232,7 +237,7 @@ function MyListings() {
                 <>
                   <label className="block text-[11px] text-muted-foreground">
                     Starting bid ($) {hasBids && <span className="text-destructive">— locked, bids placed</span>}
-                    <input type="number" min="0" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
+                    <input type="number" min="0.01" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
                       onChange={(e) => setEditing({ ...editing, starting_bid: e.target.value === "" ? null : Number(e.target.value) })}
                       className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" />
                   </label>
