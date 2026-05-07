@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { OrderCancellation } from "@/components/OrderCancellation";
+import { getListingPriceDisplay } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
@@ -358,19 +359,23 @@ function SellerHub() {
               </div>
             )}
             <div className="space-y-3">
-              {filteredListings.map((l) => (
-                <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="flex items-start gap-3 rounded-xl bg-card p-3">
-                  {l.image_url && <img src={l.image_url} alt={l.title} className="h-16 w-16 rounded-lg object-cover" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{l.title}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {l.is_auction ? `Auction · $${Number(l.current_bid || 0).toFixed(2)}` : `Buy Now · $${Number(l.price || 0).toFixed(2)}`}
-                      {l.shipping_price ? ` · +$${Number(l.shipping_price).toFixed(2)} ship` : ""}
-                    </p>
-                    <p className="text-[10px] capitalize text-muted-foreground">{l.auction_status || "active"}</p>
-                  </div>
-                </Link>
-              ))}
+              {filteredListings.map((l) => {
+                const display = getListingPriceDisplay(l);
+                const saleLabel = display.kind === "offer" ? "Make Offer" : l.is_auction ? `Auction · ${display.label}` : `Buy Now · ${display.label}`;
+                return (
+                  <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="flex items-start gap-3 rounded-xl bg-card p-3">
+                    {l.image_url && <img src={l.image_url} alt={l.title} className="h-16 w-16 rounded-lg object-cover" />}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{l.title}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {saleLabel}
+                        {l.shipping_price ? ` · +$${Number(l.shipping_price).toFixed(2)} ship` : ""}
+                      </p>
+                      <p className="text-[10px] capitalize text-muted-foreground">{l.auction_status || "active"}</p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </>
         )}
