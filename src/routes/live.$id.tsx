@@ -212,6 +212,15 @@ function LiveDetail() {
 
   useEffect(() => {
     supabase.from("live_streams").select("*").eq("id", id).maybeSingle().then(async ({ data }) => {
+      // Fetch private RTMPS credentials separately (only readable by stream owner via RLS)
+      if (data && user && data.seller_id === user.id) {
+        const { data: cred } = await supabase
+          .from("live_stream_credentials" as any)
+          .select("cf_live_input_id, cf_rtmps_url, cf_stream_key")
+          .eq("stream_id", id)
+          .maybeSingle();
+        if (cred) Object.assign(data, cred);
+      }
       setStream(data);
       if (data) {
         setEditDesc(data.item_description || "");
