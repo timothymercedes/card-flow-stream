@@ -90,7 +90,7 @@ function Market() {
       default: break;
     }
     return arr;
-  }, [items, q, sort, category]);
+  }, [items, q, sort, category, seed]);
 
   const trendingCount = items.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0)).length;
   const endingSoonCount = items.filter((l) => {
