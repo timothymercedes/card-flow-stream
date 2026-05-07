@@ -1209,6 +1209,54 @@ export type Database = {
           },
         ]
       }
+      order_cancellations: {
+        Row: {
+          admin_id: string | null
+          admin_note: string | null
+          admin_requested: boolean
+          created_at: string
+          id: string
+          messages: Json
+          order_id: string
+          reason: string
+          requested_by: string
+          requested_by_role: string
+          resolved_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string | null
+          admin_note?: string | null
+          admin_requested?: boolean
+          created_at?: string
+          id?: string
+          messages?: Json
+          order_id: string
+          reason: string
+          requested_by: string
+          requested_by_role: string
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string | null
+          admin_note?: string | null
+          admin_requested?: boolean
+          created_at?: string
+          id?: string
+          messages?: Json
+          order_id?: string
+          reason?: string
+          requested_by?: string
+          requested_by_role?: string
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           amount: number
