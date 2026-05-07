@@ -2947,6 +2947,10 @@ export type Database = {
           username: string
         }[]
       }
+      place_listing_bid: {
+        Args: { _amount: number; _listing_id: string }
+        Returns: Json
+      }
       public_profile_by_username: {
         Args: { _username: string }
         Returns: {
