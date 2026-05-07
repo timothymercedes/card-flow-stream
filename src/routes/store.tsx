@@ -497,6 +497,14 @@ function SellerHub() {
                     {ordersTab === "shipped" && (
                       <button onClick={() => markDelivered(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
                     )}
+                    {(ordersTab === "to_ship" || ordersTab === "shipped") && (
+                      <button
+                        onClick={() => setCancelOrder(o)}
+                        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-muted py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Cancel order
+                      </button>
+                    )}
                   </div>
                 );
               })}
