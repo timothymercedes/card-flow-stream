@@ -142,6 +142,7 @@ function Market() {
             onChange={(e) => setSort(e.target.value as Sort)}
             className="rounded-full bg-input px-3 py-2 text-xs font-semibold"
           >
+            <option value="shuffled">Discover</option>
             <option value="newest">Newest</option>
             <option value="price_asc">Lowest price</option>
             <option value="price_desc">Highest price</option>
