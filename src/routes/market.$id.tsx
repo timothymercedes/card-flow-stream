@@ -227,7 +227,8 @@ function ListingDetail() {
   if (!listing) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Loading...</div>;
 
   const isSeller = user?.id === listing.seller_id;
-  const type: string = listing.listing_type || (listing.is_auction ? "auction" : "buy_now");
+  const hasBuyNowPrice = Number(listing.price ?? listing.buy_now_price ?? 0) > 0;
+  const type: string = listing.is_auction ? "auction" : hasBuyNowPrice ? "buy_now" : listing.accepts_offers ? "offer" : (listing.listing_type || "buy_now");
   const endsMs = listing.auction_ends_at ? new Date(listing.auction_ends_at).getTime() - now : 0;
   const auctionEnded = type === "auction" && !!listing.auction_ends_at && endsMs <= 0;
   const reserveMet = !listing.reserve_price || Number(listing.current_bid || 0) >= Number(listing.reserve_price);
