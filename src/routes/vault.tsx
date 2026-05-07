@@ -732,7 +732,7 @@ function SellModal({ card, onClose, onSubmit }: {
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
           <DollarSign className="h-4 w-4 text-muted-foreground" />
-          <input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder={auction ? "Starting bid" : "Price"} />
+          <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder={auction ? "Starting bid" : "Price"} />
         </div>
         <button
           onClick={() => {
