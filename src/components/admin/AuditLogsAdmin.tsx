@@ -7,10 +7,11 @@ interface AuditRow {
   id: string;
   created_at: string;
   actor_id: string | null;
+  actor_username?: string | null;
   action: string;
   target_type: string | null;
   target_id: string | null;
-  metadata: Record<string, unknown> | null;
+  meta: Record<string, unknown> | null;
 }
 
 export function AuditLogsAdmin() {
@@ -21,7 +22,7 @@ export function AuditLogsAdmin() {
     queryFn: () => fetchLogs({ data: { limit: 100, action: filter || undefined } }),
   });
 
-  const rows = (data?.rows ?? []) as AuditRow[];
+  const rows = ((data?.rows ?? []) as unknown) as AuditRow[];
 
   return (
     <div className="space-y-3">
@@ -64,9 +65,9 @@ export function AuditLogsAdmin() {
                 {r.target_type && <>target: <span className="font-mono">{r.target_type}/{r.target_id}</span> · </>}
                 {r.actor_id && <>actor: <span className="font-mono">{r.actor_id.slice(0, 8)}…</span></>}
               </div>
-              {r.metadata && Object.keys(r.metadata).length > 0 && (
+              {r.meta && Object.keys(r.meta).length > 0 && (
                 <pre className="mt-2 overflow-x-auto rounded bg-muted/40 p-2 font-mono text-[10px]">
-                  {JSON.stringify(r.metadata, null, 2)}
+                  {JSON.stringify(r.meta, null, 2)}
                 </pre>
               )}
             </li>
