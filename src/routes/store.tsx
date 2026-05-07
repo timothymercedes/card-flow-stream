@@ -738,6 +738,14 @@ function SellerHub() {
           </>
         )}
       </div>
+      {cancelOrder && (
+        <OrderCancellation
+          order={cancelOrder}
+          role="seller"
+          onClose={() => setCancelOrder(null)}
+          onChanged={loadAll}
+        />
+      )}
     </AppShell>
   );
 }
