@@ -34,6 +34,7 @@ function Sell() {
   const [tab, setTab] = useState<"live" | "listing">("live");
   const [sellerStatus, setSellerStatus] = useState<string | null>(null);
   const [stripeReady, setStripeReady] = useState<boolean | null>(null);
+  const [shopName, setShopName] = useState<string | null | undefined>(undefined);
 
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
