@@ -242,6 +242,14 @@ function Orders() {
             );
           })}
         </div>
+        {cancelOrder && (
+          <OrderCancellation
+            order={cancelOrder}
+            role="buyer"
+            onClose={() => setCancelOrder(null)}
+            onChanged={load}
+          />
+        )}
       </div>
     </AppShell>
   );
