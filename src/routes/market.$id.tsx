@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
+import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
