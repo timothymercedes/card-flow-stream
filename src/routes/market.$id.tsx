@@ -302,7 +302,13 @@ function ListingDetail() {
               <>
                 <div>
                   <p className="text-xs text-muted-foreground">Price</p>
-                  <p className="text-2xl font-bold text-primary">${Number(listing.price || 0).toFixed(2)}</p>
+                  {Number(listing.price || 0) > 0 ? (
+                    <p className="text-2xl font-bold text-primary">${Number(listing.price).toFixed(2)}</p>
+                  ) : listing.accepts_offers ? (
+                    <p className="text-2xl font-bold text-primary">Make Offer</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-muted-foreground">—</p>
+                  )}
                   <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
                     {soldOut ? <span className="text-destructive">Sold out</span> : `${available} available`}
                   </p>
