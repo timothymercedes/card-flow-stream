@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Search, Sparkles, Flame, Clock, Tag } from "lucide-react";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
+import { SellerBadge } from "@/components/SellerBadge";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
