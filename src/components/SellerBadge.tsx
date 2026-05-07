@@ -9,6 +9,7 @@ type Props = {
   avatarUrl?: string | null;
   shopName?: string | null;
   size?: "sm" | "md";
+  linkable?: boolean;
   className?: string;
 };
 
