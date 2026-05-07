@@ -219,6 +219,11 @@ function Market() {
                         Ending soon
                       </span>
                     )}
+                    {(l as any).is_demo && (
+                      <span className="rounded-full bg-amber-500/90 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
+                        DEMO
+                      </span>
+                    )}
                   </div>
                   {soldOut && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60">

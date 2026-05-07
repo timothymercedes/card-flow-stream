@@ -577,6 +577,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_auction: boolean
+          is_demo: boolean
           listing_type: string
           price: number | null
           quantity: number
@@ -606,6 +607,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_auction?: boolean
+          is_demo?: boolean
           listing_type?: string
           price?: number | null
           quantity?: number
@@ -635,6 +637,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_auction?: boolean
+          is_demo?: boolean
           listing_type?: string
           price?: number | null
           quantity?: number
@@ -793,6 +796,7 @@ export type Database = {
           inactivity_auto_end_after: string | null
           inactivity_warning_at: string | null
           is_active: boolean
+          is_demo: boolean
           is_private: boolean
           item_description: string | null
           item_image_url: string | null
@@ -886,6 +890,7 @@ export type Database = {
           inactivity_auto_end_after?: string | null
           inactivity_warning_at?: string | null
           is_active?: boolean
+          is_demo?: boolean
           is_private?: boolean
           item_description?: string | null
           item_image_url?: string | null
@@ -979,6 +984,7 @@ export type Database = {
           inactivity_auto_end_after?: string | null
           inactivity_warning_at?: string | null
           is_active?: boolean
+          is_demo?: boolean
           is_private?: boolean
           item_description?: string | null
           item_image_url?: string | null
@@ -1536,6 +1542,7 @@ export type Database = {
           id_document_url: string | null
           id_status: string
           interests: string[]
+          is_demo: boolean
           is_seller: boolean
           last_login_date: string | null
           live_verified: boolean
@@ -1595,6 +1602,7 @@ export type Database = {
           id_document_url?: string | null
           id_status?: string
           interests?: string[]
+          is_demo?: boolean
           is_seller?: boolean
           last_login_date?: string | null
           live_verified?: boolean
@@ -1654,6 +1662,7 @@ export type Database = {
           id_document_url?: string | null
           id_status?: string
           interests?: string[]
+          is_demo?: boolean
           is_seller?: boolean
           last_login_date?: string | null
           live_verified?: boolean
@@ -2698,6 +2707,7 @@ export type Database = {
           estimated_value: number | null
           id: string
           image_url: string | null
+          is_demo: boolean
           language: string | null
           last_valued_at: string | null
           name: string
@@ -2718,6 +2728,7 @@ export type Database = {
           estimated_value?: number | null
           id?: string
           image_url?: string | null
+          is_demo?: boolean
           language?: string | null
           last_valued_at?: string | null
           name: string
@@ -2738,6 +2749,7 @@ export type Database = {
           estimated_value?: number | null
           id?: string
           image_url?: string | null
+          is_demo?: boolean
           language?: string | null
           last_valued_at?: string | null
           name?: string
