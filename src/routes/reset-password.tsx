@@ -35,7 +35,12 @@ function ResetPassword() {
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = /pwned|breach|leaked/i.test(error.message)
+        ? "This password has appeared in a known data breach. Please choose a different one."
+        : error.message;
+      return toast.error(msg);
+    }
     toast.success("Password updated");
     nav({ to: "/" });
   }
