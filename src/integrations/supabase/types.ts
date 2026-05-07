@@ -2974,6 +2974,7 @@ export type Database = {
           username: string
         }[]
       }
+      purge_old_notifications: { Args: never; Returns: number }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
