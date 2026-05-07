@@ -562,6 +562,8 @@ function Admin() {
             </div>
           </div>
         )}
+
+        {tab === "tutorials" && isAdmin && <TutorialsAdmin />}
       </div>
     </AppShell>
   );
