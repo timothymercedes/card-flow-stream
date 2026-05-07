@@ -12,7 +12,8 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
-const APP_ID = Deno.env.get("CLOUDFLARE_CALLS_APP_ID");
+const rawAppId = Deno.env.get("CLOUDFLARE_CALLS_APP_ID")?.trim();
+const APP_ID = rawAppId?.replace(/-/g, "");
 const APP_TOKEN = Deno.env.get("CLOUDFLARE_CALLS_APP_TOKEN");
 const BASE = `https://rtc.live.cloudflare.com/v1/apps/${APP_ID}`;
 
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
     });
     const text = await r.text();
     return new Response(JSON.stringify({
-      appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
+      rawAppIdLen: rawAppId?.length, appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
       tokenLen: APP_TOKEN?.length, tokenPrefix: APP_TOKEN?.slice(0, 6),
       status: r.status, body: text,
     }), { headers: { ...CORS, "content-type": "application/json" } });
