@@ -199,6 +199,12 @@ function Auth() {
             </label>
           </div>
         )}
+        <Turnstile
+          action={mode === "forgot" ? "password_reset" : mode}
+          onVerify={setCaptchaToken}
+          onExpire={() => setCaptchaToken(null)}
+          className="flex justify-center"
+        />
         <button disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Buyer Terms & Sign Up"}
         </button>
