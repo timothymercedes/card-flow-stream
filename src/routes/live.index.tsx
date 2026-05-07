@@ -7,6 +7,7 @@ import { Radio, Calendar, Plus, X, Trash2, Users, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
+import { SellerBadge } from "@/components/SellerBadge";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
@@ -250,6 +251,7 @@ function LiveList() {
                     )}
                   </div>
                   <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
+                  <div className="mt-0.5"><SellerBadge sellerId={s.seller_id} linkable={false} /></div>
                   <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>
                   {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
                     <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
@@ -279,7 +281,8 @@ function LiveList() {
                         <button onClick={() => deleteShow(sh.id)} className="rounded-full p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                       )}
                     </div>
-                    <p className="text-[10px] text-primary">@{sh.seller_username}{sh.category ? ` · ${categoryEmoji(sh.category)} ${categoryLabel(sh.category) || sh.category}` : ""}</p>
+                    <div className="mt-0.5"><SellerBadge sellerId={sh.seller_id} username={sh.seller_username} linkable={true} /></div>
+                    {sh.category && <p className="text-[10px] text-muted-foreground">{categoryEmoji(sh.category)} {categoryLabel(sh.category) || sh.category}</p>}
                     {sh.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{sh.description}</p>}
                     <p className="mt-1 text-xs">
                       {new Date(sh.scheduled_for).toLocaleString()}

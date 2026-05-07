@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 import { ReportDialog } from "@/components/ReportDialog";
+import { SellerBadge } from "@/components/SellerBadge";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
@@ -142,6 +143,7 @@ function Orders() {
                     <p className="truncate text-sm font-bold">{o.title}</p>
                     {o.description && <p className="line-clamp-2 text-[11px] text-muted-foreground">{o.description}</p>}
                     <p className="text-xs font-semibold text-primary">${Number(o.amount).toFixed(2)}</p>
+                    <div className="mt-0.5"><SellerBadge sellerId={o.seller_id} /></div>
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       <PayBadge s={pay} />
                       <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold capitalize">
