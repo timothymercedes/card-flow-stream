@@ -1,0 +1,56 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "loading": "Loading…",
+    "search": "Search",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "close": "Close"
+  },
+  "nav": {
+    "home": "Home",
+    "live": "Live",
+    "market": "Market",
+    "feed": "Feed",
+    "profile": "Profile",
+    "cart": "Cart",
+    "messages": "Messages",
+    "orders": "Orders",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "notifications": "Notifications",
+    "language": "Language",
+    "privacy": "Privacy",
+    "payment": "Payment",
+    "accessibility": "Accessibility",
+    "seller": "Seller",
+    "language_label": "Display language",
+    "language_help": "Used for the app interface. Captions and listings keep their original language.",
+    "a11y_large_text": "Large text",
+    "a11y_high_contrast": "High contrast",
+    "a11y_reduced_motion": "Reduce motion",
+    "a11y_captions_default": "Captions on by default",
+    "shop_name": "Shop name",
+    "shop_name_help": "You can change this only once, and only when you have no pending orders.",
+    "shop_name_change": "Change shop name",
+    "saved": "Saved"
+  },
+  "captions": {
+    "toggle_on": "Captions on",
+    "toggle_off": "Captions off",
+    "translate_to": "Translate to",
+    "off": "Off",
+    "listening": "Listening…"
+  },
+  "live": {
+    "viewers": "viewers",
+    "going_live": "Going live",
+    "place_bid": "Place bid",
+    "current_bid": "Current bid"
+  }
+}
