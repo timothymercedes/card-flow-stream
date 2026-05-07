@@ -1820,6 +1820,9 @@ export type Database = {
           expires_at: string
           id: string
           image_url: string
+          moderation_category: string | null
+          moderation_reason: string | null
+          moderation_status: string
           user_id: string
           username: string
           visibility: string
@@ -1831,6 +1834,9 @@ export type Database = {
           expires_at?: string
           id?: string
           image_url: string
+          moderation_category?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
           user_id: string
           username: string
           visibility?: string
@@ -1842,6 +1848,9 @@ export type Database = {
           expires_at?: string
           id?: string
           image_url?: string
+          moderation_category?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
           user_id?: string
           username?: string
           visibility?: string
@@ -1865,6 +1874,38 @@ export type Database = {
           owner_id?: string
         }
         Relationships: []
+      }
+      story_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          reaction: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reaction: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reaction?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_views: {
         Row: {
