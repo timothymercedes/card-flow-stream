@@ -6,6 +6,7 @@ import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
+import { getListingPriceDisplay } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -230,6 +231,7 @@ function ListingDetail() {
   const endsMs = listing.auction_ends_at ? new Date(listing.auction_ends_at).getTime() - now : 0;
   const auctionEnded = type === "auction" && !!listing.auction_ends_at && endsMs <= 0;
   const reserveMet = !listing.reserve_price || Number(listing.current_bid || 0) >= Number(listing.reserve_price);
+  const priceDisplay = getListingPriceDisplay(listing);
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
@@ -260,7 +262,7 @@ function ListingDetail() {
             <>
               <div>
                 <p className="text-xs text-muted-foreground">Current Bid</p>
-                <p className="text-2xl font-bold text-primary">${Number(listing.current_bid || 0).toFixed(0)}</p>
+                <p className="text-2xl font-bold text-primary">{priceDisplay.kind === "price" ? priceDisplay.label : "—"}</p>
                 {listing.reserve_price && (
                   <p className={`text-[10px] font-semibold ${reserveMet ? "text-primary" : "text-muted-foreground"}`}>
                     {reserveMet ? "✓ Reserve met" : `Reserve not met (min $${Number(listing.reserve_price).toFixed(0)})`}
@@ -302,9 +304,9 @@ function ListingDetail() {
               <>
                 <div>
                   <p className="text-xs text-muted-foreground">Price</p>
-                  {Number(listing.price || 0) > 0 ? (
-                    <p className="text-2xl font-bold text-primary">${Number(listing.price).toFixed(2)}</p>
-                  ) : listing.accepts_offers ? (
+                  {priceDisplay.kind === "price" ? (
+                    <p className="text-2xl font-bold text-primary">{priceDisplay.label}</p>
+                  ) : priceDisplay.kind === "offer" ? (
                     <p className="text-2xl font-bold text-primary">Make Offer</p>
                   ) : (
                     <p className="text-2xl font-bold text-muted-foreground">—</p>
