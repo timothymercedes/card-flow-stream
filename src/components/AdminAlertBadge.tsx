@@ -12,6 +12,7 @@ export function AdminAlertBadge() {
   useEffect(() => {
     if (!user) { setShow(false); return; }
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     (async () => {
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
       const set = new Set((roles || []).map((r: any) => r.role));
@@ -27,13 +28,12 @@ export function AdminAlertBadge() {
         if (!cancelled) setCount((r || 0) + (d || 0) + (v || 0));
       };
       refresh();
-      const ch = supabase.channel("admin-alerts")
+      channel = supabase.channel("admin-alerts")
         .on("postgres_changes", { event: "*", schema: "public", table: "user_reports" }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "disputes" }, refresh)
         .subscribe();
-      return () => { supabase.removeChannel(ch); };
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
   }, [user]);
 
   if (!show) return null;
