@@ -7,6 +7,7 @@ import {
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const RP_NAME = "Pull Bid Live";
 
