@@ -743,7 +743,7 @@ function SellerHub() {
           order={cancelOrder}
           role="seller"
           onClose={() => setCancelOrder(null)}
-          onChanged={loadAll}
+          onChanged={load}
         />
       )}
     </AppShell>
