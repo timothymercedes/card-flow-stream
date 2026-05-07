@@ -73,6 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
       <main className="flex-1 pb-20">{children}</main>
       <HelpBubble />
+      <NotifyPrompt />
       <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((t) => {
