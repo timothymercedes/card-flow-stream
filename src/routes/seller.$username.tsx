@@ -7,6 +7,7 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ensurePushSubscribed, pushSupported } from "@/lib/push";
+import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -122,7 +123,7 @@ function PublicStore() {
         supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
         supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
       ]);
-      setListings(l.data || []);
+      setListings((l.data || []).filter(isPublicListingVisible));
       setSoldOrders(o.data || []);
       setReviews(r.data || []);
       setFollowers(fr.count || 0);
@@ -285,17 +286,24 @@ function PublicStore() {
           <>
             {listings.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No active listings.</p>}
             <div className="grid grid-cols-2 gap-3">
-              {listings.map((l) => (
-                <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card">
-                  <div className="aspect-square overflow-hidden bg-muted">
-                    {l.image_url ? <img src={l.image_url} alt={l.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
-                  </div>
-                  <div className="p-2">
-                    <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
-                    <p className="text-xs text-primary">${Number(l.current_bid || l.price || 0).toFixed(2)}</p>
-                  </div>
-                </Link>
-              ))}
+              {listings.map((l) => {
+                const display = getListingPriceDisplay(l);
+                return (
+                  <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card">
+                    <div className="aspect-square overflow-hidden bg-muted">
+                      {l.image_url ? <img src={l.image_url} alt={l.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
+                    </div>
+                    <div className="p-2">
+                      <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
+                      {display.kind === "offer" ? (
+                        <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
+                      ) : (
+                        <p className="text-xs text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </>
         )}
