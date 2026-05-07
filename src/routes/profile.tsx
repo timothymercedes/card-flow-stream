@@ -361,9 +361,9 @@ function Profile() {
           <p className="text-[11px] text-muted-foreground">Add a passkey on this device so you can sign in with Face ID, Touch ID, or Windows Hello — no password.</p>
           <button onClick={async () => {
             try {
-              const opts = await startPasskeyRegistration({ data: { userId: user.id, username: p.username } });
+              const opts = await startPasskeyRegistration({ data: { username: p.username } });
               const att = await startRegistration({ optionsJSON: opts as any });
-              await finishPasskeyRegistration({ data: { userId: user.id, response: att, label: navigator.userAgent.slice(0, 40) } });
+              await finishPasskeyRegistration({ data: { response: att, label: navigator.userAgent.slice(0, 40) } });
               toast.success("Passkey added — try it next time you sign in");
             } catch (e: any) { toast.error(e?.message || "Couldn't add passkey"); }
           }} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Add Passkey on this device</button>

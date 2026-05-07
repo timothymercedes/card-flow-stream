@@ -7,6 +7,7 @@ import {
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const RP_NAME = "Pull Bid Live";
 
@@ -32,27 +33,31 @@ function takeChallenge(key: string) {
 }
 
 export const startPasskeyRegistration = createServerFn({ method: "POST" })
-  .inputValidator((d: { userId: string; username: string }) => d)
-  .handler(async ({ data }) => {
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { username: string }) => d)
+  .handler(async ({ data, context }) => {
+    const userId = context.userId;
     const { rpID } = rpFromOrigin();
     const { data: existing } = await supabaseAdmin
-      .from("webauthn_credentials").select("credential_id,transports").eq("user_id", data.userId);
+      .from("webauthn_credentials").select("credential_id,transports").eq("user_id", userId);
     const options = await generateRegistrationOptions({
       rpName: RP_NAME, rpID,
-      userName: data.username, userID: new TextEncoder().encode(data.userId),
+      userName: data.username, userID: new TextEncoder().encode(userId),
       attestationType: "none",
       authenticatorSelection: { residentKey: "preferred", userVerification: "preferred" },
       excludeCredentials: (existing || []).map((c: any) => ({ id: c.credential_id })),
     });
-    setChallenge(`reg:${data.userId}`, options.challenge);
+    setChallenge(`reg:${userId}`, options.challenge);
     return options;
   });
 
 export const finishPasskeyRegistration = createServerFn({ method: "POST" })
-  .inputValidator((d: { userId: string; response: any; label?: string }) => d)
-  .handler(async ({ data }) => {
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { response: any; label?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const userId = context.userId;
     const { rpID, origin } = rpFromOrigin();
-    const expectedChallenge = takeChallenge(`reg:${data.userId}`);
+    const expectedChallenge = takeChallenge(`reg:${userId}`);
     if (!expectedChallenge) throw new Error("Challenge expired");
     const verification = await verifyRegistrationResponse({
       response: data.response, expectedChallenge, expectedOrigin: origin, expectedRPID: rpID,
@@ -64,7 +69,7 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
     const counter: number = credential.counter ?? 0;
     const pkB64 = Buffer.from(publicKey).toString("base64");
     await supabaseAdmin.from("webauthn_credentials").insert({
-      user_id: data.userId, credential_id: credentialID, public_key: pkB64,
+      user_id: userId, credential_id: credentialID, public_key: pkB64,
       counter, transports: (data.response.response?.transports || []).join(","),
       label: data.label || "Passkey",
     });
