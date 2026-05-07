@@ -213,7 +213,7 @@ function Market() {
                 </div>
                 <div className="p-2">
                   <p className="line-clamp-1 text-sm font-semibold">{l.title}</p>
-                  <div className="mt-1"><SellerBadge sellerId={l.seller_id} /></div>
+                  <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} /></div>
                   <div className="mt-1 flex items-baseline justify-between">
                     <p className="text-sm font-bold text-primary">
                       ${price.toFixed(price < 100 ? 2 : 0)}
