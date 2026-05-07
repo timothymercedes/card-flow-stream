@@ -250,6 +250,7 @@ function LiveList() {
                     )}
                   </div>
                   <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
+                  <div className="mt-0.5"><SellerBadge sellerId={s.seller_id} linkable={false} /></div>
                   <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>
                   {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
                     <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
