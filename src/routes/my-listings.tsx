@@ -75,17 +75,22 @@ function MyListings() {
   async function saveEdit() {
     if (!editing) return;
     const hasBids = editing.is_auction && (editing.current_bid ?? 0) > (editing.starting_bid ?? 0);
+    const fixedPrice = Number(editing.price ?? 0);
+    const startingBid = Number(editing.starting_bid ?? 0);
+    if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price or turn on offers");
+    if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid");
     const update: any = {
       title: editing.title,
       description: editing.description,
       image_url: editing.image_url,
       back_image_url: editing.back_image_url,
       category: editing.category,
-      price: editing.price != null ? Number(editing.price) : null,
+      price: !editing.is_auction && fixedPrice > 0 ? fixedPrice : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
       shipping_price: editing.shipping_price != null ? Number(editing.shipping_price) : 0,
       accepts_offers: editing.accepts_offers,
+      listing_type: editing.is_auction ? "auction" : fixedPrice > 0 ? "buy_now" : "offer",
     };
     // Starting bid only editable if no real bids yet
     if (editing.is_auction && !hasBids && editing.starting_bid != null) {
