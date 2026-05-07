@@ -180,6 +180,14 @@ function Orders() {
                     {paying === o.id ? "Processing…" : PAYMENTS_SAFE_MODE ? "Pay Now (Safe Mode)" : "Pay Now"}
                   </button>
                 )}
+                {o.status !== "delivered" && o.status !== "cancelled" && (
+                  <button
+                    onClick={() => setCancelOrder(o)}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Request cancellation
+                  </button>
+                )}
                 {pay === "paid" && o.status === "shipped" && (
                   <button onClick={() => deliver(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
                 )}
