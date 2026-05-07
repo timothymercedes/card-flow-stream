@@ -246,23 +246,6 @@ function Home() {
   );
 }
 
-function TrustBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center justify-center gap-1 rounded-lg border border-border bg-card/60 px-1.5 py-1.5 text-[10px] font-semibold text-muted-foreground backdrop-blur">
-      <span className="text-primary">{icon}</span>
-      <span className="truncate">{label}</span>
-    </div>
-  );
-}
-
-function Stat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
-  return (
-    <div className="text-center">
-      <div className={`text-lg font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value.toLocaleString()}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-    </div>
-  );
-}
 
 function EmptyMini({ text }: { text: string }) {
   return <div className="col-span-2 w-full rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{text}</div>;
