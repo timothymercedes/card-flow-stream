@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { HelpBubble } from "@/components/HelpBubble";
 import logo from "@/assets/logo.png";
 
