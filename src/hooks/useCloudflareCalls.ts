@@ -17,9 +17,17 @@ const SFU_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cf-calls`;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 async function sfu(path: string, init?: RequestInit) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("Not signed in");
   const r = await fetch(`${SFU_FN_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", apikey: ANON_KEY, ...(init?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      apikey: ANON_KEY,
+      Authorization: `Bearer ${token}`,
+      ...(init?.headers || {}),
+    },
   });
   if (!r.ok) throw new Error(`Calls API ${path} ${r.status}: ${await r.text()}`);
   return r.json();
