@@ -143,13 +143,14 @@ function AccessibilitySection() {
 function SellerSection() {
   const { t } = useTranslation();
   const { profile } = useAuth();
-  const [name, setName] = useState(profile?.shop_name || "");
+  const p = profile as any;
+  const [name, setName] = useState(p?.shop_name || "");
   const [busy, setBusy] = useState(false);
-  const changes = (profile as any)?.shop_name_changes ?? 0;
-  const locked = changes >= 1 && !!profile?.shop_name;
+  const changes = p?.shop_name_changes ?? 0;
+  const locked = changes >= 1 && !!p?.shop_name;
 
   async function save() {
-    if (!name.trim() || name.trim() === profile?.shop_name) return;
+    if (!name.trim() || name.trim() === p?.shop_name) return;
     setBusy(true);
     const { error } = await (supabase.rpc as any)("change_shop_name", { _new_name: name.trim() });
     setBusy(false);
@@ -164,7 +165,7 @@ function SellerSection() {
       <p className="text-xs text-muted-foreground">{t("settings.shop_name_help")}</p>
       <input value={name} onChange={e => setName(e.target.value)} disabled={locked}
         className="w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" maxLength={30} />
-      <button onClick={save} disabled={busy || locked || !name.trim() || name.trim() === profile?.shop_name}
+      <button onClick={save} disabled={busy || locked || !name.trim() || name.trim() === p?.shop_name}
         className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-40">
         {locked ? "Already used your one change" : t("settings.shop_name_change")}
       </button>
