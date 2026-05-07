@@ -152,11 +152,8 @@ export const getMyConnectStatus = createServerFn({ method: "GET" }).handler(asyn
  */
 export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sellerId: string; subtotalCents: number; orderId?: string; orderIds?: string[] }) => {
+  .inputValidator((data: { sellerId: string; subtotalCents?: number; orderId?: string; orderIds?: string[] }) => {
     if (!data.sellerId) throw new Error("sellerId required");
-    if (!Number.isFinite(data.subtotalCents) || data.subtotalCents < 50) {
-      throw new Error("Invalid amount");
-    }
     return data;
   })
   .handler(async ({ data, context }) => {
@@ -173,10 +170,32 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       throw new Error("Seller is not ready to accept payments");
     }
 
-    const fees = calculateFees(data.subtotalCents);
     const orderIds = data.orderIds && data.orderIds.length > 0
       ? data.orderIds
       : (data.orderId ? [data.orderId] : []);
+    if (orderIds.length === 0) throw new Error("No orders to pay");
+
+    // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
+    const { data: orderRows, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, amount, buyer_id, seller_id, payment_status")
+      .in("id", orderIds);
+    if (orderErr) throw new Error(orderErr.message);
+    if (!orderRows || orderRows.length !== orderIds.length) {
+      throw new Error("Order(s) not found");
+    }
+    for (const o of orderRows as any[]) {
+      if (o.buyer_id !== userId) throw new Error("Order does not belong to you");
+      if (o.seller_id !== data.sellerId) throw new Error("Order seller mismatch");
+      if (o.payment_status !== "awaiting_payment") throw new Error("Order already paid");
+    }
+    const subtotalCents = (orderRows as any[]).reduce(
+      (a, o) => a + Math.round(Number(o.amount) * 100),
+      0,
+    );
+    if (subtotalCents < 50) throw new Error("Amount too low");
+
+    const fees = calculateFees(subtotalCents);
 
     const intent = await stripe.paymentIntents.create({
       amount: fees.buyerTotal,
