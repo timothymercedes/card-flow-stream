@@ -4,6 +4,9 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { MascotTourProvider } from "@/components/MascotGuide";
 import { LegalGate } from "@/components/LegalGate";
+import "@/i18n";
+import { LanguageSync } from "@/components/LanguageSync";
+import { A11yClassSync } from "@/components/A11yClassSync";
 
 function NotFoundComponent() {
   return (
