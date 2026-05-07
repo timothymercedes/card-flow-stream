@@ -17,6 +17,18 @@ const APP_ID = rawAppId?.replace(/-/g, "");
 const APP_TOKEN = Deno.env.get("CLOUDFLARE_CALLS_APP_TOKEN");
 const BASE = `https://rtc.live.cloudflare.com/v1/apps/${APP_ID}`;
 
+function jwtClaimKeys(token?: string) {
+  try {
+    const payload = token?.split(".")[1];
+    if (!payload) return [];
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+    return Object.keys(JSON.parse(json)).sort();
+  } catch {
+    return [];
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
@@ -30,6 +42,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       rawAppIdLen: rawAppId?.length, appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
       tokenLen: APP_TOKEN?.length, tokenPrefix: APP_TOKEN?.slice(0, 6),
+      tokenClaimKeys: jwtClaimKeys(APP_TOKEN),
       status: r.status, body: text,
     }), { headers: { ...CORS, "content-type": "application/json" } });
   }
