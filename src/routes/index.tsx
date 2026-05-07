@@ -173,7 +173,7 @@ function Home() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                   <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                  <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>
+                  {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
                 </div>
               </div>
             </Link>
