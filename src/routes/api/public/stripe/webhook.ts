@@ -57,6 +57,46 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   .from("orders")
                   .update({ payment_status: "paid", paid_at: new Date().toISOString() })
                   .in("id", ids);
+                // Clear any bid blocks once payment recovers
+                const { data: paid } = await supabaseAdmin.from("orders").select("buyer_id, stream_id").in("id", ids);
+                for (const o of (paid || []) as any[]) {
+                  if (o.stream_id) {
+                    await supabaseAdmin.from("live_bid_blocks")
+                      .delete().eq("stream_id", o.stream_id).eq("user_id", o.buyer_id);
+                  }
+                }
+              }
+              break;
+            }
+            case "payment_intent.payment_failed": {
+              const pi: any = event.data.object;
+              const orderId = pi.metadata?.order_id as string | undefined;
+              const orderIdsStr = pi.metadata?.order_ids as string | undefined;
+              const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
+              if (ids.length === 0) break;
+              const { data: orders } = await supabaseAdmin
+                .from("orders")
+                .select("id, buyer_id, seller_id, stream_id, title, payment_failure_count")
+                .in("id", ids);
+              const nowIso = new Date().toISOString();
+              const retryDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+              for (const o of (orders || []) as any[]) {
+                await supabaseAdmin.from("orders").update({
+                  payment_status: "awaiting_payment",
+                  payment_failure_count: (o.payment_failure_count || 0) + 1,
+                  payment_failed_at: nowIso,
+                  payment_retry_deadline: retryDeadline,
+                }).eq("id", o.id);
+                await supabaseAdmin.from("notifications").insert([
+                  { user_id: o.buyer_id, type: "payment_failed", body: `❌ Payment failed for "${o.title}". Please retry within 24h.`, link: "/orders" },
+                  { user_id: o.seller_id, type: "payment_failed", body: `⚠️ Buyer payment failed for "${o.title}".`, link: "/store" },
+                ]);
+                if (o.stream_id) {
+                  await supabaseAdmin.from("live_bid_blocks").upsert({
+                    stream_id: o.stream_id, user_id: o.buyer_id,
+                    reason: "payment_failed", expires_at: retryDeadline,
+                  }, { onConflict: "stream_id,user_id" });
+                }
               }
               break;
             }
