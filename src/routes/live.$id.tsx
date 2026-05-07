@@ -629,6 +629,33 @@ function LiveDetail() {
     onAutoEnd: () => toast.message("Live auto-ended after extended inactivity"),
   });
 
+  // Fire one-time host alert when the inactivity warning trips
+  const inactivityNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (!isSeller || !stream || !safety.inactiveWarning) return;
+    if (inactivityNotifiedRef.current) return;
+    inactivityNotifiedRef.current = true;
+    (async () => {
+      try {
+        await supabase.from("chat_messages").insert({
+          stream_id: id,
+          username: "system",
+          content: `⚠️ No activity detected. Tap "I'm still live" or the stream will auto-end in ${safety.tier.inactive_auto_end_minutes - safety.tier.inactive_warning_minutes} minutes.`,
+          is_system: true,
+        });
+        await supabase.from("notifications").insert({
+          user_id: stream.seller_id,
+          type: "live_inactivity",
+          body: "Your live stream is inactive — confirm you're still live to avoid auto-end.",
+          link: `/live/${id}`,
+        });
+      } catch {}
+    })();
+  }, [isSeller, stream, safety.inactiveWarning, safety.tier, id]);
+  useEffect(() => {
+    if (!safety.inactiveWarning) inactivityNotifiedRef.current = false;
+  }, [safety.inactiveWarning]);
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
