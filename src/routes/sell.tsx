@@ -131,6 +131,16 @@ function Sell() {
     </AppShell>
   );
 
+  if (sellerStatus === "approved" && shopName === null) return (
+    <AppShell>
+      <div className="px-6 py-16 text-center">
+        <h1 className="text-xl font-bold">Claim your shop name</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Pick a unique store name so buyers know who they're purchasing from. You can do this in your profile.</p>
+        <Link to="/profile" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Go to Profile</Link>
+      </div>
+    </AppShell>
+  );
+
   async function ensureSeller() {
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
