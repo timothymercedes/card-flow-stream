@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { getTurnstileSiteKey } from "@/lib/turnstile.functions";
 
 declare global {
