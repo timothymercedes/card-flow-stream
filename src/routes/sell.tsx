@@ -542,12 +542,12 @@ function Sell() {
               <div className="space-y-2">
                 <Toggle label="Buy Now" hint="Set a fixed price buyers can pay instantly." on={enableBuyNow} set={setEnableBuyNow} />
                 {enableBuyNow && (
-                  <input type="number" min="0" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Buy Now price ($)" value={buyNowPrice} onChange={(e) => setBuyNowPrice(e.target.value)} />
+                  <input type="number" min="0.01" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Buy Now price ($)" value={buyNowPrice} onChange={(e) => setBuyNowPrice(e.target.value)} />
                 )}
                 <Toggle label="Auction" hint="Buyers place bids. Highest at end-time wins." on={enableAuction} set={setEnableAuction} />
                 {enableAuction && (
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="number" min="0" step="0.01" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting bid ($)" value={auctionStart} onChange={(e) => setAuctionStart(e.target.value)} />
+                    <input type="number" min="0.01" step="0.01" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting bid ($)" value={auctionStart} onChange={(e) => setAuctionStart(e.target.value)} />
                     <select value={auctionDays} onChange={(e) => setAuctionDays(e.target.value)} className="rounded-xl bg-input px-4 py-3 text-sm outline-none">
                       <option value="1">1 day</option>
                       <option value="3">3 days</option>
