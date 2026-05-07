@@ -50,12 +50,13 @@ function Market() {
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-        // Hide offer-only listings (no buy-now price, not an auction) from the public marketplace.
-        const visible = (data || []).filter((l: any) => {
-          if (l.is_auction) return true;
-          const p = Number(l.price ?? l.buy_now_price ?? 0);
-          return p > 0;
-        });
+         // Show auctions, buy-now (price > 0), and offer-only listings (accepts_offers).
+         const visible = (data || []).filter((l: any) => {
+           if (l.is_auction) return true;
+           const p = Number(l.price ?? l.buy_now_price ?? 0);
+           if (p > 0) return true;
+           return !!l.accepts_offers;
+         });
         setItems(visible);
       });
   }, []);
@@ -242,11 +243,17 @@ function Market() {
                 <div className="p-2">
                   <p className="line-clamp-1 text-sm font-semibold">{l.title}</p>
                   <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} /></div>
-                  <div className="mt-1 flex items-baseline justify-between">
-                    <p className="text-sm font-bold text-primary">
-                      ${price.toFixed(price < 100 ? 2 : 0)}
-                      {l.is_auction && <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">bid</span>}
-                    </p>
+                  <div className="mt-1 flex items-baseline justify-between gap-1">
+                    {price > 0 ? (
+                      <p className="text-sm font-bold text-primary">
+                        ${price.toFixed(price < 100 ? 2 : 0)}
+                        {l.is_auction && <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">bid</span>}
+                      </p>
+                    ) : l.accepts_offers ? (
+                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make offer</span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">—</span>
+                    )}
                     {l.condition && (
                       <span className="rounded bg-muted px-1 text-[9px] font-bold text-muted-foreground">{l.condition}</span>
                     )}
