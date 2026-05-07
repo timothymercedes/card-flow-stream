@@ -36,13 +36,11 @@ function Cart() {
 
   async function handlePaymentSuccess(sellerId: string) {
     const ids = (groups[sellerId] || []).map((o) => o.id);
-    // Webhook will mark orders paid; do a best-effort optimistic update too.
-    await supabase.from("orders").update({
-      payment_status: "paid", paid_at: new Date().toISOString(),
-    }).in("id", ids);
-    toast.success(`Paid ${ids.length} item${ids.length === 1 ? "" : "s"}`);
+    toast.success(`Paid ${ids.length} item${ids.length === 1 ? "" : "s"} — confirming…`);
     setCheckoutSeller(null);
-    load();
+    // Webhook marks orders paid. Poll briefly for confirmation.
+    setTimeout(load, 1500);
+    setTimeout(load, 4000);
   }
 
   async function removeItem(orderId: string) {
