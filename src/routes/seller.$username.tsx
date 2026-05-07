@@ -274,9 +274,9 @@ function PublicStore() {
         )}
 
         <div className="mb-3 flex gap-2 border-b border-border text-xs">
-          {(["listings", "sold", "reviews"] as const).map((t) => (
+          {(["listings", "sold", "posts", "reviews"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
-              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : `Listings (${listings.length})`}
+              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : `Listings (${listings.length})`}
             </button>
           ))}
         </div>
