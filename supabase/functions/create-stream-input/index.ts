@@ -1,5 +1,6 @@
 // Provision a Cloudflare Stream Live Input for a seller's stream.
 // Returns RTMPS URL + stream key for OBS, and HLS playback URL for viewers.
+import { verifyUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = await verifyUser(req);
+    if (!auth.ok) return json({ error: auth.error }, auth.status);
+
     const accountId = normalizeSecret(Deno.env.get("CLOUDFLARE_ACCOUNT_ID"));
     const apiToken = normalizeSecret(Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN"));
     if (!accountId || !apiToken) {

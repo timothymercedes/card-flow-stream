@@ -5,6 +5,7 @@
 //   POST  /sessions/:id/tracks/new     -> add local tracks (publish) or pull remote tracks
 //   PUT   /sessions/:id/renegotiate    -> renegotiate SDP
 //   PUT   /sessions/:id/tracks/close   -> close tracks
+import { verifyUser } from "../_shared/auth.ts";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
@@ -17,6 +18,14 @@ const BASE = `https://rtc.live.cloudflare.com/v1/apps/${APP_ID}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+
+  const auth = await verifyUser(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status, headers: { ...CORS, "content-type": "application/json" },
+    });
+  }
+
   if (!APP_ID || !APP_TOKEN) {
     return new Response(JSON.stringify({ error: "Cloudflare Calls not configured" }), {
       status: 500, headers: { ...CORS, "content-type": "application/json" },
