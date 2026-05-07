@@ -1,0 +1,17 @@
+{
+  "common": { "save": "Salvar", "cancel": "Cancelar", "back": "Voltar", "loading": "Carregando…", "search": "Buscar", "signIn": "Entrar", "signOut": "Sair", "close": "Fechar" },
+  "nav": { "home": "Início", "live": "Ao vivo", "market": "Mercado", "feed": "Feed", "profile": "Perfil", "cart": "Carrinho", "messages": "Mensagens", "orders": "Pedidos", "settings": "Configurações" },
+  "settings": {
+    "title": "Configurações", "account": "Conta", "notifications": "Notificações", "language": "Idioma",
+    "privacy": "Privacidade", "payment": "Pagamento", "accessibility": "Acessibilidade", "seller": "Vendedor",
+    "language_label": "Idioma do aplicativo",
+    "language_help": "Usado para a interface. Legendas e anúncios mantêm o idioma original.",
+    "a11y_large_text": "Texto grande", "a11y_high_contrast": "Alto contraste",
+    "a11y_reduced_motion": "Reduzir movimento", "a11y_captions_default": "Legendas ativas por padrão",
+    "shop_name": "Nome da loja",
+    "shop_name_help": "Só pode mudar uma vez, e sem pedidos pendentes.",
+    "shop_name_change": "Alterar nome", "saved": "Salvo"
+  },
+  "captions": { "toggle_on": "Legendas ativas", "toggle_off": "Legendas desativadas", "translate_to": "Traduzir para", "off": "Desativado", "listening": "Ouvindo…" },
+  "live": { "viewers": "espectadores", "going_live": "Ao vivo", "place_bid": "Dar lance", "current_bid": "Lance atual" }
+}

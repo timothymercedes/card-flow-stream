@@ -1520,6 +1520,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          a11y_settings: Json
           address_city: string | null
           address_country: string | null
           address_line1: string | null
@@ -1552,6 +1553,7 @@ export type Database = {
           phone_verified: boolean
           phone_verified_at: string | null
           preferred_currency: string | null
+          preferred_language: string
           public_id: string | null
           pwe_enabled: boolean
           pwe_max_order_value: number
@@ -1564,6 +1566,7 @@ export type Database = {
           seller_status: string
           shipping_cap: number | null
           shop_name: string | null
+          shop_name_changes: number
           streaming_badge: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
@@ -1580,6 +1583,7 @@ export type Database = {
           verified_at: string | null
         }
         Insert: {
+          a11y_settings?: Json
           address_city?: string | null
           address_country?: string | null
           address_line1?: string | null
@@ -1612,6 +1616,7 @@ export type Database = {
           phone_verified?: boolean
           phone_verified_at?: string | null
           preferred_currency?: string | null
+          preferred_language?: string
           public_id?: string | null
           pwe_enabled?: boolean
           pwe_max_order_value?: number
@@ -1624,6 +1629,7 @@ export type Database = {
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
+          shop_name_changes?: number
           streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -1640,6 +1646,7 @@ export type Database = {
           verified_at?: string | null
         }
         Update: {
+          a11y_settings?: Json
           address_city?: string | null
           address_country?: string | null
           address_line1?: string | null
@@ -1672,6 +1679,7 @@ export type Database = {
           phone_verified?: boolean
           phone_verified_at?: string | null
           preferred_currency?: string | null
+          preferred_language?: string
           public_id?: string | null
           pwe_enabled?: boolean
           pwe_max_order_value?: number
@@ -1684,6 +1692,7 @@ export type Database = {
           seller_status?: string
           shipping_cap?: number | null
           shop_name?: string | null
+          shop_name_changes?: number
           streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -1833,6 +1842,30 @@ export type Database = {
           rating?: number
           seller_id?: string
           shipping_rating?: number
+        }
+        Relationships: []
+      }
+      shop_name_history: {
+        Row: {
+          changed_at: string
+          id: string
+          new_name: string
+          old_name: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          new_name: string
+          old_name?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          new_name?: string
+          old_name?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -3110,6 +3143,7 @@ export type Database = {
         Args: { _owner: string; _viewer: string }
         Returns: boolean
       }
+      change_shop_name: { Args: { _new_name: string }; Returns: Json }
       claim_break_slots: {
         Args: { _slot_numbers: number[]; _stream_id: string }
         Returns: {

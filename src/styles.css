@@ -248,3 +248,14 @@
   animation: flex-emoji-float-anim 2.6s ease-out forwards;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
 }
+
+/* Accessibility utility classes (toggled on <html>) */
+html.a11y-large-text { font-size: 18px; }
+html.a11y-high-contrast { --background: oklch(0% 0 0); --foreground: oklch(100% 0 0); --border: oklch(100% 0 0 / 0.5); }
+html.a11y-high-contrast img, html.a11y-high-contrast video { filter: contrast(1.15); }
+html.a11y-reduced-motion *, html.a11y-reduced-motion *::before, html.a11y-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
