@@ -171,14 +171,19 @@ function ObsHub() {
       status: "live",
       is_active: true,
       started_at: new Date().toISOString(),
-      cf_live_input_id: profile.cf_live_input_id,
-      cf_rtmps_url: profile.cf_rtmps_url,
-      cf_stream_key: profile.cf_stream_key,
       cf_playback_hls: profile.cf_playback_hls,
       cf_whip_url: profile.cf_whip_url,
     }).select().single();
     setLaunching(false);
     if (error) return toast.error(error.message);
+    if (profile.cf_live_input_id || profile.cf_rtmps_url || profile.cf_stream_key) {
+      await supabase.from("live_stream_credentials" as any).insert({
+        stream_id: data.id,
+        cf_live_input_id: profile.cf_live_input_id ?? null,
+        cf_rtmps_url: profile.cf_rtmps_url ?? null,
+        cf_stream_key: profile.cf_stream_key ?? null,
+      });
+    }
     nav({ to: "/live/$id", params: { id: data.id } });
   }
 
