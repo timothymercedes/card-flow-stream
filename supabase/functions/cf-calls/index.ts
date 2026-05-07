@@ -12,9 +12,27 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
-const APP_ID = Deno.env.get("CLOUDFLARE_CALLS_APP_ID");
+const rawAppId = Deno.env.get("CLOUDFLARE_CALLS_APP_ID")?.trim();
+const APP_ID = rawAppId?.replace(/-/g, "");
 const APP_TOKEN = Deno.env.get("CLOUDFLARE_CALLS_APP_TOKEN");
 const BASE = `https://rtc.live.cloudflare.com/v1/apps/${APP_ID}`;
+
+function jwtClaimKeys(token?: string) {
+  try {
+    const payload = token?.split(".")[1];
+    if (!payload) return [];
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+    return Object.keys(JSON.parse(json)).sort();
+  } catch {
+    return [];
+  }
+}
+
+function isRealtimeKitMeetingToken(token?: string) {
+  const keys = jwtClaimKeys(token);
+  return keys.includes("meetingId") && keys.includes("participantId");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -27,8 +45,9 @@ Deno.serve(async (req) => {
     });
     const text = await r.text();
     return new Response(JSON.stringify({
-      appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
+      rawAppIdLen: rawAppId?.length, appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
       tokenLen: APP_TOKEN?.length, tokenPrefix: APP_TOKEN?.slice(0, 6),
+      tokenClaimKeys: jwtClaimKeys(APP_TOKEN),
       status: r.status, body: text,
     }), { headers: { ...CORS, "content-type": "application/json" } });
   }
@@ -42,6 +61,11 @@ Deno.serve(async (req) => {
 
   if (!APP_ID || !APP_TOKEN) {
     return new Response(JSON.stringify({ error: "Cloudflare Calls not configured" }), {
+      status: 500, headers: { ...CORS, "content-type": "application/json" },
+    });
+  }
+  if (isRealtimeKitMeetingToken(APP_TOKEN)) {
+    return new Response(JSON.stringify({ error: "Cloudflare token is a Realtime meeting participant token, but this live video feature needs the SFU App Secret." }), {
       status: 500, headers: { ...CORS, "content-type": "application/json" },
     });
   }
