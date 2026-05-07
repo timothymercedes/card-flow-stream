@@ -39,8 +39,9 @@ function fmtRemain(iso: string | null) {
 function Market() {
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<Sort>("newest");
+  const [sort, setSort] = useState<Sort>("shuffled");
   const [category, setCategory] = useState<string>("all");
+  const seed = useMemo(getSessionSeed, []);
 
   useEffect(() => {
     supabase
