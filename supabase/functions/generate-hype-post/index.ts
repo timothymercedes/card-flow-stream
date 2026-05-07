@@ -1,5 +1,6 @@
 // Generates an AI hype post about upcoming TCG / collectible drops.
 // Called by pg_cron daily AND by admins manually.
+import { verifyUser, userHasAdminRole } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
