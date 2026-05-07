@@ -7,6 +7,8 @@ import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-re
 import { toast } from "sonner";
 import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
+import { OrderCancellation } from "@/components/OrderCancellation";
+import { XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
