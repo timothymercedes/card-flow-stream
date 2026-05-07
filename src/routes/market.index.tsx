@@ -213,7 +213,8 @@ function Market() {
                 </div>
                 <div className="p-2">
                   <p className="line-clamp-1 text-sm font-semibold">{l.title}</p>
-                  <div className="mt-0.5 flex items-baseline justify-between">
+                  <div className="mt-1"><SellerBadge sellerId={l.seller_id} /></div>
+                  <div className="mt-1 flex items-baseline justify-between">
                     <p className="text-sm font-bold text-primary">
                       ${price.toFixed(price < 100 ? 2 : 0)}
                       {l.is_auction && <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">bid</span>}
