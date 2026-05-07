@@ -203,7 +203,7 @@ function Market() {
               >
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {l.image_url ? (
-                    <img src={l.image_url} className="h-full w-full object-cover transition group-hover:scale-105" alt={l.title} />
+                    <img src={l.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover transition group-hover:scale-105" alt={l.title} />
                   ) : (
                     <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />
                   )}

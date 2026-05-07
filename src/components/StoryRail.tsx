@@ -163,7 +163,7 @@ export function StoryRail() {
               <button onClick={() => setActive({ group: g, index: 0 })}>
                 <div className="rounded-full bg-gradient-to-br from-primary to-live p-[2px]">
                   <div className="h-16 w-16 overflow-hidden rounded-full bg-card">
-                    {first.avatar_url ? <img src={first.avatar_url} className="h-full w-full object-cover" alt="" /> : <div className="flex h-full w-full items-center justify-center text-sm font-bold">{first.username[0]?.toUpperCase()}</div>}
+                    {first.avatar_url ? <img src={first.avatar_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt="" /> : <div className="flex h-full w-full items-center justify-center text-sm font-bold">{first.username[0]?.toUpperCase()}</div>}
                   </div>
                 </div>
               </button>
@@ -218,7 +218,7 @@ export function StoryRail() {
               const total = Object.values(r.counts).reduce((a, b) => a + b, 0);
               return (
                 <div className="relative h-full">
-                  <img src={s.image_url} className="h-full w-full object-contain" alt="" />
+                  <img src={s.image_url} loading="lazy" decoding="async" className="h-full w-full object-contain" alt="" />
                   <div className="absolute left-3 right-12 top-3 z-10 flex items-center gap-2 text-white">
                     <Link
                       to="/seller/$username"
