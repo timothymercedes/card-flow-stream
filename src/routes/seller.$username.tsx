@@ -35,7 +35,9 @@ function PublicStore() {
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
-  const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
+  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts">("listings");
+  const [posts, setPosts] = useState<any[]>([]);
+  const [stories, setStories] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [notifyOnLive, setNotifyOnLive] = useState(true);
 
@@ -109,7 +111,7 @@ function PublicStore() {
       const prof = Array.isArray(profRows) ? profRows[0] : null;
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r, fr, fg, sc, bc] = await Promise.all([
+      const [l, o, r, fr, fg, sc, bc, ps, st] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
@@ -117,6 +119,8 @@ function PublicStore() {
         supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
         (supabase.rpc as any)("get_seller_completed_count", { _user: prof.id }),
         (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
+        supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
+        supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
       ]);
       setListings(l.data || []);
       setSoldOrders(o.data || []);
@@ -125,6 +129,8 @@ function PublicStore() {
       setFollowing(fg.count || 0);
       setSellerCompleted(Number(sc?.data ?? 0));
       setBuyerCompleted(Number(bc?.data ?? 0));
+      setPosts(ps.data || []);
+      setStories(st.data || []);
     })();
   }, [username]);
 
