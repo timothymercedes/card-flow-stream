@@ -87,11 +87,13 @@ function Auth() {
     e.preventDefault();
     if (mode === "forgot") {
       if (!email) return toast.error("Enter your email");
+      if (!(await ensureCaptcha("password_reset"))) return;
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + "/reset-password",
       });
       setLoading(false);
+      setCaptchaToken(null);
       if (error) toast.error(error.message);
       else { toast.success("Reset link sent — check your email"); setMode("signin"); }
       return;
@@ -102,11 +104,14 @@ function Auth() {
       if (!ageOk) return toast.error("You must confirm you are 18 or older");
       if (!tosOk) return toast.error("You must agree to the Terms & Privacy Policy");
       if (!guidelinesOk) return toast.error("You must agree to the Community Guidelines");
+      if (!(await ensureCaptcha("signup"))) return;
       setShowTerms(true);
       return;
     }
+    if (!(await ensureCaptcha("signin"))) return;
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setCaptchaToken(null);
     if (error) toast.error(error.message); else nav({ to: "/" });
     setLoading(false);
   }
