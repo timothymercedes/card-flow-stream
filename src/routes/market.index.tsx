@@ -80,7 +80,6 @@ function Market() {
       case "ending_soon":
         arr = [...arr].sort((a, b) => {
           const ae = a.auction_ends_at ? new Date(a.auction_ends_at).getTime() : Infinity;
-          case_unused: void 0;
           const be = b.auction_ends_at ? new Date(b.auction_ends_at).getTime() : Infinity;
           return ae - be;
         });
