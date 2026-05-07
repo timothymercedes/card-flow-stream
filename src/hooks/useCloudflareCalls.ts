@@ -56,6 +56,7 @@ export function useCloudflareCalls(opts: {
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
