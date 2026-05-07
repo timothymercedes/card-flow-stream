@@ -80,6 +80,45 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_username: string | null
+          created_at: string
+          id: string
+          ip_hash: string | null
+          meta: Json
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_username?: string | null
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_username?: string | null
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          meta?: Json
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       break_slots: {
         Row: {
           amount: number
@@ -3081,6 +3120,19 @@ export type Database = {
           total: number
         }[]
       }
+      admin_list_audit_logs: {
+        Args: { _action_filter?: string; _limit?: number }
+        Returns: {
+          action: string
+          actor_id: string
+          actor_username: string
+          created_at: string
+          id: string
+          meta: Json
+          target_id: string
+          target_type: string
+        }[]
+      }
       admin_list_recent_signups: {
         Args: { _limit?: number }
         Returns: {
@@ -3210,6 +3262,17 @@ export type Database = {
           seller_status: string
           username: string
         }[]
+      }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _ip_hash?: string
+          _meta?: Json
+          _target_id?: string
+          _target_type?: string
+          _user_agent?: string
+        }
+        Returns: string
       }
       place_listing_bid: {
         Args: { _amount: number; _listing_id: string }
