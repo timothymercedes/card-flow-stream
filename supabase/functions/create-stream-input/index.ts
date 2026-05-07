@@ -1,5 +1,6 @@
 // Provision a Cloudflare Stream Live Input for a seller's stream.
 // Returns RTMPS URL + stream key for OBS, and HLS playback URL for viewers.
+import { verifyUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
