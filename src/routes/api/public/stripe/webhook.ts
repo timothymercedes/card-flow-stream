@@ -57,6 +57,14 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   .from("orders")
                   .update({ payment_status: "paid", paid_at: new Date().toISOString() })
                   .in("id", ids);
+                // Clear any bid blocks once payment recovers
+                const { data: paid } = await supabaseAdmin.from("orders").select("buyer_id, stream_id").in("id", ids);
+                for (const o of (paid || []) as any[]) {
+                  if (o.stream_id) {
+                    await supabaseAdmin.from("live_bid_blocks")
+                      .delete().eq("stream_id", o.stream_id).eq("user_id", o.buyer_id);
+                  }
+                }
               }
               break;
             }
