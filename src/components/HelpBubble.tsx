@@ -370,6 +370,9 @@ export function HelpBubble() {
             </div>
           )}
 
+          {/* VIDEOS */}
+          {mode === "videos" && <TutorialLibrary onBack={() => setMode("menu")} />}
+
           {/* TICKET LIST */}
           {mode === "tickets" && (
             <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-3">
