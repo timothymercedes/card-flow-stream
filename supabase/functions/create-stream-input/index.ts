@@ -21,6 +21,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = await verifyUser(req);
+    if (!auth.ok) return json({ error: auth.error }, auth.status);
+
     const accountId = normalizeSecret(Deno.env.get("CLOUDFLARE_ACCOUNT_ID"));
     const apiToken = normalizeSecret(Deno.env.get("CLOUDFLARE_STREAM_API_TOKEN"));
     if (!accountId || !apiToken) {
