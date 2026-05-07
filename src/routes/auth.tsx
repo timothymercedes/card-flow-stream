@@ -10,6 +10,8 @@ import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { AgreementModal } from "@/components/AgreementModal";
 import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
+import { Turnstile } from "@/components/Turnstile";
+import { verifyTurnstile } from "@/lib/turnstile.functions";
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
@@ -27,6 +29,21 @@ function Auth() {
   const [ageOk, setAgeOk] = useState(false);
   const [tosOk, setTosOk] = useState(false);
   const [guidelinesOk, setGuidelinesOk] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  async function ensureCaptcha(action: string): Promise<boolean> {
+    if (!captchaToken) {
+      toast.error("Please complete the verification challenge");
+      return false;
+    }
+    const v = await verifyTurnstile({ data: { token: captchaToken, action } });
+    if (!v.success && v.error !== "turnstile_not_configured") {
+      toast.error("Verification failed, please retry");
+      setCaptchaToken(null);
+      return false;
+    }
+    return true;
+  }
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
