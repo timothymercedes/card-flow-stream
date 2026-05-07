@@ -2601,7 +2601,9 @@ function LiveDetail() {
         {isSeller && !ended && !paused && (safety.inactiveWarning || safety.flexReminder) && (
           <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
             <p className="text-center text-[11px] font-bold text-amber-100">
-              {safety.inactiveWarning ? "Still live? We haven’t detected activity in a while." : "Flex Live session reminder"}
+              {safety.inactiveWarning
+                ? `Still live? No activity detected — stream auto-ends in ${Math.max(0, Math.ceil(((stream?.last_activity_at ? new Date(stream.last_activity_at).getTime() : Date.now()) + safety.tier.inactive_auto_end_minutes * 60_000 - Date.now()) / 60_000))}m unless you confirm.`
+                : "Flex Live session reminder"}
             </p>
             <div className="flex gap-1.5">
               <button onClick={safety.confirmActive} disabled={safety.confirming} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-2 text-[11px] font-extrabold text-primary-foreground disabled:opacity-50">
