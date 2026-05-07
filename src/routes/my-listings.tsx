@@ -7,6 +7,7 @@ import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { getListingPriceDisplay } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
 
@@ -136,6 +137,7 @@ function MyListings() {
         <div className="space-y-2">
           {filtered.map((l) => {
             const expired = new Date(l.expires_at).getTime() <= now || l.auction_status === "cancelled";
+            const display = getListingPriceDisplay(l);
             return (
               <div key={l.id} className="flex gap-3 rounded-xl bg-card p-3">
                 <Link to="/market/$id" params={{ id: l.id }} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -151,9 +153,7 @@ function MyListings() {
                     </span>
                   )}
                   <p className="text-xs text-primary">
-                    {l.is_auction
-                      ? `Bid $${Number(l.current_bid || l.starting_bid || 0).toFixed(2)}`
-                      : `$${Number(l.price || 0).toFixed(2)}`}
+                    {display.kind === "offer" ? "Make Offer" : display.suffix ? `Bid ${display.label}` : display.label}
                     {l.accepts_offers && <span className="ml-1 text-muted-foreground">• Offers</span>}
                   </p>
                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
