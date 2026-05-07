@@ -348,8 +348,7 @@ function PublicStore() {
             )}
           </>
         )}
-
-
+        {tab === "reviews" && (
           <>
             {reviews.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No reviews yet.</p>}
             <div className="space-y-3">
