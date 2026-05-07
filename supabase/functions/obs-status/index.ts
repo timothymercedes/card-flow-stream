@@ -1,5 +1,6 @@
 // Probe a Cloudflare Stream live input for connection / health stats.
 // Returns: status, isInput (live), bitrateKbps, fps, width, height, droppedFrames.
+import { verifyUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
