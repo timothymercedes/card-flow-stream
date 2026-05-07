@@ -89,12 +89,14 @@ function Vault() {
 
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return cards;
-    return cards.filter((c) =>
-      [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
-        .filter(Boolean)
-        .some((f) => String(f).toLowerCase().includes(q))
-    );
+    const base = q
+      ? cards.filter((c) =>
+          [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
+            .filter(Boolean)
+            .some((f) => String(f).toLowerCase().includes(q))
+        )
+      : cards;
+    return [...base].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [cards, query]);
 
   // Predictive suggestions for the search box (from existing vault metadata)
