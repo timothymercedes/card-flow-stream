@@ -320,7 +320,36 @@ function PublicStore() {
           </>
         )}
 
-        {tab === "reviews" && (
+        {tab === "posts" && (
+          <>
+            {posts.length === 0 && stories.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No posts or stories yet.</p>}
+            {stories.length > 0 && (
+              <div className="mb-3">
+                <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">Active stories</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {stories.map((s: any) => (
+                    <div key={s.id} className="aspect-[3/4] overflow-hidden rounded-lg bg-muted">
+                      {s.image_url && <img src={s.image_url} className="h-full w-full object-cover" alt="" />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {posts.length > 0 && (
+              <div className="space-y-2">
+                {posts.map((p: any) => (
+                  <div key={p.id} className="rounded-xl bg-card p-3">
+                    <p className="text-xs">{p.caption}</p>
+                    {p.image_url && <img src={p.image_url} className="mt-2 max-h-64 w-full rounded-lg object-cover" alt="" />}
+                    <p className="mt-1 text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+
           <>
             {reviews.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No reviews yet.</p>}
             <div className="space-y-3">
