@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircleQuestion, X, Send, Sparkles, Play, Shield, ShieldAlert, Flag, Inbox, ChevronLeft, AlertTriangle, LifeBuoy, RotateCcw } from "lucide-react";
+import { MessageCircleQuestion, X, Send, Sparkles, Play, Shield, ShieldAlert, Flag, Inbox, ChevronLeft, AlertTriangle, LifeBuoy, RotateCcw, Video } from "lucide-react";
+import { TutorialLibrary } from "@/components/tutorials/TutorialLibrary";
 import { supabase } from "@/integrations/supabase/client";
 import { useTour } from "@/components/MascotGuide";
 import { MASCOTS, TOURS } from "@/lib/tours";
@@ -38,7 +39,7 @@ const CATEGORY_LABELS: Record<TicketCategory, string> = {
   other: "Other",
 };
 
-type Mode = "menu" | "chat" | "escalate" | "tickets" | "ticket";
+type Mode = "menu" | "chat" | "escalate" | "tickets" | "ticket" | "videos";
 
 export function HelpBubble() {
   const [open, setOpen] = useState(false);
@@ -225,6 +226,7 @@ export function HelpBubble() {
               {mode === "escalate" && "Contact Human"}
               {mode === "tickets" && "My Tickets"}
               {mode === "ticket" && (activeTicket?.subject || "Ticket")}
+              {mode === "videos" && "Tutorial videos"}
             </div>
             <button onClick={() => setOpen(false)} className="rounded-full p-1 text-muted-foreground hover:bg-muted">
               <X className="h-4 w-4" />
@@ -251,6 +253,14 @@ export function HelpBubble() {
                   </button>
                 ))}
               </div>
+
+              <button onClick={() => setMode("videos")} className="flex items-center gap-3 rounded-xl bg-purple-600/15 border border-purple-500/30 p-2.5 text-left text-sm hover:bg-purple-600/25">
+                <Video className="h-4 w-4 text-purple-300" />
+                <div>
+                  <p className="font-semibold">Tutorial videos</p>
+                  <p className="text-[11px] text-muted-foreground">Buyer, Seller, Host, Flex, Auction</p>
+                </div>
+              </button>
 
               <button onClick={() => setMode("tickets")} className="flex items-center gap-3 rounded-xl bg-muted/50 p-2.5 text-left text-sm hover:bg-muted">
                 <Inbox className="h-4 w-4 text-muted-foreground" />
