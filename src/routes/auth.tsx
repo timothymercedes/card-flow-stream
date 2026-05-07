@@ -10,6 +10,8 @@ import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { AgreementModal } from "@/components/AgreementModal";
 import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
+import { Turnstile } from "@/components/Turnstile";
+import { verifyTurnstile } from "@/lib/turnstile.functions";
 
 export const Route = createFileRoute("/auth")({ component: Auth });
 
@@ -27,6 +29,21 @@ function Auth() {
   const [ageOk, setAgeOk] = useState(false);
   const [tosOk, setTosOk] = useState(false);
   const [guidelinesOk, setGuidelinesOk] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  async function ensureCaptcha(action: string): Promise<boolean> {
+    if (!captchaToken) {
+      toast.error("Please complete the verification challenge");
+      return false;
+    }
+    const v = await verifyTurnstile({ data: { token: captchaToken, action } });
+    if (!v.success && v.error !== "turnstile_not_configured") {
+      toast.error("Verification failed, please retry");
+      setCaptchaToken(null);
+      return false;
+    }
+    return true;
+  }
 
   useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
 
@@ -70,11 +87,13 @@ function Auth() {
     e.preventDefault();
     if (mode === "forgot") {
       if (!email) return toast.error("Enter your email");
+      if (!(await ensureCaptcha("password_reset"))) return;
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + "/reset-password",
       });
       setLoading(false);
+      setCaptchaToken(null);
       if (error) toast.error(error.message);
       else { toast.success("Reset link sent — check your email"); setMode("signin"); }
       return;
@@ -85,11 +104,14 @@ function Auth() {
       if (!ageOk) return toast.error("You must confirm you are 18 or older");
       if (!tosOk) return toast.error("You must agree to the Terms & Privacy Policy");
       if (!guidelinesOk) return toast.error("You must agree to the Community Guidelines");
+      if (!(await ensureCaptcha("signup"))) return;
       setShowTerms(true);
       return;
     }
+    if (!(await ensureCaptcha("signin"))) return;
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setCaptchaToken(null);
     if (error) toast.error(error.message); else nav({ to: "/" });
     setLoading(false);
   }
@@ -177,6 +199,12 @@ function Auth() {
             </label>
           </div>
         )}
+        <Turnstile
+          action={mode === "forgot" ? "password_reset" : mode}
+          onVerify={setCaptchaToken}
+          onExpire={() => setCaptchaToken(null)}
+          className="flex justify-center"
+        />
         <button disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Buyer Terms & Sign Up"}
         </button>
