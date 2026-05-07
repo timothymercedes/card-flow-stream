@@ -49,7 +49,15 @@ function Market() {
       .select("*")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
-      .then(({ data }) => setItems(data || []));
+      .then(({ data }) => {
+        // Hide offer-only listings (no buy-now price, not an auction) from the public marketplace.
+        const visible = (data || []).filter((l: any) => {
+          if (l.is_auction) return true;
+          const p = Number(l.price ?? l.buy_now_price ?? 0);
+          return p > 0;
+        });
+        setItems(visible);
+      });
   }, []);
 
   const counts = useMemo(() => {
