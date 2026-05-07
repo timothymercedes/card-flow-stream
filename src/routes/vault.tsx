@@ -568,7 +568,9 @@ function Vault() {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
                 <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
-                <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value || 0).toFixed(2)}</p>
+                {Number(actionFor.estimated_value || 0) > 0 && (
+                  <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
+                )}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
                 <p className="text-[9px] uppercase text-muted-foreground">Condition</p>
