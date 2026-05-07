@@ -7,6 +7,8 @@ import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-re
 import { toast } from "sonner";
 import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
+import { OrderCancellation } from "@/components/OrderCancellation";
+import { XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
@@ -41,6 +43,7 @@ function Orders() {
   const [paying, setPaying] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<string, any>>({});
   const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string }>>({});
+  const [cancelOrder, setCancelOrder] = useState<any | null>(null);
 
   async function load() {
     if (!user) return;
@@ -177,6 +180,14 @@ function Orders() {
                     {paying === o.id ? "Processing…" : PAYMENTS_SAFE_MODE ? "Pay Now (Safe Mode)" : "Pay Now"}
                   </button>
                 )}
+                {o.status !== "delivered" && o.status !== "cancelled" && (
+                  <button
+                    onClick={() => setCancelOrder(o)}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Request cancellation
+                  </button>
+                )}
                 {pay === "paid" && o.status === "shipped" && (
                   <button onClick={() => deliver(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
                 )}
@@ -231,6 +242,14 @@ function Orders() {
             );
           })}
         </div>
+        {cancelOrder && (
+          <OrderCancellation
+            order={cancelOrder}
+            role="buyer"
+            onClose={() => setCancelOrder(null)}
+            onChanged={load}
+          />
+        )}
       </div>
     </AppShell>
   );

@@ -5,11 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import {
   Package, Truck, CheckCircle2, Star, Store as StoreIcon,
-  ListChecks, Radio, DollarSign, MessageSquare, Box,
+  ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
+import { OrderCancellation } from "@/components/OrderCancellation";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
@@ -77,6 +78,7 @@ function SellerHub() {
   const [ratesLoading, setRatesLoading] = useState<Record<string, boolean>>({});
   const [labelUrls, setLabelUrls] = useState<Record<string, string>>({});
   const [preset, setPreset] = useState<Record<string, ShippingPresetKey>>({});
+  const [cancelOrder, setCancelOrder] = useState<any | null>(null);
   const [recommended, setRecommended] = useState<Record<string, string | null>>({});
 
   async function load() {
@@ -495,6 +497,14 @@ function SellerHub() {
                     {ordersTab === "shipped" && (
                       <button onClick={() => markDelivered(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
                     )}
+                    {(ordersTab === "to_ship" || ordersTab === "shipped") && (
+                      <button
+                        onClick={() => setCancelOrder(o)}
+                        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-muted py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Cancel order
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -728,6 +738,14 @@ function SellerHub() {
           </>
         )}
       </div>
+      {cancelOrder && (
+        <OrderCancellation
+          order={cancelOrder}
+          role="seller"
+          onClose={() => setCancelOrder(null)}
+          onChanged={load}
+        />
+      )}
     </AppShell>
   );
 }
