@@ -80,7 +80,10 @@ function Sell() {
   // Load seller status
   useEffect(() => {
     if (user && sellerStatus === null) {
-      supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle().then(({ data }) => setSellerStatus((data as any)?.seller_status || "none"));
+      supabase.from("profiles").select("seller_status, shop_name").eq("id", user.id).maybeSingle().then(({ data }) => {
+        setSellerStatus((data as any)?.seller_status || "none");
+        setShopName((data as any)?.shop_name ?? null);
+      });
     }
     if (user && stripeReady === null) {
       supabase.from("stripe_accounts" as any).select("charges_enabled").eq("seller_id", user.id).maybeSingle().then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
