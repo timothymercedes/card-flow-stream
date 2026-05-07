@@ -19,6 +19,20 @@ const BASE = `https://rtc.live.cloudflare.com/v1/apps/${APP_ID}`;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
+  const dbgUrl = new URL(req.url);
+  if (dbgUrl.pathname.endsWith("/_probe")) {
+    const r = await fetch(`${BASE}/sessions/new`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${APP_TOKEN}`, "Content-Type": "application/json" },
+    });
+    const text = await r.text();
+    return new Response(JSON.stringify({
+      appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
+      tokenLen: APP_TOKEN?.length, tokenPrefix: APP_TOKEN?.slice(0, 6),
+      status: r.status, body: text,
+    }), { headers: { ...CORS, "content-type": "application/json" } });
+  }
+
   const auth = await verifyUser(req);
   if (!auth.ok) {
     return new Response(JSON.stringify({ error: auth.error }), {
