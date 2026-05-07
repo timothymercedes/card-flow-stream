@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Search, Sparkles, Flame, Clock, Tag } from "lucide-react";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { SellerBadge } from "@/components/SellerBadge";
+import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
@@ -50,13 +51,8 @@ function Market() {
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
       .then(({ data }) => {
-         // Show auctions, buy-now (price > 0), and offer-only listings (accepts_offers).
-         const visible = (data || []).filter((l: any) => {
-           if (l.is_auction) return true;
-           const p = Number(l.price ?? l.buy_now_price ?? 0);
-           if (p > 0) return true;
-           return !!l.accepts_offers;
-         });
+         // Show only listings that have a real buy/bid price or are offer-only.
+         const visible = (data || []).filter(isPublicListingVisible);
         setItems(visible);
       });
   }, []);
@@ -82,7 +78,7 @@ function Market() {
         l.tcg_number?.toLowerCase().includes(term)
       );
     });
-    const priceOf = (l: any) => Number(l.is_auction ? l.current_bid || l.starting_bid || 0 : l.price || 0);
+    const priceOf = (l: any) => getListingPriceDisplay(l).amount;
     switch (sort) {
       case "price_asc": arr = [...arr].sort((a, b) => priceOf(a) - priceOf(b)); break;
       case "price_desc": arr = [...arr].sort((a, b) => priceOf(b) - priceOf(a)); break;
@@ -193,7 +189,7 @@ function Market() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {visible.map((l) => {
-            const price = Number(l.is_auction ? l.current_bid || l.starting_bid || 0 : l.price || 0);
+            const display = getListingPriceDisplay(l, true);
             const remain = fmtRemain(l.is_auction ? l.auction_ends_at : l.expires_at);
             const hot = l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0);
             const endingSoon = l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000;
@@ -244,13 +240,13 @@ function Market() {
                   <p className="line-clamp-1 text-sm font-semibold">{l.title}</p>
                   <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} /></div>
                   <div className="mt-1 flex items-baseline justify-between gap-1">
-                    {price > 0 ? (
+                    {display.kind === "price" ? (
                       <p className="text-sm font-bold text-primary">
-                        ${price.toFixed(price < 100 ? 2 : 0)}
-                        {l.is_auction && <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">bid</span>}
+                        {display.label}
+                        {display.suffix && <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">{display.suffix}</span>}
                       </p>
-                    ) : l.accepts_offers ? (
-                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make offer</span>
+                    ) : display.kind === "offer" ? (
+                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
                     ) : (
                       <span className="text-[10px] text-muted-foreground">—</span>
                     )}
