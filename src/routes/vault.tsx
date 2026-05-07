@@ -322,6 +322,8 @@ function Vault() {
     if (!card.image_url) return toast.error("Front photo required");
     const back = card.back_image_url || opts.backImage;
     if (!back) return toast.error("Back photo required to sell");
+    if (opts.buy_now && opts.price <= 0) return toast.error("Set a Buy Now price");
+    if (opts.auction && opts.price <= 0) return toast.error("Set a starting bid");
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
@@ -737,7 +739,10 @@ function SellModal({ card, onClose, onSubmit }: {
             if (!card.image_url) return toast.error("Front photo required");
             if (!backImage) return toast.error("Back photo required");
             if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
-            onSubmit({ buy_now: buyNow, auction, offer, days, price: Number(price) || 0, reserve: reserve ? Number(reserve) : undefined, backImage });
+            const amount = Number(price) || 0;
+            if (buyNow && amount <= 0) return toast.error("Set a Buy Now price");
+            if (auction && amount <= 0) return toast.error("Set a starting bid");
+            onSubmit({ buy_now: buyNow, auction, offer, days, price: amount, reserve: reserve ? Number(reserve) : undefined, backImage });
           }}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >
