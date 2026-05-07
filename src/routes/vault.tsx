@@ -89,12 +89,14 @@ function Vault() {
 
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return cards;
-    return cards.filter((c) =>
-      [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
-        .filter(Boolean)
-        .some((f) => String(f).toLowerCase().includes(q))
-    );
+    const base = q
+      ? cards.filter((c) =>
+          [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
+            .filter(Boolean)
+            .some((f) => String(f).toLowerCase().includes(q))
+        )
+      : cards;
+    return [...base].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [cards, query]);
 
   // Predictive suggestions for the search box (from existing vault metadata)
@@ -524,7 +526,9 @@ function Vault() {
                   <p className="text-[10px] text-muted-foreground">
                     {c.category || "—"}{c.condition && ` • ${c.condition}`}
                   </p>
-                  <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value || 0).toFixed(2)}</p>
+                  {Number(c.estimated_value || 0) > 0 && (
+                    <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                  )}
                 </div>
               </button>
             );
@@ -564,7 +568,9 @@ function Vault() {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
                 <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
-                <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value || 0).toFixed(2)}</p>
+                {Number(actionFor.estimated_value || 0) > 0 && (
+                  <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
+                )}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
                 <p className="text-[9px] uppercase text-muted-foreground">Condition</p>

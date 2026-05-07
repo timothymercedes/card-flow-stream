@@ -629,6 +629,33 @@ function LiveDetail() {
     onAutoEnd: () => toast.message("Live auto-ended after extended inactivity"),
   });
 
+  // Fire one-time host alert when the inactivity warning trips
+  const inactivityNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (!isSeller || !stream || !safety.inactiveWarning) return;
+    if (inactivityNotifiedRef.current) return;
+    inactivityNotifiedRef.current = true;
+    (async () => {
+      try {
+        await supabase.from("chat_messages").insert({
+          stream_id: id,
+          username: "system",
+          content: `⚠️ No activity detected. Tap "I'm still live" or the stream will auto-end in ${safety.tier.inactive_auto_end_minutes - safety.tier.inactive_warning_minutes} minutes.`,
+          is_system: true,
+        });
+        await supabase.from("notifications").insert({
+          user_id: stream.seller_id,
+          type: "live_inactivity",
+          body: "Your live stream is inactive — confirm you're still live to avoid auto-end.",
+          link: `/live/${id}`,
+        });
+      } catch {}
+    })();
+  }, [isSeller, stream, safety.inactiveWarning, safety.tier, id]);
+  useEffect(() => {
+    if (!safety.inactiveWarning) inactivityNotifiedRef.current = false;
+  }, [safety.inactiveWarning]);
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
@@ -2601,7 +2628,9 @@ function LiveDetail() {
         {isSeller && !ended && !paused && (safety.inactiveWarning || safety.flexReminder) && (
           <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
             <p className="text-center text-[11px] font-bold text-amber-100">
-              {safety.inactiveWarning ? "Still live? We haven’t detected activity in a while." : "Flex Live session reminder"}
+              {safety.inactiveWarning
+                ? `Still live? No activity detected — stream auto-ends in ${Math.max(0, Math.ceil(((stream?.last_activity_at ? new Date(stream.last_activity_at).getTime() : Date.now()) + safety.tier.inactive_auto_end_minutes * 60_000 - Date.now()) / 60_000))}m unless you confirm.`
+                : "Flex Live session reminder"}
             </p>
             <div className="flex gap-1.5">
               <button onClick={safety.confirmActive} disabled={safety.confirming} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-2 text-[11px] font-extrabold text-primary-foreground disabled:opacity-50">

@@ -8,7 +8,22 @@ import { SellerBadge } from "@/components/SellerBadge";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
-type Sort = "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
+type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
+
+// Per-session seed so the order stays stable as the user scrolls/filters.
+function getSessionSeed() {
+  try {
+    const k = "market_seed_v1";
+    let v = sessionStorage.getItem(k);
+    if (!v) { v = String(Math.floor(Math.random() * 1e9)); sessionStorage.setItem(k, v); }
+    return Number(v);
+  } catch { return 1; }
+}
+function seededHash(id: string, seed: number) {
+  let h = seed >>> 0;
+  for (let i = 0; i < id.length; i++) h = ((h * 31) ^ id.charCodeAt(i)) >>> 0;
+  return h;
+}
 
 function fmtRemain(iso: string | null) {
   if (!iso) return null;
@@ -24,8 +39,9 @@ function fmtRemain(iso: string | null) {
 function Market() {
   const [items, setItems] = useState<any[]>([]);
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<Sort>("newest");
+  const [sort, setSort] = useState<Sort>("shuffled");
   const [category, setCategory] = useState<string>("all");
+  const seed = useMemo(getSessionSeed, []);
 
   useEffect(() => {
     supabase
@@ -33,7 +49,15 @@ function Market() {
       .select("*")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
-      .then(({ data }) => setItems(data || []));
+      .then(({ data }) => {
+        // Hide offer-only listings (no buy-now price, not an auction) from the public marketplace.
+        const visible = (data || []).filter((l: any) => {
+          if (l.is_auction) return true;
+          const p = Number(l.price ?? l.buy_now_price ?? 0);
+          return p > 0;
+        });
+        setItems(visible);
+      });
   }, []);
 
   const counts = useMemo(() => {
@@ -68,10 +92,13 @@ function Market() {
           return ae - be;
         });
         break;
+      case "shuffled":
+        arr = [...arr].sort((a, b) => seededHash(a.id, seed) - seededHash(b.id, seed));
+        break;
       default: break;
     }
     return arr;
-  }, [items, q, sort, category]);
+  }, [items, q, sort, category, seed]);
 
   const trendingCount = items.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0)).length;
   const endingSoonCount = items.filter((l) => {
@@ -123,6 +150,7 @@ function Market() {
             onChange={(e) => setSort(e.target.value as Sort)}
             className="rounded-full bg-input px-3 py-2 text-xs font-semibold"
           >
+            <option value="shuffled">Discover</option>
             <option value="newest">Newest</option>
             <option value="price_asc">Lowest price</option>
             <option value="price_desc">Highest price</option>
