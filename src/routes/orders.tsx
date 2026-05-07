@@ -43,6 +43,7 @@ function Orders() {
   const [paying, setPaying] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<string, any>>({});
   const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string }>>({});
+  const [cancelOrder, setCancelOrder] = useState<any | null>(null);
 
   async function load() {
     if (!user) return;
