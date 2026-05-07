@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -236,8 +236,8 @@ function Feed() {
             const topReactions = Object.entries(c.map).sort((a, b) => b[1] - a[1]).slice(0, 3);
             return (
               <div key={p.id} className="relative rounded-xl bg-card p-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-semibold text-primary">@{p.username}</div>
+                  <div className="flex items-center justify-between">
+                  <Link to="/seller/$username" params={{ username: p.username }} className="text-xs font-semibold text-primary hover:underline">@{p.username}</Link>
                   <div className="flex items-center gap-1">
                     <button onClick={() => openHistory(p)} className="rounded-full p-1 text-muted-foreground hover:bg-muted" title="History"><History className="h-3.5 w-3.5" /></button>
                     {mine && !isEditing && (

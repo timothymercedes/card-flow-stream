@@ -35,7 +35,9 @@ function PublicStore() {
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
-  const [tab, setTab] = useState<"listings" | "sold" | "reviews">("listings");
+  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts">("listings");
+  const [posts, setPosts] = useState<any[]>([]);
+  const [stories, setStories] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [notifyOnLive, setNotifyOnLive] = useState(true);
 
@@ -109,7 +111,7 @@ function PublicStore() {
       const prof = Array.isArray(profRows) ? profRows[0] : null;
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r, fr, fg, sc, bc] = await Promise.all([
+      const [l, o, r, fr, fg, sc, bc, ps, st] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
@@ -117,6 +119,8 @@ function PublicStore() {
         supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
         (supabase.rpc as any)("get_seller_completed_count", { _user: prof.id }),
         (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
+        supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
+        supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
       ]);
       setListings(l.data || []);
       setSoldOrders(o.data || []);
@@ -125,6 +129,8 @@ function PublicStore() {
       setFollowing(fg.count || 0);
       setSellerCompleted(Number(sc?.data ?? 0));
       setBuyerCompleted(Number(bc?.data ?? 0));
+      setPosts(ps.data || []);
+      setStories(st.data || []);
     })();
   }, [username]);
 
@@ -268,9 +274,9 @@ function PublicStore() {
         )}
 
         <div className="mb-3 flex gap-2 border-b border-border text-xs">
-          {(["listings", "sold", "reviews"] as const).map((t) => (
+          {(["listings", "sold", "posts", "reviews"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
-              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : `Listings (${listings.length})`}
+              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : `Listings (${listings.length})`}
             </button>
           ))}
         </div>
@@ -314,6 +320,34 @@ function PublicStore() {
           </>
         )}
 
+        {tab === "posts" && (
+          <>
+            {posts.length === 0 && stories.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No posts or stories yet.</p>}
+            {stories.length > 0 && (
+              <div className="mb-3">
+                <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">Active stories</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {stories.map((s: any) => (
+                    <div key={s.id} className="aspect-[3/4] overflow-hidden rounded-lg bg-muted">
+                      {s.image_url && <img src={s.image_url} className="h-full w-full object-cover" alt="" />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {posts.length > 0 && (
+              <div className="space-y-2">
+                {posts.map((p: any) => (
+                  <div key={p.id} className="rounded-xl bg-card p-3">
+                    <p className="text-xs">{p.caption}</p>
+                    {p.image_url && <img src={p.image_url} className="mt-2 max-h-64 w-full rounded-lg object-cover" alt="" />}
+                    <p className="mt-1 text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
         {tab === "reviews" && (
           <>
             {reviews.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No reviews yet.</p>}

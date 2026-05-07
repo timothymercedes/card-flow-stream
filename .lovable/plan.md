@@ -1,131 +1,81 @@
-## Scope
+## Launch Polish + Workflow Improvements
 
-Five linked changes across UX, legal, and verification gating. Big-but-focused; no schema rewrites — extend existing tables.
-
----
-
-### 1. Tour Guide — "Skip for now" vs "Don't show again"
-
-`src/components/MascotGuide.tsx` currently has one Skip button that always marks the tour as seen. Split into two intents:
-
-- **Skip for now** (X / soft close) — closes overlay, does NOT mark seen, tour can re-trigger next session.
-- **Don't show again** — closes overlay AND writes the LS flag.
-
-Update the bottom controls: replace the single "Skip · don't show again" with two clearly-labeled buttons. Apply across every tour (the component is shared, so one fix covers all).
+This is a large scope (10 major areas, ~40 sub-features). I'll break it into sequenced phases so each ships verifiable and we don't destabilize launch. Each phase = one approval cycle.
 
 ---
 
-### 2. Go Live form (`src/routes/sell.tsx` + `src/routes/showoff.tsx`)
+### Phase 1 — Trust, Safety & Moderation Foundation
+**Why first:** unblocks Stories fixes, public-facing trust, AI moderation hooks.
 
-- **Split Title and Tags** into two distinct visual sections (currently grouped). Title gets its own card with helper text; Tags gets its own card with chip input + suggestions.
-- **Category picker dedupe**: `StreamCategoryPicker` is being rendered/triggered in two places during the create flow. Audit `sell.tsx` and `showoff.tsx`, keep one canonical category step, remove the duplicate.
+- Fix story/post reaction buttons + publish bug (audit `StoryRail`, `posts` flow)
+- Stories/posts:
+  - Username header, clickable → seller profile
+  - Public/Private visibility toggle (column already exists on `posts`; add to stories)
+  - Reactions on stories (reuse `post_reactions` pattern → `story_reactions`)
+  - Profile route shows that user's stories + posts
+- AI moderation pipeline (server fn calling existing `moderate-image` + Lovable AI text moderation) on:
+  - new posts, stories, story/post images, listing images
+  - flag NSFW / scam / abuse / spam → `moderation_status='flagged'` + admin queue row
 
----
+### Phase 2 — Seller Store Identity + Public Trust Surfaces
+**Why:** every later surface (vault, marketplace, live, orders) depends on store name being claimed.
 
-### 3. Verification rules — buyer vs seller/host split
+- Add `shop_name` uniqueness + claim flow (already nullable on `profiles`)
+- Gate listing creation + going live on `shop_name IS NOT NULL` for approved sellers
+- New `/store/$handle` route (or extend existing `seller.$username`) showing storefront + listings
+- Reusable `<SellerBadge>` component (avatar + username + store name, both clickable) used on:
+  - listing cards (market index + detail)
+  - vault cards
+  - live stream header
+  - order rows
+  - auction overlays
 
-**Buyers (default)** — no ID, no selfie. Just need:
-- 18+ confirmation
-- ToS + Community Guidelines (already enforced via `LegalGate`)
-→ Can buy / chat / follow / watch.
+### Phase 3 — Buyer Onboarding + Notifications
+- Post-signup onboarding modal (steps: shipping address → payment method → notifications)
+  - Reuses existing `onboarding_completed` + Stripe Connect/Customer flows
+- Notification permission prompt component (browser push + PWA) shown after sign-in if `Notification.permission === 'default'`
+- Wire to existing `src/lib/push.ts`
 
-**Sellers & Live Hosts** — full gate before Seller Hub, payouts, going live, auctions, Flex Live, collab:
-- email verified
-- phone verified
-- selfie verification
-- optional social/store links
-- admin approval
+### Phase 4 — Admin / Moderator Alert Center
+- New `/admin/alerts` route + bottom-tab entry conditionally rendered only when `has_role(admin|moderator)`
+- Aggregates: reports, verification requests, disputes, flagged moderation, scam flags
+- Realtime badge using Supabase channel on `disputes`, `moderation_queue`, `verification_requests`
 
-Statuses on `profiles.verification_status`: `unverified | pending | approved | denied | suspended | reverify_required` (most exist; add `unverified` + `suspended` to the allowed set in `admin_set_verification_status`).
+### Phase 5 — Auction Payment Failure Flow
+- New columns on `orders`: `payment_failure_count`, `payment_failed_at`, `payment_retry_deadline`
+- Stripe webhook: on `payment_intent.payment_failed` → mark order, fire notification to buyer + host (in-stream toast + chat system msg)
+- New table `live_bid_blocks(user_id, stream_id, expires_at)` — seller bid policy checks it before accepting bids
+- Auto-clear when: payment succeeds (webhook) OR host starts new stream (trigger on `live_streams` insert clears blocks for that seller)
 
-**Re-verification triggers** (do NOT spam approved sellers):
-- heavy report count (threshold)
-- admin manual flag (`reverify_required`)
-- payout/fraud event
-- suspicious activity flag
+### Phase 6 — Order Cancellation + Admin Escalation
+- New table `order_cancellations(order_id, requested_by, reason, status, messages jsonb[], admin_id, ...)`
+- Seller Hub: cancel button → modal with reason
+- Buyer orders: request-cancellation button
+- Threaded messages between buyer/seller (reuse `direct_messages`-style)
+- "Escalate to admin" button → flips `admin_requested=true`, surfaces in Alert Center
+- Notifications on every state change
 
-Add `requireSellerVerified` guard hook used by: `/sell`, `/showoff`, `/payouts`, host actions in `/live/$id`. Buyer surfaces stay open.
+### Phase 7 — Live Inactivity Auto-End (tighten existing)
+- Existing `apply_live_stream_safety` already does warn/auto-end based on `creator_stream_tiers`
+- Tighten: hard-coded 30min warn → 10min grace as per spec by adding new `tier='launch_default'` row OR override in function
+- Improve warning UX: in-stream banner + host chat system message + push notification
+- Verify activity touches fire on: voice (mic level), chat from host, auction actions
 
----
-
-### 4. Separate Seller / Host Agreement
-
-New legal document type `seller_agreement` with its own version constant.
-
-**Migration:**
-- Add `seller_agreement` to allowed values in `legal_acceptances` (already free-text — just use a new value).
-- Add `profiles.seller_agreement_version`, `seller_agreement_accepted_at`, `seller_agreement_review_required`.
-- New RPC `accept_seller_agreement(_version, _user_agent)` — mirrors `accept_required_legal_documents` but only for the seller doc.
-- New RPC `admin_force_seller_reaccept(_target_user)` — sets `seller_agreement_review_required = true`.
-- Add `SELLER_AGREEMENT_VERSION` constant in `src/lib/legal.ts`.
-
-**New page** `src/routes/legal.seller-host-agreement.tsx` — covers:
-- shipping responsibilities (3 biz days, tracking, packaging)
-- prohibited items / counterfeit policy
-- scam / fraud policy
-- livestream conduct (no nudity, harassment, hate speech, illegal activity)
-- AI moderation + recording disclosure
-- payouts, chargebacks, disputes
-- moderation, suspension rights
-- Flex Live / collab rules
-
-**New gate `SellerAgreementGate`** — like `LegalGate` but only blocks seller/host features for users with `seller_status='approved'` (or pending) when `seller_agreement_version` ≠ current OR `seller_agreement_review_required = true`. Mounted around `/sell`, `/showoff`, `/payouts`, host-side `/live/$id` controls. Buyers never see it.
-
-**Hook `useSellerAgreementStatus`** — parallel to `useLegalStatus`.
-
----
-
-### 5. Prohibited conduct + AI moderation disclosure
-
-Update `src/routes/legal.community-guidelines.tsx` to add an explicit **Prohibited Conduct** section (nudity, sexual/exploitative content, inappropriate exposure, harassment, hate speech, scam/fraud, dangerous/illegal). Add an **AI Moderation & Recording Disclosure** section noting:
-- livestreams are AI-moderated
-- livestreams may be recorded for moderation/safety
-- admins/mods may review flagged streams
-- violations → stream termination, suspension, payout hold, permanent ban
-
-Cross-link from seller agreement.
+### Phase 8 — Marketplace + Vault Polish
+- Marketplace: shuffle order on initial load (deterministic per-session seed), keep sort options
+- Vault: alphabetical sort default
+- Vault offer-only items: hide `$0.00`, exclude from marketplace query
+- Apply `<SellerBadge>` to every vault card / listing card
 
 ---
 
-### 6. Admin tools
+### Sequencing recommendation
+Ship in this order, with my approval check between phases. Phases 1–2 are foundational; 3–4 are quick wins; 5–6 are the riskiest (payment + cancel flows) and need careful testing; 7–8 are polish.
 
-In `src/components/admin/VerificationInbox.tsx` (or sibling), add:
-- column showing `seller_agreement_version` + accepted_at
-- "Force re-acceptance" button → calls `admin_force_seller_reaccept`
-- existing suspend/deny flows already present
+### What I need from you
+1. Approve plan and **the order**
+2. Confirm: should the bottom-tab Alert Center **replace** an existing tab for admins or **add a 6th tab** (only for admins)?
+3. For inactivity: keep your existing per-tier system or override with hard 30/10 rule?
+4. Any phase you want to skip or push post-launch?
 
----
-
-## Technical notes
-
-- All new RPCs `SECURITY DEFINER` + `search_path=public`.
-- `SellerAgreementGate` only renders when `profile.seller_status IN ('approved','pending')` AND user is on a seller surface — so buyers are never prompted.
-- Tour LS keys unchanged; only the button behavior changes.
-- No breaking changes to existing `legal_acceptances` table — `seller_agreement` is just a new `document_type` value.
-- Reverify triggers: lightweight — admin-driven flag now; report/fraud thresholds wired as TODO comments referencing existing `user_reports` and dispute tables, to avoid scope creep.
-
----
-
-## Files
-
-**New**
-- `src/routes/legal.seller-host-agreement.tsx`
-- `src/components/SellerAgreementGate.tsx`
-- `src/hooks/useSellerAgreementStatus.tsx`
-- `src/hooks/useSellerVerified.tsx`
-- migration: seller agreement columns + RPCs
-
-**Edited**
-- `src/components/MascotGuide.tsx` — split skip buttons
-- `src/lib/legal.ts` — add `SELLER_AGREEMENT_VERSION`
-- `src/routes/sell.tsx` — split title/tags, dedupe category, mount verify+agreement gates
-- `src/routes/showoff.tsx` — same
-- `src/routes/payouts.tsx` — mount agreement gate
-- `src/routes/live.$id.tsx` — host controls require agreement+verified
-- `src/routes/legal.community-guidelines.tsx` — prohibited conduct + AI/recording sections
-- `src/components/admin/VerificationInbox.tsx` — agreement column + force reaccept
-- `src/routes/__root.tsx` — register seller-host-agreement route is auto via file-based
-
----
-
-Ready to implement on approval.
+Once you say "go", I'll start with Phase 1.
