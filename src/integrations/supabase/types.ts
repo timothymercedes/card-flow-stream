@@ -2573,6 +2573,92 @@ export type Database = {
         }
         Relationships: []
       }
+      tutorial_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          tutorial_id: string
+          updated_at: string
+          user_id: string
+          watched_seconds: number
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          tutorial_id: string
+          updated_at?: string
+          user_id: string
+          watched_seconds?: number
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          tutorial_id?: string
+          updated_at?: string
+          user_id?: string
+          watched_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutorial_progress_tutorial_id_fkey"
+            columns: ["tutorial_id"]
+            isOneToOne: false
+            referencedRelation: "tutorials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tutorials: {
+        Row: {
+          audience: Database["public"]["Enums"]["tutorial_audience"]
+          captions_url: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          is_published: boolean
+          order_index: number
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["tutorial_audience"]
+          captions_url?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["tutorial_audience"]
+          captions_url?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_published?: boolean
+          order_index?: number
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       user_blocks: {
         Row: {
           blocked_id: string
@@ -3145,6 +3231,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner" | "support"
       card_condition: "NM" | "LP" | "MP" | "Damaged"
+      tutorial_audience:
+        | "buyer"
+        | "seller"
+        | "host"
+        | "flex"
+        | "auction"
+        | "general"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3274,6 +3367,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user", "owner", "support"],
       card_condition: ["NM", "LP", "MP", "Damaged"],
+      tutorial_audience: [
+        "buyer",
+        "seller",
+        "host",
+        "flex",
+        "auction",
+        "general",
+      ],
     },
   },
 } as const

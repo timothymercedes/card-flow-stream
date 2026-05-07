@@ -4,9 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck, Video } from "lucide-react";
 import { SupportInbox } from "@/components/admin/SupportInbox";
 import { VerificationInbox } from "@/components/admin/VerificationInbox";
+import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 
 type Role = "owner" | "admin" | "moderator" | "support";
 const ROLE_BADGES: Record<Role, string> = {
@@ -35,7 +36,7 @@ function Admin() {
   const { user } = useAuth();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles">("reports");
+  const [tab, setTab] = useState<"reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials">("reports");
   const [openSupport, setOpenSupport] = useState(0);
   const [pendingVerifications, setPendingVerifications] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
@@ -287,6 +288,7 @@ function Admin() {
           {isAdmin && <button onClick={() => setTab("users")} className={`pb-2 text-xs font-bold ${tab === "users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Users</button>}
           {isAdmin && <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>}
           {isAdmin && <button onClick={() => setTab("roles")} className={`pb-2 text-xs font-bold ${tab === "roles" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Roles</button>}
+          {isAdmin && <button onClick={() => setTab("tutorials")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "tutorials" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><Video className="h-3.5 w-3.5" /> Tutorials</button>}
         </div>
 
         {tab === "reports" && (() => {
@@ -560,6 +562,8 @@ function Admin() {
             </div>
           </div>
         )}
+
+        {tab === "tutorials" && isAdmin && <TutorialsAdmin />}
       </div>
     </AppShell>
   );
