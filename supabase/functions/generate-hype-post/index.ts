@@ -15,6 +15,25 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Allow either: an admin/owner user JWT, OR a server-to-server CRON_SECRET (for pg_cron).
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedCron = req.headers.get("x-cron-secret");
+    const isCron = !!cronSecret && !!providedCron && providedCron === cronSecret;
+    if (!isCron) {
+      const auth = await verifyUser(req);
+      if (!auth.ok) {
+        return new Response(JSON.stringify({ error: auth.error }), {
+          status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const isAdmin = await userHasAdminRole(auth.userId);
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Admin role required" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
