@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Package, Truck, CheckCircle2, CreditCard, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 import { ReportDialog } from "@/components/ReportDialog";
+import { SellerBadge } from "@/components/SellerBadge";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
