@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { getTurnstileSiteKey } from "@/lib/turnstile.functions";
 
 declare global {
@@ -52,13 +50,15 @@ export function Turnstile({ action, onVerify, onExpire, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const fetchKey = useServerFn(getTurnstileSiteKey);
-  const { data } = useQuery({
-    queryKey: ["turnstile-site-key"],
-    queryFn: () => fetchKey(),
-    staleTime: Infinity,
-  });
-  const siteKey = data?.siteKey;
+  const [siteKey, setSiteKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTurnstileSiteKey()
+      .then((r) => { if (!cancelled) setSiteKey(r.siteKey || null); })
+      .catch(() => { if (!cancelled) setSiteKey(null); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!siteKey || !ref.current) return;
