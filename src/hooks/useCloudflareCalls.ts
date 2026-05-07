@@ -100,6 +100,13 @@ export function useCloudflareCalls(opts: {
         });
         pcRef.current = pc;
 
+        pc.addEventListener("connectionstatechange", () => {
+          if (cancelled) return;
+          setConnectionState(pc.connectionState);
+          if (pc.connectionState === "failed") {
+            setError("Peer connection failed — please refresh to reconnect");
+          }
+        });
         pc.ontrack = (ev) => {
           const mid = ev.transceiver.mid;
           const targetUserId = (pc as any).__midToUser?.[mid as string];
