@@ -39,9 +39,18 @@ export function useStreamPresence(streamId: string | null, userId: string | null
     }
     beat();
     const i = setInterval(beat, 20_000);
+    // Refresh immediately when the tab becomes visible/focused again,
+    // so users returning from background don't appear offline.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") beat();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
     return () => {
       cancelled = true;
       clearInterval(i);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
       // Best-effort remove on unmount
       supabase.from("live_stream_presence").delete().eq("stream_id", streamId).eq("user_id", userId);
     };

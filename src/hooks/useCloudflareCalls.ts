@@ -56,6 +56,7 @@ export function useCloudflareCalls(opts: {
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -99,6 +100,13 @@ export function useCloudflareCalls(opts: {
         });
         pcRef.current = pc;
 
+        pc.addEventListener("connectionstatechange", () => {
+          if (cancelled) return;
+          setConnectionState(pc.connectionState);
+          if (pc.connectionState === "failed") {
+            setError("Peer connection failed — please refresh to reconnect");
+          }
+        });
         pc.ontrack = (ev) => {
           const mid = ev.transceiver.mid;
           const targetUserId = (pc as any).__midToUser?.[mid as string];
@@ -268,5 +276,5 @@ export function useCloudflareCalls(opts: {
       .eq("stream_id", streamId).eq("user_id", userId);
   }, [localStream, streamId, userId]);
 
-  return { localStream, remotes: Object.values(remotes), ready, error, toggleAudio, toggleVideo };
+  return { localStream, remotes: Object.values(remotes), ready, error, connectionState, toggleAudio, toggleVideo };
 }
