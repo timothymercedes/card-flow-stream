@@ -146,7 +146,8 @@ function Sell() {
     const ends_at: string | null = null;
 
     // Optional: provision OBS / Cloudflare Stream input
-    let cf: any = {};
+    let cf: { cf_live_input_id?: string; cf_rtmps_url?: string; cf_stream_key?: string } = {};
+    let cfPublic: { cf_playback_hls?: string; cf_whip_url?: string } = {};
     if (useObs || useCompositor) {
       const { data, error } = await supabase.functions.invoke("create-stream-input", { body: { meta_name: streamTitle } });
       if (error || (data as any)?.error) {
@@ -157,6 +158,8 @@ function Sell() {
         cf_live_input_id: (data as any).live_input_id,
         cf_rtmps_url: (data as any).rtmps_url,
         cf_stream_key: (data as any).stream_key,
+      };
+      cfPublic = {
         cf_playback_hls: (data as any).hls_url,
         cf_whip_url: (data as any).whip_url,
       };
@@ -188,9 +191,17 @@ function Sell() {
         break_slot_prefix: breakSlotPrefix.trim() || null,
         break_teams: Array.from({ length: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)) }, (_, i) => `${(breakSlotPrefix.trim() || "#")}${i + 1}`),
       } : {}),
-      ...cf,
+      ...cfPublic,
     }).select().single();
     if (error) return toast.error(error.message);
+    if (cf.cf_live_input_id || cf.cf_rtmps_url || cf.cf_stream_key) {
+      await supabase.from("live_stream_credentials" as any).insert({
+        stream_id: data.id,
+        cf_live_input_id: cf.cf_live_input_id ?? null,
+        cf_rtmps_url: cf.cf_rtmps_url ?? null,
+        cf_stream_key: cf.cf_stream_key ?? null,
+      });
+    }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
     nav({ to: "/live/$id", params: { id: data.id } });
