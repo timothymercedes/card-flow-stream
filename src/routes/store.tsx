@@ -5,11 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import {
   Package, Truck, CheckCircle2, Star, Store as StoreIcon,
-  ListChecks, Radio, DollarSign, MessageSquare, Box,
+  ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
+import { OrderCancellation } from "@/components/OrderCancellation";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
