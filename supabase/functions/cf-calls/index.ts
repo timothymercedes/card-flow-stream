@@ -5,6 +5,7 @@
 //   POST  /sessions/:id/tracks/new     -> add local tracks (publish) or pull remote tracks
 //   PUT   /sessions/:id/renegotiate    -> renegotiate SDP
 //   PUT   /sessions/:id/tracks/close   -> close tracks
+import { verifyUser } from "../_shared/auth.ts";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
