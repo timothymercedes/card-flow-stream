@@ -47,6 +47,8 @@ export const Route = createRootRoute({
   component: () => (
     <AuthProvider>
       <MascotTourProvider>
+        <LanguageSync />
+        <A11yClassSync />
         <Outlet />
         <LegalGate />
         <Toaster />
