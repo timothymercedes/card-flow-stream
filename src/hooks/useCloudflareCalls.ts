@@ -276,5 +276,5 @@ export function useCloudflareCalls(opts: {
       .eq("stream_id", streamId).eq("user_id", userId);
   }, [localStream, streamId, userId]);
 
-  return { localStream, remotes: Object.values(remotes), ready, error, toggleAudio, toggleVideo };
+  return { localStream, remotes: Object.values(remotes), ready, error, connectionState, toggleAudio, toggleVideo };
 }
