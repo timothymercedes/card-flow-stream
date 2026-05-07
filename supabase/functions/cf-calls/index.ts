@@ -12,10 +12,18 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
-const rawAppId = Deno.env.get("CLOUDFLARE_CALLS_APP_ID")?.trim();
-const APP_ID = rawAppId?.replace(/-/g, "");
-const APP_TOKEN = Deno.env.get("CLOUDFLARE_CALLS_APP_TOKEN");
-const BASE = `https://rtc.live.cloudflare.com/v1/apps/${APP_ID}`;
+function getCallsConfig() {
+  const rawAppId = Deno.env.get("CLOUDFLARE_CALLS_APP_ID")?.trim();
+  const appId = rawAppId?.replace(/-/g, "");
+  const appToken = Deno.env.get("CLOUDFLARE_CALLS_APP_TOKEN")?.trim();
+
+  return {
+    rawAppId,
+    appId,
+    appToken,
+    base: `https://rtc.live.cloudflare.com/v1/apps/${appId}`,
+  };
+}
 
 function jwtClaimKeys(token?: string) {
   try {
@@ -39,16 +47,22 @@ Deno.serve(async (req) => {
 
   const dbgUrl = new URL(req.url);
   if (dbgUrl.pathname.endsWith("/_probe")) {
-    const r = await fetch(`${BASE}/sessions/new`, {
+    const config = getCallsConfig();
+    const r = await fetch(`${config.base}/sessions/new`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${APP_TOKEN}`, "Content-Type": "application/json" },
+      headers: { "Authorization": `Bearer ${config.appToken}`, "Content-Type": "application/json" },
     });
     const text = await r.text();
     return new Response(JSON.stringify({
-      rawAppIdLen: rawAppId?.length, appIdLen: APP_ID?.length, appIdPrefix: APP_ID?.slice(0, 8),
-      tokenLen: APP_TOKEN?.length, tokenPrefix: APP_TOKEN?.slice(0, 6),
-      tokenClaimKeys: jwtClaimKeys(APP_TOKEN),
-      status: r.status, body: text,
+      rawAppIdLen: config.rawAppId?.length,
+      appIdLen: config.appId?.length,
+      appIdPrefix: config.appId?.slice(0, 8),
+      tokenLen: config.appToken?.length,
+      tokenLooksLikeJwt: (config.appToken?.split(".").length ?? 0) === 3,
+      tokenClaimKeys: jwtClaimKeys(config.appToken),
+      status: r.status,
+      ok: r.ok,
+      bodyPreview: text.slice(0, 80),
     }), { headers: { ...CORS, "content-type": "application/json" } });
   }
 
@@ -59,12 +73,13 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (!APP_ID || !APP_TOKEN) {
+  const config = getCallsConfig();
+  if (!config.appId || !config.appToken) {
     return new Response(JSON.stringify({ error: "Cloudflare Calls not configured" }), {
       status: 500, headers: { ...CORS, "content-type": "application/json" },
     });
   }
-  if (isRealtimeKitMeetingToken(APP_TOKEN)) {
+  if (isRealtimeKitMeetingToken(config.appToken)) {
     return new Response(JSON.stringify({ error: "Cloudflare token is a Realtime meeting participant token, but this live video feature needs the SFU App Secret." }), {
       status: 500, headers: { ...CORS, "content-type": "application/json" },
     });
@@ -75,10 +90,10 @@ Deno.serve(async (req) => {
 
   try {
     const body = req.method === "GET" ? undefined : await req.text();
-    const upstream = await fetch(`${BASE}${path}`, {
+    const upstream = await fetch(`${config.base}${path}`, {
       method: req.method,
       headers: {
-        "Authorization": `Bearer ${APP_TOKEN}`,
+        "Authorization": `Bearer ${config.appToken}`,
         "Content-Type": "application/json",
       },
       body: body && body.length > 0 ? body : undefined,
