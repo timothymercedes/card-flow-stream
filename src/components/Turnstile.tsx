@@ -50,13 +50,15 @@ export function Turnstile({ action, onVerify, onExpire, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const fetchKey = useServerFn(getTurnstileSiteKey);
-  const { data } = useQuery({
-    queryKey: ["turnstile-site-key"],
-    queryFn: () => fetchKey(),
-    staleTime: Infinity,
-  });
-  const siteKey = data?.siteKey;
+  const [siteKey, setSiteKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTurnstileSiteKey()
+      .then((r) => { if (!cancelled) setSiteKey(r.siteKey || null); })
+      .catch(() => { if (!cancelled) setSiteKey(null); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!siteKey || !ref.current) return;
