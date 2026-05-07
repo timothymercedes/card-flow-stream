@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
+import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
@@ -238,8 +239,8 @@ function ListingDetail() {
       </div>
       <div className="px-4 py-4">
         <h1 className="text-xl font-bold">{listing.title}</h1>
-        <div className="mt-1 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">@{seller?.username || "seller"}</p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <SellerBadge sellerId={listing.seller_id} username={seller?.username} avatarUrl={seller?.avatar_url} />
           {!isSeller && seller && (
             <div className="flex items-center gap-2">
               <Link to="/messages/$userId" params={{ userId: seller.id }} className="flex items-center gap-1 text-xs font-semibold text-primary"><MessageCircle className="h-3 w-3" /> Message</Link>
