@@ -58,6 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
             <Plus className="h-3.5 w-3.5" /> Sell
           </Link>
+          <AdminAlertBadge />
           <NotificationBell />
           <Link to="/cart" className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <ShoppingBag className="h-4 w-4" />
