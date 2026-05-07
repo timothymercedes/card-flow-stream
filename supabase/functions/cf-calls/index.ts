@@ -29,6 +29,11 @@ function jwtClaimKeys(token?: string) {
   }
 }
 
+function isRealtimeKitMeetingToken(token?: string) {
+  const keys = jwtClaimKeys(token);
+  return keys.includes("meetingId") && keys.includes("participantId");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
@@ -56,6 +61,11 @@ Deno.serve(async (req) => {
 
   if (!APP_ID || !APP_TOKEN) {
     return new Response(JSON.stringify({ error: "Cloudflare Calls not configured" }), {
+      status: 500, headers: { ...CORS, "content-type": "application/json" },
+    });
+  }
+  if (isRealtimeKitMeetingToken(APP_TOKEN)) {
+    return new Response(JSON.stringify({ error: "Cloudflare token is a Realtime meeting participant token, but this live video feature needs the SFU App Secret." }), {
       status: 500, headers: { ...CORS, "content-type": "application/json" },
     });
   }
