@@ -6,7 +6,6 @@ import { AppShell } from "@/components/AppShell";
 import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -56,9 +55,9 @@ function Cart() {
   if (!user) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
-        <h1 className="text-2xl font-bold">My Cart</h1>
+        <h1 className="text-xl font-bold">My Cart</h1>
         <p className="mt-2 text-sm text-muted-foreground">Sign in to view your cart.</p>
-        <Link to="/auth" className="mt-6 inline-flex h-14 items-center justify-center rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground active:scale-[0.98]" data-tap>Sign In</Link>
+        <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Sign In</Link>
       </div>
     </AppShell>
   );
@@ -69,15 +68,15 @@ function Cart() {
 
   return (
     <AppShell>
-      <div className="px-4 py-5">
-        <h1 className="mb-1 flex items-center gap-2 text-3xl font-black"><ShoppingBag className="h-7 w-7" /> Cart</h1>
-        <p className="mb-5 text-sm text-muted-foreground">Pay once per seller — combined shipping applied.</p>
+      <div className="px-4 py-4">
+        <h1 className="mb-1 flex items-center gap-2 text-2xl font-bold"><ShoppingBag className="h-6 w-6" /> My Cart</h1>
+        <p className="mb-4 text-xs text-muted-foreground">Pay once per seller — combined shipping is already applied.</p>
 
         {Object.keys(groups).length === 0 && (
-          <div className="rounded-2xl bg-card p-10 text-center">
-            <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-            <p className="mt-4 text-sm text-muted-foreground">No items waiting to pay.</p>
-            <Link to="/live" className="mt-5 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground active:scale-[0.98]" data-tap>Browse live</Link>
+          <div className="rounded-xl bg-card p-8 text-center">
+            <Package className="mx-auto h-10 w-10 text-muted-foreground" />
+            <p className="mt-3 text-sm text-muted-foreground">No items waiting to pay.</p>
+            <Link to="/live" className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground">Browse live</Link>
           </div>
         )}
 
@@ -85,56 +84,54 @@ function Cart() {
           {Object.entries(groups).map(([sellerId, items]) => {
             const total = items.reduce((a, o) => a + Number(o.amount || 0), 0);
             return (
-              <div key={sellerId} className="rounded-2xl bg-card p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-bold">{items.length} item{items.length === 1 ? "" : "s"}</p>
-                  <p className="text-xl font-black text-primary">${total.toFixed(2)}</p>
+              <div key={sellerId} className="rounded-xl bg-card p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-bold">{items.length} item{items.length === 1 ? "" : "s"} from this seller</p>
+                  <p className="text-base font-extrabold text-primary">${total.toFixed(2)}</p>
                 </div>
                 <div className="space-y-2">
                   {items.map((o) => (
-                    <div key={o.id} className="flex items-center gap-3 rounded-xl bg-muted/40 p-2.5">
-                      {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-14 w-14 shrink-0 rounded-lg object-cover" />}
+                    <div key={o.id} className="flex items-center gap-2 rounded-lg bg-muted/40 p-2">
+                      {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-12 w-12 shrink-0 rounded object-cover" />}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{o.title}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="truncate text-xs font-semibold">{o.title}</p>
+                        <p className="text-[11px] text-muted-foreground">
                           {(o.quantity ?? 1) > 1 && <span>Qty {o.quantity} · </span>}
                           ${Number(o.amount).toFixed(2)}
                         </p>
                       </div>
-                      <button onClick={() => removeItem(o.id)} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted active:scale-90 transition-transform" aria-label="Remove" data-tap>
-                        <X className="h-4 w-4" />
+                      <button onClick={() => removeItem(o.id)} className="rounded-full p-1.5 hover:bg-muted" aria-label="Remove">
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={() => setCheckoutSeller(sellerId)}
-                  className="mt-4 flex h-16 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-bold text-primary-foreground shadow-lg active:scale-[0.98] transition-transform md:h-12"
-                  data-tap
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                 >
-                  <CreditCard className="h-5 w-5" />
-                  Pay ${total.toFixed(2)}
+                  <CreditCard className="h-4 w-4" />
+                  {`Checkout $${total.toFixed(2)}`}
                 </button>
               </div>
             );
           })}
         </div>
 
-        <Drawer open={!!checkoutSeller} onOpenChange={(o) => !o && setCheckoutSeller(null)}>
-          <DrawerContent className="px-4 pb-6">
-            <DrawerHeader className="px-0">
-              <DrawerTitle className="text-xl font-black">Checkout</DrawerTitle>
-            </DrawerHeader>
-            {checkoutSeller && (
+        {checkoutSeller && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={() => setCheckoutSeller(null)}>
+            <div className="relative w-full max-w-md rounded-t-2xl bg-card p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setCheckoutSeller(null)} className="absolute right-3 top-3 rounded-full bg-muted p-1.5"><X className="h-4 w-4" /></button>
+              <h2 className="mb-3 text-lg font-bold">Checkout</h2>
               <StripeCheckout
                 sellerId={checkoutSeller}
                 subtotalCents={Math.round(checkoutSubtotal * 100)}
                 orderIds={checkoutOrderIds}
                 onSuccess={() => handlePaymentSuccess(checkoutSeller)}
               />
-            )}
-          </DrawerContent>
-        </Drawer>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

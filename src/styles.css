@@ -76,14 +76,6 @@
     color: var(--color-foreground);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    /* Smoother momentum scroll on iOS for one-handed use */
-    -webkit-overflow-scrolling: touch;
-  }
-  /* Make every clickable element meet a comfortable tap target on mobile */
-  @media (max-width: 768px) {
-    button, a[role="button"], [data-tap] {
-      min-height: 44px;
-    }
   }
 }
 
