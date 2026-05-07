@@ -13,14 +13,18 @@ function ResetPassword() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Supabase puts recovery tokens in the URL hash; the client picks them up
-    // automatically via detectSessionInUrl. We just need to wait for a session.
+    // Only allow this form when Supabase issues a real PASSWORD_RECOVERY event
+    // (i.e. the user clicked the email link). Don't trust an existing session —
+    // a signed-in user landing here directly should NOT be able to change their
+    // password without re-proving ownership of the email.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+      if (event === "PASSWORD_RECOVERY") setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+    // If the page was reloaded mid-flow, detectSessionInUrl will have already
+    // fired the event — fall back to checking the hash for a recovery type.
+    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+      setReady(true);
+    }
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -31,7 +35,12 @@ function ResetPassword() {
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = /pwned|breach|leaked/i.test(error.message)
+        ? "This password has appeared in a known data breach. Please choose a different one."
+        : error.message;
+      return toast.error(msg);
+    }
     toast.success("Password updated");
     nav({ to: "/" });
   }

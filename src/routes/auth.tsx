@@ -101,8 +101,26 @@ function Auth() {
       email, password,
       options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller, ...acceptanceMeta } },
     });
-    if (error) { toast.error(error.message); setLoading(false); return; }
+    if (error) {
+      // Surface HIBP / weak-password errors clearly
+      const msg = /pwned|breach|leaked/i.test(error.message)
+        ? "This password has appeared in a known data breach. Please choose a different one."
+        : error.message;
+      toast.error(msg);
+      setLoading(false);
+      return;
+    }
     const uid = signupData.user?.id;
+    // Supabase returns user with empty identities array when email already exists
+    // (privacy-preserving). Detect this and surface a clearer error.
+    const identities = (signupData.user as any)?.identities;
+    if (uid && Array.isArray(identities) && identities.length === 0) {
+      toast.error("An account with this email already exists. Try signing in instead.");
+      setShowTerms(false);
+      setMode("signin");
+      setLoading(false);
+      return;
+    }
     if (uid) {
       await (supabase.rpc as any)("accept_required_legal_documents", {
         _version: REQUIRED_LEGAL_VERSION,
