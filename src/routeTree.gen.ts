@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
+import { Route as TutorialsRouteImport } from './routes/tutorials'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as ShowoffRouteImport } from './routes/showoff'
@@ -47,6 +48,11 @@ import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/a
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
   path: '/vault',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TutorialsRoute = TutorialsRouteImport.update({
+  id: '/tutorials',
+  path: '/tutorials',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesRoute = StoriesRouteImport.update({
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
+  '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
+  '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
+  '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/showoff'
     | '/store'
     | '/stories'
+    | '/tutorials'
     | '/vault'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/showoff'
     | '/store'
     | '/stories'
+    | '/tutorials'
     | '/vault'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -420,6 +431,7 @@ export interface FileRouteTypes {
     | '/showoff'
     | '/store'
     | '/stories'
+    | '/tutorials'
     | '/vault'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -457,6 +469,7 @@ export interface RootRouteChildren {
   ShowoffRoute: typeof ShowoffRoute
   StoreRoute: typeof StoreRoute
   StoriesRoute: typeof StoriesRoute
+  TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
   LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
@@ -482,6 +495,13 @@ declare module '@tanstack/react-router' {
       path: '/vault'
       fullPath: '/vault'
       preLoaderRoute: typeof VaultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tutorials': {
+      id: '/tutorials'
+      path: '/tutorials'
+      fullPath: '/tutorials'
+      preLoaderRoute: typeof TutorialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories': {
@@ -737,6 +757,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShowoffRoute: ShowoffRoute,
   StoreRoute: StoreRoute,
   StoriesRoute: StoriesRoute,
+  TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
   LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
@@ -757,3 +778,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
