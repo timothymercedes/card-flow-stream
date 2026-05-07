@@ -237,7 +237,7 @@ function ListingDetail() {
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
       <div className="relative aspect-square bg-muted">
-        {listing.image_url ? <img src={listing.image_url} className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+        {listing.image_url ? <img src={listing.image_url} loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
         <Link to="/market" className="absolute left-3 top-3 rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4 text-white" /></Link>
       </div>
       <div className="px-4 py-4">
