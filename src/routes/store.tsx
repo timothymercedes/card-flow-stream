@@ -78,6 +78,7 @@ function SellerHub() {
   const [ratesLoading, setRatesLoading] = useState<Record<string, boolean>>({});
   const [labelUrls, setLabelUrls] = useState<Record<string, string>>({});
   const [preset, setPreset] = useState<Record<string, ShippingPresetKey>>({});
+  const [cancelOrder, setCancelOrder] = useState<any | null>(null);
   const [recommended, setRecommended] = useState<Record<string, string | null>>({});
 
   async function load() {
