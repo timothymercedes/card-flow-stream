@@ -229,7 +229,7 @@ function MyListings() {
 
               {!editing.is_auction && (
                 <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
-                  <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
+                  <input type="number" min="0.01" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
                     className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
                 </label>
               )}
@@ -237,7 +237,7 @@ function MyListings() {
                 <>
                   <label className="block text-[11px] text-muted-foreground">
                     Starting bid ($) {hasBids && <span className="text-destructive">— locked, bids placed</span>}
-                    <input type="number" min="0" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
+                    <input type="number" min="0.01" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
                       onChange={(e) => setEditing({ ...editing, starting_bid: e.target.value === "" ? null : Number(e.target.value) })}
                       className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" />
                   </label>
