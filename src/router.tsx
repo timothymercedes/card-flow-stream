@@ -59,7 +59,10 @@ export const getRouter = () => {
     routeTree,
     context: {},
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    // Intent-based prefetch: hover / touchstart preloads the route + assets
+    defaultPreload: "intent",
+    defaultPreloadStaleTime: 30_000,
+    defaultPreloadDelay: 50,
     defaultErrorComponent: DefaultErrorComponent,
   });
 
