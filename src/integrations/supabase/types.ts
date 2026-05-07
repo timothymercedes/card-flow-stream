@@ -659,6 +659,41 @@ export type Database = {
           },
         ]
       }
+      live_stream_credentials: {
+        Row: {
+          cf_live_input_id: string | null
+          cf_rtmps_url: string | null
+          cf_stream_key: string | null
+          created_at: string
+          stream_id: string
+          updated_at: string
+        }
+        Insert: {
+          cf_live_input_id?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
+          created_at?: string
+          stream_id: string
+          updated_at?: string
+        }
+        Update: {
+          cf_live_input_id?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
+          created_at?: string
+          stream_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_credentials_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: true
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_presence: {
         Row: {
           avatar_url: string | null
@@ -702,10 +737,7 @@ export type Database = {
           break_wheel_started_at: string | null
           break_wheel_target_slot: number | null
           category: string | null
-          cf_live_input_id: string | null
           cf_playback_hls: string | null
-          cf_rtmps_url: string | null
-          cf_stream_key: string | null
           cf_video_uid: string | null
           cf_whip_url: string | null
           chat_slow_mode_sec: number
@@ -798,10 +830,7 @@ export type Database = {
           break_wheel_started_at?: string | null
           break_wheel_target_slot?: number | null
           category?: string | null
-          cf_live_input_id?: string | null
           cf_playback_hls?: string | null
-          cf_rtmps_url?: string | null
-          cf_stream_key?: string | null
           cf_video_uid?: string | null
           cf_whip_url?: string | null
           chat_slow_mode_sec?: number
@@ -894,10 +923,7 @@ export type Database = {
           break_wheel_started_at?: string | null
           break_wheel_target_slot?: number | null
           category?: string | null
-          cf_live_input_id?: string | null
           cf_playback_hls?: string | null
-          cf_rtmps_url?: string | null
-          cf_stream_key?: string | null
           cf_video_uid?: string | null
           cf_whip_url?: string | null
           chat_slow_mode_sec?: number
