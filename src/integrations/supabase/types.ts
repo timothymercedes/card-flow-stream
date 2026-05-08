@@ -2922,10 +2922,13 @@ export type Database = {
           id: string
           is_published: boolean
           order_index: number
+          route_path: string | null
+          steps: Json
           thumbnail_url: string | null
           title: string
           updated_at: string
           video_url: string
+          voice_id: string | null
         }
         Insert: {
           audience?: Database["public"]["Enums"]["tutorial_audience"]
@@ -2938,10 +2941,13 @@ export type Database = {
           id?: string
           is_published?: boolean
           order_index?: number
+          route_path?: string | null
+          steps?: Json
           thumbnail_url?: string | null
           title: string
           updated_at?: string
           video_url: string
+          voice_id?: string | null
         }
         Update: {
           audience?: Database["public"]["Enums"]["tutorial_audience"]
@@ -2954,10 +2960,13 @@ export type Database = {
           id?: string
           is_published?: boolean
           order_index?: number
+          route_path?: string | null
+          steps?: Json
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
           video_url?: string
+          voice_id?: string | null
         }
         Relationships: []
       }
@@ -3617,6 +3626,34 @@ export type Database = {
           shop_name: string
           username: string
         }[]
+      }
+      tutorials_for_route: {
+        Args: { _path: string }
+        Returns: {
+          audience: Database["public"]["Enums"]["tutorial_audience"]
+          captions_url: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          is_published: boolean
+          order_index: number
+          route_path: string | null
+          steps: Json
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string
+          voice_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tutorials"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
