@@ -3309,19 +3309,11 @@ function LiveDetail() {
                 <div className="mb-2 grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => {
-                      const profile = `[General]\nName=PullBidLive\n\n[Stream1]\nIgnoreRecommended=true\nEnableMultitrackVideo=false\nMultitrackVideoConfigOverrideEnabled=false\nMultitrackVideoConfigOverride=\nMultitrackVideoMaximumAggregateBitrateAuto=true\nMultitrackVideoMaximumVideoTracksAuto=true\nMultitrackVideoStreamDumpEnabled=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4000\nABitrate=160\nStreamEncoder=x264\nRecEncoder=x264\nPreset=veryfast\n\n[Video]\nBaseCX=1280\nBaseCY=720\nOutputCX=1280\nOutputCY=720\nFPSCommon=30\n`;
-                      const blob = new Blob([profile], { type: "text/plain" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = "PullBidLive.ini";
-                      a.click();
-                      URL.revokeObjectURL(url);
-                      toast.success("Profile downloaded — import in OBS → Profile → Import");
+                      nav({ to: "/obs-hub" });
                     }}
                     className="flex items-center justify-center gap-1 rounded bg-primary px-2 py-1.5 text-[10px] font-bold text-primary-foreground"
                   >
-                    📥 Download OBS profile
+                    📥 Clean OBS profile
                   </button>
                   <button
                     onClick={async () => {
