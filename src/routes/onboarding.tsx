@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
+import { TutorialOnboarding } from "@/components/tutorials/TutorialOnboarding";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
