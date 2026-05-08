@@ -6,25 +6,13 @@ import { Search, Sparkles, Flame, Clock, Tag } from "lucide-react";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
+import { useShuffleBucket, seededHash } from "@/lib/shuffle";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
 type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
 
-// Per-session seed so the order stays stable as the user scrolls/filters.
-function getSessionSeed() {
-  try {
-    const k = "market_seed_v1";
-    let v = sessionStorage.getItem(k);
-    if (!v) { v = String(Math.floor(Math.random() * 1e9)); sessionStorage.setItem(k, v); }
-    return Number(v);
-  } catch { return 1; }
-}
-function seededHash(id: string, seed: number) {
-  let h = seed >>> 0;
-  for (let i = 0; i < id.length; i++) h = ((h * 31) ^ id.charCodeAt(i)) >>> 0;
-  return h;
-}
+// Shuffle seed rotates every 5 minutes (see @/lib/shuffle).
 
 function fmtRemain(iso: string | null) {
   if (!iso) return null;
@@ -42,7 +30,7 @@ function Market() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
   const [category, setCategory] = useState<string>("all");
-  const seed = useMemo(getSessionSeed, []);
+  const seed = useShuffleBucket();
 
   useEffect(() => {
     supabase
