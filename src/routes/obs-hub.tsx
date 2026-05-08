@@ -187,12 +187,14 @@ function ObsHub() {
       "[General]",
       "Name=PullBidLive",
       "",
-      "[Stream]",
-      "service=Custom",
-      `server=${profile.cf_rtmps_url}`,
-      `key=${profile.cf_stream_key}`,
-      "use_auth=false",
-      "enable_multitrack_video=false",
+      "[Stream1]",
+      "IgnoreRecommended=true",
+      "EnableMultitrackVideo=false",
+      "MultitrackVideoConfigOverrideEnabled=false",
+      "MultitrackVideoConfigOverride=",
+      "MultitrackVideoMaximumAggregateBitrateAuto=true",
+      "MultitrackVideoMaximumVideoTracksAuto=true",
+      "MultitrackVideoStreamDumpEnabled=false",
       "",
       "[Output]",
       "Mode=Simple",
@@ -239,7 +241,7 @@ function ObsHub() {
     a.download = "PullBidLive-OBS-profile.zip";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("OBS profile downloaded — import it in OBS, then Start Streaming");
+      toast.success("Fixed OBS profile downloaded — import it as a new OBS profile, then Start Streaming");
   }
 
   // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
