@@ -38,7 +38,7 @@ function Onboarding() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Personalized for you 🎯");
-    nav({ to: "/" });
+    setStep("videos");
   }
 
   async function skip() {
