@@ -1938,7 +1938,7 @@ function LiveDetail() {
           ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           : "left-1/2 top-14 -translate-x-1/2";
         return (
-          <div className={`pointer-events-none absolute z-30 ${wrapPos} transition-all duration-500 ease-out`}>
+          <div data-tour="timer" className={`pointer-events-none absolute z-30 ${wrapPos} transition-all duration-500 ease-out`}>
             {auctionLive ? (
               <div className={`flex items-center gap-2 rounded-full font-extrabold tabular-nums shadow-2xl ring-2 transition-all duration-500 ease-out ${
                 dramatic ? "px-8 py-5 text-6xl ring-4 scale-100" : "px-3 py-1.5 text-base"
@@ -2577,7 +2577,7 @@ function LiveDetail() {
         {!isSeller && (
           <>
           {auctionLive && !meBlockedOrBanned && !bidDisabled && (
-            <div className="grid grid-cols-4 gap-1.5">
+            <div data-tour="bid-controls" className="grid grid-cols-4 gap-1.5">
               {[1, 5, 10, 25].map((inc) => (
                 <button
                   key={inc}
