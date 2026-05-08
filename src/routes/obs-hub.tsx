@@ -187,6 +187,13 @@ function ObsHub() {
       "[General]",
       "Name=PullBidLive",
       "",
+      "[Stream]",
+      "service=Custom",
+      `server=${profile.cf_rtmps_url}`,
+      `key=${profile.cf_stream_key}`,
+      "use_auth=false",
+      "enable_multitrack_video=false",
+      "",
       "[Output]",
       "Mode=Simple",
       "",
@@ -194,6 +201,7 @@ function ObsHub() {
       "VBitrate=4000",
       "ABitrate=160",
       "StreamEncoder=x264",
+      "RecEncoder=x264",
       "Preset=veryfast",
       "",
       "[Video]",
@@ -390,15 +398,16 @@ function ObsHub() {
                   </li>
                   <li>
                     <b className="text-foreground">2.</b> <b>Service: Custom…</b> and{" "}
-                    <b>Server: RTMP URL</b>. This fixes “No config URL available”.
+                    paste <b>Server: RTMP URL</b>. Turn <b>Enhanced Broadcasting</b> off — that fixes
+                    “No config URL available”.
                   </li>
                   <li>
                     <b className="text-foreground">3.</b> Paste the <b>Stream Key</b>. Leave “Use
                     authentication” off.
                   </li>
                   <li>
-                    <b className="text-foreground">4.</b> OBS → <b>Settings → Output</b> → Encoder{" "}
-                    <b>Software (x264)</b>, Bitrate <b>4000</b>.
+                    <b className="text-foreground">4.</b> OBS → <b>Settings → Output</b> → Output Mode{" "}
+                    <b>Simple</b>, Encoder <b>Software (x264)</b>, Bitrate <b>4000</b>.
                   </li>
                   <li>
                     <b className="text-foreground">5.</b> OBS → <b>Settings → Video</b> → Base and
@@ -467,8 +476,9 @@ function ObsHub() {
                 </div>
 
                 <p className="mt-2 text-[10px] text-muted-foreground">
-                  If OBS still fails, disable Enhanced Broadcasting and use the non-TLS fallback URL
-                  above.
+                  If OBS says “No config URL available”, you are not on Custom RTMP or Enhanced
+                  Broadcasting is still enabled. If connection fails after that, try the non-TLS
+                  fallback URL above.
                 </p>
               </div>
 
@@ -478,8 +488,9 @@ function ObsHub() {
                   <AlertCircle className="h-4 w-4" /> Got “Starting the output failed”?
                 </p>
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                  Almost always an encoder issue (NVENC / AMD / QuickSync not available on this
-                  machine). Switch to <b>x264 software encoding</b> — it works on every laptop.
+                  That message means OBS is trying to use a broken or unavailable hardware encoder.
+                  Use <b>Software (x264)</b> first. If you prefer NVENC / AMD, update your video
+                  drivers and select the matching hardware encoder after OBS starts successfully.
                 </p>
                 <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                   <li>
