@@ -376,7 +376,7 @@ function Vault() {
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"><Plus className="h-3 w-3" /> Add</button>
           </div>
         </div>
-
+        <div className="mb-3"><WatchTutorial routePath="/vault" label="How vaults work" /></div>
         {/* Total value (owner only) */}
         <div className="mb-3 rounded-xl bg-gradient-to-br from-primary/30 to-accent/20 p-4">
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total Vault Value</p>
