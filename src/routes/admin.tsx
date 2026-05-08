@@ -569,6 +569,7 @@ function Admin() {
 
         {tab === "tutorials" && isAdmin && <TutorialsAdmin />}
         {tab === "audit" && isAdmin && <AuditLogsAdmin />}
+        {tab === "beta" && isAdmin && <BetaInvitesAdmin />}
       </div>
     </AppShell>
   );
