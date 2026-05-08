@@ -36,9 +36,10 @@ function PublicStore() {
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
-  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts">("listings");
+  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts" | "vault">("listings");
   const [posts, setPosts] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
+  const [vaultCards, setVaultCards] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [notifyOnLive, setNotifyOnLive] = useState(true);
 
