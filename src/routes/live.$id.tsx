@@ -2546,7 +2546,9 @@ function LiveDetail() {
         {usingObs ? (
           <HlsPlayer
             src={stream.cf_playback_hls}
-            className="h-full w-full object-cover"
+            className="h-full w-full"
+            style={obsVideoStyle}
+            onVideoMetrics={setObsMetrics}
             autoPlay
             muted={isSeller}
           />
@@ -5403,13 +5405,28 @@ function LiveDetail() {
                 </button>
               </div>
               {showViewerPreview && (
-                <HlsPlayer
-                  src={stream.cf_playback_hls}
-                  className="aspect-video w-full bg-background object-contain"
-                  autoPlay
-                  muted
-                  controls
-                />
+                <div className="space-y-2 p-2">
+                  {obsTinyFeed && (
+                    <div className="rounded-lg border border-destructive/40 bg-destructive/15 px-2 py-1.5 text-[11px] font-semibold text-destructive">
+                      Your stream does not fill the screen properly.
+                    </div>
+                  )}
+                  <HlsPlayer
+                    src={stream.cf_playback_hls}
+                    className={`${obsPreviewAspectClass} w-full rounded-lg bg-background`}
+                    style={obsVideoStyle}
+                    onVideoMetrics={setObsMetrics}
+                    autoPlay
+                    muted
+                    controls
+                  />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button onClick={() => setObsDisplayMode("auto")} className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground">Auto Fix</button>
+                    <button onClick={() => setObsDisplayMode("fit")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Fit to Screen</button>
+                    <button onClick={() => setObsDisplayMode("vertical")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Vertical Mode</button>
+                    <button onClick={() => setObsDisplayMode("horizontal")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Horizontal Mode</button>
+                  </div>
+                </div>
               )}
             </div>
           )}
