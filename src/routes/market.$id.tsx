@@ -8,6 +8,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
