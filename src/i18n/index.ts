@@ -25,7 +25,7 @@ if (!i18n.isInitialized) {
       fallbackLng: "en",
       supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
       nonExplicitSupportedLngs: true,
-      initImmediate: false,
+      
       interpolation: { escapeValue: false },
       detection: {
         order: ["localStorage", "navigator"],
