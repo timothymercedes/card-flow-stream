@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/payouts")({
   component: PayoutsPage,
