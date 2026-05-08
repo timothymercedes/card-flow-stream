@@ -3303,7 +3303,7 @@ function LiveDetail() {
                   <Radio className="h-3.5 w-3.5" /> OBS Connect Hub
                 </p>
                 <p className="mb-2 text-muted-foreground">
-                  One tap below downloads a ready-to-import OBS profile with your server + key
+                  Open the fixed OBS Hub to download a Custom RTMP profile with your server + key
                   already filled in.
                 </p>
                 <div className="mb-2 grid grid-cols-2 gap-1.5">
@@ -3313,7 +3313,7 @@ function LiveDetail() {
                     }}
                     className="flex items-center justify-center gap-1 rounded bg-primary px-2 py-1.5 text-[10px] font-bold text-primary-foreground"
                   >
-                    📥 Clean OBS profile
+                    📥 Fixed OBS Hub
                   </button>
                   <button
                     onClick={async () => {
