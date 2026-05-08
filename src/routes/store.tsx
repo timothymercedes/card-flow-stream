@@ -326,7 +326,7 @@ function SellerHub() {
           <div><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-sm font-bold">${totals.pending.toFixed(0)}</p></div>
         </div>
 
-        {payoutStatus !== "complete" && (
+        {!tutorial && payoutStatus !== "complete" && (
           <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-card p-3">
             <p className="text-sm font-bold">💳 Connect your payout account</p>
             <p className="mt-1 text-xs text-muted-foreground">Required to receive funds when live payments turn on. 5% platform commission.</p>
