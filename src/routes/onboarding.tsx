@@ -17,6 +17,7 @@ function Onboarding() {
   const nav = useNavigate();
   const [picked, setPicked] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<"interests" | "videos">("interests");
 
   useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
