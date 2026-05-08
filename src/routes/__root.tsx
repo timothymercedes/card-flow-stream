@@ -8,6 +8,7 @@ import "@/i18n";
 import { LanguageSync } from "@/components/LanguageSync";
 import { A11yClassSync } from "@/components/A11yClassSync";
 import { TutorialModeBootstrap } from "@/components/TutorialModeBootstrap";
+import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
 
 function NotFoundComponent() {
   return (
@@ -36,6 +37,12 @@ export const Route = createRootRoute({
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0981a193-31b5-4ac9-a0c6-686e770b64b0/id-preview-db3571db--c81c8301-d89c-4830-8ab7-06f678968bc1.lovable.app-1777903855105.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
+      ...(BETA_MODE_ENABLED
+        ? [
+            { name: "robots", content: "noindex, nofollow, noarchive, nosnippet" },
+            { name: "googlebot", content: "noindex, nofollow" },
+          ]
+        : []),
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
@@ -51,8 +58,10 @@ export const Route = createRootRoute({
         <LanguageSync />
         <A11yClassSync />
         <TutorialModeBootstrap />
-        <Outlet />
-        <LegalGate />
+        <BetaGate>
+          <Outlet />
+          <LegalGate />
+        </BetaGate>
         <Toaster />
       </MascotTourProvider>
     </AuthProvider>
