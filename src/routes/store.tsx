@@ -14,6 +14,7 @@ import { OrderCancellation } from "@/components/OrderCancellation";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { demoListings, demoOrders, demoSellerAnalytics } from "@/lib/tutorialDemoData";
+import { LiveNowPill } from "@/components/ReturnToLiveBadge";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
@@ -305,6 +306,7 @@ function SellerHub() {
   return (
     <AppShell>
       <div className="px-4 py-4 pb-24">
+        <LiveNowPill />
         {/* Header */}
         <div className="mb-3 flex items-start justify-between">
           <div>

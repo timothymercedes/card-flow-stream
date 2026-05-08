@@ -249,41 +249,62 @@ function ObsHub() {
                 <p className="text-sm font-bold">Step 2 · Paste in OBS</p>
                 <button
                   onClick={() => provision()}
-                  className="flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1 text-[11px] font-semibold"
+                  className="flex items-center gap-1 rounded-lg bg-muted px-2.5 py-1.5 text-[11px] font-semibold"
                   title="Generate a fresh stream key"
                 >
-                  <RefreshCw className="h-3 w-3" /> Rotate
+                  <RefreshCw className="h-3 w-3" /> Rotate key
                 </button>
               </div>
 
-              <div className="mb-3 grid grid-cols-2 gap-2">
-                <button
-                  data-tour="obs-download"
-                  onClick={downloadProfile}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
-                >
-                  <Download className="h-3.5 w-3.5" /> Download .ini
-                </button>
-                <button
-                  data-tour="obs-copy"
-                  onClick={() => copy(`Server: ${profile.cf_rtmps_url}\nStream Key: ${profile.cf_stream_key}`, "Server + key")}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-muted py-2 text-xs font-bold"
-                >
-                  <Copy className="h-3.5 w-3.5" /> Copy both
-                </button>
-              </div>
+              {/* Step-by-step instructions */}
+              <ol className="mb-3 space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
+                <li><b className="text-foreground">1.</b> Open OBS Studio → <b>Settings → Stream</b>.</li>
+                <li><b className="text-foreground">2.</b> Service: <b>Custom…</b></li>
+                <li><b className="text-foreground">3.</b> Paste the <b>RTMP URL</b> into <b>Server</b>.</li>
+                <li><b className="text-foreground">4.</b> Paste the <b>Stream Key</b> into <b>Stream Key</b>.</li>
+                <li><b className="text-foreground">5.</b> Click <b>OK</b> → <b>Start Streaming</b>.</li>
+                <li><b className="text-foreground">6.</b> Come back here and tap <b>Test Connection</b>.</li>
+              </ol>
 
-              <KeyRow label="Server (RTMPS)" value={profile.cf_rtmps_url || ""} onCopy={() => copy(profile.cf_rtmps_url || "", "Server")} />
+              <KeyRow
+                label="RTMP URL (Server)"
+                value={profile.cf_rtmps_url || ""}
+                onCopy={() => copy(profile.cf_rtmps_url || "", "RTMP URL")}
+              />
               <KeyRow
                 label="Stream Key"
                 value={showKey ? (profile.cf_stream_key || "") : "••••••••" + String(profile.cf_stream_key || "").slice(-6)}
                 onCopy={() => copy(profile.cf_stream_key || "", "Stream key")}
                 rightSlot={
-                  <button onClick={() => setShowKey((s) => !s)} className="rounded bg-muted px-2 py-1" aria-label="toggle">
+                  <button onClick={() => setShowKey((s) => !s)} className="rounded bg-muted px-2 py-1.5" aria-label="toggle">
                     {showKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                   </button>
                 }
               />
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => copy(profile.cf_stream_key || "", "Stream key")}
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-xs font-bold text-primary-foreground"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy Stream Key
+                </button>
+                <button
+                  onClick={() => copy(profile.cf_rtmps_url || "", "RTMP URL")}
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-xs font-bold text-primary-foreground"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy RTMP URL
+                </button>
+                <button
+                  data-tour="obs-download"
+                  onClick={downloadProfile}
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-muted py-3 text-xs font-bold"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download .ini
+                </button>
+                <TestConnectionButton health={health} polling={polling} />
+              </div>
+
               <p className="mt-2 text-[10px] text-muted-foreground">
                 Recommended: 1080p · 30fps · 4500 kbps · keyframe 2s · x264.
               </p>
@@ -380,6 +401,20 @@ function ObsHub() {
                 Prefer mobile? <Link to="/sell" className="text-primary underline">Use mobile camera instead →</Link>
               </p>
             </div>
+
+            {/* Beginner mode */}
+            <Link
+              to="/sell"
+              className="block rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-4 hover:bg-fuchsia-500/10"
+            >
+              <p className="mb-1 flex items-center gap-1.5 text-sm font-bold">
+                <Smartphone className="h-4 w-4 text-fuchsia-400" /> Beginner mode — no OBS needed
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Stream straight from your phone or laptop camera. Tap here to use the guided 6-step setup — go live in under 2 minutes.
+              </p>
+              <span className="mt-2 inline-block rounded-full bg-fuchsia-500 px-2.5 py-1 text-[10px] font-bold text-white">Start with phone camera →</span>
+            </Link>
 
             {/* Stream health */}
             <HealthCard health={health} polling={polling} />
@@ -480,6 +515,23 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg bg-muted px-2 py-1.5">
       <p className="text-[10px] text-muted-foreground">{label}</p>
       <p className="text-xs font-bold">{value}</p>
+    </div>
+  );
+}
+
+function TestConnectionButton({ health, polling }: { health: Health | null; polling: boolean }) {
+  const ok = health?.status === "connected" || health?.status === "live";
+  if (ok) {
+    return (
+      <div className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 py-3 text-xs font-bold text-emerald-500">
+        <CheckCircle2 className="h-3.5 w-3.5" /> Connection Successful
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted py-3 text-xs font-bold text-muted-foreground">
+      {polling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+      Test Connection
     </div>
   );
 }

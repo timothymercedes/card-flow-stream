@@ -11,6 +11,7 @@ import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
@@ -103,6 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main id="main-content" tabIndex={-1} className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
       {!tutorial && <NotifyPrompt />}
+      {!tutorial && <ReturnToLiveBadge />}
       <nav aria-label={t("nav.primary", "Primary")} className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((tab) => {

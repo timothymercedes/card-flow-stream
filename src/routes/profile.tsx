@@ -9,6 +9,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
 import { AgreementModal } from "@/components/AgreementModal";
+import { LiveNowPill } from "@/components/ReturnToLiveBadge";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -221,6 +222,7 @@ function Profile() {
   return (
     <AppShell>
       <div className="px-4 py-6 space-y-5">
+        <LiveNowPill />
         <div className="flex items-center gap-3">
           <label className="relative h-16 w-16 cursor-pointer overflow-hidden rounded-full bg-primary">
             {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (
