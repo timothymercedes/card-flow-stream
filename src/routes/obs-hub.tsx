@@ -135,15 +135,58 @@ function ObsHub() {
   }
 
   function downloadProfile() {
-    if (!profile?.cf_rtmps_url || !profile?.cf_stream_key) return;
-    const ini = `[General]\nName=PullBidLive\n\n[Stream]\nservice=Custom\nserver=${profile.cf_rtmps_url}\nkey=${profile.cf_stream_key}\nuse_auth=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4500\nABitrate=160\nStreamEncoder=x264\n\n[Video]\nBaseCX=1920\nBaseCY=1080\nOutputCX=1920\nOutputCY=1080\nFPSCommon=30\n`;
+    if (!profile?.cf_rtmps_url || !profile?.cf_stream_key) {
+      toast.error("Connect OBS first — no RTMP URL or stream key yet");
+      return;
+    }
+    // NOTE: We intentionally do NOT include a [Stream] block here. OBS stores
+    // service config in service.json, not basic.ini — putting it here causes
+    // the "No config URL available for the current service" error on import.
+    // This file only sets safe video/output defaults (720p30 / 4000 kbps / x264).
+    const ini = [
+      "[General]",
+      "Name=PullBidLive",
+      "",
+      "[Output]",
+      "Mode=Simple",
+      "",
+      "[SimpleOutput]",
+      "VBitrate=4000",
+      "ABitrate=160",
+      "StreamEncoder=x264",
+      "Preset=veryfast",
+      "",
+      "[Video]",
+      "BaseCX=1280",
+      "BaseCY=720",
+      "OutputCX=1280",
+      "OutputCY=720",
+      "FPSCommon=30",
+      "",
+    ].join("\n");
     const blob = new Blob([ini], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "PullBidLive.ini";
+    a.href = url; a.download = "PullBidLive-basic.ini";
     a.click(); URL.revokeObjectURL(url);
-    toast.success("Profile downloaded — OBS → Profile → Import");
+    toast.success("Defaults downloaded — see steps to enter Service/URL/Key in OBS");
   }
+
+  // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
+  // firewalls or older OBS builds choke on rtmps://.
+  const rtmpFallbackUrl = profile?.cf_rtmps_url
+    ? profile.cf_rtmps_url.replace(/^rtmps:\/\//, "rtmp://").replace(":443/", ":1935/")
+    : "";
+
+  // Pre-flight readiness — must be true before "Go Live with OBS"
+  const preflight = {
+    streamKey: !!profile?.cf_stream_key,
+    rtmpUrl: !!profile?.cf_rtmps_url,
+    title: !!profile?.default_title?.trim(),
+    tags: (profile?.default_tcg_tags?.length ?? 0) > 0,
+    encoderConnected: health?.status === "connected" || health?.status === "live",
+  };
+  const preflightReady = preflight.streamKey && preflight.rtmpUrl && preflight.title && preflight.tags;
 
   async function goLiveWithObs() {
     if (!user || !profile) return;
