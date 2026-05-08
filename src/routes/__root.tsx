@@ -65,6 +65,7 @@ export const Route = createRootRoute({
           <Outlet />
           <LegalGate />
         </BetaGate>
+        <RealtimeStatusBadge />
         <Toaster />
       </MascotTourProvider>
     </AuthProvider>
