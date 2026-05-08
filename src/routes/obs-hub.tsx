@@ -183,12 +183,13 @@ function ObsHub() {
       toast.error("Connect OBS first — no RTMP URL or stream key yet");
       return;
     }
+    const profileName = `PullBidLive-Fixed-${new Date().toISOString().slice(0, 10)}`;
     const ini = [
       "[General]",
-      "Name=PullBidLive",
+      `Name=${profileName}`,
       "",
       "[Stream1]",
-      "IgnoreRecommended=true",
+      "IgnoreRecommended=false",
       "EnableMultitrackVideo=false",
       "MultitrackVideoConfigOverrideEnabled=false",
       "MultitrackVideoConfigOverride=",
@@ -221,7 +222,6 @@ function ObsHub() {
           bwtest: false,
           key: profile.cf_stream_key,
           server: profile.cf_rtmps_url,
-          service: "Custom",
           use_auth: false,
         },
         type: "rtmp_custom",
@@ -231,17 +231,17 @@ function ObsHub() {
     );
 
     const zip = makeStoredZip({
-      "PullBidLive/basic.ini": ini,
-      "PullBidLive/service.json": serviceJson,
+      [`${profileName}/basic.ini`]: ini,
+      [`${profileName}/service.json`]: serviceJson,
     });
     const blob = new Blob([zip], { type: "application/zip" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "PullBidLive-OBS-profile.zip";
+    a.download = `${profileName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-      toast.success("Fixed OBS profile downloaded — import it as a new OBS profile, then Start Streaming");
+    toast.success("Clean OBS profile downloaded — extract the ZIP, import that folder, switch to it, then restart OBS");
   }
 
   // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
@@ -399,13 +399,13 @@ function ObsHub() {
                     <b className="text-foreground">1.</b> OBS → <b>Settings → Stream</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> <b>Service: Custom…</b> and{" "}
-                    paste <b>Server: RTMP URL</b>. Turn <b>Enhanced Broadcasting</b> off — that fixes
-                    “No config URL available”.
+                    <b className="text-foreground">2.</b> Best fix: download the clean profile below,
+                    extract the ZIP, OBS → <b>Profile → Import</b>, select the extracted folder, switch
+                    to that new profile, then restart OBS once.
                   </li>
                   <li>
-                    <b className="text-foreground">3.</b> Paste the <b>Stream Key</b>. Leave “Use
-                    authentication” off.
+                    <b className="text-foreground">3.</b> Manual fallback: Settings → Stream → Service{" "}
+                    <b>Custom…</b>, paste the Server URL + Stream Key, and leave authentication off.
                   </li>
                   <li>
                     <b className="text-foreground">4.</b> OBS → <b>Settings → Output</b> → Output Mode{" "}
@@ -478,9 +478,9 @@ function ObsHub() {
                 </div>
 
                 <p className="mt-2 text-[10px] text-muted-foreground">
-                  If OBS says “No config URL available”, you are not on Custom RTMP or Enhanced
-                  Broadcasting is still enabled. If connection fails after that, try the non-TLS
-                  fallback URL above.
+                  If OBS says “No config URL available”, its active local profile still has Enhanced
+                  Broadcasting/multitrack stuck on. Import the clean profile as a brand-new profile and
+                  restart OBS before pressing Start Streaming.
                 </p>
               </div>
 
@@ -492,8 +492,8 @@ function ObsHub() {
                 <p className="mb-2 text-[11px] text-muted-foreground">
                   That exact pair of messages is OBS Enhanced Broadcasting/multitrack getting stuck
                   on an old service state, then falling through to an encoder warning. Import the
-                  fixed profile above first; it disables the OBS multitrack flag in the right config
-                  section and forces <b>Software (x264)</b>.
+                  clean profile above first; it creates a brand-new OBS profile with multitrack off and
+                  forces <b>Software (x264)</b>.
                 </p>
                 <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                   <li>
