@@ -9,6 +9,7 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
 import { OrderCancellation } from "@/components/OrderCancellation";
 import { XCircle } from "lucide-react";
+import { WatchTutorial } from "@/components/WatchTutorial";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
@@ -127,7 +128,10 @@ function Orders() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-1 text-2xl font-bold">My Orders</h1>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold">My Orders</h1>
+          <WatchTutorial routePath="/orders" label="Shipping help" />
+        </div>
         <p className="mb-4 text-xs text-muted-foreground">Items you've purchased</p>
         {PAYMENTS_SAFE_MODE && (
           <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">

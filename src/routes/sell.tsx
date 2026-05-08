@@ -13,7 +13,8 @@ import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
-import { TutorialHint } from "@/components/tutorials/TutorialHint";
+import { WatchTutorial } from "@/components/WatchTutorial";
+
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -348,7 +349,7 @@ function Sell() {
       <div className="px-4 py-4">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Sell</h1>
-          <TutorialHint title={tab === "live" ? "Hosting Your First Live Show" : "Listing Your First Card"} />
+          <WatchTutorial routePath="/sell" label="Watch tutorial" />
         </div>
         <div className="mb-4 flex rounded-xl bg-card p-1">
           <button onClick={() => setTab("live")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "live" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Go Live</button>
