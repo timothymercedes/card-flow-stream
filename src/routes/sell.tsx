@@ -14,7 +14,7 @@ import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { WatchTutorial } from "@/components/WatchTutorial";
-import { TutorialHint } from "@/components/tutorials/TutorialHint";
+
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
