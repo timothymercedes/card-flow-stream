@@ -4,13 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { FollowButton } from "@/components/FollowButton";
 import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store } from "lucide-react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
+const searchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+});
 
 export const Route = createFileRoute("/discover")({
   component: DiscoverPage,
+  validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
       { title: "Discover Collectors — PullBid Live" },
-      { name: "description", content: "Search for collectors, sellers, and live hosts. Find trending sellers and suggested users to follow." },
+      { name: "description", content: "Search for collectors, sellers, live hosts, and cards on PullBid Live." },
     ],
   }),
 });
