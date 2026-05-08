@@ -7,6 +7,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
+import { useTutorialMode } from "@/lib/tutorialMode";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
@@ -21,10 +22,12 @@ const baseTabs = [
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const { user } = useAuth();
+  const tutorial = useTutorialMode();
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
+    if (tutorial) { setIsSeller(true); setCartCount(2); return; }
     if (!user) { setIsSeller(false); setCartCount(0); return; }
     supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle()
       .then(({ data }) => setIsSeller(data?.seller_status === "approved"));
@@ -36,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user]);
+  }, [user, tutorial]);
 
   const tabs = [
     ...baseTabs,
@@ -58,8 +61,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
             <Plus className="h-3.5 w-3.5" /> Sell
           </Link>
-          <AdminAlertBadge />
-          <NotificationBell />
+          {!tutorial && <AdminAlertBadge />}
+          {!tutorial && <NotificationBell />}
           <Link to="/cart" className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <ShoppingBag className="h-4 w-4" />
             {cartCount > 0 && (
@@ -74,8 +77,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="flex-1 pb-20">{children}</main>
-      <HelpBubble />
-      <NotifyPrompt />
+      {!tutorial && <HelpBubble />}
+      {!tutorial && <NotifyPrompt />}
       <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((t) => {
