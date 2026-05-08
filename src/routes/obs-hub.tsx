@@ -183,12 +183,13 @@ function ObsHub() {
       toast.error("Connect OBS first — no RTMP URL or stream key yet");
       return;
     }
+    const profileName = `PullBidLive-Fixed-${new Date().toISOString().slice(0, 10)}`;
     const ini = [
       "[General]",
-      "Name=PullBidLive",
+      `Name=${profileName}`,
       "",
       "[Stream1]",
-      "IgnoreRecommended=true",
+      "IgnoreRecommended=false",
       "EnableMultitrackVideo=false",
       "MultitrackVideoConfigOverrideEnabled=false",
       "MultitrackVideoConfigOverride=",
@@ -221,7 +222,6 @@ function ObsHub() {
           bwtest: false,
           key: profile.cf_stream_key,
           server: profile.cf_rtmps_url,
-          service: "Custom",
           use_auth: false,
         },
         type: "rtmp_custom",
@@ -231,17 +231,17 @@ function ObsHub() {
     );
 
     const zip = makeStoredZip({
-      "PullBidLive/basic.ini": ini,
-      "PullBidLive/service.json": serviceJson,
+      [`${profileName}/basic.ini`]: ini,
+      [`${profileName}/service.json`]: serviceJson,
     });
     const blob = new Blob([zip], { type: "application/zip" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "PullBidLive-OBS-profile.zip";
+    a.download = `${profileName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-      toast.success("Fixed OBS profile downloaded — import it as a new OBS profile, then Start Streaming");
+    toast.success("Clean OBS profile downloaded — extract the ZIP, import that folder, switch to it, then restart OBS");
   }
 
   // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
