@@ -37,7 +37,7 @@ type UserRow = {
   mutual_count?: number;
 };
 
-type ListingRow = { id: string; title: string; price_cents: number | null; image_url: string | null };
+type ListingRow = { id: string; title: string; price: number | null; image_url: string | null };
 
 function DiscoverPage() {
   const initialQ = (Route.useSearch() as any).q ?? "";
@@ -71,7 +71,7 @@ function DiscoverPage() {
       const [{ data: users }, { data: cards }] = await Promise.all([
         (supabase.rpc as any)("search_users", { _query: q, _limit: 25 }),
         supabase.from("listings")
-          .select("id,title,price_cents,image_url")
+          .select("id,title,price,image_url")
           .ilike("title", `%${q}%`)
           .limit(20),
       ]);
