@@ -60,15 +60,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur">
+       <div className="flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img src={logo} alt="PullBid Live" className="h-10 w-10 object-contain" />
           <div className="text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
         <div className="flex items-center gap-1.5">
-          <Link to="/discover" aria-label="Search collectors" className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-            <Search className="h-4 w-4" />
-          </Link>
           <Link to="/showoff" className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
             <Sparkles className="h-3.5 w-3.5" /> Flex Live
           </Link>
