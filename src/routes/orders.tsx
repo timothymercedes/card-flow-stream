@@ -9,6 +9,7 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
 import { OrderCancellation } from "@/components/OrderCancellation";
 import { XCircle } from "lucide-react";
+import { WatchTutorial } from "@/components/WatchTutorial";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
