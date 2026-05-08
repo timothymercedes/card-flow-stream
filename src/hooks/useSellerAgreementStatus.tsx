@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { SELLER_AGREEMENT_VERSION } from "@/lib/legal";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 /**
  * Tracks whether the current user (only if seller/host status is approved or pending)
@@ -10,11 +11,18 @@ import { SELLER_AGREEMENT_VERSION } from "@/lib/legal";
  */
 export function useSellerAgreementStatus() {
   const { user, loading } = useAuth();
+  const tutorial = useTutorialMode();
   const [checking, setChecking] = useState(true);
   const [needsAcceptance, setNeedsAcceptance] = useState(false);
   const [isSellerOrHost, setIsSellerOrHost] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (tutorial) {
+      setIsSellerOrHost(true);
+      setNeedsAcceptance(false);
+      setChecking(false);
+      return;
+    }
     if (!user) {
       setNeedsAcceptance(false);
       setIsSellerOrHost(false);
@@ -41,7 +49,7 @@ export function useSellerAgreementStatus() {
       setNeedsAcceptance(!versionOk || reviewRequired);
     }
     setChecking(false);
-  }, [user]);
+  }, [user, tutorial]);
 
   useEffect(() => {
     if (loading) return;

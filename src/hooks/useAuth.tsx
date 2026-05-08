@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { installServerFnAuth } from "@/lib/serverFnAuth";
+import { TUTORIAL_DEMO_USER, useTutorialMode } from "@/lib/tutorialMode";
 import type { Session, User } from "@supabase/supabase-js";
 
 if (typeof window !== "undefined") installServerFnAuth();
@@ -46,8 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const tutorial = useTutorialMode();
+  const effectiveUser = (tutorial && !user) ? ({ id: TUTORIAL_DEMO_USER.id, email: TUTORIAL_DEMO_USER.email } as unknown as User) : user;
+  const effectiveProfile = (tutorial && !profile) ? (TUTORIAL_DEMO_USER as unknown as Profile) : profile;
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut: async () => { await supabase.auth.signOut(); } }}>
+    <AuthContext.Provider value={{ user: effectiveUser, session, profile: effectiveProfile, loading, signOut: async () => { await supabase.auth.signOut(); } }}>
       {children}
     </AuthContext.Provider>
   );

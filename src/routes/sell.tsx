@@ -12,6 +12,7 @@ import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -28,13 +29,14 @@ function priceFor(cond: Condition, base: number, cp: ConditionPrices | null | un
 
 function Sell() {
   const { user, profile } = useAuth();
+  const tutorial = useTutorialMode();
   const nav = useNavigate();
   const { triggerOnce } = useTour();
   useEffect(() => { triggerOnce("seller-welcome"); }, [triggerOnce]);
   const [tab, setTab] = useState<"live" | "listing">("live");
-  const [sellerStatus, setSellerStatus] = useState<string | null>(null);
-  const [stripeReady, setStripeReady] = useState<boolean | null>(null);
-  const [shopName, setShopName] = useState<string | null | undefined>(undefined);
+  const [sellerStatus, setSellerStatus] = useState<string | null>(tutorial ? "approved" : null);
+  const [stripeReady, setStripeReady] = useState<boolean | null>(tutorial ? true : null);
+  const [shopName, setShopName] = useState<string | null | undefined>(tutorial ? "Demo Card Shop" : undefined);
 
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
@@ -79,6 +81,7 @@ function Sell() {
 
   // Load seller status
   useEffect(() => {
+    if (tutorial) return;
     if (user && sellerStatus === null) {
       supabase.from("profiles").select("seller_status, shop_name").eq("id", user.id).maybeSingle().then(({ data }) => {
         setSellerStatus((data as any)?.seller_status || "none");
@@ -88,7 +91,7 @@ function Sell() {
     if (user && stripeReady === null) {
       supabase.from("stripe_accounts" as any).select("charges_enabled").eq("seller_id", user.id).maybeSingle().then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
     }
-  }, [user, sellerStatus, stripeReady]);
+  }, [user, sellerStatus, stripeReady, tutorial]);
 
   // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
   useEffect(() => {
