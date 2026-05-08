@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { ReportDialog } from "@/components/ReportDialog";
+import { HeaderSearch } from "@/components/HeaderSearch";
 
 export const Route = createFileRoute("/messages/$userId")({ component: ChatThread });
 
