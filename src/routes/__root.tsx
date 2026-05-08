@@ -7,6 +7,7 @@ import { LegalGate } from "@/components/LegalGate";
 import "@/i18n";
 import { LanguageSync } from "@/components/LanguageSync";
 import { A11yClassSync } from "@/components/A11yClassSync";
+import { TutorialModeBootstrap } from "@/components/TutorialModeBootstrap";
 
 function NotFoundComponent() {
   return (
@@ -49,6 +50,7 @@ export const Route = createRootRoute({
       <MascotTourProvider>
         <LanguageSync />
         <A11yClassSync />
+        <TutorialModeBootstrap />
         <Outlet />
         <LegalGate />
         <Toaster />

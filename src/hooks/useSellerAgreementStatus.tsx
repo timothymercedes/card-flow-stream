@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { SELLER_AGREEMENT_VERSION } from "@/lib/legal";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 /**
  * Tracks whether the current user (only if seller/host status is approved or pending)

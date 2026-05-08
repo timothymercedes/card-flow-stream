@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { SELLER_AGREEMENT_VERSION } from "@/lib/legal";
 import { useSellerAgreementStatus } from "@/hooks/useSellerAgreementStatus";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 /**
  * Blocks seller / host features (sell, payouts, go live, hosting, Flex)
@@ -13,9 +14,11 @@ import { useSellerAgreementStatus } from "@/hooks/useSellerAgreementStatus";
  */
 export function SellerAgreementGate({ children }: { children: React.ReactNode }) {
   const { loading, needsAcceptance, isSellerOrHost, refresh } = useSellerAgreementStatus();
+  const tutorial = useTutorialMode();
   const [agree, setAgree] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  if (tutorial) return <>{children}</>;
   if (loading) return null;
   if (!isSellerOrHost || !needsAcceptance) return <>{children}</>;
 
