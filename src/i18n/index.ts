@@ -21,9 +21,11 @@ if (!i18n.isInitialized) {
         en: { translation: en },
         es: { translation: es },
       },
+      lng: "en",
       fallbackLng: "en",
       supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
       nonExplicitSupportedLngs: true,
+      
       interpolation: { escapeValue: false },
       detection: {
         order: ["localStorage", "navigator"],

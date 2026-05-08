@@ -14,11 +14,36 @@ export type Tutorial = {
   route_path?: string | null;
 };
 
-function speak(text: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      resolve(); return;
+/** Try ElevenLabs TTS via edge function; fall back to browser SpeechSynthesis. */
+async function speak(text: string, audioRef: { current: HTMLAudioElement | null }): Promise<void> {
+  // Try ElevenLabs first
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (token) {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (r.ok) {
+        const blob = await r.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = new Audio(objUrl);
+        audioRef.current = a;
+        await new Promise<void>((resolve) => {
+          a.onended = () => { URL.revokeObjectURL(objUrl); resolve(); };
+          a.onerror = () => { URL.revokeObjectURL(objUrl); resolve(); };
+          a.play().catch(() => resolve());
+        });
+        return;
+      }
     }
+  } catch { /* fall through */ }
+  // Fallback: browser SpeechSynthesis
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) { resolve(); return; }
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1; u.pitch = 1;
     u.onend = () => resolve();
@@ -32,6 +57,8 @@ export function TutorialPlayer({ tutorial, onClose }: { tutorial: Tutorial; onCl
   const [me, setMe] = useState<string | null>(null);
   const [narrating, setNarrating] = useState(false);
   const lastSavedRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const cancelRef = useRef(false);
   const steps = (tutorial.steps as TutorialStep[] | null) || [];
 
   useEffect(() => {
@@ -66,15 +93,19 @@ export function TutorialPlayer({ tutorial, onClose }: { tutorial: Tutorial; onCl
 
   async function narrateAll() {
     if (narrating) {
-      window.speechSynthesis?.cancel();
+      cancelRef.current = true;
+      try { audioRef.current?.pause(); } catch {}
+      try { window.speechSynthesis?.cancel(); } catch {}
       setNarrating(false);
       return;
     }
+    cancelRef.current = false;
     setNarrating(true);
     try {
-      await speak(tutorial.title);
+      await speak(tutorial.title, audioRef);
       for (const s of steps) {
-        await speak(`${s.title}. ${s.body}`);
+        if (cancelRef.current) break;
+        await speak(`${s.title}. ${s.body}`, audioRef);
       }
     } finally {
       setNarrating(false);
