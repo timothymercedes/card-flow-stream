@@ -3,6 +3,7 @@ import { Bell, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Notif = { id: string; type: string; body: string; link: string | null; read: boolean; created_at: string };
 
