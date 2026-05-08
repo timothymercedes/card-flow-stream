@@ -3,14 +3,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTutorialMode } from "@/lib/tutorialMode";
 
 const COOKIE = "pbl_beta";
+const STORAGE_KEY = "pbl_beta_access";
 
 export const BETA_MODE_ENABLED =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_BETA_MODE === "true") ||
   false;
 
-function hasBetaCookie(): boolean {
+function hasBetaAccess(): boolean {
   if (typeof document === "undefined") return false;
-  return document.cookie.split(";").some((c) => c.trim().startsWith(`${COOKIE}=1`));
+  const hasCookie = document.cookie.split(";").some((c) => c.trim().startsWith(`${COOKIE}=1`));
+  const hasStorage = window.localStorage.getItem(STORAGE_KEY) === "1";
+  return hasCookie || hasStorage;
+}
+
+function persistBetaAccess() {
+  if (typeof document === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, "1");
+  document.cookie = `${COOKIE}=1; Path=/; Max-Age=${60 * 60 * 24 * 30}; Secure; SameSite=None`;
 }
 
 /**
@@ -20,14 +29,14 @@ function hasBetaCookie(): boolean {
 export function BetaGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const tutorial = useTutorialMode();
-  const [hasCookie, setHasCookie] = useState<boolean>(() => hasBetaCookie());
+  const [hasCookie, setHasCookie] = useState<boolean>(() => hasBetaAccess());
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setHasCookie(hasBetaCookie());
+    setHasCookie(hasBetaAccess());
   }, [user?.id]);
 
   if (!BETA_MODE_ENABLED) return <>{children}</>;
@@ -58,8 +67,9 @@ export function BetaGate({ children }: { children: ReactNode }) {
         setSubmitting(false);
         return;
       }
-      // Cookie is set by the server; reload to re-render with access.
-      window.location.reload();
+      persistBetaAccess();
+      setHasCookie(true);
+      setSubmitting(false);
     } catch {
       setError("Network error — try again.");
       setSubmitting(false);
