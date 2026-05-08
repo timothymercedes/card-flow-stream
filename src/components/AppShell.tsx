@@ -103,14 +103,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main id="main-content" tabIndex={-1} className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
       {!tutorial && <NotifyPrompt />}
-      <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
+      <nav aria-label={t("nav.primary", "Primary")} className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((tab) => {
             const active = loc.pathname === tab.to || (tab.to !== "/" && loc.pathname.startsWith(tab.to));
             const Icon = tab.icon;
             return (
-              <Link key={tab.to} to={tab.to} aria-label={t(tab.labelKey)} className={`flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
-                <Icon className="h-5 w-5" />
+              <Link key={tab.to} to={tab.to} aria-label={t(tab.labelKey)} aria-current={active ? "page" : undefined} className={`flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
+                <Icon className="h-5 w-5" aria-hidden="true" />
                 {t(tab.labelKey)}
               </Link>
             );
