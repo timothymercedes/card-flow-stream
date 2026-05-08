@@ -360,31 +360,31 @@ function ObsHub() {
                 }
               />
 
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <button
-                  onClick={() => copy(profile.cf_stream_key || "", "Stream key")}
-                  className="flex items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-xs font-bold text-primary-foreground"
+                  onClick={() => copy(profile.cf_rtmps_url || "", "Stream URL")}
+                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-3 py-3 text-sm font-bold text-primary-foreground"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy Stream Key
+                  <Copy className="h-4 w-4" /> Copy Stream URL
                 </button>
                 <button
-                  onClick={() => copy(profile.cf_rtmps_url || "", "RTMP URL")}
-                  className="flex items-center justify-center gap-1.5 rounded-xl bg-primary py-3 text-xs font-bold text-primary-foreground"
+                  onClick={() => copy(profile.cf_stream_key || "", "Stream key")}
+                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-3 py-3 text-sm font-bold text-primary-foreground"
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy RTMP URL
+                  <Copy className="h-4 w-4" /> Copy Stream Key
                 </button>
                 <button
                   data-tour="obs-download"
                   onClick={downloadProfile}
-                  className="flex items-center justify-center gap-1.5 rounded-xl bg-muted py-3 text-xs font-bold"
+                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-muted px-3 py-3 text-sm font-bold"
                 >
-                  <Download className="h-3.5 w-3.5" /> Download defaults .ini
+                  <Download className="h-4 w-4" /> Download OBS Profile
                 </button>
-                <TestConnectionButton health={health} polling={polling} />
+                <TestConnectionButton health={health} polling={polling} onClick={() => checkConnection(true)} />
               </div>
 
               <p className="mt-2 text-[10px] text-muted-foreground">
-                Recommended: <b>720p · 30 fps · 4000 kbps · keyframe 2s · x264 (veryfast)</b>. Audio 160 kbps stereo.
+                If OBS still fails, disable Enhanced Broadcasting and use the non-TLS fallback URL above.
               </p>
             </div>
 
