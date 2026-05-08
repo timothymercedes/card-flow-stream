@@ -1,0 +1,14 @@
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/welcome.mp4' where id = 'bc9021f3-17de-4639-8d02-fce710e360dc';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/profile.mp4' where id = '21ba81a4-9b5d-4b31-9ae2-43783a5c943d';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/seller-approved.mp4' where id = '29a2cc77-a550-4d45-b33c-5eaf2b4f04f1';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/list-card.mp4' where id = '42f5a47e-7db4-418d-85de-62e574da8823';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/host-live.mp4' where id = '082be369-084d-44bd-bbbe-882c807f5fa0';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/auction-formats.mp4' where id = '45ef664d-6e4f-4a3b-8a8a-53f3c5640774';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/flex-live.mp4' where id = '86b6b02e-3084-47b9-9230-086992a6944b';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/shipping-seller.mp4' where id = 'abf4dc73-abee-4556-a28a-63a89ddda5d4';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/safety.mp4' where id = '89385623-f1a0-450b-945e-95d75cc741a7';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/browse-market.mp4' where id = '1b81729e-09dd-4fca-b66e-16bcae6b5587';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/place-bid.mp4' where id = '2948581b-fe93-4e48-95af-38e7f33c0c06';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/watch-live.mp4' where id = '8faa9a63-f1e1-4b6a-b205-5c16863d8caf';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/checkout.mp4' where id = 'da375191-c5b0-48e4-8f58-b1780f66c18d';
+update public.tutorials set video_url = 'https://yklpitgmqyclscnsswte.supabase.co/storage/v1/object/public/tutorial-videos/vault.mp4' where id = '0c1f77c9-cd4e-4319-afaf-94cbadcd0548';
