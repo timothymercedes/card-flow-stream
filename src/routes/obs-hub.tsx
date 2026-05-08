@@ -135,15 +135,58 @@ function ObsHub() {
   }
 
   function downloadProfile() {
-    if (!profile?.cf_rtmps_url || !profile?.cf_stream_key) return;
-    const ini = `[General]\nName=PullBidLive\n\n[Stream]\nservice=Custom\nserver=${profile.cf_rtmps_url}\nkey=${profile.cf_stream_key}\nuse_auth=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4500\nABitrate=160\nStreamEncoder=x264\n\n[Video]\nBaseCX=1920\nBaseCY=1080\nOutputCX=1920\nOutputCY=1080\nFPSCommon=30\n`;
+    if (!profile?.cf_rtmps_url || !profile?.cf_stream_key) {
+      toast.error("Connect OBS first — no RTMP URL or stream key yet");
+      return;
+    }
+    // NOTE: We intentionally do NOT include a [Stream] block here. OBS stores
+    // service config in service.json, not basic.ini — putting it here causes
+    // the "No config URL available for the current service" error on import.
+    // This file only sets safe video/output defaults (720p30 / 4000 kbps / x264).
+    const ini = [
+      "[General]",
+      "Name=PullBidLive",
+      "",
+      "[Output]",
+      "Mode=Simple",
+      "",
+      "[SimpleOutput]",
+      "VBitrate=4000",
+      "ABitrate=160",
+      "StreamEncoder=x264",
+      "Preset=veryfast",
+      "",
+      "[Video]",
+      "BaseCX=1280",
+      "BaseCY=720",
+      "OutputCX=1280",
+      "OutputCY=720",
+      "FPSCommon=30",
+      "",
+    ].join("\n");
     const blob = new Blob([ini], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "PullBidLive.ini";
+    a.href = url; a.download = "PullBidLive-basic.ini";
     a.click(); URL.revokeObjectURL(url);
-    toast.success("Profile downloaded — OBS → Profile → Import");
+    toast.success("Defaults downloaded — see steps to enter Service/URL/Key in OBS");
   }
+
+  // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
+  // firewalls or older OBS builds choke on rtmps://.
+  const rtmpFallbackUrl = profile?.cf_rtmps_url
+    ? profile.cf_rtmps_url.replace(/^rtmps:\/\//, "rtmp://").replace(":443/", ":1935/")
+    : "";
+
+  // Pre-flight readiness — must be true before "Go Live with OBS"
+  const preflight = {
+    streamKey: !!profile?.cf_stream_key,
+    rtmpUrl: !!profile?.cf_rtmps_url,
+    title: !!profile?.default_title?.trim(),
+    tags: (profile?.default_tcg_tags?.length ?? 0) > 0,
+    encoderConnected: health?.status === "connected" || health?.status === "live",
+  };
+  const preflightReady = preflight.streamKey && preflight.rtmpUrl && preflight.title && preflight.tags;
 
   async function goLiveWithObs() {
     if (!user || !profile) return;
@@ -259,17 +302,23 @@ function ObsHub() {
               {/* Step-by-step instructions */}
               <ol className="mb-3 space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                 <li><b className="text-foreground">1.</b> Open OBS Studio → <b>Settings → Stream</b>.</li>
-                <li><b className="text-foreground">2.</b> Service: <b>Custom…</b></li>
-                <li><b className="text-foreground">3.</b> Paste the <b>RTMP URL</b> into <b>Server</b>.</li>
-                <li><b className="text-foreground">4.</b> Paste the <b>Stream Key</b> into <b>Stream Key</b>.</li>
-                <li><b className="text-foreground">5.</b> Click <b>OK</b> → <b>Start Streaming</b>.</li>
-                <li><b className="text-foreground">6.</b> Come back here and tap <b>Test Connection</b>.</li>
+                <li><b className="text-foreground">2.</b> <b>Service</b>: pick <b>Custom…</b> (NOT Twitch / YouTube — picking a named service triggers “No config URL available”).</li>
+                <li><b className="text-foreground">3.</b> Paste the <b>RTMP URL</b> below into <b>Server</b>.</li>
+                <li><b className="text-foreground">4.</b> Paste the <b>Stream Key</b> into <b>Stream Key</b>. Leave “Use authentication” unchecked.</li>
+                <li><b className="text-foreground">5.</b> <b>Settings → Output</b> → Output Mode <b>Simple</b> · Video Bitrate <b>4000</b> · Encoder <b>x264</b>.</li>
+                <li><b className="text-foreground">6.</b> <b>Settings → Video</b> → Base & Output <b>1280×720</b> · FPS <b>30</b>.</li>
+                <li><b className="text-foreground">7.</b> Click <b>OK</b> → <b>Start Streaming</b>, then tap <b>Test Connection</b> below.</li>
               </ol>
 
               <KeyRow
-                label="RTMP URL (Server)"
+                label="RTMP URL (Server) — primary, TLS"
                 value={profile.cf_rtmps_url || ""}
                 onCopy={() => copy(profile.cf_rtmps_url || "", "RTMP URL")}
+              />
+              <KeyRow
+                label="RTMP URL — fallback (no TLS, port 1935)"
+                value={rtmpFallbackUrl}
+                onCopy={() => copy(rtmpFallbackUrl, "RTMP fallback URL")}
               />
               <KeyRow
                 label="Stream Key"
@@ -300,13 +349,33 @@ function ObsHub() {
                   onClick={downloadProfile}
                   className="flex items-center justify-center gap-1.5 rounded-xl bg-muted py-3 text-xs font-bold"
                 >
-                  <Download className="h-3.5 w-3.5" /> Download .ini
+                  <Download className="h-3.5 w-3.5" /> Download defaults .ini
                 </button>
                 <TestConnectionButton health={health} polling={polling} />
               </div>
 
               <p className="mt-2 text-[10px] text-muted-foreground">
-                Recommended: 1080p · 30fps · 4500 kbps · keyframe 2s · x264.
+                Recommended: <b>720p · 30 fps · 4000 kbps · keyframe 2s · x264 (veryfast)</b>. Audio 160 kbps stereo.
+              </p>
+            </div>
+
+            {/* Encoder fallback help — fixes "Starting the output failed" */}
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-amber-500">
+                <AlertCircle className="h-4 w-4" /> Got “Starting the output failed”?
+              </p>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Almost always an encoder issue (NVENC / AMD / QuickSync not available on this machine). Switch to <b>x264 software encoding</b> — it works on every laptop.
+              </p>
+              <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
+                <li><b className="text-foreground">1.</b> OBS → <b>Settings → Output</b>.</li>
+                <li><b className="text-foreground">2.</b> Output Mode: <b>Simple</b>.</li>
+                <li><b className="text-foreground">3.</b> <b>Encoder: Software (x264)</b>. Preset <b>veryfast</b>.</li>
+                <li><b className="text-foreground">4.</b> Video Bitrate <b>3500–4500</b> kbps. Audio <b>160</b> kbps.</li>
+                <li><b className="text-foreground">5.</b> Click <b>Apply → OK</b> and Start Streaming again.</li>
+              </ol>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                If you have an NVIDIA GPU and want to use NVENC for lower CPU usage, update GPU drivers first. Card-streaming setups don’t need NVENC — x264 at 720p30 uses very little CPU.
               </p>
             </div>
 
@@ -389,14 +458,29 @@ function ObsHub() {
               <p className="mb-3 text-[11px] text-muted-foreground">
                 Open OBS → Start Streaming → tap below. We launch your stream with your saved defaults — no extra prompts.
               </p>
+
+              {/* Pre-flight checklist */}
+              <ul className="mb-3 space-y-1 rounded-xl bg-background/40 p-3 text-[11px]">
+                <PreflightItem ok={preflight.streamKey} label="Stream key generated" />
+                <PreflightItem ok={preflight.rtmpUrl} label="RTMP URL ready" />
+                <PreflightItem ok={preflight.title} label="Default stream title set" />
+                <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
+                <PreflightItem ok={preflight.encoderConnected} label="OBS encoder connected (optional — can start before)" optional />
+              </ul>
+
               <button
                 onClick={goLiveWithObs}
-                disabled={launching}
+                disabled={launching || !preflightReady}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-live py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
               >
                 {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                 🔴 Go Live With OBS
               </button>
+              {!preflightReady && (
+                <p className="mt-2 text-[10px] text-amber-500">
+                  Finish the items above first — then this button unlocks.
+                </p>
+              )}
               <p className="mt-2 text-[10px] text-muted-foreground">
                 Prefer mobile? <Link to="/sell" className="text-primary underline">Use mobile camera instead →</Link>
               </p>
@@ -546,6 +630,21 @@ function KeyRow({ label, value, onCopy, rightSlot }: { label: string; value: str
         {rightSlot}
       </div>
     </div>
+  );
+}
+
+function PreflightItem({ ok, label, optional }: { ok: boolean; label: string; optional?: boolean }) {
+  return (
+    <li className="flex items-center gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+      ) : (
+        <AlertCircle className={`h-3.5 w-3.5 shrink-0 ${optional ? "text-muted-foreground" : "text-amber-500"}`} />
+      )}
+      <span className={ok ? "text-foreground" : "text-muted-foreground"}>
+        {label}{optional && !ok ? " — optional" : ""}
+      </span>
+    </li>
   );
 }
 
