@@ -719,7 +719,14 @@ function makeStoredZip(files: Record<string, string>) {
   const end = new Uint8Array(22);
   const ev = new DataView(end.buffer);
   ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, centralParts.length, true); ev.setUint16(10, centralParts.length, true); ev.setUint32(12, centralSize, true); ev.setUint32(16, offset, true);
-  return new Blob([...localParts, ...centralParts, end]);
+  const size = offset + centralSize + end.length;
+  const out = new Uint8Array(size);
+  let pos = 0;
+  for (const part of [...localParts, ...centralParts, end]) {
+    out.set(part, pos);
+    pos += part.length;
+  }
+  return out.buffer.slice(0);
 }
 
 function crc32(bytes: Uint8Array) {
