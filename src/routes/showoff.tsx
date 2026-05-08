@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 export const Route = createFileRoute("/showoff")({
   head: () => ({ meta: [{ title: "Flex Live — PullBid Live" }] }),
@@ -24,6 +25,7 @@ type ShowStream = {
 
 function ShowOff() {
   const { user, profile } = useAuth();
+  const tutorial = useTutorialMode();
   const nav = useNavigate();
   const [verified, setVerified] = useState<boolean | null>(null);
   const [title, setTitle] = useState("");
@@ -39,6 +41,11 @@ function ShowOff() {
   useEffect(() => { triggerOnce("flex-welcome"); }, [triggerOnce]);
 
   useEffect(() => {
+    if (tutorial) {
+      setVerified(true);
+      setStreams([{ id: "demo-flex", seller_id: user?.id ?? "tour-demo-user", title: "Flex Live: PSA reveal room", thumbnail_url: null, is_private: false }]);
+      return;
+    }
     if (!user) { setVerified(false); return; }
     supabase.from("profiles").select("live_verified, verification_status").eq("id", user.id).maybeSingle()
       .then(({ data }) => {
@@ -48,7 +55,7 @@ function ShowOff() {
     supabase.from("live_streams").select("id, seller_id, title, thumbnail_url, is_private")
       .eq("status", "live").eq("mode", "show_off").order("created_at", { ascending: false })
       .then(({ data }) => setStreams((data as any[]) || []));
-  }, [user]);
+  }, [user, tutorial]);
 
   async function searchUsers(q: string) {
     setTagQ(q);
@@ -60,7 +67,7 @@ function ShowOff() {
   async function startShowOff(overrideTags?: TcgTag[]) {
     if (!user || !profile) return toast.error("Sign in first");
     if (!title.trim()) return toast.error("Add a title");
-    if (!verified) return toast.error("Get verified by an admin to host live");
+    if (!tutorial && !verified) return toast.error("Get verified by an admin to host live");
     const tags = overrideTags ?? tcgTags;
     if (!tags || tags.length === 0) return toast.error("Pick at least one TCG tag");
     // Block if host already has an open stream
@@ -127,7 +134,7 @@ function ShowOff() {
         </div>
         <p className="mb-4 text-xs text-muted-foreground">Casual collector hangouts — no selling, just vibes. Talk cards, show pulls, collab with friends.</p>
 
-        {verified === false && (
+        {!tutorial && verified === false && (
           <div className="mb-4 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-xs">
             <p className="font-bold text-amber-300">Verification required</p>
             <p className="mt-1 text-muted-foreground">An admin needs to verify your account before you can host or join Flex Lives.</p>

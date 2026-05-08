@@ -34,9 +34,9 @@ function Sell() {
   const { triggerOnce } = useTour();
   useEffect(() => { triggerOnce("seller-welcome"); }, [triggerOnce]);
   const [tab, setTab] = useState<"live" | "listing">("live");
-  const [sellerStatus, setSellerStatus] = useState<string | null>(tutorial ? "approved" : null);
-  const [stripeReady, setStripeReady] = useState<boolean | null>(tutorial ? true : null);
-  const [shopName, setShopName] = useState<string | null | undefined>(tutorial ? "Demo Card Shop" : undefined);
+  const [sellerStatus, setSellerStatus] = useState<string | null>(null);
+  const [stripeReady, setStripeReady] = useState<boolean | null>(null);
+  const [shopName, setShopName] = useState<string | null | undefined>(undefined);
 
   // Live form
   const [streamTitle, setStreamTitle] = useState("");
@@ -81,7 +81,12 @@ function Sell() {
 
   // Load seller status
   useEffect(() => {
-    if (tutorial) return;
+    if (tutorial) {
+      setSellerStatus("approved");
+      setStripeReady(true);
+      setShopName("Demo Card Shop");
+      return;
+    }
     if (user && sellerStatus === null) {
       supabase.from("profiles").select("seller_status, shop_name").eq("id", user.id).maybeSingle().then(({ data }) => {
         setSellerStatus((data as any)?.seller_status || "none");
@@ -102,6 +107,10 @@ function Sell() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [condition, condPrices]);
 
+  const gateSellerStatus = tutorial ? "approved" : sellerStatus;
+  const gateStripeReady = tutorial ? true : stripeReady;
+  const gateShopName = tutorial ? "Demo Card Shop" : shopName;
+
   if (!user) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
@@ -112,19 +121,19 @@ function Sell() {
     </AppShell>
   );
 
-  if (sellerStatus && sellerStatus !== "approved") return (
+  if (gateSellerStatus && gateSellerStatus !== "approved") return (
     <AppShell>
       <div className="px-6 py-16 text-center">
         <h1 className="text-xl font-bold">Seller application required</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {sellerStatus === "pending" ? "Your application is awaiting admin approval." : "Apply to sell from your profile (verified ID + mailing address required)."}
+          {gateSellerStatus === "pending" ? "Your application is awaiting admin approval." : "Apply to sell from your profile (verified ID + mailing address required)."}
         </p>
         <Link to="/profile" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Go to Profile</Link>
       </div>
     </AppShell>
   );
 
-  if (sellerStatus === "approved" && stripeReady === false) return (
+  if (gateSellerStatus === "approved" && gateStripeReady === false) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
         <h1 className="text-xl font-bold">Connect payouts to start selling</h1>
@@ -134,7 +143,7 @@ function Sell() {
     </AppShell>
   );
 
-  if (sellerStatus === "approved" && shopName === null) return (
+  if (gateSellerStatus === "approved" && gateShopName === null) return (
     <AppShell>
       <div className="px-6 py-16 text-center">
         <h1 className="text-xl font-bold">Claim your shop name</h1>

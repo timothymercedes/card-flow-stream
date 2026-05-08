@@ -12,6 +12,8 @@ import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { OrderCancellation } from "@/components/OrderCancellation";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
+import { useTutorialMode } from "@/lib/tutorialMode";
+import { demoListings, demoOrders, demoSellerAnalytics } from "@/lib/tutorialDemoData";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
@@ -52,6 +54,7 @@ function SubTabs<T extends string>({ tabs, value, onChange }: { tabs: { k: T; l:
 
 function SellerHub() {
   const { user } = useAuth();
+  const tutorial = useTutorialMode();
 
   // Data
   const [orders, setOrders] = useState<any[]>([]);
@@ -84,6 +87,16 @@ function SellerHub() {
 
   async function load() {
     if (!user) return;
+    if (tutorial) {
+      setOrders(demoOrders.map((o) => ({ ...o, title: demoListings.find((l) => l.id === o.listing_id)?.title ?? "Demo order", amount: o.total_cents / 100, status: o.status === "paid" ? "pending" : o.status, payment_status: "paid", buyer_id: o.buyer, category: "pokemon", quantity: 1 })));
+      setListings(demoListings.map((l) => ({ ...l, price: l.price_cents / 100, auction_status: "active", status: "active", image_url: null })));
+      setReviews([{ id: "r1", rating: 5, body: "Fast shipping and clean packaging.", buyer_username: "card_hunter22", created_at: new Date().toISOString() }]);
+      setPayoutStatus("complete");
+      setFollowers(demoSellerAnalytics.followers);
+      setFollowing(84);
+      setStreams([{ id: "demo-stream", title: "Friday Night Vintage Pulls 🔥", status: "live", mode: "auction", current_bid: 2850, viewers: 247, created_at: new Date().toISOString() }]);
+      return;
+    }
     const [ord, list, revs, prof, fr, fg, str] = await Promise.all([
       supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
@@ -108,7 +121,7 @@ function SellerHub() {
     setFollowing(fg.count || 0);
     setStreams(str.data || []);
   }
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, tutorial]);
 
   async function ship(o: any) {
     const tn = tracking[o.id];
@@ -313,7 +326,7 @@ function SellerHub() {
           <div><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-sm font-bold">${totals.pending.toFixed(0)}</p></div>
         </div>
 
-        {payoutStatus !== "complete" && (
+        {!tutorial && payoutStatus !== "complete" && (
           <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-card p-3">
             <p className="text-sm font-bold">💳 Connect your payout account</p>
             <p className="mt-1 text-xs text-muted-foreground">Required to receive funds when live payments turn on. 5% platform commission.</p>

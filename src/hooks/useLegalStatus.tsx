@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { REQUIRED_LEGAL_DOCS, REQUIRED_LEGAL_VERSION, hasCompletedRequiredAgreementsFromMetadata } from "@/lib/legal";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 type LegalStatus = {
   loading: boolean;
@@ -11,10 +12,16 @@ type LegalStatus = {
 
 export function useLegalStatus(): LegalStatus {
   const { user, loading } = useAuth();
+  const tutorial = useTutorialMode();
   const [checking, setChecking] = useState(true);
   const [needsAcceptance, setNeedsAcceptance] = useState(false);
 
   async function refresh() {
+    if (tutorial) {
+      setNeedsAcceptance(false);
+      setChecking(false);
+      return;
+    }
     if (!user) {
       setNeedsAcceptance(false);
       setChecking(false);
@@ -54,6 +61,11 @@ export function useLegalStatus(): LegalStatus {
   }
 
   useEffect(() => {
+    if (tutorial) {
+      setNeedsAcceptance(false);
+      setChecking(false);
+      return;
+    }
     if (loading) return;
     let cancelled = false;
     (async () => {
@@ -62,7 +74,7 @@ export function useLegalStatus(): LegalStatus {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, user?.id, user?.user_metadata?.agreements_version, user?.user_metadata?.agreements_review_required]);
+  }, [loading, user?.id, user?.user_metadata?.agreements_version, user?.user_metadata?.agreements_review_required, tutorial]);
 
   return { loading: loading || checking, needsAcceptance, refresh };
 }
