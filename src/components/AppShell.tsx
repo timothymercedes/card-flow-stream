@@ -90,7 +90,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
        </div>
-       <HeaderSearch className="mt-2.5" />
+       <div className="mt-2.5 flex items-center gap-2">
+         <BackButton />
+         <HeaderSearch className="flex-1" />
+       </div>
       </header>
       <main className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
