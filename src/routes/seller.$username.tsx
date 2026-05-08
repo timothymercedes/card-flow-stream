@@ -277,10 +277,10 @@ function PublicStore() {
           </div>
         )}
 
-        <div className="mb-3 flex gap-2 border-b border-border text-xs">
-          {(["listings", "sold", "posts", "reviews"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
-              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : `Listings (${listings.length})`}
+        <div className="mb-3 flex gap-2 overflow-x-auto border-b border-border text-xs">
+          {(["listings", "vault", "sold", "posts", "reviews"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
             </button>
           ))}
         </div>
