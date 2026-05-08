@@ -359,6 +359,25 @@ function PublicStore() {
             )}
           </>
         )}
+        {tab === "vault" && (
+          <>
+            {vaultCards.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No public vault cards.</p>}
+            <div className="grid grid-cols-2 gap-3">
+              {vaultCards.map((v) => (
+                <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                  <div className="aspect-square overflow-hidden bg-muted">
+                    {v.image_url ? <img src={v.image_url} alt={v.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
+                  </div>
+                  <div className="p-2">
+                    <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
+                    {v.category && <p className="text-[10px] text-muted-foreground">{v.category}</p>}
+                    {Number(v.estimated_value) > 0 && <p className="text-[11px] font-bold text-primary">${Number(v.estimated_value).toFixed(2)}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {tab === "reviews" && (
           <>
             {reviews.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No reviews yet.</p>}
