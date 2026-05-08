@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Gift, X, Sparkles, Trophy, Truck, Loader2, Check } from "lucide-react";
-import { Confetti } from "@/components/Confetti";
+const Confetti = lazy(() => import("@/components/Confetti").then(m => ({ default: m.Confetti })));
 
 type Giveaway = {
   id: string;
@@ -413,7 +413,7 @@ export function LiveGiveaway({
 
         {isWinnerReveal && giveaway && (
           <>
-            <Confetti count={80} durationMs={2600} />
+            <Suspense fallback={null}><Confetti count={80} durationMs={2600} /></Suspense>
             <div className="winner-burst rounded-2xl bg-gradient-to-br from-emerald-500/40 via-teal-500/30 to-cyan-500/40 p-6 text-center text-white owned-glow ring-1 ring-white/20">
               <Trophy className="mx-auto mb-2 h-12 w-12 text-amber-300 drop-shadow" />
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-300">Winner</p>

@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { CardScanner } from "@/components/CardScanner";
+const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
@@ -583,7 +583,9 @@ function Sell() {
         )}
       </div>
       {scanning && (
-        <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
+        <Suspense fallback={null}>
+          <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
+        </Suspense>
       )}
     </AppShell>
     </SellerAgreementGate>
