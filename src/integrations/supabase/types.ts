@@ -442,6 +442,42 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          id: number
+          message: string
+          metadata: Json
+          route: string | null
+          severity: string
+          source: string
+          stack: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          message: string
+          metadata?: Json
+          route?: string | null
+          severity?: string
+          source?: string
+          stack?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          message?: string
+          metadata?: Json
+          route?: string | null
+          severity?: string
+          source?: string
+          stack?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -1495,6 +1531,125 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      perf_alert_events: {
+        Row: {
+          alert_id: string | null
+          alert_name: string
+          created_at: string
+          details: Json
+          id: number
+          kind: string
+          measured_value: number | null
+          threshold: number | null
+        }
+        Insert: {
+          alert_id?: string | null
+          alert_name: string
+          created_at?: string
+          details?: Json
+          id?: number
+          kind: string
+          measured_value?: number | null
+          threshold?: number | null
+        }
+        Update: {
+          alert_id?: string | null
+          alert_name?: string
+          created_at?: string
+          details?: Json
+          id?: number
+          kind?: string
+          measured_value?: number | null
+          threshold?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perf_alert_events_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "perf_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perf_alerts: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          threshold_count: number | null
+          threshold_ms: number | null
+          threshold_pct: number | null
+          updated_at: string
+          window_minutes: number
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind: string
+          name: string
+          notes?: string | null
+          threshold_count?: number | null
+          threshold_ms?: number | null
+          threshold_pct?: number | null
+          updated_at?: string
+          window_minutes?: number
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          threshold_count?: number | null
+          threshold_ms?: number | null
+          threshold_pct?: number | null
+          updated_at?: string
+          window_minutes?: number
+        }
+        Relationships: []
+      }
+      perf_metrics: {
+        Row: {
+          created_at: string
+          duration_ms: number
+          id: number
+          kind: string
+          metadata: Json
+          method: string
+          route: string
+          status_code: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms: number
+          id?: number
+          kind?: string
+          metadata?: Json
+          method?: string
+          route: string
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number
+          id?: number
+          kind?: string
+          metadata?: Json
+          method?: string
+          route?: string
+          status_code?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       post_comments: {
         Row: {
@@ -3349,6 +3504,30 @@ export type Database = {
         }
         Returns: string
       }
+      perf_slow_routes: {
+        Args: { _limit?: number; _minutes?: number }
+        Returns: {
+          avg_ms: number
+          hits: number
+          kind: string
+          max_ms: number
+          p95_ms: number
+          route: string
+        }[]
+      }
+      perf_summary: {
+        Args: { _minutes?: number }
+        Returns: {
+          avg_ms: number
+          error_count: number
+          kind: string
+          max_ms: number
+          p50_ms: number
+          p95_ms: number
+          p99_ms: number
+          request_count: number
+        }[]
+      }
       place_listing_bid: {
         Args: { _amount: number; _listing_id: string }
         Returns: Json
@@ -3381,6 +3560,7 @@ export type Database = {
         }[]
       }
       purge_old_notifications: { Args: never; Returns: number }
+      purge_old_perf_data: { Args: never; Returns: number }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
