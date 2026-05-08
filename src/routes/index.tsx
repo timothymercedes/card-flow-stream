@@ -239,7 +239,7 @@ function Home() {
           {posts.length === 0 && <EmptyMini text="No posts yet" />}
           {posts.map((p) => (
             <div key={p.id} className="rounded-xl bg-card p-3 ring-1 ring-border">
-              <div className="text-xs font-semibold text-primary">@{p.username}</div>
+              <Link to="/seller/$username" params={{ username: p.username }} className="text-xs font-semibold text-primary hover:underline">@{p.username}</Link>
               <p className="mt-1 text-sm">{p.caption}</p>
               {p.image_url && <img src={p.image_url} loading="lazy" className="mt-2 max-h-48 w-full rounded-lg object-cover" alt="" />}
             </div>

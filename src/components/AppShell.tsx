@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Search } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +66,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
         <div className="flex items-center gap-1.5">
+          <Link to="/discover" aria-label="Search collectors" className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <Search className="h-4 w-4" />
+          </Link>
           <Link to="/showoff" className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
             <Sparkles className="h-3.5 w-3.5" /> Flex Live
           </Link>

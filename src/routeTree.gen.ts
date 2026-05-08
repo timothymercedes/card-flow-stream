@@ -25,6 +25,7 @@ import { Route as ObsHubRouteImport } from './routes/obs-hub'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as DisputesRouteImport } from './routes/disputes'
+import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -125,6 +126,11 @@ const FeedRoute = FeedRouteImport.update({
 const DisputesRoute = DisputesRouteImport.update({
   id: '/disputes',
   path: '/disputes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiscoverRoute = DiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
@@ -280,6 +287,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
@@ -320,6 +328,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
+  '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
   '/my-listings': typeof MyListingsRoute
@@ -361,6 +370,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cart'
+    | '/discover'
     | '/disputes'
     | '/feed'
     | '/my-listings'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cart'
+    | '/discover'
     | '/disputes'
     | '/feed'
     | '/my-listings'
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth'
     | '/cart'
+    | '/discover'
     | '/disputes'
     | '/feed'
     | '/my-listings'
@@ -479,6 +491,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
+  DiscoverRoute: typeof DiscoverRoute
   DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
   MyListingsRoute: typeof MyListingsRoute
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       path: '/disputes'
       fullPath: '/disputes'
       preLoaderRoute: typeof DisputesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/discover': {
+      id: '/discover'
+      path: '/discover'
+      fullPath: '/discover'
+      preLoaderRoute: typeof DiscoverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -783,6 +803,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
+  DiscoverRoute: DiscoverRoute,
   DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
   MyListingsRoute: MyListingsRoute,
@@ -820,12 +841,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
