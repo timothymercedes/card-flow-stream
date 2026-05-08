@@ -5,6 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 /** Loads the user's preferred_language from their profile and applies it to i18n. */
 export function LanguageSync() {
   const { i18n } = useTranslation();
+  // Keep <html lang> in sync with the active language for screen readers + SEO.
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = i18n.language?.split("-")[0] || "en";
+    }
+  }, [i18n.language]);
   useEffect(() => {
     let cancel = false;
     supabase.auth.getUser().then(async ({ data }) => {

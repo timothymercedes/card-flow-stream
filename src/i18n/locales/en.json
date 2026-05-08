@@ -10,9 +10,11 @@
     "signOut": "Sign out",
     "close": "Close",
     "viewMore": "View more",
-    "next": "Next"
+    "next": "Next",
+    "skipToContent": "Skip to content"
   },
   "nav": {
+    "primary": "Primary",
     "home": "Home",
     "live": "Live",
     "feed": "Feed",
