@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
+import { WatchTutorial } from "@/components/WatchTutorial";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
