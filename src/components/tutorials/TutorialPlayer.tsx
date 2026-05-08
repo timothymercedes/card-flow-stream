@@ -57,6 +57,8 @@ export function TutorialPlayer({ tutorial, onClose }: { tutorial: Tutorial; onCl
   const [me, setMe] = useState<string | null>(null);
   const [narrating, setNarrating] = useState(false);
   const lastSavedRef = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const cancelRef = useRef(false);
   const steps = (tutorial.steps as TutorialStep[] | null) || [];
 
   useEffect(() => {
