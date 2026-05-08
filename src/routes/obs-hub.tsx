@@ -302,17 +302,23 @@ function ObsHub() {
               {/* Step-by-step instructions */}
               <ol className="mb-3 space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                 <li><b className="text-foreground">1.</b> Open OBS Studio → <b>Settings → Stream</b>.</li>
-                <li><b className="text-foreground">2.</b> Service: <b>Custom…</b></li>
-                <li><b className="text-foreground">3.</b> Paste the <b>RTMP URL</b> into <b>Server</b>.</li>
-                <li><b className="text-foreground">4.</b> Paste the <b>Stream Key</b> into <b>Stream Key</b>.</li>
-                <li><b className="text-foreground">5.</b> Click <b>OK</b> → <b>Start Streaming</b>.</li>
-                <li><b className="text-foreground">6.</b> Come back here and tap <b>Test Connection</b>.</li>
+                <li><b className="text-foreground">2.</b> <b>Service</b>: pick <b>Custom…</b> (NOT Twitch / YouTube — picking a named service triggers “No config URL available”).</li>
+                <li><b className="text-foreground">3.</b> Paste the <b>RTMP URL</b> below into <b>Server</b>.</li>
+                <li><b className="text-foreground">4.</b> Paste the <b>Stream Key</b> into <b>Stream Key</b>. Leave “Use authentication” unchecked.</li>
+                <li><b className="text-foreground">5.</b> <b>Settings → Output</b> → Output Mode <b>Simple</b> · Video Bitrate <b>4000</b> · Encoder <b>x264</b>.</li>
+                <li><b className="text-foreground">6.</b> <b>Settings → Video</b> → Base & Output <b>1280×720</b> · FPS <b>30</b>.</li>
+                <li><b className="text-foreground">7.</b> Click <b>OK</b> → <b>Start Streaming</b>, then tap <b>Test Connection</b> below.</li>
               </ol>
 
               <KeyRow
-                label="RTMP URL (Server)"
+                label="RTMP URL (Server) — primary, TLS"
                 value={profile.cf_rtmps_url || ""}
                 onCopy={() => copy(profile.cf_rtmps_url || "", "RTMP URL")}
+              />
+              <KeyRow
+                label="RTMP URL — fallback (no TLS, port 1935)"
+                value={rtmpFallbackUrl}
+                onCopy={() => copy(rtmpFallbackUrl, "RTMP fallback URL")}
               />
               <KeyRow
                 label="Stream Key"
@@ -343,13 +349,33 @@ function ObsHub() {
                   onClick={downloadProfile}
                   className="flex items-center justify-center gap-1.5 rounded-xl bg-muted py-3 text-xs font-bold"
                 >
-                  <Download className="h-3.5 w-3.5" /> Download .ini
+                  <Download className="h-3.5 w-3.5" /> Download defaults .ini
                 </button>
                 <TestConnectionButton health={health} polling={polling} />
               </div>
 
               <p className="mt-2 text-[10px] text-muted-foreground">
-                Recommended: 1080p · 30fps · 4500 kbps · keyframe 2s · x264.
+                Recommended: <b>720p · 30 fps · 4000 kbps · keyframe 2s · x264 (veryfast)</b>. Audio 160 kbps stereo.
+              </p>
+            </div>
+
+            {/* Encoder fallback help — fixes "Starting the output failed" */}
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-amber-500">
+                <AlertCircle className="h-4 w-4" /> Got “Starting the output failed”?
+              </p>
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Almost always an encoder issue (NVENC / AMD / QuickSync not available on this machine). Switch to <b>x264 software encoding</b> — it works on every laptop.
+              </p>
+              <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
+                <li><b className="text-foreground">1.</b> OBS → <b>Settings → Output</b>.</li>
+                <li><b className="text-foreground">2.</b> Output Mode: <b>Simple</b>.</li>
+                <li><b className="text-foreground">3.</b> <b>Encoder: Software (x264)</b>. Preset <b>veryfast</b>.</li>
+                <li><b className="text-foreground">4.</b> Video Bitrate <b>3500–4500</b> kbps. Audio <b>160</b> kbps.</li>
+                <li><b className="text-foreground">5.</b> Click <b>Apply → OK</b> and Start Streaming again.</li>
+              </ol>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                If you have an NVIDIA GPU and want to use NVENC for lower CPU usage, update GPU drivers first. Card-streaming setups don’t need NVENC — x264 at 720p30 uses very little CPU.
               </p>
             </div>
 
