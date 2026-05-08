@@ -9,6 +9,7 @@ import { LanguageSync } from "@/components/LanguageSync";
 import { A11yClassSync } from "@/components/A11yClassSync";
 import { TutorialModeBootstrap } from "@/components/TutorialModeBootstrap";
 import { PerfMonitorBootstrap } from "@/components/PerfMonitorBootstrap";
+import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
 
 function NotFoundComponent() {
@@ -64,6 +65,7 @@ export const Route = createRootRoute({
           <Outlet />
           <LegalGate />
         </BetaGate>
+        <RealtimeStatusBadge />
         <Toaster />
       </MascotTourProvider>
     </AuthProvider>

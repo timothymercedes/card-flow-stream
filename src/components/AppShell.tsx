@@ -8,6 +8,7 @@ import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
 import { useTutorialMode } from "@/lib/tutorialMode";
+import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
@@ -31,15 +32,25 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!user) { setIsSeller(false); setCartCount(0); return; }
     supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle()
       .then(({ data }) => setIsSeller(data?.seller_status === "approved"));
-    const refresh = () => supabase.from("orders").select("id", { count: "exact", head: true })
+    refreshCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, tutorial]);
+
+  function refreshCart() {
+    if (!user) return;
+    supabase.from("orders").select("id", { count: "exact", head: true })
       .eq("buyer_id", user.id).eq("payment_status", "awaiting_payment")
       .then(({ count }) => setCartCount(count || 0));
-    refresh();
-    const ch = supabase.channel(`cart-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` }, refresh)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user, tutorial]);
+  }
+
+  useRealtimeChannel(
+    { name: `cart-${user?.id ?? "none"}`, enabled: !!user && !tutorial },
+    (ch) => ch.on(
+      "postgres_changes" as any,
+      { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user?.id ?? ""}` },
+      () => refreshCart(),
+    ),
+  );
 
   const tabs = [
     ...baseTabs,

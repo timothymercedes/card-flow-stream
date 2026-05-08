@@ -3,6 +3,7 @@ import { Bell, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Notif = { id: string; type: string; body: string; link: string | null; read: boolean; created_at: string };
 
@@ -25,12 +26,17 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) { setItems([]); return; }
     load();
-    const ch = supabase
-      .channel(`notif-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  useRealtimeChannel(
+    { name: `notif-${user?.id ?? "none"}`, enabled: !!user },
+    (ch) => ch.on(
+      "postgres_changes" as any,
+      { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user?.id ?? ""}` },
+      () => load(),
+    ),
+  );
 
   if (!user) return null;
   const unread = items.filter((n) => !n.read).length;

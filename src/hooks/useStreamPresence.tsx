@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export type PresenceUser = {
   user_id: string;
@@ -56,7 +57,7 @@ export function useStreamPresence(streamId: string | null, userId: string | null
     };
   }, [streamId, userId, username, avatarUrl]);
 
-  // Initial load + realtime
+  // Initial load
   useEffect(() => {
     if (!streamId) return;
     let cancelled = false;
@@ -65,11 +66,22 @@ export function useStreamPresence(streamId: string | null, userId: string | null
       if (!cancelled) setViewers((data as any) || []);
     }
     load();
-    const ch = supabase.channel(`presence-db-${streamId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` }, load)
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
+    return () => { cancelled = true; };
   }, [streamId]);
+
+  // Realtime — auto-reconnect via shared hook
+  useRealtimeChannel(
+    { name: `presence-db-${streamId ?? "none"}`, enabled: !!streamId },
+    (ch) => ch.on(
+      "postgres_changes" as any,
+      { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId ?? ""}` },
+      async () => {
+        if (!streamId) return;
+        const { data } = await supabase.from("live_stream_presence").select("*").eq("stream_id", streamId);
+        setViewers((data as any) || []);
+      },
+    ),
+  );
 
   // Filter idle
   const now = Date.now();
