@@ -274,13 +274,15 @@ function ObsHub() {
     <SellerAgreementGate>
     <AppShell>
       <div className="space-y-4 px-4 py-4">
-        <header className="flex items-center gap-2">
-          <Radio className="h-5 w-5 text-primary" />
-          <h1 className="text-2xl font-bold">OBS Streamer Hub</h1>
+        <header className="rounded-2xl bg-card p-4">
+          <div className="flex items-center gap-2">
+            <Radio className="h-5 w-5 text-primary" />
+            <h1 className="text-2xl font-bold">OBS Streamer Hub</h1>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Copy these exact OBS settings. Do not choose Twitch, YouTube, or Enhanced Broadcast.
+          </p>
         </header>
-        <p className="text-xs text-muted-foreground">
-          One central place to connect OBS, save your defaults, and go live in under a minute.
-        </p>
 
         {setupError ? (
           <div className="flex gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -328,14 +330,13 @@ function ObsHub() {
               </div>
 
               {/* Step-by-step instructions */}
-              <ol className="mb-3 space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
-                <li><b className="text-foreground">1.</b> Open OBS Studio → <b>Settings → Stream</b>.</li>
-                <li><b className="text-foreground">2.</b> <b>Service</b>: pick <b>Custom…</b> (NOT Twitch / YouTube — picking a named service triggers “No config URL available”).</li>
-                <li><b className="text-foreground">3.</b> Paste the <b>RTMP URL</b> below into <b>Server</b>.</li>
-                <li><b className="text-foreground">4.</b> Paste the <b>Stream Key</b> into <b>Stream Key</b>. Leave “Use authentication” unchecked.</li>
-                <li><b className="text-foreground">5.</b> <b>Settings → Output</b> → Output Mode <b>Simple</b> · Video Bitrate <b>4000</b> · Encoder <b>x264</b>.</li>
-                <li><b className="text-foreground">6.</b> <b>Settings → Video</b> → Base & Output <b>1280×720</b> · FPS <b>30</b>.</li>
-                <li><b className="text-foreground">7.</b> Click <b>OK</b> → <b>Start Streaming</b>, then tap <b>Test Connection</b> below.</li>
+              <ol className="mb-3 space-y-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
+                <li><b className="text-foreground">1.</b> OBS → <b>Settings → Stream</b>.</li>
+                <li><b className="text-foreground">2.</b> <b>Service: Custom…</b> and <b>Server: RTMP URL</b>. This fixes “No config URL available”.</li>
+                <li><b className="text-foreground">3.</b> Paste the <b>Stream Key</b>. Leave “Use authentication” off.</li>
+                <li><b className="text-foreground">4.</b> OBS → <b>Settings → Output</b> → Encoder <b>Software (x264)</b>, Bitrate <b>4000</b>.</li>
+                <li><b className="text-foreground">5.</b> OBS → <b>Settings → Video</b> → Base and Output <b>1280×720</b>, FPS <b>30</b>.</li>
+                <li><b className="text-foreground">6.</b> Click <b>Start Streaming</b> in OBS, then tap <b>Check OBS Connection</b>.</li>
               </ol>
 
               <KeyRow
