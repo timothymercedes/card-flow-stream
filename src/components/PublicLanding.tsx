@@ -147,14 +147,15 @@ export default function PublicLanding() {
       <section id="demo" className="mx-auto max-w-6xl px-5 py-12">
         <div className="overflow-hidden rounded-3xl border border-border bg-card">
           <div className="grid gap-0 md:grid-cols-2">
-            <div className="relative aspect-video bg-gradient-to-br from-primary/30 via-fuchsia-500/20 to-live/30">
-              <div className="absolute inset-0 holo-foil opacity-20 mix-blend-overlay" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-background/80 backdrop-blur ring-1 ring-border">
-                  <PlayCircle className="h-9 w-9 text-primary" />
-                </div>
-              </div>
-              <div className="absolute left-3 top-3 rounded-full bg-background/70 px-2 py-0.5 text-[10px] font-bold uppercase backdrop-blur">Tutorial · 90s</div>
+            <div className="relative aspect-video bg-black">
+              <video
+                src="https://pullbidlive.com/__l5e/assets-v1/21c2a990-2dcf-4437-a79c-1d2182b8fbcb/welcome.mp4"
+                controls
+                playsInline
+                preload="metadata"
+                className="h-full w-full object-contain"
+              />
+              <div className="pointer-events-none absolute left-3 top-3 rounded-full bg-background/70 px-2 py-0.5 text-[10px] font-bold uppercase backdrop-blur">Welcome tour</div>
             </div>
             <div className="p-6 md:p-8">
               <p className="text-[11px] font-bold uppercase tracking-wider text-primary">How it works</p>
@@ -165,10 +166,35 @@ export default function PublicLanding() {
                 <li className="flex gap-2"><span className="font-bold text-primary">3.</span> Stripe captures payment, Shippo prints labels.</li>
                 <li className="flex gap-2"><span className="font-bold text-primary">4.</span> Payouts hit your bank. Buyers vault their pull.</li>
               </ol>
+              <Link to="/tutorials" className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground">
+                <PlayCircle className="h-4 w-4" /> Watch all tutorials
+              </Link>
             </div>
           </div>
         </div>
       </section>
+
+      {/* TUTORIAL HIGHLIGHTS */}
+      <Section eyebrow="Learn in minutes" title="Short videos for every role"
+        subtitle="Buyers, sellers, and live hosts — pick your path and watch the basics in under 5 minutes.">
+        <div className="grid gap-3 md:grid-cols-3">
+          {[
+            { title: "How to Bid in a Live Auction", role: "Buyers", color: "from-primary/30 to-fuchsia-500/20" },
+            { title: "Listing Your First Card", role: "Sellers", color: "from-emerald-500/30 to-primary/20" },
+            { title: "Hosting Your First Live Show", role: "Hosts", color: "from-live/30 to-primary/20" },
+          ].map((t) => (
+            <Link key={t.title} to="/tutorials" className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${t.color} p-5 aspect-video flex flex-col justify-between`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary">{t.role}</p>
+              <div>
+                <p className="text-sm font-bold">{t.title}</p>
+                <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground group-hover:text-foreground">
+                  <PlayCircle className="h-3.5 w-3.5" /> Watch tutorial
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </Section>
 
       {/* SELLER HUB PREVIEW */}
       <Section eyebrow="Seller Hub" title="Run your business from one dashboard"
