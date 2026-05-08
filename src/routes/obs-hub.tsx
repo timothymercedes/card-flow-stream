@@ -505,6 +505,23 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function TestConnectionButton({ health, polling }: { health: Health | null; polling: boolean }) {
+  const ok = health?.status === "connected" || health?.status === "live";
+  if (ok) {
+    return (
+      <div className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 py-3 text-xs font-bold text-emerald-500">
+        <CheckCircle2 className="h-3.5 w-3.5" /> Connection Successful
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted py-3 text-xs font-bold text-muted-foreground">
+      {polling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+      Test Connection
+    </div>
+  );
+}
+
 function KeyRow({ label, value, onCopy, rightSlot }: { label: string; value: string; onCopy: () => void; rightSlot?: React.ReactNode }) {
   return (
     <div className="mb-2">
