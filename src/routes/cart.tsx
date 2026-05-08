@@ -70,7 +70,7 @@ function Cart() {
       <div className="px-4 py-4">
         <div className="mb-1 flex items-center justify-between gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-bold"><ShoppingBag className="h-6 w-6" /> My Cart</h1>
-          <TutorialHint title="Paying and Tracking Shipments" />
+          <WatchTutorial routePath="/cart" label="Checkout help" />
         </div>
         <p className="mb-4 text-xs text-muted-foreground">Pay once per seller — combined shipping is already applied.</p>
 
