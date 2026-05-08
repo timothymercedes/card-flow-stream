@@ -47,6 +47,20 @@ function Onboarding() {
     nav({ to: "/" });
   }
 
+  if (step === "videos") {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background px-4 py-6">
+        <TutorialOnboarding role="buyer" onDone={() => nav({ to: "/" })} />
+        <button
+          onClick={() => nav({ to: "/" })}
+          className="mt-4 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+        >
+          Enter PullBidLive
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background px-4 py-6">
       <div className="mb-4 text-center">
