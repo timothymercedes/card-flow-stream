@@ -18,10 +18,23 @@ import { useEffect, useState } from "react";
 
 const KEY = "pbl_tour_mode";
 
+function tutorialModeHostAllowed(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".lovableproject.com") ||
+    host.startsWith("id-preview--") ||
+    host.startsWith("project--c81c8301-d89c-4830-8ab7-06f678968bc1-dev")
+  );
+}
+
 export function tutorialModeBuildAllowed(): boolean {
   try {
     if (import.meta.env.DEV) return true;
     if (import.meta.env.VITE_TUTORIAL_MODE_ENABLED === "true") return true;
+    if (tutorialModeHostAllowed()) return true;
   } catch {}
   return false;
 }
