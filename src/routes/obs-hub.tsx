@@ -159,7 +159,7 @@ function ObsHub() {
     setProvisioning(false);
     if (upErr) return toast.error(upErr.message);
     setProfile(up as any);
-    toast.success("OBS profile ready — copy keys or download .ini");
+    toast.success("OBS profile ready — copy keys or download the OBS profile ZIP");
   }
 
   async function saveDefaults(patch: Partial<ObsProfile>) {
@@ -183,13 +183,13 @@ function ObsHub() {
       toast.error("Connect OBS first — no RTMP URL or stream key yet");
       return;
     }
-    const profileName = `PullBidLive-Fixed-${new Date().toISOString().slice(0, 10)}`;
+    const profileName = `PullBidLive-OBS-${Date.now()}`;
     const ini = [
       "[General]",
       `Name=${profileName}`,
       "",
       "[Stream1]",
-      "IgnoreRecommended=false",
+      "IgnoreRecommended=true",
       "EnableMultitrackVideo=false",
       "MultitrackVideoConfigOverrideEnabled=false",
       "MultitrackVideoConfigOverride=",
@@ -230,9 +230,20 @@ function ObsHub() {
       2,
     );
 
+    const readme = [
+      "PullBidLive OBS profile",
+      "",
+      "Extract this ZIP first.",
+      "In OBS, use Profile > Import and select the extracted folder that directly contains basic.ini and service.json.",
+      "Then switch to the new PullBidLive-OBS profile and click Start Streaming.",
+      "",
+      "If OBS still says 'No config URL available', uninstall/disable the Streamlabs OBS plugin and restart OBS.",
+    ].join("\n");
+
     const zip = makeStoredZip({
-      [`${profileName}/basic.ini`]: ini,
-      [`${profileName}/service.json`]: serviceJson,
+      "basic.ini": ini,
+      "service.json": serviceJson,
+      "README.txt": readme,
     });
     const blob = new Blob([zip], { type: "application/zip" });
     const url = URL.createObjectURL(blob);
@@ -241,7 +252,7 @@ function ObsHub() {
     a.download = `${profileName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Clean OBS profile downloaded — extract the ZIP, import that folder, switch to it, then restart OBS");
+    toast.success("Fixed OBS profile downloaded — extract it, import the extracted folder, then switch to the new profile");
   }
 
   // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
