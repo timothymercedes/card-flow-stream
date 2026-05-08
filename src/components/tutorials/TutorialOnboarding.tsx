@@ -23,7 +23,7 @@ export function TutorialOnboarding({
 
   useEffect(() => {
     (async () => {
-      const audiences = ["general", role];
+      const audiences = ["general", role] as const;
       const { data } = await supabase
         .from("tutorials")
         .select("id,title,description,video_url,captions_url,thumbnail_url,duration_seconds,audience,order_index")
