@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { TutorialLibrary } from "@/components/tutorials/TutorialLibrary";
+import { HeaderSearch } from "@/components/HeaderSearch";
 
 export const Route = createFileRoute("/tutorials")({
   component: TutorialsPage,
