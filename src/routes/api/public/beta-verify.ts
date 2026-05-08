@@ -4,7 +4,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const COOKIE = "pbl_beta";
 
 function setCookie(value: string, maxAgeSec: number) {
-  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAgeSec}; HttpOnly; Secure; SameSite=Lax`;
+  // Not HttpOnly — the client needs to read this cookie to know access was granted.
+  // Value is a non-sensitive flag ("1"), real auth is still session-based.
+  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAgeSec}; Secure; SameSite=Lax`;
 }
 
 export const Route = createFileRoute("/api/public/beta-verify")({
