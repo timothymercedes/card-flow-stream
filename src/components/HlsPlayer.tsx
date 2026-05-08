@@ -7,6 +7,8 @@ export type HlsVideoMetrics = {
   aspectRatio: number;
   orientation: "vertical" | "horizontal" | "square";
   activeAreaRatio: number | null;
+  activeWidthRatio: number | null;
+  activeHeightRatio: number | null;
   activeCenterX: number | null;
   activeCenterY: number | null;
   recommendedZoom: number;
@@ -31,6 +33,8 @@ function inspectVideoFrame(video: HTMLVideoElement): HlsVideoMetrics | null {
     aspectRatio,
     orientation,
     activeAreaRatio: null,
+    activeWidthRatio: null,
+    activeHeightRatio: null,
     activeCenterX: null,
     activeCenterY: null,
     recommendedZoom: 1,
@@ -80,11 +84,15 @@ function inspectVideoFrame(video: HTMLVideoElement): HlsVideoMetrics | null {
     const activeW = maxX - minX + 1;
     const activeH = maxY - minY + 1;
     const activeAreaRatio = (activeW * activeH) / (sampleW * sampleH);
-    const recommendedZoom = activeAreaRatio < 0.82 ? clamp(Math.min(sampleW / activeW, sampleH / activeH), 1, 2.8) : 1;
+    const activeWidthRatio = activeW / sampleW;
+    const activeHeightRatio = activeH / sampleH;
+    const recommendedZoom = activeAreaRatio < 0.82 ? clamp(Math.max(1 / activeWidthRatio, 1 / activeHeightRatio), 1, 2.8) : 1;
 
     return {
       ...base,
       activeAreaRatio,
+      activeWidthRatio,
+      activeHeightRatio,
       activeCenterX: ((minX + activeW / 2) / sampleW) * 100,
       activeCenterY: ((minY + activeH / 2) / sampleH) * 100,
       recommendedZoom,
