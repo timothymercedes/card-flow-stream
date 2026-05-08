@@ -632,20 +632,16 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TestConnectionButton({ health, polling }: { health: Health | null; polling: boolean }) {
+function TestConnectionButton({ health, polling, onClick }: { health: Health | null; polling: boolean; onClick: () => void }) {
   const ok = health?.status === "connected" || health?.status === "live";
   if (ok) {
-    return (
-      <div className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/15 py-3 text-xs font-bold text-emerald-500">
-        <CheckCircle2 className="h-3.5 w-3.5" /> Connection Successful
-      </div>
-    );
+    return <button onClick={onClick} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-3 py-3 text-sm font-bold text-emerald-500"><CheckCircle2 className="h-4 w-4" /> Connected</button>;
   }
   return (
-    <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-muted py-3 text-xs font-bold text-muted-foreground">
-      {polling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
-      Test Connection
-    </div>
+    <button onClick={onClick} disabled={polling} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-muted px-3 py-3 text-sm font-bold text-muted-foreground disabled:opacity-60">
+      {polling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
+      Check OBS Connection
+    </button>
   );
 }
 
