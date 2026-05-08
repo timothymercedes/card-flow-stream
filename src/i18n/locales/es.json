@@ -10,9 +10,11 @@
     "signOut": "Cerrar sesión",
     "close": "Cerrar",
     "viewMore": "Ver más",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "skipToContent": "Saltar al contenido"
   },
   "nav": {
+    "primary": "Principal",
     "home": "Inicio",
     "live": "En Vivo",
     "feed": "Feed",
