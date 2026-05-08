@@ -402,6 +402,20 @@ function ObsHub() {
               </p>
             </div>
 
+            {/* Beginner mode */}
+            <Link
+              to="/sell"
+              className="block rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-4 hover:bg-fuchsia-500/10"
+            >
+              <p className="mb-1 flex items-center gap-1.5 text-sm font-bold">
+                <Smartphone className="h-4 w-4 text-fuchsia-400" /> Beginner mode — no OBS needed
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Stream straight from your phone or laptop camera. Tap here to use the guided 6-step setup — go live in under 2 minutes.
+              </p>
+              <span className="mt-2 inline-block rounded-full bg-fuchsia-500 px-2.5 py-1 text-[10px] font-bold text-white">Start with phone camera →</span>
+            </Link>
+
             {/* Stream health */}
             <HealthCard health={health} polling={polling} />
 
