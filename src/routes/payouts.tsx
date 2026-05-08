@@ -124,6 +124,7 @@ function PayoutsPage() {
   return (
     <SellerAgreementGate>
     <div className="container max-w-2xl py-8 space-y-6">
+      <HeaderSearch />
       <div>
         <h1 className="text-3xl font-bold">Payouts</h1>
         <p className="text-muted-foreground">Connect your Stripe account to receive payments from buyers.</p>
