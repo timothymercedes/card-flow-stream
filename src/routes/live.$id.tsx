@@ -1863,6 +1863,7 @@ function LiveDetail() {
           {!ended && (
             <button
               onClick={() => setShowViewerList(true)}
+              data-tour="viewer-count"
               className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur transition active:scale-95"
               title="See who's watching"
             >
@@ -1896,7 +1897,7 @@ function LiveDetail() {
             </button>
           )}
           {(auctionLive || stream.current_item) && (
-            <button onClick={() => setPinned((v) => !v)} className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
+            <button onClick={() => setPinned((v) => !v)} data-tour="pin-item" className="rounded-full bg-black/50 p-2 backdrop-blur" title={pinned ? "Unpin auction" : "Pin auction"}>
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
             </button>
           )}
@@ -1937,7 +1938,7 @@ function LiveDetail() {
           ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           : "left-1/2 top-14 -translate-x-1/2";
         return (
-          <div className={`pointer-events-none absolute z-30 ${wrapPos} transition-all duration-500 ease-out`}>
+          <div data-tour="timer" className={`pointer-events-none absolute z-30 ${wrapPos} transition-all duration-500 ease-out`}>
             {auctionLive ? (
               <div className={`flex items-center gap-2 rounded-full font-extrabold tabular-nums shadow-2xl ring-2 transition-all duration-500 ease-out ${
                 dramatic ? "px-8 py-5 text-6xl ring-4 scale-100" : "px-3 py-1.5 text-base"
@@ -2510,6 +2511,7 @@ function LiveDetail() {
         {!isSeller && auctionLive && stream.snipe_price && !meBlockedOrBanned && (
           <button
             onClick={buyNowSnipe}
+            data-tour="bin-button"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 py-2.5 text-sm font-extrabold text-black shadow-lg ring-2 ring-yellow-200 active:scale-[0.98]"
           >
             <Zap className="h-4 w-4" /> SNIPE Buy-Now {fmtMoney(Number(stream.snipe_price))}
@@ -2575,7 +2577,7 @@ function LiveDetail() {
         {!isSeller && (
           <>
           {auctionLive && !meBlockedOrBanned && !bidDisabled && (
-            <div className="grid grid-cols-4 gap-1.5">
+            <div data-tour="bid-controls" className="grid grid-cols-4 gap-1.5">
               {[1, 5, 10, 25].map((inc) => (
                 <button
                   key={inc}
@@ -2599,6 +2601,7 @@ function LiveDetail() {
               <button
                 onPointerDown={bidDisabled || meBlockedOrBanned ? undefined : startHold}
                 disabled={bidDisabled || meBlockedOrBanned}
+                data-tour="hold-bid"
                 className="relative w-full select-none overflow-hidden rounded-xl bg-gradient-to-br from-red-600 via-red-500 to-red-700 py-3.5 text-base font-bold text-white shadow-[0_8px_24px_-8px_rgba(220,38,38,0.6)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:shadow-none"
               >
                 {!bidDisabled && !meBlockedOrBanned && holdAdd === 0 && (
@@ -2826,6 +2829,7 @@ function LiveDetail() {
           )}
           <input
             value={input}
+            data-tour="chat"
             onChange={(e) => {
               const v = e.target.value; setInput(v);
               const m = v.match(/@([A-Za-z0-9_]*)$/);

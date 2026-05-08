@@ -1,0 +1,15 @@
+{
+  "name": "pbl-tutorials-recorder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record.mjs",
+    "record:bid": "node record.mjs bid",
+    "record:host": "node record.mjs host",
+    "record:hub": "node record.mjs seller-hub",
+    "record:all": "node record.mjs all"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
