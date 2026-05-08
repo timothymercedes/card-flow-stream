@@ -470,3 +470,310 @@ function Sell() {
     </SellerAgreementGate>
   );
 }
+
+// =====================================================================
+// 6-step Live Wizard — clean, mobile-first, big buttons.
+// Step 1 → Title • 2 → Category • 3 → Method • 4 → Products
+// Step 5 → Auction settings • 6 → Live preview & Go Live
+// =====================================================================
+type LiveWizardProps = {
+  step: number; setStep: (n: number) => void;
+  streamTitle: string; setStreamTitle: (v: string) => void;
+  streamCategory: string; setStreamCategory: (v: string) => void;
+  tcgTags: TcgTag[]; setTcgTags: (fn: (cur: TcgTag[]) => TcgTag[]) => void;
+  streamMethod: "phone" | "webcam" | "obs"; setStreamMethod: (m: "phone" | "webcam" | "obs") => void;
+  useObs: boolean; setUseObs: (v: boolean) => void;
+  useCompositor: boolean; setUseCompositor: (v: boolean) => void;
+  startingBid: string; setStartingBid: (v: string) => void;
+  minIncrement: string; setMinIncrement: (v: string) => void;
+  defaultTimerSec: string; setDefaultTimerSec: (v: string) => void;
+  defaultCondition: "NM"|"LP"|"MP"|"Damaged"; setDefaultCondition: (v: "NM"|"LP"|"MP"|"Damaged") => void;
+  quickStart: boolean; setQuickStart: (v: boolean) => void;
+  auctionPreset: "sudden_death" | "timed" | "wheel_spin" | "pull_box" | "mystery_pack" | "custom";
+  setAuctionPreset: (v: LiveWizardProps["auctionPreset"]) => void;
+  enableBreak: boolean; setEnableBreak: (v: boolean) => void;
+  breakSlotCount: string; setBreakSlotCount: (v: string) => void;
+  breakSlotPrice: string; setBreakSlotPrice: (v: string) => void;
+  breakSlotPrefix: string; setBreakSlotPrefix: (v: string) => void;
+  streamDesc: string; setStreamDesc: (v: string) => void;
+  startLive: () => Promise<void>;
+};
+
+function LiveWizard(p: LiveWizardProps) {
+  const stepLabels = ["Title", "Category", "Method", "Products", "Settings", "Go Live"];
+  const total = stepLabels.length;
+  const canNext = (() => {
+    if (p.step === 1) return p.streamTitle.trim().length >= 3;
+    if (p.step === 2) return p.tcgTags.length > 0;
+    return true;
+  })();
+
+  function applyPreset(v: LiveWizardProps["auctionPreset"]) {
+    p.setAuctionPreset(v);
+    if (v === "sudden_death") { p.setDefaultTimerSec("10"); p.setStartingBid("1"); p.setMinIncrement("1"); p.setQuickStart(true); p.setEnableBreak(false); }
+    else if (v === "timed")    { p.setDefaultTimerSec("30"); p.setStartingBid("1"); p.setMinIncrement("1"); p.setQuickStart(true); p.setEnableBreak(false); }
+    else if (v === "wheel_spin"){ p.setDefaultTimerSec("20"); p.setStartingBid("5"); p.setMinIncrement("1"); p.setEnableBreak(false); }
+    else if (v === "pull_box") { p.setEnableBreak(true); p.setBreakSlotCount("20"); p.setBreakSlotPrice("10"); p.setQuickStart(false); }
+    else if (v === "mystery_pack") { p.setEnableBreak(true); p.setBreakSlotCount("12"); p.setBreakSlotPrice("5"); p.setBreakSlotPrefix("Pack "); p.setQuickStart(false); }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Stepper */}
+      <div className="flex items-center justify-between gap-1">
+        {stepLabels.map((label, i) => {
+          const n = i + 1;
+          const done = n < p.step;
+          const active = n === p.step;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => n < p.step && p.setStep(n)}
+              className={`flex flex-1 flex-col items-center gap-1 ${n > p.step ? "opacity-40" : ""}`}
+            >
+              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${done ? "bg-emerald-500 text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                {done ? <Check className="h-3.5 w-3.5" /> : n}
+              </span>
+              <span className={`text-[9px] font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Step body */}
+      {p.step === 1 && (
+        <section className="space-y-3 rounded-2xl bg-card p-4">
+          <div>
+            <h2 className="text-base font-bold">What's your stream called?</h2>
+            <p className="text-xs text-muted-foreground">Buyers see this in the live feed. Be specific — “Friday PSA Reveal” beats “Cards”.</p>
+          </div>
+          <input
+            data-tour="stream-title"
+            autoFocus
+            className="w-full rounded-xl bg-input px-4 py-4 text-base outline-none"
+            placeholder="e.g. Friday Pokémon $1 starts"
+            value={p.streamTitle}
+            onChange={(e) => p.setStreamTitle(e.target.value)}
+            maxLength={80}
+          />
+          <textarea
+            className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none"
+            rows={2}
+            placeholder="Description (optional)"
+            value={p.streamDesc}
+            onChange={(e) => p.setStreamDesc(e.target.value)}
+          />
+        </section>
+      )}
+
+      {p.step === 2 && (
+        <section className="space-y-3 rounded-2xl bg-card p-4">
+          <div>
+            <h2 className="text-base font-bold">What are you selling?</h2>
+            <p className="text-xs text-muted-foreground">Pick at least one tag — this is how viewers discover your stream.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {TCG_TAGS.map((t) => {
+              const on = p.tcgTags.includes(t.value);
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => p.setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                >
+                  {t.emoji} {t.label}
+                </button>
+              );
+            })}
+          </div>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">Primary category</span>
+            <select value={p.streamCategory} onChange={(e) => p.setStreamCategory(e.target.value)} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none">
+              {LISTING_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>)}
+            </select>
+          </label>
+        </section>
+      )}
+
+      {p.step === 3 && (
+        <section className="space-y-3 rounded-2xl bg-card p-4">
+          <div>
+            <h2 className="text-base font-bold">How will you stream?</h2>
+            <p className="text-xs text-muted-foreground">Pick the easiest one for your setup. You can change this anytime.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <MethodCard
+              active={p.streamMethod === "phone"}
+              icon={<Smartphone className="h-5 w-5" />}
+              title="Phone camera"
+              hint="Easiest. Hold up cards to your phone — no extra apps."
+              badge="Recommended for new sellers"
+              onClick={() => { p.setStreamMethod("phone"); p.setUseObs(false); p.setUseCompositor(false); }}
+            />
+            <MethodCard
+              active={p.streamMethod === "webcam"}
+              icon={<Camera className="h-5 w-5" />}
+              title="Webcam (in-browser)"
+              hint="Use your laptop camera. Composited multi-cam supported."
+              onClick={() => { p.setStreamMethod("webcam"); p.setUseObs(false); p.setUseCompositor(true); }}
+            />
+            <MethodCard
+              active={p.streamMethod === "obs"}
+              icon={<Monitor className="h-5 w-5" />}
+              title="OBS desktop"
+              hint="Pro encoder, overlays, multi-source. Step-by-step setup in OBS Hub."
+              onClick={() => { p.setStreamMethod("obs"); p.setUseObs(true); p.setUseCompositor(false); }}
+            />
+          </div>
+          {p.streamMethod === "obs" && (
+            <Link to="/obs-hub" className="block rounded-xl border border-primary/30 bg-primary/5 p-3 text-center text-xs font-semibold text-primary">
+              Open OBS Streamer Hub →
+            </Link>
+          )}
+        </section>
+      )}
+
+      {p.step === 4 && (
+        <section className="space-y-3 rounded-2xl bg-card p-4">
+          <div>
+            <h2 className="text-base font-bold">Add products (optional)</h2>
+            <p className="text-xs text-muted-foreground">Skip this — you can scan cards live and instantly start auctions during the stream.</p>
+          </div>
+          <div className="rounded-xl bg-muted/40 p-3 text-[12px] text-muted-foreground">
+            ⚡ <b>Scan-to-start</b> is on by default. While live, scan a card to instantly run an auction with your saved settings.
+          </div>
+          <Link to="/my-listings" className="block rounded-xl border border-border bg-card p-3 text-center text-sm font-semibold">
+            Manage existing listings →
+          </Link>
+        </section>
+      )}
+
+      {p.step === 5 && (
+        <section className="space-y-3 rounded-2xl bg-card p-4">
+          <div>
+            <h2 className="text-base font-bold">Auction settings</h2>
+            <p className="text-xs text-muted-foreground">Pick a preset to fill defaults, or fine-tune below.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <PresetCard active={p.auctionPreset === "sudden_death"} icon={<Zap className="h-4 w-4" />} label="Sudden Death" hint="10s timer, $1 start, fast pace." onClick={() => applyPreset("sudden_death")} />
+            <PresetCard active={p.auctionPreset === "timed"} icon={<Timer className="h-4 w-4" />} label="Timed Auction" hint="30s timer, classic format." onClick={() => applyPreset("timed")} />
+            <PresetCard active={p.auctionPreset === "wheel_spin"} icon={<Disc3 className="h-4 w-4" />} label="Wheel Spin" hint="Spin to pick a winner card." onClick={() => applyPreset("wheel_spin")} />
+            <PresetCard active={p.auctionPreset === "pull_box"} icon={<Package className="h-4 w-4" />} label="Pull Box" hint="20 slots, $10 each. Random pulls." onClick={() => applyPreset("pull_box")} />
+            <PresetCard active={p.auctionPreset === "mystery_pack"} icon={<Sparkles className="h-4 w-4" />} label="Mystery Pack" hint="12 packs, $5 each. Surprise hits." onClick={() => applyPreset("mystery_pack")} />
+            <PresetCard active={p.auctionPreset === "custom"} icon={<Radio className="h-4 w-4" />} label="Custom" hint="Set every option yourself." onClick={() => applyPreset("custom")} />
+          </div>
+
+          <div className="space-y-2">
+            <Field label="Starting bid ($)" hint="Lowest amount viewers can bid first.">
+              <input type="number" min="1" inputMode="numeric" className="w-full rounded-xl bg-input px-4 py-3 text-base outline-none" value={p.startingBid} onChange={(e) => p.setStartingBid(e.target.value)} />
+            </Field>
+            <Field label="Bid timer (seconds)" hint="How long after each bid until the auction ends.">
+              <div className="grid grid-cols-6 gap-1">
+                {["5","10","15","20","30","60"].map((s) => (
+                  <button key={s} type="button" onClick={() => p.setDefaultTimerSec(s)}
+                    className={`min-h-11 rounded-lg text-sm font-bold ${p.defaultTimerSec === s ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{s}s</button>
+                ))}
+              </div>
+            </Field>
+            <Field label="Min. bid increment ($)" hint="Smallest jump between bids.">
+              <input type="number" min="1" inputMode="numeric" className="w-full rounded-xl bg-input px-4 py-3 text-base outline-none" value={p.minIncrement} onChange={(e) => p.setMinIncrement(e.target.value)} />
+            </Field>
+            <Field label="Default condition" hint="Used for auto-priced auctions during scan-to-start.">
+              <div className="grid grid-cols-4 gap-1">
+                {(["NM","LP","MP","Damaged"] as const).map((c) => (
+                  <button key={c} type="button" onClick={() => p.setDefaultCondition(c)}
+                    className={`min-h-11 rounded-lg text-sm font-bold ${p.defaultCondition === c ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{c}</button>
+                ))}
+              </div>
+            </Field>
+          </div>
+        </section>
+      )}
+
+      {p.step === 6 && (
+        <section className="space-y-3 rounded-2xl border border-live/30 bg-live/5 p-4">
+          <div>
+            <h2 className="text-base font-bold">Ready to go live?</h2>
+            <p className="text-xs text-muted-foreground">Quick preview before we start your stream.</p>
+          </div>
+          <ul className="space-y-2 rounded-xl bg-background/60 p-3 text-sm">
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Title</span><span className="truncate font-semibold">{p.streamTitle || "—"}</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Category</span><span className="font-semibold">{p.streamCategory}</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">TCG tags</span><span className="font-semibold">{p.tcgTags.join(", ") || "—"}</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Method</span><span className="font-semibold capitalize">{p.streamMethod}</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Preset</span><span className="font-semibold">{p.auctionPreset.replace("_", " ")}</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Timer</span><span className="font-semibold">{p.defaultTimerSec}s</span></li>
+            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Start bid</span><span className="font-semibold">${p.startingBid}</span></li>
+          </ul>
+          <button data-tour="start-stream" onClick={() => p.startLive()} className="min-h-14 w-full rounded-2xl bg-live text-base font-extrabold text-live-foreground">
+            🔴 Start Live Stream
+          </button>
+        </section>
+      )}
+
+      {/* Nav buttons */}
+      <div className="flex gap-2">
+        {p.step > 1 && (
+          <button type="button" onClick={() => p.setStep(p.step - 1)} className="flex min-h-12 flex-1 items-center justify-center gap-1 rounded-xl bg-muted text-sm font-bold">
+            <ChevronLeft className="h-4 w-4" /> Back
+          </button>
+        )}
+        {p.step < total && (
+          <button
+            type="button"
+            disabled={!canNext}
+            onClick={() => p.setStep(p.step + 1)}
+            className="min-h-12 flex-[2] rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-40"
+          >
+            Continue → Step {p.step + 1}: {stepLabels[p.step]}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MethodCard({ active, icon, title, hint, badge, onClick }: { active: boolean; icon: React.ReactNode; title: string; hint: string; badge?: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-start gap-3 rounded-xl border p-4 text-left ${active ? "border-primary bg-primary/10" : "border-border bg-muted/30"}`}
+    >
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${active ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{icon}</span>
+      <span className="flex-1">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-bold">{title}</span>
+          {badge && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-500">{badge}</span>}
+        </span>
+        <span className="block text-[11px] text-muted-foreground">{hint}</span>
+      </span>
+      {active && <Check className="h-4 w-4 text-primary" />}
+    </button>
+  );
+}
+
+function PresetCard({ active, icon, label, hint, onClick }: { active: boolean; icon: React.ReactNode; label: string; hint: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left ${active ? "border-primary bg-primary/10" : "border-border bg-muted/30"}`}
+    >
+      <span className="flex items-center gap-1.5 text-sm font-bold">{icon} {label}</span>
+      <span className="text-[10px] text-muted-foreground">{hint}</span>
+    </button>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1 text-[12px] font-bold">{label}</p>
+      {hint && <p className="mb-2 text-[11px] text-muted-foreground">{hint}</p>}
+      {children}
+    </div>
+  );
+}
