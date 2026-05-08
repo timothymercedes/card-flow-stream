@@ -30,7 +30,7 @@ function Market() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
   const [category, setCategory] = useState<string>("all");
-  const seed = useMemo(getSessionSeed, []);
+  const seed = useShuffleBucket();
 
   useEffect(() => {
     supabase
