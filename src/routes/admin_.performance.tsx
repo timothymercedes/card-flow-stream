@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Activity, AlertTriangle, Gauge, RefreshCw, ShieldCheck, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/performance")({
+export const Route = createFileRoute("/admin_/performance")({
   head: () => ({ meta: [{ title: "Performance — Admin" }] }),
   component: AdminPerformance,
 });
