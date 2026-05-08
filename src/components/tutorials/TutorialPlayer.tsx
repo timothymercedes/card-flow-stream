@@ -93,15 +93,19 @@ export function TutorialPlayer({ tutorial, onClose }: { tutorial: Tutorial; onCl
 
   async function narrateAll() {
     if (narrating) {
-      window.speechSynthesis?.cancel();
+      cancelRef.current = true;
+      try { audioRef.current?.pause(); } catch {}
+      try { window.speechSynthesis?.cancel(); } catch {}
       setNarrating(false);
       return;
     }
+    cancelRef.current = false;
     setNarrating(true);
     try {
-      await speak(tutorial.title);
+      await speak(tutorial.title, audioRef);
       for (const s of steps) {
-        await speak(`${s.title}. ${s.body}`);
+        if (cancelRef.current) break;
+        await speak(`${s.title}. ${s.body}`, audioRef);
       }
     } finally {
       setNarrating(false);
