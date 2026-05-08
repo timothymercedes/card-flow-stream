@@ -238,7 +238,7 @@ function Home() {
                   <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
                   <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} className="max-w-full flex-wrap" /></div>
                   {display.kind === "offer" ? (
-                    <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
+                    <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">{t("home.make_offer")}</span>
                   ) : (
                     <p className="mt-1 text-xs font-bold text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
                   )}
@@ -289,7 +289,7 @@ function Home() {
 
       <footer className="px-4 pb-8 pt-2 text-center text-[11px] text-muted-foreground">
         <div className="flex items-center justify-center gap-1.5">
-          <Users className="h-3 w-3" /> Built by collectors, for collectors.
+          <Users className="h-3 w-3" /> {t("home.footer_built_by")}
         </div>
         <p className="mt-1">© {new Date().getFullYear()} PullBid Live</p>
       </footer>
