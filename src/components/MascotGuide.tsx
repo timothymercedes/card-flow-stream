@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { ChevronLeft, ChevronRight, X, Minimize2, Sparkles } from "lucide-react";
 import { MASCOTS, TOURS, type Tour, type TourAudience } from "@/lib/tours";
 import { useAuth } from "@/hooks/useAuth";
+import { useTutorialMode } from "@/lib/tutorialMode";
 
 const LS_PREFIX = "pbl_tour_v3_";
 /** key per (user, tour) so it doesn't repeat across accounts/devices logged-in. */
@@ -33,6 +34,7 @@ function audienceMatches(tour: Tour, role: "buyer" | "seller"): boolean {
 
 export function MascotTourProvider({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
+  const tutorial = useTutorialMode();
   const role = resolveAudience(profile);
   const uid = user?.id;
 
@@ -51,12 +53,13 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   const startTour = useCallback((id: string, force = false) => {
+    if (tutorial) return;
     const tour = TOURS[id]; if (!tour) return;
     // Audience gate: never show the wrong tour to the wrong user.
     if (!audienceMatches(tour, role)) return;
     if (!force && hasSeen(id)) return;
     setActive(tour); setStep(0); setMinimized(false);
-  }, [hasSeen, role]);
+  }, [hasSeen, role, tutorial]);
 
   const triggerOnce = useCallback((id: string) => {
     if (hasSeen(id)) return;
@@ -80,7 +83,7 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
   return (
     <TourCtx.Provider value={value}>
       {children}
-      {active && (
+      {!tutorial && active && (
         <MascotBubble
           tour={active}
           step={step}
