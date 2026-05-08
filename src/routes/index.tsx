@@ -128,13 +128,13 @@ function Home() {
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
                 <span className="h-1.5 w-1.5 rounded-full bg-live live-pulse" />
-                {stats.live > 0 ? `${stats.live} live now` : "PullBid Live"}
+                {stats.live > 0 ? t("home.tagline_live_now", { count: stats.live }) : t("home.tagline_default")}
               </div>
               <h1 className="text-3xl font-black leading-tight tracking-tight">
-                Pull. Bid. <span className="holo-text">Vault.</span>
+                {t("home.headline_part_1")} <span className="holo-text">{t("home.headline_part_2")}</span>
               </h1>
               <p className="mt-1.5 max-w-xs text-sm text-muted-foreground">
-                Live card auctions, holo drops & a global collector community.
+                {t("home.subheadline")}
               </p>
             </div>
             {profile && (profile.current_streak ?? 0) > 0 && (
@@ -147,25 +147,25 @@ function Home() {
           {/* CTA row */}
           <div className="mt-4 flex gap-2">
             <Link to="/live" className="flex-1 rounded-xl bg-gradient-to-r from-primary to-primary-glow px-4 py-3 text-center text-sm font-bold text-primary-foreground rare-glow">
-              Watch Live
+              {t("home.cta_watch_live")}
             </Link>
             {!user ? (
-              <Link to="/auth" className="rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-bold">Sign Up</Link>
+              <Link to="/auth" className="rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-bold">{t("home.cta_sign_up")}</Link>
             ) : (
-              <Link to="/market" className="rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-bold">Browse Market</Link>
+              <Link to="/market" className="rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-bold">{t("home.cta_browse_market")}</Link>
             )}
           </div>
 
           {/* Trust strip */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <TrustBadge icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Verified Sellers" />
-            <TrustBadge icon={<Zap className="h-3.5 w-3.5" />} label="Instant Bidding" />
-            <TrustBadge icon={<Trophy className="h-3.5 w-3.5" />} label="Authenticated Pulls" />
+            <TrustBadge icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("home.trust_verified")} />
+            <TrustBadge icon={<Zap className="h-3.5 w-3.5" />} label={t("home.trust_instant")} />
+            <TrustBadge icon={<Trophy className="h-3.5 w-3.5" />} label={t("home.trust_authenticated")} />
           </div>
 
           {profile && interests.length === 0 && (
             <RLink to="/onboarding" className="mt-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary">
-              <Sparkles className="h-4 w-4" /> Tell us what you collect → personalized feed
+              <Sparkles className="h-4 w-4" /> {t("home.personalize_cta")}
             </RLink>
           )}
         </div>
@@ -173,9 +173,9 @@ function Home() {
 
       {/* Stat ribbon */}
       <div className="mx-4 -mt-2 mb-6 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/60 p-3 backdrop-blur">
-        <Stat value={stats.live} label="Live now" accent />
-        <Stat value={stats.collectors} label="Collectors" />
-        <Stat value={stats.listings} label="Listings" />
+        <Stat value={stats.live} label={t("home.stats_live")} accent />
+        <Stat value={stats.collectors} label={t("home.stats_collectors")} />
+        <Stat value={stats.listings} label={t("home.stats_listings")} />
       </div>
 
       <Section title="🔴 Live Now" to="/live">
