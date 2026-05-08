@@ -1,4 +1,4 @@
 User-agent: *
-Allow: /
+Disallow: /
 
-Sitemap: https://pullbidlive.com/sitemap.xml
+# Private beta — search engines must not index this site until public launch.
