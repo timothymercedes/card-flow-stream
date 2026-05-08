@@ -75,7 +75,11 @@ function Home() {
       } else setListings((lData || []).filter(isPublicListingVisible).slice(0, 4));
 
       supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
-      supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
+      supabase.from("vault_cards")
+        .select("*, profiles:user_id(id, username)")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false }).limit(8)
+        .then(({ data }) => setVault(data || []));
 
       // Live counters for social proof
       const [{ count: liveCount }, { count: collectorCount }, { count: listingCount }] = await Promise.all([
