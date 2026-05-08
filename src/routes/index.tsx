@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -25,13 +26,15 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-function Section({ title, to, children, viewLabel = "View More" }: any) {
+function Section({ title, to, children, viewLabel }: any) {
+  const { t } = useTranslation();
+  const label = viewLabel ?? t("common.viewMore");
   return (
     <section className="mb-7">
       <div className="mb-3 flex items-center justify-between px-4">
         <h2 className="text-base font-bold tracking-tight">{title}</h2>
         <Link to={to} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
-          {viewLabel} <ChevronRight className="h-3 w-3" />
+          {label} <ChevronRight className="h-3 w-3" />
         </Link>
       </div>
       {children}
@@ -41,6 +44,7 @@ function Section({ title, to, children, viewLabel = "View More" }: any) {
 
 function Home() {
   const { profile, user, loading } = useAuth();
+  const { t } = useTranslation();
   const showLanding = !loading && !user && !isTutorialMode();
   if (showLanding) return <PublicLanding />;
   const interests = (profile?.interests as string[] | undefined) || [];
