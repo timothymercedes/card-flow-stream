@@ -3575,9 +3575,48 @@ export type Database = {
           username: string
         }[]
       }
+      search_users: {
+        Args: { _limit?: number; _query: string }
+        Returns: {
+          avatar_url: string
+          follower_count: number
+          full_name: string
+          id: string
+          is_seller: boolean
+          live_verified: boolean
+          seller_status: string
+          shop_name: string
+          username: string
+        }[]
+      }
+      suggested_users: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          id: string
+          live_verified: boolean
+          mutual_count: number
+          seller_status: string
+          shop_name: string
+          username: string
+        }[]
+      }
       touch_live_stream_activity: {
         Args: { _activity_type?: string; _stream_id: string }
         Returns: undefined
+      }
+      trending_sellers: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          follower_count: number
+          id: string
+          live_verified: boolean
+          recent_sales: number
+          seller_status: string
+          shop_name: string
+          username: string
+        }[]
       }
     }
     Enums: {
