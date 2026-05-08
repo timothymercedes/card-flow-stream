@@ -69,19 +69,34 @@ function ObsHub() {
     })();
   }, [user]);
 
+  async function checkConnection(manual = false) {
+    if (!profile?.cf_live_input_id) return;
+    setPolling(true);
+    setSetupError(null);
+    const { data, error } = await supabase.functions.invoke("obs-status", {
+      body: { live_input_id: profile.cf_live_input_id },
+    });
+    if (error || (data as any)?.error) {
+      const message = (data as any)?.error || error?.message || "Could not check OBS connection.";
+      setSetupError(message);
+      if (manual) toast.error(message);
+    } else if (data) {
+      const next = data as Health;
+      setHealth(next);
+      if (manual) {
+        if (next.status === "connected" || next.status === "live") toast.success("OBS is connected");
+        else toast.error("OBS is not reaching PullBidLive yet. Use Service: Custom, then paste the Server URL and Stream Key exactly.");
+      }
+    }
+    setPolling(false);
+  }
+
   // Poll Cloudflare lifecycle every 6s once we have a live input
   useEffect(() => {
     if (!profile?.cf_live_input_id) return;
     let cancelled = false;
     const tick = async () => {
-      setPolling(true);
-      const { data, error } = await supabase.functions.invoke("obs-status", {
-        body: { live_input_id: profile.cf_live_input_id },
-      });
-      if (!cancelled) {
-        if (!error && data) setHealth(data as Health);
-        setPolling(false);
-      }
+      if (!cancelled) await checkConnection(false);
     };
     tick();
     pollRef.current = window.setInterval(tick, 6000) as unknown as number;
@@ -130,6 +145,7 @@ function ObsHub() {
   }
 
   async function copy(text: string, label: string) {
+    if (!text) return toast.error(`${label} is not ready yet`);
     await navigator.clipboard.writeText(text);
     toast.success(`${label} copied`);
   }
