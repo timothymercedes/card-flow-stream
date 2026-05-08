@@ -11,11 +11,18 @@ import { useTutorialMode } from "@/lib/tutorialMode";
  */
 export function useSellerAgreementStatus() {
   const { user, loading } = useAuth();
+  const tutorial = useTutorialMode();
   const [checking, setChecking] = useState(true);
   const [needsAcceptance, setNeedsAcceptance] = useState(false);
   const [isSellerOrHost, setIsSellerOrHost] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (tutorial) {
+      setIsSellerOrHost(true);
+      setNeedsAcceptance(false);
+      setChecking(false);
+      return;
+    }
     if (!user) {
       setNeedsAcceptance(false);
       setIsSellerOrHost(false);
