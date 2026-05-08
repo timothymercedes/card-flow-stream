@@ -149,7 +149,7 @@ export default function PublicLanding() {
           <div className="grid gap-0 md:grid-cols-2">
             <div className="relative aspect-video bg-black">
               <video
-                src="https://pullbidlive.com/__l5e/assets-v1/21c2a990-2dcf-4437-a79c-1d2182b8fbcb/welcome.mp4"
+                src="/__l5e/assets-v1/21c2a990-2dcf-4437-a79c-1d2182b8fbcb/welcome.mp4"
                 controls
                 playsInline
                 preload="metadata"
