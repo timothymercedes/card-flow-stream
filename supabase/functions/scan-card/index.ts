@@ -1,6 +1,9 @@
 // AI card recognition via Lovable AI Gateway (image-based).
 // Single-card mode returns the same shape as before.
 // Multi-card mode (multi:true) returns { cards: ScanResult[] } detecting every card visible.
+// Production hardening: requires auth, enforces per-user rate limit, logs every scan to card_scans.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -96,26 +99,68 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
   };
 }
 
+function jsonResp(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const t0 = Date.now();
+
+  // Service-role admin client for rate-limit RPC + audit insert
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+  // Authenticate caller via JWT in Authorization header
+  const authHeader = req.headers.get("Authorization") || "";
+  const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
+  const { data: u } = await userClient.auth.getUser();
+  const userId = u?.user?.id;
+  if (!userId) {
+    return jsonResp({ error: "Sign in to scan cards" }, 401);
+  }
+
+  // Rate limit (uses service role; RPC is locked to service_role grant)
+  const { data: limit, error: rlErr } = await admin.rpc("rate_limit_card_scan", { _user_id: userId });
+  if (rlErr) {
+    console.error("rate_limit_card_scan error", rlErr);
+  } else if (limit && (limit as any).allowed === false) {
+    const reason = (limit as any).reason;
+    const msg = reason === "hour_limit"
+      ? `You've hit the hourly scan limit (${(limit as any).limit}/hr). Try again in an hour.`
+      : reason === "day_limit"
+      ? `Daily scan limit reached (${(limit as any).limit}/day).`
+      : "Too many scans. Slow down and try again.";
+    await admin.from("card_scans").insert({
+      user_id: userId, status: "rate_limited", error_message: reason, multi: false,
+    });
+    return jsonResp({ error: msg, code: "rate_limited" }, 429);
+  }
+
+  let body: any = {};
+  try { body = await req.json(); } catch {}
+  const { image, language, multi, source } = body || {};
+  if (!image) return jsonResp({ error: "Missing image" }, 400);
+
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) return jsonResp({ error: "AI service is not configured" }, 500);
+
+  const langName = language && LANG_MAP[language] ? LANG_MAP[language] : null;
+  const langHint = langName
+    ? `\n\nThe seller indicated the printing is ${langName}. Confirm via printed text and set symbol; include language in set name when non-English.`
+    : "";
+
+  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint;
+  const userText = multi
+    ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
+    : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
 
   try {
-    const { image, language, multi } = await req.json();
-    if (!image) return new Response(JSON.stringify({ error: "Missing image" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const langName = language && LANG_MAP[language] ? LANG_MAP[language] : null;
-    const langHint = langName
-      ? `\n\nThe seller indicated the printing is ${langName}. Confirm via printed text and set symbol; include language in set name when non-English.`
-      : "";
-
-    const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint;
-    const userText = multi
-      ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
-      : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
-
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -134,8 +179,18 @@ Deno.serve(async (req) => {
 
     if (!resp.ok) {
       const text = await resp.text();
-      return new Response(JSON.stringify({ error: "AI error", details: text }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const friendly = resp.status === 429
+        ? "AI service is busy — please try again in a moment."
+        : resp.status === 402
+        ? "AI credits exhausted. Please contact support."
+        : "AI scan failed. Try again with better lighting.";
+      await admin.from("card_scans").insert({
+        user_id: userId, status: "error", error_message: text.slice(0, 500),
+        multi: !!multi, language, source, duration_ms: Date.now() - t0,
+      });
+      return jsonResp({ error: friendly, code: "ai_error" }, resp.status === 429 ? 429 : 502);
     }
+
     const data = await resp.json();
     const content = data.choices?.[0]?.message?.content || "{}";
     let parsed: any;
@@ -144,12 +199,29 @@ Deno.serve(async (req) => {
     if (multi) {
       const arr = Array.isArray(parsed?.cards) ? parsed.cards : Array.isArray(parsed) ? parsed : [];
       const cards = arr.map((c: any) => normalizeCard(c, language));
-      return new Response(JSON.stringify({ cards }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const top = cards[0];
+      await admin.from("card_scans").insert({
+        user_id: userId, status: cards.length > 0 ? "ok" : "no_cards",
+        multi: true, language, source, cards_detected: cards.length,
+        top_name: top?.name, top_set: top?.set, top_value: top?.estimated_value,
+        duration_ms: Date.now() - t0,
+      });
+      return jsonResp({ cards });
     }
 
     const out = normalizeCard(parsed, language);
-    return new Response(JSON.stringify(out), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    await admin.from("card_scans").insert({
+      user_id: userId, status: "ok",
+      multi: false, language, source, cards_detected: 1,
+      top_name: out.name, top_set: out.set, top_value: out.estimated_value,
+      duration_ms: Date.now() - t0,
+    });
+    return jsonResp(out);
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    await admin.from("card_scans").insert({
+      user_id: userId, status: "error", error_message: String(e).slice(0, 500),
+      multi: !!multi, language, source, duration_ms: Date.now() - t0,
+    });
+    return jsonResp({ error: "Scan failed unexpectedly. Please try again." }, 500);
   }
 });
