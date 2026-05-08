@@ -150,15 +150,11 @@ function ObsHub() {
     toast.success(`${label} copied`);
   }
 
-  function downloadProfile() {
+  async function downloadProfile() {
     if (!profile?.cf_rtmps_url || !profile?.cf_stream_key) {
       toast.error("Connect OBS first — no RTMP URL or stream key yet");
       return;
     }
-    // NOTE: We intentionally do NOT include a [Stream] block here. OBS stores
-    // service config in service.json, not basic.ini — putting it here causes
-    // the "No config URL available for the current service" error on import.
-    // This file only sets safe video/output defaults (720p30 / 4000 kbps / x264).
     const ini = [
       "[General]",
       "Name=PullBidLive",
@@ -180,12 +176,28 @@ function ObsHub() {
       "FPSCommon=30",
       "",
     ].join("\n");
-    const blob = new Blob([ini], { type: "text/plain" });
+
+    const serviceJson = JSON.stringify({
+      settings: {
+        bwtest: false,
+        key: profile.cf_stream_key,
+        server: profile.cf_rtmps_url,
+        service: "Custom",
+        use_auth: false,
+      },
+      type: "rtmp_custom",
+    }, null, 2);
+
+    const zip = makeStoredZip({
+      "PullBidLive/basic.ini": ini,
+      "PullBidLive/service.json": serviceJson,
+    });
+    const blob = new Blob([zip], { type: "application/zip" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "PullBidLive-basic.ini";
+    a.href = url; a.download = "PullBidLive-OBS-profile.zip";
     a.click(); URL.revokeObjectURL(url);
-    toast.success("Defaults downloaded — see steps to enter Service/URL/Key in OBS");
+    toast.success("OBS profile downloaded — import it in OBS, then Start Streaming");
   }
 
   // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
@@ -231,7 +243,7 @@ function ObsHub() {
       is_active: true,
       started_at: new Date().toISOString(),
       cf_playback_hls: profile.cf_playback_hls,
-      cf_whip_url: profile.cf_whip_url,
+      cf_whip_url: null,
     }).select().single();
     setLaunching(false);
     if (error) return toast.error(error.message);
