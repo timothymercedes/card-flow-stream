@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
-import { CardScanner } from "@/components/CardScanner";
+const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
@@ -650,11 +650,13 @@ function Vault() {
       {selling && <SellModal card={selling} onClose={() => setSelling(null)} onSubmit={(opts) => listForSale(selling, opts)} />}
 
       {scanning && (
-        <CardScanner
-          onResult={onScanResult}
-          onResults={async (rs) => { for (const r of rs) await onScanResult(r as any); }}
-          onClose={() => setScanning(false)}
-        />
+        <Suspense fallback={null}>
+          <CardScanner
+            onResult={onScanResult}
+            onResults={async (rs) => { for (const r of rs) await onScanResult(r as any); }}
+            onClose={() => setScanning(false)}
+          />
+        </Suspense>
       )}
     </AppShell>
   );
