@@ -363,154 +363,27 @@ function Sell() {
         </div>
 
         {tab === "live" ? (
-          <div className="space-y-3">
-            {/* ── Section 1: Title ── */}
-            <div className="rounded-2xl bg-card p-3 space-y-2">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Stream title</p>
-                <p className="text-[10px] text-muted-foreground">Be specific — viewers see this in the live feed.</p>
-              </div>
-              <input
-                data-tour="stream-title"
-                className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
-                placeholder="e.g. Friday night PSA reveal • $1 starts"
-                value={streamTitle}
-                onChange={(e) => setStreamTitle(e.target.value)}
-                maxLength={80}
-              />
-            </div>
-
-            {/* ── Section 2: TCG / category tags (separate from title) ── */}
-            <div className="rounded-2xl bg-card p-3 space-y-2">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  TCG / category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
-                </p>
-                <p className="text-[10px] text-muted-foreground">Helps viewers find your stream. Stored separately from the title.</p>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {TCG_TAGS.map((t) => {
-                  const on = tcgTags.includes(t.value);
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                    >
-                      {t.emoji} {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ── Section 3: Hype tags (separate array, not appended to title) ── */}
-            <div className="rounded-2xl bg-card p-3 space-y-2">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Quick hype tags</p>
-                <p className="text-[10px] text-muted-foreground">Tap to toggle — saved as separate tags, not appended to your title.</p>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: "$1 Start", emoji: "💵", apply: () => setStartingBid("1") },
-                  { label: "Vintage Holo", emoji: "✨" },
-                  { label: "Mystery Break", emoji: "🎁", apply: () => setEnableBreak(true) },
-                  { label: "Slab Sunday", emoji: "🧊" },
-                  { label: "PSA 10s Only", emoji: "🏆" },
-                  { label: "No Reserve", emoji: "🔥" },
-                  { label: "Rookie Cards", emoji: "🌟" },
-                  { label: "Modern Chase", emoji: "⚡" },
-                  { label: "Graded Only", emoji: "🛡️" },
-                  { label: "Personal Collection", emoji: "💎" },
-                  { label: "10s Auction", emoji: "⏱️", apply: () => setDefaultTimerSec("10") },
-                ].map((p: { label: string; emoji: string; apply?: () => void }) => {
-                  const on = hypeTags.includes(p.label);
-                  return (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => {
-                        setHypeTags((cur) => on ? cur.filter((x) => x !== p.label) : [...cur, p.label]);
-                        if (!on && p.apply) p.apply();
-                      }}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${on ? "bg-primary text-primary-foreground" : "border border-border bg-card hover:border-primary hover:bg-primary/10"}`}
-                    >
-                      {p.emoji} {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={2} placeholder="Item description (optional)" value={streamDesc} onChange={(e) => setStreamDesc(e.target.value)} />
-            <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">Category — helps viewers find your stream</span>
-              <select value={streamCategory} onChange={(e) => setStreamCategory(e.target.value)} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none">
-                {LISTING_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>)}
-              </select>
-            </label>
-            <input type="number" min="1" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting price ($)" value={startingBid} onChange={(e) => setStartingBid(e.target.value)} />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" min="0" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Timer (min)" value={timerMin} onChange={(e) => setTimerMin(e.target.value)} />
-              <input type="number" min="1" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Min bid increment ($)" value={minIncrement} onChange={(e) => setMinIncrement(e.target.value)} />
-            </div>
-            <div className="rounded-xl bg-card p-3 space-y-2">
-              <label className="flex items-center justify-between text-xs font-semibold">
-                <span>⚡ Scan-to-start (run bids hands-free)</span>
-                <input type="checkbox" checked={quickStart} onChange={(e) => setQuickStart(e.target.checked)} className="h-4 w-4" />
-              </label>
-              <p className="text-[10px] text-muted-foreground">When ON: scanning a card during the live stream instantly starts an auction with the defaults below.</p>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="text-[10px] text-muted-foreground">
-                  Default timer
-                  <select value={defaultTimerSec} onChange={(e) => setDefaultTimerSec(e.target.value)} className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm">
-                    {["5","10","15","20","30","60"].map((s) => <option key={s} value={s}>{s}s</option>)}
-                  </select>
-                </label>
-                <label className="text-[10px] text-muted-foreground">
-                  Default condition
-                  <div className="mt-1 grid grid-cols-4 gap-1">
-                    {(["NM","LP","MP","Damaged"] as const).map((c) => (
-                      <button key={c} type="button" onClick={() => setDefaultCondition(c)}
-                        className={`rounded px-1 py-1 text-[10px] font-bold ${defaultCondition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
-                    ))}
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* OBS Streamer Hub link */}
-            <Link
-              to="/obs-hub"
-              data-tour="obs-hub-link"
-              className="flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 hover:bg-primary/10"
-            >
-              <div>
-                <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> OBS Streamer Hub</p>
-                <p className="text-[11px] text-muted-foreground">Set up OBS once, save defaults, monitor stream health, and go live in 1 tap.</p>
-              </div>
-              <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">Open hub →</span>
-            </Link>
-
-            {/* OBS / Pro broadcaster toggle (legacy quick toggle) */}
-            <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
-              <div>
-                <p className="flex items-center gap-1.5 text-sm font-semibold"><Radio className="h-4 w-4 text-primary" /> Provision OBS for this stream</p>
-                <p className="text-[11px] text-muted-foreground">Quick toggle — generates a one-off RTMPS URL + key for this stream only.</p>
-              </div>
-              <input type="checkbox" checked={useObs} onChange={(e) => { setUseObs(e.target.checked); if (e.target.checked) setUseCompositor(false); }} className="mt-1 h-5 w-5" />
-            </label>
-
-            <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
-              <div>
-                <p className="flex items-center gap-1.5 text-sm font-semibold"><Camera className="h-4 w-4 text-fuchsia-400" /> Multi-cam in-browser (composited)</p>
-                <p className="text-[11px] text-muted-foreground">Broadcast from this browser with all co-host video tiles baked into one stream — viewers + recording see everyone.</p>
-              </div>
-              <input type="checkbox" checked={useCompositor} onChange={(e) => { setUseCompositor(e.target.checked); if (e.target.checked) setUseObs(false); }} className="mt-1 h-5 w-5" />
-            </label>
-
-            <button data-tour="start-stream" onClick={() => startLive()} className="w-full rounded-xl bg-live py-3 text-sm font-bold text-live-foreground">🔴 Start Live Stream</button>
-          </div>
+          <LiveWizard
+            step={step} setStep={setStep}
+            streamTitle={streamTitle} setStreamTitle={setStreamTitle}
+            streamCategory={streamCategory} setStreamCategory={setStreamCategory}
+            tcgTags={tcgTags} setTcgTags={setTcgTags}
+            streamMethod={streamMethod} setStreamMethod={setStreamMethod}
+            useObs={useObs} setUseObs={setUseObs}
+            useCompositor={useCompositor} setUseCompositor={setUseCompositor}
+            startingBid={startingBid} setStartingBid={setStartingBid}
+            minIncrement={minIncrement} setMinIncrement={setMinIncrement}
+            defaultTimerSec={defaultTimerSec} setDefaultTimerSec={setDefaultTimerSec}
+            defaultCondition={defaultCondition} setDefaultCondition={setDefaultCondition}
+            quickStart={quickStart} setQuickStart={setQuickStart}
+            auctionPreset={auctionPreset} setAuctionPreset={setAuctionPreset}
+            enableBreak={enableBreak} setEnableBreak={setEnableBreak}
+            breakSlotCount={breakSlotCount} setBreakSlotCount={setBreakSlotCount}
+            breakSlotPrice={breakSlotPrice} setBreakSlotPrice={setBreakSlotPrice}
+            breakSlotPrefix={breakSlotPrefix} setBreakSlotPrefix={setBreakSlotPrefix}
+            streamDesc={streamDesc} setStreamDesc={setStreamDesc}
+            startLive={startLive}
+          />
         ) : (
           <div className="space-y-3">
             <div className="flex gap-2">
