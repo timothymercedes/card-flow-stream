@@ -7,6 +7,7 @@ import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingC
 import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import { useShuffleBucket, seededHash } from "@/lib/shuffle";
+import { WatchTutorial } from "@/components/WatchTutorial";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
