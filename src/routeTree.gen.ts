@@ -42,6 +42,7 @@ import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
+import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 
@@ -212,6 +213,11 @@ const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
   path: '/legal/buyer-terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
+  id: '/api/public/beta-verify',
+  path: '/api/public/beta-verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe/webhook',
   path: '/api/public/stripe/webhook',
@@ -258,6 +264,7 @@ export interface FileRoutesByFullPath {
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -295,6 +302,7 @@ export interface FileRoutesByTo {
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
+  '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -333,6 +341,7 @@ export interface FileRoutesById {
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -372,6 +381,7 @@ export interface FileRouteTypes {
     | '/live/'
     | '/market/'
     | '/messages/'
+    | '/api/public/beta-verify'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -409,6 +419,7 @@ export interface FileRouteTypes {
     | '/live'
     | '/market'
     | '/messages'
+    | '/api/public/beta-verify'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/stripe/webhook'
   id:
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/live/'
     | '/market/'
     | '/messages/'
+    | '/api/public/beta-verify'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/stripe/webhook'
   fileRoutesById: FileRoutesById
@@ -484,6 +496,7 @@ export interface RootRouteChildren {
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
+  ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
@@ -721,6 +734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalBuyerTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/beta-verify': {
+      id: '/api/public/beta-verify'
+      path: '/api/public/beta-verify'
+      fullPath: '/api/public/beta-verify'
+      preLoaderRoute: typeof ApiPublicBetaVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe/webhook': {
       id: '/api/public/stripe/webhook'
       path: '/api/public/stripe/webhook'
@@ -772,6 +792,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
+  ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
