@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Radio, ChevronRight, Heart, Sparkles, Flame, ShieldCheck, Zap, Trophy, Users } from "lucide-react";
