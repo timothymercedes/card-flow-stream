@@ -8,6 +8,8 @@ import { Link as RLink } from "@tanstack/react-router";
 import heroCards from "@/assets/hero-cards.jpg";
 import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
+import PublicLanding from "@/components/PublicLanding";
+import { isTutorialMode } from "@/lib/tutorialMode";
 
 export const Route = createFileRoute("/")({
   component: Home,
