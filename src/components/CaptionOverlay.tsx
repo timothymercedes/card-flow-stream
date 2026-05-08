@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Captions, CaptionsOff, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useScribe } from "@elevenlabs/react";
+import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { readA11yLocal } from "@/components/A11yClassSync";
 import { supabase } from "@/integrations/supabase/client";
