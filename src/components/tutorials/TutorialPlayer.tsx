@@ -14,11 +14,36 @@ export type Tutorial = {
   route_path?: string | null;
 };
 
-function speak(text: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      resolve(); return;
+/** Try ElevenLabs TTS via edge function; fall back to browser SpeechSynthesis. */
+async function speak(text: string, audioRef: { current: HTMLAudioElement | null }): Promise<void> {
+  // Try ElevenLabs first
+  try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token;
+    if (token) {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`;
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (r.ok) {
+        const blob = await r.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = new Audio(objUrl);
+        audioRef.current = a;
+        await new Promise<void>((resolve) => {
+          a.onended = () => { URL.revokeObjectURL(objUrl); resolve(); };
+          a.onerror = () => { URL.revokeObjectURL(objUrl); resolve(); };
+          a.play().catch(() => resolve());
+        });
+        return;
+      }
     }
+  } catch { /* fall through */ }
+  // Fallback: browser SpeechSynthesis
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) { resolve(); return; }
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1; u.pitch = 1;
     u.onend = () => resolve();
