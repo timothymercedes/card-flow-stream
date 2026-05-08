@@ -97,9 +97,12 @@ function Market() {
       <div className="px-4 py-4">
         {/* Hero */}
         <div className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-accent/20 to-primary/10 p-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold">Marketplace</h1>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h1 className="text-2xl font-bold">Marketplace</h1>
+            </div>
+            <WatchTutorial routePath="/market" label="How it works" />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Trading cards • Funko Pops • Anime figures • Memorabilia
