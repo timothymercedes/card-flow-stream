@@ -7,6 +7,7 @@ import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
+import { HeaderSearch } from "@/components/HeaderSearch";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
