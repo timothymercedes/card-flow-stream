@@ -119,6 +119,45 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_invites: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          last_used_at: string | null
+          max_uses: number
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          max_uses?: number
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          max_uses?: number
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: []
+      }
       break_slots: {
         Row: {
           amount: number
