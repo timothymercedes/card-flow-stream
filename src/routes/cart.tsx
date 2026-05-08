@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
-import { TutorialHint } from "@/components/tutorials/TutorialHint";
+import { WatchTutorial } from "@/components/WatchTutorial";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
