@@ -1,6 +1,7 @@
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Search } from "lucide-react";
-import { ReactNode, useEffect, useState, FormEvent } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
+import { HeaderSearch } from "@/components/HeaderSearch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
