@@ -633,6 +633,21 @@ function KeyRow({ label, value, onCopy, rightSlot }: { label: string; value: str
   );
 }
 
+function PreflightItem({ ok, label, optional }: { ok: boolean; label: string; optional?: boolean }) {
+  return (
+    <li className="flex items-center gap-2">
+      {ok ? (
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+      ) : (
+        <AlertCircle className={`h-3.5 w-3.5 shrink-0 ${optional ? "text-muted-foreground" : "text-amber-500"}`} />
+      )}
+      <span className={ok ? "text-foreground" : "text-muted-foreground"}>
+        {label}{optional && !ok ? " — optional" : ""}
+      </span>
+    </li>
+  );
+}
+
 function MethodTile({ active, icon, label, hint, onClick }: { active: boolean; icon: React.ReactNode; label: string; hint: string; onClick: () => void }) {
   return (
     <button
