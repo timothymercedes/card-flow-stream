@@ -382,7 +382,7 @@ function Sell() {
             breakSlotPrice={breakSlotPrice} setBreakSlotPrice={setBreakSlotPrice}
             breakSlotPrefix={breakSlotPrefix} setBreakSlotPrefix={setBreakSlotPrefix}
             streamDesc={streamDesc} setStreamDesc={setStreamDesc}
-            startLive={startLive}
+            startLive={async () => { await startLive(); }}
           />
         ) : (
           <div className="space-y-3">
