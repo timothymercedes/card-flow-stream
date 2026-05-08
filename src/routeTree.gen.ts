@@ -42,6 +42,7 @@ import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
+import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
@@ -213,6 +214,11 @@ const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
   path: '/legal/buyer-terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
+  id: '/admin_/performance',
+  path: '/admin/performance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   id: '/api/public/beta-verify',
   path: '/api/public/beta-verify',
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/stories': typeof StoriesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -289,6 +296,7 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/stories': typeof StoriesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin_/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/privacy': typeof LegalPrivacyRoute
@@ -368,6 +377,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tutorials'
     | '/vault'
+    | '/admin/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
     | '/legal/privacy'
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tutorials'
     | '/vault'
+    | '/admin/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
     | '/legal/privacy'
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tutorials'
     | '/vault'
+    | '/admin_/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
     | '/legal/privacy'
@@ -483,6 +495,7 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
+  AdminPerformanceRoute: typeof AdminPerformanceRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
   LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
@@ -734,6 +747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalBuyerTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/performance': {
+      id: '/admin_/performance'
+      path: '/admin/performance'
+      fullPath: '/admin/performance'
+      preLoaderRoute: typeof AdminPerformanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/beta-verify': {
       id: '/api/public/beta-verify'
       path: '/api/public/beta-verify'
@@ -779,6 +799,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
+  AdminPerformanceRoute: AdminPerformanceRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
   LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
@@ -799,3 +820,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
