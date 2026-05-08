@@ -52,9 +52,7 @@ function Market() {
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) { console.error("[market] listings query failed", error); return; }
-        const rows = data || [];
-        const visible = rows.filter(isPublicListingVisible);
-        console.log(`[market] fetched ${rows.length} rows, ${visible.length} visible`);
+        const visible = (data || []).filter(isPublicListingVisible);
         setItems(visible);
       });
   }, []);
