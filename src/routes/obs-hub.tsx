@@ -458,14 +458,29 @@ function ObsHub() {
               <p className="mb-3 text-[11px] text-muted-foreground">
                 Open OBS → Start Streaming → tap below. We launch your stream with your saved defaults — no extra prompts.
               </p>
+
+              {/* Pre-flight checklist */}
+              <ul className="mb-3 space-y-1 rounded-xl bg-background/40 p-3 text-[11px]">
+                <PreflightItem ok={preflight.streamKey} label="Stream key generated" />
+                <PreflightItem ok={preflight.rtmpUrl} label="RTMP URL ready" />
+                <PreflightItem ok={preflight.title} label="Default stream title set" />
+                <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
+                <PreflightItem ok={preflight.encoderConnected} label="OBS encoder connected (optional — can start before)" optional />
+              </ul>
+
               <button
                 onClick={goLiveWithObs}
-                disabled={launching}
+                disabled={launching || !preflightReady}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-live py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
               >
                 {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                 🔴 Go Live With OBS
               </button>
+              {!preflightReady && (
+                <p className="mt-2 text-[10px] text-amber-500">
+                  Finish the items above first — then this button unlocks.
+                </p>
+              )}
               <p className="mt-2 text-[10px] text-muted-foreground">
                 Prefer mobile? <Link to="/sell" className="text-primary underline">Use mobile camera instead →</Link>
               </p>
