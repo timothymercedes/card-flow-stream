@@ -3309,7 +3309,7 @@ function LiveDetail() {
                 <div className="mb-2 grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => {
-                      const profile = `[General]\nName=PullBidLive\n\n[Stream]\nservice=Custom\nserver=${stream.cf_rtmps_url}\nkey=${stream.cf_stream_key}\nuse_auth=false\nenable_multitrack_video=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4000\nABitrate=160\nStreamEncoder=x264\nRecEncoder=x264\nPreset=veryfast\n\n[Video]\nBaseCX=1280\nBaseCY=720\nOutputCX=1280\nOutputCY=720\nFPSCommon=30\n`;
+                      const profile = `[General]\nName=PullBidLive\n\n[Stream1]\nIgnoreRecommended=true\nEnableMultitrackVideo=false\nMultitrackVideoConfigOverrideEnabled=false\nMultitrackVideoConfigOverride=\nMultitrackVideoMaximumAggregateBitrateAuto=true\nMultitrackVideoMaximumVideoTracksAuto=true\nMultitrackVideoStreamDumpEnabled=false\n\n[Output]\nMode=Simple\n\n[SimpleOutput]\nVBitrate=4000\nABitrate=160\nStreamEncoder=x264\nRecEncoder=x264\nPreset=veryfast\n\n[Video]\nBaseCX=1280\nBaseCY=720\nOutputCX=1280\nOutputCY=720\nFPSCommon=30\n`;
                       const blob = new Blob([profile], { type: "text/plain" });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
