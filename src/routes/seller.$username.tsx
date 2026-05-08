@@ -113,7 +113,7 @@ function PublicStore() {
       const prof = Array.isArray(profRows) ? profRows[0] : null;
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r, fr, fg, sc, bc, ps, st] = await Promise.all([
+      const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
@@ -123,6 +123,7 @@ function PublicStore() {
         (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
         supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
         supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
+        supabase.from("vault_cards").select("*").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
       ]);
       setListings((l.data || []).filter(isPublicListingVisible));
       setSoldOrders(o.data || []);
@@ -133,6 +134,7 @@ function PublicStore() {
       setBuyerCompleted(Number(bc?.data ?? 0));
       setPosts(ps.data || []);
       setStories(st.data || []);
+      setVaultCards(vc.data || []);
     })();
   }, [username]);
 
