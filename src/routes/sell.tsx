@@ -51,6 +51,12 @@ function Sell() {
   const [defaultTimerSec, setDefaultTimerSec] = useState("30");
   const [useObs, setUseObs] = useState(false);
   const [useCompositor, setUseCompositor] = useState(false); // browser-side canvas compositor → WHIP
+  // 6-step wizard state
+  const [step, setStep] = useState(1);
+  type StreamMethod = "phone" | "webcam" | "obs";
+  const [streamMethod, setStreamMethod] = useState<StreamMethod>("phone");
+  type AuctionPreset = "sudden_death" | "timed" | "wheel_spin" | "pull_box" | "mystery_pack" | "custom";
+  const [auctionPreset, setAuctionPreset] = useState<AuctionPreset>("timed");
   // 🆕 Pre-live Mystery Break setup
   const [enableBreak, setEnableBreak] = useState(false);
   const [breakSlotCount, setBreakSlotCount] = useState("20");
