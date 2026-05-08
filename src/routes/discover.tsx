@@ -4,13 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { FollowButton } from "@/components/FollowButton";
 import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store } from "lucide-react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
+const searchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+});
 
 export const Route = createFileRoute("/discover")({
   component: DiscoverPage,
+  validateSearch: zodValidator(searchSchema),
   head: () => ({
     meta: [
       { title: "Discover Collectors — PullBid Live" },
-      { name: "description", content: "Search for collectors, sellers, and live hosts. Find trending sellers and suggested users to follow." },
+      { name: "description", content: "Search for collectors, sellers, live hosts, and cards on PullBid Live." },
     ],
   }),
 });
@@ -30,9 +37,13 @@ type UserRow = {
   mutual_count?: number;
 };
 
+type ListingRow = { id: string; title: string; price: number | null; image_url: string | null };
+
 function DiscoverPage() {
-  const [query, setQuery] = useState("");
+  const initialQ = (Route.useSearch() as any).q ?? "";
+  const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
+  const [listings, setListings] = useState<ListingRow[]>([]);
   const [trending, setTrending] = useState<UserRow[]>([]);
   const [suggested, setSuggested] = useState<UserRow[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
@@ -54,13 +65,21 @@ function DiscoverPage() {
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) { setResults([]); setSearching(false); return; }
+    if (!q) { setResults([]); setListings([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
-      const { data } = await (supabase.rpc as any)("search_users", { _query: q, _limit: 25 });
-      setResults(data || []);
+      const [{ data: users }, { data: cards }] = await Promise.all([
+        (supabase.rpc as any)("search_users", { _query: q, _limit: 25 }),
+        supabase.from("listings")
+          .select("id,title,price,image_url")
+          .ilike("title", `%${q}%`)
+          .limit(20),
+      ]);
+      setResults(users || []);
+      setListings((cards as any) || []);
       setSearching(false);
-    }, 220);
+      saveRecent(q);
+    }, 250);
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
   }, [query]);
 
@@ -123,17 +142,42 @@ function DiscoverPage() {
       </div>
 
       {showResults ? (
-        <section className="mt-4 px-4">
-          <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {searching ? "Searching…" : `${results.length} result${results.length === 1 ? "" : "s"}`}
-          </h2>
-          {results.length === 0 && !searching && (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">No collectors match "{query}"</div>
-          )}
-          <ul className="space-y-2">
-            {results.map((u) => <UserRow key={u.id} u={u} onOpen={openProfile} />)}
-          </ul>
-        </section>
+        <>
+          <section className="mt-4 px-4">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              People {searching ? "· searching…" : `· ${results.length}`}
+            </h2>
+            {results.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No people match "{query}"</div>
+            )}
+            <ul className="space-y-2">
+              {results.map((u) => <UserRow key={u.id} u={u} onOpen={openProfile} />)}
+            </ul>
+          </section>
+          <section className="mt-5 px-4 pb-8">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Cards {searching ? "· searching…" : `· ${listings.length}`}
+            </h2>
+            {listings.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No cards match "{query}"</div>
+            )}
+            <ul className="grid grid-cols-2 gap-2">
+              {listings.map((l) => (
+                <li key={l.id}>
+                  <Link to="/market/$id" params={{ id: l.id }} className="block overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                    <div className="aspect-square bg-muted">
+                      {l.image_url && <img src={l.image_url} alt={l.title} className="h-full w-full object-cover" />}
+                    </div>
+                    <div className="p-2">
+                      <p className="line-clamp-2 text-xs font-semibold">{l.title}</p>
+                      {l.price != null && <p className="mt-0.5 text-[11px] font-bold text-primary">${Number(l.price).toFixed(2)}</p>}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
       ) : (
         <>
           {suggested.length > 0 && (

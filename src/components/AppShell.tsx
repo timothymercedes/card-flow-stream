@@ -1,6 +1,6 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Search } from "lucide-react";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, FormEvent } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -60,15 +60,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur">
+       <div className="flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img src={logo} alt="PullBid Live" className="h-10 w-10 object-contain" />
           <div className="text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
         <div className="flex items-center gap-1.5">
-          <Link to="/discover" aria-label="Search collectors" className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-            <Search className="h-4 w-4" />
-          </Link>
           <Link to="/showoff" className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
             <Sparkles className="h-3.5 w-3.5" /> Flex Live
           </Link>
@@ -89,6 +87,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <User className="h-4 w-4" />
           </Link>
         </div>
+       </div>
+       <HeaderSearch />
       </header>
       <main className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
@@ -108,5 +108,30 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
     </div>
+  );
+}
+
+function HeaderSearch() {
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const term = q.trim();
+    navigate({ to: "/discover", search: term ? { q: term } : {} } as any);
+  }
+  return (
+    <form onSubmit={onSubmit} className="mt-2.5">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search cards, users, hosts, stores…"
+          className="w-full rounded-full border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none focus:border-primary"
+          aria-label="Search"
+        />
+      </div>
+    </form>
   );
 }
