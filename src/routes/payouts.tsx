@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/payouts")({
   component: PayoutsPage,
@@ -125,7 +126,7 @@ function PayoutsPage() {
   return (
     <SellerAgreementGate>
     <div className="container max-w-2xl py-8 space-y-6">
-      <HeaderSearch />
+      <div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div>
       <div>
         <h1 className="text-3xl font-bold">Payouts</h1>
         <p className="text-muted-foreground">Connect your Stripe account to receive payments from buyers.</p>

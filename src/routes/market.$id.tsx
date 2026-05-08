@@ -8,6 +8,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -237,7 +238,7 @@ function ListingDetail() {
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
-      <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><HeaderSearch /></div>
+      <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><div className="flex items-center gap-2"><BackButton to="/market" /><HeaderSearch className="flex-1" /></div></div>
       <div className="relative aspect-square bg-muted">
         {listing.image_url ? <img src={listing.image_url} loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
         <Link to="/market" className="absolute left-3 top-3 rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4 text-white" /></Link>

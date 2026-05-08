@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { TutorialLibrary } from "@/components/tutorials/TutorialLibrary";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 
 export const Route = createFileRoute("/tutorials")({
   component: TutorialsPage,
@@ -18,7 +19,7 @@ function TutorialsPage() {
   const navigate = useNavigate();
   return (
     <main className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
-      <div className="sticky top-0 z-30 mx-auto w-full max-w-md border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><HeaderSearch /></div>
+      <div className="sticky top-0 z-30 mx-auto w-full max-w-md border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div></div>
       <h1 className="sr-only">Tutorials</h1>
       <TutorialLibrary onBack={() => navigate({ to: "/" })} />
     </main>

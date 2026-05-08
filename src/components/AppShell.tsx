@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -89,7 +90,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
        </div>
-       <HeaderSearch className="mt-2.5" />
+       <div className="mt-2.5 flex items-center gap-2">
+         <BackButton />
+         <HeaderSearch className="flex-1" />
+       </div>
       </header>
       <main className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
