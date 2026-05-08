@@ -3,18 +3,31 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
+const CardScanner = lazy(() =>
+  import("@/components/CardScanner").then((m) => ({ default: m.CardScanner })),
+);
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
-import { Camera, Radio, Smartphone, Monitor, Check, ChevronLeft, Zap, Timer, Disc3, Package, Sparkles } from "lucide-react";
+import {
+  Camera,
+  Radio,
+  Smartphone,
+  Monitor,
+  Check,
+  ChevronLeft,
+  Zap,
+  Timer,
+  Disc3,
+  Package,
+  Sparkles,
+} from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { WatchTutorial } from "@/components/WatchTutorial";
-
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -34,7 +47,9 @@ function Sell() {
   const tutorial = useTutorialMode();
   const nav = useNavigate();
   const { triggerOnce } = useTour();
-  useEffect(() => { triggerOnce("seller-welcome"); }, [triggerOnce]);
+  useEffect(() => {
+    triggerOnce("seller-welcome");
+  }, [triggerOnce]);
   const [tab, setTab] = useState<"live" | "listing">("live");
   const [sellerStatus, setSellerStatus] = useState<string | null>(null);
   const [stripeReady, setStripeReady] = useState<boolean | null>(null);
@@ -46,7 +61,7 @@ function Sell() {
   const [startingBid, setStartingBid] = useState("1");
   const [timerMin, setTimerMin] = useState("10");
   const [minIncrement, setMinIncrement] = useState("1");
-  const [defaultCondition, setDefaultCondition] = useState<"NM"|"LP"|"MP"|"Damaged">("NM");
+  const [defaultCondition, setDefaultCondition] = useState<"NM" | "LP" | "MP" | "Damaged">("NM");
   const [quickStart, setQuickStart] = useState(true);
   const [defaultTimerSec, setDefaultTimerSec] = useState("30");
   const [useObs, setUseObs] = useState(false);
@@ -55,7 +70,13 @@ function Sell() {
   const [step, setStep] = useState(1);
   type StreamMethod = "phone" | "webcam" | "obs";
   const [streamMethod, setStreamMethod] = useState<StreamMethod>("phone");
-  type AuctionPreset = "sudden_death" | "timed" | "wheel_spin" | "pull_box" | "mystery_pack" | "custom";
+  type AuctionPreset =
+    | "sudden_death"
+    | "timed"
+    | "wheel_spin"
+    | "pull_box"
+    | "mystery_pack"
+    | "custom";
   const [auctionPreset, setAuctionPreset] = useState<AuctionPreset>("timed");
   // 🆕 Pre-live Mystery Break setup
   const [enableBreak, setEnableBreak] = useState(false);
@@ -71,13 +92,13 @@ function Sell() {
   const [desc, setDesc] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [backImageUrl, setBackImageUrl] = useState(""); // 🆕 back of card (required)
-  const [tcgNumber, setTcgNumber] = useState("");        // 🆕 card number (optional)
-  const [tcgSet, setTcgSet] = useState("");               // 🆕 from AI ID
-  const [tcgYear, setTcgYear] = useState("");             // 🆕 from AI ID
+  const [tcgNumber, setTcgNumber] = useState(""); // 🆕 card number (optional)
+  const [tcgSet, setTcgSet] = useState(""); // 🆕 from AI ID
+  const [tcgYear, setTcgYear] = useState(""); // 🆕 from AI ID
   const [condition, setCondition] = useState<Condition>("NM"); // 🆕 required
   const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null); // 🆕 from AI ID
   const [identifying, setIdentifying] = useState(false); // 🆕 AI identify in-flight
-  const [scanning, setScanning] = useState(false);       // 🆕 image scan modal
+  const [scanning, setScanning] = useState(false); // 🆕 image scan modal
   const [enableBuyNow, setEnableBuyNow] = useState(true);
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
@@ -96,13 +117,23 @@ function Sell() {
       return;
     }
     if (user && sellerStatus === null) {
-      supabase.from("profiles").select("seller_status, shop_name").eq("id", user.id).maybeSingle().then(({ data }) => {
-        setSellerStatus((data as any)?.seller_status || "none");
-        setShopName((data as any)?.shop_name ?? null);
-      });
+      supabase
+        .from("profiles")
+        .select("seller_status, shop_name")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setSellerStatus((data as any)?.seller_status || "none");
+          setShopName((data as any)?.shop_name ?? null);
+        });
     }
     if (user && stripeReady === null) {
-      supabase.from("stripe_accounts" as any).select("charges_enabled").eq("seller_id", user.id).maybeSingle().then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
+      supabase
+        .from("stripe_accounts" as any)
+        .select("charges_enabled")
+        .eq("seller_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => setStripeReady(!!(data as any)?.charges_enabled));
     }
   }, [user, sellerStatus, stripeReady, tutorial]);
 
@@ -112,67 +143,106 @@ function Sell() {
     const base = Number(condPrices.NM) || 0;
     if (!base) return;
     setBuyNowPrice(String(priceFor(condition, base, condPrices)));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [condition, condPrices]);
 
   const gateSellerStatus = tutorial ? "approved" : sellerStatus;
   const gateStripeReady = tutorial ? true : stripeReady;
   const gateShopName = tutorial ? "Demo Card Shop" : shopName;
 
-  if (!user) return (
-    <AppShell>
-      <div className="px-6 py-16 text-center">
-        <h1 className="text-xl font-bold">Sell</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Sign in to sell.</p>
-        <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Sign In</Link>
-      </div>
-    </AppShell>
-  );
+  if (!user)
+    return (
+      <AppShell>
+        <div className="px-6 py-16 text-center">
+          <h1 className="text-xl font-bold">Sell</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to sell.</p>
+          <Link
+            to="/auth"
+            className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
+          >
+            Sign In
+          </Link>
+        </div>
+      </AppShell>
+    );
 
-  if (gateSellerStatus && gateSellerStatus !== "approved") return (
-    <AppShell>
-      <div className="px-6 py-16 text-center">
-        <h1 className="text-xl font-bold">Seller application required</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {gateSellerStatus === "pending" ? "Your application is awaiting admin approval." : "Apply to sell from your profile (verified ID + mailing address required)."}
-        </p>
-        <Link to="/profile" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Go to Profile</Link>
-      </div>
-    </AppShell>
-  );
+  if (gateSellerStatus && gateSellerStatus !== "approved")
+    return (
+      <AppShell>
+        <div className="px-6 py-16 text-center">
+          <h1 className="text-xl font-bold">Seller application required</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {gateSellerStatus === "pending"
+              ? "Your application is awaiting admin approval."
+              : "Apply to sell from your profile (verified ID + mailing address required)."}
+          </p>
+          <Link
+            to="/profile"
+            className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
+          >
+            Go to Profile
+          </Link>
+        </div>
+      </AppShell>
+    );
 
-  if (gateSellerStatus === "approved" && gateStripeReady === false) return (
-    <AppShell>
-      <div className="px-6 py-16 text-center">
-        <h1 className="text-xl font-bold">Connect payouts to start selling</h1>
-        <p className="mt-2 text-sm text-muted-foreground">You need to connect your Stripe account to receive payments before you can list or go live.</p>
-        <Link to="/payouts" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Connect Stripe</Link>
-      </div>
-    </AppShell>
-  );
+  if (gateSellerStatus === "approved" && gateStripeReady === false)
+    return (
+      <AppShell>
+        <div className="px-6 py-16 text-center">
+          <h1 className="text-xl font-bold">Connect payouts to start selling</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            You need to connect your Stripe account to receive payments before you can list or go
+            live.
+          </p>
+          <Link
+            to="/payouts"
+            className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
+          >
+            Connect Stripe
+          </Link>
+        </div>
+      </AppShell>
+    );
 
-  if (gateSellerStatus === "approved" && gateShopName === null) return (
-    <AppShell>
-      <div className="px-6 py-16 text-center">
-        <h1 className="text-xl font-bold">Claim your shop name</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Pick a unique store name so buyers know who they're purchasing from. You can do this in your profile.</p>
-        <Link to="/profile" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Go to Profile</Link>
-      </div>
-    </AppShell>
-  );
+  if (gateSellerStatus === "approved" && gateShopName === null)
+    return (
+      <AppShell>
+        <div className="px-6 py-16 text-center">
+          <h1 className="text-xl font-bold">Claim your shop name</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Pick a unique store name so buyers know who they're purchasing from. You can do this in
+            your profile.
+          </p>
+          <Link
+            to="/profile"
+            className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
+          >
+            Go to Profile
+          </Link>
+        </div>
+      </AppShell>
+    );
 
   async function ensureSeller() {
-    if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
+    if (!profile?.is_seller)
+      await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
   }
 
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
     // Block if host already has an open (live or paused) stream
-    const { data: openStream } = await supabase.from("live_streams")
-      .select("id, mode, status").eq("seller_id", user!.id).in("status", ["live", "paused"]).maybeSingle();
+    const { data: openStream } = await supabase
+      .from("live_streams")
+      .select("id, mode, status")
+      .eq("seller_id", user!.id)
+      .in("status", ["live", "paused"])
+      .maybeSingle();
     if (openStream) {
-      toast.error(`You already have an open ${openStream.mode === "show_off" ? "Flex" : "live"} — end it first`);
+      toast.error(
+        `You already have an open ${openStream.mode === "show_off" ? "Flex" : "live"} — end it first`,
+      );
       return;
     }
     await ensureSeller();
@@ -183,7 +253,9 @@ function Sell() {
     let cf: { cf_live_input_id?: string; cf_rtmps_url?: string; cf_stream_key?: string } = {};
     let cfPublic: { cf_playback_hls?: string; cf_whip_url?: string } = {};
     if (useObs || useCompositor) {
-      const { data, error } = await supabase.functions.invoke("create-stream-input", { body: { meta_name: streamTitle } });
+      const { data, error } = await supabase.functions.invoke("create-stream-input", {
+        body: { meta_name: streamTitle },
+      });
       if (error || (data as any)?.error) {
         toast.error("Could not set up Cloudflare Stream — check keys");
         return;
@@ -199,34 +271,46 @@ function Sell() {
       };
     }
 
-    const { data, error } = await supabase.from("live_streams").insert({
-      seller_id: user!.id,
-      title: streamTitle,
-      category: streamCategory || null,
-      stream_type: "auction",
-      tcg_tags: tcgTags,
-      item_description: [streamDesc, hypeTags.length ? `Tags: ${hypeTags.join(", ")}` : ""].filter(Boolean).join(" — ") || null,
-      listing_type: "auction",
-      starting_bid: Number(startingBid) || 1,
-      current_bid: Number(startingBid) || 1,
-      current_item: streamTitle,
-      min_bid_increment: Number(minIncrement) || 1,
-      status: "live",
-      is_active: true,
-      started_at: new Date().toISOString(),
-      ends_at,
-      quick_start_enabled: quickStart,
-      default_timer_sec: Number(defaultTimerSec) || 30,
-      default_starting_bid: Number(startingBid) || 1,
-      default_condition: defaultCondition,
-      ...(enableBreak ? {
-        break_mode: "open",
-        break_slot_count: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)),
-        break_slot_prefix: breakSlotPrefix.trim() || null,
-        break_teams: Array.from({ length: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)) }, (_, i) => `${(breakSlotPrefix.trim() || "#")}${i + 1}`),
-      } : {}),
-      ...cfPublic,
-    }).select().single();
+    const { data, error } = await supabase
+      .from("live_streams")
+      .insert({
+        seller_id: user!.id,
+        title: streamTitle,
+        category: streamCategory || null,
+        stream_type: "auction",
+        tcg_tags: tcgTags,
+        item_description:
+          [streamDesc, hypeTags.length ? `Tags: ${hypeTags.join(", ")}` : ""]
+            .filter(Boolean)
+            .join(" — ") || null,
+        listing_type: "auction",
+        starting_bid: Number(startingBid) || 1,
+        current_bid: Number(startingBid) || 1,
+        current_item: streamTitle,
+        min_bid_increment: Number(minIncrement) || 1,
+        status: "live",
+        is_active: true,
+        started_at: new Date().toISOString(),
+        ends_at,
+        quick_start_enabled: quickStart,
+        default_timer_sec: Number(defaultTimerSec) || 30,
+        default_starting_bid: Number(startingBid) || 1,
+        default_condition: defaultCondition,
+        ...(enableBreak
+          ? {
+              break_mode: "open",
+              break_slot_count: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)),
+              break_slot_prefix: breakSlotPrefix.trim() || null,
+              break_teams: Array.from(
+                { length: Math.max(2, Math.min(50, Number(breakSlotCount) || 20)) },
+                (_, i) => `${breakSlotPrefix.trim() || "#"}${i + 1}`,
+              ),
+            }
+          : {}),
+        ...cfPublic,
+      })
+      .select()
+      .single();
     if (error) return toast.error(error.message);
     if (cf.cf_live_input_id || cf.cf_rtmps_url || cf.cf_stream_key) {
       await supabase.from("live_stream_credentials" as any).insert({
@@ -246,9 +330,12 @@ function Sell() {
     if (!imageUrl.trim()) return toast.error("Front photo is required");
     if (!backImageUrl.trim()) return toast.error("Back photo is required");
     if (!category) return toast.error("Pick a category");
-    if (!enableBuyNow && !enableAuction && !enableOffers) return toast.error("Pick at least one sale type");
-    if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0)) return toast.error("Set a Buy Now price");
-    if (enableAuction && (!auctionStart || Number(auctionStart) <= 0)) return toast.error("Set a starting bid");
+    if (!enableBuyNow && !enableAuction && !enableOffers)
+      return toast.error("Pick at least one sale type");
+    if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0))
+      return toast.error("Set a Buy Now price");
+    if (enableAuction && (!auctionStart || Number(auctionStart) <= 0))
+      return toast.error("Set a starting bid");
     await ensureSeller();
 
     const auctionEnds = enableAuction
@@ -289,7 +376,16 @@ function Sell() {
     setIdentifying(true);
     try {
       const { data, error } = await supabase.functions.invoke("identify-card", {
-        body: { query: [q, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ") },
+        body: {
+          query: [
+            q,
+            tcgNumber && `#${tcgNumber}`,
+            tcgSet && `set: ${tcgSet}`,
+            tcgYear && `year: ${tcgYear}`,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        },
       });
       if (error) throw error;
       applyIdResult(data);
@@ -303,9 +399,17 @@ function Sell() {
 
   // 🆕 IMAGE-based identify — same engine as the Vault scanner. The seller
   // snaps the card with their camera; we run scan-card and apply the result.
-  function onScanResult(r: { name: string; category: string; trend: string; image: string;
-                            set?: string; year?: string; tcg_number?: string;
-                            estimated_value?: number; condition_prices?: ConditionPrices }) {
+  function onScanResult(r: {
+    name: string;
+    category: string;
+    trend: string;
+    image: string;
+    set?: string;
+    year?: string;
+    tcg_number?: string;
+    estimated_value?: number;
+    condition_prices?: ConditionPrices;
+  }) {
     if (!imageUrl) setImageUrl(r.image); // captured photo becomes the front image
     applyIdResult(r);
     setScanning(false);
@@ -320,7 +424,12 @@ function Sell() {
     if (d.set && !tcgSet) setTcgSet(d.set);
     if (d.year && !tcgYear) setTcgYear(String(d.year));
     if (!desc.trim()) {
-      const parts = [d.category, d.set, d.year && `(${d.year})`, d.tcg_number && `#${d.tcg_number}`].filter(Boolean);
+      const parts = [
+        d.category,
+        d.set,
+        d.year && `(${d.year})`,
+        d.tcg_number && `#${d.tcg_number}`,
+      ].filter(Boolean);
       if (parts.length) setDesc(parts.join(" • "));
     }
     const cp: ConditionPrices | null = d.condition_prices || null;
@@ -330,143 +439,303 @@ function Sell() {
     if (!imageUrl && d.name) {
       try {
         const { data: img } = await supabase.functions.invoke("generate-card-image", {
-          body: { name: d.name, category: d.category, set: d.set, year: d.year, tcg_number: d.tcg_number || tcgNumber },
+          body: {
+            name: d.name,
+            category: d.category,
+            set: d.set,
+            year: d.year,
+            tcg_number: d.tcg_number || tcgNumber,
+          },
         });
-        if (img?.image) { setImageUrl(img.image); toast.success("Card image generated"); }
-      } catch { /* ignore */ }
+        if (img?.image) {
+          setImageUrl(img.image);
+          toast.success("Card image generated");
+        }
+      } catch {
+        /* ignore */
+      }
     }
   }
 
-
-
-  const Toggle = ({ label, hint, on, set }: { label: string; hint?: string; on: boolean; set: (v: boolean) => void }) => (
+  const Toggle = ({
+    label,
+    hint,
+    on,
+    set,
+  }: {
+    label: string;
+    hint?: string;
+    on: boolean;
+    set: (v: boolean) => void;
+  }) => (
     <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-card p-3">
       <div>
         <p className="text-sm font-semibold">{label}</p>
         {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       </div>
-      <input type="checkbox" checked={on} onChange={(e) => set(e.target.checked)} className="mt-1 h-5 w-5" />
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(e) => set(e.target.checked)}
+        className="mt-1 h-5 w-5"
+      />
     </label>
   );
 
   return (
     <SellerAgreementGate>
-    <AppShell>
-      <div className="px-4 py-4">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Sell</h1>
-          <WatchTutorial routePath="/sell" label="Watch tutorial" />
-        </div>
-        <div className="mb-4 flex rounded-xl bg-card p-1">
-          <button onClick={() => setTab("live")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "live" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Go Live</button>
-          <button onClick={() => setTab("listing")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "listing" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>List Item</button>
-        </div>
-
-        {tab === "live" ? (
-          <LiveWizard
-            step={step} setStep={setStep}
-            streamTitle={streamTitle} setStreamTitle={setStreamTitle}
-            streamCategory={streamCategory} setStreamCategory={setStreamCategory}
-            tcgTags={tcgTags} setTcgTags={setTcgTags}
-            streamMethod={streamMethod} setStreamMethod={setStreamMethod}
-            useObs={useObs} setUseObs={setUseObs}
-            useCompositor={useCompositor} setUseCompositor={setUseCompositor}
-            startingBid={startingBid} setStartingBid={setStartingBid}
-            minIncrement={minIncrement} setMinIncrement={setMinIncrement}
-            defaultTimerSec={defaultTimerSec} setDefaultTimerSec={setDefaultTimerSec}
-            defaultCondition={defaultCondition} setDefaultCondition={setDefaultCondition}
-            quickStart={quickStart} setQuickStart={setQuickStart}
-            auctionPreset={auctionPreset} setAuctionPreset={setAuctionPreset}
-            enableBreak={enableBreak} setEnableBreak={setEnableBreak}
-            breakSlotCount={breakSlotCount} setBreakSlotCount={setBreakSlotCount}
-            breakSlotPrice={breakSlotPrice} setBreakSlotPrice={setBreakSlotPrice}
-            breakSlotPrefix={breakSlotPrefix} setBreakSlotPrefix={setBreakSlotPrefix}
-            streamDesc={streamDesc} setStreamDesc={setStreamDesc}
-            startLive={async () => { await startLive(); }}
-          />
-        ) : (
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Item title" value={title} onChange={(e) => setTitle(e.target.value)} />
-              <button type="button" onClick={() => setScanning(true)}
-                className="flex items-center gap-1 rounded-xl bg-primary px-3 py-3 text-xs font-bold text-primary-foreground"
-                title="Scan card with camera (same engine as Vault)">
-                <Camera className="h-3.5 w-3.5" /> Scan
-              </button>
-              <button type="button" onClick={aiIdentify} disabled={identifying}
-                className="rounded-xl bg-accent px-3 py-3 text-xs font-bold text-accent-foreground disabled:opacity-50">
-                {identifying ? "…" : "✨ AI ID"}
-              </button>
-            </div>
-            <p className="-mt-1 text-[10px] text-muted-foreground">
-              Tap <b>Scan</b> to identify by photo (same as your Vault), or type a name + tap <b>AI ID</b>. Pricing adjusts for condition automatically.
-            </p>
-            <textarea className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none" rows={3} placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <div className="grid grid-cols-3 gap-2">
-              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
-              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
-              <input className="rounded-xl bg-input px-3 py-3 text-xs outline-none" placeholder="# (e.g. 4/102)" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <ListingPhotoCapture value={imageUrl} onChange={setImageUrl} label="Front photo * (camera only)" />
-              <ListingPhotoCapture value={backImageUrl} onChange={setBackImageUrl} label="Back photo * (camera only)" />
-            </div>
-            <label className="block">
-              <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Category *</p>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
-              >
-                {LISTING_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
-                ))}
-              </select>
-            </label>
-            <div>
-              <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Condition (required)</p>
-              <div className="grid grid-cols-4 gap-1">
-                {(["NM","LP","MP","Damaged"] as const).map((c) => (
-                  <button key={c} type="button" onClick={() => setCondition(c)}
-                    className={`rounded-lg py-2 text-xs font-bold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c}</button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">Sale options (pick any combination)</p>
-              <div className="space-y-2">
-                <Toggle label="Buy Now" hint="Set a fixed price buyers can pay instantly." on={enableBuyNow} set={setEnableBuyNow} />
-                {enableBuyNow && (
-                  <input type="number" min="0.01" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Buy Now price ($)" value={buyNowPrice} onChange={(e) => setBuyNowPrice(e.target.value)} />
-                )}
-                <Toggle label="Auction" hint="Buyers place bids. Highest at end-time wins." on={enableAuction} set={setEnableAuction} />
-                {enableAuction && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="number" min="0.01" step="0.01" className="rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Starting bid ($)" value={auctionStart} onChange={(e) => setAuctionStart(e.target.value)} />
-                    <select value={auctionDays} onChange={(e) => setAuctionDays(e.target.value)} className="rounded-xl bg-input px-4 py-3 text-sm outline-none">
-                      <option value="1">1 day</option>
-                      <option value="3">3 days</option>
-                      <option value="5">5 days</option>
-                      <option value="7">7 days</option>
-                    </select>
-                  </div>
-                )}
-                <Toggle label="Accept Offers" hint="Buyers can send custom offers (>$1)." on={enableOffers} set={setEnableOffers} />
-              </div>
-            </div>
-
-            <input type="number" min="0" step="0.01" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none" placeholder="Shipping price ($) — 0 for free" value={shippingPrice} onChange={(e) => setShippingPrice(e.target.value)} />
-            <button onClick={createListing} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Create Listing</button>
+      <AppShell>
+        <div className="px-4 py-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Sell</h1>
+            <WatchTutorial routePath="/sell" label="Watch tutorial" />
           </div>
+          <div className="mb-4 flex rounded-xl bg-card p-1">
+            <button
+              onClick={() => setTab("live")}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "live" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Go Live
+            </button>
+            <button
+              onClick={() => setTab("listing")}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "listing" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              List Item
+            </button>
+          </div>
+
+          {tab === "live" ? (
+            <LiveWizard
+              step={step}
+              setStep={setStep}
+              streamTitle={streamTitle}
+              setStreamTitle={setStreamTitle}
+              streamCategory={streamCategory}
+              setStreamCategory={setStreamCategory}
+              tcgTags={tcgTags}
+              setTcgTags={setTcgTags}
+              streamMethod={streamMethod}
+              setStreamMethod={setStreamMethod}
+              useObs={useObs}
+              setUseObs={setUseObs}
+              useCompositor={useCompositor}
+              setUseCompositor={setUseCompositor}
+              startingBid={startingBid}
+              setStartingBid={setStartingBid}
+              minIncrement={minIncrement}
+              setMinIncrement={setMinIncrement}
+              defaultTimerSec={defaultTimerSec}
+              setDefaultTimerSec={setDefaultTimerSec}
+              defaultCondition={defaultCondition}
+              setDefaultCondition={setDefaultCondition}
+              quickStart={quickStart}
+              setQuickStart={setQuickStart}
+              auctionPreset={auctionPreset}
+              setAuctionPreset={setAuctionPreset}
+              enableBreak={enableBreak}
+              setEnableBreak={setEnableBreak}
+              breakSlotCount={breakSlotCount}
+              setBreakSlotCount={setBreakSlotCount}
+              breakSlotPrice={breakSlotPrice}
+              setBreakSlotPrice={setBreakSlotPrice}
+              breakSlotPrefix={breakSlotPrefix}
+              setBreakSlotPrefix={setBreakSlotPrefix}
+              streamDesc={streamDesc}
+              setStreamDesc={setStreamDesc}
+              startLive={async () => {
+                await startLive();
+              }}
+            />
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                  placeholder="Item title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setScanning(true)}
+                  className="flex items-center gap-1 rounded-xl bg-primary px-3 py-3 text-xs font-bold text-primary-foreground"
+                  title="Scan card with camera (same engine as Vault)"
+                >
+                  <Camera className="h-3.5 w-3.5" /> Scan
+                </button>
+                <button
+                  type="button"
+                  onClick={aiIdentify}
+                  disabled={identifying}
+                  className="rounded-xl bg-accent px-3 py-3 text-xs font-bold text-accent-foreground disabled:opacity-50"
+                >
+                  {identifying ? "…" : "✨ AI ID"}
+                </button>
+              </div>
+              <p className="-mt-1 text-[10px] text-muted-foreground">
+                Tap <b>Scan</b> to identify by photo (same as your Vault), or type a name + tap{" "}
+                <b>AI ID</b>. Pricing adjusts for condition automatically.
+              </p>
+              <textarea
+                className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                rows={3}
+                placeholder="Description"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  className="rounded-xl bg-input px-3 py-3 text-xs outline-none"
+                  placeholder="Set"
+                  value={tcgSet}
+                  onChange={(e) => setTcgSet(e.target.value)}
+                />
+                <input
+                  className="rounded-xl bg-input px-3 py-3 text-xs outline-none"
+                  placeholder="Year"
+                  value={tcgYear}
+                  onChange={(e) => setTcgYear(e.target.value)}
+                />
+                <input
+                  className="rounded-xl bg-input px-3 py-3 text-xs outline-none"
+                  placeholder="# (e.g. 4/102)"
+                  value={tcgNumber}
+                  onChange={(e) => setTcgNumber(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ListingPhotoCapture
+                  value={imageUrl}
+                  onChange={setImageUrl}
+                  label="Front photo * (camera only)"
+                />
+                <ListingPhotoCapture
+                  value={backImageUrl}
+                  onChange={setBackImageUrl}
+                  label="Back photo * (camera only)"
+                />
+              </div>
+              <label className="block">
+                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Category *</p>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                >
+                  {LISTING_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.emoji} {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div>
+                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">
+                  Condition (required)
+                </p>
+                <div className="grid grid-cols-4 gap-1">
+                  {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setCondition(c)}
+                      className={`rounded-lg py-2 text-xs font-bold ${condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                  Sale options (pick any combination)
+                </p>
+                <div className="space-y-2">
+                  <Toggle
+                    label="Buy Now"
+                    hint="Set a fixed price buyers can pay instantly."
+                    on={enableBuyNow}
+                    set={setEnableBuyNow}
+                  />
+                  {enableBuyNow && (
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                      placeholder="Buy Now price ($)"
+                      value={buyNowPrice}
+                      onChange={(e) => setBuyNowPrice(e.target.value)}
+                    />
+                  )}
+                  <Toggle
+                    label="Auction"
+                    hint="Buyers place bids. Highest at end-time wins."
+                    on={enableAuction}
+                    set={setEnableAuction}
+                  />
+                  {enableAuction && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        className="rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                        placeholder="Starting bid ($)"
+                        value={auctionStart}
+                        onChange={(e) => setAuctionStart(e.target.value)}
+                      />
+                      <select
+                        value={auctionDays}
+                        onChange={(e) => setAuctionDays(e.target.value)}
+                        className="rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                      >
+                        <option value="1">1 day</option>
+                        <option value="3">3 days</option>
+                        <option value="5">5 days</option>
+                        <option value="7">7 days</option>
+                      </select>
+                    </div>
+                  )}
+                  <Toggle
+                    label="Accept Offers"
+                    hint="Buyers can send custom offers (>$1)."
+                    on={enableOffers}
+                    set={setEnableOffers}
+                  />
+                </div>
+              </div>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                placeholder="Shipping price ($) — 0 for free"
+                value={shippingPrice}
+                onChange={(e) => setShippingPrice(e.target.value)}
+              />
+              <button
+                onClick={createListing}
+                className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+              >
+                Create Listing
+              </button>
+            </div>
+          )}
+        </div>
+        {scanning && (
+          <Suspense fallback={null}>
+            <CardScanner
+              allowMulti={false}
+              onClose={() => setScanning(false)}
+              onResult={onScanResult}
+            />
+          </Suspense>
         )}
-      </div>
-      {scanning && (
-        <Suspense fallback={null}>
-          <CardScanner allowMulti={false} onClose={() => setScanning(false)} onResult={onScanResult} />
-        </Suspense>
-      )}
-    </AppShell>
+      </AppShell>
     </SellerAgreementGate>
   );
 }
@@ -477,25 +746,42 @@ function Sell() {
 // Step 5 → Auction settings • 6 → Live preview & Go Live
 // =====================================================================
 type LiveWizardProps = {
-  step: number; setStep: (n: number) => void;
-  streamTitle: string; setStreamTitle: (v: string) => void;
-  streamCategory: string; setStreamCategory: (v: string) => void;
-  tcgTags: TcgTag[]; setTcgTags: (fn: (cur: TcgTag[]) => TcgTag[]) => void;
-  streamMethod: "phone" | "webcam" | "obs"; setStreamMethod: (m: "phone" | "webcam" | "obs") => void;
-  useObs: boolean; setUseObs: (v: boolean) => void;
-  useCompositor: boolean; setUseCompositor: (v: boolean) => void;
-  startingBid: string; setStartingBid: (v: string) => void;
-  minIncrement: string; setMinIncrement: (v: string) => void;
-  defaultTimerSec: string; setDefaultTimerSec: (v: string) => void;
-  defaultCondition: "NM"|"LP"|"MP"|"Damaged"; setDefaultCondition: (v: "NM"|"LP"|"MP"|"Damaged") => void;
-  quickStart: boolean; setQuickStart: (v: boolean) => void;
+  step: number;
+  setStep: (n: number) => void;
+  streamTitle: string;
+  setStreamTitle: (v: string) => void;
+  streamCategory: string;
+  setStreamCategory: (v: string) => void;
+  tcgTags: TcgTag[];
+  setTcgTags: (fn: (cur: TcgTag[]) => TcgTag[]) => void;
+  streamMethod: "phone" | "webcam" | "obs";
+  setStreamMethod: (m: "phone" | "webcam" | "obs") => void;
+  useObs: boolean;
+  setUseObs: (v: boolean) => void;
+  useCompositor: boolean;
+  setUseCompositor: (v: boolean) => void;
+  startingBid: string;
+  setStartingBid: (v: string) => void;
+  minIncrement: string;
+  setMinIncrement: (v: string) => void;
+  defaultTimerSec: string;
+  setDefaultTimerSec: (v: string) => void;
+  defaultCondition: "NM" | "LP" | "MP" | "Damaged";
+  setDefaultCondition: (v: "NM" | "LP" | "MP" | "Damaged") => void;
+  quickStart: boolean;
+  setQuickStart: (v: boolean) => void;
   auctionPreset: "sudden_death" | "timed" | "wheel_spin" | "pull_box" | "mystery_pack" | "custom";
   setAuctionPreset: (v: LiveWizardProps["auctionPreset"]) => void;
-  enableBreak: boolean; setEnableBreak: (v: boolean) => void;
-  breakSlotCount: string; setBreakSlotCount: (v: string) => void;
-  breakSlotPrice: string; setBreakSlotPrice: (v: string) => void;
-  breakSlotPrefix: string; setBreakSlotPrefix: (v: string) => void;
-  streamDesc: string; setStreamDesc: (v: string) => void;
+  enableBreak: boolean;
+  setEnableBreak: (v: boolean) => void;
+  breakSlotCount: string;
+  setBreakSlotCount: (v: string) => void;
+  breakSlotPrice: string;
+  setBreakSlotPrice: (v: string) => void;
+  breakSlotPrefix: string;
+  setBreakSlotPrefix: (v: string) => void;
+  streamDesc: string;
+  setStreamDesc: (v: string) => void;
   startLive: () => Promise<void>;
 };
 
@@ -510,11 +796,35 @@ function LiveWizard(p: LiveWizardProps) {
 
   function applyPreset(v: LiveWizardProps["auctionPreset"]) {
     p.setAuctionPreset(v);
-    if (v === "sudden_death") { p.setDefaultTimerSec("10"); p.setStartingBid("1"); p.setMinIncrement("1"); p.setQuickStart(true); p.setEnableBreak(false); }
-    else if (v === "timed")    { p.setDefaultTimerSec("30"); p.setStartingBid("1"); p.setMinIncrement("1"); p.setQuickStart(true); p.setEnableBreak(false); }
-    else if (v === "wheel_spin"){ p.setDefaultTimerSec("20"); p.setStartingBid("5"); p.setMinIncrement("1"); p.setEnableBreak(false); }
-    else if (v === "pull_box") { p.setEnableBreak(true); p.setBreakSlotCount("20"); p.setBreakSlotPrice("10"); p.setQuickStart(false); }
-    else if (v === "mystery_pack") { p.setEnableBreak(true); p.setBreakSlotCount("12"); p.setBreakSlotPrice("5"); p.setBreakSlotPrefix("Pack "); p.setQuickStart(false); }
+    if (v === "sudden_death") {
+      p.setDefaultTimerSec("10");
+      p.setStartingBid("1");
+      p.setMinIncrement("1");
+      p.setQuickStart(true);
+      p.setEnableBreak(false);
+    } else if (v === "timed") {
+      p.setDefaultTimerSec("30");
+      p.setStartingBid("1");
+      p.setMinIncrement("1");
+      p.setQuickStart(true);
+      p.setEnableBreak(false);
+    } else if (v === "wheel_spin") {
+      p.setDefaultTimerSec("20");
+      p.setStartingBid("5");
+      p.setMinIncrement("1");
+      p.setEnableBreak(false);
+    } else if (v === "pull_box") {
+      p.setEnableBreak(true);
+      p.setBreakSlotCount("20");
+      p.setBreakSlotPrice("10");
+      p.setQuickStart(false);
+    } else if (v === "mystery_pack") {
+      p.setEnableBreak(true);
+      p.setBreakSlotCount("12");
+      p.setBreakSlotPrice("5");
+      p.setBreakSlotPrefix("Pack ");
+      p.setQuickStart(false);
+    }
   }
 
   return (
@@ -532,10 +842,16 @@ function LiveWizard(p: LiveWizardProps) {
               onClick={() => n < p.step && p.setStep(n)}
               className={`flex flex-1 flex-col items-center gap-1 ${n > p.step ? "opacity-40" : ""}`}
             >
-              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${done ? "bg-emerald-500 text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${done ? "bg-emerald-500 text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+              >
                 {done ? <Check className="h-3.5 w-3.5" /> : n}
               </span>
-              <span className={`text-[9px] font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+              <span
+                className={`text-[9px] font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}
+              >
+                {label}
+              </span>
             </button>
           );
         })}
@@ -546,7 +862,9 @@ function LiveWizard(p: LiveWizardProps) {
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">What's your stream called?</h2>
-            <p className="text-xs text-muted-foreground">Buyers see this in the live feed. Be specific — “Friday PSA Reveal” beats “Cards”.</p>
+            <p className="text-xs text-muted-foreground">
+              Buyers see this in the live feed. Be specific — “Friday PSA Reveal” beats “Cards”.
+            </p>
           </div>
           <input
             data-tour="stream-title"
@@ -571,7 +889,9 @@ function LiveWizard(p: LiveWizardProps) {
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">What are you selling?</h2>
-            <p className="text-xs text-muted-foreground">Pick at least one tag — this is how viewers discover your stream.</p>
+            <p className="text-xs text-muted-foreground">
+              Pick at least one tag — this is how viewers discover your stream.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {TCG_TAGS.map((t) => {
@@ -580,7 +900,11 @@ function LiveWizard(p: LiveWizardProps) {
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => p.setTcgTags((cur) => on ? cur.filter((x) => x !== t.value) : [...cur, t.value])}
+                  onClick={() =>
+                    p.setTcgTags((cur) =>
+                      on ? cur.filter((x) => x !== t.value) : [...cur, t.value],
+                    )
+                  }
                   className={`min-h-11 rounded-full px-4 py-2 text-sm font-bold ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}
                 >
                   {t.emoji} {t.label}
@@ -589,9 +913,19 @@ function LiveWizard(p: LiveWizardProps) {
             })}
           </div>
           <label className="block">
-            <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">Primary category</span>
-            <select value={p.streamCategory} onChange={(e) => p.setStreamCategory(e.target.value)} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none">
-              {LISTING_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>)}
+            <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+              Primary category
+            </span>
+            <select
+              value={p.streamCategory}
+              onChange={(e) => p.setStreamCategory(e.target.value)}
+              className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
+            >
+              {LISTING_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
             </select>
           </label>
         </section>
@@ -601,7 +935,9 @@ function LiveWizard(p: LiveWizardProps) {
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">How will you stream?</h2>
-            <p className="text-xs text-muted-foreground">Pick the easiest one for your setup. You can change this anytime.</p>
+            <p className="text-xs text-muted-foreground">
+              Pick the easiest one for your setup. You can change this anytime.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-2">
             <MethodCard
@@ -610,25 +946,40 @@ function LiveWizard(p: LiveWizardProps) {
               title="Phone camera"
               hint="Easiest. Hold up cards to your phone — no extra apps."
               badge="Recommended for new sellers"
-              onClick={() => { p.setStreamMethod("phone"); p.setUseObs(false); p.setUseCompositor(false); }}
+              onClick={() => {
+                p.setStreamMethod("phone");
+                p.setUseObs(false);
+                p.setUseCompositor(false);
+              }}
             />
             <MethodCard
               active={p.streamMethod === "webcam"}
               icon={<Camera className="h-5 w-5" />}
               title="Webcam (in-browser)"
               hint="Use your laptop camera. Composited multi-cam supported."
-              onClick={() => { p.setStreamMethod("webcam"); p.setUseObs(false); p.setUseCompositor(true); }}
+              onClick={() => {
+                p.setStreamMethod("webcam");
+                p.setUseObs(false);
+                p.setUseCompositor(true);
+              }}
             />
             <MethodCard
               active={p.streamMethod === "obs"}
               icon={<Monitor className="h-5 w-5" />}
               title="OBS desktop"
               hint="Pro encoder, overlays, multi-source. Step-by-step setup in OBS Hub."
-              onClick={() => { p.setStreamMethod("obs"); p.setUseObs(true); p.setUseCompositor(false); }}
+              onClick={() => {
+                p.setStreamMethod("obs");
+                p.setUseObs(true);
+                p.setUseCompositor(false);
+              }}
             />
           </div>
           {p.streamMethod === "obs" && (
-            <Link to="/obs-hub" className="block rounded-xl border border-primary/30 bg-primary/5 p-3 text-center text-xs font-semibold text-primary">
+            <Link
+              to="/obs-hub"
+              className="block rounded-xl border border-primary/30 bg-primary/5 p-3 text-center text-xs font-semibold text-primary"
+            >
               Open OBS Streamer Hub →
             </Link>
           )}
@@ -639,12 +990,18 @@ function LiveWizard(p: LiveWizardProps) {
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">Add products (optional)</h2>
-            <p className="text-xs text-muted-foreground">Skip this — you can scan cards live and instantly start auctions during the stream.</p>
+            <p className="text-xs text-muted-foreground">
+              Skip this — you can scan cards live and instantly start auctions during the stream.
+            </p>
           </div>
           <div className="rounded-xl bg-muted/40 p-3 text-[12px] text-muted-foreground">
-            ⚡ <b>Scan-to-start</b> is on by default. While live, scan a card to instantly run an auction with your saved settings.
+            ⚡ <b>Scan-to-start</b> is on by default. While live, scan a card to instantly run an
+            auction with your saved settings.
           </div>
-          <Link to="/my-listings" className="block rounded-xl border border-border bg-card p-3 text-center text-sm font-semibold">
+          <Link
+            to="/my-listings"
+            className="block rounded-xl border border-border bg-card p-3 text-center text-sm font-semibold"
+          >
             Manage existing listings →
           </Link>
         </section>
@@ -654,37 +1011,107 @@ function LiveWizard(p: LiveWizardProps) {
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">Auction settings</h2>
-            <p className="text-xs text-muted-foreground">Pick a preset to fill defaults, or fine-tune below.</p>
+            <p className="text-xs text-muted-foreground">
+              Pick a preset to fill defaults, or fine-tune below.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <PresetCard active={p.auctionPreset === "sudden_death"} icon={<Zap className="h-4 w-4" />} label="Sudden Death" hint="10s timer, $1 start, fast pace." onClick={() => applyPreset("sudden_death")} />
-            <PresetCard active={p.auctionPreset === "timed"} icon={<Timer className="h-4 w-4" />} label="Timed Auction" hint="30s timer, classic format." onClick={() => applyPreset("timed")} />
-            <PresetCard active={p.auctionPreset === "wheel_spin"} icon={<Disc3 className="h-4 w-4" />} label="Wheel Spin" hint="Spin to pick a winner card." onClick={() => applyPreset("wheel_spin")} />
-            <PresetCard active={p.auctionPreset === "pull_box"} icon={<Package className="h-4 w-4" />} label="Pull Box" hint="20 slots, $10 each. Random pulls." onClick={() => applyPreset("pull_box")} />
-            <PresetCard active={p.auctionPreset === "mystery_pack"} icon={<Sparkles className="h-4 w-4" />} label="Mystery Pack" hint="12 packs, $5 each. Surprise hits." onClick={() => applyPreset("mystery_pack")} />
-            <PresetCard active={p.auctionPreset === "custom"} icon={<Radio className="h-4 w-4" />} label="Custom" hint="Set every option yourself." onClick={() => applyPreset("custom")} />
+            <PresetCard
+              active={p.auctionPreset === "sudden_death"}
+              icon={<Zap className="h-4 w-4" />}
+              label="Sudden Death"
+              hint="10s timer, $1 start, fast pace."
+              onClick={() => applyPreset("sudden_death")}
+            />
+            <PresetCard
+              active={p.auctionPreset === "timed"}
+              icon={<Timer className="h-4 w-4" />}
+              label="Timed Auction"
+              hint="30s timer, classic format."
+              onClick={() => applyPreset("timed")}
+            />
+            <PresetCard
+              active={p.auctionPreset === "wheel_spin"}
+              icon={<Disc3 className="h-4 w-4" />}
+              label="Wheel Spin"
+              hint="Spin to pick a winner card."
+              onClick={() => applyPreset("wheel_spin")}
+            />
+            <PresetCard
+              active={p.auctionPreset === "pull_box"}
+              icon={<Package className="h-4 w-4" />}
+              label="Pull Box"
+              hint="20 slots, $10 each. Random pulls."
+              onClick={() => applyPreset("pull_box")}
+            />
+            <PresetCard
+              active={p.auctionPreset === "mystery_pack"}
+              icon={<Sparkles className="h-4 w-4" />}
+              label="Mystery Pack"
+              hint="12 packs, $5 each. Surprise hits."
+              onClick={() => applyPreset("mystery_pack")}
+            />
+            <PresetCard
+              active={p.auctionPreset === "custom"}
+              icon={<Radio className="h-4 w-4" />}
+              label="Custom"
+              hint="Set every option yourself."
+              onClick={() => applyPreset("custom")}
+            />
           </div>
 
           <div className="space-y-2">
             <Field label="Starting bid ($)" hint="Lowest amount viewers can bid first.">
-              <input type="number" min="1" inputMode="numeric" className="w-full rounded-xl bg-input px-4 py-3 text-base outline-none" value={p.startingBid} onChange={(e) => p.setStartingBid(e.target.value)} />
+              <input
+                type="number"
+                min="1"
+                inputMode="numeric"
+                className="w-full rounded-xl bg-input px-4 py-3 text-base outline-none"
+                value={p.startingBid}
+                onChange={(e) => p.setStartingBid(e.target.value)}
+              />
             </Field>
-            <Field label="Bid timer (seconds)" hint="How long after each bid until the auction ends.">
+            <Field
+              label="Bid timer (seconds)"
+              hint="How long after each bid until the auction ends."
+            >
               <div className="grid grid-cols-6 gap-1">
-                {["5","10","15","20","30","60"].map((s) => (
-                  <button key={s} type="button" onClick={() => p.setDefaultTimerSec(s)}
-                    className={`min-h-11 rounded-lg text-sm font-bold ${p.defaultTimerSec === s ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{s}s</button>
+                {["5", "10", "15", "20", "30", "60"].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => p.setDefaultTimerSec(s)}
+                    className={`min-h-11 rounded-lg text-sm font-bold ${p.defaultTimerSec === s ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    {s}s
+                  </button>
                 ))}
               </div>
             </Field>
             <Field label="Min. bid increment ($)" hint="Smallest jump between bids.">
-              <input type="number" min="1" inputMode="numeric" className="w-full rounded-xl bg-input px-4 py-3 text-base outline-none" value={p.minIncrement} onChange={(e) => p.setMinIncrement(e.target.value)} />
+              <input
+                type="number"
+                min="1"
+                inputMode="numeric"
+                className="w-full rounded-xl bg-input px-4 py-3 text-base outline-none"
+                value={p.minIncrement}
+                onChange={(e) => p.setMinIncrement(e.target.value)}
+              />
             </Field>
-            <Field label="Default condition" hint="Used for auto-priced auctions during scan-to-start.">
+            <Field
+              label="Default condition"
+              hint="Used for auto-priced auctions during scan-to-start."
+            >
               <div className="grid grid-cols-4 gap-1">
-                {(["NM","LP","MP","Damaged"] as const).map((c) => (
-                  <button key={c} type="button" onClick={() => p.setDefaultCondition(c)}
-                    className={`min-h-11 rounded-lg text-sm font-bold ${p.defaultCondition === c ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{c}</button>
+                {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => p.setDefaultCondition(c)}
+                    className={`min-h-11 rounded-lg text-sm font-bold ${p.defaultCondition === c ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    {c}
+                  </button>
                 ))}
               </div>
             </Field>
@@ -696,18 +1123,45 @@ function LiveWizard(p: LiveWizardProps) {
         <section className="space-y-3 rounded-2xl border border-live/30 bg-live/5 p-4">
           <div>
             <h2 className="text-base font-bold">Ready to go live?</h2>
-            <p className="text-xs text-muted-foreground">Quick preview before we start your stream.</p>
+            <p className="text-xs text-muted-foreground">
+              Quick preview before we start your stream.
+            </p>
           </div>
           <ul className="space-y-2 rounded-xl bg-background/60 p-3 text-sm">
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Title</span><span className="truncate font-semibold">{p.streamTitle || "—"}</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Category</span><span className="font-semibold">{p.streamCategory}</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">TCG tags</span><span className="font-semibold">{p.tcgTags.join(", ") || "—"}</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Method</span><span className="font-semibold capitalize">{p.streamMethod}</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Preset</span><span className="font-semibold">{p.auctionPreset.replace("_", " ")}</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Timer</span><span className="font-semibold">{p.defaultTimerSec}s</span></li>
-            <li className="flex justify-between gap-2"><span className="text-muted-foreground">Start bid</span><span className="font-semibold">${p.startingBid}</span></li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Title</span>
+              <span className="truncate font-semibold">{p.streamTitle || "—"}</span>
+            </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Category</span>
+              <span className="font-semibold">{p.streamCategory}</span>
+            </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">TCG tags</span>
+              <span className="font-semibold">{p.tcgTags.join(", ") || "—"}</span>
+            </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Method</span>
+              <span className="font-semibold capitalize">{p.streamMethod}</span>
+            </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Preset</span>
+              <span className="font-semibold">{p.auctionPreset.replace("_", " ")}</span>
+            </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Timer</span>
+              <span className="font-semibold">{p.defaultTimerSec}s</span>
+            </li>
+            <li className="flex justify-between gap-2">
+              <span className="text-muted-foreground">Start bid</span>
+              <span className="font-semibold">${p.startingBid}</span>
+            </li>
           </ul>
-          <button data-tour="start-stream" onClick={() => p.startLive()} className="min-h-14 w-full rounded-2xl bg-live text-base font-extrabold text-live-foreground">
+          <button
+            data-tour="start-stream"
+            onClick={() => p.startLive()}
+            className="min-h-14 w-full rounded-2xl bg-live text-base font-extrabold text-live-foreground"
+          >
             🔴 Start Live Stream
           </button>
         </section>
@@ -716,7 +1170,11 @@ function LiveWizard(p: LiveWizardProps) {
       {/* Nav buttons */}
       <div className="flex gap-2">
         {p.step > 1 && (
-          <button type="button" onClick={() => p.setStep(p.step - 1)} className="flex min-h-12 flex-1 items-center justify-center gap-1 rounded-xl bg-muted text-sm font-bold">
+          <button
+            type="button"
+            onClick={() => p.setStep(p.step - 1)}
+            className="flex min-h-12 flex-1 items-center justify-center gap-1 rounded-xl bg-muted text-sm font-bold"
+          >
             <ChevronLeft className="h-4 w-4" /> Back
           </button>
         )}
@@ -735,18 +1193,40 @@ function LiveWizard(p: LiveWizardProps) {
   );
 }
 
-function MethodCard({ active, icon, title, hint, badge, onClick }: { active: boolean; icon: React.ReactNode; title: string; hint: string; badge?: string; onClick: () => void }) {
+function MethodCard({
+  active,
+  icon,
+  title,
+  hint,
+  badge,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  title: string;
+  hint: string;
+  badge?: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex items-start gap-3 rounded-xl border p-4 text-left ${active ? "border-primary bg-primary/10" : "border-border bg-muted/30"}`}
     >
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${active ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{icon}</span>
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${active ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+      >
+        {icon}
+      </span>
       <span className="flex-1">
         <span className="flex items-center gap-2">
           <span className="text-sm font-bold">{title}</span>
-          {badge && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-500">{badge}</span>}
+          {badge && (
+            <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-500">
+              {badge}
+            </span>
+          )}
         </span>
         <span className="block text-[11px] text-muted-foreground">{hint}</span>
       </span>
@@ -755,20 +1235,42 @@ function MethodCard({ active, icon, title, hint, badge, onClick }: { active: boo
   );
 }
 
-function PresetCard({ active, icon, label, hint, onClick }: { active: boolean; icon: React.ReactNode; label: string; hint: string; onClick: () => void }) {
+function PresetCard({
+  active,
+  icon,
+  label,
+  hint,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  hint: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left ${active ? "border-primary bg-primary/10" : "border-border bg-muted/30"}`}
     >
-      <span className="flex items-center gap-1.5 text-sm font-bold">{icon} {label}</span>
+      <span className="flex items-center gap-1.5 text-sm font-bold">
+        {icon} {label}
+      </span>
       <span className="text-[10px] text-muted-foreground">{hint}</span>
     </button>
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <p className="mb-1 text-[12px] font-bold">{label}</p>
