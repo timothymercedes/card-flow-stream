@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck, Video } from "lucide-react";
+import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck, Video, Gauge } from "lucide-react";
 import { SupportInbox } from "@/components/admin/SupportInbox";
 import { VerificationInbox } from "@/components/admin/VerificationInbox";
 import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
@@ -260,6 +260,9 @@ function Admin() {
               ))}
             </div>
           )}
+          <Link to="/admin/performance" className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary">
+            <Gauge className="h-3.5 w-3.5" /> Performance
+          </Link>
         </div>
         {isAdmin && signupStats && (
           <div className="grid grid-cols-3 gap-2">
