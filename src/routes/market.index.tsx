@@ -12,20 +12,7 @@ export const Route = createFileRoute("/market/")({ component: Market });
 
 type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
 
-// Per-session seed so the order stays stable as the user scrolls/filters.
-function getSessionSeed() {
-  try {
-    const k = "market_seed_v1";
-    let v = sessionStorage.getItem(k);
-    if (!v) { v = String(Math.floor(Math.random() * 1e9)); sessionStorage.setItem(k, v); }
-    return Number(v);
-  } catch { return 1; }
-}
-function seededHash(id: string, seed: number) {
-  let h = seed >>> 0;
-  for (let i = 0; i < id.length; i++) h = ((h * 31) ^ id.charCodeAt(i)) >>> 0;
-  return h;
-}
+// Shuffle seed rotates every 5 minutes (see @/lib/shuffle).
 
 function fmtRemain(iso: string | null) {
   if (!iso) return null;
