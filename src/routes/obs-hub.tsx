@@ -410,9 +410,9 @@ function ObsHub() {
                     <b className="text-foreground">1.</b> OBS → <b>Settings → Stream</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> Best fix: download the clean profile below,
-                    extract the ZIP, OBS → <b>Profile → Import</b>, select the extracted folder, switch
-                    to that new profile, then restart OBS once.
+                    <b className="text-foreground">2.</b> Best fix: download the profile ZIP below,
+                    extract it, OBS → <b>Profile → Import</b>, select the extracted folder that directly
+                    contains <b>basic.ini</b> and <b>service.json</b>, then switch to that new profile.
                   </li>
                   <li>
                     <b className="text-foreground">3.</b> Manual fallback: Settings → Stream → Service{" "}
@@ -489,9 +489,9 @@ function ObsHub() {
                 </div>
 
                 <p className="mt-2 text-[10px] text-muted-foreground">
-                  If OBS says “No config URL available”, its active local profile still has Enhanced
-                  Broadcasting/multitrack stuck on. Import the clean profile as a brand-new profile and
-                  restart OBS before pressing Start Streaming.
+                  If OBS says “No config URL available”, either the imported folder was wrong or the
+                  Streamlabs OBS plugin is hijacking OBS streaming. Import the folder that directly
+                  contains basic.ini/service.json; if it still fails, disable the Streamlabs plugin.
                 </p>
               </div>
 
@@ -501,10 +501,9 @@ function ObsHub() {
                   <AlertCircle className="h-4 w-4" /> Got “Starting the output failed”?
                 </p>
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                  That exact pair of messages is OBS Enhanced Broadcasting/multitrack getting stuck
-                  on an old service state, then falling through to an encoder warning. Import the
-                  clean profile above first; it creates a brand-new OBS profile with multitrack off and
-                  forces <b>Software (x264)</b>.
+                  That exact pair of messages happens when OBS is not actually using the Custom RTMP
+                  profile. Import the extracted folder that directly contains basic.ini/service.json;
+                  if it still fails, uninstall or disable the Streamlabs OBS plugin, then restart OBS.
                 </p>
                 <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                   <li>
@@ -512,7 +511,7 @@ function ObsHub() {
                   </li>
                   <li>
                     <b className="text-foreground">2.</b> OBS → <b>Profile → Import</b> and select the
-                    extracted <b>PullBidLive</b> folder.
+                    extracted folder that directly contains <b>basic.ini</b> and <b>service.json</b>.
                   </li>
                   <li>
                     <b className="text-foreground">3.</b> Switch to that profile, then confirm Service
@@ -523,8 +522,8 @@ function ObsHub() {
                     <b>Software (x264)</b>, Bitrate <b>4000</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">5.</b> Restart OBS once if it still shows the same
-                    error, then Start Streaming again.
+                    <b className="text-foreground">5.</b> If the same error remains, disable/uninstall
+                    the Streamlabs OBS plugin, restart OBS, then Start Streaming again.
                   </li>
                 </ol>
                 <p className="mt-2 text-[10px] text-muted-foreground">
