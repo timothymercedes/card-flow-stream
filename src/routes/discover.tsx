@@ -73,7 +73,6 @@ function DiscoverPage() {
         supabase.from("listings")
           .select("id,title,price_cents,image_url")
           .ilike("title", `%${q}%`)
-          .eq("status", "active")
           .limit(20),
       ]);
       setResults(users || []);
