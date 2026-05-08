@@ -104,9 +104,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <NotifyPrompt />}
       <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
-          {tabs.map((t) => {
-            const active = loc.pathname === t.to || (t.to !== "/" && loc.pathname.startsWith(t.to));
-            const Icon = t.icon;
+          {tabs.map((tab) => {
+            const active = loc.pathname === tab.to || (tab.to !== "/" && loc.pathname.startsWith(tab.to));
+            const Icon = tab.icon;
             return (
               <Link key={tab.to} to={tab.to} aria-label={t(tab.labelKey)} className={`flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
                 <Icon className="h-5 w-5" />
