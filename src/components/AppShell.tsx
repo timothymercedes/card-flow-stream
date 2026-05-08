@@ -89,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
        </div>
-       <HeaderSearch />
+       <HeaderSearch className="mt-2.5" />
       </header>
       <main className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
