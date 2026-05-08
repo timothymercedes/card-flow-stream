@@ -107,7 +107,23 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
       const { data, error } = await supabase.functions.invoke("scan-card", {
         body: { image: dataUrl, language: language === "auto" ? undefined : language, multi },
       });
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError surfaces the JSON body in error.context
+        let msg = error.message || "Scan failed";
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+            if (parsed?.error) msg = parsed.error;
+          }
+        } catch {}
+        toast.error(msg);
+        return;
+      }
+      if ((data as any)?.error) {
+        toast.error((data as any).error);
+        return;
+      }
 
       if (multi) {
         const cards: ScanResult[] = (data as any)?.cards?.map((c: any) => ({ ...c, image: dataUrl, language: c.language || language })) || [];
