@@ -178,9 +178,9 @@ function Home() {
         <Stat value={stats.listings} label={t("home.stats_listings")} />
       </div>
 
-      <Section title="🔴 Live Now" to="/live">
+      <Section title={t("home.section_live")} to="/live">
         <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {streams.length === 0 && <EmptyMini text="No live streams yet — be first to go live" />}
+          {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
           {streams.map((s) => (
             <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
               <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
@@ -200,9 +200,9 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="✨ Flex Live — Live Now" to="/showoff" viewLabel="Open Flex Live">
+      <Section title={t("home.section_flex")} to="/showoff" viewLabel={t("home.section_flex_view")}>
         <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {showOffStreams.length === 0 && <EmptyMini text="No Flex Lives yet — flex your collection!" />}
+          {showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
           {showOffStreams.map((s) => (
             <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
@@ -224,9 +224,9 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="🛒 Hot Market" to="/market">
+      <Section title={t("home.section_market")} to="/market">
         <div className="grid grid-cols-2 gap-3 px-4">
-          {listings.length === 0 && <EmptyMini text="No listings yet" />}
+          {listings.length === 0 && <EmptyMini text={t("home.empty_listings")} />}
           {listings.map((l) => {
             const display = getListingPriceDisplay(l, true);
             return (
@@ -249,9 +249,9 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="💬 Community" to="/feed">
+      <Section title={t("home.section_community")} to="/feed">
         <div className="space-y-3 px-4">
-          {posts.length === 0 && <EmptyMini text="No posts yet" />}
+          {posts.length === 0 && <EmptyMini text={t("home.empty_posts")} />}
           {posts.map((p) => (
             <div key={p.id} className="rounded-xl bg-card p-3 ring-1 ring-border">
               <Link to="/seller/$username" params={{ username: p.username }} className="text-xs font-semibold text-primary hover:underline">@{p.username}</Link>
@@ -262,9 +262,9 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="🔓 Public Vault" to="/discover" viewLabel="Browse Collectors">
+      <Section title={t("home.section_vault")} to="/discover" viewLabel={t("home.section_vault_view")}>
         <div className="grid grid-cols-2 gap-3 px-4">
-          {vault.length === 0 && <EmptyMini text="No public vaults yet — set yours to public to appear here" />}
+          {vault.length === 0 && <EmptyMini text={t("home.empty_vault")} />}
           {vault.map((v) => {
             const username = v.profiles?.username;
             return (
