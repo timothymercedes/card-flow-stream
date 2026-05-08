@@ -9,6 +9,7 @@ import { startRegistration } from "@simplewebauthn/browser";
 import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
 import { AgreementModal } from "@/components/AgreementModal";
+import { LiveNowPill } from "@/components/ReturnToLiveBadge";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.

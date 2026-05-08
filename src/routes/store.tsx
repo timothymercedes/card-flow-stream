@@ -14,6 +14,7 @@ import { OrderCancellation } from "@/components/OrderCancellation";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { demoListings, demoOrders, demoSellerAnalytics } from "@/lib/tutorialDemoData";
+import { LiveNowPill } from "@/components/ReturnToLiveBadge";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
