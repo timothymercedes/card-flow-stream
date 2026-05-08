@@ -47,8 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const tutorial = useTutorialMode();
+  const effectiveUser = (tutorial && !user) ? ({ id: TUTORIAL_DEMO_USER.id, email: TUTORIAL_DEMO_USER.email } as unknown as User) : user;
+  const effectiveProfile = (tutorial && !profile) ? (TUTORIAL_DEMO_USER as unknown as Profile) : profile;
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut: async () => { await supabase.auth.signOut(); } }}>
+    <AuthContext.Provider value={{ user: effectiveUser, session, profile: effectiveProfile, loading, signOut: async () => { await supabase.auth.signOut(); } }}>
       {children}
     </AuthContext.Provider>
   );
