@@ -49,7 +49,7 @@ export function useSellerAgreementStatus() {
       setNeedsAcceptance(!versionOk || reviewRequired);
     }
     setChecking(false);
-  }, [user]);
+  }, [user, tutorial]);
 
   useEffect(() => {
     if (loading) return;
