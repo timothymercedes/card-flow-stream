@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
-import { HlsPlayer } from "@/components/HlsPlayer";
+import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
@@ -157,6 +157,8 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
+  const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">("auto");
+  const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
@@ -723,6 +725,32 @@ function LiveDetail() {
     !!stream?.cf_playback_hls &&
     (!!stream?.cf_rtmps_url || !!stream?.cf_stream_key || !stream?.cf_whip_url);
   const usingCompositor = !!stream?.cf_whip_url && !usingObs;
+  const obsTinyFeed =
+    !!obsMetrics &&
+    (obsMetrics.hasLargeBlackBorders ||
+      (!!obsMetrics.activeWidthRatio && obsMetrics.activeWidthRatio < 0.72) ||
+      (!!obsMetrics.activeHeightRatio && obsMetrics.activeHeightRatio < 0.72));
+  const obsScale =
+    obsDisplayMode === "horizontal"
+      ? 1
+      : obsDisplayMode === "vertical"
+        ? Math.max(obsMetrics?.recommendedZoom ?? 1, obsMetrics?.orientation === "horizontal" ? 1.35 : 1)
+        : obsDisplayMode === "fit" || obsTinyFeed
+          ? obsMetrics?.recommendedZoom ?? 1
+          : 1;
+  const obsPositionX = obsMetrics?.activeCenterX ?? 50;
+  const obsPositionY = obsMetrics?.activeCenterY ?? 50;
+  const obsVideoStyle = {
+    objectFit: "cover" as const,
+    objectPosition: `${obsPositionX}% ${obsPositionY}%`,
+    transform: `scale(${obsScale})`,
+    transformOrigin: `${obsPositionX}% ${obsPositionY}%`,
+    transition: "transform 220ms ease, object-position 220ms ease",
+  };
+  const obsPreviewAspectClass =
+    obsDisplayMode === "horizontal" || (obsDisplayMode === "auto" && obsMetrics?.orientation === "horizontal")
+      ? "aspect-video"
+      : "aspect-[9/16]";
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || usingObs) return;
     let cancelled = false;
