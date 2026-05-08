@@ -36,9 +36,10 @@ function PublicStore() {
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
-  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts">("listings");
+  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts" | "vault">("listings");
   const [posts, setPosts] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
+  const [vaultCards, setVaultCards] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [notifyOnLive, setNotifyOnLive] = useState(true);
 
@@ -112,7 +113,7 @@ function PublicStore() {
       const prof = Array.isArray(profRows) ? profRows[0] : null;
       if (!prof) return;
       setSeller(prof);
-      const [l, o, r, fr, fg, sc, bc, ps, st] = await Promise.all([
+      const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
         supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
         supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
@@ -122,6 +123,7 @@ function PublicStore() {
         (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
         supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
         supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
+        supabase.from("vault_cards").select("*").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
       ]);
       setListings((l.data || []).filter(isPublicListingVisible));
       setSoldOrders(o.data || []);
@@ -132,6 +134,7 @@ function PublicStore() {
       setBuyerCompleted(Number(bc?.data ?? 0));
       setPosts(ps.data || []);
       setStories(st.data || []);
+      setVaultCards(vc.data || []);
     })();
   }, [username]);
 
@@ -274,10 +277,10 @@ function PublicStore() {
           </div>
         )}
 
-        <div className="mb-3 flex gap-2 border-b border-border text-xs">
-          {(["listings", "sold", "posts", "reviews"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
-              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : `Listings (${listings.length})`}
+        <div className="mb-3 flex gap-2 overflow-x-auto border-b border-border text-xs">
+          {(["listings", "vault", "sold", "posts", "reviews"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
             </button>
           ))}
         </div>
@@ -354,6 +357,25 @@ function PublicStore() {
                 ))}
               </div>
             )}
+          </>
+        )}
+        {tab === "vault" && (
+          <>
+            {vaultCards.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No public vault cards.</p>}
+            <div className="grid grid-cols-2 gap-3">
+              {vaultCards.map((v) => (
+                <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                  <div className="aspect-square overflow-hidden bg-muted">
+                    {v.image_url ? <img src={v.image_url} alt={v.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
+                  </div>
+                  <div className="p-2">
+                    <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
+                    {v.category && <p className="text-[10px] text-muted-foreground">{v.category}</p>}
+                    {Number(v.estimated_value) > 0 && <p className="text-[11px] font-bold text-primary">${Number(v.estimated_value).toFixed(2)}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </>
         )}
         {tab === "reviews" && (

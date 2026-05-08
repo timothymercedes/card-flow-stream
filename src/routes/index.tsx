@@ -75,7 +75,11 @@ function Home() {
       } else setListings((lData || []).filter(isPublicListingVisible).slice(0, 4));
 
       supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
-      supabase.from("vault_cards").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setVault(data || []));
+      supabase.from("vault_cards")
+        .select("*, profiles:user_id(id, username)")
+        .eq("visibility", "public")
+        .order("created_at", { ascending: false }).limit(8)
+        .then(({ data }) => setVault(data || []));
 
       // Live counters for social proof
       const [{ count: liveCount }, { count: collectorCount }, { count: listingCount }] = await Promise.all([
@@ -247,20 +251,28 @@ function Home() {
         </div>
       </Section>
 
-      <Section title="🔒 Personal Vault" to="/vault">
+      <Section title="🔓 Public Vault" to="/discover" viewLabel="Browse Collectors">
         <div className="grid grid-cols-2 gap-3 px-4">
-          {vault.length === 0 && <EmptyMini text="Sign in to save cards to your vault" />}
-          {vault.map((v) => (
-            <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
-              <div className="card-foil-edge aspect-square bg-muted">
-                {v.image_url ? <img src={v.image_url} loading="lazy" className="h-full w-full object-cover" alt={v.name} /> : <Heart className="m-auto h-8 w-8 text-muted-foreground" />}
+          {vault.length === 0 && <EmptyMini text="No public vaults yet — set yours to public to appear here" />}
+          {vault.map((v) => {
+            const username = v.profiles?.username;
+            return (
+              <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                <div className="card-foil-edge aspect-square bg-muted">
+                  {v.image_url ? <img src={v.image_url} loading="lazy" className="h-full w-full object-cover" alt={v.name} /> : <Heart className="m-auto h-8 w-8 text-muted-foreground" />}
+                </div>
+                <div className="p-2">
+                  <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{v.category}</p>
+                  {username && (
+                    <Link to="/seller/$username" params={{ username }} className="mt-1 line-clamp-1 block text-[11px] font-semibold text-primary hover:underline">
+                      @{username}
+                    </Link>
+                  )}
+                </div>
               </div>
-              <div className="p-2">
-                <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
-                <p className="text-[10px] text-muted-foreground">{v.category}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Section>
 
