@@ -1,6 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,23 +10,25 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/live", label: "Live", icon: Radio },
-  { to: "/feed", label: "Feed", icon: Newspaper },
-  { to: "/market", label: "Market", icon: Store },
-  { to: "/vault", label: "Vault", icon: Lock },
-  { to: "/messages", label: "Chat", icon: MessageCircle },
+  { to: "/", labelKey: "nav.home", icon: Home },
+  { to: "/live", labelKey: "nav.live", icon: Radio },
+  { to: "/feed", labelKey: "nav.feed", icon: Newspaper },
+  { to: "/market", labelKey: "nav.market", icon: Store },
+  { to: "/vault", labelKey: "nav.vault", icon: Lock },
+  { to: "/messages", labelKey: "nav.chat", icon: MessageCircle },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const { user } = useAuth();
   const tutorial = useTutorialMode();
+  const { t } = useTranslation();
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
@@ -56,8 +59,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const tabs = [
     ...baseTabs,
-    ...(isSeller ? [{ to: "/store", label: "Seller Hub", icon: Package }] : []),
-    { to: "/profile", label: "Profile", icon: User },
+    ...(isSeller ? [{ to: "/store", labelKey: "nav.sellerHub", icon: Package }] : []),
+    { to: "/profile", labelKey: "nav.profile", icon: User },
   ];
 
   return (
@@ -70,11 +73,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="flex items-center gap-1.5">
           <Link to="/showoff" className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
-            <Sparkles className="h-3.5 w-3.5" /> Flex Live
+            <Sparkles className="h-3.5 w-3.5" /> {t("nav.flexLive")}
           </Link>
           <Link to="/sell" className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
-            <Plus className="h-3.5 w-3.5" /> Sell
+            <Plus className="h-3.5 w-3.5" /> {t("nav.sell")}
           </Link>
+          <LanguageToggle />
           {!tutorial && <AdminAlertBadge />}
           {!tutorial && <NotificationBell />}
           <Link to="/cart" className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -104,9 +108,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             const active = loc.pathname === t.to || (t.to !== "/" && loc.pathname.startsWith(t.to));
             const Icon = t.icon;
             return (
-              <Link key={t.to} to={t.to} className={`flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
+              <Link key={tab.to} to={tab.to} aria-label={t(tab.labelKey)} className={`flex flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>
                 <Icon className="h-5 w-5" />
-                {t.label}
+                {t(tab.labelKey)}
               </Link>
             );
           })}
