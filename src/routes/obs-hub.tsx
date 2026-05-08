@@ -490,28 +490,30 @@ function ObsHub() {
                   <AlertCircle className="h-4 w-4" /> Got “Starting the output failed”?
                 </p>
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                  That message means OBS is trying to use a broken or unavailable hardware encoder.
-                  Use <b>Software (x264)</b> first. If you prefer NVENC / AMD, update your video
-                  drivers and select the matching hardware encoder after OBS starts successfully.
+                  That exact pair of messages is OBS Enhanced Broadcasting/multitrack getting stuck
+                  on an old service state, then falling through to an encoder warning. Import the
+                  fixed profile above first; it disables the OBS multitrack flag in the right config
+                  section and forces <b>Software (x264)</b>.
                 </p>
                 <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                   <li>
-                    <b className="text-foreground">1.</b> OBS → <b>Settings → Output</b>.
+                    <b className="text-foreground">1.</b> Download OBS Profile above.
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> Output Mode: <b>Simple</b>.
+                    <b className="text-foreground">2.</b> OBS → <b>Profile → Import</b> and select the
+                    extracted <b>PullBidLive</b> folder.
                   </li>
                   <li>
-                    <b className="text-foreground">3.</b> <b>Encoder: Software (x264)</b>. Preset{" "}
-                    <b>veryfast</b>.
+                    <b className="text-foreground">3.</b> Switch to that profile, then confirm Service
+                    is <b>Custom…</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">4.</b> Video Bitrate <b>3500–4500</b> kbps. Audio{" "}
-                    <b>160</b> kbps.
+                    <b className="text-foreground">4.</b> Settings → Output → Encoder{" "}
+                    <b>Software (x264)</b>, Bitrate <b>4000</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">5.</b> Click <b>Apply → OK</b> and Start
-                    Streaming again.
+                    <b className="text-foreground">5.</b> Restart OBS once if it still shows the same
+                    error, then Start Streaming again.
                   </li>
                 </ol>
                 <p className="mt-2 text-[10px] text-muted-foreground">
