@@ -6,7 +6,7 @@ const COOKIE = "pbl_beta";
 function setCookie(value: string, maxAgeSec: number) {
   // Not HttpOnly — the client needs to read this cookie to know access was granted.
   // Value is a non-sensitive flag ("1"), real auth is still session-based.
-  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAgeSec}; Secure; SameSite=Lax`;
+  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAgeSec}; Secure; SameSite=None`;
 }
 
 export const Route = createFileRoute("/api/public/beta-verify")({
