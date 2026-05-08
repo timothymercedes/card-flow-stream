@@ -37,9 +37,13 @@ type UserRow = {
   mutual_count?: number;
 };
 
+type ListingRow = { id: string; title: string; price_cents: number | null; image_url: string | null };
+
 function DiscoverPage() {
-  const [query, setQuery] = useState("");
+  const initialQ = (Route.useSearch() as any).q ?? "";
+  const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
+  const [listings, setListings] = useState<ListingRow[]>([]);
   const [trending, setTrending] = useState<UserRow[]>([]);
   const [suggested, setSuggested] = useState<UserRow[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
@@ -61,13 +65,22 @@ function DiscoverPage() {
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) { setResults([]); setSearching(false); return; }
+    if (!q) { setResults([]); setListings([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
-      const { data } = await (supabase.rpc as any)("search_users", { _query: q, _limit: 25 });
-      setResults(data || []);
+      const [{ data: users }, { data: cards }] = await Promise.all([
+        (supabase.rpc as any)("search_users", { _query: q, _limit: 25 }),
+        supabase.from("listings")
+          .select("id,title,price_cents,image_url")
+          .ilike("title", `%${q}%`)
+          .eq("status", "active")
+          .limit(20),
+      ]);
+      setResults(users || []);
+      setListings((cards as any) || []);
       setSearching(false);
-    }, 220);
+      saveRecent(q);
+    }, 250);
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
   }, [query]);
 
