@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
+import { TutorialHint } from "@/components/tutorials/TutorialHint";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -67,7 +68,10 @@ function Cart() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-1 flex items-center gap-2 text-2xl font-bold"><ShoppingBag className="h-6 w-6" /> My Cart</h1>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold"><ShoppingBag className="h-6 w-6" /> My Cart</h1>
+          <TutorialHint title="Paying and Tracking Shipments" />
+        </div>
         <p className="mb-4 text-xs text-muted-foreground">Pay once per seller — combined shipping is already applied.</p>
 
         {Object.keys(groups).length === 0 && (

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
+import { TutorialOnboarding } from "@/components/tutorials/TutorialOnboarding";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
@@ -16,6 +17,7 @@ function Onboarding() {
   const nav = useNavigate();
   const [picked, setPicked] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState<"interests" | "videos">("interests");
 
   useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -36,13 +38,27 @@ function Onboarding() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Personalized for you 🎯");
-    nav({ to: "/" });
+    setStep("videos");
   }
 
   async function skip() {
     if (!user) return;
     await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);
     nav({ to: "/" });
+  }
+
+  if (step === "videos") {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background px-4 py-6">
+        <TutorialOnboarding role="buyer" onDone={() => nav({ to: "/" })} />
+        <button
+          onClick={() => nav({ to: "/" })}
+          className="mt-4 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
+        >
+          Enter PullBidLive
+        </button>
+      </div>
+    );
   }
 
   return (
