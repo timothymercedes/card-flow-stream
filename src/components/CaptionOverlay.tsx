@@ -24,7 +24,7 @@ export function CaptionOverlay({ className = "" }: { className?: string }) {
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",
+    commitStrategy: CommitStrategy.VAD,
     onPartialTranscript: (d: any) => setText(String(d?.text || "").slice(-180)),
     onCommittedTranscript: (d: any) => setText(String(d?.text || "").slice(-180)),
   });
