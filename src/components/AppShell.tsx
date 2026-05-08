@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
