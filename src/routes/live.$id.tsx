@@ -473,8 +473,8 @@ function LiveDetail() {
   //   - usingObs:        Cloudflare HLS exists, no WHIP → seller broadcasts via OBS, no in-browser cam
   //   - usingCompositor: Cloudflare HLS + WHIP URL → seller broadcasts canvas-composited multi-cam from browser
   //   - else:            legacy in-app camera preview only
-  const usingCompositor = !!stream?.cf_whip_url;
-  const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
+  const usingObs = !!stream?.cf_playback_hls && (!!stream?.cf_rtmps_url || !!stream?.cf_stream_key || !stream?.cf_whip_url);
+  const usingCompositor = !!stream?.cf_whip_url && !usingObs;
   useEffect(() => {
     if (!isSeller || !stream || stream.status !== "live" || usingObs) return;
     let cancelled = false;
@@ -3695,15 +3695,15 @@ function LiveDetail() {
 
           {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
           {isSeller && usingObs && (
-            <div className="fixed bottom-3 left-3 z-30 w-32 overflow-hidden rounded-xl bg-black/80 shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-40">
+            <div className="fixed bottom-3 left-3 z-30 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-80 md:w-96">
               <div className="flex items-center justify-between bg-black/60 px-2 py-1">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-white/80">Viewer view</p>
-                <button onClick={() => setShowViewerPreview((v) => !v)} className="text-white/60 hover:text-white">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">Viewer preview</p>
+                <button onClick={() => setShowViewerPreview((v) => !v)} className="rounded-md p-1 text-white/70 hover:text-white" aria-label="Toggle viewer preview">
                   {showViewerPreview ? <X className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                 </button>
               </div>
               {showViewerPreview && (
-                <HlsPlayer src={stream.cf_playback_hls} className="aspect-video w-full object-cover" autoPlay muted />
+                <HlsPlayer src={stream.cf_playback_hls} className="aspect-video w-full bg-background object-contain" autoPlay muted controls />
               )}
             </div>
           )}
