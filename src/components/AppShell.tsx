@@ -87,6 +87,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <User className="h-4 w-4" />
           </Link>
         </div>
+       </div>
+       <HeaderSearch />
       </header>
       <main className="flex-1 pb-20">{children}</main>
       {!tutorial && <HelpBubble />}
