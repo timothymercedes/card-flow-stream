@@ -142,17 +142,42 @@ function DiscoverPage() {
       </div>
 
       {showResults ? (
-        <section className="mt-4 px-4">
-          <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {searching ? "Searching…" : `${results.length} result${results.length === 1 ? "" : "s"}`}
-          </h2>
-          {results.length === 0 && !searching && (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">No collectors match "{query}"</div>
-          )}
-          <ul className="space-y-2">
-            {results.map((u) => <UserRow key={u.id} u={u} onOpen={openProfile} />)}
-          </ul>
-        </section>
+        <>
+          <section className="mt-4 px-4">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              People {searching ? "· searching…" : `· ${results.length}`}
+            </h2>
+            {results.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No people match "{query}"</div>
+            )}
+            <ul className="space-y-2">
+              {results.map((u) => <UserRow key={u.id} u={u} onOpen={openProfile} />)}
+            </ul>
+          </section>
+          <section className="mt-5 px-4 pb-8">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Cards {searching ? "· searching…" : `· ${listings.length}`}
+            </h2>
+            {listings.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No cards match "{query}"</div>
+            )}
+            <ul className="grid grid-cols-2 gap-2">
+              {listings.map((l) => (
+                <li key={l.id}>
+                  <Link to="/market/$id" params={{ id: l.id }} className="block overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                    <div className="aspect-square bg-muted">
+                      {l.image_url && <img src={l.image_url} alt={l.title} className="h-full w-full object-cover" />}
+                    </div>
+                    <div className="p-2">
+                      <p className="line-clamp-2 text-xs font-semibold">{l.title}</p>
+                      {l.price != null && <p className="mt-0.5 text-[11px] font-bold text-primary">${Number(l.price).toFixed(2)}</p>}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
       ) : (
         <>
           {suggested.length > 0 && (
