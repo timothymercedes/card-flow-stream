@@ -244,6 +244,54 @@ export type Database = {
           },
         ]
       }
+      card_scans: {
+        Row: {
+          cards_detected: number
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          language: string | null
+          multi: boolean
+          source: string | null
+          status: string
+          top_name: string | null
+          top_set: string | null
+          top_value: number | null
+          user_id: string
+        }
+        Insert: {
+          cards_detected?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          language?: string | null
+          multi?: boolean
+          source?: string | null
+          status?: string
+          top_name?: string | null
+          top_set?: string | null
+          top_value?: number | null
+          user_id: string
+        }
+        Update: {
+          cards_detected?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          language?: string | null
+          multi?: boolean
+          source?: string | null
+          status?: string
+          top_name?: string | null
+          top_set?: string | null
+          top_value?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -3570,6 +3618,7 @@ export type Database = {
       }
       purge_old_notifications: { Args: never; Returns: number }
       purge_old_perf_data: { Args: never; Returns: number }
+      rate_limit_card_scan: { Args: { _user_id: string }; Returns: Json }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
