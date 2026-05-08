@@ -7,7 +7,7 @@ const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ d
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
-import { Camera, Radio } from "lucide-react";
+import { Camera, Radio, Smartphone, Monitor, Check, ChevronLeft, Zap, Timer, Disc3, Package, Sparkles } from "lucide-react";
 import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
