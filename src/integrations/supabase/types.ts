@@ -2927,7 +2927,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
-          video_url: string
+          video_url: string | null
           voice_id: string | null
         }
         Insert: {
@@ -2946,7 +2946,7 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
-          video_url: string
+          video_url?: string | null
           voice_id?: string | null
         }
         Update: {
@@ -2965,7 +2965,7 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
-          video_url?: string
+          video_url?: string | null
           voice_id?: string | null
         }
         Relationships: []
@@ -3645,7 +3645,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
-          video_url: string
+          video_url: string | null
           voice_id: string | null
         }[]
         SetofOptions: {

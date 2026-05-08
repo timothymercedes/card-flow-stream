@@ -7,7 +7,7 @@ export type Tutorial = {
   id: string;
   title: string;
   description: string | null;
-  video_url: string;
+  video_url: string | null;
   captions_url: string | null;
   duration_seconds: number | null;
   steps?: TutorialStep[] | null;
@@ -87,20 +87,32 @@ export function TutorialPlayer({ tutorial, onClose }: { tutorial: Tutorial; onCl
         <button onClick={onClose} aria-label="Close" className="absolute right-2 top-2 z-10 rounded-full bg-black/60 p-1.5 text-white">
           <X className="h-4 w-4" />
         </button>
-        <video
-          ref={videoRef}
-          src={tutorial.video_url}
-          controls
-          autoPlay
-          playsInline
-          className="aspect-[9/16] w-full bg-black object-contain"
-          onTimeUpdate={(e) => saveProgress((e.target as HTMLVideoElement).currentTime)}
-          onEnded={(e) => saveProgress((e.target as HTMLVideoElement).currentTime, true)}
-        >
-          {tutorial.captions_url && (
-            <track kind="captions" src={tutorial.captions_url} default srcLang="en" label="English" />
-          )}
-        </video>
+        {tutorial.video_url ? (
+          <video
+            ref={videoRef}
+            src={tutorial.video_url}
+            controls
+            autoPlay
+            playsInline
+            className="aspect-[9/16] w-full bg-black object-contain"
+            onTimeUpdate={(e) => saveProgress((e.target as HTMLVideoElement).currentTime)}
+            onEnded={(e) => saveProgress((e.target as HTMLVideoElement).currentTime, true)}
+          >
+            {tutorial.captions_url && (
+              <track kind="captions" src={tutorial.captions_url} default srcLang="en" label="English" />
+            )}
+          </video>
+        ) : (
+          <div className="flex aspect-[9/16] w-full items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 px-6 text-center sm:aspect-video">
+            <div>
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/20">
+                <Volume2 className="h-7 w-7 text-primary" />
+              </div>
+              <p className="text-sm font-bold">Step-by-step guide</p>
+              <p className="mt-1 text-xs text-muted-foreground">Tap "Listen" for narration, or read the steps below.</p>
+            </div>
+          </div>
+        )}
         <div className="p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
