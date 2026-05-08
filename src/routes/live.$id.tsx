@@ -5390,7 +5390,7 @@ function LiveDetail() {
           )}
 
           {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
-          {isSeller && usingObs && (
+          {isSeller && stream?.cf_playback_hls && (
             <div className="fixed top-16 right-3 z-30 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-80 md:w-96">
               <div className="items-center justify-between bg-black/60 px-2 py-1 flex flex-row">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">
