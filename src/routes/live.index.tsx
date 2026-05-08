@@ -164,7 +164,7 @@ function LiveList() {
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Live</h1>
           <div className="flex items-center gap-2">
-            <TutorialHint title="How to Bid in a Live Auction" />
+            <WatchTutorial routePath="/live" label="Watch tutorial" />
             {tab === "scheduled" && user && (
               <button onClick={() => setComposeOpen(true)} className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
                 <Plus className="h-3.5 w-3.5" /> Schedule
