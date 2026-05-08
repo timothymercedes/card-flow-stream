@@ -5331,7 +5331,7 @@ function LiveDetail() {
             </button>
           )}
           {showQuickMod && (
-            <div className="fixed left-3 top-28 z-40 w-64 max-w-[80vw] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/15 backdrop-blur">
+            <div className="fixed left-3 top-44 z-40 w-64 max-w-[80vw] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/15 backdrop-blur">
               <div className="flex items-center justify-between bg-primary/20 px-3 py-1.5">
                 <p className="flex items-center gap-1 text-[11px] font-bold">
                   <Shield className="h-3 w-3" /> Mod chat
