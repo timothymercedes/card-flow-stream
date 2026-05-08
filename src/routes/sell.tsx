@@ -195,7 +195,7 @@ function Sell() {
       };
       cfPublic = {
         cf_playback_hls: (data as any).hls_url,
-        cf_whip_url: (data as any).whip_url,
+        cf_whip_url: useCompositor ? (data as any).whip_url : null,
       };
     }
 
