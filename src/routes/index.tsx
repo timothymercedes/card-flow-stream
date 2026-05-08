@@ -44,45 +44,51 @@ function Home() {
   const showLanding = !loading && !user && !isTutorialMode();
   if (showLanding) return <PublicLanding />;
   const interests = (profile?.interests as string[] | undefined) || [];
-  const [streams, setStreams] = useState<any[]>([]);
-  const [showOffStreams, setShowOffStreams] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [listings, setListings] = useState<any[]>([]);
-  const [vault, setVault] = useState<any[]>([]);
+  const [streamsAll, setStreamsAll] = useState<any[]>([]);
+  const [showOffAll, setShowOffAll] = useState<any[]>([]);
+  const [postsAll, setPostsAll] = useState<any[]>([]);
+  const [listingsAll, setListingsAll] = useState<any[]>([]);
+  const [vaultAll, setVaultAll] = useState<any[]>([]);
   const [stats, setStats] = useState({ live: 0, collectors: 0, listings: 0 });
+  const bucket = useShuffleBucket();
+
+  // Shuffle every 5 min via bucket; slice for display.
+  const streams = useMemo(() => shuffleBy(streamsAll, bucket).slice(0, 6), [streamsAll, bucket]);
+  const showOffStreams = useMemo(() => shuffleBy(showOffAll, bucket + 1).slice(0, 6), [showOffAll, bucket]);
+  const listings = useMemo(() => shuffleBy(listingsAll, bucket + 2).slice(0, 4), [listingsAll, bucket]);
+  const posts = useMemo(() => shuffleBy(postsAll, bucket + 3).slice(0, 4), [postsAll, bucket]);
+  const vault = useMemo(() => shuffleBy(vaultAll, bucket + 4).slice(0, 4), [vaultAll, bucket]);
 
   useEffect(() => {
     const load = async () => {
-      let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6);
+      let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(40);
       if (interests.length > 0) sQ = sQ.in("category", interests);
       const { data: sData } = await sQ;
       if ((sData?.length || 0) === 0 && interests.length > 0) {
-        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(6);
-        setStreams(fallback || []);
-      } else setStreams(sData || []);
+        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(40);
+        setStreamsAll(fallback || []);
+      } else setStreamsAll(sData || []);
 
-      // Show Off discovery (public only)
       const { data: showData } = await supabase.from("live_streams")
         .select("*").eq("status", "live").eq("stream_type", "show_off").eq("is_private", false)
-        .order("created_at", { ascending: false }).limit(6);
-      setShowOffStreams(showData || []);
+        .order("created_at", { ascending: false }).limit(40);
+      setShowOffAll(showData || []);
 
-      let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(8);
+      let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
       if (interests.length > 0) lQ = lQ.in("category", interests);
       const { data: lData } = await lQ;
       if ((lData?.length || 0) === 0 && interests.length > 0) {
-        const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(8);
-        setListings((fb || []).filter(isPublicListingVisible).slice(0, 4));
-      } else setListings((lData || []).filter(isPublicListingVisible).slice(0, 4));
+        const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
+        setListingsAll((fb || []).filter(isPublicListingVisible));
+      } else setListingsAll((lData || []).filter(isPublicListingVisible));
 
-      supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(4).then(({ data }) => setPosts(data || []));
+      supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(40).then(({ data }) => setPostsAll(data || []));
       supabase.from("vault_cards")
         .select("*, profiles:user_id(id, username)")
         .eq("visibility", "public")
-        .order("created_at", { ascending: false }).limit(8)
-        .then(({ data }) => setVault(data || []));
+        .order("created_at", { ascending: false }).limit(60)
+        .then(({ data }) => setVaultAll(data || []));
 
-      // Live counters for social proof
       const [{ count: liveCount }, { count: collectorCount }, { count: listingCount }] = await Promise.all([
         supabase.from("live_streams").select("*", { count: "exact", head: true }).eq("status", "live"),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
