@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { installServerFnAuth } from "@/lib/serverFnAuth";
-import { isTutorialMode, TUTORIAL_DEMO_USER, useTutorialMode } from "@/lib/tutorialMode";
+import { TUTORIAL_DEMO_USER, useTutorialMode } from "@/lib/tutorialMode";
 import type { Session, User } from "@supabase/supabase-js";
 
 if (typeof window !== "undefined") installServerFnAuth();
