@@ -8,6 +8,7 @@ import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
 import { useTutorialMode } from "@/lib/tutorialMode";
+import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
 
 const baseTabs = [
