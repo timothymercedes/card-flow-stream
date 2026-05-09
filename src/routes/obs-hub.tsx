@@ -101,7 +101,12 @@ function ObsHub() {
       if (manual) toast.error(message);
     } else if (d?.fallback) {
       // Rate-limited or upstream hiccup — keep last known health.
-      if (manual) toast.message(d.rateLimited ? "Status checks are cooling down — your stream can still launch." : "Status temporarily unavailable — your stream can still launch.");
+      if (manual)
+        toast.message(
+          d.rateLimited
+            ? "Status checks are cooling down — your stream can still launch."
+            : "Status temporarily unavailable — your stream can still launch.",
+        );
     } else if (d?.error) {
       setSetupError(d.error);
       if (manual) toast.error(d.error);
