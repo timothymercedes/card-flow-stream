@@ -141,7 +141,23 @@ export function FreeformOverlay({
     .sort((a, b) => (layouts[a.id]?.z ?? 0) - (layouts[b.id]?.z ?? 0));
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-40 touch-none" onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+    <div
+      ref={containerRef}
+      className="absolute inset-0 z-40 touch-none overflow-hidden"
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
+      <div
+        ref={surfaceRef}
+        className="absolute touch-none"
+        style={{
+          left: surface.left,
+          top: surface.top,
+          width: surface.width,
+          height: surface.height,
+        }}
+      >
       {ordered.map((s) => {
         const l = layouts[s.id]!;
         const locked = s.locked;
@@ -159,6 +175,14 @@ export function FreeformOverlay({
               touchAction: "none",
             }}
           >
+            {!locked && (
+              <>
+                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "n")} className="absolute -top-3 left-6 right-6 h-6 cursor-ns-resize" title="Drag to resize" />
+                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "s")} className="absolute -bottom-3 left-6 right-6 h-6 cursor-ns-resize" title="Drag to resize" />
+                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "w")} className="absolute -left-3 bottom-6 top-6 w-6 cursor-ew-resize" title="Drag to resize" />
+                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "e")} className="absolute -right-3 bottom-6 top-6 w-6 cursor-ew-resize" title="Drag to resize" />
+              </>
+            )}
             <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
               {editing === s.id && onRename ? (
                 <input
