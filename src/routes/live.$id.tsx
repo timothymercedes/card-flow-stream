@@ -2216,6 +2216,37 @@ function LiveDetail() {
     await sendMsg(`▶️ Host is back — live resumed`, true);
     toast.success("Live resumed");
   }
+
+  async function switchObsToBrowserCamera() {
+    if (!isSeller || !stream) return;
+    setSwitchingToBrowserCam(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-stream-input", {
+        body: { meta_name: `Browser camera — ${stream.title || id}` },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+      const d = data as any;
+      const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
+      const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
+      if (updateErr) throw updateErr;
+      await supabase
+        .from("live_stream_credentials" as any)
+        .update({
+          cf_live_input_id: d.live_input_id ?? null,
+          cf_rtmps_url: d.rtmps_url ?? null,
+          cf_stream_key: d.stream_key ?? null,
+        })
+        .eq("stream_id", id);
+      setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
+      setCallJoined(true);
+      toast.success("Browser camera is now connected");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not switch to browser camera");
+    } finally {
+      setSwitchingToBrowserCam(false);
+    }
+  }
+
   async function confirmEndLive() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
