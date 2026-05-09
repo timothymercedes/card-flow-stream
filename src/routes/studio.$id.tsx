@@ -468,54 +468,77 @@ function Studio() {
           </main>
 
           {/* RIGHT RAIL */}
-          <aside className={`flex flex-col gap-2 overflow-y-auto border-l border-border bg-card p-2 ${rightOpen ? "" : "lg:hidden"}`}>
-            <section className="rounded-xl bg-background p-2">
-              <h3 className="mb-1.5 text-[11px] font-bold">Stream health</h3>
-              <div className="space-y-1 text-[10px]">
-                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="font-bold">{studio.publishing ? "Broadcasting" : "Idle"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Sources</span><span className="font-bold">{studio.sources.length}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Cameras</span><span className="font-bold">{cameraCount}/{MAX_CAMERAS}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Scene</span><span className="font-bold capitalize">{studio.scene}</span></div>
-              </div>
-            </section>
-
-            <section className="rounded-xl bg-background p-2">
-              <h3 className="mb-1.5 text-[11px] font-bold">Quick controls</h3>
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={cycleCamera}
-                  disabled={cameras.length < 2}
-                  className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
-                >
-                  <Repeat className="h-3.5 w-3.5" /> Switch cam
-                </button>
-                <button
-                  onClick={() => {
-                    if (studio.activeId) studio.expandSource(studio.activeId);
-                  }}
-                  className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70"
-                >
-                  <Maximize2 className="h-3.5 w-3.5" /> Fullscreen
-                </button>
-              </div>
-            </section>
-
-            <section className="rounded-xl bg-background p-2">
-              <h3 className="mb-1.5 text-[11px] font-bold">Chat & viewers</h3>
-              <p className="mb-2 text-[10px] text-muted-foreground">Open the public live page in another tab to chat & moderate.</p>
-              <Link
-                to="/live/$id"
-                params={{ id: stream.id }}
-                target="_blank"
-                className="flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground"
+          <aside className={`flex min-h-0 flex-col gap-2 overflow-hidden border-l border-border bg-card p-2 ${rightOpen ? "" : "lg:hidden"}`}>
+            <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-0.5">
+              <button
+                onClick={() => setRightTab("chat")}
+                className={`flex-1 rounded-md px-2 py-1 text-[10px] font-bold ${rightTab === "chat" ? "bg-background shadow" : "text-muted-foreground"}`}
               >
-                <ExternalLink className="h-3 w-3" /> Open live page
-              </Link>
-            </section>
+                Chat
+              </button>
+              <button
+                onClick={() => setRightTab("info")}
+                className={`flex-1 rounded-md px-2 py-1 text-[10px] font-bold ${rightTab === "info" ? "bg-background shadow" : "text-muted-foreground"}`}
+              >
+                Info
+              </button>
+            </div>
 
-            <p className="px-1 text-center text-[9px] text-muted-foreground">
-              <Radio className="inline h-2.5 w-2.5" /> Streaming directly from this browser. Keep this tab open.
-            </p>
+            {rightTab === "chat" ? (
+              <div className="flex min-h-0 flex-1">
+                <StudioChatDock streamId={stream.id} />
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                <section className="rounded-xl bg-background p-2">
+                  <h3 className="mb-1.5 text-[11px] font-bold">Stream health</h3>
+                  <div className="space-y-1 text-[10px]">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="font-bold">{studio.publishing ? "Broadcasting" : "Idle"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Sources</span><span className="font-bold">{studio.sources.length}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Cameras</span><span className="font-bold">{cameraCount}/{MAX_CAMERAS}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Scene</span><span className="font-bold capitalize">{studio.scene}</span></div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl bg-background p-2">
+                  <h3 className="mb-1.5 text-[11px] font-bold">Quick controls</h3>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={cycleCamera}
+                      disabled={cameras.length < 2}
+                      className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
+                    >
+                      <Repeat className="h-3.5 w-3.5" /> Switch cam
+                    </button>
+                    <button
+                      onClick={() => { if (studio.activeId) studio.expandSource(studio.activeId); }}
+                      className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" /> Fullscreen
+                    </button>
+                    <button
+                      onClick={() => { if (!phone.token) phone.startSession(); setPhoneOpen(true); }}
+                      className="col-span-2 flex items-center justify-center gap-1 rounded-lg bg-primary p-2 text-[10px] font-bold text-primary-foreground hover:opacity-90"
+                    >
+                      <Smartphone className="h-3.5 w-3.5" /> Pair phone camera
+                    </button>
+                  </div>
+                </section>
+
+                <Link
+                  to="/live/$id"
+                  params={{ id: stream.id }}
+                  target="_blank"
+                  className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-[11px] font-bold hover:bg-muted/70"
+                >
+                  <ExternalLink className="h-3 w-3" /> Open public live page
+                </Link>
+
+                <p className="px-1 text-center text-[9px] text-muted-foreground">
+                  <Radio className="inline h-2.5 w-2.5" /> Streaming from this browser. Keep this tab open.
+                </p>
+              </div>
+            )}
           </aside>
         </div>
 
