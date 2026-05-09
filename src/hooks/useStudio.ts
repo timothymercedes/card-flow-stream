@@ -160,7 +160,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       const id = `scr-${crypto.randomUUID()}`;
       const src: StudioSource = {
         id, kind: "screen", label: "Screen share", stream,
-        visible: true, muted: false,
+        visible: true, muted: false, locked: false, fit: "contain",
       };
       // Auto-cleanup if user stops sharing via browser UI
       stream.getVideoTracks()[0]?.addEventListener("ended", () => {
