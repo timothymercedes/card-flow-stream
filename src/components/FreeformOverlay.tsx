@@ -207,28 +207,33 @@ export function FreeformOverlay({
               {!locked && (
                 <>
                   <div
+                    onPointerDown={(e) => startDrag(e, s.id, "move")}
+                    className="absolute inset-6 z-10 cursor-move touch-none rounded-sm"
+                    title="Drag to move"
+                  />
+                  <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "n")}
-                    className="absolute -top-3 left-6 right-6 h-6 cursor-ns-resize"
+                    className="absolute -top-3 left-6 right-6 z-20 h-6 cursor-ns-resize touch-none"
                     title="Drag to resize"
                   />
                   <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "s")}
-                    className="absolute -bottom-3 left-6 right-6 h-6 cursor-ns-resize"
+                    className="absolute -bottom-3 left-6 right-6 z-20 h-6 cursor-ns-resize touch-none"
                     title="Drag to resize"
                   />
                   <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "w")}
-                    className="absolute -left-3 bottom-6 top-6 w-6 cursor-ew-resize"
+                    className="absolute -left-3 bottom-6 top-6 z-20 w-6 cursor-ew-resize touch-none"
                     title="Drag to resize"
                   />
                   <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "e")}
-                    className="absolute -right-3 bottom-6 top-6 w-6 cursor-ew-resize"
+                    className="absolute -right-3 bottom-6 top-6 z-20 w-6 cursor-ew-resize touch-none"
                     title="Drag to resize"
                   />
                 </>
               )}
-              <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
+              <div className="pointer-events-none absolute left-1 right-1 top-1 z-30 flex items-center justify-between gap-1">
                 {editing === s.id && onRename ? (
                   <input
                     autoFocus
