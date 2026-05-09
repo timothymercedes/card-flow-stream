@@ -18,7 +18,7 @@ export type StudioScene = "solo" | "split" | "pip" | "grid" | "freeform";
 
 export type StudioSource = {
   id: string;
-  kind: "camera" | "screen";
+  kind: "camera" | "screen" | "phone";
   label: string;
   stream: MediaStream;
   deviceId?: string;
