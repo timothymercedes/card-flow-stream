@@ -948,15 +948,6 @@ function LiveDetail() {
     if (isSeller && usingCompositor && !callJoined) setCallJoined(true);
   }, [isSeller, usingCompositor, callJoined]);
 
-  // Canvas compositor → WHIP publish (host only, when WHIP URL is set on the stream)
-  useCanvasCompositor({
-    enabled: !!isSeller && usingCompositor && !!cfCall.localStream,
-    whipUrl: stream?.cf_whip_url ?? null,
-    localStream: cfCall.localStream,
-    remotes: cfCall.remotes,
-    localUsername: profile?.username || "host",
-  });
-
   const safety = useLivestreamSafety({
     stream,
     streamId: id,
