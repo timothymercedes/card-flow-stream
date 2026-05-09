@@ -11,9 +11,12 @@ import {
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
   Move, Maximize2, Minimize2, RotateCcw, Lock, Unlock, Pencil,
   Save, Magnet, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  Wand2, Gift, Scan, Repeat, ExternalLink,
+  Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X,
 } from "lucide-react";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
+import { StudioChatDock } from "@/components/StudioChatDock";
+import { usePhoneCamera } from "@/hooks/usePhoneCamera";
+import QRCode from "qrcode";
 
 export const Route = createFileRoute("/studio/$id")({
   head: () => ({ meta: [{ title: "Live Studio — PullBidLive" }] }),
