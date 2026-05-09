@@ -64,14 +64,9 @@ function Studio() {
     previewRef.current.play().catch(() => {});
   }, [studio.canvas]);
 
-  // Auto-add front camera on first load
-  const bootedRef = useRef(false);
-  useEffect(() => {
-    if (bootedRef.current) return;
-    if (loading || !stream) return;
-    bootedRef.current = true;
-    studio.addCamera();
-  }, [loading, stream, studio]);
+  // NOTE: do NOT auto-call getUserMedia on mount. Most browsers (Safari/iOS
+  // especially) require a direct user gesture or the request fails silently.
+  // The user starts their camera by tapping the button in the empty state.
 
   async function endLive() {
     if (!stream) return;
