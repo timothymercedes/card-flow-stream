@@ -11,7 +11,7 @@ import {
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
   Move, Maximize2, Minimize2, RotateCcw, Lock, Unlock, Pencil,
   Save, Magnet, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X,
+  Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X, RefreshCw,
 } from "lucide-react";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
 import { StudioChatDock } from "@/components/StudioChatDock";
@@ -43,6 +43,7 @@ function Studio() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [scanningCameras, setScanningCameras] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +143,14 @@ function Studio() {
   const MAX_CAMERAS = 3;
   const cameraCount = cameras.length;
   const camerasFull = cameraCount >= MAX_CAMERAS;
+  const cameraAccessNeeded = studio.cameraDevices.length === 0 || studio.cameraDevices.some((d) => !d.label);
+
+  async function scanCameras() {
+    setScanningCameras(true);
+    const devices = cameraAccessNeeded ? await studio.requestCameraPermission() : await studio.refreshDevices();
+    setScanningCameras(false);
+    if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+  }
 
   // Compact source row with full OBS controls
   function SourceRow({ s }: { s: typeof studio.sources[number] }) {
@@ -214,23 +223,36 @@ function Studio() {
               Cameras ({cameraCount}/{MAX_CAMERAS})
             </div>
             <button
+              onClick={scanCameras}
+              disabled={scanningCameras}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-primary hover:bg-muted disabled:opacity-50"
+            >
+              {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {cameraAccessNeeded ? "Allow camera access + scan USB cameras" : "Refresh camera list"}
+            </button>
+            <button
               disabled={camerasFull}
               onClick={async () => { setPickerOpen(false); await studio.addCamera(); }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Camera className="h-3.5 w-3.5" /> Default camera
             </button>
-            {studio.cameraDevices.map((d) => {
-              const alreadyAdded = studio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
+            {studio.cameraDevices.length === 0 && (
+              <div className="px-3 py-2 text-[10px] text-muted-foreground">
+                No cameras listed yet. Click scan, allow permission, then pick each USB camera you want to add.
+              </div>
+            )}
+            {studio.cameraDevices.map((d, i) => {
+              const alreadyAdded = !!d.deviceId && studio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
               return (
                 <button
-                  key={d.deviceId}
+                  key={`${d.deviceId || d.groupId || "camera"}-${i}`}
                   disabled={camerasFull || alreadyAdded}
                   onClick={async () => { setPickerOpen(false); await studio.addCamera(d.deviceId); }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Camera className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{d.label || `Camera ${d.deviceId.slice(0, 6)}`}</span>
+                  <span className="truncate">{d.label || `Camera ${d.deviceId ? d.deviceId.slice(0, 6) : "permission needed"}`}</span>
                   {alreadyAdded && <span className="ml-auto text-[9px] font-bold uppercase text-muted-foreground">Added</span>}
                 </button>
               );
@@ -441,12 +463,14 @@ function Studio() {
                       <div className="pointer-events-auto rounded-2xl bg-card/90 p-4 text-center backdrop-blur">
                         <Camera className="mx-auto mb-2 h-8 w-8 text-primary" />
                         <p className="mb-2 text-sm font-bold">Live Studio ready</p>
-                        <p className="mb-3 text-xs text-muted-foreground">Add a camera or screen to start broadcasting.</p>
+                        <p className="mb-3 text-xs text-muted-foreground">Scan cameras, then add each USB/browser camera as its own source.</p>
                         <button
-                          onClick={async () => { await studio.addCamera(); }}
+                          onClick={scanCameras}
+                          disabled={scanningCameras}
                           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
                         >
-                          <Camera className="h-4 w-4" /> Enable camera
+                          {scanningCameras ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                          Scan cameras
                         </button>
                       </div>
                     </div>
@@ -503,6 +527,14 @@ function Studio() {
                 <section className="rounded-xl bg-background p-2">
                   <h3 className="mb-1.5 text-[11px] font-bold">Quick controls</h3>
                   <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={scanCameras}
+                      disabled={scanningCameras}
+                      className="col-span-2 flex items-center justify-center gap-1 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
+                    >
+                      {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      Scan USB/browser cameras
+                    </button>
                     <button
                       onClick={cycleCamera}
                       disabled={cameras.length < 2}
