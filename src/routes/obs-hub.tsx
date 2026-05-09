@@ -43,15 +43,6 @@ type ObsProfile = {
   preferred_method: string;
 };
 
-type Health = {
-  status: "offline" | "connected" | "live" | "reconnecting";
-  bitrateKbps: number | null;
-  fps: number | null;
-  width: number | null;
-  height: number | null;
-  droppedFrames: number | null;
-};
-
 function ObsHub() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -223,7 +214,6 @@ function ObsHub() {
     rtmpUrl: !!profile?.cf_rtmps_url,
     title: !!profile?.default_title?.trim(),
     tags: (profile?.default_tcg_tags?.length ?? 0) > 0,
-    encoderConnected: health?.status === "connected" || health?.status === "live",
   };
   const preflightReady =
     preflight.streamKey && preflight.rtmpUrl && preflight.title && preflight.tags;
@@ -319,7 +309,7 @@ function ObsHub() {
           ) : null}
 
           {/* Status pill */}
-          <StatusPill profile={profile} health={health} polling={polling} />
+          <StatusPill profile={profile} />
 
           {/* Step 1: provision */}
           {loading ? (
