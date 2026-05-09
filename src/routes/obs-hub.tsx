@@ -253,7 +253,9 @@ function ObsHub() {
     a.download = `${profileName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Fixed OBS profile downloaded — extract it, import the extracted folder, then switch to the new profile");
+    toast.success(
+      "Fixed OBS profile downloaded — extract it, import the extracted folder, then switch to the new profile",
+    );
   }
 
   // Cloudflare also accepts non-TLS rtmp:// on port 1935 — useful when corporate
@@ -374,9 +376,9 @@ function ObsHub() {
           ) : !profile?.cf_stream_key ? (
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
               <p className="mb-1 text-sm font-bold">Step 1 · Connect OBS</p>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    Tap once to create your permanent OBS server URL and stream key.
-                  </p>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Tap once to create your permanent OBS server URL and stream key.
+              </p>
               <button
                 onClick={provision}
                 disabled={provisioning}
@@ -412,20 +414,20 @@ function ObsHub() {
                     <b>Custom…</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> Paste the <b>RTMP URL</b> as Server and the{" "}
-                    <b>Stream Key</b> below. Leave authentication off.
+                    <b className="text-foreground">2.</b> Paste the <b>RTMP URL</b> as Server and
+                    the <b>Stream Key</b> below. Leave authentication off.
                   </li>
                   <li>
-                    <b className="text-foreground">3.</b> OBS → <b>Settings → Output</b> → Output Mode{" "}
-                    <b>Simple</b>, Encoder <b>Software (x264)</b>, Bitrate <b>4000</b>.
+                    <b className="text-foreground">3.</b> OBS → <b>Settings → Output</b> → Output
+                    Mode <b>Simple</b>, Encoder <b>Software (x264)</b>, Bitrate <b>4000</b>.
                   </li>
                   <li>
                     <b className="text-foreground">4.</b> OBS → <b>Settings → Video</b> → Base and
                     Output <b>1280×720</b>, FPS <b>30</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">5.</b> Click <b>Start Streaming</b> in OBS. If it starts,
-                    ignore status checks and hit <b>Go Live With OBS</b> below.
+                    <b className="text-foreground">5.</b> Click <b>Start Streaming</b> in OBS. If it
+                    starts, ignore status checks and hit <b>Go Live With OBS</b> below.
                   </li>
                 </ol>
 
@@ -498,26 +500,29 @@ function ObsHub() {
                   <AlertCircle className="h-4 w-4" /> If OBS still says “Starting the output failed”
                 </p>
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                  Don’t fight the profile importer. Use manual Custom settings first — it is the most
-                  reliable path and skips the config URL bug entirely.
+                  Don’t fight the profile importer. Use manual Custom settings first — it is the
+                  most reliable path and skips the config URL bug entirely.
                 </p>
                 <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                   <li>
-                    <b className="text-foreground">1.</b> Settings → Stream → Service <b>Custom…</b>.
+                    <b className="text-foreground">1.</b> Settings → Stream → Service <b>Custom…</b>
+                    .
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> Paste the fallback RTMP URL if the TLS URL fails.
+                    <b className="text-foreground">2.</b> Paste the fallback RTMP URL if the TLS URL
+                    fails.
                   </li>
                   <li>
                     <b className="text-foreground">3.</b> Settings → Output → Encoder{" "}
                     <b>Software (x264)</b>, not NVENC/AMD while testing.
                   </li>
                   <li>
-                    <b className="text-foreground">4.</b> Restart OBS, then click <b>Start Streaming</b>.
+                    <b className="text-foreground">4.</b> Restart OBS, then click{" "}
+                    <b>Start Streaming</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">5.</b> If “No config URL” remains, disable/uninstall the
-                    Streamlabs OBS plugin; it can override Custom streaming.
+                    <b className="text-foreground">5.</b> If “No config URL” remains,
+                    disable/uninstall the Streamlabs OBS plugin; it can override Custom streaming.
                   </li>
                 </ol>
                 <p className="mt-2 text-[10px] text-muted-foreground">
