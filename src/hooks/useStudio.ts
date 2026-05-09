@@ -205,16 +205,15 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   const setLayout = useCallback((id: string, patch: Partial<FreeformLayout>) => {
     setLayouts((prev) => {
       const cur = prev[id] ?? { x: 0, y: 0, w: 0.4, h: 0.4, z: 1 };
+      const nextW = clamp(patch.w ?? cur.w, 0.1, 1);
+      const nextH = clamp(patch.h ?? cur.h, 0.1, 1);
       const next: FreeformLayout = {
-        x: clamp01(patch.x ?? cur.x),
-        y: clamp01(patch.y ?? cur.y),
-        w: clamp(patch.w ?? cur.w, 0.1, 1),
-        h: clamp(patch.h ?? cur.h, 0.1, 1),
+        x: clamp(patch.x ?? cur.x, 0, 1 - nextW),
+        y: clamp(patch.y ?? cur.y, 0, 1 - nextH),
+        w: nextW,
+        h: nextH,
         z: patch.z ?? cur.z,
       };
-      // keep tile inside canvas
-      next.x = Math.min(next.x, 1 - next.w);
-      next.y = Math.min(next.y, 1 - next.h);
       return { ...prev, [id]: next };
     });
   }, []);

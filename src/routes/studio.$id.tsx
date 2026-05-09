@@ -137,6 +137,9 @@ function Studio() {
             sources={studio.sources}
             layouts={studio.layouts}
             expandedId={studio.expandedId}
+            onInteractionStart={() => {
+              if (studio.scene !== "freeform") studio.setScene("freeform");
+            }}
             onLayoutChange={(id, patch) => {
               if (studio.scene !== "freeform") studio.setScene("freeform");
               studio.setLayout(id, patch);
