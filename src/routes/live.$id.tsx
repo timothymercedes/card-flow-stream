@@ -2734,14 +2734,13 @@ function LiveDetail() {
             </button>
           )}
           {!ended && isSeller && usingCompositor && (
-            <Link
-              to="/studio/$id"
-              params={{ id: stream.id }}
-              className="rounded-full bg-primary/85 p-2 backdrop-blur"
+            <button
+              onClick={() => setShowHostCameraEditor((v) => !v)}
+              className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
               title="Arrange cameras"
             >
               <Settings className="h-4 w-4" />
-            </Link>
+            </button>
           )}
           {(auctionLive || stream.current_item) && (
             <button
