@@ -157,8 +157,11 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">("auto");
+  const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">(
+    "auto",
+  );
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
+  const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
@@ -721,10 +724,8 @@ function LiveDetail() {
   //   - usingObs:        Cloudflare HLS exists, no WHIP → seller broadcasts via OBS, no in-browser cam
   //   - usingCompositor: Cloudflare HLS + WHIP URL → seller broadcasts canvas-composited multi-cam from browser
   //   - else:            legacy in-app camera preview only
-  const usingObs =
-    !!stream?.cf_playback_hls &&
-    (!!stream?.cf_rtmps_url || !!stream?.cf_stream_key || !stream?.cf_whip_url);
-  const usingCompositor = !!stream?.cf_whip_url && !usingObs;
+  const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
+  const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
   const obsTinyFeed =
     !!obsMetrics &&
     (obsMetrics.hasLargeBlackBorders ||
@@ -734,9 +735,12 @@ function LiveDetail() {
     obsDisplayMode === "horizontal"
       ? 1
       : obsDisplayMode === "vertical"
-        ? Math.max(obsMetrics?.recommendedZoom ?? 1, obsMetrics?.orientation === "horizontal" ? 1.35 : 1)
+        ? Math.max(
+            obsMetrics?.recommendedZoom ?? 1,
+            obsMetrics?.orientation === "horizontal" ? 1.35 : 1,
+          )
         : obsDisplayMode === "fit" || obsTinyFeed
-          ? obsMetrics?.recommendedZoom ?? 1
+          ? (obsMetrics?.recommendedZoom ?? 1)
           : 1;
   const obsPositionX = obsMetrics?.activeCenterX ?? 50;
   const obsPositionY = obsMetrics?.activeCenterY ?? 50;
@@ -748,7 +752,8 @@ function LiveDetail() {
     transition: "transform 220ms ease, object-position 220ms ease",
   };
   const obsPreviewAspectClass =
-    obsDisplayMode === "horizontal" || (obsDisplayMode === "auto" && obsMetrics?.orientation === "horizontal")
+    obsDisplayMode === "horizontal" ||
+    (obsDisplayMode === "auto" && obsMetrics?.orientation === "horizontal")
       ? "aspect-video"
       : "aspect-[9/16]";
   useEffect(() => {
@@ -1339,34 +1344,28 @@ function LiveDetail() {
     }
     await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
     if (stream.seller_id !== user.id) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_id: stream.seller_id,
-          type: "bid",
-          body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
-          link: `/live/${id}`,
-        });
-    }
-    if (prevBidder && prevBidder !== user.id) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_id: prevBidder,
-          type: "outbid",
-          body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
-          link: `/live/${id}`,
-        });
-    }
-    // Notify the new top bidder they're winning
-    await supabase
-      .from("notifications")
-      .insert({
-        user_id: user.id,
-        type: "winning",
-        body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
+      await supabase.from("notifications").insert({
+        user_id: stream.seller_id,
+        type: "bid",
+        body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
         link: `/live/${id}`,
       });
+    }
+    if (prevBidder && prevBidder !== user.id) {
+      await supabase.from("notifications").insert({
+        user_id: prevBidder,
+        type: "outbid",
+        body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
+        link: `/live/${id}`,
+      });
+    }
+    // Notify the new top bidder they're winning
+    await supabase.from("notifications").insert({
+      user_id: user.id,
+      type: "winning",
+      body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
+      link: `/live/${id}`,
+    });
   }
 
   // 🆕 Buy-now snipe: instantly win at the host's snipe price
@@ -2217,6 +2216,37 @@ function LiveDetail() {
     await sendMsg(`▶️ Host is back — live resumed`, true);
     toast.success("Live resumed");
   }
+
+  async function switchObsToBrowserCamera() {
+    if (!isSeller || !stream) return;
+    setSwitchingToBrowserCam(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-stream-input", {
+        body: { meta_name: `Browser camera — ${stream.title || id}` },
+      });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+      const d = data as any;
+      const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
+      const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
+      if (updateErr) throw updateErr;
+      await supabase
+        .from("live_stream_credentials" as any)
+        .update({
+          cf_live_input_id: d.live_input_id ?? null,
+          cf_rtmps_url: d.rtmps_url ?? null,
+          cf_stream_key: d.stream_key ?? null,
+        })
+        .eq("stream_id", id);
+      setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
+      setCallJoined(true);
+      toast.success("Browser camera is now connected");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not switch to browser camera");
+    } finally {
+      setSwitchingToBrowserCam(false);
+    }
+  }
+
   async function confirmEndLive() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
@@ -3303,9 +3333,16 @@ function LiveDetail() {
                   <Radio className="h-3.5 w-3.5" /> OBS Connect Hub
                 </p>
                 <p className="mb-2 text-muted-foreground">
-                  Open the fixed OBS Hub to download a Custom RTMP profile with your server + key
-                  already filled in.
+                  OBS has not sent video yet if the preview is blank. Use the rescue button below to
+                  go live with your browser camera instead.
                 </p>
+                <button
+                  onClick={switchObsToBrowserCamera}
+                  disabled={switchingToBrowserCam}
+                  className="mb-2 flex w-full items-center justify-center gap-1 rounded bg-live px-2 py-2 text-[10px] font-bold text-live-foreground disabled:opacity-60"
+                >
+                  {switchingToBrowserCam ? "Switching…" : "🚨 Use browser camera instead"}
+                </button>
                 <div className="mb-2 grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => {
@@ -3341,6 +3378,30 @@ function LiveDetail() {
                         onClick={() => {
                           navigator.clipboard.writeText(stream.cf_rtmps_url);
                           toast.success("Copied");
+                        }}
+                        className="rounded bg-muted px-2 py-1"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-0.5 font-semibold">Fallback Server (RTMP URL)</p>
+                    <div className="flex items-center gap-1.5">
+                      <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-[10px]">
+                        {stream.cf_rtmps_url
+                          ? String(stream.cf_rtmps_url)
+                              .replace(/^rtmps:\/\//, "rtmp://")
+                              .replace(":443/", ":1935/")
+                          : ""}
+                      </code>
+                      <button
+                        onClick={() => {
+                          const fallback = String(stream.cf_rtmps_url || "")
+                            .replace(/^rtmps:\/\//, "rtmp://")
+                            .replace(":443/", ":1935/");
+                          navigator.clipboard.writeText(fallback);
+                          toast.success("Fallback copied");
                         }}
                         className="rounded bg-muted px-2 py-1"
                       >
@@ -5413,10 +5474,30 @@ function LiveDetail() {
                     controls
                   />
                   <div className="grid grid-cols-2 gap-1.5">
-                    <button onClick={() => setObsDisplayMode("auto")} className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground">Auto Fix</button>
-                    <button onClick={() => setObsDisplayMode("fit")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Fit to Screen</button>
-                    <button onClick={() => setObsDisplayMode("vertical")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Vertical Mode</button>
-                    <button onClick={() => setObsDisplayMode("horizontal")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Horizontal Mode</button>
+                    <button
+                      onClick={() => setObsDisplayMode("auto")}
+                      className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground"
+                    >
+                      Auto Fix
+                    </button>
+                    <button
+                      onClick={() => setObsDisplayMode("fit")}
+                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                    >
+                      Fit to Screen
+                    </button>
+                    <button
+                      onClick={() => setObsDisplayMode("vertical")}
+                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                    >
+                      Vertical Mode
+                    </button>
+                    <button
+                      onClick={() => setObsDisplayMode("horizontal")}
+                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                    >
+                      Horizontal Mode
+                    </button>
                   </div>
                 </div>
               )}
