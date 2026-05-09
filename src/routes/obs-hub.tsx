@@ -579,8 +579,8 @@ function ObsHub() {
                 <ul className="mb-3 space-y-1 rounded-xl bg-background/40 p-3 text-[11px]">
                   <PreflightItem ok={preflight.streamKey} label="Stream key generated" />
                   <PreflightItem ok={preflight.rtmpUrl} label="RTMP URL ready" />
-                  <PreflightItem ok={preflight.title} label="Default stream title set" />
-                  <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
+                  <PreflightItem ok={true} label="Title can auto-fill" optional />
+                  <PreflightItem ok={true} label="TCG tag can auto-fill" optional />
                   <PreflightItem ok={true} label="OBS connection check skipped" optional />
                 </ul>
 
