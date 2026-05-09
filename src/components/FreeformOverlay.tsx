@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2, ChevronUp, ChevronDown, X, Lock, Unlock, Pencil, Eye, EyeOff } from "lucide-react";
 import type { StudioSource, FreeformLayout } from "@/hooks/useStudio";
 
@@ -17,24 +17,59 @@ type Props = {
   onRename?: (id: string, label: string) => void;
 };
 
+type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+
+const STAGE_ASPECT = 16 / 9;
+
+function getCoverRect(width: number, height: number) {
+  if (!width || !height) return { left: 0, top: 0, width, height };
+  const boxAspect = width / height;
+  if (boxAspect > STAGE_ASPECT) {
+    const coveredHeight = width / STAGE_ASPECT;
+    return { left: 0, top: (height - coveredHeight) / 2, width, height: coveredHeight };
+  }
+  const coveredWidth = height * STAGE_ASPECT;
+  return { left: (width - coveredWidth) / 2, top: 0, width: coveredWidth, height };
+}
+
 export function FreeformOverlay({
   sources, layouts, expandedId,
   onInteractionStart, onLayoutChange, onBringToFront, onSendToBack, onExpand, onRemove,
   onToggleLock, onToggleVisible, onRename,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [surface, setSurface] = useState(() => getCoverRect(0, 0));
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setSurface(getCoverRect(rect.width, rect.height));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   function startDrag(
     e: React.PointerEvent,
     id: string,
     mode: "move" | "resize",
+    handle: ResizeHandle = "se",
   ) {
     const src = sources.find((s) => s.id === id);
     if (src?.locked) return;
     e.preventDefault(); e.stopPropagation();
-    const container = containerRef.current; if (!container) return;
-    const rect = container.getBoundingClientRect();
+    const surfaceEl = surfaceRef.current; if (!surfaceEl) return;
+    const rect = surfaceEl.getBoundingClientRect();
     const startX = e.clientX, startY = e.clientY;
     const start = layouts[id]; if (!start) return;
     onInteractionStart?.();
@@ -52,10 +87,20 @@ export function FreeformOverlay({
       if (mode === "move") {
         onLayoutChange(id, { x: start.x + dx, y: start.y + dy });
       } else {
-        onLayoutChange(id, {
-          w: Math.max(0.1, start.w + dx),
-          h: Math.max(0.1, start.h + dy),
-        });
+        const patch: Partial<FreeformLayout> = {};
+        if (handle.includes("e")) patch.w = Math.max(0.1, start.w + dx);
+        if (handle.includes("s")) patch.h = Math.max(0.1, start.h + dy);
+        if (handle.includes("w")) {
+          const nextW = Math.max(0.1, start.w - dx);
+          patch.x = start.x + start.w - nextW;
+          patch.w = nextW;
+        }
+        if (handle.includes("n")) {
+          const nextH = Math.max(0.1, start.h - dy);
+          patch.y = start.y + start.h - nextH;
+          patch.h = nextH;
+        }
+        onLayoutChange(id, patch);
       }
     };
     const onUp = () => {
