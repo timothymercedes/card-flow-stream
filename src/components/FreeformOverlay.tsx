@@ -72,7 +72,7 @@ export function FreeformOverlay({
   if (expandedId) {
     const s = sources.find((x) => x.id === expandedId);
     return (
-      <div ref={containerRef} className="pointer-events-none absolute inset-0 z-20">
+      <div ref={containerRef} className="pointer-events-none absolute inset-0 z-40">
         <div className="pointer-events-auto absolute right-2 top-2 flex gap-1 rounded-lg bg-black/70 p-1 text-white shadow-lg">
           <button
             onClick={() => onExpand(expandedId)}
@@ -96,7 +96,7 @@ export function FreeformOverlay({
     .sort((a, b) => (layouts[a.id]?.z ?? 0) - (layouts[b.id]?.z ?? 0));
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-20 touch-none">
+    <div ref={containerRef} className="absolute inset-0 z-40 touch-none" onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
       {ordered.map((s) => {
         const l = layouts[s.id]!;
         const locked = s.locked;

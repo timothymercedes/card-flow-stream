@@ -2615,8 +2615,8 @@ function LiveDetail() {
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-black text-white"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onTouchStart={showHostCameraEditor ? undefined : onTouchStart}
+      onTouchEnd={showHostCameraEditor ? undefined : onTouchEnd}
     >
       {/* Full-screen video */}
       <div
@@ -3713,7 +3713,7 @@ function LiveDetail() {
       )}
 
       {/* Bottom panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem]">
+      <div className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor ? "pointer-events-none opacity-30" : ""}`}>
         {stream.mode === "show_off" && (
           <>
             {/* Collapse / full-screen toggle for Flex Live */}
