@@ -66,7 +66,7 @@ export function FreeformOverlay({
   if (expandedId) {
     const s = sources.find((x) => x.id === expandedId);
     return (
-      <div ref={containerRef} className="pointer-events-none absolute inset-0">
+      <div ref={containerRef} className="pointer-events-none absolute inset-0 z-20">
         <div className="pointer-events-auto absolute right-2 top-2 flex gap-1 rounded-lg bg-black/70 p-1 text-white shadow-lg">
           <button
             onClick={() => onExpand(expandedId)}
@@ -90,13 +90,14 @@ export function FreeformOverlay({
     .sort((a, b) => (layouts[a.id]?.z ?? 0) - (layouts[b.id]?.z ?? 0));
 
   return (
-    <div ref={containerRef} className="absolute inset-0">
+    <div ref={containerRef} className="absolute inset-0 z-20 touch-none">
       {ordered.map((s) => {
         const l = layouts[s.id]!;
         return (
           <div
             key={s.id}
-            className="absolute rounded-md border-2 border-primary/70 bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+             onPointerDown={(e) => startDrag(e, s.id, "move")}
+             className="absolute cursor-move rounded-md border-2 border-primary/70 bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
             style={{
               left: `${l.x * 100}%`,
               top: `${l.y * 100}%`,
@@ -106,17 +107,12 @@ export function FreeformOverlay({
               touchAction: "none",
             }}
           >
-            {/* Drag handle (whole tile) */}
-            <div
-              onPointerDown={(e) => startDrag(e, s.id, "move")}
-              className="absolute inset-0 cursor-move"
-            />
             {/* Top toolbar */}
-            <div className="absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
+            <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
               <div className="truncate rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
                 {s.label}
               </div>
-              <div className="flex gap-0.5 rounded-md bg-black/70 p-0.5 text-white">
+              <div className="pointer-events-auto flex gap-0.5 rounded-md bg-black/70 p-0.5 text-white">
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => onSendToBack(s.id)}
