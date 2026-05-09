@@ -346,7 +346,8 @@ function ObsHub() {
               <h1 className="text-2xl font-bold">OBS Streamer Hub</h1>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Copy these exact OBS settings. Do not choose Twitch, YouTube, or Enhanced Broadcast.
+              Easiest path: paste the server + key into OBS, press Start Streaming, then launch your
+              PullBidLive room. Status checks are optional.
             </p>
           </header>
 
@@ -368,10 +369,9 @@ function ObsHub() {
           ) : !profile?.cf_stream_key ? (
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
               <p className="mb-1 text-sm font-bold">Step 1 · Connect OBS</p>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Tap below — we generate a permanent RTMPS URL and stream key you can save in OBS
-                once and reuse forever.
-              </p>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Tap once to create your permanent OBS server URL and stream key.
+                  </p>
               <button
                 onClick={provision}
                 disabled={provisioning}
@@ -403,28 +403,24 @@ function ObsHub() {
                 {/* Step-by-step instructions */}
                 <ol className="mb-3 space-y-2 rounded-xl bg-muted/40 p-3 text-xs text-muted-foreground">
                   <li>
-                    <b className="text-foreground">1.</b> OBS → <b>Settings → Stream</b>.
+                    <b className="text-foreground">1.</b> OBS → <b>Settings → Stream</b> → Service{" "}
+                    <b>Custom…</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> Best fix: download the profile ZIP below,
-                    extract it, OBS → <b>Profile → Import</b>, select the extracted folder that directly
-                    contains <b>basic.ini</b> and <b>service.json</b>, then switch to that new profile.
+                    <b className="text-foreground">2.</b> Paste the <b>RTMP URL</b> as Server and the{" "}
+                    <b>Stream Key</b> below. Leave authentication off.
                   </li>
                   <li>
-                    <b className="text-foreground">3.</b> Manual fallback: Settings → Stream → Service{" "}
-                    <b>Custom…</b>, paste the Server URL + Stream Key, and leave authentication off.
-                  </li>
-                  <li>
-                    <b className="text-foreground">4.</b> OBS → <b>Settings → Output</b> → Output Mode{" "}
+                    <b className="text-foreground">3.</b> OBS → <b>Settings → Output</b> → Output Mode{" "}
                     <b>Simple</b>, Encoder <b>Software (x264)</b>, Bitrate <b>4000</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">5.</b> OBS → <b>Settings → Video</b> → Base and
+                    <b className="text-foreground">4.</b> OBS → <b>Settings → Video</b> → Base and
                     Output <b>1280×720</b>, FPS <b>30</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">6.</b> Click <b>Start Streaming</b> in OBS, then
-                    tap <b>Check OBS Connection</b>.
+                    <b className="text-foreground">5.</b> Click <b>Start Streaming</b> in OBS. If it starts,
+                    ignore status checks and hit <b>Go Live With OBS</b> below.
                   </li>
                 </ol>
 
