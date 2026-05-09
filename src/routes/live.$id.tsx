@@ -62,7 +62,6 @@ import { ViewerListModal } from "@/components/ViewerListModal";
 import { Users2 } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
-import { useCanvasCompositor } from "@/hooks/useCanvasCompositor";
 import { CoHostStage } from "@/components/CoHostStage";
 import { useTour } from "@/components/MascotGuide";
 import { FlexLiveControls } from "@/components/FlexLiveControls";
