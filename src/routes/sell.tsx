@@ -15,6 +15,8 @@ import {
   Smartphone,
   Monitor,
   Check,
+  Loader2,
+  RefreshCw,
   ChevronLeft,
   Zap,
   Timer,
@@ -70,6 +72,7 @@ function Sell() {
   const [step, setStep] = useState(1);
   type StreamMethod = "phone" | "webcam" | "obs";
   const [streamMethod, setStreamMethod] = useState<StreamMethod>("phone");
+  const [selectedCameraIds, setSelectedCameraIds] = useState<string[]>([]);
   type AuctionPreset =
     | "sudden_death"
     | "timed"
@@ -320,6 +323,12 @@ function Sell() {
         cf_stream_key: cf.cf_stream_key ?? null,
       });
     }
+    if (useCompositor && selectedCameraIds.length > 0) {
+      window.sessionStorage.setItem(
+        `studio:${data.id}:cameraDeviceIds`,
+        JSON.stringify(selectedCameraIds.slice(0, 3)),
+      );
+    }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
     if (useCompositor) {
@@ -521,6 +530,8 @@ function Sell() {
               setTcgTags={setTcgTags}
               streamMethod={streamMethod}
               setStreamMethod={setStreamMethod}
+              selectedCameraIds={selectedCameraIds}
+              setSelectedCameraIds={setSelectedCameraIds}
               useObs={useObs}
               setUseObs={setUseObs}
               useCompositor={useCompositor}
