@@ -771,6 +771,8 @@ type LiveWizardProps = {
   setTcgTags: (fn: (cur: TcgTag[]) => TcgTag[]) => void;
   streamMethod: "phone" | "webcam" | "obs";
   setStreamMethod: (m: "phone" | "webcam" | "obs") => void;
+  selectedCameraIds: string[];
+  setSelectedCameraIds: (ids: string[]) => void;
   useObs: boolean;
   setUseObs: (v: boolean) => void;
   useCompositor: boolean;
@@ -802,6 +804,9 @@ type LiveWizardProps = {
 
 function LiveWizard(p: LiveWizardProps) {
   const stepLabels = ["Title", "Category", "Method", "Products", "Settings", "Go Live"];
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [cameraScanStatus, setCameraScanStatus] = useState<"idle" | "scanning" | "ready" | "error">("idle");
+  const [cameraScanError, setCameraScanError] = useState<string | null>(null);
   const total = stepLabels.length;
   const canNext = (() => {
     if (p.step === 1) return p.streamTitle.trim().length >= 3;
