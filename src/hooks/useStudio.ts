@@ -14,7 +14,7 @@ const CANVAS_W = 1280;
 const CANVAS_H = 720;
 const FPS = 30;
 
-export type StudioScene = "solo" | "split" | "pip" | "grid";
+export type StudioScene = "solo" | "split" | "pip" | "grid" | "freeform";
 
 export type StudioSource = {
   id: string;
@@ -26,6 +26,9 @@ export type StudioSource = {
   muted: boolean; // mic muted (camera mics only)
 };
 
+// Normalised 0..1 freeform layout (x,y top-left; w,h size; z stack order)
+export type FreeformLayout = { x: number; y: number; w: number; h: number; z: number };
+
 export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }) {
   const { whipUrl, autoPublish } = opts;
 
@@ -35,6 +38,8 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [layouts, setLayouts] = useState<Record<string, FreeformLayout>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -42,9 +47,13 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   const sourcesRef = useRef(sources);
   const sceneRef = useRef(scene);
   const activeIdRef = useRef(activeId);
+  const layoutsRef = useRef(layouts);
+  const expandedIdRef = useRef(expandedId);
   useEffect(() => { sourcesRef.current = sources; }, [sources]);
   useEffect(() => { sceneRef.current = scene; }, [scene]);
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+  useEffect(() => { layoutsRef.current = layouts; }, [layouts]);
+  useEffect(() => { expandedIdRef.current = expandedId; }, [expandedId]);
 
   // ─── Device enumeration ─────────────────────────────────────────────────
   const refreshDevices = useCallback(async () => {
@@ -59,6 +68,20 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
     navigator.mediaDevices?.addEventListener?.("devicechange", refreshDevices);
     return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshDevices);
   }, [refreshDevices]);
+
+  // ─── Default freeform layout for a new source ──────────────────────────
+  const makeDefaultLayout = useCallback((index: number): FreeformLayout => {
+    // Stagger new tiles in a 3-col grid so they don't fully overlap.
+    const col = index % 3;
+    const row = Math.floor(index / 3) % 3;
+    return {
+      x: 0.05 + col * 0.30,
+      y: 0.10 + row * 0.30,
+      w: 0.35,
+      h: 0.45,
+      z: index + 1,
+    };
+  }, []);
 
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(async (deviceId?: string) => {
@@ -95,6 +118,10 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
         if (!activeIdRef.current) setActiveId(id);
         return next;
       });
+      setLayouts((prev) => ({
+        ...prev,
+        [id]: makeDefaultLayout(Object.keys(prev).length),
+      }));
       // Re-enumerate so device labels populate now that permission is granted.
       refreshDevices();
       return id;
@@ -111,7 +138,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
       setError(msg);
       return null;
     }
-  }, [refreshDevices]);
+  }, [refreshDevices, makeDefaultLayout]);
 
   const addScreen = useCallback(async () => {
     try {
@@ -134,12 +161,16 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
         if (prev.length > 0) setScene("pip");
         return next;
       });
+      setLayouts((prev) => ({
+        ...prev,
+        [id]: makeDefaultLayout(Object.keys(prev).length),
+      }));
       return id;
     } catch (e: any) {
       setError(e?.message || "Screen share canceled");
       return null;
     }
-  }, []);
+  }, [makeDefaultLayout]);
 
   const removeSource = useCallback((id: string) => {
     setSources((prev) => {
@@ -151,6 +182,8 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
       if (activeIdRef.current === id) setActiveId(next[0]?.id ?? null);
       return next;
     });
+    setLayouts((prev) => { const { [id]: _, ...rest } = prev; return rest; });
+    setExpandedId((cur) => (cur === id ? null : cur));
   }, []);
 
   const toggleVisible = useCallback((id: string) => {
@@ -167,6 +200,54 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
       })
     );
   }, []);
+
+  // ─── Freeform layout controls ──────────────────────────────────────────
+  const setLayout = useCallback((id: string, patch: Partial<FreeformLayout>) => {
+    setLayouts((prev) => {
+      const cur = prev[id] ?? { x: 0, y: 0, w: 0.4, h: 0.4, z: 1 };
+      const next: FreeformLayout = {
+        x: clamp01(patch.x ?? cur.x),
+        y: clamp01(patch.y ?? cur.y),
+        w: clamp(patch.w ?? cur.w, 0.1, 1),
+        h: clamp(patch.h ?? cur.h, 0.1, 1),
+        z: patch.z ?? cur.z,
+      };
+      // keep tile inside canvas
+      next.x = Math.min(next.x, 1 - next.w);
+      next.y = Math.min(next.y, 1 - next.h);
+      return { ...prev, [id]: next };
+    });
+  }, []);
+
+  const bringToFront = useCallback((id: string) => {
+    setLayouts((prev) => {
+      const maxZ = Math.max(0, ...Object.values(prev).map((l) => l.z));
+      const cur = prev[id]; if (!cur) return prev;
+      return { ...prev, [id]: { ...cur, z: maxZ + 1 } };
+    });
+  }, []);
+
+  const sendToBack = useCallback((id: string) => {
+    setLayouts((prev) => {
+      const minZ = Math.min(0, ...Object.values(prev).map((l) => l.z));
+      const cur = prev[id]; if (!cur) return prev;
+      return { ...prev, [id]: { ...cur, z: minZ - 1 } };
+    });
+  }, []);
+
+  const expandSource = useCallback((id: string) => {
+    setExpandedId((cur) => (cur === id ? null : id));
+    setScene("freeform");
+  }, []);
+
+  const resetLayouts = useCallback(() => {
+    setLayouts(() => {
+      const next: Record<string, FreeformLayout> = {};
+      sourcesRef.current.forEach((s, i) => { next[s.id] = makeDefaultLayout(i); });
+      return next;
+    });
+    setExpandedId(null);
+  }, [makeDefaultLayout]);
 
   // ─── Canvas render loop ─────────────────────────────────────────────────
   useEffect(() => {
@@ -189,6 +270,17 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
       return v;
     }
 
+    function drawTile(t: { source: StudioSource; x: number; y: number; w: number; h: number }) {
+      const v = ensureVideo(t.source);
+      if (v.videoWidth > 0) drawCover(ctx!, v, t.x, t.y, t.w, t.h);
+      else { ctx!.fillStyle = "#1a1a1a"; ctx!.fillRect(t.x, t.y, t.w, t.h); }
+      ctx!.fillStyle = "rgba(0,0,0,0.55)";
+      const lw = ctx!.measureText(t.source.label).width + 16;
+      ctx!.fillRect(t.x + 12, t.y + t.h - 32, lw, 22);
+      ctx!.fillStyle = "#fff"; ctx!.font = "bold 12px system-ui"; ctx!.textAlign = "left";
+      ctx!.fillText(t.source.label, t.x + 20, t.y + t.h - 16);
+    }
+
     function tick() {
       if (!ctx) return;
       ctx.fillStyle = "#000"; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -203,21 +295,39 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
         return;
       }
 
+      // Expanded source overrides everything.
+      const exp = expandedIdRef.current ? visible.find((s) => s.id === expandedIdRef.current) : null;
+      if (exp) {
+        drawTile({ source: exp, x: 0, y: 0, w: CANVAS_W, h: CANVAS_H });
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (sceneRef.current === "freeform") {
+        const ordered = [...visible].sort((a, b) => {
+          const za = layoutsRef.current[a.id]?.z ?? 0;
+          const zb = layoutsRef.current[b.id]?.z ?? 0;
+          return za - zb;
+        });
+        ordered.forEach((s) => {
+          const l = layoutsRef.current[s.id];
+          if (!l) return;
+          drawTile({
+            source: s,
+            x: l.x * CANVAS_W,
+            y: l.y * CANVAS_H,
+            w: l.w * CANVAS_W,
+            h: l.h * CANVAS_H,
+          });
+        });
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
       const featured = visible.find((s) => s.id === activeIdRef.current) ?? visible[0];
       const others = visible.filter((s) => s.id !== featured.id);
-
       const tiles = layoutTiles(sceneRef.current, visible.length, featured, others);
-      tiles.forEach((t) => {
-        const v = ensureVideo(t.source);
-        if (v.videoWidth > 0) drawCover(ctx, v, t.x, t.y, t.w, t.h);
-        else { ctx.fillStyle = "#1a1a1a"; ctx.fillRect(t.x, t.y, t.w, t.h); }
-        // Label
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        const lw = ctx.measureText(t.source.label).width + 16;
-        ctx.fillRect(t.x + 12, t.y + t.h - 32, lw, 22);
-        ctx.fillStyle = "#fff"; ctx.font = "bold 12px system-ui"; ctx.textAlign = "left";
-        ctx.fillText(t.source.label, t.x + 20, t.y + t.h - 16);
-      });
+      tiles.forEach(drawTile);
 
       rafRef.current = requestAnimationFrame(tick);
     }
@@ -339,9 +449,12 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
 
   return {
     sources, scene, activeId, publishing, error, cameraDevices,
+    layouts, expandedId,
     canvas: canvasRef.current,
+    canvasW: CANVAS_W, canvasH: CANVAS_H,
     setScene, setActiveId,
     addCamera, addScreen, removeSource, toggleVisible, toggleMute,
+    setLayout, bringToFront, sendToBack, expandSource, resetLayouts,
     startPublish, stopPublish,
     clearError: () => setError(null),
   };
@@ -349,6 +462,9 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
 
 // ─── Layout helpers ──────────────────────────────────────────────────────
 type Tile = { source: StudioSource; x: number; y: number; w: number; h: number };
+
+function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
+function clamp01(n: number) { return clamp(n, 0, 1); }
 
 function layoutTiles(
   scene: StudioScene,
