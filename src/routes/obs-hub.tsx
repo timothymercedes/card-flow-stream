@@ -780,8 +780,7 @@ function HealthCard({ health, polling }: { health: Health | null; polling: boole
       </div>
       {!health || health.status === "offline" ? (
         <p className="text-[11px] text-muted-foreground">
-          Waiting for OBS to connect. Hit <b>Start Streaming</b> in OBS — we'll detect it
-          automatically.
+          Optional check only. If OBS says it is streaming, you can launch your PullBidLive room.
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 text-center">
