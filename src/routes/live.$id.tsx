@@ -12,7 +12,10 @@ import {
   MessageCircle,
   X,
   Camera,
+  Monitor,
   Square,
+  SplitSquareHorizontal,
+  Grid2X2,
   Timer,
   Settings,
   Play,
@@ -33,12 +36,17 @@ import {
   Ban,
   Clock as ClockIcon,
   RotateCw,
+  RefreshCw,
   Plus,
   Lock,
   Shuffle,
   Unlock,
   Check,
   Gift,
+  Eye,
+  EyeOff,
+  Layout,
+  Move,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
@@ -69,6 +77,8 @@ import { flexFilterCss } from "@/lib/flexFilters";
 import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
+import { FreeformOverlay } from "@/components/FreeformOverlay";
+import { useStudio, type StudioScene } from "@/hooks/useStudio";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
