@@ -322,7 +322,11 @@ function Sell() {
     }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
-    nav({ to: useCompositor ? "/studio/$id" : "/live/$id", params: { id: data.id } });
+    if (useCompositor) {
+      nav({ to: "/studio/$id", params: { id: data.id } });
+    } else {
+      nav({ to: "/live/$id", params: { id: data.id } });
+    }
   }
 
   async function createListing() {
