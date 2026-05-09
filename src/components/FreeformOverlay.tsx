@@ -96,7 +96,7 @@ export function FreeformOverlay({
     .sort((a, b) => (layouts[a.id]?.z ?? 0) - (layouts[b.id]?.z ?? 0));
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-20 touch-none">
+    <div ref={containerRef} className="absolute inset-0 z-40 touch-none" onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
       {ordered.map((s) => {
         const l = layouts[s.id]!;
         const locked = s.locked;
