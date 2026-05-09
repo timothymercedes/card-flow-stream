@@ -55,6 +55,20 @@ Deno.serve(async (req) => {
     const { parsed: j, text: providerText } = await readProviderJson(r);
     if (!r.ok || j?.success === false) {
       const code = j?.errors?.[0]?.code;
+      // Rate-limited or upstream 5xx → return 200 with fallback flag so the
+      // client can back off instead of crashing the page.
+      if (r.status === 429 || r.status >= 500) {
+        return json({
+          status: "unknown",
+          isInput: false,
+          rateLimited: r.status === 429,
+          fallback: true,
+          retryAfterMs: r.status === 429 ? 30000 : 10000,
+          providerStatus: r.status,
+          providerCode: code ?? null,
+          providerMessage: j?.errors?.[0]?.message ?? (providerText.slice(0, 160) || null),
+        }, 200);
+      }
       return json({
         error: code === 9106
           ? "Cloudflare Stream authentication failed. Check the account ID and Stream API token."
