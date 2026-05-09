@@ -157,7 +157,9 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">("auto");
+  const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">(
+    "auto",
+  );
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
@@ -733,9 +735,12 @@ function LiveDetail() {
     obsDisplayMode === "horizontal"
       ? 1
       : obsDisplayMode === "vertical"
-        ? Math.max(obsMetrics?.recommendedZoom ?? 1, obsMetrics?.orientation === "horizontal" ? 1.35 : 1)
+        ? Math.max(
+            obsMetrics?.recommendedZoom ?? 1,
+            obsMetrics?.orientation === "horizontal" ? 1.35 : 1,
+          )
         : obsDisplayMode === "fit" || obsTinyFeed
-          ? obsMetrics?.recommendedZoom ?? 1
+          ? (obsMetrics?.recommendedZoom ?? 1)
           : 1;
   const obsPositionX = obsMetrics?.activeCenterX ?? 50;
   const obsPositionY = obsMetrics?.activeCenterY ?? 50;
@@ -747,7 +752,8 @@ function LiveDetail() {
     transition: "transform 220ms ease, object-position 220ms ease",
   };
   const obsPreviewAspectClass =
-    obsDisplayMode === "horizontal" || (obsDisplayMode === "auto" && obsMetrics?.orientation === "horizontal")
+    obsDisplayMode === "horizontal" ||
+    (obsDisplayMode === "auto" && obsMetrics?.orientation === "horizontal")
       ? "aspect-video"
       : "aspect-[9/16]";
   useEffect(() => {
@@ -1338,34 +1344,28 @@ function LiveDetail() {
     }
     await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
     if (stream.seller_id !== user.id) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_id: stream.seller_id,
-          type: "bid",
-          body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
-          link: `/live/${id}`,
-        });
-    }
-    if (prevBidder && prevBidder !== user.id) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_id: prevBidder,
-          type: "outbid",
-          body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
-          link: `/live/${id}`,
-        });
-    }
-    // Notify the new top bidder they're winning
-    await supabase
-      .from("notifications")
-      .insert({
-        user_id: user.id,
-        type: "winning",
-        body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
+      await supabase.from("notifications").insert({
+        user_id: stream.seller_id,
+        type: "bid",
+        body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
         link: `/live/${id}`,
       });
+    }
+    if (prevBidder && prevBidder !== user.id) {
+      await supabase.from("notifications").insert({
+        user_id: prevBidder,
+        type: "outbid",
+        body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
+        link: `/live/${id}`,
+      });
+    }
+    // Notify the new top bidder they're winning
+    await supabase.from("notifications").insert({
+      user_id: user.id,
+      type: "winning",
+      body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
+      link: `/live/${id}`,
+    });
   }
 
   // 🆕 Buy-now snipe: instantly win at the host's snipe price
@@ -3390,7 +3390,9 @@ function LiveDetail() {
                     <div className="flex items-center gap-1.5">
                       <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-[10px]">
                         {stream.cf_rtmps_url
-                          ? String(stream.cf_rtmps_url).replace(/^rtmps:\/\//, "rtmp://").replace(":443/", ":1935/")
+                          ? String(stream.cf_rtmps_url)
+                              .replace(/^rtmps:\/\//, "rtmp://")
+                              .replace(":443/", ":1935/")
                           : ""}
                       </code>
                       <button
@@ -5472,10 +5474,30 @@ function LiveDetail() {
                     controls
                   />
                   <div className="grid grid-cols-2 gap-1.5">
-                    <button onClick={() => setObsDisplayMode("auto")} className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground">Auto Fix</button>
-                    <button onClick={() => setObsDisplayMode("fit")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Fit to Screen</button>
-                    <button onClick={() => setObsDisplayMode("vertical")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Vertical Mode</button>
-                    <button onClick={() => setObsDisplayMode("horizontal")} className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">Horizontal Mode</button>
+                    <button
+                      onClick={() => setObsDisplayMode("auto")}
+                      className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground"
+                    >
+                      Auto Fix
+                    </button>
+                    <button
+                      onClick={() => setObsDisplayMode("fit")}
+                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                    >
+                      Fit to Screen
+                    </button>
+                    <button
+                      onClick={() => setObsDisplayMode("vertical")}
+                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                    >
+                      Vertical Mode
+                    </button>
+                    <button
+                      onClick={() => setObsDisplayMode("horizontal")}
+                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                    >
+                      Horizontal Mode
+                    </button>
                   </div>
                 </div>
               )}
