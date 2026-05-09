@@ -242,6 +242,16 @@ function Studio() {
             >
               <Monitor className="h-3.5 w-3.5" /> Share screen / window
             </button>
+            <button
+              onClick={() => {
+                setPickerOpen(false);
+                if (!phone.token) phone.startSession();
+                setPhoneOpen(true);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+            >
+              <Smartphone className="h-3.5 w-3.5" /> Phone as camera (QR)
+            </button>
             <div className="border-t border-border bg-muted/30 px-3 py-2 text-[9px] text-muted-foreground">
               Tip: USB and OBS Virtual Camera show up as regular cameras.
             </div>
