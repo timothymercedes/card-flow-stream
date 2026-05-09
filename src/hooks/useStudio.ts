@@ -18,7 +18,7 @@ export type StudioScene = "solo" | "split" | "pip" | "grid" | "freeform";
 
 export type StudioSource = {
   id: string;
-  kind: "camera" | "screen";
+  kind: "camera" | "screen" | "phone";
   label: string;
   stream: MediaStream;
   deviceId?: string;
@@ -181,6 +181,26 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       setError(e?.message || "Screen share canceled");
       return null;
     }
+  }, [makeDefaultLayout]);
+
+  /** Add a MediaStream acquired externally (e.g. phone over WebRTC). */
+  const addExternalStream = useCallback((
+    stream: MediaStream,
+    label: string,
+    kind: "phone" | "camera" = "phone",
+  ) => {
+    const id = `ext-${crypto.randomUUID()}`;
+    const src: StudioSource = {
+      id, kind, label, stream,
+      visible: true, muted: false, locked: false, fit: "cover",
+    };
+    setSources((prev) => {
+      const next = [...prev, src];
+      if (!activeIdRef.current) setActiveId(id);
+      return next;
+    });
+    setLayouts((prev) => ({ ...prev, [id]: makeDefaultLayout(Object.keys(prev).length) }));
+    return id;
   }, [makeDefaultLayout]);
 
   const removeSource = useCallback((id: string) => {
@@ -530,7 +550,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
     canvas: canvasRef.current,
     canvasW: CANVAS_W, canvasH: CANVAS_H,
     setScene, setActiveId, setSnapEnabled,
-    addCamera, addScreen, removeSource, toggleVisible, toggleMute,
+    addCamera, addScreen, addExternalStream, removeSource, toggleVisible, toggleMute,
     renameSource, toggleLock, setFit,
     setLayout, bringToFront, sendToBack, expandSource, resetLayouts,
     savePreset, loadPreset, deletePreset,

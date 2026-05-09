@@ -11,9 +11,12 @@ import {
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
   Move, Maximize2, Minimize2, RotateCcw, Lock, Unlock, Pencil,
   Save, Magnet, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  Wand2, Gift, Scan, Repeat, ExternalLink,
+  Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X,
 } from "lucide-react";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
+import { StudioChatDock } from "@/components/StudioChatDock";
+import { usePhoneCamera } from "@/hooks/usePhoneCamera";
+import QRCode from "qrcode";
 
 export const Route = createFileRoute("/studio/$id")({
   head: () => ({ meta: [{ title: "Live Studio — PullBidLive" }] }),
@@ -61,6 +64,26 @@ function Studio() {
     autoPublish: true,
     storageKey: id,
   });
+
+  // Phone-as-camera signaling
+  const phone = usePhoneCamera({
+    streamId: id,
+    onStream: (s, label) => {
+      studio.addExternalStream(s, label, "phone");
+      toast.success("Phone camera connected");
+    },
+  });
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!phone.joinUrl) { setQrDataUrl(null); return; }
+    QRCode.toDataURL(phone.joinUrl, { width: 220, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [phone.joinUrl]);
+
+  // Right rail tab
+  const [rightTab, setRightTab] = useState<"chat" | "info">("chat");
 
   // Mirror canvas to a visible <video>
   const previewRef = useRef<HTMLVideoElement>(null);
@@ -218,6 +241,16 @@ function Studio() {
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
             >
               <Monitor className="h-3.5 w-3.5" /> Share screen / window
+            </button>
+            <button
+              onClick={() => {
+                setPickerOpen(false);
+                if (!phone.token) phone.startSession();
+                setPhoneOpen(true);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+            >
+              <Smartphone className="h-3.5 w-3.5" /> Phone as camera (QR)
             </button>
             <div className="border-t border-border bg-muted/30 px-3 py-2 text-[9px] text-muted-foreground">
               Tip: USB and OBS Virtual Camera show up as regular cameras.
@@ -435,54 +468,77 @@ function Studio() {
           </main>
 
           {/* RIGHT RAIL */}
-          <aside className={`flex flex-col gap-2 overflow-y-auto border-l border-border bg-card p-2 ${rightOpen ? "" : "lg:hidden"}`}>
-            <section className="rounded-xl bg-background p-2">
-              <h3 className="mb-1.5 text-[11px] font-bold">Stream health</h3>
-              <div className="space-y-1 text-[10px]">
-                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="font-bold">{studio.publishing ? "Broadcasting" : "Idle"}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Sources</span><span className="font-bold">{studio.sources.length}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Cameras</span><span className="font-bold">{cameraCount}/{MAX_CAMERAS}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Scene</span><span className="font-bold capitalize">{studio.scene}</span></div>
-              </div>
-            </section>
-
-            <section className="rounded-xl bg-background p-2">
-              <h3 className="mb-1.5 text-[11px] font-bold">Quick controls</h3>
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={cycleCamera}
-                  disabled={cameras.length < 2}
-                  className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
-                >
-                  <Repeat className="h-3.5 w-3.5" /> Switch cam
-                </button>
-                <button
-                  onClick={() => {
-                    if (studio.activeId) studio.expandSource(studio.activeId);
-                  }}
-                  className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70"
-                >
-                  <Maximize2 className="h-3.5 w-3.5" /> Fullscreen
-                </button>
-              </div>
-            </section>
-
-            <section className="rounded-xl bg-background p-2">
-              <h3 className="mb-1.5 text-[11px] font-bold">Chat & viewers</h3>
-              <p className="mb-2 text-[10px] text-muted-foreground">Open the public live page in another tab to chat & moderate.</p>
-              <Link
-                to="/live/$id"
-                params={{ id: stream.id }}
-                target="_blank"
-                className="flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground"
+          <aside className={`flex min-h-0 flex-col gap-2 overflow-hidden border-l border-border bg-card p-2 ${rightOpen ? "" : "lg:hidden"}`}>
+            <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-0.5">
+              <button
+                onClick={() => setRightTab("chat")}
+                className={`flex-1 rounded-md px-2 py-1 text-[10px] font-bold ${rightTab === "chat" ? "bg-background shadow" : "text-muted-foreground"}`}
               >
-                <ExternalLink className="h-3 w-3" /> Open live page
-              </Link>
-            </section>
+                Chat
+              </button>
+              <button
+                onClick={() => setRightTab("info")}
+                className={`flex-1 rounded-md px-2 py-1 text-[10px] font-bold ${rightTab === "info" ? "bg-background shadow" : "text-muted-foreground"}`}
+              >
+                Info
+              </button>
+            </div>
 
-            <p className="px-1 text-center text-[9px] text-muted-foreground">
-              <Radio className="inline h-2.5 w-2.5" /> Streaming directly from this browser. Keep this tab open.
-            </p>
+            {rightTab === "chat" ? (
+              <div className="flex min-h-0 flex-1">
+                <StudioChatDock streamId={stream.id} />
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                <section className="rounded-xl bg-background p-2">
+                  <h3 className="mb-1.5 text-[11px] font-bold">Stream health</h3>
+                  <div className="space-y-1 text-[10px]">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span className="font-bold">{studio.publishing ? "Broadcasting" : "Idle"}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Sources</span><span className="font-bold">{studio.sources.length}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Cameras</span><span className="font-bold">{cameraCount}/{MAX_CAMERAS}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Scene</span><span className="font-bold capitalize">{studio.scene}</span></div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl bg-background p-2">
+                  <h3 className="mb-1.5 text-[11px] font-bold">Quick controls</h3>
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={cycleCamera}
+                      disabled={cameras.length < 2}
+                      className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
+                    >
+                      <Repeat className="h-3.5 w-3.5" /> Switch cam
+                    </button>
+                    <button
+                      onClick={() => { if (studio.activeId) studio.expandSource(studio.activeId); }}
+                      className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" /> Fullscreen
+                    </button>
+                    <button
+                      onClick={() => { if (!phone.token) phone.startSession(); setPhoneOpen(true); }}
+                      className="col-span-2 flex items-center justify-center gap-1 rounded-lg bg-primary p-2 text-[10px] font-bold text-primary-foreground hover:opacity-90"
+                    >
+                      <Smartphone className="h-3.5 w-3.5" /> Pair phone camera
+                    </button>
+                  </div>
+                </section>
+
+                <Link
+                  to="/live/$id"
+                  params={{ id: stream.id }}
+                  target="_blank"
+                  className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-[11px] font-bold hover:bg-muted/70"
+                >
+                  <ExternalLink className="h-3 w-3" /> Open public live page
+                </Link>
+
+                <p className="px-1 text-center text-[9px] text-muted-foreground">
+                  <Radio className="inline h-2.5 w-2.5" /> Streaming from this browser. Keep this tab open.
+                </p>
+              </div>
+            )}
           </aside>
         </div>
 
@@ -513,6 +569,87 @@ function Studio() {
           </div>
         </div>
       </div>
+
+      {/* PHONE-AS-CAMERA MODAL */}
+      {phoneOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-4 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-sm font-bold">
+                <Smartphone className="h-4 w-4" /> Pair phone camera
+              </h2>
+              <button
+                onClick={() => { setPhoneOpen(false); }}
+                className="rounded-md p-1 hover:bg-muted"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              Scan the QR code or open the link on your phone. Allow camera access — your phone&apos;s feed appears as a new source here.
+            </p>
+            {phone.joinUrl ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-center rounded-xl bg-white p-3">
+                  {qrDataUrl ? (
+                    <img src={qrDataUrl} alt="Phone camera join QR" className="h-48 w-48" />
+                  ) : (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex items-center gap-1 rounded-md bg-muted p-1.5">
+                  <input
+                    readOnly
+                    value={phone.joinUrl}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    className="flex-1 min-w-0 bg-transparent text-[10px] outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(phone.joinUrl!);
+                      toast.success("Link copied");
+                    }}
+                    className="rounded p-1 hover:bg-background"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-muted/50 px-2 py-1.5 text-[10px]">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-bold">
+                    {phone.status === "live" ? "🔴 Connected" :
+                     phone.status === "connecting" ? "Connecting…" :
+                     phone.status === "waiting" ? "Waiting for phone…" :
+                     phone.status === "error" ? "Error" : "Idle"}
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => { phone.cancelSession(); setQrDataUrl(null); }}
+                    className="flex-1 rounded-lg bg-muted px-3 py-2 text-xs font-bold hover:bg-muted/70"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => setPhoneOpen(false)}
+                    className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => phone.startSession()}
+                className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+              >
+                Generate pairing link
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -45,6 +45,7 @@ import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
+import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
@@ -231,6 +232,11 @@ const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   path: '/admin/performance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinCamStreamIdTokenRoute = JoinCamStreamIdTokenRouteImport.update({
+  id: '/join-cam/$streamId/$token',
+  path: '/join-cam/$streamId/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   id: '/api/public/beta-verify',
   path: '/api/public/beta-verify',
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -327,6 +334,7 @@ export interface FileRoutesByTo {
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/market/'
     | '/messages/'
     | '/api/public/beta-verify'
+    | '/join-cam/$streamId/$token'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -453,6 +463,7 @@ export interface FileRouteTypes {
     | '/market'
     | '/messages'
     | '/api/public/beta-verify'
+    | '/join-cam/$streamId/$token'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/stripe/webhook'
   id:
@@ -494,6 +505,7 @@ export interface FileRouteTypes {
     | '/market/'
     | '/messages/'
     | '/api/public/beta-verify'
+    | '/join-cam/$streamId/$token'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/stripe/webhook'
   fileRoutesById: FileRoutesById
@@ -536,6 +548,7 @@ export interface RootRouteChildren {
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
+  JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
@@ -794,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/join-cam/$streamId/$token': {
+      id: '/join-cam/$streamId/$token'
+      path: '/join-cam/$streamId/$token'
+      fullPath: '/join-cam/$streamId/$token'
+      preLoaderRoute: typeof JoinCamStreamIdTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/beta-verify': {
       id: '/api/public/beta-verify'
       path: '/api/public/beta-verify'
@@ -856,6 +876,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
+  JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
