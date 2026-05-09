@@ -2598,6 +2598,19 @@ function LiveDetail() {
   const pauseExpired = paused && pauseExpiresAt > 0 && pauseExpiresAt < now;
   const pauseMsLeft = Math.max(0, pauseExpiresAt - now);
   const bidDisabled = isSeller || ended || paused || !auctionLive;
+  const hostStudioCameras = hostStudio.sources.filter((s) => s.kind === "camera");
+  const hostStudioCameraAccessNeeded = hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
+  const hostStudioScenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
+    { id: "solo", label: "Solo", Icon: Square },
+    { id: "split", label: "Split", Icon: SplitSquareHorizontal },
+    { id: "grid", label: "Grid", Icon: Grid2X2 },
+    { id: "freeform", label: "Move", Icon: Move },
+  ];
+
+  async function scanHostStudioCameras() {
+    const devices = hostStudioCameraAccessNeeded ? await hostStudio.requestCameraPermission() : await hostStudio.refreshDevices();
+    if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+  }
 
   return (
     <div
@@ -2629,6 +2642,26 @@ function LiveDetail() {
           </div>
         )}
       </div>
+
+      {isSeller && usingCompositor && showHostCameraEditor && !ended && (
+        <FreeformOverlay
+          sources={hostStudio.sources}
+          layouts={hostStudio.layouts}
+          expandedId={hostStudio.expandedId}
+          onInteractionStart={() => hostStudio.setScene("freeform")}
+          onLayoutChange={(sid, patch) => {
+            hostStudio.setScene("freeform");
+            hostStudio.setLayout(sid, patch);
+          }}
+          onBringToFront={hostStudio.bringToFront}
+          onSendToBack={hostStudio.sendToBack}
+          onExpand={hostStudio.expandSource}
+          onRemove={hostStudio.removeSource}
+          onToggleLock={hostStudio.toggleLock}
+          onToggleVisible={hostStudio.toggleVisible}
+          onRename={hostStudio.renameSource}
+        />
+      )}
 
       {/* Cloudflare Calls multi-guest stage */}
       {callShouldRun && (
