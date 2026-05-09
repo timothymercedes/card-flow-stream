@@ -183,6 +183,26 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
     }
   }, [makeDefaultLayout]);
 
+  /** Add a MediaStream acquired externally (e.g. phone over WebRTC). */
+  const addExternalStream = useCallback((
+    stream: MediaStream,
+    label: string,
+    kind: "phone" | "camera" = "phone",
+  ) => {
+    const id = `ext-${crypto.randomUUID()}`;
+    const src: StudioSource = {
+      id, kind, label, stream,
+      visible: true, muted: false, locked: false, fit: "cover",
+    };
+    setSources((prev) => {
+      const next = [...prev, src];
+      if (!activeIdRef.current) setActiveId(id);
+      return next;
+    });
+    setLayouts((prev) => ({ ...prev, [id]: makeDefaultLayout(Object.keys(prev).length) }));
+    return id;
+  }, [makeDefaultLayout]);
+
   const removeSource = useCallback((id: string) => {
     setSources((prev) => {
       const target = prev.find((s) => s.id === id);
