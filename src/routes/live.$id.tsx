@@ -5445,12 +5445,37 @@ function LiveDetail() {
 
           {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
           {isSeller && stream?.cf_playback_hls && (
-            <div className="fixed top-16 right-3 z-30 w-40 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-48 md:w-56">
-              <div className="items-center justify-between bg-black/60 px-2 py-1 flex flex-row">
+            <div
+              className="fixed z-30 w-40 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-48 md:w-56"
+              style={{ top: previewPos.y, right: previewPos.x }}
+            >
+              <div
+                className="flex flex-row cursor-move items-center justify-between bg-black/60 px-2 py-1 select-none touch-none"
+                onPointerDown={(e) => {
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  const startX = e.clientX, startY = e.clientY;
+                  const start = { ...previewPos };
+                  const onMove = (ev: PointerEvent) => {
+                    const dx = startX - ev.clientX;
+                    const dy = ev.clientY - startY;
+                    setPreviewPos({
+                      x: Math.max(4, start.x + dx),
+                      y: Math.max(4, start.y + dy),
+                    });
+                  };
+                  const onUp = () => {
+                    window.removeEventListener("pointermove", onMove);
+                    window.removeEventListener("pointerup", onUp);
+                  };
+                  window.addEventListener("pointermove", onMove);
+                  window.addEventListener("pointerup", onUp);
+                }}
+              >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">
                   Viewer preview
                 </p>
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setShowViewerPreview((v) => !v)}
                   className="rounded-md p-1 text-white/70 hover:text-white"
                   aria-label="Toggle viewer preview"
