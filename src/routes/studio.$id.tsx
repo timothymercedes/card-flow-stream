@@ -44,6 +44,7 @@ function Studio() {
   const [rightOpen, setRightOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [scanningCameras, setScanningCameras] = useState(false);
+  const [queuedCameraIds, setQueuedCameraIds] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -65,6 +66,15 @@ function Studio() {
     autoPublish: true,
     storageKey: id,
   });
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(`studio:${id}:cameraDeviceIds`);
+      setQueuedCameraIds(raw ? (JSON.parse(raw) as string[]).filter(Boolean).slice(0, 3) : []);
+    } catch {
+      setQueuedCameraIds([]);
+    }
+  }, [id]);
 
   // Phone-as-camera signaling
   const phone = usePhoneCamera({
@@ -150,6 +160,20 @@ function Studio() {
     const devices = cameraAccessNeeded ? await studio.requestCameraPermission() : await studio.refreshDevices();
     setScanningCameras(false);
     if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+  }
+
+  async function startQueuedCameras() {
+    if (queuedCameraIds.length === 0) return;
+    setScanningCameras(true);
+    let added = 0;
+    for (const deviceId of queuedCameraIds) {
+      const addedId = await studio.addCamera(deviceId);
+      if (addedId) added += 1;
+    }
+    window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
+    setQueuedCameraIds([]);
+    setScanningCameras(false);
+    if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} added to studio`);
   }
 
   // Compact source row with full OBS controls
@@ -348,6 +372,16 @@ function Studio() {
                 </h3>
               </div>
               <AddSourceMenu />
+              {queuedCameraIds.length > 0 && (
+                <button
+                  onClick={startQueuedCameras}
+                  disabled={scanningCameras || camerasFull}
+                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                  Start selected cameras ({queuedCameraIds.length})
+                </button>
+              )}
               {studio.sources.length === 0 ? (
                 <div className="mt-2 rounded-lg border border-dashed border-border bg-muted/30 p-2 text-center">
                   <p className="text-[10px] text-muted-foreground">Click <b>Add source</b> to enable your camera.</p>
