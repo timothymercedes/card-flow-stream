@@ -213,20 +213,41 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
   }, []);
 
   // ─── Freeform layout controls ──────────────────────────────────────────
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const snapRef = useRef(snapEnabled);
+  useEffect(() => { snapRef.current = snapEnabled; }, [snapEnabled]);
+
   const setLayout = useCallback((id: string, patch: Partial<FreeformLayout>) => {
     setLayouts((prev) => {
       const cur = prev[id] ?? { x: 0, y: 0, w: 0.4, h: 0.4, z: 1 };
-      const nextW = clamp(patch.w ?? cur.w, 0.1, 1);
-      const nextH = clamp(patch.h ?? cur.h, 0.1, 1);
+      // honor locked sources
+      const src = sourcesRef.current.find((s) => s.id === id);
+      if (src?.locked) return prev;
+      const snap = snapRef.current ? (n: number) => Math.round(n * 20) / 20 : (n: number) => n;
+      const nextW = clamp(snap(patch.w ?? cur.w), 0.1, 1);
+      const nextH = clamp(snap(patch.h ?? cur.h), 0.1, 1);
       const next: FreeformLayout = {
-        x: clamp(patch.x ?? cur.x, 0, 1 - nextW),
-        y: clamp(patch.y ?? cur.y, 0, 1 - nextH),
+        x: clamp(snap(patch.x ?? cur.x), 0, 1 - nextW),
+        y: clamp(snap(patch.y ?? cur.y), 0, 1 - nextH),
         w: nextW,
         h: nextH,
         z: patch.z ?? cur.z,
       };
       return { ...prev, [id]: next };
     });
+  }, []);
+
+  const renameSource = useCallback((id: string, label: string) => {
+    const trimmed = label.trim() || "Source";
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, label: trimmed } : s)));
+  }, []);
+
+  const toggleLock = useCallback((id: string) => {
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)));
+  }, []);
+
+  const setFit = useCallback((id: string, fit: "cover" | "contain") => {
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, fit } : s)));
   }, []);
 
   const bringToFront = useCallback((id: string) => {
