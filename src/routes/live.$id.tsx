@@ -2684,6 +2684,16 @@ function LiveDetail() {
               <Camera className="h-4 w-4" />
             </button>
           )}
+          {!ended && isSeller && usingCompositor && (
+            <Link
+              to="/studio/$id"
+              params={{ id: stream.id }}
+              className="rounded-full bg-primary/85 p-2 backdrop-blur"
+              title="Arrange cameras"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+          )}
           {(auctionLive || stream.current_item) && (
             <button
               onClick={() => setPinned((v) => !v)}
