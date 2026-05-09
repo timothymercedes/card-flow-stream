@@ -33,6 +33,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
+import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
@@ -168,6 +169,11 @@ const LiveIndexRoute = LiveIndexRouteImport.update({
   path: '/live/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioIdRoute = StudioIdRouteImport.update({
+  id: '/studio/$id',
+  path: '/studio/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerUsernameRoute = SellerUsernameRouteImport.update({
   id: '/seller/$username',
   path: '/seller/$username',
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
@@ -315,6 +322,7 @@ export interface FileRoutesByTo {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/studio/$id': typeof StudioIdRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
@@ -398,6 +407,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/studio/$id'
     | '/live/'
     | '/market/'
     | '/messages/'
@@ -438,6 +448,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/studio/$id'
     | '/live'
     | '/market'
     | '/messages'
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/studio/$id'
     | '/live/'
     | '/market/'
     | '/messages/'
@@ -519,6 +531,7 @@ export interface RootRouteChildren {
   MarketIdRoute: typeof MarketIdRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
+  StudioIdRoute: typeof StudioIdRoute
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/$id': {
+      id: '/studio/$id'
+      path: '/studio/$id'
+      fullPath: '/studio/$id'
+      preLoaderRoute: typeof StudioIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/$username': {
       id: '/seller/$username'
       path: '/seller/$username'
@@ -831,6 +851,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIdRoute: MarketIdRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
   SellerUsernameRoute: SellerUsernameRoute,
+  StudioIdRoute: StudioIdRoute,
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
