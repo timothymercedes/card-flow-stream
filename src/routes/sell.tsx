@@ -850,15 +850,38 @@ function LiveWizard(p: LiveWizardProps) {
       if (!navigator.mediaDevices?.getUserMedia || !navigator.mediaDevices?.enumerateDevices) {
         throw new Error("This browser cannot list cameras. Try Chrome, Edge, Safari, or Firefox.");
       }
-      const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      if (typeof window !== "undefined" && window.isSecureContext === false) {
+        throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
+      }
+      let probe: MediaStream | null = null;
+      try {
+        probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      } catch (e: any) {
+        const name = e?.name || "";
+        if (name === "NotReadableError" || name === "AbortError") {
+          // Camera is held by another tab/app. Wait a tick and retry once.
+          await new Promise((r) => setTimeout(r, 400));
+          probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        } else {
+          throw e;
+        }
+      }
       const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
         (device) => device.kind === "videoinput",
       );
       setCameraDevices(devices);
-      probe.getTracks().forEach((track) => track.stop());
+      probe?.getTracks().forEach((track) => track.stop());
       setCameraScanStatus("ready");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not scan cameras";
+    } catch (error: any) {
+      const name = error?.name || "";
+      let message = error?.message || "Could not scan cameras";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        message = "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again.";
+      } else if (name === "NotFoundError") {
+        message = "No camera found on this device.";
+      } else if (name === "NotReadableError" || /could not start video/i.test(message)) {
+        message = "Your camera is being used by another app or tab (e.g. Zoom, OBS, FaceTime, another browser tab). Close it and click Retry.";
+      }
       setCameraScanError(message);
       setCameraScanStatus("error");
     }
