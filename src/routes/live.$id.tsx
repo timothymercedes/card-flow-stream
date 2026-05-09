@@ -68,6 +68,7 @@ import { FlexLiveControls } from "@/components/FlexLiveControls";
 import { flexFilterCss } from "@/lib/flexFilters";
 import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
+import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -156,8 +157,14 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 12, y: 64 });
-  const [previewSize, setPreviewSize] = useState<{ w: number; h: number }>({ w: 224, h: 0 });
+  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>({ x: 12, y: 128, w: 104, h: 32 });
+  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>({ x: 12, y: 176, w: 256, h: 0 });
+  const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
+    x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
+    y: 64,
+    w: 224,
+    h: 0,
+  }));
   const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">(
     "auto",
   );
@@ -5356,14 +5363,26 @@ function LiveDetail() {
       {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
       {isStaff && !hostFocus && stream.mode !== "show_off" && (
         <>
-          <button
-            onClick={() => setShowPaymentLog(true)}
-            className="fixed left-3 top-32 z-40 flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-1.5 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card"
-            aria-label="Open payment activity log"
+          <FloatingBox
+            box={paymentButtonBox}
+            onChange={setPaymentButtonBox}
+            minW={92}
+            minH={30}
+            resize
+            className="z-40"
           >
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Payments
-          </button>
+            {({ dragHandleProps }) => (
+              <button
+                {...dragHandleProps}
+                onClick={() => setShowPaymentLog(true)}
+                className="flex h-full w-full cursor-move items-center justify-center gap-1.5 rounded-full bg-card/90 px-3 py-1.5 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card"
+                aria-label="Open payment activity log"
+              >
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                Payments
+              </button>
+            )}
+          </FloatingBox>
           <HostPaymentLog
             streamId={id}
             open={showPaymentLog}
@@ -5372,197 +5391,177 @@ function LiveDetail() {
 
           {/* 🆕 Quick Mod Chat — one-tap private DM with mods/host */}
           {!showQuickMod && (
-            <button
-              onClick={() => setShowQuickMod(true)}
-              className="fixed left-3 top-44 z-40 flex items-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
-              aria-label="Open quick mod chat"
+            <FloatingBox
+              box={{ ...quickModBox, h: quickModBox.h || 32, w: Math.min(quickModBox.w, 144) }}
+              onChange={setQuickModBox}
+              minW={92}
+              minH={30}
+              resize
+              className="z-40"
             >
-              <Shield className="h-3.5 w-3.5" /> Mods
-              {modChat.length > 0 && (
-                <span className="rounded-full bg-live px-1.5 text-[9px] text-live-foreground">
-                  {modChat.length}
-                </span>
+              {({ dragHandleProps }) => (
+                <button
+                  {...dragHandleProps}
+                  onClick={() => setShowQuickMod(true)}
+                  className="flex h-full w-full cursor-move items-center justify-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
+                  aria-label="Open quick mod chat"
+                >
+                  <Shield className="h-3.5 w-3.5" /> Mods
+                  {modChat.length > 0 && (
+                    <span className="rounded-full bg-live px-1.5 text-[9px] text-live-foreground">
+                      {modChat.length}
+                    </span>
+                  )}
+                </button>
               )}
-            </button>
+            </FloatingBox>
           )}
           {showQuickMod && (
-            <div className="fixed left-3 top-44 z-40 w-64 max-w-[80vw] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/15 backdrop-blur">
-              <div className="flex items-center justify-between bg-primary/20 px-3 py-1.5">
-                <p className="flex items-center gap-1 text-[11px] font-bold">
-                  <Shield className="h-3 w-3" /> Mod chat
-                </p>
-                <button
-                  onClick={() => setShowQuickMod(false)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="max-h-40 space-y-1 overflow-y-auto px-2 py-2">
-                {modChat.length === 0 && (
-                  <p className="text-center text-[10px] text-muted-foreground">
-                    No mod messages yet
-                  </p>
-                )}
-                {modChat.slice(-30).map((m) => (
-                  <div key={m.id} className="text-[11px] leading-snug">
-                    <span className="font-bold text-primary">@{m.username}:</span>{" "}
-                    <span className="break-words">{m.content}</span>
+            <FloatingBox
+              box={{ ...quickModBox, w: Math.max(quickModBox.w, 256), h: quickModBox.h || 260 }}
+              onChange={setQuickModBox}
+              minW={220}
+              minH={180}
+              resize
+              className="z-40 max-w-[90vw] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/15 backdrop-blur"
+            >
+              {({ dragHandleProps }) => (
+                <>
+                  <div {...dragHandleProps} className="flex cursor-move items-center justify-between bg-primary/20 px-3 py-1.5 select-none">
+                    <p className="flex items-center gap-1 text-[11px] font-bold">
+                      <Shield className="h-3 w-3" /> Mod chat
+                    </p>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => setShowQuickMod(false)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                ))}
-              </div>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const t = quickModInput.trim();
-                  if (!t || !user || !profile) return;
-                  await supabase.from("stream_mod_messages").insert({
-                    stream_id: id,
-                    user_id: user.id,
-                    username: profile.username,
-                    content: t,
-                  });
-                  setQuickModInput("");
-                }}
-                className="flex gap-1 border-t border-white/10 p-1.5"
-              >
-                <input
-                  value={quickModInput}
-                  onChange={(e) => setQuickModInput(e.target.value)}
-                  placeholder="Message mods…"
-                  maxLength={200}
-                  className="flex-1 rounded-md bg-muted px-2 py-1 text-[11px] outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!quickModInput.trim()}
-                  className="rounded-md bg-primary px-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
-                >
-                  <Send className="h-3 w-3" />
-                </button>
-              </form>
-            </div>
+                  <div className="max-h-[calc(100%-74px)] space-y-1 overflow-y-auto px-2 py-2">
+                    {modChat.length === 0 && (
+                      <p className="text-center text-[10px] text-muted-foreground">
+                        No mod messages yet
+                      </p>
+                    )}
+                    {modChat.slice(-30).map((m) => (
+                      <div key={m.id} className="text-[11px] leading-snug">
+                        <span className="font-bold text-primary">@{m.username}:</span>{" "}
+                        <span className="break-words">{m.content}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const t = quickModInput.trim();
+                      if (!t || !user || !profile) return;
+                      await supabase.from("stream_mod_messages").insert({
+                        stream_id: id,
+                        user_id: user.id,
+                        username: profile.username,
+                        content: t,
+                      });
+                      setQuickModInput("");
+                    }}
+                    className="absolute inset-x-0 bottom-0 flex gap-1 border-t border-white/10 bg-card/95 p-1.5"
+                  >
+                    <input
+                      value={quickModInput}
+                      onChange={(e) => setQuickModInput(e.target.value)}
+                      placeholder="Message mods…"
+                      maxLength={200}
+                      className="min-w-0 flex-1 rounded-md bg-muted px-2 py-1 text-[11px] outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!quickModInput.trim()}
+                      className="rounded-md bg-primary px-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
+                    >
+                      <Send className="h-3 w-3" />
+                    </button>
+                  </form>
+                </>
+              )}
+            </FloatingBox>
           )}
 
           {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
           {isSeller && stream?.cf_playback_hls && (
-            <div
-              className="fixed z-30 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur"
-              style={{
-                top: previewPos.y,
-                right: previewPos.x,
-                width: previewSize.w,
-                height: previewSize.h || undefined,
-              }}
+            <FloatingBox
+              box={viewerPreviewBox}
+              onChange={setViewerPreviewBox}
+              minW={160}
+              minH={120}
+              resize
+              className="z-30 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur"
             >
-              <div
-                className="flex flex-row cursor-move items-center justify-between bg-black/60 px-2 py-1 select-none touch-none"
-                onPointerDown={(e) => {
-                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                  const startX = e.clientX, startY = e.clientY;
-                  const start = { ...previewPos };
-                  const onMove = (ev: PointerEvent) => {
-                    const dx = startX - ev.clientX;
-                    const dy = ev.clientY - startY;
-                    setPreviewPos({
-                      x: Math.max(4, start.x + dx),
-                      y: Math.max(4, start.y + dy),
-                    });
-                  };
-                  const onUp = () => {
-                    window.removeEventListener("pointermove", onMove);
-                    window.removeEventListener("pointerup", onUp);
-                  };
-                  window.addEventListener("pointermove", onMove);
-                  window.addEventListener("pointerup", onUp);
-                }}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">
-                  Viewer preview
-                </p>
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => setShowViewerPreview((v) => !v)}
-                  className="rounded-md p-1 text-white/70 hover:text-white"
-                  aria-label="Toggle viewer preview"
-                >
-                  {showViewerPreview ? <X className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                </button>
-              </div>
-              {showViewerPreview && (
-                <div className="space-y-2 p-2">
-                  {obsTinyFeed && (
-                    <div className="rounded-lg border border-destructive/40 bg-destructive/15 px-2 py-1.5 text-[11px] font-semibold text-destructive">
-                      Your stream does not fill the screen properly.
-                    </div>
-                  )}
-                  <HlsPlayer
-                    src={stream.cf_playback_hls}
-                    className={`${obsPreviewAspectClass} w-full rounded-lg bg-background`}
-                    style={obsVideoStyle}
-                    onVideoMetrics={setObsMetrics}
-                    autoPlay
-                    muted
-                    controls
-                  />
-                  <div className="grid grid-cols-2 gap-1.5">
+              {({ dragHandleProps }) => (
+                <>
+                  <div
+                    {...dragHandleProps}
+                    className="flex cursor-move flex-row items-center justify-between bg-black/60 px-2 py-1 select-none"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">
+                      Viewer preview
+                    </p>
                     <button
-                      onClick={() => setObsDisplayMode("auto")}
-                      className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => setShowViewerPreview((v) => !v)}
+                      className="rounded-md p-1 text-white/70 hover:text-white"
+                      aria-label="Toggle viewer preview"
                     >
-                      Auto Fix
-                    </button>
-                    <button
-                      onClick={() => setObsDisplayMode("fit")}
-                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
-                    >
-                      Fit to Screen
-                    </button>
-                    <button
-                      onClick={() => setObsDisplayMode("vertical")}
-                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
-                    >
-                      Vertical Mode
-                    </button>
-                    <button
-                      onClick={() => setObsDisplayMode("horizontal")}
-                      className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
-                    >
-                      Horizontal Mode
+                      {showViewerPreview ? <X className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                     </button>
                   </div>
-                </div>
+                  {showViewerPreview && (
+                    <div className="space-y-2 p-2">
+                      {obsTinyFeed && (
+                        <div className="rounded-lg border border-destructive/40 bg-destructive/15 px-2 py-1.5 text-[11px] font-semibold text-destructive">
+                          Your stream does not fill the screen properly.
+                        </div>
+                      )}
+                      <HlsPlayer
+                        src={stream.cf_playback_hls}
+                        className={`${obsPreviewAspectClass} w-full rounded-lg bg-background`}
+                        style={obsVideoStyle}
+                        onVideoMetrics={setObsMetrics}
+                        autoPlay
+                        muted
+                        controls
+                      />
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => setObsDisplayMode("auto")}
+                          className="rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground"
+                        >
+                          Auto Fix
+                        </button>
+                        <button
+                          onClick={() => setObsDisplayMode("fit")}
+                          className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                        >
+                          Fit to Screen
+                        </button>
+                        <button
+                          onClick={() => setObsDisplayMode("vertical")}
+                          className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                        >
+                          Vertical Mode
+                        </button>
+                        <button
+                          onClick={() => setObsDisplayMode("horizontal")}
+                          className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground"
+                        >
+                          Horizontal Mode
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-              {/* Resize handle (bottom-left, panel is anchored top-right) */}
-              <div
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                  const startX = e.clientX, startY = e.clientY;
-                  const el = (e.currentTarget as HTMLElement).parentElement as HTMLElement;
-                  const rect = el.getBoundingClientRect();
-                  const start = { w: rect.width, h: rect.height };
-                  const onMove = (ev: PointerEvent) => {
-                    const dx = startX - ev.clientX;
-                    const dy = ev.clientY - startY;
-                    setPreviewSize({
-                      w: Math.max(160, Math.min(window.innerWidth - 24, start.w + dx)),
-                      h: Math.max(120, Math.min(window.innerHeight - 24, start.h + dy)),
-                    });
-                  };
-                  const onUp = () => {
-                    window.removeEventListener("pointermove", onMove);
-                    window.removeEventListener("pointerup", onUp);
-                  };
-                  window.addEventListener("pointermove", onMove);
-                  window.addEventListener("pointerup", onUp);
-                }}
-                className="absolute bottom-0 left-0 h-5 w-5 cursor-nesw-resize touch-none bg-primary/70 hover:bg-primary"
-                style={{ clipPath: "polygon(0 100%, 100% 100%, 0 0)" }}
-                title="Drag to resize"
-              />
-            </div>
+            </FloatingBox>
           )}
         </>
       )}
