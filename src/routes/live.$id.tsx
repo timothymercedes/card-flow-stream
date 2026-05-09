@@ -180,6 +180,7 @@ function LiveDetail() {
   );
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
+  const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
@@ -976,11 +977,11 @@ function LiveDetail() {
     };
   }, [user?.id, stream?.id, id, isSeller]);
 
-  // Host auto-joins when streaming via in-browser camera (not OBS); co-hosts auto-join when accepted.
+  // Host auto-joins only for legacy single-camera mode; multi-cam studio owns camera capture.
   const callShouldRun =
     !!stream &&
     stream.status !== "ended" &&
-    ((isSeller && !usingObs) || isCohostParticipant) &&
+    ((isSeller && !usingObs && !usingCompositor) || isCohostParticipant) &&
     callJoined;
 
   const cfCall = useCloudflareCalls({
@@ -996,11 +997,6 @@ function LiveDetail() {
   useEffect(() => {
     if (isCohostParticipant && !callJoined) setCallJoined(true);
   }, [isCohostParticipant, callJoined]);
-  // In compositor mode, host auto-joins on stream load so the canvas has the local cam immediately.
-  useEffect(() => {
-    if (isSeller && usingCompositor && !callJoined) setCallJoined(true);
-  }, [isSeller, usingCompositor, callJoined]);
-
   const safety = useLivestreamSafety({
     stream,
     streamId: id,
