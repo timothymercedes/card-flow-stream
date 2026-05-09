@@ -1,0 +1,394 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+/**
+ * Browser-native streaming studio.
+ *
+ * Manages a list of media sources (multiple cameras, screen shares),
+ * composites them onto a canvas with selectable scenes/layouts, and
+ * publishes the result via WHIP to Cloudflare Stream.
+ *
+ * Think: a tiny in-browser OBS. No external software required.
+ */
+
+const CANVAS_W = 1280;
+const CANVAS_H = 720;
+const FPS = 30;
+
+export type StudioScene = "solo" | "split" | "pip" | "grid";
+
+export type StudioSource = {
+  id: string;
+  kind: "camera" | "screen";
+  label: string;
+  stream: MediaStream;
+  deviceId?: string;
+  visible: boolean;
+  muted: boolean; // mic muted (camera mics only)
+};
+
+export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }) {
+  const { whipUrl, autoPublish } = opts;
+
+  const [sources, setSources] = useState<StudioSource[]>([]);
+  const [scene, setScene] = useState<StudioScene>("solo");
+  const [activeId, setActiveId] = useState<string | null>(null); // featured source for solo / pip-main
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const rafRef = useRef<number | null>(null);
+  const sourcesRef = useRef(sources);
+  const sceneRef = useRef(scene);
+  const activeIdRef = useRef(activeId);
+  useEffect(() => { sourcesRef.current = sources; }, [sources]);
+  useEffect(() => { sceneRef.current = scene; }, [scene]);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+
+  // ─── Device enumeration ─────────────────────────────────────────────────
+  const refreshDevices = useCallback(async () => {
+    try {
+      const all = await navigator.mediaDevices.enumerateDevices();
+      setCameraDevices(all.filter((d) => d.kind === "videoinput"));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    refreshDevices();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshDevices);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshDevices);
+  }, [refreshDevices]);
+
+  // ─── Add / remove sources ───────────────────────────────────────────────
+  const addCamera = useCallback(async (deviceId?: string) => {
+    try {
+      const constraints: MediaStreamConstraints = {
+        video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } },
+        audio: true,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const track = stream.getVideoTracks()[0];
+      const settings = track?.getSettings();
+      const label = track?.label || `Camera ${sourcesRef.current.filter(s => s.kind === "camera").length + 1}`;
+      const id = `cam-${crypto.randomUUID()}`;
+      const src: StudioSource = {
+        id, kind: "camera", label, stream,
+        deviceId: settings?.deviceId,
+        visible: true, muted: false,
+      };
+      setSources((prev) => {
+        const next = [...prev, src];
+        if (!activeIdRef.current) setActiveId(id);
+        return next;
+      });
+      refreshDevices();
+      return id;
+    } catch (e: any) {
+      setError(e?.message || "Camera access denied");
+      return null;
+    }
+  }, [refreshDevices]);
+
+  const addScreen = useCallback(async () => {
+    try {
+      const stream = await (navigator.mediaDevices as any).getDisplayMedia({
+        video: { frameRate: 30 },
+        audio: true,
+      });
+      const id = `scr-${crypto.randomUUID()}`;
+      const src: StudioSource = {
+        id, kind: "screen", label: "Screen share", stream,
+        visible: true, muted: false,
+      };
+      // Auto-cleanup if user stops sharing via browser UI
+      stream.getVideoTracks()[0]?.addEventListener("ended", () => {
+        removeSource(id);
+      });
+      setSources((prev) => {
+        const next = [...prev, src];
+        setActiveId(id);
+        if (prev.length > 0) setScene("pip");
+        return next;
+      });
+      return id;
+    } catch (e: any) {
+      setError(e?.message || "Screen share canceled");
+      return null;
+    }
+  }, []);
+
+  const removeSource = useCallback((id: string) => {
+    setSources((prev) => {
+      const target = prev.find((s) => s.id === id);
+      target?.stream.getTracks().forEach((t) => t.stop());
+      videoElsRef.current.get(id)?.remove();
+      videoElsRef.current.delete(id);
+      const next = prev.filter((s) => s.id !== id);
+      if (activeIdRef.current === id) setActiveId(next[0]?.id ?? null);
+      return next;
+    });
+  }, []);
+
+  const toggleVisible = useCallback((id: string) => {
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s)));
+  }, []);
+
+  const toggleMute = useCallback((id: string) => {
+    setSources((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = !s.muted;
+        s.stream.getAudioTracks().forEach((t) => (t.enabled = !next));
+        return { ...s, muted: next };
+      })
+    );
+  }, []);
+
+  // ─── Canvas render loop ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!canvasRef.current) {
+      const c = document.createElement("canvas");
+      c.width = CANVAS_W; c.height = CANVAS_H;
+      canvasRef.current = c;
+    }
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+
+    function ensureVideo(s: StudioSource) {
+      let v = videoElsRef.current.get(s.id);
+      if (!v) {
+        v = document.createElement("video");
+        v.autoplay = true; v.muted = true; v.playsInline = true;
+        v.srcObject = s.stream; v.play().catch(() => {});
+        videoElsRef.current.set(s.id, v);
+      }
+      return v;
+    }
+
+    function tick() {
+      if (!ctx) return;
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+      const visible = sourcesRef.current.filter((s) => s.visible);
+      if (visible.length === 0) {
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = "bold 28px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("Add a camera to start", CANVAS_W / 2, CANVAS_H / 2);
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const featured = visible.find((s) => s.id === activeIdRef.current) ?? visible[0];
+      const others = visible.filter((s) => s.id !== featured.id);
+
+      const tiles = layoutTiles(sceneRef.current, visible.length, featured, others);
+      tiles.forEach((t) => {
+        const v = ensureVideo(t.source);
+        if (v.videoWidth > 0) drawCover(ctx, v, t.x, t.y, t.w, t.h);
+        else { ctx.fillStyle = "#1a1a1a"; ctx.fillRect(t.x, t.y, t.w, t.h); }
+        // Label
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        const lw = ctx.measureText(t.source.label).width + 16;
+        ctx.fillRect(t.x + 12, t.y + t.h - 32, lw, 22);
+        ctx.fillStyle = "#fff"; ctx.font = "bold 12px system-ui"; ctx.textAlign = "left";
+        ctx.fillText(t.source.label, t.x + 20, t.y + t.h - 16);
+      });
+
+      rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, []);
+
+  // ─── WHIP publish ───────────────────────────────────────────────────────
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const whipResRef = useRef<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const audioNodesRef = useRef<Map<string, MediaStreamAudioSourceNode>>(new Map());
+
+  const startPublish = useCallback(async () => {
+    if (!whipUrl || !canvasRef.current || pcRef.current) return;
+    try {
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const dest = audioCtx.createMediaStreamDestination();
+      audioDestRef.current = dest;
+
+      // Connect non-muted audio tracks
+      sourcesRef.current.forEach((s) => {
+        if (s.muted) return;
+        const at = s.stream.getAudioTracks();
+        if (at.length === 0) return;
+        try {
+          const node = audioCtx.createMediaStreamSource(new MediaStream(at));
+          node.connect(dest);
+          audioNodesRef.current.set(s.id, node);
+        } catch {}
+      });
+
+      const videoStream = canvasRef.current.captureStream(FPS);
+      const composite = new MediaStream([
+        ...videoStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks(),
+      ]);
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
+        bundlePolicy: "max-bundle",
+      });
+      pcRef.current = pc;
+      composite.getTracks().forEach((t) => pc.addTransceiver(t, { direction: "sendonly" }));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const r = await fetch(whipUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/sdp" },
+        body: offer.sdp,
+      });
+      if (!r.ok) throw new Error(`WHIP ${r.status}: ${await r.text()}`);
+      whipResRef.current = r.headers.get("location");
+      const answer = await r.text();
+      await pc.setRemoteDescription({ type: "answer", sdp: answer });
+      setPublishing(true);
+    } catch (e: any) {
+      setError(e?.message || "Could not start broadcast");
+      try { pcRef.current?.close(); } catch {}
+      pcRef.current = null;
+    }
+  }, [whipUrl]);
+
+  const stopPublish = useCallback(() => {
+    try { pcRef.current?.close(); } catch {}
+    pcRef.current = null;
+    const res = whipResRef.current;
+    if (res) try { fetch(res, { method: "DELETE" }).catch(() => {}); } catch {}
+    whipResRef.current = null;
+    try { audioCtxRef.current?.close(); } catch {}
+    audioCtxRef.current = null;
+    audioDestRef.current = null;
+    audioNodesRef.current.clear();
+    setPublishing(false);
+  }, []);
+
+  // Auto-publish once we have at least one source + WHIP URL
+  useEffect(() => {
+    if (!autoPublish || !whipUrl) return;
+    if (publishing) return;
+    if (sources.length === 0) return;
+    startPublish();
+  }, [autoPublish, whipUrl, sources.length, publishing, startPublish]);
+
+  // Reconnect new audio sources without restarting WHIP
+  useEffect(() => {
+    const ctx = audioCtxRef.current; const dest = audioDestRef.current;
+    if (!ctx || !dest) return;
+    sources.forEach((s) => {
+      if (audioNodesRef.current.has(s.id) || s.muted) return;
+      const at = s.stream.getAudioTracks();
+      if (at.length === 0) return;
+      try {
+        const node = ctx.createMediaStreamSource(new MediaStream(at));
+        node.connect(dest);
+        audioNodesRef.current.set(s.id, node);
+      } catch {}
+    });
+  }, [sources]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      sourcesRef.current.forEach((s) => s.stream.getTracks().forEach((t) => t.stop()));
+      videoElsRef.current.forEach((v) => v.remove());
+      videoElsRef.current.clear();
+      stopPublish();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return {
+    sources, scene, activeId, publishing, error, cameraDevices,
+    canvas: canvasRef.current,
+    setScene, setActiveId,
+    addCamera, addScreen, removeSource, toggleVisible, toggleMute,
+    startPublish, stopPublish,
+    clearError: () => setError(null),
+  };
+}
+
+// ─── Layout helpers ──────────────────────────────────────────────────────
+type Tile = { source: StudioSource; x: number; y: number; w: number; h: number };
+
+function layoutTiles(
+  scene: StudioScene,
+  count: number,
+  featured: StudioSource,
+  others: StudioSource[],
+): Tile[] {
+  if (scene === "solo" || count === 1) {
+    return [{ source: featured, x: 0, y: 0, w: CANVAS_W, h: CANVAS_H }];
+  }
+  if (scene === "split") {
+    const second = others[0] ?? featured;
+    const w = CANVAS_W / 2;
+    return [
+      { source: featured, x: 0, y: 0, w, h: CANVAS_H },
+      { source: second, x: w, y: 0, w, h: CANVAS_H },
+    ];
+  }
+  if (scene === "pip") {
+    const small = others[0] ?? featured;
+    const pipW = Math.round(CANVAS_W * 0.28);
+    const pipH = Math.round((pipW * 9) / 16);
+    const margin = 24;
+    return [
+      { source: featured, x: 0, y: 0, w: CANVAS_W, h: CANVAS_H },
+      { source: small, x: CANVAS_W - pipW - margin, y: CANVAS_H - pipH - margin, w: pipW, h: pipH },
+    ];
+  }
+  // grid up to 4
+  const all = [featured, ...others].slice(0, 4);
+  if (all.length === 2) {
+    const w = CANVAS_W / 2;
+    return all.map((s, i) => ({ source: s, x: i * w, y: 0, w, h: CANVAS_H }));
+  }
+  if (all.length === 3) {
+    const mainW = (CANVAS_W * 2) / 3;
+    const sideW = CANVAS_W - mainW;
+    const sideH = CANVAS_H / 2;
+    return [
+      { source: all[0], x: 0, y: 0, w: mainW, h: CANVAS_H },
+      { source: all[1], x: mainW, y: 0, w: sideW, h: sideH },
+      { source: all[2], x: mainW, y: sideH, w: sideW, h: sideH },
+    ];
+  }
+  const w = CANVAS_W / 2; const h = CANVAS_H / 2;
+  return [
+    { source: all[0], x: 0, y: 0, w, h },
+    { source: all[1], x: w, y: 0, w, h },
+    { source: all[2], x: 0, y: h, w, h },
+    { source: all[3], x: w, y: h, w, h },
+  ];
+}
+
+function drawCover(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, x: number, y: number, w: number, h: number) {
+  const sw = v.videoWidth; const sh = v.videoHeight;
+  if (!sw || !sh) return;
+  const scale = Math.max(w / sw, h / sh);
+  const dw = sw * scale; const dh = sh * scale;
+  const dx = x + (w - dw) / 2; const dy = y + (h - dh) / 2;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.drawImage(v, dx, dy, dw, dh);
+  ctx.restore();
+  ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+}
