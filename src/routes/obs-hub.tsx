@@ -212,17 +212,14 @@ function ObsHub() {
   const preflight = {
     streamKey: !!profile?.cf_stream_key,
     rtmpUrl: !!profile?.cf_rtmps_url,
-    title: !!profile?.default_title?.trim(),
-    tags: (profile?.default_tcg_tags?.length ?? 0) > 0,
   };
-  const preflightReady =
-    preflight.streamKey && preflight.rtmpUrl && preflight.title && preflight.tags;
+  const preflightReady = preflight.streamKey && preflight.rtmpUrl;
 
   async function goLiveWithObs() {
     if (!user || !profile) return;
-    if (!profile.default_title?.trim())
-      return toast.error("Set a stream title in your saved defaults");
-    if (!profile.default_tcg_tags?.length) return toast.error("Pick at least one TCG tag");
+    if (!profile.cf_stream_key || !profile.cf_rtmps_url) return toast.error("Connect OBS first");
+    const title = profile.default_title?.trim() || "PullBidLive Card Auction";
+    const tags = profile.default_tcg_tags?.length ? profile.default_tcg_tags : ["pokemon"];
     setLaunching(true);
     // Block if already open
     const { data: open } = await supabase
@@ -240,14 +237,14 @@ function ObsHub() {
       .from("live_streams")
       .insert({
         seller_id: user.id,
-        title: profile.default_title.trim(),
+        title,
         category: profile.default_category || null,
         stream_type: profile.default_stream_type || "auction",
-        tcg_tags: profile.default_tcg_tags,
+        tcg_tags: tags,
         listing_type: "auction",
         starting_bid: 1,
         current_bid: 1,
-        current_item: profile.default_title.trim(),
+        current_item: title,
         status: "live",
         is_active: true,
         started_at: new Date().toISOString(),
@@ -582,8 +579,8 @@ function ObsHub() {
                 <ul className="mb-3 space-y-1 rounded-xl bg-background/40 p-3 text-[11px]">
                   <PreflightItem ok={preflight.streamKey} label="Stream key generated" />
                   <PreflightItem ok={preflight.rtmpUrl} label="RTMP URL ready" />
-                  <PreflightItem ok={preflight.title} label="Default stream title set" />
-                  <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
+                  <PreflightItem ok={true} label="Title can auto-fill" optional />
+                  <PreflightItem ok={true} label="TCG tag can auto-fill" optional />
                   <PreflightItem ok={true} label="OBS connection check skipped" optional />
                 </ul>
 
