@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize2, Minimize2, ChevronUp, ChevronDown, X, Lock, Unlock, Pencil, Eye, EyeOff } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  ChevronUp,
+  ChevronDown,
+  X,
+  Lock,
+  Unlock,
+  Pencil,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import type { StudioSource, FreeformLayout } from "@/hooks/useStudio";
 
 type Props = {
@@ -33,9 +44,18 @@ function getCoverRect(width: number, height: number) {
 }
 
 export function FreeformOverlay({
-  sources, layouts, expandedId,
-  onInteractionStart, onLayoutChange, onBringToFront, onSendToBack, onExpand, onRemove,
-  onToggleLock, onToggleVisible, onRename,
+  sources,
+  layouts,
+  expandedId,
+  onInteractionStart,
+  onLayoutChange,
+  onBringToFront,
+  onSendToBack,
+  onExpand,
+  onRemove,
+  onToggleLock,
+  onToggleVisible,
+  onRename,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -67,11 +87,15 @@ export function FreeformOverlay({
   ) {
     const src = sources.find((s) => s.id === id);
     if (src?.locked) return;
-    e.preventDefault(); e.stopPropagation();
-    const surfaceEl = surfaceRef.current; if (!surfaceEl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const surfaceEl = surfaceRef.current;
+    if (!surfaceEl) return;
     const rect = surfaceEl.getBoundingClientRect();
-    const startX = e.clientX, startY = e.clientY;
-    const start = layouts[id]; if (!start) return;
+    const startX = e.clientX,
+      startY = e.clientY;
+    const start = layouts[id];
+    if (!start) return;
     onInteractionStart?.();
     onBringToFront(id);
 
@@ -158,91 +182,147 @@ export function FreeformOverlay({
           height: surface.height,
         }}
       >
-      {ordered.map((s) => {
-        const l = layouts[s.id]!;
-        const locked = s.locked;
-        return (
-          <div
-            key={s.id}
-            onPointerDown={(e) => startDrag(e, s.id, "move")}
-            className={`absolute rounded-md border-2 ${locked ? "border-amber-400/70 cursor-not-allowed" : "border-primary/70 cursor-move"} bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]`}
-            style={{
-              left: `${l.x * 100}%`,
-              top: `${l.y * 100}%`,
-              width: `${l.w * 100}%`,
-              height: `${l.h * 100}%`,
-              zIndex: l.z,
-              touchAction: "none",
-            }}
-          >
-            {!locked && (
-              <>
-                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "n")} className="absolute -top-3 left-6 right-6 h-6 cursor-ns-resize" title="Drag to resize" />
-                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "s")} className="absolute -bottom-3 left-6 right-6 h-6 cursor-ns-resize" title="Drag to resize" />
-                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "w")} className="absolute -left-3 bottom-6 top-6 w-6 cursor-ew-resize" title="Drag to resize" />
-                <div onPointerDown={(e) => startDrag(e, s.id, "resize", "e")} className="absolute -right-3 bottom-6 top-6 w-6 cursor-ew-resize" title="Drag to resize" />
-              </>
-            )}
-            <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
-              {editing === s.id && onRename ? (
-                <input
-                  autoFocus
-                  defaultValue={s.label}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  onBlur={(e) => { onRename(s.id, e.currentTarget.value); setEditing(null); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { onRename(s.id, (e.target as HTMLInputElement).value); setEditing(null); }
-                    if (e.key === "Escape") setEditing(null);
-                  }}
-                  className="pointer-events-auto truncate rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white outline-none ring-1 ring-primary"
-                />
-              ) : (
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onRename && setEditing(s.id)}
-                  className="pointer-events-auto flex items-center gap-1 truncate rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-black/85"
-                  title="Rename"
-                >
-                  <span className="truncate max-w-[8rem]">{s.label}</span>
-                  {onRename && <Pencil className="h-2.5 w-2.5 opacity-60" />}
-                </button>
+        {ordered.map((s) => {
+          const l = layouts[s.id]!;
+          const locked = s.locked;
+          return (
+            <div
+              key={s.id}
+              onPointerDown={(e) => startDrag(e, s.id, "move")}
+              className={`absolute rounded-md border-2 ${locked ? "border-amber-400/70 cursor-not-allowed" : "border-primary/70 cursor-move"} bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]`}
+              style={{
+                left: `${l.x * 100}%`,
+                top: `${l.y * 100}%`,
+                width: `${l.w * 100}%`,
+                height: `${l.h * 100}%`,
+                zIndex: l.z,
+                touchAction: "none",
+              }}
+            >
+              {!locked && (
+                <>
+                  <div
+                    onPointerDown={(e) => startDrag(e, s.id, "resize", "n")}
+                    className="absolute -top-3 left-6 right-6 h-6 cursor-ns-resize"
+                    title="Drag to resize"
+                  />
+                  <div
+                    onPointerDown={(e) => startDrag(e, s.id, "resize", "s")}
+                    className="absolute -bottom-3 left-6 right-6 h-6 cursor-ns-resize"
+                    title="Drag to resize"
+                  />
+                  <div
+                    onPointerDown={(e) => startDrag(e, s.id, "resize", "w")}
+                    className="absolute -left-3 bottom-6 top-6 w-6 cursor-ew-resize"
+                    title="Drag to resize"
+                  />
+                  <div
+                    onPointerDown={(e) => startDrag(e, s.id, "resize", "e")}
+                    className="absolute -right-3 bottom-6 top-6 w-6 cursor-ew-resize"
+                    title="Drag to resize"
+                  />
+                </>
               )}
-              <div className="pointer-events-auto flex gap-0.5 rounded-md bg-black/70 p-0.5 text-white">
-                {onToggleLock && (
-                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onToggleLock(s.id)} className="rounded p-1 hover:bg-white/15" title={locked ? "Unlock" : "Lock"}>
-                    {locked ? <Lock className="h-3 w-3 text-amber-400" /> : <Unlock className="h-3 w-3" />}
+              <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
+                {editing === s.id && onRename ? (
+                  <input
+                    autoFocus
+                    defaultValue={s.label}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={(e) => {
+                      onRename(s.id, e.currentTarget.value);
+                      setEditing(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        onRename(s.id, (e.target as HTMLInputElement).value);
+                        setEditing(null);
+                      }
+                      if (e.key === "Escape") setEditing(null);
+                    }}
+                    className="pointer-events-auto truncate rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white outline-none ring-1 ring-primary"
+                  />
+                ) : (
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onRename && setEditing(s.id)}
+                    className="pointer-events-auto flex items-center gap-1 truncate rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-black/85"
+                    title="Rename"
+                  >
+                    <span className="truncate max-w-[8rem]">{s.label}</span>
+                    {onRename && <Pencil className="h-2.5 w-2.5 opacity-60" />}
                   </button>
                 )}
-                {onToggleVisible && (
-                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onToggleVisible(s.id)} className="rounded p-1 hover:bg-white/15" title="Hide">
-                    <Eye className="h-3 w-3" />
+                <div className="pointer-events-auto flex gap-0.5 rounded-md bg-black/70 p-0.5 text-white">
+                  {onToggleLock && (
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => onToggleLock(s.id)}
+                      className="rounded p-1 hover:bg-white/15"
+                      title={locked ? "Unlock" : "Lock"}
+                    >
+                      {locked ? (
+                        <Lock className="h-3 w-3 text-amber-400" />
+                      ) : (
+                        <Unlock className="h-3 w-3" />
+                      )}
+                    </button>
+                  )}
+                  {onToggleVisible && (
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => onToggleVisible(s.id)}
+                      className="rounded p-1 hover:bg-white/15"
+                      title="Hide"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </button>
+                  )}
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onSendToBack(s.id)}
+                    className="rounded p-1 hover:bg-white/15"
+                    title="Send to back"
+                  >
+                    <ChevronDown className="h-3 w-3" />
                   </button>
-                )}
-                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onSendToBack(s.id)} className="rounded p-1 hover:bg-white/15" title="Send to back">
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onBringToFront(s.id)} className="rounded p-1 hover:bg-white/15" title="Bring to front">
-                  <ChevronUp className="h-3 w-3" />
-                </button>
-                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onExpand(s.id)} className="rounded p-1 hover:bg-white/15" title="Fullscreen">
-                  <Maximize2 className="h-3 w-3" />
-                </button>
-                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onRemove(s.id)} className="rounded p-1 hover:bg-destructive/40" title="Remove">
-                  <X className="h-3 w-3" />
-                </button>
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onBringToFront(s.id)}
+                    className="rounded p-1 hover:bg-white/15"
+                    title="Bring to front"
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </button>
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onExpand(s.id)}
+                    className="rounded p-1 hover:bg-white/15"
+                    title="Fullscreen"
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                  </button>
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onRemove(s.id)}
+                    className="rounded p-1 hover:bg-destructive/40"
+                    title="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
+              {!locked && (
+                <div
+                  onPointerDown={(e) => startDrag(e, s.id, "resize", "se")}
+                  className="absolute -bottom-1 -right-1 h-5 w-5 cursor-nwse-resize rounded-sm border-2 border-primary bg-background shadow-md"
+                  title="Drag to resize"
+                />
+              )}
             </div>
-            {!locked && (
-              <div
-                onPointerDown={(e) => startDrag(e, s.id, "resize", "se")}
-                className="absolute -bottom-1 -right-1 h-5 w-5 cursor-nwse-resize rounded-sm border-2 border-primary bg-background shadow-md"
-                title="Drag to resize"
-              />
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
       </div>
     </div>
   );
