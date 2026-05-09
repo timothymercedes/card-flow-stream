@@ -371,16 +371,6 @@ function Studio() {
                 </h3>
               </div>
               <AddSourceMenu />
-              {queuedCameraIds.length > 0 && (
-                <button
-                  onClick={startQueuedCameras}
-                  disabled={scanningCameras || camerasFull}
-                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
-                >
-                  {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                  Start selected cameras ({queuedCameraIds.length})
-                </button>
-              )}
               {studio.sources.length === 0 ? (
                 <div className="mt-2 rounded-lg border border-dashed border-border bg-muted/30 p-2 text-center">
                   <p className="text-[10px] text-muted-foreground">Click <b>Add source</b> to enable your camera.</p>
@@ -397,7 +387,7 @@ function Studio() {
               <h3 className="mb-1.5 flex items-center gap-1 text-[11px] font-bold">
                 <Layout className="h-3 w-3" /> Scene layout
               </h3>
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-4 gap-1">
                 {scenes.map(({ id: sid, label, Icon }) => (
                   <button
                     key={sid}
