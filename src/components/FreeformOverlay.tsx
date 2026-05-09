@@ -6,6 +6,7 @@ type Props = {
   sources: StudioSource[];
   layouts: Record<string, FreeformLayout>;
   expandedId: string | null;
+  onInteractionStart?: () => void;
   onLayoutChange: (id: string, patch: Partial<FreeformLayout>) => void;
   onBringToFront: (id: string) => void;
   onSendToBack: (id: string) => void;
@@ -15,7 +16,7 @@ type Props = {
 
 export function FreeformOverlay({
   sources, layouts, expandedId,
-  onLayoutChange, onBringToFront, onSendToBack, onExpand, onRemove,
+  onInteractionStart, onLayoutChange, onBringToFront, onSendToBack, onExpand, onRemove,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -29,11 +30,16 @@ export function FreeformOverlay({
     const rect = container.getBoundingClientRect();
     const startX = e.clientX, startY = e.clientY;
     const start = layouts[id]; if (!start) return;
+    onInteractionStart?.();
     onBringToFront(id);
 
-    (e.target as Element).setPointerCapture(e.pointerId);
+    const target = e.currentTarget as Element;
+    target.setPointerCapture?.(e.pointerId);
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.userSelect = "none";
 
     const onMove = (ev: PointerEvent) => {
+      ev.preventDefault();
       const dx = (ev.clientX - startX) / rect.width;
       const dy = (ev.clientY - startY) / rect.height;
       if (mode === "move") {
@@ -48,9 +54,12 @@ export function FreeformOverlay({
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      document.body.style.userSelect = previousUserSelect;
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }
 
   // While a source is "expanded", the canvas shows it fullscreen — overlay hidden.
@@ -93,6 +102,7 @@ export function FreeformOverlay({
               top: `${l.y * 100}%`,
               width: `${l.w * 100}%`,
               height: `${l.h * 100}%`,
+              zIndex: l.z,
               touchAction: "none",
             }}
           >
