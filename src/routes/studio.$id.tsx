@@ -9,7 +9,9 @@ import {
   Camera, Monitor, Mic, MicOff, Eye, EyeOff, Trash2, Radio,
   Layout, Square, SplitSquareHorizontal, PictureInPicture, Grid2X2,
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
+  Move, Maximize2, Minimize2, RotateCcw,
 } from "lucide-react";
+import { FreeformOverlay } from "@/components/FreeformOverlay";
 
 export const Route = createFileRoute("/studio/$id")({
   head: () => ({ meta: [{ title: "Studio — PullBidLive" }] }),
@@ -100,6 +102,7 @@ function Studio() {
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
     { id: "pip", label: "PiP", Icon: PictureInPicture },
     { id: "grid", label: "Grid", Icon: Grid2X2 },
+    { id: "freeform", label: "Freeform", Icon: Move },
   ];
 
   return (
@@ -128,9 +131,46 @@ function Studio() {
         </div>
 
         {/* Live preview */}
-        <div className="overflow-hidden rounded-2xl border border-border bg-black">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
           <video ref={previewRef} className="aspect-video w-full bg-black" muted playsInline autoPlay />
+          {studio.scene === "freeform" && (
+            <FreeformOverlay
+              sources={studio.sources}
+              layouts={studio.layouts}
+              expandedId={studio.expandedId}
+              onLayoutChange={studio.setLayout}
+              onBringToFront={studio.bringToFront}
+              onSendToBack={studio.sendToBack}
+              onExpand={studio.expandSource}
+              onRemove={studio.removeSource}
+            />
+          )}
+          {studio.scene === "freeform" && !studio.expandedId && (
+            <div className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-black/70 px-2 py-1 text-[10px] font-bold text-white">
+              Drag tiles · pull corner to resize · viewers see this live
+            </div>
+          )}
         </div>
+
+        {studio.scene === "freeform" && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-card p-2 text-[11px]">
+            <span className="font-bold">Freeform layout:</span>
+            <button
+              onClick={studio.resetLayouts}
+              className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-1 font-semibold hover:bg-muted/70"
+            >
+              <RotateCcw className="h-3 w-3" /> Reset
+            </button>
+            {studio.expandedId && (
+              <button
+                onClick={() => studio.expandSource(studio.expandedId!)}
+                className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 font-bold text-primary-foreground"
+              >
+                <Minimize2 className="h-3 w-3" /> Restore from expanded
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Scene switcher */}
         <div className="rounded-2xl bg-card p-3">
