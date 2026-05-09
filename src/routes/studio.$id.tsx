@@ -528,6 +528,14 @@ function Studio() {
                   <h3 className="mb-1.5 text-[11px] font-bold">Quick controls</h3>
                   <div className="grid grid-cols-2 gap-1">
                     <button
+                      onClick={scanCameras}
+                      disabled={scanningCameras}
+                      className="col-span-2 flex items-center justify-center gap-1 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
+                    >
+                      {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      Scan USB/browser cameras
+                    </button>
+                    <button
                       onClick={cycleCamera}
                       disabled={cameras.length < 2}
                       className="flex flex-col items-center gap-0.5 rounded-lg bg-muted p-2 text-[10px] font-bold hover:bg-muted/70 disabled:opacity-50"
