@@ -1022,16 +1022,31 @@ function LiveWizard(p: LiveWizardProps) {
                       Select up to 3 cameras now. You can add/switch cameras inside Live Studio too.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={scanBrowserCameras}
-                    disabled={cameraScanStatus === "scanning"}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
-                  >
-                    {cameraScanStatus === "scanning" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                    Scan
-                  </button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={scanBrowserCameras}
+                      disabled={cameraScanStatus === "scanning"}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
+                    >
+                      {cameraScanStatus === "scanning" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      Scan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => window.open(window.location.href, "_blank", "noopener,noreferrer")}
+                      title="Open in a new tab — bypasses the preview iframe so the browser can prompt for camera access"
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-2 text-[11px] font-bold"
+                    >
+                      ↗ New tab
+                    </button>
+                  </div>
                 </div>
+                {typeof window !== "undefined" && window.self !== window.top && (
+                  <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-[10px] text-amber-700 dark:text-amber-300">
+                    You're inside the Lovable preview iframe. Camera permission may be blocked here — click <b>↗ New tab</b> to run the studio in a normal browser tab.
+                  </p>
+                )}
                 {cameraDevices.length > 0 ? (
                   <div className="space-y-1">
                     {cameraDevices.map((device, i) => {
