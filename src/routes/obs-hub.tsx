@@ -490,32 +490,29 @@ function ObsHub() {
               {/* Encoder fallback help — fixes "Starting the output failed" */}
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
                 <p className="mb-1 flex items-center gap-1.5 text-sm font-bold text-amber-500">
-                  <AlertCircle className="h-4 w-4" /> Got “Starting the output failed”?
+                  <AlertCircle className="h-4 w-4" /> If OBS still says “Starting the output failed”
                 </p>
                 <p className="mb-2 text-[11px] text-muted-foreground">
-                  That exact pair of messages happens when OBS is not actually using the Custom RTMP
-                  profile. Import the extracted folder that directly contains basic.ini/service.json;
-                  if it still fails, uninstall or disable the Streamlabs OBS plugin, then restart OBS.
+                  Don’t fight the profile importer. Use manual Custom settings first — it is the most
+                  reliable path and skips the config URL bug entirely.
                 </p>
                 <ol className="space-y-1 rounded-xl bg-muted/40 p-3 text-[11px] text-muted-foreground">
                   <li>
-                    <b className="text-foreground">1.</b> Download OBS Profile above.
+                    <b className="text-foreground">1.</b> Settings → Stream → Service <b>Custom…</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">2.</b> OBS → <b>Profile → Import</b> and select the
-                    extracted folder that directly contains <b>basic.ini</b> and <b>service.json</b>.
+                    <b className="text-foreground">2.</b> Paste the fallback RTMP URL if the TLS URL fails.
                   </li>
                   <li>
-                    <b className="text-foreground">3.</b> Switch to that profile, then confirm Service
-                    is <b>Custom…</b>.
+                    <b className="text-foreground">3.</b> Settings → Output → Encoder{" "}
+                    <b>Software (x264)</b>, not NVENC/AMD while testing.
                   </li>
                   <li>
-                    <b className="text-foreground">4.</b> Settings → Output → Encoder{" "}
-                    <b>Software (x264)</b>, Bitrate <b>4000</b>.
+                    <b className="text-foreground">4.</b> Restart OBS, then click <b>Start Streaming</b>.
                   </li>
                   <li>
-                    <b className="text-foreground">5.</b> If the same error remains, disable/uninstall
-                    the Streamlabs OBS plugin, restart OBS, then Start Streaming again.
+                    <b className="text-foreground">5.</b> If “No config URL” remains, disable/uninstall the
+                    Streamlabs OBS plugin; it can override Custom streaming.
                   </li>
                 </ol>
                 <p className="mt-2 text-[10px] text-muted-foreground">
@@ -617,8 +614,8 @@ function ObsHub() {
               <div className="rounded-2xl border border-live/30 bg-live/5 p-4">
                 <p className="text-sm font-bold">Step 4 · Go Live with OBS</p>
                 <p className="mb-3 text-[11px] text-muted-foreground">
-                  Open OBS → Start Streaming → tap below. We launch your stream with your saved
-                  defaults — no extra prompts.
+                  Once OBS says it is streaming, tap below. We launch your room immediately and use
+                  the saved playback URL — no connection check required.
                 </p>
 
                 {/* Pre-flight checklist */}
@@ -629,7 +626,7 @@ function ObsHub() {
                   <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
                   <PreflightItem
                     ok={preflight.encoderConnected}
-                    label="OBS encoder connected (optional — can start before)"
+                    label="OBS encoder connected (optional)"
                     optional
                   />
                 </ul>
