@@ -303,7 +303,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
 
     function drawTile(t: { source: StudioSource; x: number; y: number; w: number; h: number }) {
       const v = ensureVideo(t.source);
-      if (v.videoWidth > 0) drawCover(ctx!, v, t.x, t.y, t.w, t.h);
+      if (v.videoWidth > 0) drawFit(ctx!, v, t.x, t.y, t.w, t.h, t.source.fit);
       else { ctx!.fillStyle = "#1a1a1a"; ctx!.fillRect(t.x, t.y, t.w, t.h); }
       ctx!.fillStyle = "rgba(0,0,0,0.55)";
       const lw = ctx!.measureText(t.source.label).width + 16;
