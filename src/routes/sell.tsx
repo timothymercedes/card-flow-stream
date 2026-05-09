@@ -855,11 +855,11 @@ function LiveWizard(p: LiveWizardProps) {
         throw new Error("This browser cannot list cameras. Try Chrome, Edge, Safari, or Firefox.");
       }
       const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      probe.getTracks().forEach((track) => track.stop());
       const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
         (device) => device.kind === "videoinput",
       );
       setCameraDevices(devices);
+      probe.getTracks().forEach((track) => track.stop());
       setCameraScanStatus("ready");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not scan cameras";
