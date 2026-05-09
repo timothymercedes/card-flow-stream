@@ -24,13 +24,24 @@ export type StudioSource = {
   deviceId?: string;
   visible: boolean;
   muted: boolean; // mic muted (camera mics only)
+  locked: boolean;
+  fit: "cover" | "contain";
 };
 
 // Normalised 0..1 freeform layout (x,y top-left; w,h size; z stack order)
 export type FreeformLayout = { x: number; y: number; w: number; h: number; z: number };
 
-export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }) {
-  const { whipUrl, autoPublish } = opts;
+export type ScenePreset = {
+  id: string;
+  name: string;
+  layouts: Record<string, FreeformLayout>;
+  // map of source-id => label so presets can be reapplied to renamed sources
+  labels: Record<string, string>;
+  scene: StudioScene;
+};
+
+export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; storageKey?: string }) {
+  const { whipUrl, autoPublish, storageKey } = opts;
 
   const [sources, setSources] = useState<StudioSource[]>([]);
   const [scene, setScene] = useState<StudioScene>("freeform");
