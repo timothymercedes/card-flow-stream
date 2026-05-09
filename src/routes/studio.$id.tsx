@@ -44,6 +44,7 @@ function Studio() {
   const [rightOpen, setRightOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [scanningCameras, setScanningCameras] = useState(false);
+  const [queuedCameraIds, setQueuedCameraIds] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -65,6 +66,15 @@ function Studio() {
     autoPublish: true,
     storageKey: id,
   });
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(`studio:${id}:cameraDeviceIds`);
+      setQueuedCameraIds(raw ? (JSON.parse(raw) as string[]).filter(Boolean).slice(0, 3) : []);
+    } catch {
+      setQueuedCameraIds([]);
+    }
+  }, [id]);
 
   // Phone-as-camera signaling
   const phone = usePhoneCamera({
@@ -150,6 +160,20 @@ function Studio() {
     const devices = cameraAccessNeeded ? await studio.requestCameraPermission() : await studio.refreshDevices();
     setScanningCameras(false);
     if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+  }
+
+  async function startQueuedCameras() {
+    if (queuedCameraIds.length === 0) return;
+    setScanningCameras(true);
+    let added = 0;
+    for (const deviceId of queuedCameraIds) {
+      const id = await studio.addCamera(deviceId);
+      if (id) added += 1;
+    }
+    window.sessionStorage.removeItem(`studio:${stream.id}:cameraDeviceIds`);
+    setQueuedCameraIds([]);
+    setScanningCameras(false);
+    if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} added to studio`);
   }
 
   // Compact source row with full OBS controls
