@@ -94,12 +94,19 @@ function ObsHub() {
     const { data, error } = await supabase.functions.invoke("obs-status", {
       body: { live_input_id: profile.cf_live_input_id },
     });
-    if (error || (data as any)?.error) {
-      const message = (data as any)?.error || error?.message || "Could not check OBS connection.";
+    const d = data as any;
+    if (error) {
+      const message = error.message || "Could not check OBS connection.";
       setSetupError(message);
       if (manual) toast.error(message);
-    } else if (data) {
-      const next = data as Health;
+    } else if (d?.fallback) {
+      // Rate-limited or upstream hiccup — keep last known health.
+      if (manual) toast.message(d.rateLimited ? "Cloudflare is rate-limiting status checks — retrying shortly." : "Status temporarily unavailable, retrying.");
+    } else if (d?.error) {
+      setSetupError(d.error);
+      if (manual) toast.error(d.error);
+    } else if (d) {
+      const next = d as Health;
       setHealth(next);
       if (manual) {
         if (next.status === "connected" || next.status === "live")
@@ -111,20 +118,24 @@ function ObsHub() {
       }
     }
     setPolling(false);
+    return d;
   }
 
-  // Poll Cloudflare lifecycle every 6s once we have a live input
+  // Poll Cloudflare lifecycle with adaptive backoff to avoid 429s
   useEffect(() => {
     if (!profile?.cf_live_input_id) return;
     let cancelled = false;
     const tick = async () => {
-      if (!cancelled) await checkConnection(false);
+      if (cancelled) return;
+      const d: any = await checkConnection(false);
+      if (cancelled) return;
+      const delay = d?.rateLimited ? 30000 : d?.fallback ? 15000 : 12000;
+      pollRef.current = window.setTimeout(tick, delay) as unknown as number;
     };
     tick();
-    pollRef.current = window.setInterval(tick, 6000) as unknown as number;
     return () => {
       cancelled = true;
-      if (pollRef.current) window.clearInterval(pollRef.current);
+      if (pollRef.current) window.clearTimeout(pollRef.current);
     };
   }, [profile?.cf_live_input_id]);
 
