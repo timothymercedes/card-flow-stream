@@ -550,7 +550,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
     canvas: canvasRef.current,
     canvasW: CANVAS_W, canvasH: CANVAS_H,
     setScene, setActiveId, setSnapEnabled,
-    addCamera, addScreen, removeSource, toggleVisible, toggleMute,
+    addCamera, addScreen, addExternalStream, removeSource, toggleVisible, toggleMute,
     renameSource, toggleLock, setFit,
     setLayout, bringToFront, sendToBack, expandSource, resetLayouts,
     savePreset, loadPreset, deletePreset,
