@@ -268,7 +268,7 @@ function ObsHub() {
       if (open) {
         setLaunching(false);
         toast.error("You already have an open stream — end it first");
-        return nav({ to: "/live/$id", params: { id: open.id } });
+        return nav({ to: "/studio/$id", params: { id: open.id } });
       }
 
       const title = p!.default_title?.trim() || "PullBidLive Card Auction";
