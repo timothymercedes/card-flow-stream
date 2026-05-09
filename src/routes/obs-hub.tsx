@@ -215,6 +215,96 @@ function ObsHub() {
   };
   const preflightReady = preflight.streamKey && preflight.rtmpUrl;
 
+  async function goLiveInBrowser() {
+    if (!user) return;
+    setLaunching(true);
+    setSetupError(null);
+    try {
+      // Ensure we have a Cloudflare live input + WHIP URL
+      let p = profile;
+      if (!p?.cf_whip_url || !p?.cf_playback_hls) {
+        const { data, error } = await supabase.functions.invoke("create-stream-input", {
+          body: { meta_name: `Browser Studio — ${user.id.slice(0, 6)}` },
+        });
+        if (error || (data as any)?.error) {
+          const message =
+            (data as any)?.error || error?.message || "Could not provision stream.";
+          setSetupError(message);
+          toast.error(message);
+          setLaunching(false);
+          return;
+        }
+        const d = data as any;
+        const row = {
+          user_id: user.id,
+          cf_live_input_id: d.live_input_id,
+          cf_rtmps_url: d.rtmps_url,
+          cf_stream_key: d.stream_key,
+          cf_playback_hls: d.hls_url,
+          cf_whip_url: d.whip_url,
+          preferred_method: "browser",
+        };
+        const { data: up, error: upErr } = await supabase
+          .from("obs_profiles" as any)
+          .upsert(row)
+          .select()
+          .single();
+        if (upErr) {
+          setLaunching(false);
+          toast.error(upErr.message);
+          return;
+        }
+        p = up as any;
+        setProfile(p);
+      }
+
+      // Block if already open
+      const { data: open } = await supabase
+        .from("live_streams")
+        .select("id")
+        .eq("seller_id", user.id)
+        .in("status", ["live", "paused"])
+        .maybeSingle();
+      if (open) {
+        setLaunching(false);
+        toast.error("You already have an open stream — end it first");
+        return nav({ to: "/live/$id", params: { id: open.id } });
+      }
+
+      const title = p!.default_title?.trim() || "PullBidLive Card Auction";
+      const tags = p!.default_tcg_tags?.length ? p!.default_tcg_tags : ["pokemon"];
+      const { data, error } = await supabase
+        .from("live_streams")
+        .insert({
+          seller_id: user.id,
+          title,
+          category: p!.default_category || null,
+          stream_type: p!.default_stream_type || "auction",
+          tcg_tags: tags,
+          listing_type: "auction",
+          starting_bid: 1,
+          current_bid: 1,
+          current_item: title,
+          status: "live",
+          is_active: true,
+          started_at: new Date().toISOString(),
+          cf_playback_hls: p!.cf_playback_hls,
+          cf_whip_url: p!.cf_whip_url,
+        })
+        .select()
+        .single();
+      if (error) {
+        setLaunching(false);
+        toast.error(error.message);
+        return;
+      }
+      nav({ to: "/live/$id", params: { id: data.id } });
+    } catch (e: any) {
+      setLaunching(false);
+      toast.error(e?.message || "Could not start browser stream");
+    }
+  }
+
   async function goLiveWithObs() {
     if (!user || !profile) return;
     if (!profile.cf_stream_key || !profile.cf_rtmps_url) return toast.error("Connect OBS first");
@@ -307,6 +397,34 @@ function ObsHub() {
 
           {/* Status pill */}
           <StatusPill profile={profile} />
+
+          {/* Built-in browser studio — no OBS required */}
+          <div className="rounded-2xl border border-live/40 bg-gradient-to-br from-live/10 to-primary/10 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Radio className="h-5 w-5 text-live" />
+              <p className="text-sm font-bold">Go Live in Browser — no OBS needed</p>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Stream straight from this device using your camera + mic. We&apos;ll handle the
+              encoding for you. You can still use OBS below if you prefer.
+            </p>
+            <button
+              onClick={goLiveInBrowser}
+              disabled={launching || loading}
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-live px-3 py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
+            >
+              {launching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {launching ? "Starting…" : "Go Live in Browser"}
+            </button>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Tip: Chrome or Safari on a strong Wi-Fi connection works best. We&apos;ll ask for
+              camera + microphone permission on the next screen.
+            </p>
+          </div>
 
           {/* Step 1: provision */}
           {loading ? (
