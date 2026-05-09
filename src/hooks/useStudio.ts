@@ -63,6 +63,11 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(async (deviceId?: string) => {
     try {
+      const cameraCount = sourcesRef.current.filter((s) => s.kind === "camera").length;
+      if (cameraCount >= 3) {
+        setError("You can use up to 3 cameras at once. Remove one before adding another.");
+        return null;
+      }
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("This browser doesn't support camera access. Try Chrome, Edge, Safari, or Firefox.");
       }
