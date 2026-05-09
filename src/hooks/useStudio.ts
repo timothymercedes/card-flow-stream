@@ -190,6 +190,18 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
     }
   }, [refreshDevices, makeDefaultLayout]);
 
+  const loadedPreferredCamerasRef = useRef(false);
+  useEffect(() => {
+    if (!storageKey || loadedPreferredCamerasRef.current) return;
+    loadedPreferredCamerasRef.current = true;
+    try {
+      const raw = window.sessionStorage.getItem(`studio:${storageKey}:cameraDeviceIds`);
+      const ids = raw ? (JSON.parse(raw) as string[]) : [];
+      window.sessionStorage.removeItem(`studio:${storageKey}:cameraDeviceIds`);
+      ids.filter(Boolean).slice(0, 3).forEach((deviceId) => { void addCamera(deviceId); });
+    } catch {}
+  }, [addCamera, storageKey]);
+
   const addScreen = useCallback(async () => {
     try {
       const stream = await (navigator.mediaDevices as any).getDisplayMedia({
