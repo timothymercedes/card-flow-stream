@@ -145,7 +145,6 @@ function Studio() {
   const scenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
     { id: "solo", label: "Solo", Icon: Square },
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
-    { id: "pip", label: "PiP", Icon: PictureInPicture },
     { id: "grid", label: "Grid", Icon: Grid2X2 },
     { id: "freeform", label: "Free", Icon: Move },
   ];
