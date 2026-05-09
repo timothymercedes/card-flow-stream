@@ -1,4 +1,4 @@
-import type { Dispatch, PointerEvent, ReactNode, SetStateAction } from "react";
+import { useRef, type Dispatch, type PointerEvent, type ReactNode, type SetStateAction } from "react";
 
 export type FloatingBoxRect = { x: number; y: number; w: number; h: number };
 
@@ -25,6 +25,8 @@ export function FloatingBox({
   minH = 32,
   resize = false,
 }: FloatingBoxProps) {
+  const didDragRef = useRef(false);
+
   const startPointer = (e: PointerEvent<HTMLElement>, mode: "move" | "resize") => {
     e.stopPropagation();
 
@@ -47,6 +49,7 @@ export function FloatingBox({
       ev.preventDefault();
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
+      if (Math.abs(dx) + Math.abs(dy) > 4) didDragRef.current = true;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
 
@@ -83,6 +86,12 @@ export function FloatingBox({
       data-floating-box
       className={`fixed touch-none ${className}`}
       style={{ left: box.x, top: box.y, width: box.w, height: box.h > 0 ? box.h : undefined }}
+      onClickCapture={(e) => {
+        if (!didDragRef.current) return;
+        didDragRef.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       {children({ dragHandleProps: { onPointerDown: (e) => startPointer(e, "move") } })}
       {resize && (
