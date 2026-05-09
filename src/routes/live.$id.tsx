@@ -159,6 +159,7 @@ function LiveDetail() {
   const [showViewerPreview, setShowViewerPreview] = useState(true);
   const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">("auto");
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
+  const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
@@ -721,10 +722,8 @@ function LiveDetail() {
   //   - usingObs:        Cloudflare HLS exists, no WHIP → seller broadcasts via OBS, no in-browser cam
   //   - usingCompositor: Cloudflare HLS + WHIP URL → seller broadcasts canvas-composited multi-cam from browser
   //   - else:            legacy in-app camera preview only
-  const usingObs =
-    !!stream?.cf_playback_hls &&
-    (!!stream?.cf_rtmps_url || !!stream?.cf_stream_key || !stream?.cf_whip_url);
-  const usingCompositor = !!stream?.cf_whip_url && !usingObs;
+  const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
+  const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
   const obsTinyFeed =
     !!obsMetrics &&
     (obsMetrics.hasLargeBlackBorders ||
