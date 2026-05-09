@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,7 +67,6 @@ function ObsHub() {
   const [polling, setPolling] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
-  const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
     triggerOnce("obs-connect");
@@ -89,6 +88,7 @@ function ObsHub() {
 
   async function checkConnection(manual = false) {
     if (!profile?.cf_live_input_id) return;
+    if (polling) return;
     setPolling(true);
     setSetupError(null);
     const { data, error } = await supabase.functions.invoke("obs-status", {
@@ -101,7 +101,7 @@ function ObsHub() {
       if (manual) toast.error(message);
     } else if (d?.fallback) {
       // Rate-limited or upstream hiccup — keep last known health.
-      if (manual) toast.message(d.rateLimited ? "Cloudflare is rate-limiting status checks — retrying shortly." : "Status temporarily unavailable, retrying.");
+      if (manual) toast.message(d.rateLimited ? "Status checks are cooling down — your stream can still launch." : "Status temporarily unavailable — your stream can still launch.");
     } else if (d?.error) {
       setSetupError(d.error);
       if (manual) toast.error(d.error);
@@ -121,23 +121,8 @@ function ObsHub() {
     return d;
   }
 
-  // Poll Cloudflare lifecycle with adaptive backoff to avoid 429s
-  useEffect(() => {
-    if (!profile?.cf_live_input_id) return;
-    let cancelled = false;
-    const tick = async () => {
-      if (cancelled) return;
-      const d: any = await checkConnection(false);
-      if (cancelled) return;
-      const delay = d?.rateLimited ? 30000 : d?.fallback ? 15000 : 12000;
-      pollRef.current = window.setTimeout(tick, delay) as unknown as number;
-    };
-    tick();
-    return () => {
-      cancelled = true;
-      if (pollRef.current) window.clearTimeout(pollRef.current);
-    };
-  }, [profile?.cf_live_input_id]);
+  // Status checks are manual only. Automatic polling was hitting provider rate limits
+  // while users were still setting up OBS, which made the flow feel broken.
 
   async function provision() {
     if (!user) return;
