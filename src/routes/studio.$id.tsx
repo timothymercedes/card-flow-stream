@@ -316,6 +316,13 @@ function Studio() {
                     {s.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}
                   </button>
                   <button
+                    onClick={() => studio.expandSource(s.id)}
+                    className={`rounded-lg p-1.5 hover:bg-muted ${studio.expandedId === s.id ? "bg-primary/20 text-primary" : ""}`}
+                    title={studio.expandedId === s.id ? "Restore" : "Expand fullscreen"}
+                  >
+                    {studio.expandedId === s.id ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                  </button>
+                  <button
                     onClick={() => studio.removeSource(s.id)}
                     className="rounded-lg p-1.5 hover:bg-destructive/10"
                     title="Remove"
