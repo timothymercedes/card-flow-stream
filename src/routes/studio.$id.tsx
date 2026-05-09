@@ -153,46 +153,72 @@ function Studio() {
 
         {/* Sources */}
         <div className="rounded-2xl bg-card p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-bold">
-              <Users className="h-3.5 w-3.5" /> Sources ({studio.sources.length})
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setPickerOpen((s) => !s)}
-                className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-bold text-primary-foreground"
-              >
-                <Plus className="h-3 w-3" /> Add source <ChevronDown className="h-3 w-3" />
-              </button>
-              {pickerOpen && (
-                <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
-                  <button
-                    onClick={async () => { setPickerOpen(false); await studio.addCamera(); }}
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-muted"
-                  >
-                    <Camera className="h-3.5 w-3.5" /> Default camera
-                  </button>
-                  {studio.cameraDevices.map((d) => (
+          {(() => {
+            const MAX_CAMERAS = 3;
+            const cameraCount = studio.sources.filter((s) => s.kind === "camera").length;
+            const camerasFull = cameraCount >= MAX_CAMERAS;
+            return (
+              <>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold">
+                    <Users className="h-3.5 w-3.5" /> Sources ({studio.sources.length})
+                    <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+                      {cameraCount}/{MAX_CAMERAS} cameras
+                    </span>
+                  </div>
+                  <div className="relative">
                     <button
-                      key={d.deviceId}
-                      onClick={async () => { setPickerOpen(false); await studio.addCamera(d.deviceId); }}
-                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-muted"
+                      onClick={() => setPickerOpen((s) => !s)}
+                      className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-bold text-primary-foreground"
                     >
-                      <Camera className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{d.label || `Camera ${d.deviceId.slice(0, 6)}`}</span>
+                      <Plus className="h-3 w-3" /> Add source <ChevronDown className="h-3 w-3" />
                     </button>
-                  ))}
-                  <div className="border-t border-border" />
-                  <button
-                    onClick={async () => { setPickerOpen(false); await studio.addScreen(); }}
-                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-muted"
-                  >
-                    <Monitor className="h-3.5 w-3.5" /> Share screen / window
-                  </button>
+                    {pickerOpen && (
+                      <div className="absolute right-0 top-full z-20 mt-1 w-60 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
+                        <div className="bg-muted/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                          Cameras ({cameraCount}/{MAX_CAMERAS})
+                        </div>
+                        <button
+                          disabled={camerasFull}
+                          onClick={async () => { setPickerOpen(false); await studio.addCamera(); }}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Camera className="h-3.5 w-3.5" /> Default camera
+                        </button>
+                        {studio.cameraDevices.map((d) => {
+                          const alreadyAdded = studio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
+                          return (
+                            <button
+                              key={d.deviceId}
+                              disabled={camerasFull || alreadyAdded}
+                              onClick={async () => { setPickerOpen(false); await studio.addCamera(d.deviceId); }}
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Camera className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{d.label || `Camera ${d.deviceId.slice(0, 6)}`}</span>
+                              {alreadyAdded && <span className="ml-auto text-[9px] font-bold uppercase text-muted-foreground">Added</span>}
+                            </button>
+                          );
+                        })}
+                        {camerasFull && (
+                          <div className="border-t border-border bg-muted/40 px-3 py-2 text-[10px] text-muted-foreground">
+                            Max {MAX_CAMERAS} cameras. Remove one to add another.
+                          </div>
+                        )}
+                        <div className="border-t border-border" />
+                        <button
+                          onClick={async () => { setPickerOpen(false); await studio.addScreen(); }}
+                          className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-muted"
+                        >
+                          <Monitor className="h-3.5 w-3.5" /> Share screen / window
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </>
+            );
+          })()}
 
           {studio.sources.length === 0 ? (
             <div className="space-y-2 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-center">
