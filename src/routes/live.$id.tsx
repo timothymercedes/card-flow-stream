@@ -2615,8 +2615,8 @@ function LiveDetail() {
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-black text-white"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onTouchStart={showHostCameraEditor ? undefined : onTouchStart}
+      onTouchEnd={showHostCameraEditor ? undefined : onTouchEnd}
     >
       {/* Full-screen video */}
       <div
