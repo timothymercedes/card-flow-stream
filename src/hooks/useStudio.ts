@@ -69,10 +69,39 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
   // ─── Device enumeration ─────────────────────────────────────────────────
   const refreshDevices = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices?.enumerateDevices) return [];
       const all = await navigator.mediaDevices.enumerateDevices();
-      setCameraDevices(all.filter((d) => d.kind === "videoinput"));
-    } catch {}
+      const cameras = all.filter((d) => d.kind === "videoinput");
+      setCameraDevices(cameras);
+      return cameras;
+    } catch {
+      return [];
+    }
   }, []);
+
+  const requestCameraPermission = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("This browser doesn't support camera access. Try Chrome, Edge, Safari, or Firefox.");
+      return [];
+    }
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      setError("Camera access requires HTTPS. Open the app via the secure URL.");
+      return [];
+    }
+    try {
+      const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      probe.getTracks().forEach((t) => t.stop());
+      return await refreshDevices();
+    } catch (e: any) {
+      const name = e?.name || "";
+      setError(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again."
+          : e?.message || "Could not scan cameras",
+      );
+      return [];
+    }
+  }, [refreshDevices]);
 
   useEffect(() => {
     refreshDevices();
@@ -108,13 +137,23 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       if (typeof window !== "undefined" && window.isSecureContext === false) {
         throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
       }
+      const videoConstraints: MediaTrackConstraints = deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+        : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
       const constraints: MediaStreamConstraints = {
-        video: deviceId
-          ? { deviceId: { exact: deviceId } }
-          : { width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: true,
+        video: videoConstraints,
+        audio: cameraCount === 0 ? { echoCancellation: true, noiseSuppression: true } : false,
       };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (e: any) {
+        if (constraints.audio && (e?.name === "NotReadableError" || e?.name === "AbortError")) {
+          stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+        } else {
+          throw e;
+        }
+      }
       const track = stream.getVideoTracks()[0];
       const settings = track?.getSettings();
       const label = track?.label || `Camera ${sourcesRef.current.filter(s => s.kind === "camera").length + 1}`;
@@ -550,6 +589,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
     canvas: canvasRef.current,
     canvasW: CANVAS_W, canvasH: CANVAS_H,
     setScene, setActiveId, setSnapEnabled,
+    refreshDevices, requestCameraPermission,
     addCamera, addScreen, addExternalStream, removeSource, toggleVisible, toggleMute,
     renameSource, toggleLock, setFit,
     setLayout, bringToFront, sendToBack, expandSource, resetLayouts,
