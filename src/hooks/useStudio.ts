@@ -24,13 +24,24 @@ export type StudioSource = {
   deviceId?: string;
   visible: boolean;
   muted: boolean; // mic muted (camera mics only)
+  locked: boolean;
+  fit: "cover" | "contain";
 };
 
 // Normalised 0..1 freeform layout (x,y top-left; w,h size; z stack order)
 export type FreeformLayout = { x: number; y: number; w: number; h: number; z: number };
 
-export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }) {
-  const { whipUrl, autoPublish } = opts;
+export type ScenePreset = {
+  id: string;
+  name: string;
+  layouts: Record<string, FreeformLayout>;
+  // map of source-id => label so presets can be reapplied to renamed sources
+  labels: Record<string, string>;
+  scene: StudioScene;
+};
+
+export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; storageKey?: string }) {
+  const { whipUrl, autoPublish, storageKey } = opts;
 
   const [sources, setSources] = useState<StudioSource[]>([]);
   const [scene, setScene] = useState<StudioScene>("freeform");
@@ -111,7 +122,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
       const src: StudioSource = {
         id, kind: "camera", label, stream,
         deviceId: settings?.deviceId,
-        visible: true, muted: false,
+        visible: true, muted: false, locked: false, fit: "cover",
       };
       setSources((prev) => {
         const next = [...prev, src];
@@ -149,7 +160,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
       const id = `scr-${crypto.randomUUID()}`;
       const src: StudioSource = {
         id, kind: "screen", label: "Screen share", stream,
-        visible: true, muted: false,
+        visible: true, muted: false, locked: false, fit: "contain",
       };
       // Auto-cleanup if user stops sharing via browser UI
       stream.getVideoTracks()[0]?.addEventListener("ended", () => {
@@ -202,20 +213,41 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   }, []);
 
   // ─── Freeform layout controls ──────────────────────────────────────────
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const snapRef = useRef(snapEnabled);
+  useEffect(() => { snapRef.current = snapEnabled; }, [snapEnabled]);
+
   const setLayout = useCallback((id: string, patch: Partial<FreeformLayout>) => {
     setLayouts((prev) => {
       const cur = prev[id] ?? { x: 0, y: 0, w: 0.4, h: 0.4, z: 1 };
-      const nextW = clamp(patch.w ?? cur.w, 0.1, 1);
-      const nextH = clamp(patch.h ?? cur.h, 0.1, 1);
+      // honor locked sources
+      const src = sourcesRef.current.find((s) => s.id === id);
+      if (src?.locked) return prev;
+      const snap = snapRef.current ? (n: number) => Math.round(n * 20) / 20 : (n: number) => n;
+      const nextW = clamp(snap(patch.w ?? cur.w), 0.1, 1);
+      const nextH = clamp(snap(patch.h ?? cur.h), 0.1, 1);
       const next: FreeformLayout = {
-        x: clamp(patch.x ?? cur.x, 0, 1 - nextW),
-        y: clamp(patch.y ?? cur.y, 0, 1 - nextH),
+        x: clamp(snap(patch.x ?? cur.x), 0, 1 - nextW),
+        y: clamp(snap(patch.y ?? cur.y), 0, 1 - nextH),
         w: nextW,
         h: nextH,
         z: patch.z ?? cur.z,
       };
       return { ...prev, [id]: next };
     });
+  }, []);
+
+  const renameSource = useCallback((id: string, label: string) => {
+    const trimmed = label.trim() || "Source";
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, label: trimmed } : s)));
+  }, []);
+
+  const toggleLock = useCallback((id: string) => {
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)));
+  }, []);
+
+  const setFit = useCallback((id: string, fit: "cover" | "contain") => {
+    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, fit } : s)));
   }, []);
 
   const bringToFront = useCallback((id: string) => {
@@ -271,7 +303,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
 
     function drawTile(t: { source: StudioSource; x: number; y: number; w: number; h: number }) {
       const v = ensureVideo(t.source);
-      if (v.videoWidth > 0) drawCover(ctx!, v, t.x, t.y, t.w, t.h);
+      if (v.videoWidth > 0) drawFit(ctx!, v, t.x, t.y, t.w, t.h, t.source.fit);
       else { ctx!.fillStyle = "#1a1a1a"; ctx!.fillRect(t.x, t.y, t.w, t.h); }
       ctx!.fillStyle = "rgba(0,0,0,0.55)";
       const lw = ctx!.measureText(t.source.label).width + 16;
@@ -446,14 +478,62 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Scene presets (persisted) ─────────────────────────────────────────
+  const presetsKey = storageKey ? `studio:presets:${storageKey}` : null;
+  const [presets, setPresets] = useState<ScenePreset[]>(() => {
+    if (typeof window === "undefined" || !presetsKey) return [];
+    try { return JSON.parse(localStorage.getItem(presetsKey) || "[]"); } catch { return []; }
+  });
+  useEffect(() => {
+    if (!presetsKey || typeof window === "undefined") return;
+    try { localStorage.setItem(presetsKey, JSON.stringify(presets)); } catch {}
+  }, [presets, presetsKey]);
+
+  const savePreset = useCallback((name: string) => {
+    const labels: Record<string, string> = {};
+    sourcesRef.current.forEach((s) => { labels[s.id] = s.label; });
+    const preset: ScenePreset = {
+      id: `pre-${crypto.randomUUID()}`,
+      name: name.trim() || `Scene ${Date.now()}`,
+      layouts: { ...layoutsRef.current },
+      labels,
+      scene: sceneRef.current,
+    };
+    setPresets((prev) => [...prev, preset]);
+    return preset.id;
+  }, []);
+
+  const loadPreset = useCallback((id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    // map old layout keys to current sources by label match
+    const next: Record<string, FreeformLayout> = {};
+    const currentByLabel = new Map(sourcesRef.current.map((s) => [s.label, s.id]));
+    Object.entries(p.layouts).forEach(([oldId, layout]) => {
+      const oldLabel = p.labels[oldId];
+      const newId = oldLabel ? currentByLabel.get(oldLabel) : undefined;
+      if (newId) next[newId] = layout;
+      else if (sourcesRef.current.some((s) => s.id === oldId)) next[oldId] = layout;
+    });
+    if (Object.keys(next).length) setLayouts((prev) => ({ ...prev, ...next }));
+    setScene(p.scene);
+    setExpandedId(null);
+  }, [presets]);
+
+  const deletePreset = useCallback((id: string) => {
+    setPresets((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   return {
     sources, scene, activeId, publishing, error, cameraDevices,
-    layouts, expandedId,
+    layouts, expandedId, snapEnabled, presets,
     canvas: canvasRef.current,
     canvasW: CANVAS_W, canvasH: CANVAS_H,
-    setScene, setActiveId,
+    setScene, setActiveId, setSnapEnabled,
     addCamera, addScreen, removeSource, toggleVisible, toggleMute,
+    renameSource, toggleLock, setFit,
     setLayout, bringToFront, sendToBack, expandSource, resetLayouts,
+    savePreset, loadPreset, deletePreset,
     startPublish, stopPublish,
     clearError: () => setError(null),
   };
@@ -518,13 +598,18 @@ function layoutTiles(
 }
 
 function drawCover(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, x: number, y: number, w: number, h: number) {
+  drawFit(ctx, v, x, y, w, h, "cover");
+}
+
+function drawFit(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, x: number, y: number, w: number, h: number, fit: "cover" | "contain") {
   const sw = v.videoWidth; const sh = v.videoHeight;
   if (!sw || !sh) return;
-  const scale = Math.max(w / sw, h / sh);
+  const scale = fit === "cover" ? Math.max(w / sw, h / sh) : Math.min(w / sw, h / sh);
   const dw = sw * scale; const dh = sh * scale;
   const dx = x + (w - dw) / 2; const dy = y + (h - dh) / 2;
   ctx.save();
   ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  if (fit === "contain") { ctx.fillStyle = "#000"; ctx.fillRect(x, y, w, h); }
   ctx.drawImage(v, dx, dy, dw, dh);
   ctx.restore();
   ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 2;
