@@ -167,8 +167,8 @@ function Studio() {
     setScanningCameras(true);
     let added = 0;
     for (const deviceId of queuedCameraIds) {
-      const id = await studio.addCamera(deviceId);
-      if (id) added += 1;
+      const addedId = await studio.addCamera(deviceId);
+      if (addedId) added += 1;
     }
     window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
     setQueuedCameraIds([]);
