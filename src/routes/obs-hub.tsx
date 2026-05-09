@@ -9,9 +9,7 @@ import {
   Copy,
   Download,
   RefreshCw,
-  Activity,
   Wifi,
-  WifiOff,
   Smartphone,
   Monitor,
   Eye,
@@ -63,8 +61,6 @@ function ObsHub() {
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [health, setHealth] = useState<Health | null>(null);
-  const [polling, setPolling] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -85,49 +81,6 @@ function ObsHub() {
       setLoading(false);
     })();
   }, [user]);
-
-  async function checkConnection(manual = false) {
-    if (!profile?.cf_live_input_id) return;
-    if (polling) return;
-    setPolling(true);
-    setSetupError(null);
-    const { data, error } = await supabase.functions.invoke("obs-status", {
-      body: { live_input_id: profile.cf_live_input_id },
-    });
-    const d = data as any;
-    if (error) {
-      const message = error.message || "Could not check OBS connection.";
-      setSetupError(message);
-      if (manual) toast.error(message);
-    } else if (d?.fallback) {
-      // Rate-limited or upstream hiccup — keep last known health.
-      if (manual)
-        toast.message(
-          d.rateLimited
-            ? "Status checks are cooling down — your stream can still launch."
-            : "Status temporarily unavailable — your stream can still launch.",
-        );
-    } else if (d?.error) {
-      setSetupError(d.error);
-      if (manual) toast.error(d.error);
-    } else if (d) {
-      const next = d as Health;
-      setHealth(next);
-      if (manual) {
-        if (next.status === "connected" || next.status === "live")
-          toast.success("OBS is connected");
-        else
-          toast.error(
-            "OBS is not reaching PullBidLive yet. Use Service: Custom, then paste the Server URL and Stream Key exactly.",
-          );
-      }
-    }
-    setPolling(false);
-    return d;
-  }
-
-  // Status checks are manual only. Automatic polling was hitting provider rate limits
-  // while users were still setting up OBS, which made the flow feel broken.
 
   async function provision() {
     if (!user) return;
