@@ -7,7 +7,7 @@ import { useStudio, type StudioScene } from "@/hooks/useStudio";
 import { toast } from "sonner";
 import {
   Camera, Monitor, Mic, MicOff, Eye, EyeOff, Trash2, Radio,
-  Layout, Square, SplitSquareHorizontal, PictureInPicture, Grid2X2,
+  Layout, Square, SplitSquareHorizontal, Grid2X2,
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
   Move, Maximize2, Minimize2, RotateCcw, Lock, Unlock, Pencil,
   Save, Magnet, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
@@ -182,19 +182,7 @@ function Studio() {
     if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
   }
 
-  async function startQueuedCameras() {
-    if (queuedCameraIds.length === 0) return;
-    setScanningCameras(true);
-    let added = 0;
-    for (const deviceId of queuedCameraIds) {
-      const addedId = await studio.addCamera(deviceId);
-      if (addedId) added += 1;
-    }
-    window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
-    setQueuedCameraIds([]);
-    setScanningCameras(false);
-    if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} added to studio`);
-  }
+
 
   // Compact source row with full OBS controls
   function SourceRow({ s }: { s: typeof studio.sources[number] }) {
