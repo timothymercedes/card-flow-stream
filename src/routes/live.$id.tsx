@@ -12,7 +12,10 @@ import {
   MessageCircle,
   X,
   Camera,
+  Monitor,
   Square,
+  SplitSquareHorizontal,
+  Grid2X2,
   Timer,
   Settings,
   Play,
@@ -33,12 +36,17 @@ import {
   Ban,
   Clock as ClockIcon,
   RotateCw,
+  RefreshCw,
   Plus,
   Lock,
   Shuffle,
   Unlock,
   Check,
   Gift,
+  Eye,
+  EyeOff,
+  Layout,
+  Move,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
@@ -69,6 +77,8 @@ import { flexFilterCss } from "@/lib/flexFilters";
 import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
+import { FreeformOverlay } from "@/components/FreeformOverlay";
+import { useStudio, type StudioScene } from "@/hooks/useStudio";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -170,6 +180,7 @@ function LiveDetail() {
   );
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
+  const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
@@ -734,6 +745,11 @@ function LiveDetail() {
   //   - else:            legacy in-app camera preview only
   const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
   const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
+  const hostStudio = useStudio({
+    whipUrl: stream?.cf_whip_url ?? null,
+    autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
+    storageKey: id,
+  });
   const obsTinyFeed =
     !!obsMetrics &&
     (obsMetrics.hasLargeBlackBorders ||
@@ -765,7 +781,7 @@ function LiveDetail() {
       ? "aspect-video"
       : "aspect-[9/16]";
   useEffect(() => {
-    if (!isSeller || !stream || stream.status !== "live" || usingObs) return;
+    if (!isSeller || !stream || stream.status !== "live" || usingObs || usingCompositor) return;
     let cancelled = false;
     (async () => {
       try {
@@ -791,7 +807,36 @@ function LiveDetail() {
       camStream.current?.getTracks().forEach((t) => t.stop());
       camStream.current = null;
     };
-  }, [isSeller, stream?.status, usingObs]);
+  }, [isSeller, stream?.status, usingObs, usingCompositor]);
+
+  useEffect(() => {
+    if (!isSeller || !usingCompositor || !hostStudio.canvas || !videoRef.current) return;
+    const s = hostStudio.canvas.captureStream(30);
+    videoRef.current.srcObject = s;
+    videoRef.current.play().catch(() => {});
+    return () => s.getTracks().forEach((t) => t.stop());
+  }, [isSeller, usingCompositor, hostStudio.canvas]);
+
+  const liveStudioAutoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!isSeller || !usingCompositor || liveStudioAutoStartedRef.current) return;
+    liveStudioAutoStartedRef.current = true;
+    (async () => {
+      let ids: string[] = [];
+      try {
+        ids = JSON.parse(window.sessionStorage.getItem(`studio:${id}:cameraDeviceIds`) || "[]").filter(Boolean).slice(0, 3);
+      } catch {}
+      if (ids.length === 0) return;
+      let added = 0;
+      for (const deviceId of ids) {
+        const sourceId = await hostStudio.addCamera(deviceId);
+        if (sourceId) added += 1;
+      }
+      window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
+      hostStudio.setScene("freeform");
+      if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} loaded in cockpit`);
+    })();
+  }, [isSeller, usingCompositor, id, hostStudio]);
 
   const remaining = useMemo(
     () => (stream?.ends_at ? new Date(stream.ends_at).getTime() - now : 0),
@@ -932,11 +977,11 @@ function LiveDetail() {
     };
   }, [user?.id, stream?.id, id, isSeller]);
 
-  // Host auto-joins when streaming via in-browser camera (not OBS); co-hosts auto-join when accepted.
+  // Host auto-joins only for legacy single-camera mode; multi-cam studio owns camera capture.
   const callShouldRun =
     !!stream &&
     stream.status !== "ended" &&
-    ((isSeller && !usingObs) || isCohostParticipant) &&
+    ((isSeller && !usingObs && !usingCompositor) || isCohostParticipant) &&
     callJoined;
 
   const cfCall = useCloudflareCalls({
@@ -952,11 +997,6 @@ function LiveDetail() {
   useEffect(() => {
     if (isCohostParticipant && !callJoined) setCallJoined(true);
   }, [isCohostParticipant, callJoined]);
-  // In compositor mode, host auto-joins on stream load so the canvas has the local cam immediately.
-  useEffect(() => {
-    if (isSeller && usingCompositor && !callJoined) setCallJoined(true);
-  }, [isSeller, usingCompositor, callJoined]);
-
   const safety = useLivestreamSafety({
     stream,
     streamId: id,
@@ -2558,6 +2598,19 @@ function LiveDetail() {
   const pauseExpired = paused && pauseExpiresAt > 0 && pauseExpiresAt < now;
   const pauseMsLeft = Math.max(0, pauseExpiresAt - now);
   const bidDisabled = isSeller || ended || paused || !auctionLive;
+  const hostStudioCameras = hostStudio.sources.filter((s) => s.kind === "camera");
+  const hostStudioCameraAccessNeeded = hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
+  const hostStudioScenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
+    { id: "solo", label: "Solo", Icon: Square },
+    { id: "split", label: "Split", Icon: SplitSquareHorizontal },
+    { id: "grid", label: "Grid", Icon: Grid2X2 },
+    { id: "freeform", label: "Move", Icon: Move },
+  ];
+
+  async function scanHostStudioCameras() {
+    const devices = hostStudioCameraAccessNeeded ? await hostStudio.requestCameraPermission() : await hostStudio.refreshDevices();
+    if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+  }
 
   return (
     <div
@@ -2589,6 +2642,62 @@ function LiveDetail() {
           </div>
         )}
       </div>
+
+      {isSeller && usingCompositor && showHostCameraEditor && !ended && (
+        <>
+          <FreeformOverlay
+            sources={hostStudio.sources}
+            layouts={hostStudio.layouts}
+            expandedId={hostStudio.expandedId}
+            onInteractionStart={() => hostStudio.setScene("freeform")}
+            onLayoutChange={(sid, patch) => {
+              hostStudio.setScene("freeform");
+              hostStudio.setLayout(sid, patch);
+            }}
+            onBringToFront={hostStudio.bringToFront}
+            onSendToBack={hostStudio.sendToBack}
+            onExpand={hostStudio.expandSource}
+            onRemove={hostStudio.removeSource}
+            onToggleLock={hostStudio.toggleLock}
+            onToggleVisible={hostStudio.toggleVisible}
+            onRename={hostStudio.renameSource}
+          />
+          <div className="absolute inset-x-3 top-16 z-30 rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur sm:left-auto sm:w-80">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs font-extrabold"><Layout className="h-3.5 w-3.5" /> Cameras</p>
+              <button onClick={() => setShowHostCameraEditor(false)} className="rounded-md p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="mb-2 grid grid-cols-4 gap-1">
+              {hostStudioScenes.map(({ id: sceneId, label, Icon }) => (
+                <button key={sceneId} onClick={() => hostStudio.setScene(sceneId)} className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-bold ${hostStudio.scene === sceneId ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </div>
+            <div className="mb-2 grid grid-cols-2 gap-1.5">
+              <button onClick={scanHostStudioCameras} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RefreshCw className="h-3.5 w-3.5" /> Scan</button>
+              <button onClick={hostStudio.resetLayouts} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RotateCw className="h-3.5 w-3.5" /> Reset</button>
+            </div>
+            {hostStudio.cameraDevices.length > 0 && hostStudioCameras.length < 3 && (
+              <div className="mb-2 max-h-24 overflow-y-auto rounded-lg bg-muted/40 p-1">
+                {hostStudio.cameraDevices.map((d, i) => {
+                  const added = !!d.deviceId && hostStudio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
+                  return <button key={`${d.deviceId || d.groupId || i}`} disabled={added} onClick={() => hostStudio.addCamera(d.deviceId)} className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"><Camera className="h-3 w-3" /><span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>{added && "Added"}</button>;
+                })}
+              </div>
+            )}
+            <div className="space-y-1">
+              {hostStudio.sources.map((s) => (
+                <div key={s.id} className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5">
+                  <button onClick={() => hostStudio.toggleVisible(s.id)} className="rounded-md p-1 hover:bg-muted" title={s.visible ? "Hide from public" : "Show to public"}>{s.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}</button>
+                  <button onClick={() => hostStudio.setActiveId(s.id)} className="min-w-0 flex-1 truncate text-left text-[10px] font-bold">{s.label}</button>
+                  <button onClick={() => hostStudio.toggleLock(s.id)} className="rounded-md p-1 hover:bg-muted">{s.locked ? <Lock className="h-3.5 w-3.5 text-amber-400" /> : <Unlock className="h-3.5 w-3.5" />}</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Cloudflare Calls multi-guest stage */}
       {callShouldRun && (
@@ -2694,14 +2803,13 @@ function LiveDetail() {
             </button>
           )}
           {!ended && isSeller && usingCompositor && (
-            <Link
-              to="/studio/$id"
-              params={{ id: stream.id }}
-              className="rounded-full bg-primary/85 p-2 backdrop-blur"
+            <button
+              onClick={() => setShowHostCameraEditor((v) => !v)}
+              className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
               title="Arrange cameras"
             >
               <Settings className="h-4 w-4" />
-            </Link>
+            </button>
           )}
           {(auctionLive || stream.current_item) && (
             <button
