@@ -65,6 +65,26 @@ function Studio() {
     storageKey: id,
   });
 
+  // Phone-as-camera signaling
+  const phone = usePhoneCamera({
+    streamId: id,
+    onStream: (s, label) => {
+      studio.addExternalStream(s, label, "phone");
+      toast.success("Phone camera connected");
+    },
+  });
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!phone.joinUrl) { setQrDataUrl(null); return; }
+    QRCode.toDataURL(phone.joinUrl, { width: 220, margin: 1 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [phone.joinUrl]);
+
+  // Right rail tab
+  const [rightTab, setRightTab] = useState<"chat" | "info">("chat");
+
   // Mirror canvas to a visible <video>
   const previewRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
