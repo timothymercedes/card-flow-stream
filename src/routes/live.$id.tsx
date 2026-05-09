@@ -5533,6 +5533,35 @@ function LiveDetail() {
                   </div>
                 </div>
               )}
+              {/* Resize handle (bottom-left, panel is anchored top-right) */}
+              <div
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  const startX = e.clientX, startY = e.clientY;
+                  const el = (e.currentTarget as HTMLElement).parentElement as HTMLElement;
+                  const rect = el.getBoundingClientRect();
+                  const start = { w: rect.width, h: rect.height };
+                  const onMove = (ev: PointerEvent) => {
+                    const dx = startX - ev.clientX;
+                    const dy = ev.clientY - startY;
+                    setPreviewSize({
+                      w: Math.max(160, Math.min(window.innerWidth - 24, start.w + dx)),
+                      h: Math.max(120, Math.min(window.innerHeight - 24, start.h + dy)),
+                    });
+                  };
+                  const onUp = () => {
+                    window.removeEventListener("pointermove", onMove);
+                    window.removeEventListener("pointerup", onUp);
+                  };
+                  window.addEventListener("pointermove", onMove);
+                  window.addEventListener("pointerup", onUp);
+                }}
+                className="absolute bottom-0 left-0 h-5 w-5 cursor-nesw-resize touch-none bg-primary/70 hover:bg-primary"
+                style={{ clipPath: "polygon(0 100%, 100% 100%, 0 0)" }}
+                title="Drag to resize"
+              />
             </div>
           )}
         </>
