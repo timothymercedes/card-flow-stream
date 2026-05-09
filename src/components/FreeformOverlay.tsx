@@ -72,7 +72,7 @@ export function FreeformOverlay({
   if (expandedId) {
     const s = sources.find((x) => x.id === expandedId);
     return (
-      <div ref={containerRef} className="pointer-events-none absolute inset-0 z-20">
+      <div ref={containerRef} className="pointer-events-none absolute inset-0 z-40">
         <div className="pointer-events-auto absolute right-2 top-2 flex gap-1 rounded-lg bg-black/70 p-1 text-white shadow-lg">
           <button
             onClick={() => onExpand(expandedId)}
