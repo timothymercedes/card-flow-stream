@@ -1013,6 +1013,59 @@ function LiveWizard(p: LiveWizardProps) {
                 p.setUseCompositor(true);
               }}
             />
+            {p.streamMethod === "webcam" && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold">Camera sources</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Select up to 3 cameras now. You can add/switch cameras inside Live Studio too.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={scanBrowserCameras}
+                    disabled={cameraScanStatus === "scanning"}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    {cameraScanStatus === "scanning" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                    Scan
+                  </button>
+                </div>
+                {cameraDevices.length > 0 ? (
+                  <div className="space-y-1">
+                    {cameraDevices.map((device, i) => {
+                      const checked = p.selectedCameraIds.includes(device.deviceId);
+                      const disabled = !checked && p.selectedCameraIds.length >= 3;
+                      return (
+                        <label
+                          key={`${device.deviceId || device.groupId || "camera"}-${i}`}
+                          className={`flex items-center gap-2 rounded-lg bg-background p-2 text-xs ${disabled ? "opacity-50" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={disabled}
+                            onChange={() => togglePreselectedCamera(device.deviceId)}
+                            className="h-4 w-4 accent-primary"
+                          />
+                          <Camera className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="min-w-0 flex-1 truncate font-semibold">
+                            {device.label || `Camera ${i + 1}`}
+                          </span>
+                          {checked && <span className="text-[9px] font-bold text-primary">Queued</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="rounded-lg bg-background p-2 text-[10px] text-muted-foreground">
+                    Click Scan and allow camera permission so the browser can show your laptop, USB, capture-card, and OBS Virtual Camera options.
+                  </p>
+                )}
+                {cameraScanError && <p className="mt-2 text-[10px] text-destructive">{cameraScanError}</p>}
+              </div>
+            )}
             <MethodCard
               active={p.streamMethod === "obs"}
               icon={<Monitor className="h-5 w-5" />}
