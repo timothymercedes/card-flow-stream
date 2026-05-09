@@ -170,7 +170,7 @@ function Studio() {
       const id = await studio.addCamera(deviceId);
       if (id) added += 1;
     }
-    window.sessionStorage.removeItem(`studio:${stream.id}:cameraDeviceIds`);
+    window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
     setQueuedCameraIds([]);
     setScanningCameras(false);
     if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} added to studio`);
