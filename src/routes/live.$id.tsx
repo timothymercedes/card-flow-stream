@@ -68,6 +68,7 @@ import { FlexLiveControls } from "@/components/FlexLiveControls";
 import { flexFilterCss } from "@/lib/flexFilters";
 import { useLegalStatus } from "@/hooks/useLegalStatus";
 import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
+import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -156,8 +157,14 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 12, y: 64 });
-  const [previewSize, setPreviewSize] = useState<{ w: number; h: number }>({ w: 224, h: 0 });
+  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>({ x: 12, y: 128, w: 104, h: 32 });
+  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>({ x: 12, y: 176, w: 256, h: 0 });
+  const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
+    x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
+    y: 64,
+    w: 224,
+    h: 0,
+  }));
   const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">(
     "auto",
   );
