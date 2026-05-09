@@ -157,6 +157,7 @@ function LiveDetail() {
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
   const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 12, y: 64 });
+  const [previewSize, setPreviewSize] = useState<{ w: number; h: number }>({ w: 224, h: 0 });
   const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">(
     "auto",
   );
@@ -5446,8 +5447,13 @@ function LiveDetail() {
           {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
           {isSeller && stream?.cf_playback_hls && (
             <div
-              className="fixed z-30 w-40 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-48 md:w-56"
-              style={{ top: previewPos.y, right: previewPos.x }}
+              className="fixed z-30 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur"
+              style={{
+                top: previewPos.y,
+                right: previewPos.x,
+                width: previewSize.w,
+                height: previewSize.h || undefined,
+              }}
             >
               <div
                 className="flex flex-row cursor-move items-center justify-between bg-black/60 px-2 py-1 select-none touch-none"
@@ -5527,6 +5533,35 @@ function LiveDetail() {
                   </div>
                 </div>
               )}
+              {/* Resize handle (bottom-left, panel is anchored top-right) */}
+              <div
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                  const startX = e.clientX, startY = e.clientY;
+                  const el = (e.currentTarget as HTMLElement).parentElement as HTMLElement;
+                  const rect = el.getBoundingClientRect();
+                  const start = { w: rect.width, h: rect.height };
+                  const onMove = (ev: PointerEvent) => {
+                    const dx = startX - ev.clientX;
+                    const dy = ev.clientY - startY;
+                    setPreviewSize({
+                      w: Math.max(160, Math.min(window.innerWidth - 24, start.w + dx)),
+                      h: Math.max(120, Math.min(window.innerHeight - 24, start.h + dy)),
+                    });
+                  };
+                  const onUp = () => {
+                    window.removeEventListener("pointermove", onMove);
+                    window.removeEventListener("pointerup", onUp);
+                  };
+                  window.addEventListener("pointermove", onMove);
+                  window.addEventListener("pointerup", onUp);
+                }}
+                className="absolute bottom-0 left-0 h-5 w-5 cursor-nesw-resize touch-none bg-primary/70 hover:bg-primary"
+                style={{ clipPath: "polygon(0 100%, 100% 100%, 0 0)" }}
+                title="Drag to resize"
+              />
             </div>
           )}
         </>
