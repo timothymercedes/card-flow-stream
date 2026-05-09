@@ -195,9 +195,30 @@ function Studio() {
           </div>
 
           {studio.sources.length === 0 ? (
-            <p className="rounded-xl bg-muted/40 p-4 text-center text-xs text-muted-foreground">
-              No sources yet. Tap <b>Add source</b> to grab a camera or screen.
-            </p>
+            <div className="space-y-2 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-center">
+              <p className="text-xs text-muted-foreground">
+                Your browser will ask for camera & mic permission. Click below to start.
+              </p>
+              <button
+                onClick={async () => { await studio.addCamera(); }}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
+              >
+                <Camera className="h-4 w-4" /> Enable camera
+              </button>
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
+                <button
+                  onClick={async () => { await studio.addScreen(); }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-[11px] font-semibold hover:bg-muted/70"
+                >
+                  <Monitor className="h-3 w-3" /> Share screen
+                </button>
+              </div>
+              {studio.cameraDevices.length > 0 && (
+                <p className="pt-1 text-[10px] text-muted-foreground">
+                  {studio.cameraDevices.length} camera{studio.cameraDevices.length === 1 ? "" : "s"} detected. Use <b>Add source</b> above to pick a specific one.
+                </p>
+              )}
+            </div>
           ) : (
             <ul className="space-y-1.5">
               {studio.sources.map((s) => (
