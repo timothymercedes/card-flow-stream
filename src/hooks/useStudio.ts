@@ -122,7 +122,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       const src: StudioSource = {
         id, kind: "camera", label, stream,
         deviceId: settings?.deviceId,
-        visible: true, muted: false,
+        visible: true, muted: false, locked: false, fit: "cover",
       };
       setSources((prev) => {
         const next = [...prev, src];
