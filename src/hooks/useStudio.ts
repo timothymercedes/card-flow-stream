@@ -550,13 +550,18 @@ function layoutTiles(
 }
 
 function drawCover(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, x: number, y: number, w: number, h: number) {
+  drawFit(ctx, v, x, y, w, h, "cover");
+}
+
+function drawFit(ctx: CanvasRenderingContext2D, v: HTMLVideoElement, x: number, y: number, w: number, h: number, fit: "cover" | "contain") {
   const sw = v.videoWidth; const sh = v.videoHeight;
   if (!sw || !sh) return;
-  const scale = Math.max(w / sw, h / sh);
+  const scale = fit === "cover" ? Math.max(w / sw, h / sh) : Math.min(w / sw, h / sh);
   const dw = sw * scale; const dh = sh * scale;
   const dx = x + (w - dw) / 2; const dy = y + (h - dh) / 2;
   ctx.save();
   ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  if (fit === "contain") { ctx.fillStyle = "#000"; ctx.fillRect(x, y, w, h); }
   ctx.drawImage(v, dx, dy, dw, dh);
   ctx.restore();
   ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 2;
