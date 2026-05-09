@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { Maximize2, Minimize2, ChevronUp, ChevronDown, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Maximize2, Minimize2, ChevronUp, ChevronDown, X, Lock, Unlock, Pencil, Eye, EyeOff } from "lucide-react";
 import type { StudioSource, FreeformLayout } from "@/hooks/useStudio";
 
 type Props = {
@@ -12,19 +12,26 @@ type Props = {
   onSendToBack: (id: string) => void;
   onExpand: (id: string) => void;
   onRemove: (id: string) => void;
+  onToggleLock?: (id: string) => void;
+  onToggleVisible?: (id: string) => void;
+  onRename?: (id: string, label: string) => void;
 };
 
 export function FreeformOverlay({
   sources, layouts, expandedId,
   onInteractionStart, onLayoutChange, onBringToFront, onSendToBack, onExpand, onRemove,
+  onToggleLock, onToggleVisible, onRename,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState<string | null>(null);
 
   function startDrag(
     e: React.PointerEvent,
     id: string,
     mode: "move" | "resize",
   ) {
+    const src = sources.find((s) => s.id === id);
+    if (src?.locked) return;
     e.preventDefault(); e.stopPropagation();
     const container = containerRef.current; if (!container) return;
     const rect = container.getBoundingClientRect();
@@ -62,7 +69,6 @@ export function FreeformOverlay({
     window.addEventListener("pointercancel", onUp);
   }
 
-  // While a source is "expanded", the canvas shows it fullscreen — overlay hidden.
   if (expandedId) {
     const s = sources.find((x) => x.id === expandedId);
     return (
@@ -93,11 +99,12 @@ export function FreeformOverlay({
     <div ref={containerRef} className="absolute inset-0 z-20 touch-none">
       {ordered.map((s) => {
         const l = layouts[s.id]!;
+        const locked = s.locked;
         return (
           <div
             key={s.id}
-             onPointerDown={(e) => startDrag(e, s.id, "move")}
-             className="absolute cursor-move rounded-md border-2 border-primary/70 bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]"
+            onPointerDown={(e) => startDrag(e, s.id, "move")}
+            className={`absolute rounded-md border-2 ${locked ? "border-amber-400/70 cursor-not-allowed" : "border-primary/70 cursor-move"} bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]`}
             style={{
               left: `${l.x * 100}%`,
               top: `${l.y * 100}%`,
@@ -107,52 +114,63 @@ export function FreeformOverlay({
               touchAction: "none",
             }}
           >
-            {/* Top toolbar */}
             <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
-              <div className="truncate rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                {s.label}
-              </div>
-              <div className="pointer-events-auto flex gap-0.5 rounded-md bg-black/70 p-0.5 text-white">
+              {editing === s.id && onRename ? (
+                <input
+                  autoFocus
+                  defaultValue={s.label}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={(e) => { onRename(s.id, e.currentTarget.value); setEditing(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { onRename(s.id, (e.target as HTMLInputElement).value); setEditing(null); }
+                    if (e.key === "Escape") setEditing(null);
+                  }}
+                  className="pointer-events-auto truncate rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white outline-none ring-1 ring-primary"
+                />
+              ) : (
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onSendToBack(s.id)}
-                  className="rounded p-1 hover:bg-white/15"
-                  title="Send to back"
+                  onClick={() => onRename && setEditing(s.id)}
+                  className="pointer-events-auto flex items-center gap-1 truncate rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-black/85"
+                  title="Rename"
                 >
+                  <span className="truncate max-w-[8rem]">{s.label}</span>
+                  {onRename && <Pencil className="h-2.5 w-2.5 opacity-60" />}
+                </button>
+              )}
+              <div className="pointer-events-auto flex gap-0.5 rounded-md bg-black/70 p-0.5 text-white">
+                {onToggleLock && (
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onToggleLock(s.id)} className="rounded p-1 hover:bg-white/15" title={locked ? "Unlock" : "Lock"}>
+                    {locked ? <Lock className="h-3 w-3 text-amber-400" /> : <Unlock className="h-3 w-3" />}
+                  </button>
+                )}
+                {onToggleVisible && (
+                  <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onToggleVisible(s.id)} className="rounded p-1 hover:bg-white/15" title="Hide">
+                    <Eye className="h-3 w-3" />
+                  </button>
+                )}
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onSendToBack(s.id)} className="rounded p-1 hover:bg-white/15" title="Send to back">
                   <ChevronDown className="h-3 w-3" />
                 </button>
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onBringToFront(s.id)}
-                  className="rounded p-1 hover:bg-white/15"
-                  title="Bring to front"
-                >
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onBringToFront(s.id)} className="rounded p-1 hover:bg-white/15" title="Bring to front">
                   <ChevronUp className="h-3 w-3" />
                 </button>
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onExpand(s.id)}
-                  className="rounded p-1 hover:bg-white/15"
-                  title="Expand"
-                >
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onExpand(s.id)} className="rounded p-1 hover:bg-white/15" title="Fullscreen">
                   <Maximize2 className="h-3 w-3" />
                 </button>
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => onRemove(s.id)}
-                  className="rounded p-1 hover:bg-destructive/40"
-                  title="Remove"
-                >
+                <button onPointerDown={(e) => e.stopPropagation()} onClick={() => onRemove(s.id)} className="rounded p-1 hover:bg-destructive/40" title="Remove">
                   <X className="h-3 w-3" />
                 </button>
               </div>
             </div>
-            {/* Resize handle (bottom-right) */}
-            <div
-              onPointerDown={(e) => startDrag(e, s.id, "resize")}
-              className="absolute -bottom-1 -right-1 h-5 w-5 cursor-nwse-resize rounded-sm border-2 border-primary bg-background shadow-md"
-              title="Drag to resize"
-            />
+            {!locked && (
+              <div
+                onPointerDown={(e) => startDrag(e, s.id, "resize")}
+                className="absolute -bottom-1 -right-1 h-5 w-5 cursor-nwse-resize rounded-sm border-2 border-primary bg-background shadow-md"
+                title="Drag to resize"
+              />
+            )}
           </div>
         );
       })}
