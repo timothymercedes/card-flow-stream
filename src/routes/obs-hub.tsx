@@ -298,7 +298,7 @@ function ObsHub() {
         toast.error(error.message);
         return;
       }
-      nav({ to: "/live/$id", params: { id: data.id } });
+      nav({ to: "/studio/$id", params: { id: data.id } });
     } catch (e: any) {
       setLaunching(false);
       toast.error(e?.message || "Could not start browser stream");
