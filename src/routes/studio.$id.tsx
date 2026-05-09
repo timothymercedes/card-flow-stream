@@ -11,7 +11,7 @@ import {
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
   Move, Maximize2, Minimize2, RotateCcw, Lock, Unlock, Pencil,
   Save, Magnet, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X,
+  Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X, RefreshCw,
 } from "lucide-react";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
 import { StudioChatDock } from "@/components/StudioChatDock";
@@ -43,6 +43,7 @@ function Studio() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [scanningCameras, setScanningCameras] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +143,14 @@ function Studio() {
   const MAX_CAMERAS = 3;
   const cameraCount = cameras.length;
   const camerasFull = cameraCount >= MAX_CAMERAS;
+  const cameraAccessNeeded = studio.cameraDevices.length === 0 || studio.cameraDevices.some((d) => !d.label);
+
+  async function scanCameras() {
+    setScanningCameras(true);
+    const devices = cameraAccessNeeded ? await studio.requestCameraPermission() : await studio.refreshDevices();
+    setScanningCameras(false);
+    if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+  }
 
   // Compact source row with full OBS controls
   function SourceRow({ s }: { s: typeof studio.sources[number] }) {
