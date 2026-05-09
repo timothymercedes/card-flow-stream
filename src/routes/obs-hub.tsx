@@ -423,11 +423,14 @@ function ObsHub() {
                   >
                     <Download className="h-4 w-4" /> Download OBS Profile
                   </button>
-                  <TestConnectionButton
-                    health={health}
-                    polling={polling}
-                    onClick={() => checkConnection(true)}
-                  />
+                  <button
+                    onClick={goLiveWithObs}
+                    disabled={launching || !preflightReady}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-live px-3 py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
+                  >
+                    {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    Go Live
+                  </button>
                 </div>
 
                 <p className="mt-2 text-[10px] text-muted-foreground">
@@ -577,11 +580,7 @@ function ObsHub() {
                   <PreflightItem ok={preflight.rtmpUrl} label="RTMP URL ready" />
                   <PreflightItem ok={preflight.title} label="Default stream title set" />
                   <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
-                  <PreflightItem
-                    ok={preflight.encoderConnected}
-                    label="OBS encoder connected (optional)"
-                    optional
-                  />
+                  <PreflightItem ok={true} label="OBS connection check skipped" optional />
                 </ul>
 
                 <button
@@ -625,9 +624,6 @@ function ObsHub() {
                   Start with phone camera →
                 </span>
               </Link>
-
-              {/* Stream health */}
-              <HealthCard health={health} polling={polling} />
 
               {/* Method picker */}
               <div className="rounded-2xl bg-card p-4">
