@@ -5447,8 +5447,13 @@ function LiveDetail() {
           {/* 🆕 Viewer Preview PIP — host sees what viewers see (HLS only) */}
           {isSeller && stream?.cf_playback_hls && (
             <div
-              className="fixed z-30 w-40 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur sm:w-48 md:w-56"
-              style={{ top: previewPos.y, right: previewPos.x }}
+              className="fixed z-30 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl bg-card/95 text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur"
+              style={{
+                top: previewPos.y,
+                right: previewPos.x,
+                width: previewSize.w,
+                height: previewSize.h || undefined,
+              }}
             >
               <div
                 className="flex flex-row cursor-move items-center justify-between bg-black/60 px-2 py-1 select-none touch-none"
