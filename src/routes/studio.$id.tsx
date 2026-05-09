@@ -7,7 +7,7 @@ import { useStudio, type StudioScene } from "@/hooks/useStudio";
 import { toast } from "sonner";
 import {
   Camera, Monitor, Mic, MicOff, Eye, EyeOff, Trash2, Radio,
-  Layout, Square, SplitSquareHorizontal, PictureInPicture, Grid2X2,
+  Layout, Square, SplitSquareHorizontal, Grid2X2,
   Plus, ChevronDown, AlertCircle, Loader2, StopCircle, Users,
   Move, Maximize2, Minimize2, RotateCcw, Lock, Unlock, Pencil,
   Save, Magnet, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
@@ -75,6 +75,27 @@ function Studio() {
       setQueuedCameraIds([]);
     }
   }, [id]);
+
+  // Auto-start cameras pre-selected on /sell so the cockpit doesn't ask again.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    if (queuedCameraIds.length === 0) return;
+    autoStartedRef.current = true;
+    (async () => {
+      let added = 0;
+      for (const deviceId of queuedCameraIds) {
+        try {
+          const addedId = await studio.addCamera(deviceId);
+          if (addedId) added += 1;
+        } catch {}
+      }
+      window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
+      setQueuedCameraIds([]);
+      if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready`);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedCameraIds.join(",")]);
 
   // Phone-as-camera signaling
   const phone = usePhoneCamera({
@@ -145,7 +166,6 @@ function Studio() {
   const scenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
     { id: "solo", label: "Solo", Icon: Square },
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
-    { id: "pip", label: "PiP", Icon: PictureInPicture },
     { id: "grid", label: "Grid", Icon: Grid2X2 },
     { id: "freeform", label: "Free", Icon: Move },
   ];
@@ -162,19 +182,7 @@ function Studio() {
     if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
   }
 
-  async function startQueuedCameras() {
-    if (queuedCameraIds.length === 0) return;
-    setScanningCameras(true);
-    let added = 0;
-    for (const deviceId of queuedCameraIds) {
-      const addedId = await studio.addCamera(deviceId);
-      if (addedId) added += 1;
-    }
-    window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
-    setQueuedCameraIds([]);
-    setScanningCameras(false);
-    if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} added to studio`);
-  }
+
 
   // Compact source row with full OBS controls
   function SourceRow({ s }: { s: typeof studio.sources[number] }) {
@@ -372,16 +380,6 @@ function Studio() {
                 </h3>
               </div>
               <AddSourceMenu />
-              {queuedCameraIds.length > 0 && (
-                <button
-                  onClick={startQueuedCameras}
-                  disabled={scanningCameras || camerasFull}
-                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
-                >
-                  {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                  Start selected cameras ({queuedCameraIds.length})
-                </button>
-              )}
               {studio.sources.length === 0 ? (
                 <div className="mt-2 rounded-lg border border-dashed border-border bg-muted/30 p-2 text-center">
                   <p className="text-[10px] text-muted-foreground">Click <b>Add source</b> to enable your camera.</p>
@@ -398,7 +396,7 @@ function Studio() {
               <h3 className="mb-1.5 flex items-center gap-1 text-[11px] font-bold">
                 <Layout className="h-3 w-3" /> Scene layout
               </h3>
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-4 gap-1">
                 {scenes.map(({ id: sid, label, Icon }) => (
                   <button
                     key={sid}
