@@ -76,6 +76,27 @@ function Studio() {
     }
   }, [id]);
 
+  // Auto-start cameras pre-selected on /sell so the cockpit doesn't ask again.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartedRef.current) return;
+    if (queuedCameraIds.length === 0) return;
+    autoStartedRef.current = true;
+    (async () => {
+      let added = 0;
+      for (const deviceId of queuedCameraIds) {
+        try {
+          const addedId = await studio.addCamera(deviceId);
+          if (addedId) added += 1;
+        } catch {}
+      }
+      window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
+      setQueuedCameraIds([]);
+      if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready`);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedCameraIds.join(",")]);
+
   // Phone-as-camera signaling
   const phone = usePhoneCamera({
     streamId: id,
