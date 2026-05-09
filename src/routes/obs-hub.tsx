@@ -669,130 +669,18 @@ function ObsHub() {
   );
 }
 
-function StatusPill({
-  profile,
-  health,
-  polling,
-}: {
-  profile: ObsProfile | null;
-  health: Health | null;
-  polling: boolean;
-}) {
-  let label = "Not connected";
-  let icon = <WifiOff className="h-3.5 w-3.5" />;
-  let cls = "bg-muted text-muted-foreground";
-  if (profile?.cf_stream_key) {
-    if (health?.status === "live") {
-      label = "Live";
-      cls = "bg-live/20 text-live";
-      icon = <Activity className="h-3.5 w-3.5 animate-pulse" />;
-    } else if (health?.status === "reconnecting") {
-      label = "Reconnecting";
-      cls = "bg-amber-500/20 text-amber-500";
-      icon = <RefreshCw className="h-3.5 w-3.5 animate-spin" />;
-    } else if (health?.status === "connected") {
-      label = "Connected";
-      cls = "bg-emerald-500/20 text-emerald-500";
-      icon = <CheckCircle2 className="h-3.5 w-3.5" />;
-    } else {
-      label = "Offline (ready)";
-      cls = "bg-primary/20 text-primary";
-      icon = <Wifi className="h-3.5 w-3.5" />;
-    }
-  }
+function StatusPill({ profile }: { profile: ObsProfile | null }) {
+  const ready = !!profile?.cf_stream_key;
   return (
-    <div className={`flex items-center justify-between rounded-xl px-3 py-2 ${cls}`}>
-      <span className="flex items-center gap-1.5 text-xs font-bold">
-        {icon} {label}
-      </span>
-      {polling && <Loader2 className="h-3.5 w-3.5 animate-spin opacity-60" />}
-    </div>
-  );
-}
-
-function HealthCard({ health, polling }: { health: Health | null; polling: boolean }) {
-  return (
-    <div className="rounded-2xl bg-card p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-bold">Stream health</p>
-        {polling && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-      </div>
-      {!health || health.status === "offline" ? (
-        <p className="text-[11px] text-muted-foreground">
-          Optional check only. If OBS says it is streaming, you can launch your PullBidLive room.
-        </p>
-      ) : (
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <Stat
-            label="Bitrate"
-            value={health.bitrateKbps != null ? `${health.bitrateKbps} kbps` : "—"}
-          />
-          <Stat label="FPS" value={health.fps != null ? String(health.fps) : "—"} />
-          <Stat
-            label="Resolution"
-            value={health.width && health.height ? `${health.width}×${health.height}` : "—"}
-          />
-          <Stat
-            label="Dropped"
-            value={health.droppedFrames != null ? String(health.droppedFrames) : "—"}
-          />
-          <Stat
-            label="Quality"
-            value={
-              health.bitrateKbps == null
-                ? "—"
-                : health.bitrateKbps >= 3500
-                  ? "Great"
-                  : health.bitrateKbps >= 2000
-                    ? "Good"
-                    : "Poor"
-            }
-          />
-          <Stat label="Status" value={health.status} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2 py-1.5">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className="text-xs font-bold">{value}</p>
-    </div>
-  );
-}
-
-function TestConnectionButton({
-  health,
-  polling,
-  onClick,
-}: {
-  health: Health | null;
-  polling: boolean;
-  onClick: () => void;
-}) {
-  const ok = health?.status === "connected" || health?.status === "live";
-  if (ok) {
-    return (
-      <button
-        onClick={onClick}
-        className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-3 py-3 text-sm font-bold text-emerald-500"
-      >
-        <CheckCircle2 className="h-4 w-4" /> Connected
-      </button>
-    );
-  }
-  return (
-    <button
-      onClick={onClick}
-      disabled={polling}
-      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-muted px-3 py-3 text-sm font-bold text-muted-foreground disabled:opacity-60"
+    <div
+      className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+        ready ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+      }`}
     >
-      {polling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
-      Check OBS Connection
-    </button>
+      <span className="flex items-center gap-1.5 text-xs font-bold">
+        <Wifi className="h-3.5 w-3.5" /> {ready ? "OBS keys ready" : "Not connected"}
+      </span>
+    </div>
   );
 }
 
