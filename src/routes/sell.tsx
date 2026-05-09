@@ -322,7 +322,7 @@ function Sell() {
     }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
-    nav({ to: "/live/$id", params: { id: data.id } });
+    nav({ to: useCompositor ? "/studio/$id" : "/live/$id", params: { id: data.id } });
   }
 
   async function createListing() {
@@ -955,8 +955,8 @@ function LiveWizard(p: LiveWizardProps) {
             <MethodCard
               active={p.streamMethod === "webcam"}
               icon={<Camera className="h-5 w-5" />}
-              title="Webcam (in-browser)"
-              hint="Use your laptop camera. Composited multi-cam supported."
+              title="Webcam / USB multi-cam studio"
+              hint="Pick up to 3 laptop, USB, capture-card, or OBS Virtual Camera feeds before or during live."
               onClick={() => {
                 p.setStreamMethod("webcam");
                 p.setUseObs(false);
