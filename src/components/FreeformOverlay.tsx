@@ -32,15 +32,15 @@ type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 const STAGE_ASPECT = 16 / 9;
 
-function getCoverRect(width: number, height: number) {
+function getVisibleStageRect(width: number, height: number) {
   if (!width || !height) return { left: 0, top: 0, width, height };
   const boxAspect = width / height;
   if (boxAspect > STAGE_ASPECT) {
-    const coveredHeight = width / STAGE_ASPECT;
-    return { left: 0, top: (height - coveredHeight) / 2, width, height: coveredHeight };
+    const containedWidth = height * STAGE_ASPECT;
+    return { left: (width - containedWidth) / 2, top: 0, width: containedWidth, height };
   }
-  const coveredWidth = height * STAGE_ASPECT;
-  return { left: (width - coveredWidth) / 2, top: 0, width: coveredWidth, height };
+  const containedHeight = width / STAGE_ASPECT;
+  return { left: 0, top: (height - containedHeight) / 2, width, height: containedHeight };
 }
 
 export function FreeformOverlay({
@@ -60,14 +60,14 @@ export function FreeformOverlay({
   const containerRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [surface, setSurface] = useState(() => getCoverRect(0, 0));
+  const [surface, setSurface] = useState(() => getVisibleStageRect(0, 0));
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const measure = () => {
       const rect = el.getBoundingClientRect();
-      setSurface(getCoverRect(rect.width, rect.height));
+      setSurface(getVisibleStageRect(rect.width, rect.height));
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -100,7 +100,9 @@ export function FreeformOverlay({
     onBringToFront(id);
 
     const target = e.currentTarget as Element;
-    target.setPointerCapture?.(e.pointerId);
+    if (target.hasPointerCapture?.(e.pointerId) === false) {
+      target.setPointerCapture?.(e.pointerId);
+    }
     const previousUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
 
@@ -109,7 +111,10 @@ export function FreeformOverlay({
       const dx = (ev.clientX - startX) / rect.width;
       const dy = (ev.clientY - startY) / rect.height;
       if (mode === "move") {
-        onLayoutChange(id, { x: start.x + dx, y: start.y + dy });
+        onLayoutChange(id, {
+          x: Math.min(1 - start.w, Math.max(0, start.x + dx)),
+          y: Math.min(1 - start.h, Math.max(0, start.y + dy)),
+        });
       } else {
         const patch: Partial<FreeformLayout> = {};
         if (handle.includes("e")) patch.w = Math.max(0.1, start.w + dx);
@@ -202,28 +207,33 @@ export function FreeformOverlay({
               {!locked && (
                 <>
                   <div
+                    onPointerDown={(e) => startDrag(e, s.id, "move")}
+                    className="absolute inset-6 z-10 cursor-move touch-none rounded-sm"
+                    title="Drag to move"
+                  />
+                  <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "n")}
-                    className="absolute -top-3 left-6 right-6 h-6 cursor-ns-resize"
+                    className="absolute -top-3 left-6 right-6 z-20 h-6 cursor-ns-resize touch-none"
                     title="Drag to resize"
                   />
                   <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "s")}
-                    className="absolute -bottom-3 left-6 right-6 h-6 cursor-ns-resize"
+                    className="absolute -bottom-3 left-6 right-6 z-20 h-6 cursor-ns-resize touch-none"
                     title="Drag to resize"
                   />
                   <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "w")}
-                    className="absolute -left-3 bottom-6 top-6 w-6 cursor-ew-resize"
+                    className="absolute -left-3 bottom-6 top-6 z-20 w-6 cursor-ew-resize touch-none"
                     title="Drag to resize"
                   />
                   <div
                     onPointerDown={(e) => startDrag(e, s.id, "resize", "e")}
-                    className="absolute -right-3 bottom-6 top-6 w-6 cursor-ew-resize"
+                    className="absolute -right-3 bottom-6 top-6 z-20 w-6 cursor-ew-resize touch-none"
                     title="Drag to resize"
                   />
                 </>
               )}
-              <div className="pointer-events-none absolute left-1 right-1 top-1 flex items-center justify-between gap-1">
+              <div className="pointer-events-none absolute left-1 right-1 top-1 z-30 flex items-center justify-between gap-1">
                 {editing === s.id && onRename ? (
                   <input
                     autoFocus
@@ -316,7 +326,7 @@ export function FreeformOverlay({
               {!locked && (
                 <div
                   onPointerDown={(e) => startDrag(e, s.id, "resize", "se")}
-                  className="absolute -bottom-1 -right-1 h-5 w-5 cursor-nwse-resize rounded-sm border-2 border-primary bg-background shadow-md"
+                  className="absolute -bottom-2 -right-2 z-30 h-8 w-8 cursor-nwse-resize touch-none rounded-sm border-2 border-primary bg-background shadow-md"
                   title="Drag to resize"
                 />
               )}
