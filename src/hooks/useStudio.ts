@@ -478,14 +478,62 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Scene presets (persisted) ─────────────────────────────────────────
+  const presetsKey = storageKey ? `studio:presets:${storageKey}` : null;
+  const [presets, setPresets] = useState<ScenePreset[]>(() => {
+    if (typeof window === "undefined" || !presetsKey) return [];
+    try { return JSON.parse(localStorage.getItem(presetsKey) || "[]"); } catch { return []; }
+  });
+  useEffect(() => {
+    if (!presetsKey || typeof window === "undefined") return;
+    try { localStorage.setItem(presetsKey, JSON.stringify(presets)); } catch {}
+  }, [presets, presetsKey]);
+
+  const savePreset = useCallback((name: string) => {
+    const labels: Record<string, string> = {};
+    sourcesRef.current.forEach((s) => { labels[s.id] = s.label; });
+    const preset: ScenePreset = {
+      id: `pre-${crypto.randomUUID()}`,
+      name: name.trim() || `Scene ${Date.now()}`,
+      layouts: { ...layoutsRef.current },
+      labels,
+      scene: sceneRef.current,
+    };
+    setPresets((prev) => [...prev, preset]);
+    return preset.id;
+  }, []);
+
+  const loadPreset = useCallback((id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    // map old layout keys to current sources by label match
+    const next: Record<string, FreeformLayout> = {};
+    const currentByLabel = new Map(sourcesRef.current.map((s) => [s.label, s.id]));
+    Object.entries(p.layouts).forEach(([oldId, layout]) => {
+      const oldLabel = p.labels[oldId];
+      const newId = oldLabel ? currentByLabel.get(oldLabel) : undefined;
+      if (newId) next[newId] = layout;
+      else if (sourcesRef.current.some((s) => s.id === oldId)) next[oldId] = layout;
+    });
+    if (Object.keys(next).length) setLayouts((prev) => ({ ...prev, ...next }));
+    setScene(p.scene);
+    setExpandedId(null);
+  }, [presets]);
+
+  const deletePreset = useCallback((id: string) => {
+    setPresets((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
   return {
     sources, scene, activeId, publishing, error, cameraDevices,
-    layouts, expandedId,
+    layouts, expandedId, snapEnabled, presets,
     canvas: canvasRef.current,
     canvasW: CANVAS_W, canvasH: CANVAS_H,
-    setScene, setActiveId,
+    setScene, setActiveId, setSnapEnabled,
     addCamera, addScreen, removeSource, toggleVisible, toggleMute,
+    renameSource, toggleLock, setFit,
     setLayout, bringToFront, sendToBack, expandSource, resetLayouts,
+    savePreset, loadPreset, deletePreset,
     startPublish, stopPublish,
     clearError: () => setError(null),
   };
