@@ -9,9 +9,7 @@ import {
   Copy,
   Download,
   RefreshCw,
-  Activity,
   Wifi,
-  WifiOff,
   Smartphone,
   Monitor,
   Eye,
@@ -45,15 +43,6 @@ type ObsProfile = {
   preferred_method: string;
 };
 
-type Health = {
-  status: "offline" | "connected" | "live" | "reconnecting";
-  bitrateKbps: number | null;
-  fps: number | null;
-  width: number | null;
-  height: number | null;
-  droppedFrames: number | null;
-};
-
 function ObsHub() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -63,8 +52,6 @@ function ObsHub() {
   const [loading, setLoading] = useState(true);
   const [provisioning, setProvisioning] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [health, setHealth] = useState<Health | null>(null);
-  const [polling, setPolling] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -85,49 +72,6 @@ function ObsHub() {
       setLoading(false);
     })();
   }, [user]);
-
-  async function checkConnection(manual = false) {
-    if (!profile?.cf_live_input_id) return;
-    if (polling) return;
-    setPolling(true);
-    setSetupError(null);
-    const { data, error } = await supabase.functions.invoke("obs-status", {
-      body: { live_input_id: profile.cf_live_input_id },
-    });
-    const d = data as any;
-    if (error) {
-      const message = error.message || "Could not check OBS connection.";
-      setSetupError(message);
-      if (manual) toast.error(message);
-    } else if (d?.fallback) {
-      // Rate-limited or upstream hiccup — keep last known health.
-      if (manual)
-        toast.message(
-          d.rateLimited
-            ? "Status checks are cooling down — your stream can still launch."
-            : "Status temporarily unavailable — your stream can still launch.",
-        );
-    } else if (d?.error) {
-      setSetupError(d.error);
-      if (manual) toast.error(d.error);
-    } else if (d) {
-      const next = d as Health;
-      setHealth(next);
-      if (manual) {
-        if (next.status === "connected" || next.status === "live")
-          toast.success("OBS is connected");
-        else
-          toast.error(
-            "OBS is not reaching PullBidLive yet. Use Service: Custom, then paste the Server URL and Stream Key exactly.",
-          );
-      }
-    }
-    setPolling(false);
-    return d;
-  }
-
-  // Status checks are manual only. Automatic polling was hitting provider rate limits
-  // while users were still setting up OBS, which made the flow feel broken.
 
   async function provision() {
     if (!user) return;
@@ -270,7 +214,6 @@ function ObsHub() {
     rtmpUrl: !!profile?.cf_rtmps_url,
     title: !!profile?.default_title?.trim(),
     tags: (profile?.default_tcg_tags?.length ?? 0) > 0,
-    encoderConnected: health?.status === "connected" || health?.status === "live",
   };
   const preflightReady =
     preflight.streamKey && preflight.rtmpUrl && preflight.title && preflight.tags;
@@ -366,7 +309,7 @@ function ObsHub() {
           ) : null}
 
           {/* Status pill */}
-          <StatusPill profile={profile} health={health} polling={polling} />
+          <StatusPill profile={profile} />
 
           {/* Step 1: provision */}
           {loading ? (
@@ -480,11 +423,18 @@ function ObsHub() {
                   >
                     <Download className="h-4 w-4" /> Download OBS Profile
                   </button>
-                  <TestConnectionButton
-                    health={health}
-                    polling={polling}
-                    onClick={() => checkConnection(true)}
-                  />
+                  <button
+                    onClick={goLiveWithObs}
+                    disabled={launching || !preflightReady}
+                    className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-live px-3 py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
+                  >
+                    {launching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                    Go Live
+                  </button>
                 </div>
 
                 <p className="mt-2 text-[10px] text-muted-foreground">
@@ -634,11 +584,7 @@ function ObsHub() {
                   <PreflightItem ok={preflight.rtmpUrl} label="RTMP URL ready" />
                   <PreflightItem ok={preflight.title} label="Default stream title set" />
                   <PreflightItem ok={preflight.tags} label="At least one TCG tag selected" />
-                  <PreflightItem
-                    ok={preflight.encoderConnected}
-                    label="OBS encoder connected (optional)"
-                    optional
-                  />
+                  <PreflightItem ok={true} label="OBS connection check skipped" optional />
                 </ul>
 
                 <button
@@ -682,9 +628,6 @@ function ObsHub() {
                   Start with phone camera →
                 </span>
               </Link>
-
-              {/* Stream health */}
-              <HealthCard health={health} polling={polling} />
 
               {/* Method picker */}
               <div className="rounded-2xl bg-card p-4">
@@ -730,130 +673,18 @@ function ObsHub() {
   );
 }
 
-function StatusPill({
-  profile,
-  health,
-  polling,
-}: {
-  profile: ObsProfile | null;
-  health: Health | null;
-  polling: boolean;
-}) {
-  let label = "Not connected";
-  let icon = <WifiOff className="h-3.5 w-3.5" />;
-  let cls = "bg-muted text-muted-foreground";
-  if (profile?.cf_stream_key) {
-    if (health?.status === "live") {
-      label = "Live";
-      cls = "bg-live/20 text-live";
-      icon = <Activity className="h-3.5 w-3.5 animate-pulse" />;
-    } else if (health?.status === "reconnecting") {
-      label = "Reconnecting";
-      cls = "bg-amber-500/20 text-amber-500";
-      icon = <RefreshCw className="h-3.5 w-3.5 animate-spin" />;
-    } else if (health?.status === "connected") {
-      label = "Connected";
-      cls = "bg-emerald-500/20 text-emerald-500";
-      icon = <CheckCircle2 className="h-3.5 w-3.5" />;
-    } else {
-      label = "Offline (ready)";
-      cls = "bg-primary/20 text-primary";
-      icon = <Wifi className="h-3.5 w-3.5" />;
-    }
-  }
+function StatusPill({ profile }: { profile: ObsProfile | null }) {
+  const ready = !!profile?.cf_stream_key;
   return (
-    <div className={`flex items-center justify-between rounded-xl px-3 py-2 ${cls}`}>
-      <span className="flex items-center gap-1.5 text-xs font-bold">
-        {icon} {label}
-      </span>
-      {polling && <Loader2 className="h-3.5 w-3.5 animate-spin opacity-60" />}
-    </div>
-  );
-}
-
-function HealthCard({ health, polling }: { health: Health | null; polling: boolean }) {
-  return (
-    <div className="rounded-2xl bg-card p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-bold">Stream health</p>
-        {polling && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-      </div>
-      {!health || health.status === "offline" ? (
-        <p className="text-[11px] text-muted-foreground">
-          Optional check only. If OBS says it is streaming, you can launch your PullBidLive room.
-        </p>
-      ) : (
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <Stat
-            label="Bitrate"
-            value={health.bitrateKbps != null ? `${health.bitrateKbps} kbps` : "—"}
-          />
-          <Stat label="FPS" value={health.fps != null ? String(health.fps) : "—"} />
-          <Stat
-            label="Resolution"
-            value={health.width && health.height ? `${health.width}×${health.height}` : "—"}
-          />
-          <Stat
-            label="Dropped"
-            value={health.droppedFrames != null ? String(health.droppedFrames) : "—"}
-          />
-          <Stat
-            label="Quality"
-            value={
-              health.bitrateKbps == null
-                ? "—"
-                : health.bitrateKbps >= 3500
-                  ? "Great"
-                  : health.bitrateKbps >= 2000
-                    ? "Good"
-                    : "Poor"
-            }
-          />
-          <Stat label="Status" value={health.status} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-muted px-2 py-1.5">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className="text-xs font-bold">{value}</p>
-    </div>
-  );
-}
-
-function TestConnectionButton({
-  health,
-  polling,
-  onClick,
-}: {
-  health: Health | null;
-  polling: boolean;
-  onClick: () => void;
-}) {
-  const ok = health?.status === "connected" || health?.status === "live";
-  if (ok) {
-    return (
-      <button
-        onClick={onClick}
-        className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-3 py-3 text-sm font-bold text-emerald-500"
-      >
-        <CheckCircle2 className="h-4 w-4" /> Connected
-      </button>
-    );
-  }
-  return (
-    <button
-      onClick={onClick}
-      disabled={polling}
-      className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-muted px-3 py-3 text-sm font-bold text-muted-foreground disabled:opacity-60"
+    <div
+      className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+        ready ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+      }`}
     >
-      {polling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
-      Check OBS Connection
-    </button>
+      <span className="flex items-center gap-1.5 text-xs font-bold">
+        <Wifi className="h-3.5 w-3.5" /> {ready ? "OBS keys ready" : "Not connected"}
+      </span>
+    </div>
   );
 }
 
