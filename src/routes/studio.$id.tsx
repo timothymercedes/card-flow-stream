@@ -223,14 +223,27 @@ function Studio() {
               Cameras ({cameraCount}/{MAX_CAMERAS})
             </div>
             <button
+              onClick={scanCameras}
+              disabled={scanningCameras}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-primary hover:bg-muted disabled:opacity-50"
+            >
+              {scanningCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {cameraAccessNeeded ? "Allow camera access + scan USB cameras" : "Refresh camera list"}
+            </button>
+            <button
               disabled={camerasFull}
               onClick={async () => { setPickerOpen(false); await studio.addCamera(); }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Camera className="h-3.5 w-3.5" /> Default camera
             </button>
+            {studio.cameraDevices.length === 0 && (
+              <div className="px-3 py-2 text-[10px] text-muted-foreground">
+                No cameras listed yet. Click scan, allow permission, then pick each USB camera you want to add.
+              </div>
+            )}
             {studio.cameraDevices.map((d) => {
-              const alreadyAdded = studio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
+              const alreadyAdded = !!d.deviceId && studio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
               return (
                 <button
                   key={d.deviceId}
@@ -239,7 +252,7 @@ function Studio() {
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Camera className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{d.label || `Camera ${d.deviceId.slice(0, 6)}`}</span>
+                  <span className="truncate">{d.label || `Camera ${d.deviceId ? d.deviceId.slice(0, 6) : "permission needed"}`}</span>
                   {alreadyAdded && <span className="ml-auto text-[9px] font-bold uppercase text-muted-foreground">Added</span>}
                 </button>
               );
