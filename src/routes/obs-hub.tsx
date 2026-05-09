@@ -428,7 +428,11 @@ function ObsHub() {
                     disabled={launching || !preflightReady}
                     className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-live px-3 py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
                   >
-                    {launching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    {launching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
                     Go Live
                   </button>
                 </div>
