@@ -463,12 +463,14 @@ function Studio() {
                       <div className="pointer-events-auto rounded-2xl bg-card/90 p-4 text-center backdrop-blur">
                         <Camera className="mx-auto mb-2 h-8 w-8 text-primary" />
                         <p className="mb-2 text-sm font-bold">Live Studio ready</p>
-                        <p className="mb-3 text-xs text-muted-foreground">Add a camera or screen to start broadcasting.</p>
+                        <p className="mb-3 text-xs text-muted-foreground">Scan cameras, then add each USB/browser camera as its own source.</p>
                         <button
-                          onClick={async () => { await studio.addCamera(); }}
+                          onClick={scanCameras}
+                          disabled={scanningCameras}
                           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
                         >
-                          <Camera className="h-4 w-4" /> Enable camera
+                          {scanningCameras ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                          Scan cameras
                         </button>
                       </div>
                     </div>
