@@ -26,7 +26,6 @@ export function FloatingBox({
   resize = false,
 }: FloatingBoxProps) {
   const startPointer = (e: PointerEvent<HTMLElement>, mode: "move" | "resize") => {
-    e.preventDefault();
     e.stopPropagation();
 
     const target = e.currentTarget;
