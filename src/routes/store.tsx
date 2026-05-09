@@ -561,7 +561,11 @@ function SellerHub() {
             )}
             {liveTab === "tools" && (
               <div className="space-y-2">
-                <Link to="/sell" className="block rounded-xl bg-card p-3 text-sm font-semibold">🎬 Go Live</Link>
+                <Link to="/obs-hub" className="block rounded-xl bg-gradient-to-br from-live/15 to-primary/15 border border-live/40 p-3 text-sm font-bold">
+                  📡 Go Live in Browser <span className="ml-1 rounded-full bg-live px-2 py-0.5 text-[10px] text-live-foreground">NEW</span>
+                  <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">Stream straight from this device — no OBS needed.</p>
+                </Link>
+                <Link to="/sell" className="block rounded-xl bg-card p-3 text-sm font-semibold">🎬 Go Live (Quick Start)</Link>
                 <Link to="/obs-hub" className="block rounded-xl bg-card p-3 text-sm font-semibold">🎛️ OBS / Flex Live Hub</Link>
                 <div className="rounded-xl bg-card p-3 text-xs text-muted-foreground">
                   <p className="font-bold text-foreground">Live shipping controls</p>
