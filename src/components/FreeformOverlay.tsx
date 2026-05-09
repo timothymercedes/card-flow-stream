@@ -235,7 +235,7 @@ export function FreeformOverlay({
             </div>
             {!locked && (
               <div
-                onPointerDown={(e) => startDrag(e, s.id, "resize")}
+                onPointerDown={(e) => startDrag(e, s.id, "resize", "se")}
                 className="absolute -bottom-1 -right-1 h-5 w-5 cursor-nwse-resize rounded-sm border-2 border-primary bg-background shadow-md"
                 title="Drag to resize"
               />
@@ -243,6 +243,7 @@ export function FreeformOverlay({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
