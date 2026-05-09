@@ -156,6 +156,7 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
+  const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 12, y: 64 });
   const [obsDisplayMode, setObsDisplayMode] = useState<"auto" | "fit" | "vertical" | "horizontal">(
     "auto",
   );
