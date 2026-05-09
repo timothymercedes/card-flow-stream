@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, AlertCircle, CheckCircle2, RefreshCw, XCircle, Clock, Activity } from "lucide-react";
+import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 
 type Event = {
   id: string;
@@ -31,6 +32,12 @@ export function HostPaymentLog({
 }: { streamId: string; open: boolean; onClose: () => void }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [unread, setUnread] = useState(0);
+  const [panelBox, setPanelBox] = useState<FloatingBoxRect>(() => ({
+    x: typeof window === "undefined" ? 24 : Math.max(4, window.innerWidth - 392),
+    y: 4,
+    w: 388,
+    h: typeof window === "undefined" ? 620 : Math.max(260, window.innerHeight - 8),
+  }));
 
   useEffect(() => {
     let cancelled = false;
@@ -77,14 +84,23 @@ export function HostPaymentLog({
   }
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col bg-card shadow-2xl ring-1 ring-white/10">
-      <div className="flex items-center justify-between border-b border-white/10 p-3">
+    <FloatingBox
+      box={panelBox}
+      onChange={setPanelBox}
+      minW={280}
+      minH={260}
+      resize
+      className="z-50 max-w-[calc(100vw-0.5rem)] overflow-hidden bg-card shadow-2xl ring-1 ring-white/10"
+    >
+      {({ dragHandleProps }) => (
+        <div className="flex h-full w-full flex-col">
+      <div {...dragHandleProps} className="flex cursor-move items-center justify-between border-b border-white/10 p-3 select-none">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-primary" />
           <p className="text-sm font-bold text-foreground">Payment Activity</p>
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{events.length}</span>
         </div>
-        <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted">
+        <button onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="rounded-full p-1.5 hover:bg-muted">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -126,7 +142,9 @@ export function HostPaymentLog({
           </ul>
         )}
       </div>
-    </div>
+        </div>
+      )}
+    </FloatingBox>
   );
 }
 
