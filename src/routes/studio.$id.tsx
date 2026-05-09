@@ -242,11 +242,11 @@ function Studio() {
                 No cameras listed yet. Click scan, allow permission, then pick each USB camera you want to add.
               </div>
             )}
-            {studio.cameraDevices.map((d) => {
+            {studio.cameraDevices.map((d, i) => {
               const alreadyAdded = !!d.deviceId && studio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
               return (
                 <button
-                  key={d.deviceId}
+                  key={`${d.deviceId || d.groupId || "camera"}-${i}`}
                   disabled={camerasFull || alreadyAdded}
                   onClick={async () => { setPickerOpen(false); await studio.addCamera(d.deviceId); }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
