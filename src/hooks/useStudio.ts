@@ -576,7 +576,8 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       else if (sourcesRef.current.some((s) => s.id === oldId)) next[oldId] = layout;
     });
     if (Object.keys(next).length) setLayouts((prev) => ({ ...prev, ...next }));
-    setScene((p.scene === "pip" ? "freeform" : p.scene) as StudioScene);
+    const legacyScene = p.scene as StudioScene | "pip";
+    setScene(legacyScene === "pip" ? "freeform" : legacyScene);
     setExpandedId(null);
   }, [presets]);
 
