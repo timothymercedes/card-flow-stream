@@ -847,6 +847,36 @@ function LiveWizard(p: LiveWizardProps) {
     }
   }
 
+  async function scanBrowserCameras() {
+    setCameraScanStatus("scanning");
+    setCameraScanError(null);
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || !navigator.mediaDevices?.enumerateDevices) {
+        throw new Error("This browser cannot list cameras. Try Chrome, Edge, Safari, or Firefox.");
+      }
+      const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      probe.getTracks().forEach((track) => track.stop());
+      const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
+        (device) => device.kind === "videoinput",
+      );
+      setCameraDevices(devices);
+      setCameraScanStatus("ready");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not scan cameras";
+      setCameraScanError(message);
+      setCameraScanStatus("error");
+    }
+  }
+
+  function togglePreselectedCamera(deviceId: string) {
+    if (!deviceId) return;
+    p.setSelectedCameraIds(
+      p.selectedCameraIds.includes(deviceId)
+        ? p.selectedCameraIds.filter((id) => id !== deviceId)
+        : [...p.selectedCameraIds, deviceId].slice(0, 3),
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Stepper */}
