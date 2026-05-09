@@ -63,8 +63,16 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(async (deviceId?: string) => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("This browser doesn't support camera access. Try Chrome, Edge, Safari, or Firefox.");
+      }
+      if (typeof window !== "undefined" && window.isSecureContext === false) {
+        throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
+      }
       const constraints: MediaStreamConstraints = {
-        video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } },
+        video: deviceId
+          ? { deviceId: { exact: deviceId } }
+          : { width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true,
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -82,10 +90,20 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
         if (!activeIdRef.current) setActiveId(id);
         return next;
       });
+      // Re-enumerate so device labels populate now that permission is granted.
       refreshDevices();
       return id;
     } catch (e: any) {
-      setError(e?.message || "Camera access denied");
+      const name = e?.name || "";
+      let msg = e?.message || "Could not access camera";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        msg = "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again.";
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        msg = "No camera found matching that selection. Try a different camera.";
+      } else if (name === "NotReadableError") {
+        msg = "Your camera is being used by another app (e.g. Zoom, OBS, FaceTime). Close it and try again.";
+      }
+      setError(msg);
       return null;
     }
   }, [refreshDevices]);
