@@ -100,7 +100,9 @@ export function FreeformOverlay({
     onBringToFront(id);
 
     const target = e.currentTarget as Element;
-    target.setPointerCapture?.(e.pointerId);
+    if (target.hasPointerCapture?.(e.pointerId) === false) {
+      target.setPointerCapture?.(e.pointerId);
+    }
     const previousUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
 
@@ -109,7 +111,10 @@ export function FreeformOverlay({
       const dx = (ev.clientX - startX) / rect.width;
       const dy = (ev.clientY - startY) / rect.height;
       if (mode === "move") {
-        onLayoutChange(id, { x: start.x + dx, y: start.y + dy });
+        onLayoutChange(id, {
+          x: Math.min(1 - start.w, Math.max(0, start.x + dx)),
+          y: Math.min(1 - start.h, Math.max(0, start.y + dy)),
+        });
       } else {
         const patch: Partial<FreeformLayout> = {};
         if (handle.includes("e")) patch.w = Math.max(0.1, start.w + dx);
