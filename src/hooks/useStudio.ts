@@ -14,7 +14,7 @@ const CANVAS_W = 1280;
 const CANVAS_H = 720;
 const FPS = 30;
 
-export type StudioScene = "solo" | "split" | "pip" | "grid" | "freeform";
+export type StudioScene = "solo" | "split" | "grid" | "freeform";
 
 export type StudioSource = {
   id: string;
@@ -45,7 +45,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
 
   const [sources, setSources] = useState<StudioSource[]>([]);
   const [scene, setScene] = useState<StudioScene>("freeform");
-  const [activeId, setActiveId] = useState<string | null>(null); // featured source for solo / pip-main
+  const [activeId, setActiveId] = useState<string | null>(null); // featured source for solo/grid
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
@@ -209,7 +209,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       setSources((prev) => {
         const next = [...prev, src];
         setActiveId(id);
-        if (prev.length > 0) setScene("pip");
+        if (prev.length > 0) setScene("freeform");
         return next;
       });
       setLayouts((prev) => ({
@@ -576,7 +576,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       else if (sourcesRef.current.some((s) => s.id === oldId)) next[oldId] = layout;
     });
     if (Object.keys(next).length) setLayouts((prev) => ({ ...prev, ...next }));
-    setScene(p.scene);
+    setScene((p.scene === "pip" ? "freeform" : p.scene) as StudioScene);
     setExpandedId(null);
   }, [presets]);
 
@@ -621,16 +621,6 @@ function layoutTiles(
     return [
       { source: featured, x: 0, y: 0, w, h: CANVAS_H },
       { source: second, x: w, y: 0, w, h: CANVAS_H },
-    ];
-  }
-  if (scene === "pip") {
-    const small = others[0] ?? featured;
-    const pipW = Math.round(CANVAS_W * 0.28);
-    const pipH = Math.round((pipW * 9) / 16);
-    const margin = 24;
-    return [
-      { source: featured, x: 0, y: 0, w: CANVAS_W, h: CANVAS_H },
-      { source: small, x: CANVAS_W - pipW - margin, y: CANVAS_H - pipH - margin, w: pipW, h: pipH },
     ];
   }
   // grid up to 4
