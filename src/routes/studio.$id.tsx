@@ -133,19 +133,20 @@ function Studio() {
         {/* Live preview */}
         <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
           <video ref={previewRef} className="aspect-video w-full bg-black" muted playsInline autoPlay />
-          {studio.scene === "freeform" && (
-            <FreeformOverlay
-              sources={studio.sources}
-              layouts={studio.layouts}
-              expandedId={studio.expandedId}
-              onLayoutChange={studio.setLayout}
-              onBringToFront={studio.bringToFront}
-              onSendToBack={studio.sendToBack}
-              onExpand={studio.expandSource}
-              onRemove={studio.removeSource}
-            />
-          )}
-          {studio.scene === "freeform" && !studio.expandedId && (
+          <FreeformOverlay
+            sources={studio.sources}
+            layouts={studio.layouts}
+            expandedId={studio.expandedId}
+            onLayoutChange={(id, patch) => {
+              if (studio.scene !== "freeform") studio.setScene("freeform");
+              studio.setLayout(id, patch);
+            }}
+            onBringToFront={studio.bringToFront}
+            onSendToBack={studio.sendToBack}
+            onExpand={studio.expandSource}
+            onRemove={studio.removeSource}
+          />
+          {!studio.expandedId && (
             <div className="pointer-events-none absolute bottom-2 left-2 rounded-md bg-black/70 px-2 py-1 text-[10px] font-bold text-white">
               Drag tiles · pull corner to resize · viewers see this live
             </div>

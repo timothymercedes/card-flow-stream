@@ -33,7 +33,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean }
   const { whipUrl, autoPublish } = opts;
 
   const [sources, setSources] = useState<StudioSource[]>([]);
-  const [scene, setScene] = useState<StudioScene>("solo");
+  const [scene, setScene] = useState<StudioScene>("freeform");
   const [activeId, setActiveId] = useState<string | null>(null); // featured source for solo / pip-main
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
