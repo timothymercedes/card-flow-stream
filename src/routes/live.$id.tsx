@@ -3333,9 +3333,16 @@ function LiveDetail() {
                   <Radio className="h-3.5 w-3.5" /> OBS Connect Hub
                 </p>
                 <p className="mb-2 text-muted-foreground">
-                  Open the fixed OBS Hub to download a Custom RTMP profile with your server + key
-                  already filled in.
+                  OBS has not sent video yet if the preview is blank. Use the rescue button below to
+                  go live with your browser camera instead.
                 </p>
+                <button
+                  onClick={switchObsToBrowserCamera}
+                  disabled={switchingToBrowserCam}
+                  className="mb-2 flex w-full items-center justify-center gap-1 rounded bg-live px-2 py-2 text-[10px] font-bold text-live-foreground disabled:opacity-60"
+                >
+                  {switchingToBrowserCam ? "Switching…" : "🚨 Use browser camera instead"}
+                </button>
                 <div className="mb-2 grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => {
@@ -3371,6 +3378,28 @@ function LiveDetail() {
                         onClick={() => {
                           navigator.clipboard.writeText(stream.cf_rtmps_url);
                           toast.success("Copied");
+                        }}
+                        className="rounded bg-muted px-2 py-1"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-0.5 font-semibold">Fallback Server (RTMP URL)</p>
+                    <div className="flex items-center gap-1.5">
+                      <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-[10px]">
+                        {stream.cf_rtmps_url
+                          ? String(stream.cf_rtmps_url).replace(/^rtmps:\/\//, "rtmp://").replace(":443/", ":1935/")
+                          : ""}
+                      </code>
+                      <button
+                        onClick={() => {
+                          const fallback = String(stream.cf_rtmps_url || "")
+                            .replace(/^rtmps:\/\//, "rtmp://")
+                            .replace(":443/", ":1935/");
+                          navigator.clipboard.writeText(fallback);
+                          toast.success("Fallback copied");
                         }}
                         className="rounded bg-muted px-2 py-1"
                       >
