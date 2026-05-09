@@ -398,6 +398,34 @@ function ObsHub() {
           {/* Status pill */}
           <StatusPill profile={profile} />
 
+          {/* Built-in browser studio — no OBS required */}
+          <div className="rounded-2xl border border-live/40 bg-gradient-to-br from-live/10 to-primary/10 p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Radio className="h-5 w-5 text-live" />
+              <p className="text-sm font-bold">Go Live in Browser — no OBS needed</p>
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Stream straight from this device using your camera + mic. We&apos;ll handle the
+              encoding for you. You can still use OBS below if you prefer.
+            </p>
+            <button
+              onClick={goLiveInBrowser}
+              disabled={launching || loading}
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-live px-3 py-3 text-sm font-bold text-live-foreground disabled:opacity-50"
+            >
+              {launching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              {launching ? "Starting…" : "Go Live in Browser"}
+            </button>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Tip: Chrome or Safari on a strong Wi-Fi connection works best. We&apos;ll ask for
+              camera + microphone permission on the next screen.
+            </p>
+          </div>
+
           {/* Step 1: provision */}
           {loading ? (
             <div className="rounded-2xl bg-card p-6 text-center text-xs text-muted-foreground">
