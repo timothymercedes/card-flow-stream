@@ -32,15 +32,15 @@ type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 const STAGE_ASPECT = 16 / 9;
 
-function getCoverRect(width: number, height: number) {
+function getVisibleStageRect(width: number, height: number) {
   if (!width || !height) return { left: 0, top: 0, width, height };
   const boxAspect = width / height;
   if (boxAspect > STAGE_ASPECT) {
-    const coveredHeight = width / STAGE_ASPECT;
-    return { left: 0, top: (height - coveredHeight) / 2, width, height: coveredHeight };
+    const containedWidth = height * STAGE_ASPECT;
+    return { left: (width - containedWidth) / 2, top: 0, width: containedWidth, height };
   }
-  const coveredWidth = height * STAGE_ASPECT;
-  return { left: (width - coveredWidth) / 2, top: 0, width: coveredWidth, height };
+  const containedHeight = width / STAGE_ASPECT;
+  return { left: 0, top: (height - containedHeight) / 2, width, height: containedHeight };
 }
 
 export function FreeformOverlay({
@@ -60,14 +60,14 @@ export function FreeformOverlay({
   const containerRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [surface, setSurface] = useState(() => getCoverRect(0, 0));
+  const [surface, setSurface] = useState(() => getVisibleStageRect(0, 0));
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const measure = () => {
       const rect = el.getBoundingClientRect();
-      setSurface(getCoverRect(rect.width, rect.height));
+      setSurface(getVisibleStageRect(rect.width, rect.height));
     };
     measure();
     const observer = new ResizeObserver(measure);
