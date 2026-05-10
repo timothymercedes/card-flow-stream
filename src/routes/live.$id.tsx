@@ -44,8 +44,6 @@ import {
   Unlock,
   Check,
   Gift,
-  Eye,
-  EyeOff,
   Layout,
   Move,
   PanelRightClose,
@@ -2872,17 +2870,6 @@ function LiveDetail() {
                     key={s.id}
                     className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5"
                   >
-                    <button
-                      onClick={() => hostStudio.toggleVisible(s.id)}
-                      className="rounded-md p-1 hover:bg-muted"
-                      title={s.visible ? "Hide from public" : "Show to public"}
-                    >
-                      {s.visible ? (
-                        <Eye className="h-3.5 w-3.5" />
-                      ) : (
-                        <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
-                    </button>
                     <button
                       onClick={() => hostStudio.setActiveId(s.id)}
                       className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
