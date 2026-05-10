@@ -353,6 +353,7 @@ export function useStudio(opts: {
         };
         setSources((prev) => {
           const next = [...prev, src];
+          sourcesRef.current = next;
           if (!activeIdRef.current) setActiveId(id);
           return next;
         });
@@ -396,6 +397,7 @@ export function useStudio(opts: {
       });
       setSources((prev) => {
         const next = [...prev, src];
+        sourcesRef.current = next;
         setActiveId(id);
         if (prev.length > 0) setScene("freeform");
         return next;
@@ -434,6 +436,7 @@ export function useStudio(opts: {
       };
       setSources((prev) => {
         const next = [...prev, src];
+        sourcesRef.current = next;
         if (!activeIdRef.current) setActiveId(id);
         return next;
       });
@@ -452,6 +455,7 @@ export function useStudio(opts: {
       video?.remove();
       videoElsRef.current.delete(id);
       const next = prev.filter((s) => s.id !== id);
+      sourcesRef.current = next;
       if (activeIdRef.current === id) setActiveId(next[0]?.id ?? null);
       return next;
     });
