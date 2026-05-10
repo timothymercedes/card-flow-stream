@@ -849,14 +849,24 @@ function LiveDetail() {
     setStartingHostCameras(true);
     try {
       const ids = deviceIds.filter(Boolean).slice(0, 3);
+      const knownSourceIds = new Set(hostStudio.sources.map((s) => s.id));
       let added = 0;
+      let reused = 0;
       if (ids.length === 0) {
         const sourceId = await hostStudio.addCamera();
-        if (sourceId) added += 1;
+        if (sourceId && knownSourceIds.has(sourceId)) reused += 1;
+        else if (sourceId) {
+          knownSourceIds.add(sourceId);
+          added += 1;
+        }
       } else {
         for (const deviceId of ids) {
           const sourceId = await hostStudio.addCamera(deviceId);
-          if (sourceId) added += 1;
+          if (sourceId && knownSourceIds.has(sourceId)) reused += 1;
+          else if (sourceId) {
+            knownSourceIds.add(sourceId);
+            added += 1;
+          }
         }
       }
       window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
@@ -864,6 +874,7 @@ function LiveDetail() {
       hostStudio.setScene("freeform");
       setShowHostCameraEditor(true);
       if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready in cockpit`);
+      else if (reused > 0) toast.success("That camera is already ready in cockpit");
       else if (hostStudio.error) toast.error(hostStudio.error);
       else toast.error("No camera started. Check browser camera permission and try again.");
     } finally {

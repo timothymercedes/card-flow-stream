@@ -22,6 +22,7 @@ export type StudioSource = {
   label: string;
   stream: MediaStream;
   deviceId?: string;
+  groupId?: string;
   visible: boolean;
   muted: boolean; // mic muted (camera mics only)
   locked: boolean;
@@ -46,8 +47,15 @@ function isCameraStartupError(e: any) {
   return (
     name === "NotReadableError" ||
     name === "AbortError" ||
-    /could not start video|allocate video/i.test(message)
+    /could not start video|allocate video|already in use|in use by another application|hardware error/i.test(
+      message,
+    )
   );
+}
+
+function deviceGroupForId(devices: MediaDeviceInfo[], deviceId?: string) {
+  if (!deviceId) return undefined;
+  return devices.find((d) => d.deviceId === deviceId)?.groupId || undefined;
 }
 
 function cameraErrorMessage(e: any) {
@@ -59,7 +67,7 @@ function cameraErrorMessage(e: any) {
     return "No camera found matching that selection. Try a different camera.";
   }
   if (isCameraStartupError(e)) {
-    return "The browser couldn't start that camera. If it's already loaded in this cockpit, remove it first; otherwise unplug/replug the camera, refresh, or pick a different camera.";
+    return "That camera is already active or still being held by the browser. I skipped duplicate starts; close any other camera preview, remove it here, or pick a different camera.";
   }
   return e?.message || "Could not access camera";
 }
@@ -99,6 +107,7 @@ export function useStudio(opts: {
   const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const rafRef = useRef<number | null>(null);
   const sourcesRef = useRef(sources);
+  const cameraDevicesRef = useRef(cameraDevices);
   const sceneRef = useRef(scene);
   const activeIdRef = useRef(activeId);
   const layoutsRef = useRef(layouts);
@@ -106,6 +115,9 @@ export function useStudio(opts: {
   useEffect(() => {
     sourcesRef.current = sources;
   }, [sources]);
+  useEffect(() => {
+    cameraDevicesRef.current = cameraDevices;
+  }, [cameraDevices]);
   useEffect(() => {
     sceneRef.current = scene;
   }, [scene]);
@@ -125,6 +137,7 @@ export function useStudio(opts: {
       if (!navigator.mediaDevices?.enumerateDevices) return [];
       const all = await navigator.mediaDevices.enumerateDevices();
       const cameras = all.filter((d) => d.kind === "videoinput");
+      cameraDevicesRef.current = cameras;
       setCameraDevices(cameras);
       return cameras;
     } catch {
@@ -181,6 +194,7 @@ export function useStudio(opts: {
   const addCamera = useCallback(
     async (deviceId?: string) => {
       try {
+        setError(null);
         const cameraCount = sourcesRef.current.filter((s) => s.kind === "camera").length;
         if (cameraCount >= 3) {
           setError("You can use up to 3 cameras at once. Remove one before adding another.");
@@ -194,12 +208,18 @@ export function useStudio(opts: {
         if (typeof window !== "undefined" && window.isSecureContext === false) {
           throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
         }
-        const existingCamera = deviceId
-          ? sourcesRef.current.find((s) => s.kind === "camera" && s.deviceId === deviceId)
-          : null;
+        const devices = cameraDevicesRef.current;
+        const requestedGroupId = deviceGroupForId(devices, deviceId);
+        const existingCamera = sourcesRef.current.find((s) => {
+          if (s.kind !== "camera") return false;
+          if (!deviceId) return sourcesRef.current.filter((x) => x.kind === "camera").length > 0;
+          if (s.deviceId && s.deviceId === deviceId) return true;
+          return !!requestedGroupId && s.groupId === requestedGroupId;
+        });
         if (existingCamera) {
           setActiveId(existingCamera.id);
           setScene("freeform");
+          setError(null);
           return existingCamera.id;
         }
         const baseVideoConstraints: MediaTrackConstraints = {
@@ -219,7 +239,7 @@ export function useStudio(opts: {
         } catch (e: any) {
           if (exactVideoConstraints && !isCameraStartupError(e)) {
             stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
-          } else if (deviceId && isCameraStartupError(e)) {
+          } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
             stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
           } else {
             throw e;
@@ -227,6 +247,7 @@ export function useStudio(opts: {
         }
         const track = stream.getVideoTracks()[0];
         const settings = track?.getSettings();
+        const groupId = deviceGroupForId(cameraDevicesRef.current, settings?.deviceId ?? deviceId);
         const label =
           track?.label ||
           `Camera ${sourcesRef.current.filter((s) => s.kind === "camera").length + 1}`;
@@ -237,6 +258,7 @@ export function useStudio(opts: {
           label,
           stream,
           deviceId: settings?.deviceId,
+          groupId,
           visible: true,
           muted: false,
           locked: false,
