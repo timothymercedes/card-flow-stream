@@ -137,6 +137,7 @@ export function useStudio(opts: {
       if (!navigator.mediaDevices?.enumerateDevices) return [];
       const all = await navigator.mediaDevices.enumerateDevices();
       const cameras = all.filter((d) => d.kind === "videoinput");
+      cameraDevicesRef.current = cameras;
       setCameraDevices(cameras);
       return cameras;
     } catch {
