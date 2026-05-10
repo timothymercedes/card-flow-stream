@@ -2747,9 +2747,9 @@ function LiveDetail() {
             onBringToFront={hostStudio.bringToFront}
             onSendToBack={hostStudio.sendToBack}
             onExpand={hostStudio.expandSource}
-            onRemove={hostStudio.removeSource}
+            onRemove={undefined}
             onToggleLock={hostStudio.toggleLock}
-            onToggleVisible={hostStudio.toggleVisible}
+            onToggleVisible={undefined}
             onRename={hostStudio.renameSource}
           />
           {hostCameraPanelCollapsed ? (
