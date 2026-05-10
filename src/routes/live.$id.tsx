@@ -864,9 +864,21 @@ function LiveDetail() {
       hostStudio.setScene("freeform");
       setShowHostCameraEditor(true);
       if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready in cockpit`);
+      else if (hostStudio.error) toast.error(hostStudio.error);
+      else toast.error("No camera started. Check browser camera permission and try again.");
     } finally {
       setStartingHostCameras(false);
     }
+  }
+
+  function openHostCameraControls() {
+    if (showHostCameraEditor) {
+      setHostCameraPanelCollapsed((v) => !v);
+      return;
+    }
+    setShowHostCameraEditor(true);
+    setHostCameraPanelCollapsed(false);
+    if (hostStudio.sources.length === 0 && !startingHostCameras) void startHostCameras();
   }
 
   const remaining = useMemo(
