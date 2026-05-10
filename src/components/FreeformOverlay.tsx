@@ -233,7 +233,7 @@ export function FreeformOverlay({
                   />
                 </>
               )}
-              <div className="pointer-events-none absolute left-1 right-1 top-1 z-30 flex items-center justify-between gap-1">
+              <div className="pointer-events-none absolute left-1 right-1 top-1 z-30 flex items-center justify-between gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                 {editing === s.id && onRename ? (
                   <input
                     autoFocus
