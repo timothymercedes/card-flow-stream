@@ -841,6 +841,7 @@ function LiveDetail() {
   const liveStudioAutoStartedRef = useRef(false);
   const [pendingHostCameraIds, setPendingHostCameraIds] = useState<string[]>([]);
   const [startingHostCameras, setStartingHostCameras] = useState(false);
+  const [pendingCameraRemovalId, setPendingCameraRemovalId] = useState<string | null>(null);
   useEffect(() => {
     if (!isSeller || !usingCompositor || liveStudioAutoStartedRef.current) return;
     liveStudioAutoStartedRef.current = true;
@@ -920,6 +921,15 @@ function LiveDetail() {
     setShowHostCameraEditor(true);
     setHostCameraPanelCollapsed(false);
     if (hostStudio.sources.length === 0 && !startingHostCameras) void startHostCameras();
+  }
+
+  function removeHostStudioSource(sourceId: string) {
+    if (pendingCameraRemovalId !== sourceId) {
+      setPendingCameraRemovalId(sourceId);
+      return;
+    }
+    hostStudio.removeSource(sourceId);
+    setPendingCameraRemovalId(null);
   }
 
   const remaining = useMemo(
