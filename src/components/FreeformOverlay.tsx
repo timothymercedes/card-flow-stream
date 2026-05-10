@@ -172,14 +172,14 @@ export function FreeformOverlay({
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 z-40 touch-none overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-40 touch-none overflow-hidden"
       onTouchStart={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
     >
       <div
         ref={surfaceRef}
-        className="absolute touch-none"
+        className="pointer-events-none absolute touch-none"
         style={{
           left: surface.left,
           top: surface.top,
@@ -194,7 +194,7 @@ export function FreeformOverlay({
             <div
               key={s.id}
               onPointerDown={(e) => startDrag(e, s.id, "move")}
-              className={`absolute rounded-md border-2 ${locked ? "border-amber-400/70 cursor-not-allowed" : "border-primary/70 cursor-move"} bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]`}
+              className={`pointer-events-auto absolute rounded-md border-2 ${locked ? "border-amber-400/70 cursor-not-allowed" : "border-primary/70 cursor-move"} bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]`}
               style={{
                 left: `${l.x * 100}%`,
                 top: `${l.y * 100}%`,
