@@ -152,6 +152,14 @@ export function useStudio(opts: {
     sourcesRef.current = sources;
   }, [sources]);
   useEffect(() => {
+    if (!sources.some((s) => s.kind === "camera" && !s.visible)) return;
+    setSources((prev) => {
+      const next = prev.map((s) => (s.kind === "camera" ? { ...s, visible: true } : s));
+      sourcesRef.current = next;
+      return next;
+    });
+  }, [sources]);
+  useEffect(() => {
     cameraDevicesRef.current = cameraDevices;
   }, [cameraDevices]);
   useEffect(() => {
@@ -467,7 +475,15 @@ export function useStudio(opts: {
   }, []);
 
   const toggleVisible = useCallback((id: string) => {
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s)));
+    setSources((prev) => {
+      const next = prev.map((s) => {
+        if (s.id !== id) return s;
+        if (s.kind === "camera") return { ...s, visible: true };
+        return { ...s, visible: !s.visible };
+      });
+      sourcesRef.current = next;
+      return next;
+    });
   }, []);
 
   const toggleMute = useCallback((id: string) => {
