@@ -864,9 +864,21 @@ function LiveDetail() {
       hostStudio.setScene("freeform");
       setShowHostCameraEditor(true);
       if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready in cockpit`);
+      else if (hostStudio.error) toast.error(hostStudio.error);
+      else toast.error("No camera started. Check browser camera permission and try again.");
     } finally {
       setStartingHostCameras(false);
     }
+  }
+
+  function openHostCameraControls() {
+    if (showHostCameraEditor) {
+      setHostCameraPanelCollapsed((v) => !v);
+      return;
+    }
+    setShowHostCameraEditor(true);
+    setHostCameraPanelCollapsed(false);
+    if (hostStudio.sources.length === 0 && !startingHostCameras) void startHostCameras();
   }
 
   const remaining = useMemo(
@@ -2732,10 +2744,14 @@ function LiveDetail() {
               </div>
               <div className="mb-2 grid grid-cols-2 gap-1.5">
                 <button
-                  onClick={scanHostStudioCameras}
+                  onClick={() => {
+                    if (hostStudio.sources.length === 0) void startHostCameras([]);
+                    else void scanHostStudioCameras();
+                  }}
                   className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Scan
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {hostStudio.sources.length === 0 ? "Start" : "Scan"}
                 </button>
                 <button
                   onClick={hostStudio.resetLayouts}
@@ -2795,6 +2811,11 @@ function LiveDetail() {
                       </button>
                     );
                   })}
+                </div>
+              )}
+              {hostStudio.error && (
+                <div className="mb-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">
+                  {hostStudio.error}
                 </div>
               )}
               <div className="space-y-1">
@@ -2943,13 +2964,7 @@ function LiveDetail() {
           )}
           {!ended && isSeller && usingCompositor && (
             <button
-              onClick={() => {
-                if (showHostCameraEditor) setHostCameraPanelCollapsed((v) => !v);
-                else {
-                  setShowHostCameraEditor(true);
-                  setHostCameraPanelCollapsed(false);
-                }
-              }}
+              onClick={openHostCameraControls}
               className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
               title="Arrange cameras"
             >
