@@ -2744,10 +2744,14 @@ function LiveDetail() {
               </div>
               <div className="mb-2 grid grid-cols-2 gap-1.5">
                 <button
-                  onClick={scanHostStudioCameras}
+                  onClick={() => {
+                    if (hostStudio.sources.length === 0) void startHostCameras([]);
+                    else void scanHostStudioCameras();
+                  }}
                   className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Scan
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {hostStudio.sources.length === 0 ? "Start" : "Scan"}
                 </button>
                 <button
                   onClick={hostStudio.resetLayouts}
@@ -2807,6 +2811,11 @@ function LiveDetail() {
                       </button>
                     );
                   })}
+                </div>
+              )}
+              {hostStudio.error && (
+                <div className="mb-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">
+                  {hostStudio.error}
                 </div>
               )}
               <div className="space-y-1">
