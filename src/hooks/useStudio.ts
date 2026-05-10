@@ -22,6 +22,7 @@ export type StudioSource = {
   label: string;
   stream: MediaStream;
   deviceId?: string;
+  groupId?: string;
   visible: boolean;
   muted: boolean; // mic muted (camera mics only)
   locked: boolean;
@@ -99,6 +100,7 @@ export function useStudio(opts: {
   const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const rafRef = useRef<number | null>(null);
   const sourcesRef = useRef(sources);
+  const cameraDevicesRef = useRef(cameraDevices);
   const sceneRef = useRef(scene);
   const activeIdRef = useRef(activeId);
   const layoutsRef = useRef(layouts);
@@ -106,6 +108,9 @@ export function useStudio(opts: {
   useEffect(() => {
     sourcesRef.current = sources;
   }, [sources]);
+  useEffect(() => {
+    cameraDevicesRef.current = cameraDevices;
+  }, [cameraDevices]);
   useEffect(() => {
     sceneRef.current = scene;
   }, [scene]);
