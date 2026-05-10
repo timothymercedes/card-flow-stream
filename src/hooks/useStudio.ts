@@ -116,6 +116,7 @@ export function useStudio(opts: {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const openingCameraKeysRef = useRef<Set<string>>(new Set());
   const rafRef = useRef<number | null>(null);
   const sourcesRef = useRef(sources);
   const cameraDevicesRef = useRef(cameraDevices);
@@ -223,6 +224,7 @@ export function useStudio(opts: {
         const requestedGroupId = deviceGroupForId(devices, deviceId);
         const existingCamera = sourcesRef.current.find((s) => {
           if (s.kind !== "camera") return false;
+          if (!hasLiveVideoTrack(s.stream)) return false;
           if (!deviceId) return sourcesRef.current.filter((x) => x.kind === "camera").length > 0;
           if (s.deviceId && s.deviceId === deviceId) return true;
           return !!requestedGroupId && s.groupId === requestedGroupId;
@@ -233,6 +235,13 @@ export function useStudio(opts: {
           setError(null);
           return existingCamera.id;
         }
+        const requestKey = cameraRequestKey(devices, deviceId);
+        if (openingCameraKeysRef.current.has(requestKey)) {
+          setScene("freeform");
+          setError(null);
+          return sourcesRef.current.find((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))?.id ?? null;
+        }
+        openingCameraKeysRef.current.add(requestKey);
         const baseVideoConstraints: MediaTrackConstraints = {
           width: { ideal: 1280 },
           height: { ideal: 720 },
@@ -290,6 +299,8 @@ export function useStudio(opts: {
       } catch (e: any) {
         setError(cameraErrorMessage(e));
         return null;
+      } finally {
+        openingCameraKeysRef.current.delete(cameraRequestKey(cameraDevicesRef.current, deviceId));
       }
     },
     [refreshDevices, makeDefaultLayout],
