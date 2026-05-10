@@ -160,6 +160,17 @@ function LiveDetail() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
+  function stopLegacyCameraPreview() {
+    camStream.current?.getTracks().forEach((t) => t.stop());
+    camStream.current = null;
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+      videoRef.current.removeAttribute("src");
+      videoRef.current.load();
+    }
+  }
+
   // Mods, mod-chat, announcements, AI hype overlay
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
