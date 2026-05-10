@@ -2804,9 +2804,14 @@ function LiveDetail() {
                   {hostStudio.cameraDevices.map((d, i) => {
                     const added =
                       !!d.deviceId &&
-                      hostStudio.sources.some(
-                        (s) => s.kind === "camera" && s.deviceId === d.deviceId,
-                      );
+                      hostStudio.sources.some((s) => {
+                        if (s.kind !== "camera") return false;
+                        return (
+                          s.deviceId === d.deviceId ||
+                          (!!d.groupId && s.groupId === d.groupId) ||
+                          (!!d.label && s.label === d.label)
+                        );
+                      });
                     return (
                       <button
                         key={`${d.deviceId || d.groupId || i}`}
@@ -2855,12 +2860,20 @@ function LiveDetail() {
                     <button
                       onClick={() => hostStudio.toggleLock(s.id)}
                       className="rounded-md p-1 hover:bg-muted"
+                      title={s.locked ? "Unlock" : "Lock"}
                     >
                       {s.locked ? (
                         <Lock className="h-3.5 w-3.5 text-amber-400" />
                       ) : (
                         <Unlock className="h-3.5 w-3.5" />
                       )}
+                    </button>
+                    <button
+                      onClick={() => hostStudio.removeSource(s.id)}
+                      className="rounded-md p-1 hover:bg-destructive/15"
+                      title="Remove and release camera"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </button>
                   </div>
                 ))}
