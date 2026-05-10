@@ -2855,11 +2855,12 @@ function LiveDetail() {
                       !!d.deviceId &&
                       hostStudio.sources.some((s) => {
                         if (s.kind !== "camera") return false;
-                        return (
-                          s.deviceId === d.deviceId ||
-                          (!!d.groupId && s.groupId === d.groupId) ||
-                          (!!d.label && s.label === d.label)
-                        );
+                        if (s.deviceId === d.deviceId) return true;
+                        // Match by label only when source has no deviceId yet
+                        // (default camera). Never match by groupId — different
+                        // cams on one hub are still different cams.
+                        if (!s.deviceId && !!d.label && s.label === d.label) return true;
+                        return false;
                       });
                     return (
                       <button

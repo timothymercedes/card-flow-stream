@@ -83,14 +83,18 @@ function wait(ms: number) {
 
 function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
   if (source.kind !== "camera" || !hasLiveVideoTrack(source.stream)) return false;
-  if (!deviceId) return true;
-  const device = devices.find((d) => d.deviceId === deviceId);
-  const trackLabel = source.stream.getVideoTracks()[0]?.label;
-  return (
-    (!!source.deviceId && source.deviceId === deviceId) ||
-    (!!device?.groupId && source.groupId === device.groupId) ||
-    (!!device?.label && (source.label === device.label || trackLabel === device.label))
-  );
+  if (!deviceId) return false;
+  if (!!source.deviceId && source.deviceId === deviceId) return true;
+  // Only fall back to label match when the source has no deviceId recorded
+  // (e.g. it was started as the default camera). Never collapse different
+  // cameras together just because they share a groupId — that prevents
+  // adding a second camera on the same hub.
+  if (!source.deviceId) {
+    const device = devices.find((d) => d.deviceId === deviceId);
+    const trackLabel = source.stream.getVideoTracks()[0]?.label;
+    if (!!device?.label && (source.label === device.label || trackLabel === device.label)) return true;
+  }
+  return false;
 }
 
 function cameraErrorMessage(e: any) {
