@@ -385,15 +385,22 @@ export function useStudio(opts: {
     }
   }, [makeDefaultLayout]);
 
-  /** Add a MediaStream acquired externally (e.g. phone over WebRTC). */
+  /** Add a MediaStream acquired externally (e.g. phone over WebRTC or pre-live handoff). */
   const addExternalStream = useCallback(
-    (stream: MediaStream, label: string, kind: "phone" | "camera" = "phone") => {
+    (
+      stream: MediaStream,
+      label: string,
+      kind: "phone" | "camera" = "phone",
+      metadata?: { deviceId?: string; groupId?: string },
+    ) => {
       const id = `ext-${crypto.randomUUID()}`;
       const src: StudioSource = {
         id,
         kind,
         label,
         stream,
+        deviceId: metadata?.deviceId,
+        groupId: metadata?.groupId,
         visible: true,
         muted: false,
         locked: false,
