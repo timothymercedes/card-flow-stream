@@ -2750,7 +2750,7 @@ function LiveDetail() {
         )}
       </div>
 
-      {isSeller && usingCompositor && showHostCameraEditor && !ended && (
+      {isSeller && usingCompositor && showHostCameraEditor && !ended && !showSettings && (
         <>
           <FreeformOverlay
             sources={hostStudio.sources}
