@@ -234,14 +234,9 @@ export function useStudio(opts: {
           throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
         }
         const devices = cameraDevicesRef.current;
-        const requestedGroupId = deviceGroupForId(devices, deviceId);
-        const existingCamera = sourcesRef.current.find((s) => {
-          if (s.kind !== "camera") return false;
-          if (!hasLiveVideoTrack(s.stream)) return false;
-          if (!deviceId) return sourcesRef.current.filter((x) => x.kind === "camera").length > 0;
-          if (s.deviceId && s.deviceId === deviceId) return true;
-          return !!requestedGroupId && s.groupId === requestedGroupId;
-        });
+        const existingCamera = sourcesRef.current.find((s) =>
+          matchesCameraDevice(s, devices, deviceId),
+        );
         if (existingCamera) {
           setActiveId(existingCamera.id);
           setScene("freeform");
