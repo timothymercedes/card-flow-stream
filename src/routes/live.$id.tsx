@@ -2421,7 +2421,7 @@ function LiveDetail() {
           ko_active: false,
         })
         .eq("id", id);
-      camStream.current?.getTracks().forEach((t) => t.stop());
+      stopLegacyCameraPreview();
       nav({ to: "/store" });
     }, 9000);
   }
