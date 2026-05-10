@@ -240,7 +240,7 @@ function Sell() {
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
-    let cameraHandoffStreams: StudioCameraHandoff[] = [];
+    const cameraHandoffStreams: StudioCameraHandoff[] = [];
     if (useCompositor && selectedCameraIds.length > 0) {
       try {
         for (const deviceId of selectedCameraIds.slice(0, 3)) {
