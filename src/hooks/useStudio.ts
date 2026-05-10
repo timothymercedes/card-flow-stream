@@ -247,13 +247,6 @@ export function useStudio(opts: {
             setActiveId(nextSources[0]?.id ?? null);
           }
         }
-        const cameraCount = sourcesRef.current.filter(
-          (s) => s.kind === "camera" && hasLiveVideoTrack(s.stream),
-        ).length;
-        if (cameraCount >= 3) {
-          setError("You can use up to 3 cameras at once. Remove one before adding another.");
-          return null;
-        }
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error(
             "This browser doesn't support camera access. Try Chrome, Edge, Safari, or Firefox.",
@@ -271,6 +264,13 @@ export function useStudio(opts: {
           setScene("freeform");
           setError(null);
           return existingCamera.id;
+        }
+        const cameraCount = sourcesRef.current.filter(
+          (s) => s.kind === "camera" && hasLiveVideoTrack(s.stream),
+        ).length;
+        if (cameraCount >= 3) {
+          setError("You can use up to 3 cameras at once. Remove one before adding another.");
+          return null;
         }
         requestKey = cameraRequestKey(devices, deviceId);
         if (openingCameraKeysRef.current.has(requestKey)) {
