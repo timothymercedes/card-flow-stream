@@ -859,9 +859,11 @@ function LiveWizard(p: LiveWizardProps) {
       } catch (e: any) {
         const name = e?.name || "";
         if (name === "NotReadableError" || name === "AbortError") {
-          // Camera is held by another tab/app. Wait a tick and retry once.
+          // Some browsers throw this while the camera is still warming up; keep scanning devices.
           await new Promise((r) => setTimeout(r, 400));
-          probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          try {
+            probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          } catch {}
         } else {
           throw e;
         }
@@ -880,7 +882,7 @@ function LiveWizard(p: LiveWizardProps) {
       } else if (name === "NotFoundError") {
         message = "No camera found on this device.";
       } else if (name === "NotReadableError" || /could not start video/i.test(message)) {
-        message = "Your camera is being used by another app or tab (e.g. Zoom, OBS, FaceTime, another browser tab). Close it and click Retry.";
+        message = "The browser couldn't start the camera. Refresh, unplug/replug the camera, or choose a different camera if one is listed.";
       }
       setCameraScanError(message);
       setCameraScanStatus("error");
