@@ -194,7 +194,7 @@ export function FreeformOverlay({
             <div
               key={s.id}
               onPointerDown={(e) => startDrag(e, s.id, "move")}
-              className={`pointer-events-auto absolute rounded-md border-2 ${locked ? "border-amber-400/70 cursor-not-allowed" : "border-primary/70 cursor-move"} bg-primary/5 shadow-[0_0_0_1px_rgba(0,0,0,0.4)]`}
+              className={`group pointer-events-auto absolute rounded-md border ${locked ? "border-amber-400/40 cursor-not-allowed" : "border-primary/25 hover:border-primary/70 cursor-move"} bg-transparent transition-colors`}
               style={{
                 left: `${l.x * 100}%`,
                 top: `${l.y * 100}%`,
@@ -233,7 +233,7 @@ export function FreeformOverlay({
                   />
                 </>
               )}
-              <div className="pointer-events-none absolute left-1 right-1 top-1 z-30 flex items-center justify-between gap-1">
+              <div className="pointer-events-none absolute left-1 right-1 top-1 z-30 flex items-center justify-between gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                 {editing === s.id && onRename ? (
                   <input
                     autoFocus
@@ -328,7 +328,7 @@ export function FreeformOverlay({
               {!locked && (
                 <div
                   onPointerDown={(e) => startDrag(e, s.id, "resize", "se")}
-                  className="absolute -bottom-2 -right-2 z-30 h-8 w-8 cursor-nwse-resize touch-none rounded-sm border-2 border-primary bg-background shadow-md"
+                  className="absolute -bottom-2 -right-2 z-30 h-7 w-7 cursor-nwse-resize touch-none rounded-sm border border-primary/40 bg-background/40 opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100"
                   title="Drag to resize"
                 />
               )}
