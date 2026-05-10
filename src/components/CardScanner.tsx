@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, RefreshCw, X, Loader2, Check, Pencil, Layers, Square, CheckSquare } from "lucide-react";
+import {
+  Camera,
+  RefreshCw,
+  X,
+  Loader2,
+  Check,
+  Pencil,
+  Layers,
+  Square,
+  CheckSquare,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,14 +26,27 @@ export type ScanResult = {
   condition_prices?: { NM?: number; LP?: number; MP?: number; Damaged?: number };
   trend: string;
   image: string;
-  confidence?: { name?: number; set?: number; year?: number; tcg_number?: number; variant?: number };
+  confidence?: {
+    name?: number;
+    set?: number;
+    year?: number;
+    tcg_number?: number;
+    variant?: number;
+  };
 };
 
 const LANGUAGES = [
-  { v: "auto", l: "Auto" }, { v: "en", l: "English" }, { v: "jp", l: "Japanese" },
-  { v: "kr", l: "Korean" }, { v: "zh", l: "Chinese" }, { v: "de", l: "German" },
-  { v: "fr", l: "French" }, { v: "es", l: "Spanish" }, { v: "it", l: "Italian" },
-  { v: "pt", l: "Portuguese" }, { v: "ru", l: "Russian" },
+  { v: "auto", l: "Auto" },
+  { v: "en", l: "English" },
+  { v: "jp", l: "Japanese" },
+  { v: "kr", l: "Korean" },
+  { v: "zh", l: "Chinese" },
+  { v: "de", l: "German" },
+  { v: "fr", l: "French" },
+  { v: "es", l: "Spanish" },
+  { v: "it", l: "Italian" },
+  { v: "pt", l: "Portuguese" },
+  { v: "ru", l: "Russian" },
 ] as const;
 
 type Props = {
@@ -34,7 +57,13 @@ type Props = {
   allowMulti?: boolean; // shows the multi-card toggle (default true)
 };
 
-export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "auto", allowMulti = true }: Props) {
+export function CardScanner({
+  onResult,
+  onResults,
+  onClose,
+  defaultLanguage = "auto",
+  allowMulti = true,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
@@ -92,7 +121,9 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
   useEffect(() => {
     if (pending || batch) return;
     start(facing);
-    return () => { stopScannerCamera(); };
+    return () => {
+      stopScannerCamera();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, pending, batch]);
 
@@ -137,7 +168,12 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
       }
 
       if (multi) {
-        const cards: ScanResult[] = (data as any)?.cards?.map((c: any) => ({ ...c, image: dataUrl, language: c.language || language })) || [];
+        const cards: ScanResult[] =
+          (data as any)?.cards?.map((c: any) => ({
+            ...c,
+            image: dataUrl,
+            language: c.language || language,
+          })) || [];
         if (cards.length === 0) {
           toast.error("No cards detected — try better lighting or fewer cards");
         } else {
@@ -165,7 +201,8 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
       return;
     }
     const small = document.createElement("canvas");
-    small.width = 80; small.height = 60;
+    small.width = 80;
+    small.height = 60;
     const sctx = small.getContext("2d", { willReadFrequently: true });
     if (!sctx) return;
 
@@ -224,7 +261,9 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
       }
     }, 100);
 
-    return () => { if (autoTimerRef.current) window.clearInterval(autoTimerRef.current); };
+    return () => {
+      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, batch, autoCapture, scanning, multi]);
 
@@ -244,7 +283,9 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
     setEditing(false);
   }
 
-  function lowConf(v?: number) { return (v ?? 1) < 0.7; }
+  function lowConf(v?: number) {
+    return (v ?? 1) < 0.7;
+  }
 
   function toggleSel(i: number) {
     setSelected((s) => {
@@ -268,14 +309,33 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex items-center justify-between p-3">
-        <button onClick={onClose} className="rounded-full bg-white/10 p-2 text-white"><X className="h-5 w-5" /></button>
+        <button onClick={onClose} className="rounded-full bg-white/10 p-2 text-white">
+          <X className="h-5 w-5" />
+        </button>
         <p className="text-sm font-semibold text-white">
-          {pending ? "Confirm card" : batch ? `Detected ${batch.length} cards` : multi ? "Scan multiple cards" : "Scan Card"}
+          {pending
+            ? "Confirm card"
+            : batch
+              ? `Detected ${batch.length} cards`
+              : multi
+                ? "Scan multiple cards"
+                : "Scan Card"}
         </p>
         {!pending && !batch ? (
-          <button onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))} className="rounded-full bg-white/10 p-2 text-white"><RefreshCw className="h-5 w-5" /></button>
+          <button
+            onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+            className="rounded-full bg-white/10 p-2 text-white"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
         ) : (
-          <button onClick={rescan} className="rounded-full bg-white/10 p-2 text-white" title="Rescan"><RefreshCw className="h-5 w-5" /></button>
+          <button
+            onClick={rescan}
+            className="rounded-full bg-white/10 p-2 text-white"
+            title="Rescan"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
         )}
       </div>
 
@@ -299,7 +359,9 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
               </div>
             )}
             <div>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">Card language</p>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">
+                Card language
+              </p>
               <div className="flex gap-1.5 overflow-x-auto pb-1">
                 {LANGUAGES.map((lang) => (
                   <button
@@ -316,18 +378,25 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
 
           <div className="relative flex-1 overflow-hidden">
             {error ? (
-              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/80">{error}</div>
+              <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/80">
+                {error}
+              </div>
             ) : (
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
-            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors" style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }} />
+            <div
+              className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors"
+              style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }}
+            />
             {autoCapture && !scanning && (
               <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
                 {hint} {steadyPct > 0 && steadyPct < 100 ? `· ${Math.round(steadyPct)}%` : ""}
               </div>
             )}
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
-              {multi ? "Lay cards flat, no overlap · keep all set symbols visible" : "Frame the whole card · keep set symbol + card number visible"}
+              {multi
+                ? "Lay cards flat, no overlap · keep all set symbols visible"
+                : "Frame the whole card · keep set symbol + card number visible"}
             </p>
           </div>
           <div className="p-4">
@@ -339,11 +408,25 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
                 {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
               </button>
             </div>
-            <button onClick={capture} disabled={scanning || !!error} className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50">
-              {scanning ? <Loader2 className="h-7 w-7 animate-spin" /> : <Camera className="h-7 w-7" />}
+            <button
+              onClick={capture}
+              disabled={scanning || !!error}
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
+            >
+              {scanning ? (
+                <Loader2 className="h-7 w-7 animate-spin" />
+              ) : (
+                <Camera className="h-7 w-7" />
+              )}
             </button>
             <p className="mt-2 text-center text-xs text-white/60">
-              {scanning ? (multi ? "Reading every card…" : "Identifying…") : autoCapture ? "Hold steady — auto-snaps when ready" : "Tap to capture"}
+              {scanning
+                ? multi
+                  ? "Reading every card…"
+                  : "Identifying…"
+                : autoCapture
+                  ? "Hold steady — auto-snaps when ready"
+                  : "Tap to capture"}
             </p>
           </div>
         </>
@@ -353,16 +436,28 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
       {batch && (
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex items-center justify-between gap-2 px-4 py-2">
-            <button onClick={toggleSelectAll} className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white">
-              {selected.size === batch.length ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white"
+            >
+              {selected.size === batch.length ? (
+                <CheckSquare className="h-3.5 w-3.5" />
+              ) : (
+                <Square className="h-3.5 w-3.5" />
+              )}
               {selected.size === batch.length ? "Deselect all" : "Select all"}
             </button>
-            <p className="text-[11px] text-white/60">{selected.size} / {batch.length} selected</p>
+            <p className="text-[11px] text-white/60">
+              {selected.size} / {batch.length} selected
+            </p>
           </div>
           <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto px-4 pb-2 sm:grid-cols-3">
             {batch.map((c, i) => {
               const on = selected.has(i);
-              const warn = lowConf(c.confidence?.name) || lowConf(c.confidence?.set) || lowConf(c.confidence?.tcg_number);
+              const warn =
+                lowConf(c.confidence?.name) ||
+                lowConf(c.confidence?.set) ||
+                lowConf(c.confidence?.tcg_number);
               return (
                 <button
                   key={i}
@@ -370,23 +465,38 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
                   className={`relative overflow-hidden rounded-xl border-2 text-left transition ${on ? "border-emerald-500 bg-emerald-500/10" : "border-white/10 bg-white/5"}`}
                 >
                   <div className="absolute right-1.5 top-1.5 z-10 rounded-md bg-black/60 p-1 text-white">
-                    {on ? <CheckSquare className="h-4 w-4 text-emerald-400" /> : <Square className="h-4 w-4" />}
+                    {on ? (
+                      <CheckSquare className="h-4 w-4 text-emerald-400" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
                   </div>
                   <div className="aspect-[3/4] w-full bg-black">
                     <img src={c.image} alt="" className="h-full w-full object-cover opacity-90" />
                   </div>
                   <div className="space-y-0.5 p-2 text-white">
                     <p className="truncate text-[12px] font-bold">{c.name}</p>
-                    <p className="truncate text-[10px] text-white/60">{c.set || "—"} {c.tcg_number ? `· #${c.tcg_number}` : ""}</p>
-                    <p className="text-[10px] text-emerald-300">${Number(c.estimated_value || 0).toFixed(2)}</p>
-                    {warn && <p className="text-[9px] text-yellow-300">⚠ Low confidence — verify</p>}
+                    <p className="truncate text-[10px] text-white/60">
+                      {c.set || "—"} {c.tcg_number ? `· #${c.tcg_number}` : ""}
+                    </p>
+                    <p className="text-[10px] text-emerald-300">
+                      ${Number(c.estimated_value || 0).toFixed(2)}
+                    </p>
+                    {warn && (
+                      <p className="text-[9px] text-yellow-300">⚠ Low confidence — verify</p>
+                    )}
                   </div>
                 </button>
               );
             })}
           </div>
           <div className="grid grid-cols-2 gap-2 p-4">
-            <button onClick={rescan} className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white">Rescan</button>
+            <button
+              onClick={rescan}
+              className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+            >
+              Rescan
+            </button>
             <button
               onClick={addSelected}
               disabled={selected.size === 0}
@@ -401,36 +511,92 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
       {pending && (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-6">
           <div className="flex gap-3">
-            <img src={pending.image} alt="" className="h-40 w-28 shrink-0 rounded-lg object-cover ring-1 ring-white/20" />
+            <img
+              src={pending.image}
+              alt=""
+              className="h-40 w-28 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
+            />
             <div className="min-w-0 flex-1 space-y-1.5 text-white">
-              <Field label="Name" value={pending.name} editing={editing} onChange={(v) => patch("name", v)} warn={lowConf(pending.confidence?.name)} />
-              <Field label="Set" value={pending.set || ""} editing={editing} onChange={(v) => patch("set", v)} warn={lowConf(pending.confidence?.set)} />
+              <Field
+                label="Name"
+                value={pending.name}
+                editing={editing}
+                onChange={(v) => patch("name", v)}
+                warn={lowConf(pending.confidence?.name)}
+              />
+              <Field
+                label="Set"
+                value={pending.set || ""}
+                editing={editing}
+                onChange={(v) => patch("set", v)}
+                warn={lowConf(pending.confidence?.set)}
+              />
               <div className="grid grid-cols-3 gap-2">
-                <Field label="Year" value={pending.year || ""} editing={editing} onChange={(v) => patch("year", v)} warn={lowConf(pending.confidence?.year)} />
-                <Field label="Number" value={pending.tcg_number || ""} editing={editing} onChange={(v) => patch("tcg_number", v)} warn={lowConf(pending.confidence?.tcg_number)} />
-                <Field label="Lang" value={pending.language || "EN"} editing={editing} onChange={(v) => patch("language", v)} />
+                <Field
+                  label="Year"
+                  value={pending.year || ""}
+                  editing={editing}
+                  onChange={(v) => patch("year", v)}
+                  warn={lowConf(pending.confidence?.year)}
+                />
+                <Field
+                  label="Number"
+                  value={pending.tcg_number || ""}
+                  editing={editing}
+                  onChange={(v) => patch("tcg_number", v)}
+                  warn={lowConf(pending.confidence?.tcg_number)}
+                />
+                <Field
+                  label="Lang"
+                  value={pending.language || "EN"}
+                  editing={editing}
+                  onChange={(v) => patch("language", v)}
+                />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Field label="Variant" value={pending.variant || "Standard"} editing={editing} onChange={(v) => patch("variant", v)} warn={lowConf(pending.confidence?.variant)} />
-                <Field label="Rarity" value={pending.rarity || ""} editing={editing} onChange={(v) => patch("rarity", v)} />
+                <Field
+                  label="Variant"
+                  value={pending.variant || "Standard"}
+                  editing={editing}
+                  onChange={(v) => patch("variant", v)}
+                  warn={lowConf(pending.confidence?.variant)}
+                />
+                <Field
+                  label="Rarity"
+                  value={pending.rarity || ""}
+                  editing={editing}
+                  onChange={(v) => patch("rarity", v)}
+                />
               </div>
               <p className="text-[11px] text-white/70">
-                Est. value: <b className="text-emerald-300">${Number(pending.estimated_value || 0).toFixed(2)}</b> · {pending.trend}
+                Est. value:{" "}
+                <b className="text-emerald-300">
+                  ${Number(pending.estimated_value || 0).toFixed(2)}
+                </b>{" "}
+                · {pending.trend}
               </p>
             </div>
           </div>
 
-          {(lowConf(pending.confidence?.set) || lowConf(pending.confidence?.year) || lowConf(pending.confidence?.tcg_number)) && (
+          {(lowConf(pending.confidence?.set) ||
+            lowConf(pending.confidence?.year) ||
+            lowConf(pending.confidence?.tcg_number)) && (
             <div className="rounded-lg bg-yellow-500/15 px-3 py-2 text-[11px] text-yellow-200">
               ⚠ Low confidence on highlighted fields — please verify or edit before saving.
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setEditing((e) => !e)} className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white">
+            <button
+              onClick={() => setEditing((e) => !e)}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+            >
               <Pencil className="h-4 w-4" /> {editing ? "Done editing" : "Edit fields"}
             </button>
-            <button onClick={confirmResult} className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white">
+            <button
+              onClick={confirmResult}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
+            >
               <Check className="h-4 w-4" /> Confirm & save
             </button>
           </div>
@@ -444,8 +610,18 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
 }
 
 function Field({
-  label, value, editing, onChange, warn,
-}: { label: string; value: string; editing: boolean; onChange: (v: string) => void; warn?: boolean }) {
+  label,
+  value,
+  editing,
+  onChange,
+  warn,
+}: {
+  label: string;
+  value: string;
+  editing: boolean;
+  onChange: (v: string) => void;
+  warn?: boolean;
+}) {
   return (
     <div className={`rounded-md ${warn ? "ring-1 ring-yellow-400/60" : ""}`}>
       <p className="text-[9px] font-bold uppercase tracking-wide text-white/50">{label}</p>
@@ -456,7 +632,9 @@ function Field({
           className="mt-0.5 w-full rounded bg-white/10 px-2 py-1 text-sm text-white outline-none focus:ring-1 focus:ring-emerald-400"
         />
       ) : (
-        <p className="text-sm font-semibold text-white">{value || <span className="text-white/40">—</span>}</p>
+        <p className="text-sm font-semibold text-white">
+          {value || <span className="text-white/40">—</span>}
+        </p>
       )}
     </div>
   );
