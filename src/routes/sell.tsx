@@ -245,10 +245,15 @@ function Sell() {
       try {
         for (const deviceId of selectedCameraIds.slice(0, 3)) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: cameraHandoffStreams.length === 0
-              ? { echoCancellation: true, noiseSuppression: true }
-              : false,
+            video: {
+              deviceId: { exact: deviceId },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio:
+              cameraHandoffStreams.length === 0
+                ? { echoCancellation: true, noiseSuppression: true }
+                : false,
           });
           const videoTrack = stream.getVideoTracks()[0];
           const settings = videoTrack?.getSettings();
@@ -257,7 +262,8 @@ function Sell() {
           );
           cameraHandoffStreams.push({
             stream,
-            label: videoTrack?.label || device?.label || `Camera ${cameraHandoffStreams.length + 1}`,
+            label:
+              videoTrack?.label || device?.label || `Camera ${cameraHandoffStreams.length + 1}`,
             deviceId: settings?.deviceId ?? deviceId,
             groupId: device?.groupId,
           });

@@ -858,7 +858,9 @@ function LiveDetail() {
       setPendingHostCameraIds([]);
       setShowHostCameraEditor(true);
       hostStudio.setScene("freeform");
-      toast.success(`${handoffStreams.length} camera${handoffStreams.length === 1 ? "" : "s"} live`);
+      toast.success(
+        `${handoffStreams.length} camera${handoffStreams.length === 1 ? "" : "s"} live`,
+      );
       return;
     }
     let ids: string[] = [];
