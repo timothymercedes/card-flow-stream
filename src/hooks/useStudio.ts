@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const CANVAS_W = 1280;
 const CANVAS_H = 720;
 const FPS = 30;
+const CAMERA_RELEASE_RETRY_DELAYS_MS = [250, 750, 1400];
 
 export type StudioScene = "solo" | "split" | "grid" | "freeform";
 
@@ -74,6 +75,10 @@ function detachVideoElement(video: HTMLVideoElement) {
   video.srcObject = null;
   video.removeAttribute("src");
   video.load();
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
@@ -261,6 +266,14 @@ export function useStudio(opts: {
           matchesCameraDevice(s, devices, deviceId),
         );
         if (existingCamera) {
+          setSources((prev) =>
+            prev.map((s) => (s.id === existingCamera.id ? { ...s, visible: true } : s)),
+          );
+          setLayouts((prev) =>
+            prev[existingCamera.id]
+              ? prev
+              : { ...prev, [existingCamera.id]: makeDefaultLayout(Object.keys(prev).length) },
+          );
           setActiveId(existingCamera.id);
           setScene("freeform");
           setError(null);
@@ -294,18 +307,31 @@ export function useStudio(opts: {
         const exactVideoConstraints: MediaTrackConstraints | null = deviceId
           ? { ...baseVideoConstraints, deviceId: { exact: deviceId } }
           : null;
-        let stream: MediaStream;
-        try {
-          stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
-        } catch (e: any) {
-          if (exactVideoConstraints && !isCameraStartupError(e)) {
-            stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
-          } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
-            stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
-          } else {
-            throw e;
+        let stream: MediaStream | null = null;
+        let lastError: any = null;
+        for (let attempt = 0; attempt <= CAMERA_RELEASE_RETRY_DELAYS_MS.length; attempt += 1) {
+          try {
+            try {
+              stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
+            } catch (e: any) {
+              if (exactVideoConstraints && !isCameraStartupError(e)) {
+                stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
+              } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
+                stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
+              } else {
+                throw e;
+              }
+            }
+            break;
+          } catch (e: any) {
+            lastError = e;
+            if (!isCameraStartupError(e) || attempt === CAMERA_RELEASE_RETRY_DELAYS_MS.length) {
+              throw e;
+            }
+            await wait(CAMERA_RELEASE_RETRY_DELAYS_MS[attempt]);
           }
         }
+        if (!stream) throw lastError ?? new Error("Could not access camera");
         const track = stream.getVideoTracks()[0];
         const settings = track?.getSettings();
         const groupId = deviceGroupForId(cameraDevicesRef.current, settings?.deviceId ?? deviceId);
@@ -318,7 +344,7 @@ export function useStudio(opts: {
           kind: "camera",
           label,
           stream,
-          deviceId: settings?.deviceId,
+          deviceId: settings?.deviceId ?? deviceId,
           groupId,
           visible: true,
           muted: false,
