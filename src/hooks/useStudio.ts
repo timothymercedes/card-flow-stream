@@ -274,9 +274,13 @@ export function useStudio(opts: {
           matchesCameraDevice(s, devices, deviceId),
         );
         if (existingCamera) {
-          setSources((prev) =>
-            prev.map((s) => (s.id === existingCamera.id ? { ...s, visible: true } : s)),
-          );
+          setSources((prev) => {
+            const next = prev.map((s) =>
+              s.id === existingCamera.id ? { ...s, visible: true } : s,
+            );
+            sourcesRef.current = next;
+            return next;
+          });
           setLayouts((prev) =>
             prev[existingCamera.id]
               ? prev
