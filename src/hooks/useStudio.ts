@@ -223,7 +223,33 @@ export function useStudio(opts: {
       let requestKey: string | null = null;
       try {
         setError(null);
-        const cameraCount = sourcesRef.current.filter((s) => s.kind === "camera").length;
+        const staleCameraIds = sourcesRef.current
+          .filter((s) => s.kind === "camera" && !hasLiveVideoTrack(s.stream))
+          .map((s) => s.id);
+        if (staleCameraIds.length > 0) {
+          const stale = new Set(staleCameraIds);
+          sourcesRef.current
+            .filter((s) => stale.has(s.id))
+            .forEach((s) => {
+              s.stream.getTracks().forEach((t) => t.stop());
+              videoElsRef.current.get(s.id)?.remove();
+              videoElsRef.current.delete(s.id);
+            });
+          const nextSources = sourcesRef.current.filter((s) => !stale.has(s.id));
+          sourcesRef.current = nextSources;
+          setSources(nextSources);
+          setLayouts((prev) => {
+            const next = { ...prev };
+            staleCameraIds.forEach((sid) => delete next[sid]);
+            return next;
+          });
+          if (activeIdRef.current && stale.has(activeIdRef.current)) {
+            setActiveId(nextSources[0]?.id ?? null);
+          }
+        }
+        const cameraCount = sourcesRef.current.filter(
+          (s) => s.kind === "camera" && hasLiveVideoTrack(s.stream),
+        ).length;
         if (cameraCount >= 3) {
           setError("You can use up to 3 cameras at once. Remove one before adding another.");
           return null;
