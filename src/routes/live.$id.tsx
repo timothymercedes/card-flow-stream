@@ -81,6 +81,7 @@ import { useLivestreamSafety } from "@/hooks/useLivestreamSafety";
 import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
 import { useStudio, type StudioScene } from "@/hooks/useStudio";
+import { takeStudioCameraStreams } from "@/lib/studioCameraHandoff";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -845,6 +846,21 @@ function LiveDetail() {
   useEffect(() => {
     if (!isSeller || !usingCompositor || liveStudioAutoStartedRef.current) return;
     liveStudioAutoStartedRef.current = true;
+    const handoffStreams = takeStudioCameraStreams(id);
+    if (handoffStreams.length > 0) {
+      handoffStreams.forEach((handoff) => {
+        hostStudio.addExternalStream(handoff.stream, handoff.label, "camera", {
+          deviceId: handoff.deviceId,
+          groupId: handoff.groupId,
+        });
+      });
+      window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
+      setPendingHostCameraIds([]);
+      setShowHostCameraEditor(true);
+      hostStudio.setScene("freeform");
+      toast.success(`${handoffStreams.length} camera${handoffStreams.length === 1 ? "" : "s"} live`);
+      return;
+    }
     let ids: string[] = [];
     try {
       ids = JSON.parse(window.sessionStorage.getItem(`studio:${id}:cameraDeviceIds`) || "[]")
@@ -854,7 +870,7 @@ function LiveDetail() {
     if (ids.length === 0) return;
     setPendingHostCameraIds(ids);
     setShowHostCameraEditor(true);
-  }, [isSeller, usingCompositor, id]);
+  }, [isSeller, usingCompositor, id, hostStudio]);
 
   async function startHostCameras(deviceIds = pendingHostCameraIds) {
     if (startingHostCameras) return;
