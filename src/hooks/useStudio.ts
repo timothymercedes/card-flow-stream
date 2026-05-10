@@ -229,6 +229,19 @@ export function useStudio(opts: {
     };
   }, []);
 
+  useEffect(() => {
+    const missing = sources.filter((s) => !layouts[s.id]);
+    if (missing.length === 0) return;
+    setLayouts((prev) => {
+      const next = { ...prev };
+      missing.forEach((s, i) => {
+        next[s.id] = makeDefaultLayout(Object.keys(next).length + i);
+      });
+      layoutsRef.current = next;
+      return next;
+    });
+  }, [sources, layouts, makeDefaultLayout]);
+
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(
     async (deviceId?: string) => {
