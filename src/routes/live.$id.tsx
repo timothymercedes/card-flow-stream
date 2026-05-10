@@ -818,25 +818,46 @@ function LiveDetail() {
   }, [isSeller, usingCompositor, hostStudio.canvas]);
 
   const liveStudioAutoStartedRef = useRef(false);
+  const [pendingHostCameraIds, setPendingHostCameraIds] = useState<string[]>([]);
+  const [startingHostCameras, setStartingHostCameras] = useState(false);
   useEffect(() => {
     if (!isSeller || !usingCompositor || liveStudioAutoStartedRef.current) return;
     liveStudioAutoStartedRef.current = true;
-    (async () => {
-      let ids: string[] = [];
-      try {
-        ids = JSON.parse(window.sessionStorage.getItem(`studio:${id}:cameraDeviceIds`) || "[]").filter(Boolean).slice(0, 3);
-      } catch {}
-      if (ids.length === 0) return;
+    let ids: string[] = [];
+    try {
+      ids = JSON.parse(window.sessionStorage.getItem(`studio:${id}:cameraDeviceIds`) || "[]")
+        .filter(Boolean)
+        .slice(0, 3);
+    } catch {}
+    if (ids.length === 0) return;
+    setPendingHostCameraIds(ids);
+    setShowHostCameraEditor(true);
+  }, [isSeller, usingCompositor, id]);
+
+  async function startHostCameras(deviceIds = pendingHostCameraIds) {
+    if (startingHostCameras) return;
+    setStartingHostCameras(true);
+    try {
+      const ids = deviceIds.filter(Boolean).slice(0, 3);
       let added = 0;
-      for (const deviceId of ids) {
-        const sourceId = await hostStudio.addCamera(deviceId);
+      if (ids.length === 0) {
+        const sourceId = await hostStudio.addCamera();
         if (sourceId) added += 1;
+      } else {
+        for (const deviceId of ids) {
+          const sourceId = await hostStudio.addCamera(deviceId);
+          if (sourceId) added += 1;
+        }
       }
       window.sessionStorage.removeItem(`studio:${id}:cameraDeviceIds`);
+      setPendingHostCameraIds([]);
       hostStudio.setScene("freeform");
-      if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} loaded in cockpit`);
-    })();
-  }, [isSeller, usingCompositor, id, hostStudio]);
+      setShowHostCameraEditor(true);
+      if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready in cockpit`);
+    } finally {
+      setStartingHostCameras(false);
+    }
+  }
 
   const remaining = useMemo(
     () => (stream?.ends_at ? new Date(stream.ends_at).getTime() - now : 0),
