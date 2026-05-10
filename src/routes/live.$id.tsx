@@ -2650,8 +2650,8 @@ function LiveDetail() {
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-black text-white"
-      onTouchStart={showHostCameraEditor ? undefined : onTouchStart}
-      onTouchEnd={showHostCameraEditor ? undefined : onTouchEnd}
+      onTouchStart={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchStart}
+      onTouchEnd={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchEnd}
     >
       {/* Full-screen video */}
       <div
@@ -2943,7 +2943,13 @@ function LiveDetail() {
           )}
           {!ended && isSeller && usingCompositor && (
             <button
-              onClick={() => setShowHostCameraEditor((v) => !v)}
+              onClick={() => {
+                if (showHostCameraEditor) setHostCameraPanelCollapsed(true);
+                else {
+                  setShowHostCameraEditor(true);
+                  setHostCameraPanelCollapsed(false);
+                }
+              }}
               className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
               title="Arrange cameras"
             >
@@ -3853,7 +3859,7 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor ? "pointer-events-none opacity-30" : ""}`}
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""}`}
       >
         {stream.mode === "show_off" && (
           <>
