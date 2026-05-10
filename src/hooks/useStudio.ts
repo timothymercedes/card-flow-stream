@@ -93,6 +93,7 @@ export function useStudio(opts: {
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
   const [layouts, setLayouts] = useState<Record<string, FreeformLayout>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -218,6 +219,8 @@ export function useStudio(opts: {
         } catch (e: any) {
           if (exactVideoConstraints && !isCameraStartupError(e)) {
             stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
+          } else if (deviceId && isCameraStartupError(e)) {
+            stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
           } else {
             throw e;
           }
@@ -435,6 +438,9 @@ export function useStudio(opts: {
       c.width = CANVAS_W;
       c.height = CANVAS_H;
       canvasRef.current = c;
+      setCanvasEl(c);
+    } else {
+      setCanvasEl(canvasRef.current);
     }
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
@@ -717,7 +723,7 @@ export function useStudio(opts: {
     expandedId,
     snapEnabled,
     presets,
-    canvas: canvasRef.current,
+    canvas: canvasEl,
     canvasW: CANVAS_W,
     canvasH: CANVAS_H,
     setScene,
