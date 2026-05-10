@@ -179,6 +179,9 @@ export function useStudio(opts: {
       return [];
     }
     try {
+      if (sourcesRef.current.some((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))) {
+        return await refreshDevices();
+      }
       let probe: MediaStream | null = null;
       try {
         probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
