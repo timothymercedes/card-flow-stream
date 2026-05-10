@@ -2699,11 +2699,31 @@ function LiveDetail() {
               <button onClick={scanHostStudioCameras} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RefreshCw className="h-3.5 w-3.5" /> Scan</button>
               <button onClick={hostStudio.resetLayouts} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RotateCw className="h-3.5 w-3.5" /> Reset</button>
             </div>
+            {pendingHostCameraIds.length > 0 && hostStudio.sources.length === 0 && (
+              <button
+                onClick={() => startHostCameras()}
+                disabled={startingHostCameras}
+                className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-live px-2 py-2 text-[10px] font-extrabold text-live-foreground disabled:opacity-60"
+              >
+                {startingHostCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                Start selected cameras
+              </button>
+            )}
+            {hostStudio.sources.length === 0 && pendingHostCameraIds.length === 0 && (
+              <button
+                onClick={() => startHostCameras([])}
+                disabled={startingHostCameras}
+                className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-extrabold text-primary-foreground disabled:opacity-60"
+              >
+                {startingHostCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                Start default camera
+              </button>
+            )}
             {hostStudio.cameraDevices.length > 0 && hostStudioCameras.length < 3 && (
               <div className="mb-2 max-h-24 overflow-y-auto rounded-lg bg-muted/40 p-1">
                 {hostStudio.cameraDevices.map((d, i) => {
                   const added = !!d.deviceId && hostStudio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
-                  return <button key={`${d.deviceId || d.groupId || i}`} disabled={added} onClick={() => hostStudio.addCamera(d.deviceId)} className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"><Camera className="h-3 w-3" /><span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>{added && "Added"}</button>;
+                  return <button key={`${d.deviceId || d.groupId || i}`} disabled={added} onClick={() => startHostCameras([d.deviceId])} className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"><Camera className="h-3 w-3" /><span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>{added && "Added"}</button>;
                 })}
               </div>
             )}
