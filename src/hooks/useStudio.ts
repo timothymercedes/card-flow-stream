@@ -206,12 +206,18 @@ export function useStudio(opts: {
         if (typeof window !== "undefined" && window.isSecureContext === false) {
           throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
         }
-        const existingCamera = deviceId
-          ? sourcesRef.current.find((s) => s.kind === "camera" && s.deviceId === deviceId)
-          : null;
+        const devices = cameraDevicesRef.current;
+        const requestedGroupId = deviceGroupForId(devices, deviceId);
+        const existingCamera = sourcesRef.current.find((s) => {
+          if (s.kind !== "camera") return false;
+          if (!deviceId) return sourcesRef.current.filter((x) => x.kind === "camera").length > 0;
+          if (s.deviceId && s.deviceId === deviceId) return true;
+          return !!requestedGroupId && s.groupId === requestedGroupId;
+        });
         if (existingCamera) {
           setActiveId(existingCamera.id);
           setScene("freeform");
+          setError(null);
           return existingCamera.id;
         }
         const baseVideoConstraints: MediaTrackConstraints = {
@@ -239,6 +245,7 @@ export function useStudio(opts: {
         }
         const track = stream.getVideoTracks()[0];
         const settings = track?.getSettings();
+        const groupId = deviceGroupForId(cameraDevicesRef.current, settings?.deviceId ?? deviceId);
         const label =
           track?.label ||
           `Camera ${sourcesRef.current.filter((s) => s.kind === "camera").length + 1}`;
@@ -249,6 +256,7 @@ export function useStudio(opts: {
           label,
           stream,
           deviceId: settings?.deviceId,
+          groupId,
           visible: true,
           muted: false,
           locked: false,
