@@ -843,6 +843,15 @@ function LiveDetail() {
   const [startingHostCameras, setStartingHostCameras] = useState(false);
   const [pendingCameraRemovalId, setPendingCameraRemovalId] = useState<string | null>(null);
   useEffect(() => {
+    if (!pendingCameraRemovalId) return;
+    if (!hostStudio.sources.some((s) => s.id === pendingCameraRemovalId)) {
+      setPendingCameraRemovalId(null);
+      return;
+    }
+    const timeout = window.setTimeout(() => setPendingCameraRemovalId(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [pendingCameraRemovalId, hostStudio.sources]);
+  useEffect(() => {
     if (!isSeller || !usingCompositor || liveStudioAutoStartedRef.current) return;
     liveStudioAutoStartedRef.current = true;
     const handoffStreams = takeStudioCameraStreams(id);
