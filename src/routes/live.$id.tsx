@@ -823,18 +823,21 @@ function LiveDetail() {
     })();
     return () => {
       cancelled = true;
-      camStream.current?.getTracks().forEach((t) => t.stop());
-      camStream.current = null;
+      stopLegacyCameraPreview();
     };
-  }, [isSeller, stream?.status, usingObs, usingCompositor]);
+  }, [isSeller, stream?.status, usingObs, usingCompositor, stopLegacyCameraPreview]);
 
   useEffect(() => {
     if (!isSeller || !usingCompositor || !hostStudio.canvas || !videoRef.current) return;
+    stopLegacyCameraPreview();
     const s = hostStudio.canvas.captureStream(30);
     videoRef.current.srcObject = s;
     videoRef.current.play().catch(() => {});
-    return () => s.getTracks().forEach((t) => t.stop());
-  }, [isSeller, usingCompositor, hostStudio.canvas]);
+    return () => {
+      s.getTracks().forEach((t) => t.stop());
+      if (videoRef.current?.srcObject === s) videoRef.current.srcObject = null;
+    };
+  }, [isSeller, usingCompositor, hostStudio.canvas, stopLegacyCameraPreview]);
 
   const liveStudioAutoStartedRef = useRef(false);
   const [pendingHostCameraIds, setPendingHostCameraIds] = useState<string[]>([]);
