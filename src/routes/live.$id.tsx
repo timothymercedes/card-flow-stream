@@ -48,6 +48,7 @@ import {
   EyeOff,
   Layout,
   Move,
+  PanelRightClose,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
@@ -187,6 +188,7 @@ function LiveDetail() {
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
+  const [hostCameraPanelCollapsed, setHostCameraPanelCollapsed] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
@@ -842,6 +844,8 @@ function LiveDetail() {
 
   async function startHostCameras(deviceIds = pendingHostCameraIds) {
     if (startingHostCameras) return;
+    setShowHostCameraEditor(true);
+    setHostCameraPanelCollapsed(false);
     setStartingHostCameras(true);
     try {
       const ids = deviceIds.filter(Boolean).slice(0, 3);
