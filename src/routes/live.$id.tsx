@@ -2707,132 +2707,132 @@ function LiveDetail() {
             </button>
           ) : (
             <div className="absolute inset-x-3 top-16 z-50 rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur sm:left-auto sm:w-80">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-xs font-extrabold">
-                <Layout className="h-3.5 w-3.5" /> Cameras
-              </p>
-              <button
-                onClick={() => setHostCameraPanelCollapsed(true)}
-                className="rounded-md p-1 hover:bg-muted"
-                title="Collapse camera panel"
-              >
-                <PanelRightClose className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mb-2 grid grid-cols-4 gap-1">
-              {hostStudioScenes.map(({ id: sceneId, label, Icon }) => (
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-extrabold">
+                  <Layout className="h-3.5 w-3.5" /> Cameras
+                </p>
                 <button
-                  key={sceneId}
-                  onClick={() => hostStudio.setScene(sceneId)}
-                  className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-bold ${hostStudio.scene === sceneId ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  onClick={() => setHostCameraPanelCollapsed(true)}
+                  className="rounded-md p-1 hover:bg-muted"
+                  title="Collapse camera panel"
                 >
-                  <Icon className="h-3.5 w-3.5" /> {label}
+                  <PanelRightClose className="h-4 w-4" />
                 </button>
-              ))}
-            </div>
-            <div className="mb-2 grid grid-cols-2 gap-1.5">
-              <button
-                onClick={scanHostStudioCameras}
-                className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
-              >
-                <RefreshCw className="h-3.5 w-3.5" /> Scan
-              </button>
-              <button
-                onClick={hostStudio.resetLayouts}
-                className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
-              >
-                <RotateCw className="h-3.5 w-3.5" /> Reset
-              </button>
-            </div>
-            {pendingHostCameraIds.length > 0 && hostStudio.sources.length === 0 && (
-              <button
-                onClick={() => startHostCameras()}
-                disabled={startingHostCameras}
-                className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-live px-2 py-2 text-[10px] font-extrabold text-live-foreground disabled:opacity-60"
-              >
-                {startingHostCameras ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Camera className="h-3.5 w-3.5" />
-                )}
-                Start selected cameras
-              </button>
-            )}
-            {hostStudio.sources.length === 0 && pendingHostCameraIds.length === 0 && (
-              <button
-                onClick={() => startHostCameras([])}
-                disabled={startingHostCameras}
-                className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-extrabold text-primary-foreground disabled:opacity-60"
-              >
-                {startingHostCameras ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Camera className="h-3.5 w-3.5" />
-                )}
-                Start default camera
-              </button>
-            )}
-            {hostStudio.cameraDevices.length > 0 && hostStudioCameras.length < 3 && (
-              <div className="mb-2 max-h-24 overflow-y-auto rounded-lg bg-muted/40 p-1">
-                {hostStudio.cameraDevices.map((d, i) => {
-                  const added =
-                    !!d.deviceId &&
-                    hostStudio.sources.some(
-                      (s) => s.kind === "camera" && s.deviceId === d.deviceId,
-                    );
-                  return (
-                    <button
-                      key={`${d.deviceId || d.groupId || i}`}
-                      disabled={added}
-                      onClick={() => startHostCameras([d.deviceId])}
-                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"
-                    >
-                      <Camera className="h-3 w-3" />
-                      <span className="min-w-0 flex-1 truncate">
-                        {d.label || `Camera ${i + 1}`}
-                      </span>
-                      {added && "Added"}
-                    </button>
-                  );
-                })}
               </div>
-            )}
-            <div className="space-y-1">
-              {hostStudio.sources.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5"
+              <div className="mb-2 grid grid-cols-4 gap-1">
+                {hostStudioScenes.map(({ id: sceneId, label, Icon }) => (
+                  <button
+                    key={sceneId}
+                    onClick={() => hostStudio.setScene(sceneId)}
+                    className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-bold ${hostStudio.scene === sceneId ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {label}
+                  </button>
+                ))}
+              </div>
+              <div className="mb-2 grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={scanHostStudioCameras}
+                  className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
                 >
-                  <button
-                    onClick={() => hostStudio.toggleVisible(s.id)}
-                    className="rounded-md p-1 hover:bg-muted"
-                    title={s.visible ? "Hide from public" : "Show to public"}
-                  >
-                    {s.visible ? (
-                      <Eye className="h-3.5 w-3.5" />
-                    ) : (
-                      <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => hostStudio.setActiveId(s.id)}
-                    className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
-                  >
-                    {s.label}
-                  </button>
-                  <button
-                    onClick={() => hostStudio.toggleLock(s.id)}
-                    className="rounded-md p-1 hover:bg-muted"
-                  >
-                    {s.locked ? (
-                      <Lock className="h-3.5 w-3.5 text-amber-400" />
-                    ) : (
-                      <Unlock className="h-3.5 w-3.5" />
-                    )}
-                  </button>
+                  <RefreshCw className="h-3.5 w-3.5" /> Scan
+                </button>
+                <button
+                  onClick={hostStudio.resetLayouts}
+                  className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
+                >
+                  <RotateCw className="h-3.5 w-3.5" /> Reset
+                </button>
+              </div>
+              {pendingHostCameraIds.length > 0 && hostStudio.sources.length === 0 && (
+                <button
+                  onClick={() => startHostCameras()}
+                  disabled={startingHostCameras}
+                  className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-live px-2 py-2 text-[10px] font-extrabold text-live-foreground disabled:opacity-60"
+                >
+                  {startingHostCameras ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                  Start selected cameras
+                </button>
+              )}
+              {hostStudio.sources.length === 0 && pendingHostCameraIds.length === 0 && (
+                <button
+                  onClick={() => startHostCameras([])}
+                  disabled={startingHostCameras}
+                  className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-extrabold text-primary-foreground disabled:opacity-60"
+                >
+                  {startingHostCameras ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                  Start default camera
+                </button>
+              )}
+              {hostStudio.cameraDevices.length > 0 && hostStudioCameras.length < 3 && (
+                <div className="mb-2 max-h-24 overflow-y-auto rounded-lg bg-muted/40 p-1">
+                  {hostStudio.cameraDevices.map((d, i) => {
+                    const added =
+                      !!d.deviceId &&
+                      hostStudio.sources.some(
+                        (s) => s.kind === "camera" && s.deviceId === d.deviceId,
+                      );
+                    return (
+                      <button
+                        key={`${d.deviceId || d.groupId || i}`}
+                        disabled={added}
+                        onClick={() => startHostCameras([d.deviceId])}
+                        className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"
+                      >
+                        <Camera className="h-3 w-3" />
+                        <span className="min-w-0 flex-1 truncate">
+                          {d.label || `Camera ${i + 1}`}
+                        </span>
+                        {added && "Added"}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              )}
+              <div className="space-y-1">
+                {hostStudio.sources.map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5"
+                  >
+                    <button
+                      onClick={() => hostStudio.toggleVisible(s.id)}
+                      className="rounded-md p-1 hover:bg-muted"
+                      title={s.visible ? "Hide from public" : "Show to public"}
+                    >
+                      {s.visible ? (
+                        <Eye className="h-3.5 w-3.5" />
+                      ) : (
+                        <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => hostStudio.setActiveId(s.id)}
+                      className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
+                    >
+                      {s.label}
+                    </button>
+                    <button
+                      onClick={() => hostStudio.toggleLock(s.id)}
+                      className="rounded-md p-1 hover:bg-muted"
+                    >
+                      {s.locked ? (
+                        <Lock className="h-3.5 w-3.5 text-amber-400" />
+                      ) : (
+                        <Unlock className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </>
