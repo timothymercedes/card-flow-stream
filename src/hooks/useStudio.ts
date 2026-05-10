@@ -69,6 +69,13 @@ function cameraRequestKey(devices: MediaDeviceInfo[], deviceId?: string) {
   return "default";
 }
 
+function detachVideoElement(video: HTMLVideoElement) {
+  video.pause();
+  video.srcObject = null;
+  video.removeAttribute("src");
+  video.load();
+}
+
 function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
   if (source.kind !== "camera" || !hasLiveVideoTrack(source.stream)) return false;
   if (!deviceId) return true;
@@ -182,15 +189,7 @@ export function useStudio(opts: {
       if (sourcesRef.current.some((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))) {
         return await refreshDevices();
       }
-      let probe: MediaStream | null = null;
-      try {
-        probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      } catch (e: any) {
-        if (!isCameraStartupError(e)) throw e;
-      }
-      const devices = await refreshDevices();
-      probe?.getTracks().forEach((t) => t.stop());
-      return devices;
+      return await refreshDevices();
     } catch (e: any) {
       setError(cameraErrorMessage(e));
       return [];
