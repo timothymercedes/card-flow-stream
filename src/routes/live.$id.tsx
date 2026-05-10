@@ -44,8 +44,6 @@ import {
   Unlock,
   Check,
   Gift,
-  Eye,
-  EyeOff,
   Layout,
   Move,
   PanelRightClose,
@@ -843,6 +841,16 @@ function LiveDetail() {
   const liveStudioAutoStartedRef = useRef(false);
   const [pendingHostCameraIds, setPendingHostCameraIds] = useState<string[]>([]);
   const [startingHostCameras, setStartingHostCameras] = useState(false);
+  const [pendingCameraRemovalId, setPendingCameraRemovalId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pendingCameraRemovalId) return;
+    if (!hostStudio.sources.some((s) => s.id === pendingCameraRemovalId)) {
+      setPendingCameraRemovalId(null);
+      return;
+    }
+    const timeout = window.setTimeout(() => setPendingCameraRemovalId(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [pendingCameraRemovalId, hostStudio.sources]);
   useEffect(() => {
     if (!isSeller || !usingCompositor || liveStudioAutoStartedRef.current) return;
     liveStudioAutoStartedRef.current = true;
@@ -922,6 +930,15 @@ function LiveDetail() {
     setShowHostCameraEditor(true);
     setHostCameraPanelCollapsed(false);
     if (hostStudio.sources.length === 0 && !startingHostCameras) void startHostCameras();
+  }
+
+  function removeHostStudioSource(sourceId: string) {
+    if (pendingCameraRemovalId !== sourceId) {
+      setPendingCameraRemovalId(sourceId);
+      return;
+    }
+    hostStudio.removeSource(sourceId);
+    setPendingCameraRemovalId(null);
   }
 
   const remaining = useMemo(
@@ -2873,17 +2890,6 @@ function LiveDetail() {
                     className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5"
                   >
                     <button
-                      onClick={() => hostStudio.toggleVisible(s.id)}
-                      className="rounded-md p-1 hover:bg-muted"
-                      title={s.visible ? "Hide from public" : "Show to public"}
-                    >
-                      {s.visible ? (
-                        <Eye className="h-3.5 w-3.5" />
-                      ) : (
-                        <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
-                    </button>
-                    <button
                       onClick={() => hostStudio.setActiveId(s.id)}
                       className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
                     >
@@ -2901,11 +2907,19 @@ function LiveDetail() {
                       )}
                     </button>
                     <button
-                      onClick={() => hostStudio.removeSource(s.id)}
+                      onClick={() => removeHostStudioSource(s.id)}
                       className="rounded-md p-1 hover:bg-destructive/15"
-                      title="Remove and release camera"
+                      title={
+                        pendingCameraRemovalId === s.id
+                          ? "Confirm remove camera"
+                          : "Remove and release camera"
+                      }
                     >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      {pendingCameraRemovalId === s.id ? (
+                        <Check className="h-3.5 w-3.5 text-destructive" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      )}
                     </button>
                   </div>
                 ))}

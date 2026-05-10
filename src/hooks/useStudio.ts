@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const CANVAS_W = 1280;
 const CANVAS_H = 720;
 const FPS = 30;
+const CAMERA_RELEASE_RETRY_DELAYS_MS = [300, 900, 1800];
 
 export type StudioScene = "solo" | "split" | "grid" | "freeform";
 
@@ -74,6 +75,10 @@ function detachVideoElement(video: HTMLVideoElement) {
   video.srcObject = null;
   video.removeAttribute("src");
   video.load();
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
@@ -147,6 +152,14 @@ export function useStudio(opts: {
     sourcesRef.current = sources;
   }, [sources]);
   useEffect(() => {
+    if (!sources.some((s) => s.kind === "camera" && !s.visible)) return;
+    setSources((prev) => {
+      const next = prev.map((s) => (s.kind === "camera" ? { ...s, visible: true } : s));
+      sourcesRef.current = next;
+      return next;
+    });
+  }, [sources]);
+  useEffect(() => {
     cameraDevicesRef.current = cameraDevices;
   }, [cameraDevices]);
   useEffect(() => {
@@ -216,6 +229,20 @@ export function useStudio(opts: {
     };
   }, []);
 
+  useEffect(() => {
+    const missing = sources.filter((s) => !layouts[s.id]);
+    if (missing.length === 0) return;
+    setLayouts((prev) => {
+      const next = { ...prev };
+      const startIndex = Object.keys(next).length;
+      missing.forEach((s, i) => {
+        next[s.id] = makeDefaultLayout(startIndex + i);
+      });
+      layoutsRef.current = next;
+      return next;
+    });
+  }, [sources, layouts, makeDefaultLayout]);
+
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(
     async (deviceId?: string) => {
@@ -261,6 +288,18 @@ export function useStudio(opts: {
           matchesCameraDevice(s, devices, deviceId),
         );
         if (existingCamera) {
+          setSources((prev) => {
+            const next = prev.map((s) =>
+              s.id === existingCamera.id ? { ...s, visible: true } : s,
+            );
+            sourcesRef.current = next;
+            return next;
+          });
+          setLayouts((prev) =>
+            prev[existingCamera.id]
+              ? prev
+              : { ...prev, [existingCamera.id]: makeDefaultLayout(Object.keys(prev).length) },
+          );
           setActiveId(existingCamera.id);
           setScene("freeform");
           setError(null);
@@ -294,18 +333,31 @@ export function useStudio(opts: {
         const exactVideoConstraints: MediaTrackConstraints | null = deviceId
           ? { ...baseVideoConstraints, deviceId: { exact: deviceId } }
           : null;
-        let stream: MediaStream;
-        try {
-          stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
-        } catch (e: any) {
-          if (exactVideoConstraints && !isCameraStartupError(e)) {
-            stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
-          } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
-            stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
-          } else {
-            throw e;
+        let stream: MediaStream | null = null;
+        let lastError: any = null;
+        for (let attempt = 0; attempt <= CAMERA_RELEASE_RETRY_DELAYS_MS.length; attempt += 1) {
+          try {
+            try {
+              stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
+            } catch (e: any) {
+              if (exactVideoConstraints && !isCameraStartupError(e)) {
+                stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
+              } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
+                stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
+              } else {
+                throw e;
+              }
+            }
+            break;
+          } catch (e: any) {
+            lastError = e;
+            if (!isCameraStartupError(e) || attempt === CAMERA_RELEASE_RETRY_DELAYS_MS.length) {
+              throw e;
+            }
+            await wait(CAMERA_RELEASE_RETRY_DELAYS_MS[attempt]);
           }
         }
+        if (!stream) throw lastError ?? new Error("Could not access camera");
         const track = stream.getVideoTracks()[0];
         const settings = track?.getSettings();
         const groupId = deviceGroupForId(cameraDevicesRef.current, settings?.deviceId ?? deviceId);
@@ -318,7 +370,7 @@ export function useStudio(opts: {
           kind: "camera",
           label,
           stream,
-          deviceId: settings?.deviceId,
+          deviceId: settings?.deviceId ?? deviceId,
           groupId,
           visible: true,
           muted: false,
@@ -327,6 +379,7 @@ export function useStudio(opts: {
         };
         setSources((prev) => {
           const next = [...prev, src];
+          sourcesRef.current = next;
           if (!activeIdRef.current) setActiveId(id);
           return next;
         });
@@ -370,6 +423,7 @@ export function useStudio(opts: {
       });
       setSources((prev) => {
         const next = [...prev, src];
+        sourcesRef.current = next;
         setActiveId(id);
         if (prev.length > 0) setScene("freeform");
         return next;
@@ -408,6 +462,7 @@ export function useStudio(opts: {
       };
       setSources((prev) => {
         const next = [...prev, src];
+        sourcesRef.current = next;
         if (!activeIdRef.current) setActiveId(id);
         return next;
       });
@@ -426,6 +481,7 @@ export function useStudio(opts: {
       video?.remove();
       videoElsRef.current.delete(id);
       const next = prev.filter((s) => s.id !== id);
+      sourcesRef.current = next;
       if (activeIdRef.current === id) setActiveId(next[0]?.id ?? null);
       return next;
     });
@@ -437,7 +493,15 @@ export function useStudio(opts: {
   }, []);
 
   const toggleVisible = useCallback((id: string) => {
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s)));
+    setSources((prev) => {
+      const next = prev.map((s) => {
+        if (s.id !== id) return s;
+        if (s.kind === "camera") return { ...s, visible: true };
+        return { ...s, visible: !s.visible };
+      });
+      sourcesRef.current = next;
+      return next;
+    });
   }, []);
 
   const toggleMute = useCallback((id: string) => {
