@@ -205,6 +205,7 @@ export function useStudio(opts: {
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(
     async (deviceId?: string) => {
+      let requestKey: string | null = null;
       try {
         setError(null);
         const cameraCount = sourcesRef.current.filter((s) => s.kind === "camera").length;
@@ -235,7 +236,7 @@ export function useStudio(opts: {
           setError(null);
           return existingCamera.id;
         }
-        const requestKey = cameraRequestKey(devices, deviceId);
+        requestKey = cameraRequestKey(devices, deviceId);
         if (openingCameraKeysRef.current.has(requestKey)) {
           setScene("freeform");
           setError(null);
@@ -300,7 +301,7 @@ export function useStudio(opts: {
         setError(cameraErrorMessage(e));
         return null;
       } finally {
-        openingCameraKeysRef.current.delete(cameraRequestKey(cameraDevicesRef.current, deviceId));
+        if (requestKey) openingCameraKeysRef.current.delete(requestKey);
       }
     },
     [refreshDevices, makeDefaultLayout],
