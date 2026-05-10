@@ -234,8 +234,9 @@ export function useStudio(opts: {
     if (missing.length === 0) return;
     setLayouts((prev) => {
       const next = { ...prev };
+      const startIndex = Object.keys(next).length;
       missing.forEach((s, i) => {
-        next[s.id] = makeDefaultLayout(Object.keys(next).length + i);
+        next[s.id] = makeDefaultLayout(startIndex + i);
       });
       layoutsRef.current = next;
       return next;
