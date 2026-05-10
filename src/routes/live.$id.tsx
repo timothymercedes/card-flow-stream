@@ -888,16 +888,28 @@ function LiveDetail() {
     setHostCameraPanelCollapsed(false);
     setStartingHostCameras(true);
     try {
+      // If caller passed device ids but they were all empty (labels-only list
+      // before permission was granted), force a permission prompt instead of
+      // silently re-opening the default camera.
+      const requestedAny = deviceIds.length > 0;
       const ids = deviceIds.filter(Boolean).slice(0, 3);
+      if (requestedAny && ids.length === 0) {
+        await hostStudio.requestCameraPermission?.();
+        toast.error("Allow camera access, then tap the camera again.");
+        return;
+      }
       const knownSourceIds = new Set(hostStudio.sources.map((s) => s.id));
       let added = 0;
       let reused = 0;
+      let lastErr: string | null = null;
       if (ids.length === 0) {
         const sourceId = await hostStudio.addCamera();
         if (sourceId && knownSourceIds.has(sourceId)) reused += 1;
         else if (sourceId) {
           knownSourceIds.add(sourceId);
           added += 1;
+        } else {
+          lastErr = hostStudio.error || null;
         }
       } else {
         for (const deviceId of ids) {
@@ -906,6 +918,8 @@ function LiveDetail() {
           else if (sourceId) {
             knownSourceIds.add(sourceId);
             added += 1;
+          } else {
+            lastErr = hostStudio.error || lastErr;
           }
         }
       }
@@ -915,8 +929,9 @@ function LiveDetail() {
       setShowHostCameraEditor(true);
       if (added > 0) toast.success(`${added} camera${added === 1 ? "" : "s"} ready in cockpit`);
       else if (reused > 0) toast.success("That camera is already ready in cockpit");
+      else if (lastErr) toast.error(lastErr);
       else if (hostStudio.error) toast.error(hostStudio.error);
-      else toast.error("No camera started. Check browser camera permission and try again.");
+      else toast.error("Camera didn't start. Check browser permission, close other apps using the cam, and try again.");
     } finally {
       setStartingHostCameras(false);
     }
