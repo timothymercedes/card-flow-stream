@@ -58,6 +58,29 @@ function deviceGroupForId(devices: MediaDeviceInfo[], deviceId?: string) {
   return devices.find((d) => d.deviceId === deviceId)?.groupId || undefined;
 }
 
+function hasLiveVideoTrack(stream: MediaStream) {
+  return stream.getVideoTracks().some((track) => track.readyState === "live");
+}
+
+function cameraRequestKey(devices: MediaDeviceInfo[], deviceId?: string) {
+  const groupId = deviceGroupForId(devices, deviceId);
+  if (groupId) return `group:${groupId}`;
+  if (deviceId) return `device:${deviceId}`;
+  return "default";
+}
+
+function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
+  if (source.kind !== "camera" || !hasLiveVideoTrack(source.stream)) return false;
+  if (!deviceId) return true;
+  const device = devices.find((d) => d.deviceId === deviceId);
+  const trackLabel = source.stream.getVideoTracks()[0]?.label;
+  return (
+    (!!source.deviceId && source.deviceId === deviceId) ||
+    (!!device?.groupId && source.groupId === device.groupId) ||
+    (!!device?.label && (source.label === device.label || trackLabel === device.label))
+  );
+}
+
 function cameraErrorMessage(e: any) {
   const name = e?.name || "";
   if (name === "NotAllowedError" || name === "SecurityError") {
@@ -67,7 +90,7 @@ function cameraErrorMessage(e: any) {
     return "No camera found matching that selection. Try a different camera.";
   }
   if (isCameraStartupError(e)) {
-    return "That camera is already active or still being held by the browser. I skipped duplicate starts; close any other camera preview, remove it here, or pick a different camera.";
+    return "That camera is already being held by the browser or another app. Close the other preview/app, wait a few seconds, then try again or choose a different camera.";
   }
   return e?.message || "Could not access camera";
 }
@@ -105,6 +128,7 @@ export function useStudio(opts: {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoElsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const openingCameraKeysRef = useRef<Set<string>>(new Set());
   const rafRef = useRef<number | null>(null);
   const sourcesRef = useRef(sources);
   const cameraDevicesRef = useRef(cameraDevices);
@@ -155,6 +179,9 @@ export function useStudio(opts: {
       return [];
     }
     try {
+      if (sourcesRef.current.some((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))) {
+        return await refreshDevices();
+      }
       let probe: MediaStream | null = null;
       try {
         probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -193,12 +220,32 @@ export function useStudio(opts: {
   // ─── Add / remove sources ───────────────────────────────────────────────
   const addCamera = useCallback(
     async (deviceId?: string) => {
+      let requestKey: string | null = null;
       try {
         setError(null);
-        const cameraCount = sourcesRef.current.filter((s) => s.kind === "camera").length;
-        if (cameraCount >= 3) {
-          setError("You can use up to 3 cameras at once. Remove one before adding another.");
-          return null;
+        const staleCameraIds = sourcesRef.current
+          .filter((s) => s.kind === "camera" && !hasLiveVideoTrack(s.stream))
+          .map((s) => s.id);
+        if (staleCameraIds.length > 0) {
+          const stale = new Set(staleCameraIds);
+          sourcesRef.current
+            .filter((s) => stale.has(s.id))
+            .forEach((s) => {
+              s.stream.getTracks().forEach((t) => t.stop());
+              videoElsRef.current.get(s.id)?.remove();
+              videoElsRef.current.delete(s.id);
+            });
+          const nextSources = sourcesRef.current.filter((s) => !stale.has(s.id));
+          sourcesRef.current = nextSources;
+          setSources(nextSources);
+          setLayouts((prev) => {
+            const next = { ...prev };
+            staleCameraIds.forEach((sid) => delete next[sid]);
+            return next;
+          });
+          if (activeIdRef.current && stale.has(activeIdRef.current)) {
+            setActiveId(nextSources[0]?.id ?? null);
+          }
         }
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error(
@@ -209,19 +256,32 @@ export function useStudio(opts: {
           throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
         }
         const devices = cameraDevicesRef.current;
-        const requestedGroupId = deviceGroupForId(devices, deviceId);
-        const existingCamera = sourcesRef.current.find((s) => {
-          if (s.kind !== "camera") return false;
-          if (!deviceId) return sourcesRef.current.filter((x) => x.kind === "camera").length > 0;
-          if (s.deviceId && s.deviceId === deviceId) return true;
-          return !!requestedGroupId && s.groupId === requestedGroupId;
-        });
+        const existingCamera = sourcesRef.current.find((s) =>
+          matchesCameraDevice(s, devices, deviceId),
+        );
         if (existingCamera) {
           setActiveId(existingCamera.id);
           setScene("freeform");
           setError(null);
           return existingCamera.id;
         }
+        const cameraCount = sourcesRef.current.filter(
+          (s) => s.kind === "camera" && hasLiveVideoTrack(s.stream),
+        ).length;
+        if (cameraCount >= 3) {
+          setError("You can use up to 3 cameras at once. Remove one before adding another.");
+          return null;
+        }
+        requestKey = cameraRequestKey(devices, deviceId);
+        if (openingCameraKeysRef.current.has(requestKey)) {
+          setScene("freeform");
+          setError(null);
+          return (
+            sourcesRef.current.find((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))
+              ?.id ?? null
+          );
+        }
+        openingCameraKeysRef.current.add(requestKey);
         const baseVideoConstraints: MediaTrackConstraints = {
           width: { ideal: 1280 },
           height: { ideal: 720 },
@@ -279,6 +339,8 @@ export function useStudio(opts: {
       } catch (e: any) {
         setError(cameraErrorMessage(e));
         return null;
+      } finally {
+        if (requestKey) openingCameraKeysRef.current.delete(requestKey);
       }
     },
     [refreshDevices, makeDefaultLayout],
