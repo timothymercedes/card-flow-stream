@@ -268,10 +268,11 @@ function Sell() {
             groupId: device?.groupId,
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         releaseStudioCameraStreams(cameraHandoffStreams);
+        const cameraError = error as DOMException;
         const message =
-          error?.name === "NotAllowedError"
+          cameraError?.name === "NotAllowedError"
             ? "Camera permission was blocked. Allow camera access, then start live again."
             : "One of those cameras could not start. Uncheck it or close any app using it, then start live again.";
         toast.error(message);
