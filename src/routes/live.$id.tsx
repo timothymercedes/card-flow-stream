@@ -168,7 +168,12 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>({ x: 12, y: 128, w: 104, h: 32 });
+  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>({
+    x: 12,
+    y: 128,
+    w: 104,
+    h: 32,
+  });
   const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>({ x: 12, y: 176, w: 256, h: 0 });
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
@@ -2621,7 +2626,8 @@ function LiveDetail() {
   const pauseMsLeft = Math.max(0, pauseExpiresAt - now);
   const bidDisabled = isSeller || ended || paused || !auctionLive;
   const hostStudioCameras = hostStudio.sources.filter((s) => s.kind === "camera");
-  const hostStudioCameraAccessNeeded = hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
+  const hostStudioCameraAccessNeeded =
+    hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
   const hostStudioScenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
     { id: "solo", label: "Solo", Icon: Square },
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
@@ -2630,8 +2636,11 @@ function LiveDetail() {
   ];
 
   async function scanHostStudioCameras() {
-    const devices = hostStudioCameraAccessNeeded ? await hostStudio.requestCameraPermission() : await hostStudio.refreshDevices();
-    if (devices.length > 0) toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
+    const devices = hostStudioCameraAccessNeeded
+      ? await hostStudio.requestCameraPermission()
+      : await hostStudio.refreshDevices();
+    if (devices.length > 0)
+      toast.success(`${devices.length} camera${devices.length === 1 ? "" : "s"} found`);
   }
 
   return (
@@ -2686,19 +2695,40 @@ function LiveDetail() {
           />
           <div className="absolute inset-x-3 top-16 z-30 rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur sm:left-auto sm:w-80">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-xs font-extrabold"><Layout className="h-3.5 w-3.5" /> Cameras</p>
-              <button onClick={() => setShowHostCameraEditor(false)} className="rounded-md p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+              <p className="flex items-center gap-1.5 text-xs font-extrabold">
+                <Layout className="h-3.5 w-3.5" /> Cameras
+              </p>
+              <button
+                onClick={() => setShowHostCameraEditor(false)}
+                className="rounded-md p-1 hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <div className="mb-2 grid grid-cols-4 gap-1">
               {hostStudioScenes.map(({ id: sceneId, label, Icon }) => (
-                <button key={sceneId} onClick={() => hostStudio.setScene(sceneId)} className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-bold ${hostStudio.scene === sceneId ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <button
+                  key={sceneId}
+                  onClick={() => hostStudio.setScene(sceneId)}
+                  className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[9px] font-bold ${hostStudio.scene === sceneId ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+                >
                   <Icon className="h-3.5 w-3.5" /> {label}
                 </button>
               ))}
             </div>
             <div className="mb-2 grid grid-cols-2 gap-1.5">
-              <button onClick={scanHostStudioCameras} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RefreshCw className="h-3.5 w-3.5" /> Scan</button>
-              <button onClick={hostStudio.resetLayouts} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RotateCw className="h-3.5 w-3.5" /> Reset</button>
+              <button
+                onClick={scanHostStudioCameras}
+                className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Scan
+              </button>
+              <button
+                onClick={hostStudio.resetLayouts}
+                className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
+              >
+                <RotateCw className="h-3.5 w-3.5" /> Reset
+              </button>
             </div>
             {pendingHostCameraIds.length > 0 && hostStudio.sources.length === 0 && (
               <button
@@ -2706,7 +2736,11 @@ function LiveDetail() {
                 disabled={startingHostCameras}
                 className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-live px-2 py-2 text-[10px] font-extrabold text-live-foreground disabled:opacity-60"
               >
-                {startingHostCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                {startingHostCameras ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
                 Start selected cameras
               </button>
             )}
@@ -2716,24 +2750,72 @@ function LiveDetail() {
                 disabled={startingHostCameras}
                 className="mb-2 flex w-full items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-extrabold text-primary-foreground disabled:opacity-60"
               >
-                {startingHostCameras ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                {startingHostCameras ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
                 Start default camera
               </button>
             )}
             {hostStudio.cameraDevices.length > 0 && hostStudioCameras.length < 3 && (
               <div className="mb-2 max-h-24 overflow-y-auto rounded-lg bg-muted/40 p-1">
                 {hostStudio.cameraDevices.map((d, i) => {
-                  const added = !!d.deviceId && hostStudio.sources.some((s) => s.kind === "camera" && s.deviceId === d.deviceId);
-                  return <button key={`${d.deviceId || d.groupId || i}`} disabled={added} onClick={() => startHostCameras([d.deviceId])} className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"><Camera className="h-3 w-3" /><span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>{added && "Added"}</button>;
+                  const added =
+                    !!d.deviceId &&
+                    hostStudio.sources.some(
+                      (s) => s.kind === "camera" && s.deviceId === d.deviceId,
+                    );
+                  return (
+                    <button
+                      key={`${d.deviceId || d.groupId || i}`}
+                      disabled={added}
+                      onClick={() => startHostCameras([d.deviceId])}
+                      className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[10px] font-semibold disabled:opacity-50"
+                    >
+                      <Camera className="h-3 w-3" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {d.label || `Camera ${i + 1}`}
+                      </span>
+                      {added && "Added"}
+                    </button>
+                  );
                 })}
               </div>
             )}
             <div className="space-y-1">
               {hostStudio.sources.map((s) => (
-                <div key={s.id} className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5">
-                  <button onClick={() => hostStudio.toggleVisible(s.id)} className="rounded-md p-1 hover:bg-muted" title={s.visible ? "Hide from public" : "Show to public"}>{s.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />}</button>
-                  <button onClick={() => hostStudio.setActiveId(s.id)} className="min-w-0 flex-1 truncate text-left text-[10px] font-bold">{s.label}</button>
-                  <button onClick={() => hostStudio.toggleLock(s.id)} className="rounded-md p-1 hover:bg-muted">{s.locked ? <Lock className="h-3.5 w-3.5 text-amber-400" /> : <Unlock className="h-3.5 w-3.5" />}</button>
+                <div
+                  key={s.id}
+                  className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5"
+                >
+                  <button
+                    onClick={() => hostStudio.toggleVisible(s.id)}
+                    className="rounded-md p-1 hover:bg-muted"
+                    title={s.visible ? "Hide from public" : "Show to public"}
+                  >
+                    {s.visible ? (
+                      <Eye className="h-3.5 w-3.5" />
+                    ) : (
+                      <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => hostStudio.setActiveId(s.id)}
+                    className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
+                  >
+                    {s.label}
+                  </button>
+                  <button
+                    onClick={() => hostStudio.toggleLock(s.id)}
+                    className="rounded-md p-1 hover:bg-muted"
+                  >
+                    {s.locked ? (
+                      <Lock className="h-3.5 w-3.5 text-amber-400" />
+                    ) : (
+                      <Unlock className="h-3.5 w-3.5" />
+                    )}
+                  </button>
                 </div>
               ))}
             </div>
@@ -3755,7 +3837,9 @@ function LiveDetail() {
       )}
 
       {/* Bottom panel */}
-      <div className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor ? "pointer-events-none opacity-30" : ""}`}>
+      <div
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor ? "pointer-events-none opacity-30" : ""}`}
+      >
         {stream.mode === "show_off" && (
           <>
             {/* Collapse / full-screen toggle for Flex Live */}
@@ -5577,7 +5661,10 @@ function LiveDetail() {
             >
               {({ dragHandleProps }) => (
                 <>
-                  <div {...dragHandleProps} className="flex cursor-move items-center justify-between bg-primary/20 px-3 py-1.5 select-none">
+                  <div
+                    {...dragHandleProps}
+                    className="flex cursor-move items-center justify-between bg-primary/20 px-3 py-1.5 select-none"
+                  >
                     <p className="flex items-center gap-1 text-[11px] font-bold">
                       <Shield className="h-3 w-3" /> Mod chat
                     </p>
@@ -5636,7 +5723,6 @@ function LiveDetail() {
               )}
             </FloatingBox>
           )}
-
         </>
       )}
 
