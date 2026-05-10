@@ -801,7 +801,9 @@ type LiveWizardProps = {
 function LiveWizard(p: LiveWizardProps) {
   const stepLabels = ["Title", "Category", "Method", "Products", "Settings", "Go Live"];
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
-  const [cameraScanStatus, setCameraScanStatus] = useState<"idle" | "scanning" | "ready" | "error">("idle");
+  const [cameraScanStatus, setCameraScanStatus] = useState<"idle" | "scanning" | "ready" | "error">(
+    "idle",
+  );
   const [cameraScanError, setCameraScanError] = useState<string | null>(null);
   const total = stepLabels.length;
   const canNext = (() => {
@@ -859,9 +861,11 @@ function LiveWizard(p: LiveWizardProps) {
       } catch (e: any) {
         const name = e?.name || "";
         if (name === "NotReadableError" || name === "AbortError") {
-          // Camera is held by another tab/app. Wait a tick and retry once.
+          // Some browsers throw this while the camera is still warming up; keep scanning devices.
           await new Promise((r) => setTimeout(r, 400));
-          probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          try {
+            probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          } catch {}
         } else {
           throw e;
         }
@@ -876,11 +880,13 @@ function LiveWizard(p: LiveWizardProps) {
       const name = error?.name || "";
       let message = error?.message || "Could not scan cameras";
       if (name === "NotAllowedError" || name === "SecurityError") {
-        message = "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again.";
+        message =
+          "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again.";
       } else if (name === "NotFoundError") {
         message = "No camera found on this device.";
       } else if (name === "NotReadableError" || /could not start video/i.test(message)) {
-        message = "Your camera is being used by another app or tab (e.g. Zoom, OBS, FaceTime, another browser tab). Close it and click Retry.";
+        message =
+          "The browser couldn't start the camera. Refresh, unplug/replug the camera, or choose a different camera if one is listed.";
       }
       setCameraScanError(message);
       setCameraScanStatus("error");
@@ -1048,12 +1054,18 @@ function LiveWizard(p: LiveWizardProps) {
                       disabled={cameraScanStatus === "scanning"}
                       className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-[11px] font-bold text-primary-foreground disabled:opacity-50"
                     >
-                      {cameraScanStatus === "scanning" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                      {cameraScanStatus === "scanning" ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
                       Scan
                     </button>
                     <button
                       type="button"
-                      onClick={() => window.open(window.location.href, "_blank", "noopener,noreferrer")}
+                      onClick={() =>
+                        window.open(window.location.href, "_blank", "noopener,noreferrer")
+                      }
                       title="Open in a new tab — bypasses the preview iframe so the browser can prompt for camera access"
                       className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-2 text-[11px] font-bold"
                     >
@@ -1063,7 +1075,8 @@ function LiveWizard(p: LiveWizardProps) {
                 </div>
                 {typeof window !== "undefined" && window.self !== window.top && (
                   <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2 text-[10px] text-amber-700 dark:text-amber-300">
-                    You're inside the Lovable preview iframe. Camera permission may be blocked here — click <b>↗ New tab</b> to run the studio in a normal browser tab.
+                    You're inside the Lovable preview iframe. Camera permission may be blocked here
+                    — click <b>↗ New tab</b> to run the studio in a normal browser tab.
                   </p>
                 )}
                 {cameraDevices.length > 0 ? (
@@ -1087,17 +1100,22 @@ function LiveWizard(p: LiveWizardProps) {
                           <span className="min-w-0 flex-1 truncate font-semibold">
                             {device.label || `Camera ${i + 1}`}
                           </span>
-                          {checked && <span className="text-[9px] font-bold text-primary">Queued</span>}
+                          {checked && (
+                            <span className="text-[9px] font-bold text-primary">Queued</span>
+                          )}
                         </label>
                       );
                     })}
                   </div>
                 ) : (
                   <p className="rounded-lg bg-background p-2 text-[10px] text-muted-foreground">
-                    Click Scan and allow camera permission so the browser can show your laptop, USB, capture-card, and OBS Virtual Camera options.
+                    Click Scan and allow camera permission so the browser can show your laptop, USB,
+                    capture-card, and OBS Virtual Camera options.
                   </p>
                 )}
-                {cameraScanError && <p className="mt-2 text-[10px] text-destructive">{cameraScanError}</p>}
+                {cameraScanError && (
+                  <p className="mt-2 text-[10px] text-destructive">{cameraScanError}</p>
+                )}
               </div>
             )}
             <MethodCard
