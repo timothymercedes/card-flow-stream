@@ -65,8 +65,8 @@ function hasLiveVideoTrack(stream: MediaStream) {
 
 function cameraRequestKey(devices: MediaDeviceInfo[], deviceId?: string) {
   const groupId = deviceGroupForId(devices, deviceId);
-  if (groupId) return `group:${groupId}`;
   if (deviceId) return `device:${deviceId}`;
+  if (groupId) return `group:${groupId}`;
   return "default";
 }
 
@@ -331,12 +331,12 @@ export function useStudio(opts: {
           height: { ideal: 720 },
           frameRate: { ideal: 30 },
         };
-        const preferredVideoConstraints: MediaTrackConstraints = deviceId
-          ? { ...baseVideoConstraints, deviceId: { ideal: deviceId } }
-          : baseVideoConstraints;
         const exactVideoConstraints: MediaTrackConstraints | null = deviceId
           ? { ...baseVideoConstraints, deviceId: { exact: deviceId } }
           : null;
+        const preferredVideoConstraints: MediaTrackConstraints = deviceId
+          ? exactVideoConstraints!
+          : baseVideoConstraints;
         let stream: MediaStream | null = null;
         let lastError: any = null;
         for (let attempt = 0; attempt <= CAMERA_RELEASE_RETRY_DELAYS_MS.length; attempt += 1) {
@@ -344,9 +344,7 @@ export function useStudio(opts: {
             try {
               stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
             } catch (e: any) {
-              if (exactVideoConstraints && !isCameraStartupError(e)) {
-                stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
-              } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
+              if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
                 stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
               } else {
                 throw e;
