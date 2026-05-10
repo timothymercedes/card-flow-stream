@@ -30,6 +30,11 @@ import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { WatchTutorial } from "@/components/WatchTutorial";
+import {
+  releaseStudioCameraStreams,
+  stashStudioCameraStreams,
+  type StudioCameraHandoff,
+} from "@/lib/studioCameraHandoff";
 
 export const Route = createFileRoute("/sell")({ component: Sell });
 
@@ -235,6 +240,38 @@ function Sell() {
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
+    let cameraHandoffStreams: StudioCameraHandoff[] = [];
+    if (useCompositor && selectedCameraIds.length > 0) {
+      try {
+        for (const deviceId of selectedCameraIds.slice(0, 3)) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: cameraHandoffStreams.length === 0
+              ? { echoCancellation: true, noiseSuppression: true }
+              : false,
+          });
+          const videoTrack = stream.getVideoTracks()[0];
+          const settings = videoTrack?.getSettings();
+          const device = (await navigator.mediaDevices.enumerateDevices()).find(
+            (d) => d.kind === "videoinput" && d.deviceId === (settings?.deviceId ?? deviceId),
+          );
+          cameraHandoffStreams.push({
+            stream,
+            label: videoTrack?.label || device?.label || `Camera ${cameraHandoffStreams.length + 1}`,
+            deviceId: settings?.deviceId ?? deviceId,
+            groupId: device?.groupId,
+          });
+        }
+      } catch (error: any) {
+        releaseStudioCameraStreams(cameraHandoffStreams);
+        const message =
+          error?.name === "NotAllowedError"
+            ? "Camera permission was blocked. Allow camera access, then start live again."
+            : "One of those cameras could not start. Uncheck it or close any app using it, then start live again.";
+        toast.error(message);
+        return;
+      }
+    }
     // Block if host already has an open (live or paused) stream
     const { data: openStream } = await supabase
       .from("live_streams")
@@ -243,6 +280,7 @@ function Sell() {
       .in("status", ["live", "paused"])
       .maybeSingle();
     if (openStream) {
+      releaseStudioCameraStreams(cameraHandoffStreams);
       toast.error(
         `You already have an open ${openStream.mode === "show_off" ? "Flex" : "live"} — end it first`,
       );
@@ -260,6 +298,7 @@ function Sell() {
         body: { meta_name: streamTitle },
       });
       if (error || (data as any)?.error) {
+        releaseStudioCameraStreams(cameraHandoffStreams);
         toast.error("Could not set up Cloudflare Stream — check keys");
         return;
       }
@@ -314,7 +353,10 @@ function Sell() {
       })
       .select()
       .single();
-    if (error) return toast.error(error.message);
+    if (error) {
+      releaseStudioCameraStreams(cameraHandoffStreams);
+      return toast.error(error.message);
+    }
     if (cf.cf_live_input_id || cf.cf_rtmps_url || cf.cf_stream_key) {
       await supabase.from("live_stream_credentials" as any).insert({
         stream_id: data.id,
@@ -324,6 +366,7 @@ function Sell() {
       });
     }
     if (useCompositor && selectedCameraIds.length > 0) {
+      if (cameraHandoffStreams.length > 0) stashStudioCameraStreams(data.id, cameraHandoffStreams);
       window.sessionStorage.setItem(
         `studio:${data.id}:cameraDeviceIds`,
         JSON.stringify(selectedCameraIds.slice(0, 3)),
