@@ -60,10 +60,21 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
   const steadyTicksRef = useRef(0);
   const capturingRef = useRef(false);
 
+  function stopScannerCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+      videoRef.current.removeAttribute("src");
+      videoRef.current.load();
+    }
+  }
+
   async function start(mode: "environment" | "user") {
     setError(null);
     try {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      stopScannerCamera();
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: mode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
@@ -81,7 +92,7 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
   useEffect(() => {
     if (pending || batch) return;
     start(facing);
-    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
+    return () => { stopScannerCamera(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, pending, batch]);
 
@@ -133,7 +144,7 @@ export function CardScanner({ onResult, onResults, onClose, defaultLanguage = "a
           setBatch(cards);
           setSelected(new Set(cards.map((_, i) => i))); // pre-select all
           // stop camera while reviewing
-          streamRef.current?.getTracks().forEach((t) => t.stop());
+          stopScannerCamera();
         }
       } else {
         const result: ScanResult = { ...(data as any), image: dataUrl, language };
