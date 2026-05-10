@@ -109,17 +109,17 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       return [];
     }
     try {
-      const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      let probe: MediaStream | null = null;
+      try {
+        probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      } catch (e: any) {
+        if (!isCameraStartupError(e)) throw e;
+      }
       const devices = await refreshDevices();
-      probe.getTracks().forEach((t) => t.stop());
+      probe?.getTracks().forEach((t) => t.stop());
       return devices;
     } catch (e: any) {
-      const name = e?.name || "";
-      setError(
-        name === "NotAllowedError" || name === "SecurityError"
-          ? "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again."
-          : e?.message || "Could not scan cameras",
-      );
+      setError(cameraErrorMessage(e));
       return [];
     }
   }, [refreshDevices]);
@@ -158,19 +158,27 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       if (typeof window !== "undefined" && window.isSecureContext === false) {
         throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
       }
-      const videoConstraints: MediaTrackConstraints = deviceId
-        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
-        : { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
-      const constraints: MediaStreamConstraints = {
-        video: videoConstraints,
-        audio: cameraCount === 0 ? { echoCancellation: true, noiseSuppression: true } : false,
-      };
+      const existingCamera = deviceId
+        ? sourcesRef.current.find((s) => s.kind === "camera" && s.deviceId === deviceId)
+        : null;
+      if (existingCamera) {
+        setActiveId(existingCamera.id);
+        setScene("freeform");
+        return existingCamera.id;
+      }
+      const baseVideoConstraints: MediaTrackConstraints = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
+      const preferredVideoConstraints: MediaTrackConstraints = deviceId
+        ? { ...baseVideoConstraints, deviceId: { ideal: deviceId } }
+        : baseVideoConstraints;
+      const exactVideoConstraints: MediaTrackConstraints | null = deviceId
+        ? { ...baseVideoConstraints, deviceId: { exact: deviceId } }
+        : null;
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
       } catch (e: any) {
-        if (constraints.audio && (e?.name === "NotReadableError" || e?.name === "AbortError")) {
-          stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+        if (exactVideoConstraints && !isCameraStartupError(e)) {
+          stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
         } else {
           throw e;
         }
@@ -197,16 +205,7 @@ export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; 
       refreshDevices();
       return id;
     } catch (e: any) {
-      const name = e?.name || "";
-      let msg = e?.message || "Could not access camera";
-      if (name === "NotAllowedError" || name === "SecurityError") {
-        msg = "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again.";
-      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
-        msg = "No camera found matching that selection. Try a different camera.";
-      } else if (name === "NotReadableError") {
-        msg = "Your camera is being used by another app (e.g. Zoom, OBS, FaceTime). Close it and try again.";
-      }
-      setError(msg);
+      setError(cameraErrorMessage(e));
       return null;
     }
   }, [refreshDevices, makeDefaultLayout]);
