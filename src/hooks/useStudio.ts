@@ -47,8 +47,15 @@ function isCameraStartupError(e: any) {
   return (
     name === "NotReadableError" ||
     name === "AbortError" ||
-    /could not start video|allocate video/i.test(message)
+    /could not start video|allocate video|already in use|in use by another application|hardware error/i.test(
+      message,
+    )
   );
+}
+
+function deviceGroupForId(devices: MediaDeviceInfo[], deviceId?: string) {
+  if (!deviceId) return undefined;
+  return devices.find((d) => d.deviceId === deviceId)?.groupId || undefined;
 }
 
 function cameraErrorMessage(e: any) {
@@ -60,7 +67,7 @@ function cameraErrorMessage(e: any) {
     return "No camera found matching that selection. Try a different camera.";
   }
   if (isCameraStartupError(e)) {
-    return "The browser couldn't start that camera. If it's already loaded in this cockpit, remove it first; otherwise unplug/replug the camera, refresh, or pick a different camera.";
+    return "That camera is already active or still being held by the browser. I skipped duplicate starts; close any other camera preview, remove it here, or pick a different camera.";
   }
   return e?.message || "Could not access camera";
 }
