@@ -118,6 +118,16 @@ function ShowOff() {
     }).select().single();
     if (error) { setBusy(false); return toast.error(error.message); }
 
+    // Store private Cloudflare RTMPS credentials in a separate table (same pattern as auction live).
+    if (cfPrivate.cf_live_input_id || cfPrivate.cf_rtmps_url || cfPrivate.cf_stream_key) {
+      await supabase.from("live_stream_credentials" as any).insert({
+        stream_id: data.id,
+        cf_live_input_id: cfPrivate.cf_live_input_id ?? null,
+        cf_rtmps_url: cfPrivate.cf_rtmps_url ?? null,
+        cf_stream_key: cfPrivate.cf_stream_key ?? null,
+      });
+    }
+
     // Pre-invite tagged users as collab participants
     if (tagged.length) {
       const invites = tagged.map((t) => ({
