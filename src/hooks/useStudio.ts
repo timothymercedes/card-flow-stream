@@ -40,6 +40,26 @@ export type ScenePreset = {
   scene: StudioScene;
 };
 
+function isCameraStartupError(e: any) {
+  const name = e?.name || "";
+  const message = String(e?.message || "");
+  return name === "NotReadableError" || name === "AbortError" || /could not start video|allocate video/i.test(message);
+}
+
+function cameraErrorMessage(e: any) {
+  const name = e?.name || "";
+  if (name === "NotAllowedError" || name === "SecurityError") {
+    return "Camera permission was blocked. Click the camera icon in your browser's address bar to allow it, then try again.";
+  }
+  if (name === "NotFoundError" || name === "OverconstrainedError") {
+    return "No camera found matching that selection. Try a different camera.";
+  }
+  if (isCameraStartupError(e)) {
+    return "The browser couldn't start that camera. If it's already loaded in this cockpit, remove it first; otherwise unplug/replug the camera, refresh, or pick a different camera.";
+  }
+  return e?.message || "Could not access camera";
+}
+
 export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; storageKey?: string }) {
   const { whipUrl, autoPublish, storageKey } = opts;
 
