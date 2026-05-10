@@ -313,14 +313,16 @@ export function FreeformOverlay({
                   >
                     <Maximize2 className="h-3 w-3" />
                   </button>
-                  <button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => onRemove(s.id)}
-                    className="rounded p-1 hover:bg-destructive/40"
-                    title="Remove"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {onRemove && (
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => onRemove(s.id)}
+                      className="rounded p-1 hover:bg-destructive/40"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               </div>
               {!locked && (
