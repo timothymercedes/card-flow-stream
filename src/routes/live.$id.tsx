@@ -2964,13 +2964,7 @@ function LiveDetail() {
           )}
           {!ended && isSeller && usingCompositor && (
             <button
-              onClick={() => {
-                if (showHostCameraEditor) setHostCameraPanelCollapsed((v) => !v);
-                else {
-                  setShowHostCameraEditor(true);
-                  setHostCameraPanelCollapsed(false);
-                }
-              }}
+              onClick={openHostCameraControls}
               className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
               title="Arrange cameras"
             >
