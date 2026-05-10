@@ -897,6 +897,7 @@ function LiveWizard(p: LiveWizardProps) {
   async function scanBrowserCameras() {
     setCameraScanStatus("scanning");
     setCameraScanError(null);
+    let probe: MediaStream | null = null;
     try {
       if (!navigator.mediaDevices?.getUserMedia || !navigator.mediaDevices?.enumerateDevices) {
         throw new Error("This browser cannot list cameras. Try Chrome, Edge, Safari, or Firefox.");
@@ -904,7 +905,6 @@ function LiveWizard(p: LiveWizardProps) {
       if (typeof window !== "undefined" && window.isSecureContext === false) {
         throw new Error("Camera access requires HTTPS. Open the app via the secure URL.");
       }
-      let probe: MediaStream | null = null;
       try {
         probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       } catch (e: any) {
@@ -923,7 +923,6 @@ function LiveWizard(p: LiveWizardProps) {
         (device) => device.kind === "videoinput",
       );
       setCameraDevices(devices);
-      probe?.getTracks().forEach((track) => track.stop());
       setCameraScanStatus("ready");
     } catch (error: any) {
       const name = error?.name || "";
@@ -939,6 +938,8 @@ function LiveWizard(p: LiveWizardProps) {
       }
       setCameraScanError(message);
       setCameraScanStatus("error");
+    } finally {
+      probe?.getTracks().forEach((track) => track.stop());
     }
   }
 
