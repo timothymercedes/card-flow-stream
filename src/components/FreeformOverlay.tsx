@@ -328,7 +328,7 @@ export function FreeformOverlay({
               {!locked && (
                 <div
                   onPointerDown={(e) => startDrag(e, s.id, "resize", "se")}
-                  className="absolute -bottom-2 -right-2 z-30 h-8 w-8 cursor-nwse-resize touch-none rounded-sm border-2 border-primary bg-background shadow-md"
+                  className="absolute -bottom-2 -right-2 z-30 h-7 w-7 cursor-nwse-resize touch-none rounded-sm border border-primary/40 bg-background/40 opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100"
                   title="Drag to resize"
                 />
               )}
