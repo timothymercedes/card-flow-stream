@@ -69,6 +69,13 @@ function cameraRequestKey(devices: MediaDeviceInfo[], deviceId?: string) {
   return "default";
 }
 
+function detachVideoElement(video: HTMLVideoElement) {
+  video.pause();
+  video.srcObject = null;
+  video.removeAttribute("src");
+  video.load();
+}
+
 function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
   if (source.kind !== "camera" || !hasLiveVideoTrack(source.stream)) return false;
   if (!deviceId) return true;
@@ -182,15 +189,7 @@ export function useStudio(opts: {
       if (sourcesRef.current.some((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))) {
         return await refreshDevices();
       }
-      let probe: MediaStream | null = null;
-      try {
-        probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      } catch (e: any) {
-        if (!isCameraStartupError(e)) throw e;
-      }
-      const devices = await refreshDevices();
-      probe?.getTracks().forEach((t) => t.stop());
-      return devices;
+      return await refreshDevices();
     } catch (e: any) {
       setError(cameraErrorMessage(e));
       return [];
@@ -232,7 +231,9 @@ export function useStudio(opts: {
             .filter((s) => stale.has(s.id))
             .forEach((s) => {
               s.stream.getTracks().forEach((t) => t.stop());
-              videoElsRef.current.get(s.id)?.remove();
+              const video = videoElsRef.current.get(s.id);
+              if (video) detachVideoElement(video);
+              video?.remove();
               videoElsRef.current.delete(s.id);
             });
           const nextSources = sourcesRef.current.filter((s) => !stale.has(s.id));
@@ -413,7 +414,9 @@ export function useStudio(opts: {
     setSources((prev) => {
       const target = prev.find((s) => s.id === id);
       target?.stream.getTracks().forEach((t) => t.stop());
-      videoElsRef.current.get(id)?.remove();
+      const video = videoElsRef.current.get(id);
+      if (video) detachVideoElement(video);
+      video?.remove();
       videoElsRef.current.delete(id);
       const next = prev.filter((s) => s.id !== id);
       if (activeIdRef.current === id) setActiveId(next[0]?.id ?? null);
@@ -731,7 +734,10 @@ export function useStudio(opts: {
   useEffect(() => {
     return () => {
       sourcesRef.current.forEach((s) => s.stream.getTracks().forEach((t) => t.stop()));
-      videoElsRef.current.forEach((v) => v.remove());
+      videoElsRef.current.forEach((v) => {
+        detachVideoElement(v);
+        v.remove();
+      });
       videoElsRef.current.clear();
       stopPublish();
     };

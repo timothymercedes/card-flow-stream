@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -159,6 +159,17 @@ function LiveDetail() {
   const endedRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
+
+  const stopLegacyCameraPreview = useCallback(() => {
+    camStream.current?.getTracks().forEach((t) => t.stop());
+    camStream.current = null;
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+      videoRef.current.removeAttribute("src");
+      videoRef.current.load();
+    }
+  }, []);
 
   // Mods, mod-chat, announcements, AI hype overlay
   const [mods, setMods] = useState<any[]>([]);
@@ -812,18 +823,21 @@ function LiveDetail() {
     })();
     return () => {
       cancelled = true;
-      camStream.current?.getTracks().forEach((t) => t.stop());
-      camStream.current = null;
+      stopLegacyCameraPreview();
     };
-  }, [isSeller, stream?.status, usingObs, usingCompositor]);
+  }, [isSeller, stream?.status, usingObs, usingCompositor, stopLegacyCameraPreview]);
 
   useEffect(() => {
     if (!isSeller || !usingCompositor || !hostStudio.canvas || !videoRef.current) return;
+    stopLegacyCameraPreview();
     const s = hostStudio.canvas.captureStream(30);
     videoRef.current.srcObject = s;
     videoRef.current.play().catch(() => {});
-    return () => s.getTracks().forEach((t) => t.stop());
-  }, [isSeller, usingCompositor, hostStudio.canvas]);
+    return () => {
+      s.getTracks().forEach((t) => t.stop());
+      if (videoRef.current?.srcObject === s) videoRef.current.srcObject = null;
+    };
+  }, [isSeller, usingCompositor, hostStudio.canvas, stopLegacyCameraPreview]);
 
   const liveStudioAutoStartedRef = useRef(false);
   const [pendingHostCameraIds, setPendingHostCameraIds] = useState<string[]>([]);
@@ -2290,7 +2304,7 @@ function LiveDetail() {
     await recordStreamMinutes();
     await sendMsg(msg ? `⏸️ Host paused: ${msg}` : `⏸️ Host paused — back within 3 hours`, true);
     toast.success("Live paused — resume within 3 hours");
-    camStream.current?.getTracks().forEach((t) => t.stop());
+    stopLegacyCameraPreview();
     setEndLiveOpen(false);
   }
   async function resumeLive() {
@@ -2355,7 +2369,7 @@ function LiveDetail() {
     await recordStreamMinutes();
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
-    camStream.current?.getTracks().forEach((t) => t.stop());
+    stopLegacyCameraPreview();
     setEndLiveOpen(false);
     nav({ to: "/store" });
   }
@@ -2407,7 +2421,7 @@ function LiveDetail() {
           ko_active: false,
         })
         .eq("id", id);
-      camStream.current?.getTracks().forEach((t) => t.stop());
+      stopLegacyCameraPreview();
       nav({ to: "/store" });
     }, 9000);
   }
