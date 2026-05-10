@@ -2898,11 +2898,19 @@ function LiveDetail() {
                       )}
                     </button>
                     <button
-                      onClick={() => hostStudio.removeSource(s.id)}
+                      onClick={() => removeHostStudioSource(s.id)}
                       className="rounded-md p-1 hover:bg-destructive/15"
-                      title="Remove and release camera"
+                      title={
+                        pendingCameraRemovalId === s.id
+                          ? "Confirm remove camera"
+                          : "Remove and release camera"
+                      }
                     >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      {pendingCameraRemovalId === s.id ? (
+                        <Check className="h-3.5 w-3.5 text-destructive" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      )}
                     </button>
                   </div>
                 ))}
