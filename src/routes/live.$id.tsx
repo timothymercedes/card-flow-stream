@@ -2884,45 +2884,62 @@ function LiveDetail() {
                 </div>
               )}
               <div className="space-y-1">
-                {hostStudio.sources.map((s) => (
-                  <div
-                    key={s.id}
-                    className="flex items-center gap-1 rounded-lg bg-background/70 p-1.5"
-                  >
-                    <button
-                      onClick={() => hostStudio.setActiveId(s.id)}
-                      className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
+                {hostStudio.sources.map((s) => {
+                  const confirming = pendingCameraRemovalId === s.id;
+                  return (
+                    <div
+                      key={s.id}
+                      className={`flex items-center gap-1 rounded-lg p-1.5 ${confirming ? "bg-destructive/15 ring-1 ring-destructive" : "bg-background/70"}`}
                     >
-                      {s.label}
-                    </button>
-                    <button
-                      onClick={() => hostStudio.toggleLock(s.id)}
-                      className="rounded-md p-1 hover:bg-muted"
-                      title={s.locked ? "Unlock" : "Lock"}
-                    >
-                      {s.locked ? (
-                        <Lock className="h-3.5 w-3.5 text-amber-400" />
+                      {confirming ? (
+                        <>
+                          <span className="min-w-0 flex-1 truncate text-[10px] font-bold text-destructive">
+                            Remove {s.label}?
+                          </span>
+                          <button
+                            onClick={() => removeHostStudioSource(s.id)}
+                            className="rounded-md bg-destructive px-2 py-1 text-[10px] font-extrabold text-destructive-foreground"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            onClick={() => setPendingCameraRemovalId(null)}
+                            className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold"
+                          >
+                            Cancel
+                          </button>
+                        </>
                       ) : (
-                        <Unlock className="h-3.5 w-3.5" />
+                        <>
+                          <button
+                            onClick={() => hostStudio.setActiveId(s.id)}
+                            className="min-w-0 flex-1 truncate text-left text-[10px] font-bold"
+                          >
+                            {s.label}
+                          </button>
+                          <button
+                            onClick={() => hostStudio.toggleLock(s.id)}
+                            className="rounded-md p-1 hover:bg-muted"
+                            title={s.locked ? "Unlock" : "Lock"}
+                          >
+                            {s.locked ? (
+                              <Lock className="h-3.5 w-3.5 text-amber-400" />
+                            ) : (
+                              <Unlock className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => removeHostStudioSource(s.id)}
+                            className="rounded-md p-1 hover:bg-destructive/15"
+                            title="Remove and release camera"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        </>
                       )}
-                    </button>
-                    <button
-                      onClick={() => removeHostStudioSource(s.id)}
-                      className="rounded-md p-1 hover:bg-destructive/15"
-                      title={
-                        pendingCameraRemovalId === s.id
-                          ? "Confirm remove camera"
-                          : "Remove and release camera"
-                      }
-                    >
-                      {pendingCameraRemovalId === s.id ? (
-                        <Check className="h-3.5 w-3.5 text-destructive" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      )}
-                    </button>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
