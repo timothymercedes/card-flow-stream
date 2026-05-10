@@ -231,7 +231,9 @@ export function useStudio(opts: {
             .filter((s) => stale.has(s.id))
             .forEach((s) => {
               s.stream.getTracks().forEach((t) => t.stop());
-              videoElsRef.current.get(s.id)?.remove();
+              const video = videoElsRef.current.get(s.id);
+              if (video) detachVideoElement(video);
+              video?.remove();
               videoElsRef.current.delete(s.id);
             });
           const nextSources = sourcesRef.current.filter((s) => !stale.has(s.id));
@@ -412,7 +414,9 @@ export function useStudio(opts: {
     setSources((prev) => {
       const target = prev.find((s) => s.id === id);
       target?.stream.getTracks().forEach((t) => t.stop());
-      videoElsRef.current.get(id)?.remove();
+      const video = videoElsRef.current.get(id);
+      if (video) detachVideoElement(video);
+      video?.remove();
       videoElsRef.current.delete(id);
       const next = prev.filter((s) => s.id !== id);
       if (activeIdRef.current === id) setActiveId(next[0]?.id ?? null);
@@ -730,7 +734,10 @@ export function useStudio(opts: {
   useEffect(() => {
     return () => {
       sourcesRef.current.forEach((s) => s.stream.getTracks().forEach((t) => t.stop()));
-      videoElsRef.current.forEach((v) => v.remove());
+      videoElsRef.current.forEach((v) => {
+        detachVideoElement(v);
+        v.remove();
+      });
       videoElsRef.current.clear();
       stopPublish();
     };
