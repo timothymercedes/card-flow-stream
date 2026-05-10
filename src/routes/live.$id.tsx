@@ -2697,16 +2697,26 @@ function LiveDetail() {
             onToggleVisible={hostStudio.toggleVisible}
             onRename={hostStudio.renameSource}
           />
-          <div className="absolute inset-x-3 top-16 z-30 rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur sm:left-auto sm:w-80">
+          {hostCameraPanelCollapsed ? (
+            <button
+              onClick={() => setHostCameraPanelCollapsed(false)}
+              className="absolute right-3 top-16 z-50 flex items-center gap-1.5 rounded-full bg-card/95 px-3 py-2 text-xs font-extrabold text-foreground shadow-2xl backdrop-blur"
+              title="Open camera panel"
+            >
+              <Settings className="h-3.5 w-3.5" /> Cameras
+            </button>
+          ) : (
+            <div className="absolute inset-x-3 top-16 z-50 rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur sm:left-auto sm:w-80">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 text-xs font-extrabold">
                 <Layout className="h-3.5 w-3.5" /> Cameras
               </p>
               <button
-                onClick={() => setShowHostCameraEditor(false)}
+                onClick={() => setHostCameraPanelCollapsed(true)}
                 className="rounded-md p-1 hover:bg-muted"
+                title="Collapse camera panel"
               >
-                <X className="h-4 w-4" />
+                <PanelRightClose className="h-4 w-4" />
               </button>
             </div>
             <div className="mb-2 grid grid-cols-4 gap-1">
@@ -2823,7 +2833,8 @@ function LiveDetail() {
                 </div>
               ))}
             </div>
-          </div>
+            </div>
+          )}
         </>
       )}
 
