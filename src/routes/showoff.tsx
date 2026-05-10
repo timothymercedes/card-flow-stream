@@ -78,6 +78,29 @@ function ShowOff() {
       return;
     }
     setBusy(true);
+
+    // Provision Cloudflare Stream input (HLS + WHIP) so Flex Live gets the same
+    // multi-camera browser compositor as auction live. Non-fatal if it fails —
+    // we just fall back to the basic flex experience.
+    let cfPublic: { cf_playback_hls?: string | null; cf_whip_url?: string | null } = {};
+    let cfPrivate: { cf_live_input_id?: string; cf_rtmps_url?: string; cf_stream_key?: string } = {};
+    try {
+      const { data: cfData, error: cfErr } = await supabase.functions.invoke("create-stream-input", {
+        body: { meta_name: title.trim() },
+      });
+      if (!cfErr && cfData && !(cfData as any).error) {
+        cfPublic = {
+          cf_playback_hls: (cfData as any).hls_url,
+          cf_whip_url: (cfData as any).whip_url,
+        };
+        cfPrivate = {
+          cf_live_input_id: (cfData as any).live_input_id,
+          cf_rtmps_url: (cfData as any).rtmps_url,
+          cf_stream_key: (cfData as any).stream_key,
+        };
+      }
+    } catch { /* best-effort */ }
+
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user.id,
       title: title.trim(),
@@ -91,6 +114,8 @@ function ShowOff() {
       status: "live",
       is_active: true,
       started_at: new Date().toISOString(),
+      ...cfPublic,
+      ...cfPrivate,
     }).select().single();
     if (error) { setBusy(false); return toast.error(error.message); }
 
