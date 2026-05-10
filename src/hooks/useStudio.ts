@@ -58,6 +58,17 @@ function deviceGroupForId(devices: MediaDeviceInfo[], deviceId?: string) {
   return devices.find((d) => d.deviceId === deviceId)?.groupId || undefined;
 }
 
+function hasLiveVideoTrack(stream: MediaStream) {
+  return stream.getVideoTracks().some((track) => track.readyState === "live");
+}
+
+function cameraRequestKey(devices: MediaDeviceInfo[], deviceId?: string) {
+  const groupId = deviceGroupForId(devices, deviceId);
+  if (groupId) return `group:${groupId}`;
+  if (deviceId) return `device:${deviceId}`;
+  return "default";
+}
+
 function cameraErrorMessage(e: any) {
   const name = e?.name || "";
   if (name === "NotAllowedError" || name === "SecurityError") {
@@ -67,7 +78,7 @@ function cameraErrorMessage(e: any) {
     return "No camera found matching that selection. Try a different camera.";
   }
   if (isCameraStartupError(e)) {
-    return "That camera is already active or still being held by the browser. I skipped duplicate starts; close any other camera preview, remove it here, or pick a different camera.";
+    return "That camera is already being held by the browser or another app. Close the other preview/app, wait a few seconds, then try again or choose a different camera.";
   }
   return e?.message || "Could not access camera";
 }
