@@ -114,11 +114,7 @@ function ShowOff() {
       status: "live",
       is_active: true,
       started_at: new Date().toISOString(),
-      cf_playback_hls: cfPublic.cf_playback_hls ?? null,
-      cf_whip_url: cfPublic.cf_whip_url ?? null,
-      cf_live_input_id: cfPrivate.cf_live_input_id ?? null,
-      cf_rtmps_url: cfPrivate.cf_rtmps_url ?? null,
-      cf_stream_key: cfPrivate.cf_stream_key ?? null,
+      ...cfPublic,
     }).select().single();
     if (error) { setBusy(false); return toast.error(error.message); }
 
