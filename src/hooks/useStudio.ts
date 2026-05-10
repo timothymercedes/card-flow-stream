@@ -69,6 +69,18 @@ function cameraRequestKey(devices: MediaDeviceInfo[], deviceId?: string) {
   return "default";
 }
 
+function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], deviceId?: string) {
+  if (source.kind !== "camera" || !hasLiveVideoTrack(source.stream)) return false;
+  if (!deviceId) return true;
+  const device = devices.find((d) => d.deviceId === deviceId);
+  const trackLabel = source.stream.getVideoTracks()[0]?.label;
+  return (
+    (!!source.deviceId && source.deviceId === deviceId) ||
+    (!!device?.groupId && source.groupId === device.groupId) ||
+    (!!device?.label && (source.label === device.label || trackLabel === device.label))
+  );
+}
+
 function cameraErrorMessage(e: any) {
   const name = e?.name || "";
   if (name === "NotAllowedError" || name === "SecurityError") {
