@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const CANVAS_W = 1280;
 const CANVAS_H = 720;
 const FPS = 30;
-const CAMERA_RELEASE_RETRY_DELAYS_MS = [250, 750, 1400];
+const CAMERA_RELEASE_RETRY_DELAYS_MS = [300, 900, 1800];
 
 export type StudioScene = "solo" | "split" | "grid" | "freeform";
 
