@@ -193,6 +193,7 @@ export function useStudio(opts: {
   const addCamera = useCallback(
     async (deviceId?: string) => {
       try {
+        setError(null);
         const cameraCount = sourcesRef.current.filter((s) => s.kind === "camera").length;
         if (cameraCount >= 3) {
           setError("You can use up to 3 cameras at once. Remove one before adding another.");
@@ -237,7 +238,7 @@ export function useStudio(opts: {
         } catch (e: any) {
           if (exactVideoConstraints && !isCameraStartupError(e)) {
             stream = await openCameraStream(exactVideoConstraints, cameraCount === 0);
-          } else if (deviceId && isCameraStartupError(e)) {
+          } else if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
             stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
           } else {
             throw e;
