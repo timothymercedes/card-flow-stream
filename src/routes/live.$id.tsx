@@ -2304,7 +2304,7 @@ function LiveDetail() {
     await recordStreamMinutes();
     await sendMsg(msg ? `⏸️ Host paused: ${msg}` : `⏸️ Host paused — back within 3 hours`, true);
     toast.success("Live paused — resume within 3 hours");
-    camStream.current?.getTracks().forEach((t) => t.stop());
+    stopLegacyCameraPreview();
     setEndLiveOpen(false);
   }
   async function resumeLive() {
@@ -2369,7 +2369,7 @@ function LiveDetail() {
     await recordStreamMinutes();
     await sendMsg(`🛑 Live ended`, true);
     toast.success("Live ended");
-    camStream.current?.getTracks().forEach((t) => t.stop());
+    stopLegacyCameraPreview();
     setEndLiveOpen(false);
     nav({ to: "/store" });
   }
