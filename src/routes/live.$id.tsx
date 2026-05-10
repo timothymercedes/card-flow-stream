@@ -2944,7 +2944,7 @@ function LiveDetail() {
           {!ended && isSeller && usingCompositor && (
             <button
               onClick={() => {
-                if (showHostCameraEditor) setHostCameraPanelCollapsed(true);
+                if (showHostCameraEditor) setHostCameraPanelCollapsed((v) => !v);
                 else {
                   setShowHostCameraEditor(true);
                   setHostCameraPanelCollapsed(false);
