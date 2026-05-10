@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -160,7 +160,7 @@ function LiveDetail() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
-  function stopLegacyCameraPreview() {
+  const stopLegacyCameraPreview = useCallback(() => {
     camStream.current?.getTracks().forEach((t) => t.stop());
     camStream.current = null;
     if (videoRef.current) {
@@ -169,7 +169,7 @@ function LiveDetail() {
       videoRef.current.removeAttribute("src");
       videoRef.current.load();
     }
-  }
+  }, []);
 
   // Mods, mod-chat, announcements, AI hype overlay
   const [mods, setMods] = useState<any[]>([]);
