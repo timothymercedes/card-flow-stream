@@ -38,6 +38,7 @@ import {
   RotateCw,
   RefreshCw,
   Plus,
+  Loader2,
   Lock,
   Shuffle,
   Unlock,
