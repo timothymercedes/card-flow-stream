@@ -60,6 +60,20 @@ function cameraErrorMessage(e: any) {
   return e?.message || "Could not access camera";
 }
 
+async function openCameraStream(video: MediaTrackConstraints, withAudio: boolean) {
+  const audio: MediaTrackConstraints | false = withAudio
+    ? { echoCancellation: true, noiseSuppression: true }
+    : false;
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video, audio });
+  } catch (e: any) {
+    if (withAudio && isCameraStartupError(e)) {
+      return navigator.mediaDevices.getUserMedia({ video, audio: false });
+    }
+    throw e;
+  }
+}
+
 export function useStudio(opts: { whipUrl: string | null; autoPublish: boolean; storageKey?: string }) {
   const { whipUrl, autoPublish, storageKey } = opts;
 
