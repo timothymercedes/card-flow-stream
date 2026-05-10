@@ -101,7 +101,7 @@ function ShowOff() {
       }
     } catch { /* best-effort */ }
 
-    const { data, error } = await supabase.from("live_streams").insert({
+    const insertRow = {
       seller_id: user.id,
       title: title.trim(),
       mode: "show_off",
@@ -114,9 +114,13 @@ function ShowOff() {
       status: "live",
       is_active: true,
       started_at: new Date().toISOString(),
-      ...cfPublic,
-      ...cfPrivate,
-    }).select().single();
+      cf_playback_hls: cfPublic.cf_playback_hls ?? null,
+      cf_whip_url: cfPublic.cf_whip_url ?? null,
+      cf_live_input_id: cfPrivate.cf_live_input_id ?? null,
+      cf_rtmps_url: cfPrivate.cf_rtmps_url ?? null,
+      cf_stream_key: cfPrivate.cf_stream_key ?? null,
+    };
+    const { data, error } = await supabase.from("live_streams").insert(insertRow).select().single();
     if (error) { setBusy(false); return toast.error(error.message); }
 
     // Pre-invite tagged users as collab participants
