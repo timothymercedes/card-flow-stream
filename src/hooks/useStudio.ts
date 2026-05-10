@@ -276,7 +276,10 @@ export function useStudio(opts: {
         if (openingCameraKeysRef.current.has(requestKey)) {
           setScene("freeform");
           setError(null);
-          return sourcesRef.current.find((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))?.id ?? null;
+          return (
+            sourcesRef.current.find((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))
+              ?.id ?? null
+          );
         }
         openingCameraKeysRef.current.add(requestKey);
         const baseVideoConstraints: MediaTrackConstraints = {
