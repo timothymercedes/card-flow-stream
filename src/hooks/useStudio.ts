@@ -206,6 +206,11 @@ export function useStudio(opts: {
       if (sourcesRef.current.some((s) => s.kind === "camera" && hasLiveVideoTrack(s.stream))) {
         return await refreshDevices();
       }
+      const permissionProbe = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
+      permissionProbe.getTracks().forEach((track) => track.stop());
       return await refreshDevices();
     } catch (e: any) {
       setError(cameraErrorMessage(e));
