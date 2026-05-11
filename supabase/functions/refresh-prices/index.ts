@@ -81,11 +81,13 @@ Deno.serve(async (req) => {
 
   let updated = 0;
   let swings = 0;
+  let firstPrice: any = null;
 
   for (const id of identities) {
     if (!id.name) continue;
     const price = await fetchTcgPrice(id.name, id.set, id.number);
     if (!price || price.market == null) continue;
+    if (!firstPrice) firstPrice = { ...price, name: id.name, set: id.set, number: id.number };
 
     const card_key = keyOf(id.name, id.set, id.number);
     const now = new Date().toISOString();
@@ -162,7 +164,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, identities: identities.length, updated, swings }),
+    JSON.stringify({ ok: true, identities: identities.length, updated, swings, price: firstPrice }),
     { headers: { ...corsHeaders, "content-type": "application/json" } },
   );
 });
