@@ -2281,6 +2281,37 @@ function LiveDetail() {
           round_number: nextRound,
         })
         .eq("id", id);
+
+      // 🆕 If the host had a card pinned from a scan, mark a matching active
+      // marketplace listing as SOLD OUT so it disappears from the marketplace.
+      try {
+        const pin: any = (stream as any).pinned_card;
+        if (pin?.name) {
+          let q = supabase
+            .from("listings")
+            .select("id, quantity, sold_count, tcg_number, tcg_set")
+            .eq("seller_id", stream.seller_id)
+            .ilike("title", `%${pin.name}%`)
+            .gt("expires_at", new Date().toISOString())
+            .limit(5);
+          const { data: matches } = await q;
+          const best = (matches || []).find((l: any) => {
+            const numOk = !pin.number || !l.tcg_number || String(l.tcg_number).trim() === String(pin.number).trim();
+            const setOk = !pin.set || !l.tcg_set || String(l.tcg_set).toLowerCase() === String(pin.set).toLowerCase();
+            const notSold = Number(l.sold_count ?? 0) < Number(l.quantity ?? 1);
+            return numOk && setOk && notSold;
+          }) || (matches || [])[0];
+          if (best?.id) {
+            await supabase
+              .from("listings")
+              .update({ sold_count: Number(best.quantity ?? 1) } as any)
+              .eq("id", best.id);
+            await sendMsg(`✅ Marketplace listing marked SOLD for "${pin.name}"`, true);
+          }
+        }
+      } catch (e) {
+        console.warn("[live] mark listing sold failed", e);
+      }
       // 🆕 Auto-trigger pre-selected reveal (Spin Wheel or Mystery Break) for the winner
       const revealMode = (stream as any).auction_reveal_mode as string | undefined;
       if (isSeller && revealMode === "wheel") {
