@@ -145,6 +145,31 @@ function Sell() {
     }
   }, [user, sellerStatus, stripeReady, tutorial]);
 
+  // Pick up a prefill stashed by the scanner (from Vault → "List for Sale"/"Start Auction")
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("pbl_prefill_listing");
+      if (!raw) return;
+      sessionStorage.removeItem("pbl_prefill_listing");
+      const d = JSON.parse(raw);
+      if (d?.listing_type === "auction") { setEnableAuction(true); setEnableBuyNow(false); }
+      else { setEnableBuyNow(true); setEnableAuction(false); }
+      if (d.image) setImageUrl(d.image);
+      if (d.name) setTitle(d.name);
+      if (d.tcg_number) setTcgNumber(d.tcg_number);
+      if (d.set) setTcgSet(d.set);
+      if (d.year) setTcgYear(String(d.year));
+      if (d.condition_prices) setCondPrices(d.condition_prices);
+      const base = Number(d.estimated_value) || Number(d.condition_prices?.NM) || 0;
+      if (base) {
+        if (d.listing_type === "auction") setAuctionStart(String(base));
+        else setBuyNowPrice(String(base));
+      }
+      toast.success(`Filled from scan: ${d.name || "card"}`);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
   useEffect(() => {
     if (!condPrices) return;
