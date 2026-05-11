@@ -23,20 +23,24 @@ async function fetchTcgPrice(
   rarity: string | null,
   variantHint: string | null,
 ) {
-  // Use exact-ish match. If we have a card number we drop the name wildcard
-  // (number is far more selective and avoids matching random reprints).
+  // Use wildcard so "Charizard" still matches "Charizard ex" / "Charizard VMAX".
+  // When we have a card number, drop the wildcard and require exact number+name
+  // (number is by far the most selective filter — eliminates reprints).
+  const cleanName = name.replace(/"/g, "");
   const parts: string[] = [];
   if (number) {
-    parts.push(`name:"${name.replace(/"/g, "")}"`);
+    parts.push(`name:"${cleanName}*"`);
     parts.push(`number:"${number.replace(/"/g, "").split("/")[0].trim()}"`);
   } else {
-    parts.push(`name:"${name.replace(/"/g, "")}"`);
+    parts.push(`name:"${cleanName}*"`);
   }
-  if (set) parts.push(`set.name:"${set.replace(/"/g, "")}"`);
+  if (set) parts.push(`set.name:"${set.replace(/"/g, "")}*"`);
   const q = parts.join(" ");
   const apiKey = Deno.env.get("POKEMONTCG_API_KEY");
-  // pageSize=5 so we can rank by rarity match if there are reprints
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=5&orderBy=-set.releaseDate`, {
+  // Pull up to 20 candidates so we can rank by closest name + rarity match.
+  // Without an explicit order we let the API's relevance ranking surface the
+  // best name match first instead of forcing newest-set first.
+  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=20`, {
     headers: apiKey ? { "X-Api-Key": apiKey } : {},
   });
   if (!res.ok) return null;
@@ -44,14 +48,24 @@ async function fetchTcgPrice(
   const candidates: any[] = json?.data || [];
   if (candidates.length === 0) return null;
 
-  // Pick the candidate whose rarity matches what was scanned (when provided)
-  let card = candidates[0];
-  if (rarity) {
-    const rNorm = rarity.toLowerCase();
-    const match = candidates.find((c) => (c.rarity || "").toLowerCase() === rNorm)
-      ?? candidates.find((c) => (c.rarity || "").toLowerCase().includes(rNorm.split(" ")[0]));
-    if (match) card = match;
+  // Score candidates: exact name match > prefix match; rarity match adds points;
+  // having a tcgplayer market price is required to be useful.
+  const targetName = cleanName.toLowerCase();
+  const targetRarity = (rarity || "").toLowerCase();
+  function score(c: any): number {
+    let s = 0;
+    const cn = (c.name || "").toLowerCase();
+    if (cn === targetName) s += 10;
+    else if (cn.startsWith(targetName)) s += 4;
+    if (targetRarity && (c.rarity || "").toLowerCase() === targetRarity) s += 5;
+    else if (targetRarity && (c.rarity || "").toLowerCase().includes(targetRarity.split(" ")[0])) s += 2;
+    if (c?.tcgplayer?.prices) s += 3; // has pricing data
+    return s;
   }
+  candidates.sort((a, b) => score(b) - score(a));
+
+  // Top-scored candidate is the best match (already ranked by name + rarity + has-prices).
+  const card = candidates[0];
 
   const p = card?.tcgplayer?.prices ?? {};
   // Choose the variant that matches the scanned card's actual variant/rarity
