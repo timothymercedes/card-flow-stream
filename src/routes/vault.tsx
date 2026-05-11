@@ -301,6 +301,7 @@ function Vault() {
       }
     }
     if (updated > 0) toast.success(`Updated values on ${updated} card${updated > 1 ? "s" : ""}`);
+  }
 
   async function backfillMissingImages(list: Card[]) {
     const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
