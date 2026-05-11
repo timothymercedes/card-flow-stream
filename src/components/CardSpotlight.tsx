@@ -58,6 +58,7 @@ export function CardSpotlight({ card, isHost, onClose }: Props) {
         onChange={setBox}
         minW={180}
         minH={48}
+        resize={isHost}
         className="z-40"
       >
         {({ dragHandleProps }) => (
