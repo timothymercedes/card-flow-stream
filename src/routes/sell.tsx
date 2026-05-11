@@ -831,6 +831,11 @@ function Sell() {
                   setEnableAuction(true);
                   setEnableBuyNow(false);
                   toast.success("Auction details filled — set duration and post");
+                } else if (action === "offer") {
+                  setEnableOffers(true);
+                  setEnableBuyNow(false);
+                  setEnableAuction(false);
+                  toast.success("Make Offer enabled — review and post");
                 } else if (action === "inventory") {
                   toast.success("Card details filled — save to Vault from there");
                 } else if (action === "draft") {
