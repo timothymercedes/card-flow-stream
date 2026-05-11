@@ -23,9 +23,12 @@ const CARD_SCHEMA_TEXT = `{
   "variant": string,
   "rarity": string,
   "language": string,
+  "bbox": { "x": number, "y": number, "w": number, "h": number },
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
   "overall_confidence": number
 }`;
+
+const BBOX_INSTRUCTION = `\n\nALSO RETURN A TIGHT BOUNDING BOX around the card in the image as "bbox" with NORMALIZED coordinates (0..1) where x,y is the top-left corner and w,h are the width/height. The box must hug the 4 corners of the card tightly (no background, no hand, no table). If multiple cards, return the bbox for the most prominent one (single mode) or one per card (multi mode). If you cannot see the card edges clearly, return your best estimate covering the visible card.`;
 
 const SYSTEM_SINGLE = `You read trading card photos for a marketplace scanner. Be FAST and literal.
 
