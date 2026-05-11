@@ -183,18 +183,41 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() => ({
-    x: 12,
-    y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
-    w: 104,
-    h: 32,
-  }));
-  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>(() => ({
-    x: 124,
-    y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
-    w: 132,
-    h: 32,
-  }));
+  const loadBox = (key: string, fallback: FloatingBoxRect): FloatingBoxRect => {
+    if (typeof window === "undefined") return fallback;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p?.x === "number" && typeof p?.y === "number") {
+          return { x: p.x, y: p.y, w: p.w ?? fallback.w, h: p.h ?? fallback.h };
+        }
+      }
+    } catch { /* ignore */ }
+    return fallback;
+  };
+  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() =>
+    loadBox("live.paymentBtnBox", {
+      x: 12,
+      y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
+      w: 104,
+      h: 32,
+    }),
+  );
+  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>(() =>
+    loadBox("live.quickModBox", {
+      x: 124,
+      y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
+      w: 84,
+      h: 28,
+    }),
+  );
+  useEffect(() => {
+    try { window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox)); } catch { /* ignore */ }
+  }, [paymentButtonBox]);
+  useEffect(() => {
+    try { window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox)); } catch { /* ignore */ }
+  }, [quickModBox]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
