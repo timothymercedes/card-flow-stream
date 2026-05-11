@@ -897,10 +897,16 @@ function Vault() {
         <div className="grid grid-cols-2 gap-3">
           {filteredCards.map((c) => {
             const meta = [c.tcg_set, c.tcg_year, c.tcg_number && `#${c.tcg_number}`].filter(Boolean).join(" • ");
+            const cv = parseVariant(c.description);
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
-                <div className="aspect-square bg-muted">
+                <div className="relative aspect-square bg-muted">
                   {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  {cv.edition === "1st Edition" && (
+                    <span className="absolute left-1.5 top-1.5 rounded-md border border-yellow-300/80 bg-black/80 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
+                      1st Edition
+                    </span>
+                  )}
                 </div>
                 <div className="p-2">
                   <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
