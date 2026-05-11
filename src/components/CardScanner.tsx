@@ -258,7 +258,7 @@ export function CardScanner({
               (result as any).price_source_url = j.price.source_url;
               (result as any).price_low = j.price.low;
               (result as any).price_high = j.price.high;
-              const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches : j.price.alternatives;
+              const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches.slice(1) : j.price.alternatives;
               if (Array.isArray(matches) && matches.length) {
                 result.alternatives = matches;
               }
