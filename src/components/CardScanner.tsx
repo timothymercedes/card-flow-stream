@@ -148,9 +148,18 @@ export function CardScanner({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch (err: any) {
+          // Ignore AbortError / "interrupted" errors caused by rapid effect
+          // re-runs (camera flip, unmount). Surface real failures only.
+          if (err?.name !== "AbortError" && !/interrupted|removed from the document/i.test(err?.message || "")) {
+            throw err;
+          }
+        }
       }
     } catch (e: any) {
+      if (e?.name === "AbortError") return;
       setError(e?.message || "Camera unavailable. Check permissions.");
     }
   }
