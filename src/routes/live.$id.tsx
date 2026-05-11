@@ -763,6 +763,7 @@ function LiveDetail() {
   //   - else:            legacy in-app camera preview only
   const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
   const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
+  const flexNeedsCameraSetup = stream?.mode === "show_off" && !!isSeller && !ended && !usingCompositor;
   const hostStudio = useStudio({
     whipUrl: stream?.cf_whip_url ?? null,
     autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
