@@ -314,6 +314,7 @@ function Vault() {
     setImageUrl(""); setBackImageUrl("");
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
     setAlternatives([]); setAltIndex(0);
+    setEdition("Unlimited"); setFinish("Non-Holo");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
