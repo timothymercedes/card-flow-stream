@@ -110,6 +110,17 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
   const alts = Array.isArray(parsed?.alternatives)
     ? parsed.alternatives.slice(0, 3).map(normalizeAlternative).filter((a) => a.name)
     : [];
+  const rawBox = parsed?.bbox || parsed?.box || parsed?.bounding_box;
+  let bbox: { x: number; y: number; w: number; h: number } | null = null;
+  if (rawBox && typeof rawBox === "object") {
+    const x = clamp01(rawBox.x, NaN);
+    const y = clamp01(rawBox.y, NaN);
+    const w = clamp01(rawBox.w ?? rawBox.width, NaN);
+    const h = clamp01(rawBox.h ?? rawBox.height, NaN);
+    if ([x, y, w, h].every((n) => isFinite(n)) && w > 0.02 && h > 0.02) {
+      bbox = { x, y, w, h };
+    }
+  }
   return {
     name: parsed?.name || "Unknown Card",
     category: parsed?.category || "Trading Card",
@@ -119,6 +130,7 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     variant: parsed?.variant || "Standard",
     rarity: parsed?.rarity || "",
     language: parsed?.language || (fallbackLang ? fallbackLang.toUpperCase() : "EN"),
+    bbox,
     confidence: perField,
     overall_confidence: overall,
     match_label: overall >= 0.9 ? `${Math.round(overall * 100)}% Match` : overall >= 0.7 ? `Likely Match (${Math.round(overall * 100)}%)` : "Possible Match",
