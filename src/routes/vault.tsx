@@ -477,6 +477,55 @@ function Vault() {
     toast.success(`Condition: ${newCond} • $${newValue.toFixed(2)}`);
   }
 
+  // Parse "Variant: <Edition> · <Finish>" out of a description
+  function parseVariant(desc?: string | null): { edition: Edition; finish: Finish } {
+    const m = String(desc || "").match(/Variant:\s*([^\n]+)/i);
+    const v = (m?.[1] || "").toLowerCase();
+    const ed: Edition = /1st\s*edition|1版|第1版|edition\s*1/i.test(v) ? "1st Edition" : "Unlimited";
+    const fin: Finish = /reverse/i.test(v) ? "Reverse Holo" : /\bholo|foil/i.test(v) ? "Holo" : "Non-Holo";
+    return { edition: ed, finish: fin };
+  }
+
+  function setVariantInDescription(desc: string | null | undefined, ed: Edition, fin: Finish): string {
+    const base = String(desc || "").replace(/Variant:\s*[^\n]*\n?/gi, "").trim();
+    const label = `Variant: ${ed} · ${fin}`;
+    return base ? `${base}\n${label}` : label;
+  }
+
+  async function updateVariant(card: Card, newEd: Edition, newFin: Finish) {
+    // Re-fetch TCG prices to get exact variant pricing
+    const matches = await fetchRealCardMatches({ name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined });
+    const best = matches[0];
+    let cp: ConditionPrices | null = card.condition_prices || null;
+    let newValue = card.estimated_value || 0;
+    if (best?.tcgPrices) {
+      const variantPrice = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
+      const marketCp = conditionPricesFromMarket(variantPrice);
+      if (marketCp) {
+        cp = marketCp;
+        newValue = priceFor((card.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+      }
+    } else if (cp) {
+      // No TCG match — apply rough multiplier for 1st Edition
+      const base = Number(cp.NM) || 0;
+      const adj = newEd === "1st Edition" ? base * 2.5 : base;
+      const recomputed = conditionPricesFromMarket(adj);
+      if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
+    }
+    const newDesc = setVariantInDescription(card.description, newEd, newFin);
+    // Optimistic UI
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, description: newDesc, estimated_value: newValue, condition_prices: cp } : prev));
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, description: newDesc, estimated_value: newValue, condition_prices: cp } : c)));
+    const { error } = await supabase.from("vault_cards").update({
+      description: newDesc,
+      estimated_value: newValue,
+      condition_prices: cp as any,
+      last_valued_at: new Date().toISOString(),
+    }).eq("id", card.id);
+    if (error) { toast.error(error.message); load(); return; }
+    toast.success(`${newEd} · ${newFin} • $${Number(newValue).toFixed(2)}`);
+  }
+
   async function saveEdit() {
     if (!editing) return;
     // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
