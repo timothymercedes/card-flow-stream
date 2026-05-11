@@ -90,6 +90,18 @@ async function fetchTcgPrice(
     mid: variant.mid ?? null,
     source: "TCGPlayer (Pokémon TCG API)",
     source_url: card?.tcgplayer?.url ?? null,
+    // Canonical card identity from TCG database — client uses these to overwrite AI guesses
+    canonical: {
+      name: card.name ?? null,
+      set: card?.set?.name ?? null,
+      set_code: card?.set?.id ?? null,
+      number: card.number ?? null,
+      rarity: card.rarity ?? null,
+      year: card?.set?.releaseDate ? String(card.set.releaseDate).slice(0, 4) : null,
+      image_small: card?.images?.small ?? null,
+      image_large: card?.images?.large ?? null,
+      variant_key: variantKey,
+    },
     raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity },
   };
 }
