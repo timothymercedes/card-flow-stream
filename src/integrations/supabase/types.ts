@@ -3197,6 +3197,57 @@ export type Database = {
         }
         Relationships: []
       }
+      tcg_prices: {
+        Row: {
+          clean_name: string
+          game: string
+          high_price: number | null
+          id: number
+          image_url: string | null
+          low_price: number | null
+          market_price: number | null
+          mid_price: number | null
+          name: string
+          number: string | null
+          rarity: string | null
+          set_name: string | null
+          tcgplayer_product_id: number
+          updated_at: string
+        }
+        Insert: {
+          clean_name: string
+          game: string
+          high_price?: number | null
+          id?: number
+          image_url?: string | null
+          low_price?: number | null
+          market_price?: number | null
+          mid_price?: number | null
+          name: string
+          number?: string | null
+          rarity?: string | null
+          set_name?: string | null
+          tcgplayer_product_id: number
+          updated_at?: string
+        }
+        Update: {
+          clean_name?: string
+          game?: string
+          high_price?: number | null
+          id?: number
+          image_url?: string | null
+          low_price?: number | null
+          market_price?: number | null
+          mid_price?: number | null
+          name?: string
+          number?: string | null
+          rarity?: string | null
+          set_name?: string | null
+          tcgplayer_product_id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tutorial_progress: {
         Row: {
           completed_at: string | null
@@ -3978,6 +4029,8 @@ export type Database = {
           username: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       suggested_users: {
         Args: { _limit?: number }
         Returns: {
