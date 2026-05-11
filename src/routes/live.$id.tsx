@@ -2331,6 +2331,7 @@ function LiveDetail() {
           winning_bid: null,
           winner_username: null,
           current_bidder_id: null,
+          pinned_card: null,
         };
         if (remaining > 0) {
           update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
