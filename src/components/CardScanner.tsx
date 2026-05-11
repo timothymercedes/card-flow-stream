@@ -567,6 +567,55 @@ export function CardScanner({
         </>
       )}
 
+      {/* Photo Scan Mode — captured photo preview while AI runs */}
+      {captured && !pending && !batch && (
+        <div className="flex flex-1 flex-col">
+          <div className="relative flex-1 overflow-hidden bg-black">
+            <img
+              src={captured}
+              alt="Captured card"
+              className="h-full w-full object-contain"
+            />
+            {scanning && (
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/30 backdrop-blur-[1px]">
+                <div className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-white">
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+                  <span className="text-sm font-bold">
+                    {multi ? "Reading every card…" : "AI analyzing photo…"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-white/70">
+                  Detecting set symbol, card number, and variant
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            <button
+              onClick={rescan}
+              disabled={scanning}
+              className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
+              <RefreshCw className="mr-1 inline h-4 w-4" /> Retake
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
+              <Upload className="mr-1 inline h-4 w-4" /> Pick another
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </div>
+      )}
+
       {/* Multi-card review */}
       {batch && (
         <div className="flex flex-1 flex-col overflow-hidden">
