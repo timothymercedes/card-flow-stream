@@ -62,6 +62,47 @@ function Vault() {
   const [condition, setCondition] = useState<Condition>("NM");
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
+  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number };
+  const [alternatives, setAlternatives] = useState<Alt[]>([]);
+  const [altIndex, setAltIndex] = useState(0);
+
+  // Look up the real card image + similar printings from the Pokémon TCG API.
+  // Falls back silently if the card isn't in their DB (non-Pokémon).
+  async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string }) {
+    const parts: string[] = [];
+    if (opts.name) parts.push(`name:"${opts.name.replace(/"/g, "").split(" ")[0]}*"`);
+    if (opts.number) parts.push(`number:"${opts.number.split("/")[0].trim()}"`);
+    if (opts.set) parts.push(`set.name:"${opts.set.replace(/"/g, "")}*"`);
+    if (!parts.length) return [] as Alt[];
+    try {
+      const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(" "))}&pageSize=12&orderBy=-set.releaseDate`);
+      if (!r.ok) return [];
+      const j = await r.json();
+      return (j?.data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        set: c.set?.name,
+        number: c.number,
+        image: c.images?.large || c.images?.small,
+        price: c.tcgplayer?.prices?.holofoil?.market ?? c.tcgplayer?.prices?.normal?.market ?? c.tcgplayer?.prices?.reverseHolofoil?.market,
+      })) as Alt[];
+    } catch { return []; }
+  }
+
+  function applyAlternative(alt: Alt) {
+    setName(alt.name);
+    if (alt.set) setTcgSet(alt.set);
+    if (alt.number) setTcgNumber(alt.number);
+    if (alt.image) setImageUrl(alt.image);
+    const idx = alternatives.findIndex((a) => a.id === alt.id);
+    if (idx >= 0) setAltIndex(idx);
+  }
+
+  function cycleAlternative(dir: 1 | -1) {
+    if (!alternatives.length) return;
+    const next = (altIndex + dir + alternatives.length) % alternatives.length;
+    applyAlternative(alternatives[next]);
+  }
 
   async function load() {
     if (!user) return;
@@ -143,6 +184,7 @@ function Vault() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
+    setAlternatives([]); setAltIndex(0);
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -186,8 +228,18 @@ function Vault() {
       const base = Number(data?.estimated_value) || 0;
       if (base) setEstValue(String(priceFor(condition, base, cp)));
       toast.success(`Identified: ${data?.name || name} • ${data?.set || ""} ${data?.year || ""}`);
-      // Auto-generate front image if user hasn't uploaded one
-      if (!imageUrl) {
+      // Try to pull the REAL card image + similar printings from the Pokémon TCG API
+      const matches = await fetchRealCardMatches({
+        name: data?.name || name,
+        set: data?.set || tcgSet,
+        number: data?.tcg_number || tcgNumber,
+      });
+      if (matches.length) {
+        setAlternatives(matches);
+        setAltIndex(0);
+        if (matches[0].image) setImageUrl(matches[0].image);
+      } else if (!imageUrl) {
+        // Fallback: AI-generated artwork only if no real match found
         try {
           const { data: img } = await supabase.functions.invoke("generate-card-image", {
             body: { name: data?.name || name, category: data?.category || category, set: data?.set || tcgSet, year: data?.year || tcgYear, tcg_number: data?.tcg_number || tcgNumber },
@@ -463,6 +515,35 @@ function Vault() {
               {identifying ? "Verifying with TCG…" : "🔍 Verify & price with TCG"}
             </button>
             <p className="-mt-1 text-[10px] text-muted-foreground">Works in any language — auto-translates to find the correct printing.</p>
+            {alternatives.length > 0 && (
+              <div className="rounded-lg bg-muted/40 p-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Similar printings · tap to swap</p>
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => cycleAlternative(-1)} className="rounded-md bg-muted px-2 py-0.5 text-[10px]">‹ Prev</button>
+                    <button type="button" onClick={() => cycleAlternative(1)} className="rounded-md bg-muted px-2 py-0.5 text-[10px]">Next ›</button>
+                  </div>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {alternatives.map((a, i) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => applyAlternative(a)}
+                      className={`shrink-0 overflow-hidden rounded-md ring-2 ${i === altIndex ? "ring-primary" : "ring-transparent"}`}
+                      title={`${a.name}${a.set ? ` · ${a.set}` : ""}${a.number ? ` · #${a.number}` : ""}`}
+                    >
+                      {a.image ? (
+                        <img src={a.image} alt={a.name} className="h-24 w-16 object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-24 w-16 items-center justify-center bg-muted text-[9px] text-muted-foreground">No img</div>
+                      )}
+                      {a.price ? <p className="bg-black/60 px-1 text-center text-[9px] text-white">${a.price.toFixed(2)}</p> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
             <div>
               <p className="text-[10px] text-muted-foreground">Condition</p>
