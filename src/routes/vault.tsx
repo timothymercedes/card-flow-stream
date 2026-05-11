@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
@@ -991,7 +991,10 @@ function Vault() {
         <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/80 p-4 sm:items-center" onClick={() => setActionFor(null)}>
           <div className="my-4 w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-2">
-              <div>
+              <button onClick={() => setActionFor(null)} aria-label="Back" className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted/80">
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
+              </button>
+              <div className="flex-1 px-2">
                 <p className="text-lg font-bold leading-tight">{actionFor.name}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {[actionFor.category, actionFor.tcg_set, actionFor.tcg_year, actionFor.tcg_number && `#${actionFor.tcg_number}`].filter(Boolean).join(" • ") || "—"}
