@@ -286,8 +286,10 @@ async function fetchTcgPrice(
   // PRIMARY: JustTCG (real per-condition TCGplayer prices)
   try {
     const jt = await fetchJustTcg(name, set, number, rarity, variantHint);
-    console.log(`[JustTCG] name="${name}" set="${set}" num="${number}" -> ${jt ? `OK $${jt.market} (${jt.matches?.length} matches)` : "null"}`);
-    if (jt && jt.market != null) return jt;
+    if (jt && jt.market != null) {
+      console.log(`[JustTCG] hit "${jt.canonical?.name}" ${jt.canonical?.set} #${jt.canonical?.number} → $${jt.market}`);
+      return jt;
+    }
   } catch (e) {
     console.error("JustTCG lookup failed:", e);
   }
