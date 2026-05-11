@@ -3140,9 +3140,21 @@ function LiveDetail() {
         />
       )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
-        <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          {isStaff && !hostFocus && stream.mode !== "show_off" && (
+            <button
+              onClick={() => setShowPaymentLog(true)}
+              className="flex items-center gap-1 rounded-full bg-card/90 px-2 py-1 text-[10px] font-bold text-foreground shadow ring-1 ring-white/20 backdrop-blur hover:bg-card"
+              aria-label="Open payment activity log"
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Pay
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <div
             className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}
@@ -3150,6 +3162,20 @@ function LiveDetail() {
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />}{" "}
             {ended ? "ENDED" : "LIVE"}
           </div>
+          {isStaff && !hostFocus && !ended && stream.mode !== "show_off" && (
+            <button
+              onClick={() => setShowQuickMod(true)}
+              className="flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] font-bold text-primary-foreground shadow ring-1 ring-white/20 backdrop-blur hover:bg-primary"
+              aria-label="Open quick mod chat"
+            >
+              <Shield className="h-3 w-3" /> Mods
+              {modChat.length > 0 && (
+                <span className="rounded-full bg-live px-1 text-[8px] text-live-foreground">
+                  {modChat.length}
+                </span>
+              )}
+            </button>
+          )}
           {!ended && (
             <button
               onClick={() => setShowViewerList(true)}
@@ -5993,59 +6019,16 @@ function LiveDetail() {
       {/* Host/Mod payment activity log — slide-in panel + floating toggle */}
       {isStaff && !hostFocus && stream.mode !== "show_off" && (
         <>
-          <FloatingBox
-            box={paymentButtonBox}
-            onChange={setPaymentButtonBox}
-            minW={92}
-            minH={30}
-            resize
-            className="z-40"
-          >
-            {({ dragHandleProps }) => (
-              <button
-                {...dragHandleProps}
-                onClick={() => setShowPaymentLog(true)}
-                className="flex h-full w-full cursor-move items-center justify-center gap-1.5 rounded-full bg-card/90 px-3 py-1.5 text-[11px] font-bold text-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-card"
-                aria-label="Open payment activity log"
-              >
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Payments
-              </button>
-            )}
-          </FloatingBox>
+          {/* Payments pill is now inline in the header */}
+
           <HostPaymentLog
             streamId={id}
             open={showPaymentLog}
             onClose={() => setShowPaymentLog(false)}
           />
 
-          {/* 🆕 Quick Mod Chat — one-tap private DM with mods/host */}
-          {!showQuickMod && (
-            <FloatingBox
-              box={{ ...quickModBox, h: quickModBox.h || 28, w: Math.min(quickModBox.w || 84, 100) }}
-              onChange={setQuickModBox}
-              minW={72}
-              minH={24}
-              resize
-              className="z-40"
-            >
-              {({ dragHandleProps }) => (
-                <button
-                  {...dragHandleProps}
-                  onClick={() => setShowQuickMod(true)}
-                  className="flex h-full w-full cursor-move items-center justify-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
-                  aria-label="Open quick mod chat"
-                >
-                  <Shield className="h-3 w-3" /> Mods
-                  {modChat.length > 0 && (
-                    <span className="rounded-full bg-live px-1 text-[8px] text-live-foreground">
-                      {modChat.length}
-                    </span>
-                  )}
-                </button>
-              )}
-            </FloatingBox>
-          )}
+          {/* Mods pill is now inline in the header; expanded panel below */}
+
           {showQuickMod && (
             <FloatingBox
               box={{ ...quickModBox, w: Math.max(quickModBox.w, 256), h: quickModBox.h || 260 }}
