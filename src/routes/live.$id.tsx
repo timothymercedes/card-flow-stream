@@ -4605,10 +4605,11 @@ function LiveDetail() {
                       className={`grid gap-0.5 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}
                     >
                       <button
-                        onClick={() => setScanning(true)}
-                        className="flex flex-col items-center justify-center gap-0 rounded-md bg-accent py-0.5 text-[8px] font-bold text-accent-foreground active:scale-[0.98]"
+                        onClick={quickLiveScan}
+                        disabled={liveScanBusy}
+                        className="flex flex-col items-center justify-center gap-0 rounded-md bg-accent py-0.5 text-[8px] font-bold text-accent-foreground active:scale-[0.98] disabled:opacity-60"
                       >
-                        <Camera className="h-2.5 w-2.5" /> Scan
+                        <Camera className="h-2.5 w-2.5" /> {liveScanBusy ? "Scanning…" : "Scan"}
                       </button>
                       <button
                         onClick={() => setShowBreakPanel(true)}
