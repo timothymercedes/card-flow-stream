@@ -43,10 +43,11 @@ function Section({ title, to, children, viewLabel }: any) {
 }
 
 function Home() {
-  const { profile, user, loading } = useAuth();
+  const { profile, user } = useAuth();
   const { t } = useTranslation();
-  const showLanding = !loading && !user && !isTutorialMode();
-  if (showLanding) return <PublicLanding />;
+  // Visitors (not signed in) can browse the home feed. Interactions like bidding,
+  // messaging, follow/like, and selling are still gated server-side and redirect
+  // to /auth from their respective handlers.
   const interests = (profile?.interests as string[] | undefined) || [];
   const [streamsAll, setStreamsAll] = useState<any[]>([]);
   const [showOffAll, setShowOffAll] = useState<any[]>([]);
