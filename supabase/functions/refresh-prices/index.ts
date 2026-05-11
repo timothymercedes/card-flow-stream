@@ -193,7 +193,7 @@ async function fetchJustTcg(
   const scored = candidates
     .map((c) => ({ c, s: score(c), v: pickJtVariant(c, variantHint, rarity) }))
     .filter((x) => x.v && x.v.price > 0);
-  console.log(`[JustTCG] scored=${scored.length} top=${scored[0]?.c?.name} v=${scored[0]?.v?.printing} $${scored[0]?.v?.price}`);
+  
   if (!scored.length) return null;
 
   const ranked = scored
