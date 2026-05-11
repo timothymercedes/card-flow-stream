@@ -481,9 +481,6 @@ function Vault() {
               </div>
               <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
-            <button type="button" onClick={identifyNow} disabled={identifying} className="w-full rounded-lg bg-accent py-2 text-xs font-semibold text-accent-foreground disabled:opacity-60">
-              {identifying ? "Identifying..." : "🔍 Identify & price via TCG"}
-            </button>
             <p className="text-[10px] text-muted-foreground">Value is set automatically from TCG market data — it can't be edited.</p>
             <div className="flex gap-2">
               <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
