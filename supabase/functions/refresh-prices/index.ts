@@ -85,6 +85,7 @@ async function fetchTcgPrice(
   if (cleanName && cleanNumber && cleanSet) queries.push(`name:"${cleanName}*" number:"${cleanNumber}" set.name:"${cleanSet}*"`);
   if (cleanName && cleanNumber) queries.push(`name:"${cleanName}*" number:"${cleanNumber}"`);
   if (cleanNumber && cleanSet) queries.push(`number:"${cleanNumber}" set.name:"${cleanSet}*"`);
+  if (cleanNumber) queries.push(`number:"${cleanNumber}"`);
   if (cleanName && cleanSet) queries.push(`name:"${cleanName}*" set.name:"${cleanSet}*"`);
   if (cleanName) queries.push(`name:"${cleanName}*"`);
 
