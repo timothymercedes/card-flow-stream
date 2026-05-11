@@ -226,12 +226,16 @@ export function CardScanner({
       } else {
         const result: ScanResult = { ...(data as any), image: dataUrl, language };
         // 🔁 Replace AI-estimated price with REAL TCG market price (free Pokémon TCG API).
-        // Only override when AI identification is confident enough to trust the name/set/number.
+        // Only override when we have enough identity to find the EXACT printing —
+        // name + (set OR card number). Name-only is too ambiguous (random reprints).
         try {
-          if (result.name && (result.overall_confidence ?? 0) >= 0.7) {
+          const hasEnoughId = !!result.name && (!!result.set || !!result.tcg_number);
+          if (hasEnoughId && (result.overall_confidence ?? 0) >= 0.7) {
             const params = new URLSearchParams({ name: result.name });
             if (result.set) params.set("set", result.set);
             if (result.tcg_number) params.set("number", result.tcg_number);
+            if (result.rarity) params.set("rarity", result.rarity);
+            if (result.variant) params.set("variant", result.variant);
             const r = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
               { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } },
