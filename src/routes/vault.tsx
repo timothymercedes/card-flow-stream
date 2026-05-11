@@ -340,6 +340,16 @@ function Vault() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [condition, condPrices]);
 
+  // Recompute price when edition/finish changes, using current alternative's TCG prices
+  useEffect(() => {
+    const alt = alternatives[altIndex];
+    if (!alt?.tcgPrices) return;
+    const variantPrice = priceFromVariant(alt.tcgPrices, edition, finish) ?? alt.price;
+    const cp = conditionPricesFromMarket(variantPrice);
+    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || variantPrice || 0, cp))); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edition, finish]);
+
   async function identifyNow() {
     const hasAny = name.trim() || tcgNumber.trim() || tcgSet.trim();
     if (!hasAny) return toast.error("Enter card name, set, or number first");
