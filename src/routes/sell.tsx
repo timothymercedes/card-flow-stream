@@ -152,8 +152,9 @@ function Sell() {
       if (!raw) return;
       sessionStorage.removeItem("pbl_prefill_listing");
       const d = JSON.parse(raw);
-      if (d?.listing_type === "auction") { setEnableAuction(true); setEnableBuyNow(false); }
-      else { setEnableBuyNow(true); setEnableAuction(false); }
+      if (d?.listing_type === "auction") { setEnableAuction(true); setEnableBuyNow(false); setEnableOffers(false); }
+      else if (d?.listing_type === "offer") { setEnableOffers(true); setEnableBuyNow(false); setEnableAuction(false); }
+      else { setEnableBuyNow(true); setEnableAuction(false); setEnableOffers(false); }
       if (d.image) setImageUrl(d.image);
       if (d.name) setTitle(d.name);
       if (d.tcg_number) setTcgNumber(d.tcg_number);
@@ -163,7 +164,7 @@ function Sell() {
       const base = Number(d.estimated_value) || Number(d.condition_prices?.NM) || 0;
       if (base) {
         if (d.listing_type === "auction") setAuctionStart(String(base));
-        else setBuyNowPrice(String(base));
+        else if (d.listing_type !== "offer") setBuyNowPrice(String(base));
       }
       toast.success(`Filled from scan: ${d.name || "card"}`);
     } catch {}
