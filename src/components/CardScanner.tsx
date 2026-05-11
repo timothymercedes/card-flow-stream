@@ -171,8 +171,8 @@ export function CardScanner({
         const v = videoRef.current!;
         const srcW = v.videoWidth || 1280;
         const srcH = v.videoHeight || 720;
-        // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
-        const MAX = multi ? 1600 : 1024;
+        // Smaller payload = much faster AI round-trip. Multi-card keeps a bit more res for legibility.
+        const MAX = multi ? 1280 : 820;
         const scale = Math.min(1, MAX / Math.max(srcW, srcH));
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(srcW * scale);
