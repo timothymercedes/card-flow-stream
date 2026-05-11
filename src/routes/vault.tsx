@@ -7,6 +7,7 @@ import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserChec
 import { toast } from "sonner";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
+import { CardPriceChart } from "@/components/CardPriceChart";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
