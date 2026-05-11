@@ -550,7 +550,13 @@ function Vault() {
       last_valued_at: new Date().toISOString(),
     }).eq("id", card.id);
     if (error) { toast.error(error.message); load(); return; }
-    toast.success(`${newEd} · ${newFin} • $${Number(newValue).toFixed(2)}`);
+    const langLbl = (LANGUAGES.find((l) => l.v === lang)?.l) || lang.toUpperCase();
+    toast.success(`${langLbl} • ${newEd} · ${newFin} • $${Number(newValue).toFixed(2)}`);
+  }
+
+  async function updateLanguage(card: Card, code: string) {
+    const v = parseVariant(card.description);
+    return updateVariant(card, v.edition, v.finish, code);
   }
 
   async function saveEdit() {
