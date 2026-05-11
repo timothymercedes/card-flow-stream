@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
     ? `\n\nThe seller indicated the printing is ${langName}. Confirm via printed text and set symbol; include language in set name when non-English.`
     : "";
 
-  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint;
+  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint + BBOX_INSTRUCTION;
   const userText = multi
     ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
     : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
