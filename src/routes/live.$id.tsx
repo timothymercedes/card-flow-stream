@@ -156,6 +156,7 @@ function LiveDetail() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const endedRef = useRef(false);
+  const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
