@@ -452,7 +452,7 @@ export function CardScanner({
         )}
       </div>
 
-      {!pending && !batch && (
+      {!pending && !batch && !captured && (
         <>
           <div className="px-3 pb-2 space-y-2">
             {allowMulti && (
