@@ -2405,6 +2405,37 @@ function LiveDetail() {
     }
   }
 
+  async function enableFlexCameraStudio() {
+    if (!isSeller || !stream) return;
+    setSwitchingToBrowserCam(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-stream-input", {
+        body: { meta_name: `Flex cameras — ${stream.title || id}` },
+      });
+      if (error || (data as any)?.error || !(data as any)?.whip_url) {
+        throw new Error((data as any)?.error || error?.message || "Could not set up Flex cameras");
+      }
+      const d = data as any;
+      const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
+      const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
+      if (updateErr) throw updateErr;
+      await supabase.from("live_stream_credentials" as any).upsert({
+        stream_id: id,
+        cf_live_input_id: d.live_input_id ?? null,
+        cf_rtmps_url: d.rtmps_url ?? null,
+        cf_stream_key: d.stream_key ?? null,
+      }, { onConflict: "stream_id" });
+      setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
+      setShowHostCameraEditor(true);
+      setHostCameraPanelCollapsed(false);
+      toast.success("Flex camera panel is ready");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not set up Flex cameras");
+    } finally {
+      setSwitchingToBrowserCam(false);
+    }
+  }
+
   async function confirmEndLive() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
