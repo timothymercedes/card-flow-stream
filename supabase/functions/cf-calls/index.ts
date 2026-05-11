@@ -45,8 +45,25 @@ function isRealtimeKitMeetingToken(token?: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
+  const auth = await verifyUser(req);
+  if (!auth.ok) {
+    return new Response(JSON.stringify({ error: auth.error }), {
+      status: auth.status, headers: { ...CORS, "content-type": "application/json" },
+    });
+  }
+
   const dbgUrl = new URL(req.url);
   if (dbgUrl.pathname.endsWith("/_probe")) {
+    // Diagnostic probe — admin/owner only. Leaks internal Cloudflare Calls
+    // configuration if exposed, so it must be gated behind authentication
+    // AND an elevated role.
+    const { userHasAdminRole } = await import("../_shared/auth.ts");
+    const isAdmin = await userHasAdminRole(auth.userId);
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
     const config = getCallsConfig();
     const r = await fetch(`${config.base}/sessions/new`, {
       method: "POST",
@@ -66,12 +83,6 @@ Deno.serve(async (req) => {
     }), { headers: { ...CORS, "content-type": "application/json" } });
   }
 
-  const auth = await verifyUser(req);
-  if (!auth.ok) {
-    return new Response(JSON.stringify({ error: auth.error }), {
-      status: auth.status, headers: { ...CORS, "content-type": "application/json" },
-    });
-  }
 
   const config = getCallsConfig();
   if (!config.appId || !config.appToken) {
