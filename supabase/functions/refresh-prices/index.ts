@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
 
   let updated = 0;
   let swings = 0;
+  let firstPrice: any = null;
 
   for (const id of identities) {
     if (!id.name) continue;
