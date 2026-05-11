@@ -156,13 +156,13 @@ export function CardScanner({
   }
 
   useEffect(() => {
-    if (pending || batch) return;
+    if (pending || batch || captured) return;
     start(facing);
     return () => {
       stopScannerCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facing, pending, batch]);
+  }, [facing, pending, batch, captured]);
 
   async function capture() {
     if (!videoRef.current || capturingRef.current) return;
