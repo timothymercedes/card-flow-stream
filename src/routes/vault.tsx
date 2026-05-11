@@ -1050,7 +1050,16 @@ function Vault() {
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
-                <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
+                  <button
+                    type="button"
+                    onClick={() => { const v = parseVariant(actionFor.description); updateVariant(actionFor, v.edition, v.finish); }}
+                    className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground hover:bg-muted/80"
+                  >
+                    Refresh
+                  </button>
+                </div>
                 {Number(actionFor.estimated_value || 0) > 0 && (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
                 )}
