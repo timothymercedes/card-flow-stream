@@ -419,6 +419,9 @@ export function CardScanner({
     applySuggestedCard(pending.alternatives[nextIndex], nextIndex, "Similar database match");
   }
 
+  const displayImage = pending?.reference_image || pending?.image || "";
+  const similarCount = pending?.alternatives?.length ?? 0;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex items-center justify-between p-3">
