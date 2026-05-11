@@ -175,20 +175,58 @@ function Vault() {
     } catch { return []; }
   }
 
+  // TCGCSV-backed games (One Piece, Lorcana, DBS Fusion, SWU, Flesh and Blood)
+  function detectTcgCsvGame(category?: string, name?: string, set?: string): string | null {
+    const s = `${category || ""} ${name || ""} ${set || ""}`.toLowerCase();
+    if (/one ?piece|op-?tcg/.test(s)) return "One Piece";
+    if (/lorcana/.test(s)) return "Lorcana";
+    if (/dragon ?ball.*(fusion|super)/.test(s)) return "Dragon Ball Super Fusion";
+    if (/star ?wars.*unlimited|swu/.test(s)) return "Star Wars Unlimited";
+    if (/flesh ?and ?blood|fab\b/.test(s)) return "Flesh and Blood";
+    return null;
+  }
+
+  async function fetchTcgCsvMatches(game: string, opts: { name?: string; set?: string; number?: string }): Promise<Alt[]> {
+    const cn = cleanSearchText(opts.name).toLowerCase();
+    if (!cn) return [];
+    try {
+      let q = supabase
+        .from("tcg_prices")
+        .select("tcgplayer_product_id, name, set_name, number, image_url, market_price, low_price, mid_price")
+        .eq("game", game)
+        .limit(12);
+      // Prefer exact-ish match, fall back to ILIKE
+      q = q.ilike("clean_name", `%${cn}%`);
+      if (opts.set) q = q.ilike("set_name", `%${opts.set}%`);
+      const { data } = await q;
+      const rows = data || [];
+      return rows.map((r: any): Alt => ({
+        id: `csv-${game}-${r.tcgplayer_product_id}`,
+        name: r.name,
+        set: r.set_name || undefined,
+        number: r.number || undefined,
+        image: r.image_url || undefined,
+        price: Number(r.market_price) || Number(r.mid_price) || Number(r.low_price) || undefined,
+        category: game,
+      }));
+    } catch { return []; }
+  }
+
   // Look up the real card image + similar printings, routing by detected game.
   // Falls back silently if the card isn't in any DB.
   async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string; category?: string }) {
+    const csvGame = detectTcgCsvGame(opts.category, opts.name, opts.set);
+    if (csvGame) {
+      const csv = await fetchTcgCsvMatches(csvGame, opts);
+      if (csv.length) return csv;
+    }
     const game = detectGame(opts.category, opts.name, opts.set);
     if (game === "mtg") return fetchMtgMatches(opts);
     if (game === "yugioh") return fetchYugiohMatches(opts);
     const safeName = cleanSearchText(opts.name).replace(/"/g, "");
     const safeSet = cleanSearchText(opts.set).replace(/"/g, "");
     const safeNumber = cardNumberBase(opts.number).replace(/"/g, "");
-    if (!safeName && !safeSet && !safeNumber) {
-      // unknown game with no inputs — try MTG/YGO as a last resort if we have a name
-      return [] as Alt[];
-    }
-    // If "unknown" but we have a name, try Pokémon first, fall through to MTG, then YGO
+    if (!safeName && !safeSet && !safeNumber) return [] as Alt[];
     if (game === "unknown" && safeName) {
       const pkmn = await fetchPokemonMatches(safeName, safeSet, safeNumber);
       if (pkmn.length) return pkmn;
@@ -196,6 +234,11 @@ function Vault() {
       if (mtg.length) return mtg;
       const ygo = await fetchYugiohMatches(opts);
       if (ygo.length) return ygo;
+      // Last resort: try every TCGCSV game by name
+      for (const g of ["One Piece", "Lorcana", "Dragon Ball Super Fusion", "Star Wars Unlimited", "Flesh and Blood"]) {
+        const r = await fetchTcgCsvMatches(g, opts);
+        if (r.length) return r;
+      }
       return [];
     }
     return fetchPokemonMatches(safeName, safeSet, safeNumber);
