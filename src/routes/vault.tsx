@@ -158,32 +158,36 @@ function Vault() {
 
   // Pick the right tcgplayer price slot based on edition + finish (with fallbacks).
   // 1st Edition always applies at least a 2.5x premium over any available Unlimited slot.
+  function finishPremium(fin: Finish): number {
+    return fin === "Holo" ? 1.35 : fin === "Reverse Holo" ? 1.18 : 1;
+  }
+
+  function editionPremium(ed: Edition): number {
+    return ed === "1st Edition" ? 2.5 : 1;
+  }
+
   function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
-    const anyUnlimited = () => get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
-    if (ed === "1st Edition") {
-      const premium = 2.5;
-      if (fin === "Holo") {
-        const direct = get("1stEditionHolofoil");
-        if (direct) return direct;
-        const base = get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
-        return base != null ? base * premium : undefined;
-      }
-      if (fin === "Reverse Holo") {
-        const direct = get("1stEditionHolofoil");
-        if (direct) return direct;
-        const base = get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
-        return base != null ? base * premium : undefined;
-      }
-      const direct = get("1stEditionNormal");
-      if (direct) return direct;
-      const base = get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
-      return base != null ? base * premium : undefined;
-    }
-    if (fin === "Holo") return get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
-    if (fin === "Reverse Holo") return get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
-    return anyUnlimited();
+    const exactKey = ed === "1st Edition"
+      ? fin === "Non-Holo" ? "1stEditionNormal" : fin === "Holo" ? "1stEditionHolofoil" : undefined
+      : fin === "Non-Holo" ? "normal" : fin === "Holo" ? "holofoil" : "reverseHolofoil";
+    const exact = exactKey ? get(exactKey) : undefined;
+    if (exact) return exact;
+
+    const sources: Array<{ key: string; ed: Edition; fin: Finish }> = [
+      { key: "normal", ed: "Unlimited", fin: "Non-Holo" },
+      { key: "holofoil", ed: "Unlimited", fin: "Holo" },
+      { key: "reverseHolofoil", ed: "Unlimited", fin: "Reverse Holo" },
+      { key: "1stEditionNormal", ed: "1st Edition", fin: "Non-Holo" },
+      { key: "1stEditionHolofoil", ed: "1st Edition", fin: "Holo" },
+    ];
+    const source = sources.find((s) => s.fin === fin && get(s.key)) ?? sources.find((s) => get(s.key));
+    if (!source) return undefined;
+    const sourcePrice = get(source.key);
+    if (!sourcePrice) return undefined;
+    const baseUnlimitedNonHolo = sourcePrice / (editionPremium(source.ed) * finishPremium(source.fin));
+    return Math.round(baseUnlimitedNonHolo * editionPremium(ed) * finishPremium(fin) * 100) / 100;
   }
 
   function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
