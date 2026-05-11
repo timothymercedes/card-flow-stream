@@ -164,24 +164,34 @@ export function CardScanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, pending, batch, captured]);
 
-  async function capture() {
-    if (!videoRef.current || capturingRef.current) return;
+  async function capture(externalDataUrl?: string) {
+    if (capturingRef.current) return;
+    if (!externalDataUrl && !videoRef.current) return;
     capturingRef.current = true;
     setScanning(true);
     try {
-      const v = videoRef.current;
-      const srcW = v.videoWidth || 1280;
-      const srcH = v.videoHeight || 720;
-      // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
-      const MAX = multi ? 1600 : 1024;
-      const scale = Math.min(1, MAX / Math.max(srcW, srcH));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(srcW * scale);
-      canvas.height = Math.round(srcH * scale);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas error");
-      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+      let dataUrl: string;
+      if (externalDataUrl) {
+        dataUrl = externalDataUrl;
+      } else {
+        const v = videoRef.current!;
+        const srcW = v.videoWidth || 1280;
+        const srcH = v.videoHeight || 720;
+        // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
+        const MAX = multi ? 1600 : 1024;
+        const scale = Math.min(1, MAX / Math.max(srcW, srcH));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(srcW * scale);
+        canvas.height = Math.round(srcH * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas error");
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+      }
+
+      // Show the captured photo immediately while AI runs (Photo Scan Mode)
+      setCaptured(dataUrl);
+      stopScannerCamera();
 
       const { data, error } = await supabase.functions.invoke("scan-card", {
         body: { image: dataUrl, language: language === "auto" ? undefined : language, multi },
