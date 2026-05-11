@@ -62,30 +62,90 @@ function Vault() {
   const [condition, setCondition] = useState<Condition>("NM");
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
-  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number };
+  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number; year?: string; category?: string };
   const [alternatives, setAlternatives] = useState<Alt[]>([]);
   const [altIndex, setAltIndex] = useState(0);
+
+  function cleanSearchText(v?: string | null) {
+    return String(v || "")
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/^[A-Z0-9-]{2,}:\s*/i, "")
+      .replace(/pokemon/gi, "Pokémon")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function cardNumberBase(v?: string | null) {
+    return cleanSearchText(v).split("/")[0].trim();
+  }
+
+  function needsOfficialCardImage(url?: string | null) {
+    if (!url) return true;
+    const u = url.toLowerCase();
+    return u.startsWith("data:image") || u.includes("images.unsplash.com") || u.includes("/storage/v1/object/public/vault-images/") || u.includes("generate-card-image");
+  }
+
+  function conditionPricesFromMarket(price?: number): ConditionPrices | null {
+    const nm = Number(price) || 0;
+    if (!nm) return null;
+    return {
+      NM: Math.round(nm * 100) / 100,
+      LP: Math.round(nm * 0.85 * 100) / 100,
+      MP: Math.round(nm * 0.6 * 100) / 100,
+      Damaged: Math.max(0.5, Math.round(nm * 0.25 * 100) / 100),
+    };
+  }
 
   // Look up the real card image + similar printings from the Pokémon TCG API.
   // Falls back silently if the card isn't in their DB (non-Pokémon).
   async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string }) {
-    const parts: string[] = [];
-    if (opts.name) parts.push(`name:"${opts.name.replace(/"/g, "").split(" ")[0]}*"`);
-    if (opts.number) parts.push(`number:"${opts.number.split("/")[0].trim()}"`);
-    if (opts.set) parts.push(`set.name:"${opts.set.replace(/"/g, "")}*"`);
-    if (!parts.length) return [] as Alt[];
+    const safeName = cleanSearchText(opts.name).replace(/"/g, "");
+    const safeSet = cleanSearchText(opts.set).replace(/"/g, "");
+    const safeNumber = cardNumberBase(opts.number).replace(/"/g, "");
+    if (!safeName && !safeSet && !safeNumber) return [] as Alt[];
+    const queries = [
+      [safeName && `name:"${safeName}"`, safeNumber && `number:"${safeNumber}"`].filter(Boolean).join(" "),
+      [safeNumber && `number:"${safeNumber}"`, safeSet && `set.name:"${safeSet}"`].filter(Boolean).join(" "),
+      [safeName && `name:"${safeName}"`, safeSet && `set.name:"${safeSet}"`].filter(Boolean).join(" "),
+      [safeName && `name:"${safeName}"`].filter(Boolean).join(" "),
+    ].filter(Boolean);
     try {
-      const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(" "))}&pageSize=12&orderBy=-set.releaseDate`);
-      if (!r.ok) return [];
-      const j = await r.json();
-      return (j?.data || []).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        set: c.set?.name,
-        number: c.number,
-        image: c.images?.large || c.images?.small,
-        price: c.tcgplayer?.prices?.holofoil?.market ?? c.tcgplayer?.prices?.normal?.market ?? c.tcgplayer?.prices?.reverseHolofoil?.market,
-      })) as Alt[];
+      const rows: any[] = [];
+      const seen = new Set<string>();
+      for (const q of queries) {
+        const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=12&orderBy=-set.releaseDate`, { headers: { Accept: "application/json" } });
+        if (!r.ok) continue;
+        const j = await r.json();
+        for (const c of j?.data || []) {
+          if (!c?.id || seen.has(c.id)) continue;
+          seen.add(c.id); rows.push(c);
+        }
+        if (rows.length >= 12) break;
+      }
+      const score = (c: any) => {
+        const cName = String(c?.name || "").toLowerCase();
+        const cSet = String(c?.set?.name || "").toLowerCase();
+        const cNumber = cardNumberBase(c?.number).toLowerCase();
+        let s = 0;
+        if (safeNumber && cNumber === safeNumber.toLowerCase()) s += 8;
+        if (safeName && cName === safeName.toLowerCase()) s += 6;
+        if (safeSet && cSet.includes(safeSet.toLowerCase())) s += 4;
+        if (c?.images?.large || c?.images?.small) s += 1;
+        return s;
+      };
+      return rows.sort((a, b) => score(b) - score(a)).map((c: any) => {
+        const price = c.tcgplayer?.prices?.holofoil?.market ?? c.tcgplayer?.prices?.normal?.market ?? c.tcgplayer?.prices?.reverseHolofoil?.market;
+        return {
+          id: c.id,
+          name: c.name,
+          set: c.set?.name,
+          number: c.number,
+          image: c.images?.large || c.images?.small,
+          price: Number(price) || undefined,
+          year: c.set?.releaseDate ? String(c.set.releaseDate).slice(0, 4) : undefined,
+          category: "Pokémon",
+        };
+      }) as Alt[];
     } catch { return []; }
   }
 
@@ -94,6 +154,10 @@ function Vault() {
     if (alt.set) setTcgSet(alt.set);
     if (alt.number) setTcgNumber(alt.number);
     if (alt.image) setImageUrl(alt.image);
+    if (alt.year) setTcgYear(alt.year);
+    if (alt.category) setCategory(alt.category);
+    const cp = conditionPricesFromMarket(alt.price);
+    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || alt.price || 0, cp))); }
     const idx = alternatives.findIndex((a) => a.id === alt.id);
     if (idx >= 0) setAltIndex(idx);
   }
@@ -113,22 +177,37 @@ function Vault() {
     const list = (data || []) as Card[];
     setCards(list);
     if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
-    // Background backfill: pull real card images for any vault entry missing one.
+    // Background backfill: replace missing/generated/uploaded placeholders with official card images when we can match them.
     backfillMissingImages(list);
   }
 
   async function backfillMissingImages(list: Card[]) {
-    const missing = list.filter((c) => !c.image_url && (c.name || c.tcg_number || c.tcg_set));
+    const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
     if (!missing.length) return;
     let updated = 0;
     for (const c of missing.slice(0, 25)) {
       const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
-      const img = matches.find((m) => m.image)?.image;
+      const match = matches.find((m) => m.image);
+      const img = match?.image;
       if (!img) continue;
-      const { error } = await supabase.from("vault_cards").update({ image_url: img }).eq("id", c.id);
+      const cp = conditionPricesFromMarket(match?.price) || c.condition_prices || null;
+      const newValue = cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
+      const patch = {
+        image_url: img,
+        name: match?.name || c.name,
+        tcg_set: match?.set || c.tcg_set,
+        tcg_number: match?.number || c.tcg_number,
+        tcg_year: match?.year || c.tcg_year,
+        category: match?.category || c.category || "Pokémon",
+        condition_prices: cp as any,
+        estimated_value: newValue,
+        last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
       if (!error) {
         updated++;
-        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, image_url: img } : x)));
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch, condition_prices: cp } : x)));
+        setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch, condition_prices: cp } : prev));
       }
     }
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
@@ -257,7 +336,7 @@ function Vault() {
       if (matches.length) {
         setAlternatives(matches);
         setAltIndex(0);
-        if (matches[0].image) setImageUrl(matches[0].image);
+        applyAlternative(matches[0]);
       } else if (!imageUrl) {
         // Fallback: AI-generated artwork only if no real match found
         try {
@@ -273,6 +352,7 @@ function Vault() {
 
   async function add() {
     if (!name.trim()) return toast.error("Card name required");
+    let finalName = name.trim();
     let value = Number(estValue) || 0;
     let cat = category;
     let cp: ConditionPrices | null = condPrices;
@@ -283,6 +363,7 @@ function Vault() {
         const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
         const { data } = await supabase.functions.invoke("identify-card", { body: { query: q, language } });
         if (data) {
+          finalName = data.name || finalName;
           cp = data.condition_prices || null;
           const base = Number(data.estimated_value) || 0;
           value = priceFor(condition, base, cp);
@@ -294,16 +375,31 @@ function Vault() {
       } catch {/* ignore */}
     }
     let finalImage = imageUrl;
+    const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2 });
+    if (matches.length) {
+      const best = matches[0];
+      finalName = best.name || finalName;
+      finalImage = best.image || finalImage;
+      cat = best.category || cat || "Pokémon";
+      setName2 = best.set || setName2;
+      year2 = best.year || year2;
+      num2 = best.number || num2;
+      const marketCp = conditionPricesFromMarket(best.price);
+      if (marketCp) {
+        cp = marketCp;
+        value = priceFor(condition, marketCp.NM || best.price || value, marketCp);
+      }
+    }
     if (!finalImage) {
       try {
         const { data: img } = await supabase.functions.invoke("generate-card-image", {
-          body: { name, category: cat, set: setName2, year: year2, tcg_number: num2 },
+          body: { name: finalName, category: cat, set: setName2, year: year2, tcg_number: num2 },
         });
         if (img?.image) finalImage = img.image;
       } catch {/* ignore */}
     }
     const { error } = await supabase.from("vault_cards").insert({
-      user_id: user!.id, name, category: cat || "Trading Card",
+      user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
       description: description || null,
       estimated_value: value,
