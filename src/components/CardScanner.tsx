@@ -113,7 +113,7 @@ export function CardScanner({
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
-  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
 
   // Photo Scan Mode — captured/uploaded image shown immediately while AI runs
   const [captured, setCaptured] = useState<string | null>(null);
@@ -283,7 +283,7 @@ export function CardScanner({
             }
           }
         } catch { /* keep AI estimate as fallback */ }
-        setSuggestionIndex(0);
+        setSuggestionIndex(-1);
         setPending(result);
         // Best-effort scan history log (RLS will reject if not signed in — ignore)
         try {
@@ -329,7 +329,7 @@ export function CardScanner({
     setSelected(new Set());
     setEditing(false);
     setCaptured(null);
-    setSuggestionIndex(0);
+    setSuggestionIndex(-1);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
