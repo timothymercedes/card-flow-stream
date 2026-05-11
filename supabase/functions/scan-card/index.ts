@@ -44,6 +44,7 @@ Return ONLY what is visible on the card:
 - copyright/release year if visible
 - set name or set code ONLY if you can read it; otherwise empty string
 - detected language and obvious finish/variant if visible
+- For "variant" field, ALWAYS combine edition + finish as: "<Edition> · <Finish>" where Edition is "1st Edition" (only if the "1st Edition" / "Edition 1" / "第1版" / "1版" stamp is clearly visible) or "Unlimited" otherwise; and Finish is "Holo" (foil artwork/character), "Reverse Holo" (foil background/non-artwork), or "Non-Holo" (no foil). Example: "Unlimited · Holo" or "1st Edition · Non-Holo".
 
 If a field is unreadable, return "" and set that field confidence under 0.4. Never guess a specific printing from memory. The database will do the exact match after this.
 
