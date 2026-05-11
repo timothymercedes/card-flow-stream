@@ -965,10 +965,8 @@ function LiveDetail() {
   }
 
   function openHostCameraControls() {
-    if (showHostCameraEditor) {
-      setHostCameraPanelCollapsed((v) => !v);
-      return;
-    }
+    // Always (re)open the camera panel — if it was collapsed, hidden, or the
+    // cameras were stopped, this button brings everything back.
     setShowHostCameraEditor(true);
     setHostCameraPanelCollapsed(false);
     if (hostStudio.sources.length === 0 && !startingHostCameras) void startHostCameras();
