@@ -186,7 +186,7 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
         <div className="grid grid-cols-2 gap-2">
           <input
             value={setQuery}
-            onChange={(e) => setSetName(e.target.value)}
+            onChange={(e) => setSetQuery(e.target.value)}
             placeholder="Set (e.g. Base, Evolving Skies)"
             className="rounded-lg bg-white/5 px-3 py-2 text-xs text-white placeholder:text-white/40"
           />
