@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
     if (!id.name) continue;
     const price = await fetchTcgPrice(id.name, id.set, id.number);
     if (!price || price.market == null) continue;
+    if (!firstPrice) firstPrice = { ...price, name: id.name, set: id.set, number: id.number };
 
     const card_key = keyOf(id.name, id.set, id.number);
     const now = new Date().toISOString();
