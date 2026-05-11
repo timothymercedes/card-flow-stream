@@ -280,6 +280,7 @@ async function fetchTcgPrice(
   // PRIMARY: JustTCG (real per-condition TCGplayer prices)
   try {
     const jt = await fetchJustTcg(name, set, number, rarity, variantHint);
+    console.log(`[JustTCG] name="${name}" set="${set}" num="${number}" -> ${jt ? `OK $${jt.market} (${jt.matches?.length} matches)` : "null"}`);
     if (jt && jt.market != null) return jt;
   } catch (e) {
     console.error("JustTCG lookup failed:", e);
