@@ -371,7 +371,7 @@ function Vault() {
     if (!stale.length) return;
     let updated = 0;
     for (const c of stale.slice(0, 25)) {
-      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const best = matches[0];
       if (!best) continue;
       const v = parseVariant(c.description);
@@ -402,7 +402,7 @@ function Vault() {
     if (!missing.length) return;
     let updated = 0;
     for (const c of missing.slice(0, 25)) {
-      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const match = matches.find((m) => m.image);
       const img = match?.image;
       if (!img) continue;
@@ -559,6 +559,7 @@ function Vault() {
         name: data?.name || name,
         set: data?.set || tcgSet,
         number: data?.tcg_number || tcgNumber,
+        category: data?.category || category || undefined,
       });
       if (matches.length) {
         setAlternatives(matches);
@@ -602,7 +603,7 @@ function Vault() {
       } catch {/* ignore */}
     }
     let finalImage = imageUrl;
-    const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2 });
+    const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2, category: cat || undefined });
     if (matches.length) {
       const best = matches[0];
       finalName = best.name || finalName;
@@ -731,6 +732,7 @@ function Vault() {
       name: card.name,
       set: card.tcg_set || undefined,
       number: card.tcg_number || undefined,
+      category: card.category || undefined,
     });
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
