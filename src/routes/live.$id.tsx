@@ -2557,14 +2557,18 @@ function LiveDetail() {
       /* fall back to scan */
     }
 
-    // Show 5-second card overlay (price-free)
-    setHypeCard({
+    // Show movable card spotlight (price-free) — broadcast to viewers
+    const spotlight = {
+      id: `sp-${Date.now()}`,
       name: hypeName,
       category: hypeCategory,
       set_guess: hypeSet,
       rarity_vibe: hypeVibe,
       image: r.image,
-    });
+      hype_lines: hypeLines,
+    };
+    setHypeCard(spotlight);
+    spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: spotlight });
 
     const update: any = {
       current_item: hypeName,
