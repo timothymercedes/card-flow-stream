@@ -45,6 +45,7 @@ import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
+import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
@@ -232,6 +233,11 @@ const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   path: '/admin/performance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
+  id: '/recovery',
+  path: '/recovery',
+  getParentRoute: () => AdminRoute,
+} as any)
 const JoinCamStreamIdTokenRoute = JoinCamStreamIdTokenRouteImport.update({
   id: '/join-cam/$streamId/$token',
   path: '/join-cam/$streamId/$token',
@@ -256,7 +262,7 @@ const ApiPublicHooksRefreshVaultValuesRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
   '/discover': typeof DiscoverRoute
@@ -276,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/stories': typeof StoriesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -298,7 +305,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
   '/discover': typeof DiscoverRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/stories': typeof StoriesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -341,7 +349,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/cart': typeof CartRoute
   '/discover': typeof DiscoverRoute
@@ -361,6 +369,7 @@ export interface FileRoutesById {
   '/stories': typeof StoriesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/recovery': typeof AdminRecoveryRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -405,6 +414,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tutorials'
     | '/vault'
+    | '/admin/recovery'
     | '/admin/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -447,6 +457,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tutorials'
     | '/vault'
+    | '/admin/recovery'
     | '/admin/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/tutorials'
     | '/vault'
+    | '/admin/recovery'
     | '/admin_/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -512,7 +524,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   CartRoute: typeof CartRoute
   DiscoverRoute: typeof DiscoverRoute
@@ -807,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/recovery': {
+      id: '/admin/recovery'
+      path: '/recovery'
+      fullPath: '/admin/recovery'
+      preLoaderRoute: typeof AdminRecoveryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/join-cam/$streamId/$token': {
       id: '/join-cam/$streamId/$token'
       path: '/join-cam/$streamId/$token'
@@ -838,9 +857,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminRecoveryRoute: typeof AdminRecoveryRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminRecoveryRoute: AdminRecoveryRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   CartRoute: CartRoute,
   DiscoverRoute: DiscoverRoute,
