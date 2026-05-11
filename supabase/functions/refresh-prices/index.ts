@@ -16,6 +16,59 @@ function keyOf(name: string | null, set: string | null, number: string | null) {
   return `${(name || "").toLowerCase()}|${(set || "").toLowerCase()}|${(number || "").toLowerCase()}`;
 }
 
+function norm(v: string | null | undefined) {
+  return String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function firstCardNumber(v: string | null | undefined) {
+  return String(v || "").replace(/#/g, "").split("/")[0].trim();
+}
+
+function tokenScore(a: string, b: string) {
+  const aa = new Set(norm(a).split(" ").filter(Boolean));
+  const bb = new Set(norm(b).split(" ").filter(Boolean));
+  if (!aa.size || !bb.size) return 0;
+  let hit = 0;
+  aa.forEach((t) => { if (bb.has(t)) hit++; });
+  return hit / Math.max(aa.size, bb.size);
+}
+
+function setAlias(v: string) {
+  const n = norm(v);
+  return n === "base set" ? "base" : n;
+}
+
+function setMatchScore(cardSet: string, targetSet: string) {
+  const c = norm(cardSet);
+  const t = norm(targetSet);
+  if (!t) return 0;
+  if (c === t) return 24;
+  if (setAlias(c) === setAlias(t)) return 22;
+  if (c.startsWith(`${t} `)) return /\b\d+\b/.test(c.slice(t.length)) ? 4 : 10;
+  if (t.startsWith(`${c} `)) return 10;
+  return tokenScore(c, t) * 6;
+}
+
+function pickPriceVariant(prices: any, rarity: string | null, variantHint: string | null) {
+  const want = norm(`${variantHint || ""} ${rarity || ""}`);
+  const entries = [
+    ["normal", prices?.normal],
+    ["holofoil", prices?.holofoil],
+    ["reverseHolofoil", prices?.reverseHolofoil],
+    ["1stEditionHolofoil", prices?.["1stEditionHolofoil"]],
+    ["unlimitedHolofoil", prices?.unlimitedHolofoil],
+  ].filter(([, v]) => v && (v.market ?? v.mid) != null) as [string, any][];
+  if (!entries.length) return null;
+  const exact =
+    /reverse/.test(want) ? entries.find(([k]) => k === "reverseHolofoil") :
+    /1st|first/.test(want) ? entries.find(([k]) => k === "1stEditionHolofoil") :
+    /non holo|nonholo|standard|normal|common|uncommon/.test(want) && !/holo/.test(want.replace(/non ?holo/g, "")) ? entries.find(([k]) => k === "normal") :
+    /holo|foil|rare|ultra|secret|illustration|alt art|full art|amazing/.test(want) ? entries.find(([k]) => k === "holofoil") || entries.find(([k]) => k === "unlimitedHolofoil") :
+    null;
+  const picked = exact || entries.slice().sort((a, b) => Number(b[1].market ?? b[1].mid) - Number(a[1].market ?? a[1].mid))[0];
+  return { key: picked[0], value: picked[1] };
+}
+
 async function fetchTcgPrice(
   name: string,
   set: string | null,
@@ -23,62 +76,73 @@ async function fetchTcgPrice(
   rarity: string | null,
   variantHint: string | null,
 ) {
-  // Use wildcard so "Charizard" still matches "Charizard ex" / "Charizard VMAX".
-  // When we have a card number, drop the wildcard and require exact number+name
-  // (number is by far the most selective filter — eliminates reprints).
   const cleanName = name.replace(/"/g, "");
-  const parts: string[] = [];
-  if (number) {
-    parts.push(`name:"${cleanName}*"`);
-    parts.push(`number:"${number.replace(/"/g, "").split("/")[0].trim()}"`);
-  } else {
-    parts.push(`name:"${cleanName}*"`);
-  }
-  if (set) parts.push(`set.name:"${set.replace(/"/g, "")}*"`);
-  const q = parts.join(" ");
+  const cleanSet = (set || "").replace(/"/g, "");
+  const cleanNumber = firstCardNumber(number);
   const apiKey = Deno.env.get("POKEMONTCG_API_KEY");
-  // Pull up to 20 candidates so we can rank by closest name + rarity match.
-  // Without an explicit order we let the API's relevance ranking surface the
-  // best name match first instead of forcing newest-set first.
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=20`, {
-    headers: apiKey ? { "X-Api-Key": apiKey } : {},
-  });
-  if (!res.ok) return null;
-  const json = await res.json();
-  const candidates: any[] = json?.data || [];
+
+  const queries: string[] = [];
+  if (cleanName && cleanNumber && cleanSet) queries.push(`name:"${cleanName}*" number:"${cleanNumber}" set.name:"${cleanSet}*"`);
+  if (cleanName && cleanNumber) queries.push(`name:"${cleanName}*" number:"${cleanNumber}"`);
+  if (cleanNumber && cleanSet) queries.push(`number:"${cleanNumber}" set.name:"${cleanSet}*"`);
+  if (cleanName && cleanSet) queries.push(`name:"${cleanName}*" set.name:"${cleanSet}*"`);
+  if (cleanName) queries.push(`name:"${cleanName}*"`);
+
+  const seen = new Set<string>();
+  const candidates: any[] = [];
+  for (const q of queries) {
+    const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=30`, {
+      headers: apiKey ? { "X-Api-Key": apiKey } : {},
+    });
+    if (!res.ok) continue;
+    const json = await res.json();
+    for (const c of json?.data || []) {
+      if (!c?.id || seen.has(c.id)) continue;
+      seen.add(c.id);
+      candidates.push(c);
+    }
+    if (candidates.length >= 30 && cleanNumber) break;
+  }
   if (candidates.length === 0) return null;
 
-  // Score candidates: exact name match > prefix match; rarity match adds points;
-  // having a tcgplayer market price is required to be useful.
+  // Exact printed number beats everything. Set/name/rarity break ties.
   const targetName = cleanName.toLowerCase();
+  const targetSet = norm(cleanSet);
   const targetRarity = (rarity || "").toLowerCase();
   function score(c: any): number {
     let s = 0;
     const cn = (c.name || "").toLowerCase();
+    const cnum = firstCardNumber(c.number);
+    const cset = norm(c?.set?.name);
+    if (cleanNumber && cnum === cleanNumber) s += 60;
+    else if (cleanNumber && (c.number || "").includes(cleanNumber)) s += 25;
     if (cn === targetName) s += 10;
     else if (cn.startsWith(targetName)) s += 4;
+    else s += tokenScore(cn, targetName) * 3;
+    if (targetSet) s += setMatchScore(cset, targetSet);
     if (targetRarity && (c.rarity || "").toLowerCase() === targetRarity) s += 5;
     else if (targetRarity && (c.rarity || "").toLowerCase().includes(targetRarity.split(" ")[0])) s += 2;
     if (c?.tcgplayer?.prices) s += 3; // has pricing data
     return s;
   }
-  candidates.sort((a, b) => score(b) - score(a));
+  const ranked = candidates
+    .map((card) => ({ card, score: score(card), picked: pickPriceVariant(card?.tcgplayer?.prices ?? {}, rarity, variantHint) }))
+    .filter((x) => {
+      if (!x.picked) return false;
+      const cn = norm(x.card?.name);
+      const tn = norm(targetName);
+      const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
+      const exactSetNumber = !!cleanNumber && firstCardNumber(x.card.number) === cleanNumber && targetSet && setMatchScore(x.card?.set?.name, targetSet) >= 20;
+      return (nameClose || exactSetNumber) && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
+    })
+    .sort((a, b) => b.score - a.score);
+  if (!ranked.length) return null;
 
-  // Top-scored candidate is the best match (already ranked by name + rarity + has-prices).
-  const card = candidates[0];
+  const { card, score: matchScore, picked } = ranked[0];
 
   const p = card?.tcgplayer?.prices ?? {};
-  // Choose the variant that matches the scanned card's actual variant/rarity
-  const want = (variantHint || rarity || "").toLowerCase();
-  let variant: any = null;
-  let variantKey = "normal";
-  if (/reverse/.test(want)) { variant = p.reverseHolofoil; variantKey = "reverseHolofoil"; }
-  else if (/1st\s*edition/.test(want) && p["1stEditionHolofoil"]) { variant = p["1stEditionHolofoil"]; variantKey = "1stEditionHolofoil"; }
-  else if (/holo|rare\s*holo|ultra|secret|illustration|amazing/.test(want)) { variant = p.holofoil ?? p.unlimitedHolofoil; variantKey = "holofoil"; }
-  else { variant = p.normal ?? p.unlimitedHolofoil; variantKey = "normal"; }
-  // Final fallback chain — never just default to holofoil for non-holo cards
-  if (!variant) variant = p.normal ?? p.reverseHolofoil ?? p.holofoil ?? p["1stEditionHolofoil"] ?? p.unlimitedHolofoil ?? null;
-  if (!variant) return null;
+  const variant = picked!.value;
+  const variantKey = picked!.key;
 
   const market = variant.market ?? variant.mid ?? null;
   if (market == null) return null;
@@ -101,8 +165,19 @@ async function fetchTcgPrice(
       image_small: card?.images?.small ?? null,
       image_large: card?.images?.large ?? null,
       variant_key: variantKey,
+      match_score: matchScore,
     },
-    raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity },
+    alternatives: ranked.slice(1, 4).map((x) => ({
+      name: x.card?.name ?? "",
+      set: x.card?.set?.name ?? "",
+      year: x.card?.set?.releaseDate ? String(x.card.set.releaseDate).slice(0, 4) : "",
+      tcg_number: x.card?.number ?? "",
+      rarity: x.card?.rarity ?? "",
+      variant: x.picked?.key ?? "",
+      estimated_value: Number(x.picked?.value?.market ?? x.picked?.value?.mid ?? 0),
+      image_url: x.card?.images?.small ?? x.card?.images?.large ?? "",
+    })),
+    raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity, matchScore },
   };
 }
 

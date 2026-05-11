@@ -15,45 +15,33 @@ const LANG_MAP: Record<string, string> = {
 };
 
 const CARD_SCHEMA_TEXT = `{
-  "name": string,                   // canonical English card name
-  "category": string,               // "Pokémon", "MTG", "Yu-Gi-Oh!", "One Piece", "Sports - Basketball", etc.
-  "set": string,                    // REQUIRED — exact set name + variant note
-  "year": string,                   // REQUIRED — 4-digit copyright/release year
-  "tcg_number": string,             // exact card number e.g. "4/102" or "SV03-EN045"
-  "variant": string,                // "Holo" | "Reverse Holo" | "Full Art" | "Promo" | "1st Edition" | "Standard" etc.
-  "rarity": string,                 // "Common"|"Uncommon"|"Rare"|"Holo Rare"|"Ultra Rare"|"Secret Rare" etc.
-  "language": string,               // "EN" | "JP" | "KR" | "CN" | "DE" | "FR" | etc.
+  "name": string,
+  "category": string,
+  "set": string,
+  "year": string,
+  "tcg_number": string,
+  "variant": string,
+  "rarity": string,
+  "language": string,
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
-  "overall_confidence": number,     // 0..1 overall match confidence for this identification
-  "estimated_value": number,        // current USD market value in NEAR MINT, > 0
-  "condition_prices": { "NM": number, "LP": number, "MP": number, "Damaged": number },
-  "trend": string,                  // "Value Picking Up 📈" | "Hot Right Now 🔥" | "Trending Up 📈" | "Rare Find 💎" | "Stable Demand 📊"
-  "alternatives": [                  // up to 3 plausible alternative matches if you are not 100% sure (omit if perfect match)
-    { "name": string, "set": string, "year": string, "tcg_number": string, "variant": string, "rarity": string, "estimated_value": number }
-  ]
+  "overall_confidence": number
 }`;
 
-const SYSTEM_SINGLE = `You are an EXPERT trading card identifier and appraiser. Handle every TCG and sports card brand: Pokémon, Magic: The Gathering, Yu-Gi-Oh!, One Piece, Dragon Ball Super, Lorcana, Flesh & Blood, Topps, Panini, Upper Deck, Bowman, Fleer, anime/franchise releases, and more.
+const SYSTEM_SINGLE = `You read trading card photos for a marketplace scanner. Be FAST and literal.
 
-ACCURACY IS CRITICAL — get the SET NAME, YEAR, and CARD NUMBER right.
+Your only job is OCR + visible identification. Do NOT appraise, price, invent rarity, or force a set name.
 
-Steps:
-1. Read the SET SYMBOL (small icon, usually bottom-right or under the artwork).
-2. Read the CARD NUMBER printed on the card (e.g. "4/102", "SV03-EN045", "BLK 137").
-3. Read the COPYRIGHT YEAR (©YYYY). Use the most recent printing year.
-4. Read the SET CODE if present (e.g. "SV3", "PAL", "BST").
-5. Identify the VARIANT (Holo, Reverse Holo, Full Art, Alt Art, Promo, 1st Edition, Shadowless, Refractor, Prizm, Auto, Numbered, etc.).
-6. Identify the RARITY printed on the card.
-7. Identify the LANGUAGE.
+Return ONLY what is visible on the card:
+- printed card name
+- printed card number, exactly as shown (examples: "4/102", "TG05/TG30", "SV03-EN045")
+- copyright/release year if visible
+- set name or set code ONLY if you can read it; otherwise empty string
+- language and obvious finish/variant if visible
 
-Translate names to canonical English ("リザードン" → "Charizard"). If a field is unreadable, best-guess but lower its confidence.
+If a field is unreadable, return "" and set that field confidence under 0.4. Never guess a specific printing from memory. The database will do the exact match after this.
 
 Return STRICT JSON matching this schema:
-${CARD_SCHEMA_TEXT}
-
-CRITICAL: Always provide best-guess values — never null/zero. "set", "year", "tcg_number" must always be filled. Match the EXACT printing.
-
-Also set "overall_confidence" (0..1) reflecting how sure you are this is the EXACT printing. If overall_confidence < 0.9, populate "alternatives" with up to 3 OTHER plausible printings the card could be (different sets/numbers/variants). Each alternative needs name, set, year, tcg_number, variant, rarity, estimated_value. Omit alternatives if you are essentially certain.`;
+${CARD_SCHEMA_TEXT}`;
 
 const SYSTEM_MULTI = `You are an EXPERT trading card identifier and appraiser. The image may contain MULTIPLE trading cards laid out together. DETECT EACH CARD SEPARATELY and identify every one of them with the same accuracy as a single-card scan.
 
@@ -72,7 +60,7 @@ Return STRICT JSON: { "cards": [ <card>, <card>, ... ] }
 Each <card> matches:
 ${CARD_SCHEMA_TEXT}
 
-CRITICAL: Always provide best-guess values for required fields. Match the EXACT printing of each card.`;
+CRITICAL: Do not include prices. If a field is unreadable, return an empty string and low confidence.`;
 
 function clamp01(n: any, def = 0.5) {
   const v = Number(n);
@@ -95,8 +83,6 @@ function normalizeAlternative(a: any) {
 }
 
 function normalizeCard(parsed: any, fallbackLang?: string) {
-  const nm = Number(parsed?.estimated_value) > 0 ? Number(parsed.estimated_value) : 1;
-  const cp = parsed?.condition_prices || {};
   const conf = parsed?.confidence || {};
   const perField = {
     name: clamp01(conf.name),
@@ -125,12 +111,12 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     confidence: perField,
     overall_confidence: overall,
     match_label: overall >= 0.9 ? `${Math.round(overall * 100)}% Match` : overall >= 0.7 ? `Likely Match (${Math.round(overall * 100)}%)` : "Possible Match",
-    estimated_value: nm,
+    estimated_value: 0,
     condition_prices: {
-      NM: Number(cp.NM) > 0 ? Number(cp.NM) : nm,
-      LP: Number(cp.LP) > 0 ? Number(cp.LP) : Math.round(nm * 0.85 * 100) / 100,
-      MP: Number(cp.MP) > 0 ? Number(cp.MP) : Math.round(nm * 0.6 * 100) / 100,
-      Damaged: Number(cp.Damaged) > 0 ? Number(cp.Damaged) : Math.max(0.5, Math.round(nm * 0.25 * 100) / 100),
+      NM: 0,
+      LP: 0,
+      MP: 0,
+      Damaged: 0,
     },
     trend: parsed?.trend || "Stable Demand 📊",
     alternatives: alts,
@@ -241,6 +227,8 @@ Deno.serve(async (req) => {
           ]},
         ],
         response_format: { type: "json_object" },
+        temperature: 0,
+        max_tokens: multi ? 2048 : 512,
       }),
     });
 
@@ -259,6 +247,10 @@ Deno.serve(async (req) => {
     }
 
     const data = await resp.json();
+    const finishReason = data.choices?.[0]?.finish_reason || data.stop_reason;
+    if (finishReason === "length" || finishReason === "max_tokens") {
+      throw new Error("AI response truncated");
+    }
     const content = data.choices?.[0]?.message?.content || "{}";
     let parsed: any;
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
