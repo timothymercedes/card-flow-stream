@@ -3823,6 +3823,7 @@ export type Database = {
         Args: { _stream_id: string }
         Returns: string
       }
+      finalize_auction_round: { Args: { _stream_id: string }; Returns: Json }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
       get_seller_completed_count: { Args: { _user: string }; Returns: number }
