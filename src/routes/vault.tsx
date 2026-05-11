@@ -62,9 +62,14 @@ function Vault() {
   const [condition, setCondition] = useState<Condition>("NM");
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
-  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number; year?: string; category?: string };
+  type TcgPrices = Record<string, { market?: number; mid?: number; low?: number; high?: number } | undefined>;
+  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number; year?: string; category?: string; tcgPrices?: TcgPrices };
   const [alternatives, setAlternatives] = useState<Alt[]>([]);
   const [altIndex, setAltIndex] = useState(0);
+  type Edition = "Unlimited" | "1st Edition";
+  type Finish = "Holo" | "Non-Holo" | "Reverse Holo";
+  const [edition, setEdition] = useState<Edition>("Unlimited");
+  const [finish, setFinish] = useState<Finish>("Non-Holo");
 
   function cleanSearchText(v?: string | null) {
     return String(v || "")
