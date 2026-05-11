@@ -24,9 +24,13 @@ const CARD_SCHEMA_TEXT = `{
   "rarity": string,                 // "Common"|"Uncommon"|"Rare"|"Holo Rare"|"Ultra Rare"|"Secret Rare" etc.
   "language": string,               // "EN" | "JP" | "KR" | "CN" | "DE" | "FR" | etc.
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
+  "overall_confidence": number,     // 0..1 overall match confidence for this identification
   "estimated_value": number,        // current USD market value in NEAR MINT, > 0
   "condition_prices": { "NM": number, "LP": number, "MP": number, "Damaged": number },
-  "trend": string                   // "Value Picking Up 📈" | "Hot Right Now 🔥" | "Trending Up 📈" | "Rare Find 💎" | "Stable Demand 📊"
+  "trend": string,                  // "Value Picking Up 📈" | "Hot Right Now 🔥" | "Trending Up 📈" | "Rare Find 💎" | "Stable Demand 📊"
+  "alternatives": [                  // up to 3 plausible alternative matches if you are not 100% sure (omit if perfect match)
+    { "name": string, "set": string, "year": string, "tcg_number": string, "variant": string, "rarity": string, "estimated_value": number }
+  ]
 }`;
 
 const SYSTEM_SINGLE = `You are an EXPERT trading card identifier and appraiser. Handle every TCG and sports card brand: Pokémon, Magic: The Gathering, Yu-Gi-Oh!, One Piece, Dragon Ball Super, Lorcana, Flesh & Blood, Topps, Panini, Upper Deck, Bowman, Fleer, anime/franchise releases, and more.
