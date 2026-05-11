@@ -249,6 +249,21 @@ function Vault() {
     await supabase.from("vault_cards").delete().eq("id", id);
     load();
   }
+  async function updateCondition(card: Card, newCond: Condition) {
+    const cp = card.condition_prices || null;
+    const base = Number(cp?.NM) || Number(card.estimated_value) || 0;
+    const newValue = priceFor(newCond, base, cp);
+    // Optimistic UI
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, condition: newCond, estimated_value: newValue } : prev));
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, condition: newCond, estimated_value: newValue } : c)));
+    const { error } = await supabase.from("vault_cards").update({
+      condition: newCond,
+      estimated_value: newValue,
+    }).eq("id", card.id);
+    if (error) { toast.error(error.message); load(); return; }
+    toast.success(`Condition: ${newCond} • $${newValue.toFixed(2)}`);
+  }
+
   async function saveEdit() {
     if (!editing) return;
     // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
