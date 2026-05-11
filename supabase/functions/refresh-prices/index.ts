@@ -16,6 +16,43 @@ function keyOf(name: string | null, set: string | null, number: string | null) {
   return `${(name || "").toLowerCase()}|${(set || "").toLowerCase()}|${(number || "").toLowerCase()}`;
 }
 
+function norm(v: string | null | undefined) {
+  return String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function firstCardNumber(v: string | null | undefined) {
+  return String(v || "").replace(/#/g, "").split("/")[0].trim();
+}
+
+function tokenScore(a: string, b: string) {
+  const aa = new Set(norm(a).split(" ").filter(Boolean));
+  const bb = new Set(norm(b).split(" ").filter(Boolean));
+  if (!aa.size || !bb.size) return 0;
+  let hit = 0;
+  aa.forEach((t) => { if (bb.has(t)) hit++; });
+  return hit / Math.max(aa.size, bb.size);
+}
+
+function pickPriceVariant(prices: any, rarity: string | null, variantHint: string | null) {
+  const want = norm(`${variantHint || ""} ${rarity || ""}`);
+  const entries = [
+    ["normal", prices?.normal],
+    ["holofoil", prices?.holofoil],
+    ["reverseHolofoil", prices?.reverseHolofoil],
+    ["1stEditionHolofoil", prices?.["1stEditionHolofoil"]],
+    ["unlimitedHolofoil", prices?.unlimitedHolofoil],
+  ].filter(([, v]) => v && (v.market ?? v.mid) != null) as [string, any][];
+  if (!entries.length) return null;
+  const exact =
+    /reverse/.test(want) ? entries.find(([k]) => k === "reverseHolofoil") :
+    /1st|first/.test(want) ? entries.find(([k]) => k === "1stEditionHolofoil") :
+    /non holo|nonholo|standard|normal|common|uncommon/.test(want) && !/holo/.test(want.replace(/non ?holo/g, "")) ? entries.find(([k]) => k === "normal") :
+    /holo|foil|rare|ultra|secret|illustration|alt art|full art|amazing/.test(want) ? entries.find(([k]) => k === "holofoil") || entries.find(([k]) => k === "unlimitedHolofoil") :
+    null;
+  const picked = exact || entries.slice().sort((a, b) => Number(b[1].market ?? b[1].mid) - Number(a[1].market ?? a[1].mid))[0];
+  return { key: picked[0], value: picked[1] };
+}
+
 async function fetchTcgPrice(
   name: string,
   set: string | null,
