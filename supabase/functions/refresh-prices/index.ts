@@ -132,7 +132,8 @@ async function fetchTcgPrice(
       const cn = norm(x.card?.name);
       const tn = norm(targetName);
       const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
-      return nameClose && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
+      const exactSetNumber = !!cleanNumber && firstCardNumber(x.card.number) === cleanNumber && targetSet && setMatchScore(x.card?.set?.name, targetSet) >= 20;
+      return (nameClose || exactSetNumber) && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
     })
     .sort((a, b) => b.score - a.score);
   if (!ranked.length) return null;
