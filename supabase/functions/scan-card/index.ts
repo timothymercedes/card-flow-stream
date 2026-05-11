@@ -227,6 +227,8 @@ Deno.serve(async (req) => {
           ]},
         ],
         response_format: { type: "json_object" },
+        temperature: 0,
+        max_tokens: multi ? 2048 : 512,
       }),
     });
 
@@ -245,6 +247,10 @@ Deno.serve(async (req) => {
     }
 
     const data = await resp.json();
+    const finishReason = data.choices?.[0]?.finish_reason || data.stop_reason;
+    if (finishReason === "length" || finishReason === "max_tokens") {
+      throw new Error("AI response truncated");
+    }
     const content = data.choices?.[0]?.message?.content || "{}";
     let parsed: any;
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
