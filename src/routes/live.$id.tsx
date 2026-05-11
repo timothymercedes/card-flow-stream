@@ -2166,9 +2166,82 @@ function LiveDetail() {
     safety.touch("auction_finalized");
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
-    // Ensure we have a snapshot if not already captured
+    // Snapshot capture is a UX nicety the seller does before calling server finalize
     let snapshot = stream.item_image_url;
-    if (!snapshot && isSeller) snapshot = await captureSnapshot();
+    if (!snapshot && isSeller) {
+      snapshot = await captureSnapshot();
+      if (snapshot) {
+        await supabase.from("live_streams").update({ item_image_url: snapshot }).eq("id", id);
+      }
+    }
+
+    // 🔒 Server-authoritative finalize: locks winner, creates order, receipt,
+    // notifications, audit log, listing/vault sync — all atomically.
+    const { data: finRes, error: finErr } = await (supabase.rpc as any)(
+      "finalize_auction_round",
+      { _stream_id: id },
+    );
+    if (finErr) {
+      console.error("[live] finalize_auction_round failed", finErr);
+      // Soft-fail: clear the timer locally so the UI recovers
+      if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+      return;
+    }
+
+    if (winnerId && finRes && !finRes.no_winner) {
+      const winnerUsername = finRes.winner_username || "buyer";
+      const nextRound = Number(finRes.round_number || stream.round_number || 1);
+      const itemName = stream.current_item || stream.title;
+      // Chat announcement (best-effort, non-authoritative)
+      await sendMsg(
+        `🏆 Bid #${nextRound} — "${itemName}" sold to @${winnerUsername} for $${winningBid}`,
+        true,
+      );
+      // Pre-selected reveal (UX only)
+      const revealMode = (stream as any).auction_reveal_mode as string | undefined;
+      if (isSeller && revealMode === "wheel") triggerSpin().catch(() => {});
+      else if (isSeller && revealMode === "break") spinBreakWheel().catch(() => {});
+
+      // Clear banner + auto-rearm next round after 5s (UI affordance, not auth)
+      setTimeout(async () => {
+        const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
+        const sec = Number(stream.default_timer_sec || 30);
+        const start = Number(stream.default_starting_bid || stream.starting_bid || 1);
+        const update: any = {
+          ends_at: null,
+          winner_id: null,
+          winning_bid: null,
+          winner_username: null,
+          current_bidder_id: null,
+          pinned_card: null,
+        };
+        if (remaining > 0) {
+          update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
+          update.starting_bid = start;
+          update.current_bid = start;
+          update.snipe_extends = 0;
+          update.sudden_death_active = false;
+          update.quick_start_remaining = remaining - 1;
+        }
+        if (isSeller) await supabase.from("live_streams").update(update).eq("id", id);
+        endedRef.current = false;
+        snapshotRef.current = false;
+        if (remaining > 0)
+          sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
+      }, 5000);
+    } else {
+      // No winner: silently clear after 5s
+      setTimeout(async () => {
+        if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+        endedRef.current = false;
+        snapshotRef.current = false;
+      }, 5000);
+    }
+    return;
+
+    // ⬇️ legacy client-side path retained below for reference; never executes
+    // (kept temporarily — safe to delete in a future cleanup)
+    // eslint-disable-next-line no-unreachable
     if (winnerId) {
       const { data: pubRows } = await (supabase.rpc as any)("public_profiles_by_ids", {
         _ids: [winnerId],
