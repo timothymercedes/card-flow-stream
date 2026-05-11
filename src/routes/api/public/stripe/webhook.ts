@@ -106,6 +106,33 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               }
               break;
             }
+            case "charge.refunded": {
+              const charge: any = event.data.object;
+              const piId = charge.payment_intent as string | undefined;
+              const refundedAmt = (charge.amount_refunded ?? 0) / 100;
+              const fullyRefunded = !!charge.refunded || refundedAmt >= (charge.amount ?? 0) / 100;
+              if (piId) {
+                const { data: rows } = await supabaseAdmin
+                  .from("orders")
+                  .select("id, buyer_id, seller_id, title")
+                  .eq("stripe_payment_intent_id", piId);
+                if (rows && rows.length > 0) {
+                  await supabaseAdmin.from("orders").update({
+                    payment_status: fullyRefunded ? "refunded" : "partial_refund",
+                    status: fullyRefunded ? "refunded" : "pending",
+                    refunded_amount: refundedAmt,
+                    refunded_at: new Date().toISOString(),
+                  }).eq("stripe_payment_intent_id", piId);
+                  for (const o of rows as any[]) {
+                    await supabaseAdmin.from("notifications").insert([
+                      { user_id: o.buyer_id, type: "refund", body: `💸 Refund issued for "${o.title}" ($${refundedAmt.toFixed(2)}).`, link: "/orders" },
+                      { user_id: o.seller_id, type: "refund", body: `↩️ Refund issued on "${o.title}" ($${refundedAmt.toFixed(2)}).`, link: "/store" },
+                    ]);
+                  }
+                }
+              }
+              break;
+            }
             default:
               console.log("Unhandled Stripe event:", event.type);
           }
