@@ -183,13 +183,18 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>({
+  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() => ({
     x: 12,
-    y: 128,
+    y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
     w: 104,
     h: 32,
-  });
-  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>({ x: 12, y: 176, w: 256, h: 0 });
+  }));
+  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>(() => ({
+    x: 124,
+    y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
+    w: 132,
+    h: 32,
+  }));
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
