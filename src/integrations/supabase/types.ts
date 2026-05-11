@@ -968,6 +968,50 @@ export type Database = {
         }
         Relationships: []
       }
+      live_bids: {
+        Row: {
+          amount: number
+          bidder_id: string
+          bidder_username: string | null
+          created_at: string
+          id: string
+          round_number: number | null
+          stream_id: string
+          was_anti_snipe: boolean
+          was_sudden_death: boolean
+        }
+        Insert: {
+          amount: number
+          bidder_id: string
+          bidder_username?: string | null
+          created_at?: string
+          id?: string
+          round_number?: number | null
+          stream_id: string
+          was_anti_snipe?: boolean
+          was_sudden_death?: boolean
+        }
+        Update: {
+          amount?: number
+          bidder_id?: string
+          bidder_username?: string | null
+          created_at?: string
+          id?: string
+          round_number?: number | null
+          stream_id?: string
+          was_anti_snipe?: boolean
+          was_sudden_death?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_bids_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_credentials: {
         Row: {
           cf_live_input_id: string | null
@@ -3851,6 +3895,10 @@ export type Database = {
       }
       place_listing_bid: {
         Args: { _amount: number; _listing_id: string }
+        Returns: Json
+      }
+      place_live_bid: {
+        Args: { _amount: number; _stream_id: string }
         Returns: Json
       }
       public_profile_by_username: {

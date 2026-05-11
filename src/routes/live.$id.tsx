@@ -1459,34 +1459,16 @@ function LiveDetail() {
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
     const prevBidder = stream.current_bidder_id;
 
-    const update: any = { current_bid: amount, current_bidder_id: user.id };
-    const remainingMs = stream.ends_at ? new Date(stream.ends_at).getTime() - Date.now() : 0;
-    const exts = Number(stream.snipe_extends || 0);
-    const sdEnabled = !!stream.sudden_death_enabled;
-    const sdMax = Math.max(1, Number(stream.sudden_death_max_triggers || 3));
-    const sdSec = Math.max(1, Number(stream.sudden_death_seconds_added || 5));
-    const inSuddenDeath = !!stream.sudden_death_active;
-    let extended = false;
-    let suddenDeathWin = false;
-
-    if (inSuddenDeath) {
-      // 💀 Sudden death — bid wins instantly, end timer in 1.2s for drama.
-      update.ends_at = new Date(Date.now() + 1200).toISOString();
-      update.sudden_death_active = false;
-      suddenDeathWin = true;
-    } else if (sdEnabled && remainingMs > 0 && remainingMs <= 3000) {
-      // Add +sdSec and bump extension counter
-      update.ends_at = new Date(
-        Math.max(new Date(stream.ends_at).getTime(), Date.now()) + sdSec * 1000,
-      ).toISOString();
-      update.snipe_extends = exts + 1;
-      extended = true;
-      // After max extensions, arm sudden death for the NEXT bid
-      if (exts + 1 >= sdMax) update.sudden_death_active = true;
-    }
-
-    const { error } = await supabase.from("live_streams").update(update).eq("id", id);
+    // Atomic server-side bid: locks the row, enforces min increment, applies
+    // anti-snipe / sudden-death, writes bid history + audit log.
+    const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
+      _stream_id: id,
+      _amount: amount,
+    });
     if (error) return toast.error(error.message);
+    const extended = !!(bidRes as any)?.extended;
+    const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
+    const exts = Number(stream.snipe_extends || 0);
     safety.touch("auction_bid");
 
     if (extended) {
