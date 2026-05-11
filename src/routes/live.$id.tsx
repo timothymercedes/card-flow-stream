@@ -2708,7 +2708,7 @@ function LiveDetail() {
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     touchStartX.current = null;
     touchStartY.current = null;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) swipeStream(dx < 0 ? 1 : -1);
+    if (!isSeller && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) swipeStream(dx < 0 ? 1 : -1);
   }
 
   function startHold(e: React.PointerEvent) {
