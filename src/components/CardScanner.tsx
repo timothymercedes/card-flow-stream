@@ -172,7 +172,7 @@ export function CardScanner({
         const srcW = v.videoWidth || 1280;
         const srcH = v.videoHeight || 720;
         // Smaller payload = much faster AI round-trip. Multi-card keeps a bit more res for legibility.
-        const MAX = multi ? 1600 : 1280;
+        const MAX = multi ? 1600 : 1024;
         const scale = Math.min(1, MAX / Math.max(srcW, srcH));
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(srcW * scale);
@@ -180,7 +180,7 @@ export function CardScanner({
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas error");
         ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-        dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       }
 
       // Show the captured photo immediately while AI runs (Photo Scan Mode)
@@ -334,7 +334,7 @@ export function CardScanner({
         reader.onerror = () => reject(new Error("Could not read file"));
         reader.readAsDataURL(file);
       });
-      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1280);
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
       await capture(resized);
     } catch (err: any) {
       toast.error(err?.message || "Could not load image");
@@ -972,7 +972,7 @@ async function downscaleDataUrl(src: string, maxDim: number): Promise<string> {
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("Canvas error"));
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", 0.9));
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
     };
     img.onerror = () => reject(new Error("Could not decode image"));
     img.src = src;
