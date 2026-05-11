@@ -2656,7 +2656,8 @@ function LiveDetail() {
     // Get HYPE-only AI blurb (NEVER prices) for live streams
     let hypeName = r.name;
     let hypeCategory = r.category;
-    let hypeSet = "";
+    // Prefer the authoritative set passed in from identify-card (vault scanner)
+    let hypeSet = (r as any).set || "";
     let hypeVibe = r.trend || "Solid Pickup 💪";
     let hypeLines: string[] = [];
     try {
@@ -2666,7 +2667,8 @@ function LiveDetail() {
       if (!hypeErr && hype) {
         hypeName = hype.name || hypeName;
         hypeCategory = hype.category || hypeCategory;
-        hypeSet = hype.set_guess || "";
+        // Only use AI guess for set if we don't already have an authoritative one
+        if (!hypeSet) hypeSet = hype.set_guess || "";
         hypeVibe = hype.rarity_vibe || hypeVibe;
         hypeLines = Array.isArray(hype.hype_lines) ? hype.hype_lines : [];
       }
