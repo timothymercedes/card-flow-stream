@@ -763,6 +763,7 @@ function LiveDetail() {
   //   - else:            legacy in-app camera preview only
   const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
   const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
+  const flexNeedsCameraSetup = stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
   const hostStudio = useStudio({
     whipUrl: stream?.cf_whip_url ?? null,
     autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
@@ -877,6 +878,11 @@ function LiveDetail() {
         .filter(Boolean)
         .slice(0, 3);
     } catch {}
+    if (stream?.mode === "show_off") {
+      setShowHostCameraEditor(true);
+      setHostCameraPanelCollapsed(false);
+      hostStudio.setScene("freeform");
+    }
     if (ids.length === 0) return;
     setPendingHostCameraIds(ids);
     setShowHostCameraEditor(true);
@@ -2404,6 +2410,37 @@ function LiveDetail() {
     }
   }
 
+  async function enableFlexCameraStudio() {
+    if (!isSeller || !stream) return;
+    setSwitchingToBrowserCam(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-stream-input", {
+        body: { meta_name: `Flex cameras — ${stream.title || id}` },
+      });
+      if (error || (data as any)?.error || !(data as any)?.whip_url) {
+        throw new Error((data as any)?.error || error?.message || "Could not set up Flex cameras");
+      }
+      const d = data as any;
+      const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
+      const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
+      if (updateErr) throw updateErr;
+      await supabase.from("live_stream_credentials" as any).upsert({
+        stream_id: id,
+        cf_live_input_id: d.live_input_id ?? null,
+        cf_rtmps_url: d.rtmps_url ?? null,
+        cf_stream_key: d.stream_key ?? null,
+      }, { onConflict: "stream_id" });
+      setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
+      setShowHostCameraEditor(true);
+      setHostCameraPanelCollapsed(false);
+      toast.success("Flex camera panel is ready");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not set up Flex cameras");
+    } finally {
+      setSwitchingToBrowserCam(false);
+    }
+  }
+
   async function confirmEndLive() {
     if (!isSeller) return;
     if (auctionLive) await finalizeAuctionRound();
@@ -3065,13 +3102,18 @@ function LiveDetail() {
               <Camera className="h-4 w-4" />
             </button>
           )}
-          {!ended && isSeller && usingCompositor && (
+          {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
             <button
-              onClick={openHostCameraControls}
+              onClick={flexNeedsCameraSetup ? enableFlexCameraStudio : openHostCameraControls}
+              disabled={flexNeedsCameraSetup && switchingToBrowserCam}
               className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
-              title="Arrange cameras"
+              title={flexNeedsCameraSetup ? "Set up Flex cameras" : "Arrange cameras"}
             >
-              <Settings className="h-4 w-4" />
+              {flexNeedsCameraSetup && switchingToBrowserCam ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Settings className="h-4 w-4" />
+              )}
             </button>
           )}
           {(auctionLive || stream.current_item) && (
@@ -4000,6 +4042,20 @@ function LiveDetail() {
                   username={profile?.username || null}
                   currentFilter={stream.video_filter || "none"}
                 />
+                {isSeller && flexNeedsCameraSetup && (
+                  <button
+                    onClick={enableFlexCameraStudio}
+                    disabled={switchingToBrowserCam}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-extrabold text-primary-foreground disabled:opacity-60 active:scale-[0.98]"
+                  >
+                    {switchingToBrowserCam ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5" />
+                    )}
+                    Set up Flex cameras
+                  </button>
+                )}
                 {isSeller && !paused && (
                   <button
                     onClick={endLive}

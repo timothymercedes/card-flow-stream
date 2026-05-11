@@ -80,25 +80,31 @@ function ShowOff() {
     setBusy(true);
 
     // Provision Cloudflare Stream input (HLS + WHIP) so Flex Live gets the same
-    // multi-camera browser compositor as auction live.
+    // multi-camera browser compositor as auction live. Do not silently fall
+    // back to a non-camera Flex stream — that hides the camera panel from hosts.
     let cfPublic: { cf_playback_hls?: string | null; cf_whip_url?: string | null } = {};
     let cfPrivate: { cf_live_input_id?: string; cf_rtmps_url?: string; cf_stream_key?: string } = {};
     try {
       const { data: cfData, error: cfErr } = await supabase.functions.invoke("create-stream-input", {
         body: { meta_name: title.trim() },
       });
-      if (!cfErr && cfData && !(cfData as any).error) {
-        cfPublic = {
-          cf_playback_hls: (cfData as any).hls_url,
-          cf_whip_url: (cfData as any).whip_url,
-        };
-        cfPrivate = {
-          cf_live_input_id: (cfData as any).live_input_id,
-          cf_rtmps_url: (cfData as any).rtmps_url,
-          cf_stream_key: (cfData as any).stream_key,
-        };
+      if (cfErr || !cfData || (cfData as any).error || !(cfData as any).whip_url) {
+        setBusy(false);
+        return toast.error((cfData as any)?.error || cfErr?.message || "Could not set up Flex cameras");
       }
-    } catch { /* best-effort */ }
+      cfPublic = {
+        cf_playback_hls: (cfData as any).hls_url,
+        cf_whip_url: (cfData as any).whip_url,
+      };
+      cfPrivate = {
+        cf_live_input_id: (cfData as any).live_input_id,
+        cf_rtmps_url: (cfData as any).rtmps_url,
+        cf_stream_key: (cfData as any).stream_key,
+      };
+    } catch (e: any) {
+      setBusy(false);
+      return toast.error(e?.message || "Could not set up Flex cameras");
+    }
 
     const { data, error } = await supabase.from("live_streams").insert({
       seller_id: user.id,
