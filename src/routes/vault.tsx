@@ -139,7 +139,8 @@ function Vault() {
         return s;
       };
       return rows.sort((a, b) => score(b) - score(a)).map((c: any) => {
-        const price = c.tcgplayer?.prices?.holofoil?.market ?? c.tcgplayer?.prices?.normal?.market ?? c.tcgplayer?.prices?.reverseHolofoil?.market;
+        const prices: TcgPrices = c.tcgplayer?.prices || {};
+        const price = prices.holofoil?.market ?? prices.normal?.market ?? prices.reverseHolofoil?.market ?? prices["1stEditionHolofoil"]?.market ?? prices["1stEditionNormal"]?.market;
         return {
           id: c.id,
           name: c.name,
@@ -149,9 +150,24 @@ function Vault() {
           price: Number(price) || undefined,
           year: c.set?.releaseDate ? String(c.set.releaseDate).slice(0, 4) : undefined,
           category: "Pokémon",
+          tcgPrices: prices,
         };
       }) as Alt[];
     } catch { return []; }
+  }
+
+  // Pick the right tcgplayer price slot based on edition + finish (with fallbacks)
+  function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
+    if (!prices) return undefined;
+    const get = (k: string) => Number(prices[k]?.market) || undefined;
+    if (ed === "1st Edition") {
+      if (fin === "Holo") return get("1stEditionHolofoil") ?? (get("holofoil") ? get("holofoil")! * 2.5 : undefined);
+      if (fin === "Reverse Holo") return get("1stEditionHolofoil") ?? get("reverseHolofoil") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
+      return get("1stEditionNormal") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
+    }
+    if (fin === "Holo") return get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
+    if (fin === "Reverse Holo") return get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
+    return get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
   }
 
   function applyAlternative(alt: Alt) {
