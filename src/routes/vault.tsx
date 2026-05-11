@@ -546,10 +546,10 @@ function Vault() {
     const previousVariant = parseVariant(card.description);
     const previousLangMult = langMult(parseLanguage(card.description));
     const currentBaseNm = Number(card.condition_prices?.NM) || Number(card.estimated_value) || 0;
-    const previousEditionPremium = previousVariant.edition === "1st Edition" ? 2.5 : 1;
-    const previousFinishPremium = previousVariant.finish === "Holo" ? 1.35 : previousVariant.finish === "Reverse Holo" ? 1.18 : 1;
-    const nextEditionPremium = newEd === "1st Edition" ? 2.5 : 1;
-    const nextFinishPremium = newFin === "Holo" ? 1.35 : newFin === "Reverse Holo" ? 1.18 : 1;
+    const previousEditionPremium = editionPremium(previousVariant.edition);
+    const previousFinishPremium = finishPremium(previousVariant.finish);
+    const nextEditionPremium = editionPremium(newEd);
+    const nextFinishPremium = finishPremium(newFin);
     // Re-fetch TCG prices to get exact variant pricing
     const matches = await fetchRealCardMatches({ name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined });
     const best = matches[0];
