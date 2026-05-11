@@ -336,7 +336,7 @@ function Vault() {
       if (matches.length) {
         setAlternatives(matches);
         setAltIndex(0);
-        if (matches[0].image) setImageUrl(matches[0].image);
+        applyAlternative(matches[0]);
       } else if (!imageUrl) {
         // Fallback: AI-generated artwork only if no real match found
         try {
@@ -373,6 +373,20 @@ function Vault() {
       } catch {/* ignore */}
     }
     let finalImage = imageUrl;
+    const matches = await fetchRealCardMatches({ name, set: setName2, number: num2 });
+    if (matches.length) {
+      const best = matches[0];
+      finalImage = best.image || finalImage;
+      cat = best.category || cat || "Pokémon";
+      setName2 = best.set || setName2;
+      year2 = best.year || year2;
+      num2 = best.number || num2;
+      const marketCp = conditionPricesFromMarket(best.price);
+      if (marketCp) {
+        cp = marketCp;
+        value = priceFor(condition, marketCp.NM || best.price || value, marketCp);
+      }
+    }
     if (!finalImage) {
       try {
         const { data: img } = await supabase.functions.invoke("generate-card-image", {
