@@ -705,6 +705,24 @@ function Vault() {
               </div>
             )}
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="mb-1 text-[10px] text-muted-foreground">Edition</p>
+                <select value={edition} onChange={(e) => setEdition(e.target.value as Edition)} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
+                  <option value="Unlimited">Unlimited</option>
+                  <option value="1st Edition">1st Edition</option>
+                </select>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] text-muted-foreground">Finish</p>
+                <select value={finish} onChange={(e) => setFinish(e.target.value as Finish)} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
+                  <option value="Non-Holo">Non-Holo</option>
+                  <option value="Holo">Holo</option>
+                  <option value="Reverse Holo">Reverse Holo</option>
+                </select>
+              </div>
+            </div>
+            <p className="-mt-1 text-[10px] text-muted-foreground">Price auto-updates from TCG market for the selected edition & finish.</p>
             <div>
               <p className="text-[10px] text-muted-foreground">Condition</p>
               <div className="mt-1 grid grid-cols-4 gap-1">
