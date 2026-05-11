@@ -156,9 +156,13 @@ async function fetchJustTcg(
       const r = await fetch(url, {
         headers: { "X-API-Key": apiKey, "User-Agent": "PullBidLive/1.0" },
       });
-      const j = r.ok ? await r.json() : null;
+      if (!r.ok) {
+        const body = await r.text().catch(() => "");
+        console.log(`[JustTCG] q="${q}" status=${r.status} body=${body.slice(0, 250)}`);
+        continue;
+      }
+      const j = await r.json();
       console.log(`[JustTCG] q="${q}" status=${r.status} data=${j?.data?.length ?? "err"}`);
-      if (!r.ok || !j) continue;
       for (const c of j?.data || []) {
         if (!c?.id || seen.has(c.id)) continue;
         seen.add(c.id);
