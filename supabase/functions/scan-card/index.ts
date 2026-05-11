@@ -83,8 +83,6 @@ function normalizeAlternative(a: any) {
 }
 
 function normalizeCard(parsed: any, fallbackLang?: string) {
-  const nm = Number(parsed?.estimated_value) > 0 ? Number(parsed.estimated_value) : 1;
-  const cp = parsed?.condition_prices || {};
   const conf = parsed?.confidence || {};
   const perField = {
     name: clamp01(conf.name),
@@ -113,12 +111,12 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     confidence: perField,
     overall_confidence: overall,
     match_label: overall >= 0.9 ? `${Math.round(overall * 100)}% Match` : overall >= 0.7 ? `Likely Match (${Math.round(overall * 100)}%)` : "Possible Match",
-    estimated_value: nm,
+    estimated_value: 0,
     condition_prices: {
-      NM: Number(cp.NM) > 0 ? Number(cp.NM) : nm,
-      LP: Number(cp.LP) > 0 ? Number(cp.LP) : Math.round(nm * 0.85 * 100) / 100,
-      MP: Number(cp.MP) > 0 ? Number(cp.MP) : Math.round(nm * 0.6 * 100) / 100,
-      Damaged: Number(cp.Damaged) > 0 ? Number(cp.Damaged) : Math.max(0.5, Math.round(nm * 0.25 * 100) / 100),
+      NM: 0,
+      LP: 0,
+      MP: 0,
+      Damaged: 0,
     },
     trend: parsed?.trend || "Stable Demand 📊",
     alternatives: alts,
