@@ -770,15 +770,27 @@ export type Database = {
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
+          custom_price: number | null
+          custom_price_source: string | null
           description: string | null
           expires_at: string
           id: string
           image_url: string | null
           is_auction: boolean
           is_demo: boolean
+          last_sold_price: number | null
           listing_type: string
+          market_price: number | null
           price: number | null
+          price_high: number | null
+          price_locked: boolean
+          price_low: number | null
+          price_source: string | null
+          price_source_url: string | null
+          price_updated_at: string | null
+          pricing_details: Json
           quantity: number
+          recent_sales_avg: number | null
           reserve_price: number | null
           seller_id: string
           shipping_price: number | null
@@ -800,15 +812,27 @@ export type Database = {
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
+          custom_price?: number | null
+          custom_price_source?: string | null
           description?: string | null
           expires_at?: string
           id?: string
           image_url?: string | null
           is_auction?: boolean
           is_demo?: boolean
+          last_sold_price?: number | null
           listing_type?: string
+          market_price?: number | null
           price?: number | null
+          price_high?: number | null
+          price_locked?: boolean
+          price_low?: number | null
+          price_source?: string | null
+          price_source_url?: string | null
+          price_updated_at?: string | null
+          pricing_details?: Json
           quantity?: number
+          recent_sales_avg?: number | null
           reserve_price?: number | null
           seller_id: string
           shipping_price?: number | null
@@ -830,15 +854,27 @@ export type Database = {
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
+          custom_price?: number | null
+          custom_price_source?: string | null
           description?: string | null
           expires_at?: string
           id?: string
           image_url?: string | null
           is_auction?: boolean
           is_demo?: boolean
+          last_sold_price?: number | null
           listing_type?: string
+          market_price?: number | null
           price?: number | null
+          price_high?: number | null
+          price_locked?: boolean
+          price_low?: number | null
+          price_source?: string | null
+          price_source_url?: string | null
+          price_updated_at?: string | null
+          pricing_details?: Json
           quantity?: number
+          recent_sales_avg?: number | null
           reserve_price?: number | null
           seller_id?: string
           shipping_price?: number | null
@@ -3285,15 +3321,27 @@ export type Database = {
           condition: Database["public"]["Enums"]["card_condition"] | null
           condition_prices: Json | null
           created_at: string
+          custom_price: number | null
+          custom_price_source: string | null
           description: string | null
           estimated_value: number | null
           id: string
           image_url: string | null
           is_demo: boolean
           language: string | null
+          last_sold_price: number | null
           last_valued_at: string | null
+          market_price: number | null
           name: string
           price: number | null
+          price_high: number | null
+          price_locked: boolean
+          price_low: number | null
+          price_source: string | null
+          price_source_url: string | null
+          price_updated_at: string | null
+          pricing_details: Json
+          recent_sales_avg: number | null
           sold_at: string | null
           sold_stream_id: string | null
           status: string
@@ -3309,15 +3357,27 @@ export type Database = {
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
           created_at?: string
+          custom_price?: number | null
+          custom_price_source?: string | null
           description?: string | null
           estimated_value?: number | null
           id?: string
           image_url?: string | null
           is_demo?: boolean
           language?: string | null
+          last_sold_price?: number | null
           last_valued_at?: string | null
+          market_price?: number | null
           name: string
           price?: number | null
+          price_high?: number | null
+          price_locked?: boolean
+          price_low?: number | null
+          price_source?: string | null
+          price_source_url?: string | null
+          price_updated_at?: string | null
+          pricing_details?: Json
+          recent_sales_avg?: number | null
           sold_at?: string | null
           sold_stream_id?: string | null
           status?: string
@@ -3333,15 +3393,27 @@ export type Database = {
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
           created_at?: string
+          custom_price?: number | null
+          custom_price_source?: string | null
           description?: string | null
           estimated_value?: number | null
           id?: string
           image_url?: string | null
           is_demo?: boolean
           language?: string | null
+          last_sold_price?: number | null
           last_valued_at?: string | null
+          market_price?: number | null
           name?: string
           price?: number | null
+          price_high?: number | null
+          price_locked?: boolean
+          price_low?: number | null
+          price_source?: string | null
+          price_source_url?: string | null
+          price_updated_at?: string | null
+          pricing_details?: Json
+          recent_sales_avg?: number | null
           sold_at?: string | null
           sold_stream_id?: string | null
           status?: string
