@@ -197,6 +197,9 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
 
     const fees = calculateFees(subtotalCents);
 
+    // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
+    const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${fees.buyerTotal}`;
+
     const intent = await stripe.paymentIntents.create({
       amount: fees.buyerTotal,
       currency: "usd",
@@ -212,7 +215,18 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         platform_fee_cents: String(fees.platformFee),
         buyer_service_fee_cents: String(fees.buyerServiceFee),
       },
-    });
+    }, { idempotencyKey: idemKey });
+
+    // Stamp the PI on every order in this group so the webhook can reconcile
+    // and refunds can be applied later.
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        stripe_payment_intent_id: intent.id,
+        seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
+        idempotency_key: idemKey,
+      })
+      .in("id", orderIds);
 
     return {
       clientSecret: intent.client_secret,
