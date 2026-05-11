@@ -3714,6 +3714,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_force_rearm: { Args: { _stream_id: string }; Returns: Json }
       admin_force_seller_reaccept: {
         Args: { _reason?: string; _target_user: string }
         Returns: undefined
@@ -3773,6 +3774,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_replay_finalize: { Args: { _stream_id: string }; Returns: Json }
       admin_set_verification_status: {
         Args: { _reason?: string; _status: string; _target_user: string }
         Returns: undefined
@@ -3947,6 +3949,7 @@ export type Database = {
       purge_old_notifications: { Args: never; Returns: number }
       purge_old_perf_data: { Args: never; Returns: number }
       rate_limit_card_scan: { Args: { _user_id: string }; Returns: Json }
+      rearm_next_round: { Args: { _stream_id: string }; Returns: Json }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
@@ -3987,6 +3990,7 @@ export type Database = {
           username: string
         }[]
       }
+      sweep_stuck_auctions: { Args: never; Returns: Json }
       touch_live_stream_activity: {
         Args: { _activity_type?: string; _stream_id: string }
         Returns: undefined
