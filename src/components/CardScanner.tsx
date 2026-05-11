@@ -9,9 +9,26 @@ import {
   Layers,
   Square,
   CheckSquare,
+  Sparkles,
+  Search,
+  Package,
+  Tag,
+  Gavel,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+export type ScanAlternative = {
+  name: string;
+  set?: string;
+  year?: string;
+  tcg_number?: string;
+  variant?: string;
+  rarity?: string;
+  estimated_value?: number;
+  image_url?: string;
+};
 
 export type ScanResult = {
   name: string;
@@ -33,7 +50,12 @@ export type ScanResult = {
     tcg_number?: number;
     variant?: number;
   };
+  overall_confidence?: number;
+  match_label?: string;
+  alternatives?: ScanAlternative[];
 };
+
+export type ScanAction = "inventory" | "list" | "auction" | "draft";
 
 const LANGUAGES = [
   { v: "auto", l: "Auto" },
@@ -55,6 +77,10 @@ type Props = {
   onClose: () => void;
   defaultLanguage?: string;
   allowMulti?: boolean; // shows the multi-card toggle (default true)
+  /** Optional quick-action menu shown on the confirm screen. */
+  onAction?: (action: ScanAction, result: ScanResult) => void;
+  /** Optional callback when user taps "Find correct card" (manual finder). */
+  onFindCorrect?: (current: ScanResult) => void;
 };
 
 export function CardScanner({
@@ -63,6 +89,8 @@ export function CardScanner({
   onClose,
   defaultLanguage = "auto",
   allowMulti = true,
+  onAction,
+  onFindCorrect,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -510,6 +538,27 @@ export function CardScanner({
 
       {pending && (
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-6">
+          {/* Confidence badge */}
+          {(() => {
+            const oc = pending.overall_confidence ?? 0.6;
+            const pct = Math.round(oc * 100);
+            const tone =
+              oc >= 0.9
+                ? "bg-emerald-500/20 text-emerald-300 ring-emerald-400/40"
+                : oc >= 0.7
+                  ? "bg-yellow-500/15 text-yellow-200 ring-yellow-400/40"
+                  : "bg-red-500/15 text-red-300 ring-red-400/40";
+            const label = pending.match_label || (oc >= 0.9 ? `${pct}% Match` : oc >= 0.7 ? `Likely Match (${pct}%)` : "Possible Match");
+            return (
+              <div className={`flex items-center justify-between rounded-xl px-3 py-2 ring-1 ${tone}`}>
+                <div className="flex items-center gap-2 text-[12px] font-bold">
+                  <Sparkles className="h-3.5 w-3.5" /> {label}
+                </div>
+                <div className="text-[10px] uppercase tracking-wide opacity-80">AI confidence</div>
+              </div>
+            );
+          })()}
+
           <div className="flex gap-3">
             <img
               src={pending.image}
@@ -578,6 +627,64 @@ export function CardScanner({
             </div>
           </div>
 
+          {/* Did you mean one of these? — shown when overall confidence is < 0.9 and alternatives exist */}
+          {(pending.alternatives?.length ?? 0) > 0 && (pending.overall_confidence ?? 1) < 0.9 && (
+            <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-white/70">
+                Did you mean one of these?
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {pending.alternatives!.slice(0, 3).map((a, i) => (
+                  <button
+                    key={i}
+                    onClick={() =>
+                      setPending((p) =>
+                        p
+                          ? {
+                              ...p,
+                              name: a.name || p.name,
+                              set: a.set || p.set,
+                              year: a.year || p.year,
+                              tcg_number: a.tcg_number || p.tcg_number,
+                              variant: a.variant || p.variant,
+                              rarity: a.rarity || p.rarity,
+                              estimated_value: a.estimated_value || p.estimated_value,
+                              overall_confidence: 0.95,
+                              match_label: "Match confirmed",
+                              alternatives: [],
+                            }
+                          : p,
+                      )
+                    }
+                    className="overflow-hidden rounded-lg bg-black/40 text-left ring-1 ring-white/10 transition hover:ring-emerald-400/60"
+                  >
+                    <div className="aspect-[3/4] w-full bg-black">
+                      {a.image_url ? (
+                        <img src={a.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-white/40">
+                          No image
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-0.5 p-1.5 text-white">
+                      <p className="truncate text-[11px] font-bold">{a.name}</p>
+                      <p className="truncate text-[9px] text-white/60">
+                        {a.set || "—"}
+                        {a.tcg_number ? ` · #${a.tcg_number}` : ""}
+                      </p>
+                      {a.estimated_value ? (
+                        <p className="text-[10px] text-emerald-300">
+                          ${Number(a.estimated_value).toFixed(2)}
+                        </p>
+                      ) : null}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {(lowConf(pending.confidence?.set) ||
             lowConf(pending.confidence?.year) ||
             lowConf(pending.confidence?.tcg_number)) && (
@@ -586,23 +693,70 @@ export function CardScanner({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* Quick actions */}
+          {onAction ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onAction("inventory", pending)}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
+              >
+                <Package className="h-4 w-4" /> Add to Inventory
+              </button>
+              <button
+                onClick={() => onAction("list", pending)}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-3 text-sm font-extrabold text-black"
+              >
+                <Tag className="h-4 w-4" /> List for Sale
+              </button>
+              <button
+                onClick={() => onAction("auction", pending)}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+              >
+                <Gavel className="h-4 w-4" /> Start Auction
+              </button>
+              <button
+                onClick={() => onAction("draft", pending)}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+              >
+                <Save className="h-4 w-4" /> Save Draft
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setEditing((e) => !e)}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+              >
+                <Pencil className="h-4 w-4" /> {editing ? "Done editing" : "Edit fields"}
+              </button>
+              <button
+                onClick={confirmResult}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
+              >
+                <Check className="h-4 w-4" /> Confirm & save
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-3 text-[11px]">
             <button
               onClick={() => setEditing((e) => !e)}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+              className="flex items-center gap-1 text-white/70 underline"
             >
-              <Pencil className="h-4 w-4" /> {editing ? "Done editing" : "Edit fields"}
+              <Pencil className="h-3 w-3" /> {editing ? "Done editing" : "Edit fields"}
             </button>
-            <button
-              onClick={confirmResult}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
-            >
-              <Check className="h-4 w-4" /> Confirm & save
+            {onFindCorrect && (
+              <button
+                onClick={() => pending && onFindCorrect(pending)}
+                className="flex items-center gap-1 text-emerald-300 underline"
+              >
+                <Search className="h-3 w-3" /> Find correct card
+              </button>
+            )}
+            <button onClick={rescan} className="text-white/60 underline">
+              Rescan
             </button>
           </div>
-          <button onClick={rescan} className="text-center text-xs text-white/60 underline">
-            Wrong card? Rescan
-          </button>
         </div>
       )}
     </div>

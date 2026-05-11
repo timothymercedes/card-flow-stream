@@ -24,9 +24,13 @@ const CARD_SCHEMA_TEXT = `{
   "rarity": string,                 // "Common"|"Uncommon"|"Rare"|"Holo Rare"|"Ultra Rare"|"Secret Rare" etc.
   "language": string,               // "EN" | "JP" | "KR" | "CN" | "DE" | "FR" | etc.
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
+  "overall_confidence": number,     // 0..1 overall match confidence for this identification
   "estimated_value": number,        // current USD market value in NEAR MINT, > 0
   "condition_prices": { "NM": number, "LP": number, "MP": number, "Damaged": number },
-  "trend": string                   // "Value Picking Up 📈" | "Hot Right Now 🔥" | "Trending Up 📈" | "Rare Find 💎" | "Stable Demand 📊"
+  "trend": string,                  // "Value Picking Up 📈" | "Hot Right Now 🔥" | "Trending Up 📈" | "Rare Find 💎" | "Stable Demand 📊"
+  "alternatives": [                  // up to 3 plausible alternative matches if you are not 100% sure (omit if perfect match)
+    { "name": string, "set": string, "year": string, "tcg_number": string, "variant": string, "rarity": string, "estimated_value": number }
+  ]
 }`;
 
 const SYSTEM_SINGLE = `You are an EXPERT trading card identifier and appraiser. Handle every TCG and sports card brand: Pokémon, Magic: The Gathering, Yu-Gi-Oh!, One Piece, Dragon Ball Super, Lorcana, Flesh & Blood, Topps, Panini, Upper Deck, Bowman, Fleer, anime/franchise releases, and more.
@@ -47,7 +51,9 @@ Translate names to canonical English ("リザードン" → "Charizard"). If a f
 Return STRICT JSON matching this schema:
 ${CARD_SCHEMA_TEXT}
 
-CRITICAL: Always provide best-guess values — never null/zero. "set", "year", "tcg_number" must always be filled. Match the EXACT printing.`;
+CRITICAL: Always provide best-guess values — never null/zero. "set", "year", "tcg_number" must always be filled. Match the EXACT printing.
+
+Also set "overall_confidence" (0..1) reflecting how sure you are this is the EXACT printing. If overall_confidence < 0.9, populate "alternatives" with up to 3 OTHER plausible printings the card could be (different sets/numbers/variants). Each alternative needs name, set, year, tcg_number, variant, rarity, estimated_value. Omit alternatives if you are essentially certain.`;
 
 const SYSTEM_MULTI = `You are an EXPERT trading card identifier and appraiser. The image may contain MULTIPLE trading cards laid out together. DETECT EACH CARD SEPARATELY and identify every one of them with the same accuracy as a single-card scan.
 
@@ -68,10 +74,45 @@ ${CARD_SCHEMA_TEXT}
 
 CRITICAL: Always provide best-guess values for required fields. Match the EXACT printing of each card.`;
 
+function clamp01(n: any, def = 0.5) {
+  const v = Number(n);
+  if (!isFinite(v)) return def;
+  return Math.max(0, Math.min(1, v));
+}
+
+function normalizeAlternative(a: any) {
+  const v = Number(a?.estimated_value);
+  return {
+    name: String(a?.name || "").trim(),
+    set: String(a?.set || "").trim(),
+    year: a?.year ? String(a.year) : "",
+    tcg_number: String(a?.tcg_number || "").trim(),
+    variant: String(a?.variant || "Standard").trim(),
+    rarity: String(a?.rarity || "").trim(),
+    estimated_value: v > 0 ? v : 0,
+    image_url: typeof a?.image_url === "string" ? a.image_url : "",
+  };
+}
+
 function normalizeCard(parsed: any, fallbackLang?: string) {
   const nm = Number(parsed?.estimated_value) > 0 ? Number(parsed.estimated_value) : 1;
   const cp = parsed?.condition_prices || {};
   const conf = parsed?.confidence || {};
+  const perField = {
+    name: clamp01(conf.name),
+    set: clamp01(conf.set),
+    year: clamp01(conf.year),
+    tcg_number: clamp01(conf.tcg_number),
+    variant: clamp01(conf.variant),
+  };
+  // Derive overall: prefer model-supplied, otherwise average the field confidences
+  const supplied = clamp01(parsed?.overall_confidence, NaN);
+  const avg =
+    (perField.name + perField.set + perField.year + perField.tcg_number + perField.variant) / 5;
+  const overall = isFinite(supplied) ? supplied : avg;
+  const alts = Array.isArray(parsed?.alternatives)
+    ? parsed.alternatives.slice(0, 3).map(normalizeAlternative).filter((a) => a.name)
+    : [];
   return {
     name: parsed?.name || "Unknown Card",
     category: parsed?.category || "Trading Card",
@@ -81,13 +122,9 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     variant: parsed?.variant || "Standard",
     rarity: parsed?.rarity || "",
     language: parsed?.language || (fallbackLang ? fallbackLang.toUpperCase() : "EN"),
-    confidence: {
-      name: Number(conf.name) || 0.5,
-      set: Number(conf.set) || 0.5,
-      year: Number(conf.year) || 0.5,
-      tcg_number: Number(conf.tcg_number) || 0.5,
-      variant: Number(conf.variant) || 0.5,
-    },
+    confidence: perField,
+    overall_confidence: overall,
+    match_label: overall >= 0.9 ? `${Math.round(overall * 100)}% Match` : overall >= 0.7 ? `Likely Match (${Math.round(overall * 100)}%)` : "Possible Match",
     estimated_value: nm,
     condition_prices: {
       NM: Number(cp.NM) > 0 ? Number(cp.NM) : nm,
@@ -96,7 +133,34 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
       Damaged: Number(cp.Damaged) > 0 ? Number(cp.Damaged) : Math.max(0.5, Math.round(nm * 0.25 * 100) / 100),
     },
     trend: parsed?.trend || "Stable Demand 📊",
+    alternatives: alts,
   };
+}
+
+// Best-effort image enrichment using the free Pokémon TCG API (no key required for reads).
+async function enrichPokemonImage(name: string, num?: string, set?: string): Promise<string> {
+  try {
+    if (!name) return "";
+    const parts: string[] = [`name:"${name.replace(/"/g, "")}"`];
+    if (num) {
+      const n = num.split("/")[0].trim();
+      if (n) parts.push(`number:"${n}"`);
+    }
+    const q = encodeURIComponent(parts.join(" "));
+    const url = `https://api.pokemontcg.io/v2/cards?q=${q}&pageSize=5`;
+    const r = await fetch(url);
+    if (!r.ok) return "";
+    const j = await r.json();
+    const list = Array.isArray(j?.data) ? j.data : [];
+    if (!list.length) return "";
+    const wantSet = (set || "").toLowerCase();
+    const match = wantSet
+      ? list.find((c: any) => String(c?.set?.name || "").toLowerCase().includes(wantSet)) || list[0]
+      : list[0];
+    return match?.images?.small || match?.images?.large || "";
+  } catch {
+    return "";
+  }
 }
 
 function jsonResp(body: unknown, status = 200) {
@@ -210,6 +274,20 @@ Deno.serve(async (req) => {
     }
 
     const out = normalizeCard(parsed, language);
+
+    // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is visual.
+    const isPokemon = /pok[eé]mon/i.test(out.category);
+    if (isPokemon && out.alternatives.length > 0) {
+      const enriched = await Promise.all(
+        out.alternatives.map(async (a) => {
+          if (a.image_url) return a;
+          const img = await enrichPokemonImage(a.name, a.tcg_number, a.set);
+          return { ...a, image_url: img };
+        }),
+      );
+      out.alternatives = enriched;
+    }
+
     await admin.from("card_scans").insert({
       user_id: userId, status: "ok",
       multi: false, language, source, cards_detected: 1,

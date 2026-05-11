@@ -1,84 +1,64 @@
-# Internal Tutorial Mode
+## AI Card Scanner — Hybrid Rebuild Plan
 
-Adds a locked-down "tutorial mode" that lets Lovable record onboarding/explainer videos against the real Live Bid Connect UI without needing real auth, Stripe Connect, or seller approval. Safe by construction: disabled in production unless explicitly enabled by a workspace admin.
+This is a large feature spanning vault, sell, and live. Splitting into shippable phases so we can verify each piece before stacking the next. The current `CardScanner.tsx` (641 lines) + `scan-card` / `identify-card` edge functions stay as the AI base — we extend, not replace.
 
-## How it activates (security model)
+---
 
-Tutorial mode is ON for the current browser session only when **all** of these are true:
+### Phase A — Core scanner UX upgrade *(start here)*
 
-1. The page URL contains `?tour=1` (or sets the session flag once via that URL).
-2. One of the following gate signals is present:
-   - `import.meta.env.DEV` is true (dev server / sandbox preview), **OR**
-   - `import.meta.env.VITE_TUTORIAL_MODE_ENABLED === "true"` (build-time opt-in for the recording build), **OR**
-   - The currently authenticated user has the `admin` role in `user_roles`.
-3. Stored as `sessionStorage` key `pbl_tour_mode=1` (cleared on tab close, never written to `localStorage` and never set via cookie — so it cannot leak to a fresh visitor).
+Goal: instant full-screen camera, auto-detect, auto-crop, confidence score, top‑N matches.
 
-Production published builds default to `VITE_TUTORIAL_MODE_ENABLED` unset → flag is **inert**. A non-admin visitor who manually types `?tour=1` on `pullbidlive.com` gets nothing — the helper returns `false` and no gates change. Admins on prod can still flip it on for recording.
+- Full-screen camera (mobile-first, dark, one-handed), live green detection box.
+- Card edge detection on-device (canvas edge filter → quadrilateral) with auto-crop preview.
+- Update `scan-card` edge function to return:
+  - `name, set, number, rarity, image_url, market_value`
+  - `confidence` (0–1) + `match_label` ("95% Match" / "Possible Match")
+  - `alternatives[]` (top 3 with image, set, number, price)
+- New "Did you mean…?" sheet shown when confidence < 0.85.
+- Buttons after identify: **Add to Inventory · List for Sale · Start Auction · Save Draft**, auto-fill listing fields.
 
-A small `<TutorialModeBanner />` (top of viewport, z-[300], dismissible) shows "TUTORIAL MODE — demo data, gates bypassed" whenever active, so it is impossible to use the app in tutorial mode without seeing it.
+### Phase B — Manual card finder (fallback)
 
-No DB migration. No new Supabase tables. No edge function. No public route changes.
+Goal: "Find correct card" in <3 taps when AI is wrong.
 
-## What gets bypassed (frontend only)
+- New `src/routes/cards.search.tsx` + `<ManualCardFinder>` modal usable from scanner.
+- New `pokemon_cards` reference table (id, name, set, number, rarity, year, holo, image_url, tcgplayer_price, last_sold, trend) — seeded from Pokémon TCG API on demand via edge function.
+- Filters: name, set, card #, rarity, year, holo/reverse holo, PSA/raw.
+- Live search suggestions, recent searches (localStorage), popular cards.
+- "Use this card" replaces the scan result and re-runs auto-fill.
 
-When `isTutorialMode()` returns true, these gates short-circuit to "allowed":
+### Phase C — Bulk scan mode
 
-- `SellerAgreementGate` — renders children directly.
-- Stripe Connect onboarding gate inside `routes/sell.tsx`, `routes/payouts.tsx`, `routes/store.tsx` seller hub, and "Go Live" entry — replaced with a fake `connected: true` state.
-- Seller approval check (`profiles.seller_status !== 'approved'`) — treated as approved.
-- `_authenticated` route guard — if no user, treats the session as a synthetic demo user (id `tour-demo-user`, username `demo_seller`).
-- `useAuth()` returns a synthetic profile when no real session exists, so components that read `profile.is_seller` etc. work.
+- Toggle inside scanner: scan N cards in a row, AI queues identifications.
+- Review screen: swipe right = confirm, left = open manual finder for that card.
+- Batch action: Add all to Inventory / Create listings / Stage for live auction.
 
-All bypasses are **frontend-only and read-only** — they never call `supabase.from(...).insert/update`, never call Stripe server functions, never write to the DB. Any server function still rejects unauthenticated calls; tutorial mode just unlocks the UI for screen recording.
+### Phase D — Live auction integration
 
-## Demo data layer
+- When host scans during a Flex/Auction live, scanned card appears in stream overlay (image, name, market value).
+- Host can **Pin** to keep on screen; **Unpin** to clear.
+- Stored on `live_streams.pinned_card_jsonb` + realtime broadcast; viewers see overlay.
 
-New `src/lib/tutorialDemoData.ts` exports fixtures:
+### Phase E — Price data
 
-- `demoListings` (8 cards across categories)
-- `demoBids` (rolling bid history)
-- `demoChatMessages`
-- `demoOrders` (mix of paid/shipped/delivered)
-- `demoShippingTracking`
-- `demoSellerAnalytics` (revenue, views, conversion)
-- `demoNotifications`
-- `demoLiveStream` (host + viewer POV state)
-- `demoFlexLive`, `demoWheel`, `demoKO`
+- Edge function `card-prices` aggregates: TCGPlayer (via Pokémon TCG API), recent sales, 30-day trend.
+- Cached in `pokemon_cards` row with `prices_updated_at`; refresh if stale > 24h.
+- Display Market / Last Sold / Recent Sales / Trend sparkline on result card and finder.
 
-A `useTutorialData<T>(realData, demoData)` hook returns demo data when tutorial mode is on, real data otherwise. Pages opt in by wrapping their data hooks. We patch the highest-traffic seller/buyer/host screens listed in the request.
+---
 
-## Files
+### Technical notes
 
-New:
-- `src/lib/tutorialMode.ts` — `isTutorialMode()`, `enableTutorialMode()`, `disableTutorialMode()`, `useTutorialMode()` hook, `useTutorialData()` hook, synthetic demo user object.
-- `src/lib/tutorialDemoData.ts` — all fixtures.
-- `src/components/TutorialModeBanner.tsx` — visible banner.
-- `src/components/TutorialModeBootstrap.tsx` — reads `?tour=1` from URL, validates gate signals, sets sessionStorage, mounts banner. Rendered once in `__root.tsx`.
+- Camera: existing `usePhoneCamera` hook + new `useCardDetector` (canvas + simple Sobel/contour). Heavy CV libs (OpenCV.js) avoided — keep bundle small; we approximate borders, then send the cropped image to AI for the real identification.
+- AI: keep Lovable AI Gateway via `scan-card` edge function (image → JSON with confidence + alternatives via tool calling).
+- Reference data: Pokémon TCG API (free, no key needed for read). Cache in `pokemon_cards`.
+- Storage: scan photos already go to existing bucket; no new bucket needed for Phase A.
+- DB changes (Phase B/D/E):
+  - new table `pokemon_cards` (read-public, write service-role only)
+  - new column `live_streams.pinned_card` jsonb nullable
+  - new table `scan_history` per user (optional, powers "recent")
+- All new tables get RLS; roles unchanged.
 
-Edited:
-- `src/components/SellerAgreementGate.tsx` — bypass when tutorial mode.
-- `src/hooks/useAuth.tsx` — return synthetic profile when tutorial mode + no session.
-- `src/hooks/useSellerAgreementStatus.tsx` — return `needsAcceptance: false` in tutorial mode.
-- `src/routes/__root.tsx` — mount `<TutorialModeBootstrap />`.
-- `src/routes/_authenticated.tsx` (if present) or equivalent guard — allow synthetic user in tutorial mode.
-- `src/routes/sell.tsx`, `routes/payouts.tsx`, `routes/store.tsx`, `routes/my-listings.tsx`, `routes/orders.tsx`, `routes/live.index.tsx` — Stripe Connect gates short-circuit; data hooks fall back to demo fixtures.
+### What I need from you
 
-## Build-time guard
-
-`tutorialMode.ts` reads `import.meta.env.DEV` and `import.meta.env.VITE_TUTORIAL_MODE_ENABLED`. The function is tree-shake friendly so when the env var is unset on prod, the bypass branches dead-code away. The synthetic demo user id (`tour-demo-user`) is not a valid uuid, so any accidental DB call with it will be rejected by Supabase RLS.
-
-## Recorder integration
-
-The existing Playwright recorder at `/tmp/tut/record/record-v2.mjs` will be updated to:
-1. Append `?tour=1` to every navigation.
-2. Skip the login flow entirely (no credentials needed for buyer/seller/host POV).
-3. Re-record `welcome.mp4`, `bid-viewer.mp4`, `bid-host.mp4`, `list.mp4` against the now-unblocked UI.
-
-That recorder change happens in a follow-up turn after this lands and you confirm the bypass works in preview.
-
-## Out of scope
-
-- No changes to RLS, edge functions, Stripe server functions, or webhooks.
-- No new database tables.
-- No public route or auth provider changes.
-- Tutorial mode does not persist across tabs or survive a logout.
+Approve and I'll start with **Phase A** (scanner UX + confidence + alternatives + auto-fill). It's the highest-impact piece and doesn't need DB migrations — safe to land first. Then I'll come back for Phase B's migration approval before building the finder.
