@@ -64,14 +64,8 @@ async function fetchTcgPrice(
   }
   candidates.sort((a, b) => score(b) - score(a));
 
-  // Pick the candidate whose rarity matches what was scanned (when provided)
-  let card = candidates[0];
-  if (rarity) {
-    const rNorm = rarity.toLowerCase();
-    const match = candidates.find((c) => (c.rarity || "").toLowerCase() === rNorm)
-      ?? candidates.find((c) => (c.rarity || "").toLowerCase().includes(rNorm.split(" ")[0]));
-    if (match) card = match;
-  }
+  // Top-scored candidate is the best match (already ranked by name + rarity + has-prices).
+  const card = candidates[0];
 
   const p = card?.tcgplayer?.prices ?? {};
   // Choose the variant that matches the scanned card's actual variant/rarity
