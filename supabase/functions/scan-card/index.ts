@@ -229,9 +229,10 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Pro is materially more accurate at reading set symbols / card numbers / rarity
-        // from a single photo. Accuracy > speed for pricing — switching back.
-        model: "google/gemini-2.5-pro",
+        // Flash is fast and accurate enough to read name + set + card number,
+        // which is all we need — TCG database is the source of truth for rarity,
+        // variant and price afterwards. Multi-card stays on Pro for layout parsing.
+        model: multi ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: [
