@@ -294,6 +294,10 @@ function LiveDetail() {
   const [editTimerSec, setEditTimerSec] = useState("30");
   const [editShipPrice, setEditShipPrice] = useState("");
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
+  // 🆕 Shipping preset + weight (oz/lbs) — drives method & price per Shippo guideline
+  const [editShipPreset, setEditShipPreset] = useState<ShippingPresetKey>("bubble");
+  const [editWeight, setEditWeight] = useState("4");
+  const [editWeightUnit, setEditWeightUnit] = useState<"oz" | "lbs">("oz");
   // 🆕 Quantity (back-to-back identical auctions) + voice trigger
   const [editQuantity, setEditQuantity] = useState("1");
   const [editVoiceEnabled, setEditVoiceEnabled] = useState(false);
