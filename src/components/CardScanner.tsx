@@ -422,14 +422,8 @@ export function CardScanner({
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
             <div
-              className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors"
-              style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }}
+              className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/60"
             />
-            {autoCapture && !scanning && (
-              <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
-                {hint} {steadyPct > 0 && steadyPct < 100 ? `· ${Math.round(steadyPct)}%` : ""}
-              </div>
-            )}
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
               {multi
                 ? "Lay cards flat, no overlap · keep all set symbols visible"
@@ -437,14 +431,6 @@ export function CardScanner({
             </p>
           </div>
           <div className="p-4">
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setAutoCapture((a) => !a)}
-                className={`rounded-full px-3 py-1 text-[11px] font-bold ${autoCapture ? "bg-emerald-500 text-white" : "bg-white/10 text-white"}`}
-              >
-                {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
-              </button>
-            </div>
             <div className="flex items-center justify-center gap-6">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -459,6 +445,7 @@ export function CardScanner({
                 onClick={() => capture()}
                 disabled={scanning || !!error}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
+                aria-label="Capture photo"
               >
                 {scanning ? (
                   <Loader2 className="h-7 w-7 animate-spin" />
@@ -483,9 +470,7 @@ export function CardScanner({
                 ? multi
                   ? "Reading every card…"
                   : "Identifying…"
-                : autoCapture
-                  ? "Hold steady — auto-snaps when ready"
-                  : "Tap to capture"}
+                : "Tap the shutter when your card is in frame"}
             </p>
           </div>
         </>
