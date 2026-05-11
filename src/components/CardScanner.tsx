@@ -216,6 +216,23 @@ export function CardScanner({
       } else {
         const result: ScanResult = { ...(data as any), image: dataUrl, language };
         setPending(result);
+        // Best-effort scan history log (RLS will reject if not signed in — ignore)
+        try {
+          const { data: u } = await supabase.auth.getUser();
+          if (u?.user?.id) {
+            await supabase.from("scan_history").insert({
+              user_id: u.user.id,
+              top_name: result.name,
+              top_set: result.set || null,
+              top_number: result.tcg_number || null,
+              top_rarity: result.rarity || null,
+              top_variant: result.variant || null,
+              top_value: result.estimated_value || null,
+              overall_confidence: result.overall_confidence || null,
+              alternatives: result.alternatives || [],
+            });
+          }
+        } catch { /* non-fatal */ }
       }
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
