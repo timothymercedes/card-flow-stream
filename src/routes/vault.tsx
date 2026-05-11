@@ -263,7 +263,44 @@ function Vault() {
     if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
     // Background backfill: replace missing/generated/uploaded placeholders with official card images when we can match them.
     backfillMissingImages(list);
+    // Re-price cards that look stuck at the $0.50 floor (no real market data captured).
+    backfillMissingPrices(list);
   }
+
+  async function backfillMissingPrices(list: Card[]) {
+    const stale = list.filter((c) => {
+      const v = Number(c.estimated_value || 0);
+      const cp = c.condition_prices as any;
+      const cpEmpty = !cp || ((Number(cp.NM) || 0) === 0 && (Number(cp.LP) || 0) === 0);
+      return v <= 0.5 && cpEmpty && (c.name || c.tcg_number || c.tcg_set);
+    });
+    if (!stale.length) return;
+    let updated = 0;
+    for (const c of stale.slice(0, 25)) {
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const best = matches[0];
+      if (!best) continue;
+      const v = parseVariant(c.description);
+      const langCode = parseLanguage(c.description);
+      const mult = langMult(langCode);
+      const raw = priceFromVariant(best.tcgPrices, v.edition, v.finish) ?? best.price;
+      const variantPrice = raw != null ? Number(raw) * mult : raw;
+      const marketCp = conditionPricesFromMarket(variantPrice);
+      if (!marketCp) continue;
+      const newValue = priceFor((c.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+      const patch = {
+        condition_prices: marketCp as any,
+        estimated_value: newValue,
+        last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+      if (!error) {
+        updated++;
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
+        setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch } : prev));
+      }
+    }
+    if (updated > 0) toast.success(`Updated values on ${updated} card${updated > 1 ? "s" : ""}`);
 
   async function backfillMissingImages(list: Card[]) {
     const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
