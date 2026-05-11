@@ -128,11 +128,11 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
   // Debounced search
   const queryStr = useMemo(() => pokeQ({
     name: name.trim() || undefined,
-    set: setName.trim() || undefined,
+    set: setQuery.trim() || undefined,
     number: number.trim() || undefined,
     rarity: rarity || undefined,
     subtype: subtype || undefined,
-  }), [name, setName, number, rarity, subtype]);
+  }), [name, setQuery, number, rarity, subtype]);
 
   useEffect(() => {
     if (debRef.current) window.clearTimeout(debRef.current);
@@ -185,7 +185,7 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
       <div className="space-y-2 border-b border-white/10 p-3">
         <div className="grid grid-cols-2 gap-2">
           <input
-            value={setName}
+            value={setQuery}
             onChange={(e) => setSetName(e.target.value)}
             placeholder="Set (e.g. Base, Evolving Skies)"
             className="rounded-lg bg-white/5 px-3 py-2 text-xs text-white placeholder:text-white/40"
@@ -232,7 +232,7 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-3">
-        {!name && !setName && !number && !rarity && !subtype && (
+        {!name && !setQuery && !number && !rarity && !subtype && (
           <div className="space-y-4">
             {recents.length > 0 && (
               <section>
