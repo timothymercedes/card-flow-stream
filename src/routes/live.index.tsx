@@ -189,14 +189,16 @@ function LiveList() {
               <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
                 <Filter className="h-3 w-3" /> Pick what you're into
               </div>
-              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-                <button onClick={() => setCatFilter("all")} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${catFilter === "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}>✨ All</button>
+              <select
+                value={catFilter}
+                onChange={(e) => setCatFilter(e.target.value)}
+                className={`w-full rounded-full px-3 py-1.5 text-[11px] font-bold outline-none ${catFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}
+              >
+                <option value="all">✨ All categories</option>
                 {LISTING_CATEGORIES.filter((c) => activeCategories.length === 0 || activeCategories.includes(c.value)).map((c) => (
-                  <button key={c.value} onClick={() => setCatFilter(c.value)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ${catFilter === c.value ? "bg-primary text-primary-foreground" : "bg-card"}`}>
-                    {c.emoji} {c.label}
-                  </button>
+                  <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
                 ))}
-              </div>
+              </select>
               <div className="flex gap-1.5">
                 {([
                   { v: "any", label: "Any size" },
