@@ -166,12 +166,25 @@ function Vault() {
     return ed === "1st Edition" ? 2.5 : 1;
   }
 
-  function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
+  function priceFromVariant(
+    prices: TcgPrices | undefined,
+    ed: Edition,
+    fin: Finish,
+  ): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
-    const exactKey = ed === "1st Edition"
-      ? fin === "Non-Holo" ? "1stEditionNormal" : fin === "Holo" ? "1stEditionHolofoil" : undefined
-      : fin === "Non-Holo" ? "normal" : fin === "Holo" ? "holofoil" : "reverseHolofoil";
+    const exactKey =
+      ed === "1st Edition"
+        ? fin === "Non-Holo"
+          ? "1stEditionNormal"
+          : fin === "Holo"
+            ? "1stEditionHolofoil"
+            : undefined
+        : fin === "Non-Holo"
+          ? "normal"
+          : fin === "Holo"
+            ? "holofoil"
+            : "reverseHolofoil";
     const exact = exactKey ? get(exactKey) : undefined;
     if (exact) return exact;
 
@@ -182,11 +195,13 @@ function Vault() {
       { key: "1stEditionNormal", ed: "1st Edition", fin: "Non-Holo" },
       { key: "1stEditionHolofoil", ed: "1st Edition", fin: "Holo" },
     ];
-    const source = sources.find((s) => s.fin === fin && get(s.key)) ?? sources.find((s) => get(s.key));
+    const source =
+      sources.find((s) => s.fin === fin && get(s.key)) ?? sources.find((s) => get(s.key));
     if (!source) return undefined;
     const sourcePrice = get(source.key);
     if (!sourcePrice) return undefined;
-    const baseUnlimitedNonHolo = sourcePrice / (editionPremium(source.ed) * finishPremium(source.fin));
+    const baseUnlimitedNonHolo =
+      sourcePrice / (editionPremium(source.ed) * finishPremium(source.fin));
     return Math.round(baseUnlimitedNonHolo * editionPremium(ed) * finishPremium(fin) * 100) / 100;
   }
 
