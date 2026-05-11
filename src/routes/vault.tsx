@@ -156,18 +156,34 @@ function Vault() {
     } catch { return []; }
   }
 
-  // Pick the right tcgplayer price slot based on edition + finish (with fallbacks)
+  // Pick the right tcgplayer price slot based on edition + finish (with fallbacks).
+  // 1st Edition always applies at least a 2.5x premium over any available Unlimited slot.
   function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
+    const anyUnlimited = () => get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
     if (ed === "1st Edition") {
-      if (fin === "Holo") return get("1stEditionHolofoil") ?? (get("holofoil") ? get("holofoil")! * 2.5 : undefined);
-      if (fin === "Reverse Holo") return get("1stEditionHolofoil") ?? get("reverseHolofoil") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
-      return get("1stEditionNormal") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
+      const premium = 2.5;
+      if (fin === "Holo") {
+        const direct = get("1stEditionHolofoil");
+        if (direct) return direct;
+        const base = get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
+        return base != null ? base * premium : undefined;
+      }
+      if (fin === "Reverse Holo") {
+        const direct = get("1stEditionHolofoil");
+        if (direct) return direct;
+        const base = get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
+        return base != null ? base * premium : undefined;
+      }
+      const direct = get("1stEditionNormal");
+      if (direct) return direct;
+      const base = get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
+      return base != null ? base * premium : undefined;
     }
     if (fin === "Holo") return get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
     if (fin === "Reverse Holo") return get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
-    return get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
+    return anyUnlimited();
   }
 
   function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
