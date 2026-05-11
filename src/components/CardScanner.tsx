@@ -273,78 +273,8 @@ export function CardScanner({
     }
   }
 
-  // Auto-capture: detect a stable, well-framed card and snap automatically — tuned faster.
-  useEffect(() => {
-    if (pending || batch || !autoCapture) {
-      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
-      return;
-    }
-    const small = document.createElement("canvas");
-    small.width = 80;
-    small.height = 60;
-    const sctx = small.getContext("2d", { willReadFrequently: true });
-    if (!sctx) return;
+  // Auto-capture has been intentionally removed — users tap the shutter or upload a photo manually.
 
-    autoTimerRef.current = window.setInterval(() => {
-      const v = videoRef.current;
-      if (!v || v.readyState < 2 || capturingRef.current || scanning) return;
-      sctx.drawImage(v, 0, 0, small.width, small.height);
-      const frame = sctx.getImageData(0, 0, small.width, small.height);
-
-      let lumaSum = 0;
-      let edgeCount = 0;
-      const d = frame.data;
-      const w = small.width;
-      for (let y = 1; y < small.height - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const i = (y * w + x) * 4;
-          const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          lumaSum += l;
-          const ir = (y * w + (x + 1)) * 4;
-          const lr = 0.299 * d[ir] + 0.587 * d[ir + 1] + 0.114 * d[ir + 2];
-          if (Math.abs(l - lr) > 28) edgeCount++;
-        }
-      }
-      const avgLuma = lumaSum / (w * small.height);
-      const edgeRatio = edgeCount / (w * small.height);
-
-      let diff = 0;
-      const prev = prevFrameRef.current;
-      if (prev && prev.data.length === d.length) {
-        for (let i = 0; i < d.length; i += 16) diff += Math.abs(d[i] - prev.data[i]);
-        diff = diff / (d.length / 16);
-      }
-      prevFrameRef.current = frame;
-
-      const wellLit = avgLuma > 35 && avgLuma < 235;
-      const hasCard = edgeRatio > (multi ? 0.06 : 0.045);
-      const steady = diff < 8; // a touch more forgiving — feels near-instant
-
-      if (wellLit && hasCard && steady) steadyTicksRef.current += 1;
-      else steadyTicksRef.current = Math.max(0, steadyTicksRef.current - 1);
-
-      const need = 3; // ~300ms steady → near-instant capture
-      const pct = Math.min(100, (steadyTicksRef.current / need) * 100);
-      setSteadyPct(pct);
-
-      if (!hasCard) setHint(multi ? "Show your cards" : "Point camera at a card");
-      else if (!wellLit) setHint("More light needed");
-      else if (!steady) setHint("Hold steady…");
-      else setHint("Locking…");
-
-      if (steadyTicksRef.current >= need) {
-        steadyTicksRef.current = 0;
-        setSteadyPct(0);
-        setHint("Capturing…");
-        capture();
-      }
-    }, 100);
-
-    return () => {
-      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, batch, autoCapture, scanning, multi]);
 
   function confirmResult() {
     if (!pending) return;
