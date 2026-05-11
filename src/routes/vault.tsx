@@ -515,6 +515,35 @@ function Vault() {
               {identifying ? "Verifying with TCG…" : "🔍 Verify & price with TCG"}
             </button>
             <p className="-mt-1 text-[10px] text-muted-foreground">Works in any language — auto-translates to find the correct printing.</p>
+            {alternatives.length > 0 && (
+              <div className="rounded-lg bg-muted/40 p-2">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Similar printings · tap to swap</p>
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => cycleAlternative(-1)} className="rounded-md bg-muted px-2 py-0.5 text-[10px]">‹ Prev</button>
+                    <button type="button" onClick={() => cycleAlternative(1)} className="rounded-md bg-muted px-2 py-0.5 text-[10px]">Next ›</button>
+                  </div>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {alternatives.map((a, i) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => applyAlternative(a)}
+                      className={`shrink-0 overflow-hidden rounded-md ring-2 ${i === altIndex ? "ring-primary" : "ring-transparent"}`}
+                      title={`${a.name}${a.set ? ` · ${a.set}` : ""}${a.number ? ` · #${a.number}` : ""}`}
+                    >
+                      {a.image ? (
+                        <img src={a.image} alt={a.name} className="h-24 w-16 object-cover" loading="lazy" />
+                      ) : (
+                        <div className="flex h-24 w-16 items-center justify-center bg-muted text-[9px] text-muted-foreground">No img</div>
+                      )}
+                      {a.price ? <p className="bg-black/60 px-1 text-center text-[9px] text-white">${a.price.toFixed(2)}</p> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
             <div>
               <p className="text-[10px] text-muted-foreground">Condition</p>
