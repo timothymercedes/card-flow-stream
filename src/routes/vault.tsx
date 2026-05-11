@@ -425,10 +425,11 @@ function Vault() {
       setName2 = best.set || setName2;
       year2 = best.year || year2;
       num2 = best.number || num2;
-      const marketCp = conditionPricesFromMarket(best.price);
+      const variantPrice = priceFromVariant(best.tcgPrices, edition, finish) ?? best.price;
+      const marketCp = conditionPricesFromMarket(variantPrice);
       if (marketCp) {
         cp = marketCp;
-        value = priceFor(condition, marketCp.NM || best.price || value, marketCp);
+        value = priceFor(condition, marketCp.NM || variantPrice || value, marketCp);
       }
     }
     if (!finalImage) {
@@ -439,10 +440,12 @@ function Vault() {
         if (img?.image) finalImage = img.image;
       } catch {/* ignore */}
     }
+    const variantLabel = `${edition} · ${finish}`;
+    const fullDesc = [description?.trim(), `Variant: ${variantLabel}`].filter(Boolean).join("\n");
     const { error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
-      description: description || null,
+      description: fullDesc || null,
       estimated_value: value,
       condition_prices: cp as any,
       price: price ? Number(price) : null,
