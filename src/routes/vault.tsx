@@ -169,7 +169,8 @@ function Vault() {
   }, [condition, condPrices]);
 
   async function identifyNow() {
-    if (!name.trim()) return toast.error("Enter a card name first");
+    const hasAny = name.trim() || tcgNumber.trim() || tcgSet.trim();
+    if (!hasAny) return toast.error("Enter card name, set, or number first");
     setIdentifying(true);
     try {
       const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
@@ -452,12 +453,16 @@ function Vault() {
                 {LANGUAGES.map((l) => <option key={l.v} value={l.v}>{l.l}</option>)}
               </select>
             </div>
-            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (e.g., Charizard VMAX, リザードン, 리자몽)" value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card name (English, 日本語, 한국어, 中文…)" value={name} onChange={(e) => setName(e.target.value)} />
             <div className="grid grid-cols-3 gap-2">
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Card #" value={tcgNumber} onChange={(e) => setTcgNumber(e.target.value)} />
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Set" value={tcgSet} onChange={(e) => setTcgSet(e.target.value)} />
               <input className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="Year" value={tcgYear} onChange={(e) => setTcgYear(e.target.value)} />
             </div>
+            <button type="button" onClick={identifyNow} disabled={identifying} className="w-full rounded-lg bg-gradient-to-r from-primary to-accent py-2.5 text-sm font-bold text-primary-foreground shadow-md disabled:opacity-60">
+              {identifying ? "Verifying with TCG…" : "🔍 Verify & price with TCG"}
+            </button>
+            <p className="-mt-1 text-[10px] text-muted-foreground">Works in any language — auto-translates to find the correct printing.</p>
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
             <div>
               <p className="text-[10px] text-muted-foreground">Condition</p>
@@ -476,9 +481,6 @@ function Vault() {
               </div>
               <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
-            <button type="button" onClick={identifyNow} disabled={identifying} className="w-full rounded-lg bg-accent py-2 text-xs font-semibold text-accent-foreground disabled:opacity-60">
-              {identifying ? "Identifying..." : "🔍 Identify & price via TCG"}
-            </button>
             <p className="text-[10px] text-muted-foreground">Value is set automatically from TCG market data — it can't be edited.</p>
             <div className="flex gap-2">
               <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
