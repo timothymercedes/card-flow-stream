@@ -2312,6 +2312,34 @@ function LiveDetail() {
       } catch (e) {
         console.warn("[live] mark listing sold failed", e);
       }
+
+      // 🆕 Mark a matching Vault card (host's inventory) as sold so it leaves
+      // their available inventory automatically.
+      try {
+        const pin: any = (stream as any).pinned_card;
+        if (pin?.name) {
+          const { data: vmatches } = await supabase
+            .from("vault_cards")
+            .select("id, name, tcg_number, tcg_set, status")
+            .eq("user_id", stream.seller_id)
+            .eq("status", "available")
+            .ilike("name", `%${pin.name}%`)
+            .limit(5);
+          const vbest = (vmatches || []).find((v: any) => {
+            const numOk = !pin.number || !v.tcg_number || String(v.tcg_number).trim() === String(pin.number).trim();
+            const setOk = !pin.set || !v.tcg_set || String(v.tcg_set).toLowerCase() === String(pin.set).toLowerCase();
+            return numOk && setOk;
+          }) || (vmatches || [])[0];
+          if (vbest?.id) {
+            await supabase
+              .from("vault_cards")
+              .update({ status: "sold", sold_at: new Date().toISOString(), sold_stream_id: id } as any)
+              .eq("id", vbest.id);
+          }
+        }
+      } catch (e) {
+        console.warn("[live] mark vault card sold failed", e);
+      }
       // 🆕 Auto-trigger pre-selected reveal (Spin Wheel or Mystery Break) for the winner
       const revealMode = (stream as any).auction_reveal_mode as string | undefined;
       if (isSeller && revealMode === "wheel") {

@@ -3294,6 +3294,9 @@ export type Database = {
           last_valued_at: string | null
           name: string
           price: number | null
+          sold_at: string | null
+          sold_stream_id: string | null
+          status: string
           tcg_number: string | null
           tcg_set: string | null
           tcg_year: string | null
@@ -3315,6 +3318,9 @@ export type Database = {
           last_valued_at?: string | null
           name: string
           price?: number | null
+          sold_at?: string | null
+          sold_stream_id?: string | null
+          status?: string
           tcg_number?: string | null
           tcg_set?: string | null
           tcg_year?: string | null
@@ -3336,6 +3342,9 @@ export type Database = {
           last_valued_at?: string | null
           name?: string
           price?: number | null
+          sold_at?: string | null
+          sold_stream_id?: string | null
+          status?: string
           tcg_number?: string | null
           tcg_set?: string | null
           tcg_year?: string | null

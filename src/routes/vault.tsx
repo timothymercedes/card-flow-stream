@@ -65,7 +65,7 @@ function Vault() {
   async function load() {
     if (!user) return;
     const [{ data }, { data: vs }] = await Promise.all([
-      supabase.from("vault_cards").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("vault_cards").select("*").eq("user_id", user.id).neq("status", "sold").order("created_at", { ascending: false }),
       supabase.from("vault_settings").select("visibility").eq("user_id", user.id).maybeSingle(),
     ]);
     setCards((data || []) as Card[]);
