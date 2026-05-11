@@ -206,11 +206,13 @@ function LiveDetail() {
   const [annOpen, setAnnOpen] = useState(false);
   const [annText, setAnnText] = useState("");
   const [hypeCard, setHypeCard] = useState<{
+    id: string;
     name: string;
     category: string;
     set_guess: string;
     rarity_vibe: string;
     image: string;
+    hype_lines: string[];
   } | null>(null);
 
   // 🆕 Anti-snipe banner
