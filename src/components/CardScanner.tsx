@@ -232,9 +232,9 @@ export function CardScanner({
         // gives us canonical rarity, variant, image and PRICE — so AI mistakes
         // on those fields get corrected automatically.
         try {
-          const hasEnoughId = !!result.name && (!!result.set || !!result.tcg_number);
-          // Always try the database when we have name + set/number. Exact number matching is self-validating,
-          // and avoids trusting low-confidence AI guesses for final identity/pricing.
+          const hasEnoughId = !!result.name && result.name !== "Unknown Card";
+          // Always try the database when we have a name. If set/number are missing,
+          // the database still returns priced similar cards the user can tap through.
           if (hasEnoughId) {
             const params = new URLSearchParams({ name: result.name });
             if (result.set) params.set("set", result.set);
