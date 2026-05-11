@@ -382,6 +382,43 @@ export function CardScanner({
     else picks.forEach((p) => onResult(p)); // fallback for callers w/o batch handler
   }
 
+  function applySuggestedCard(a: ScanAlternative, nextIndex: number, label = "Similar card selected") {
+    setSuggestionIndex(nextIndex);
+    setPending((p) => {
+      if (!p) return p;
+      const market = Number(a.estimated_value || 0);
+      return {
+        ...p,
+        name: a.name || p.name,
+        set: a.set || p.set,
+        year: a.year || p.year,
+        tcg_number: a.tcg_number || p.tcg_number,
+        variant: a.variant || p.variant,
+        rarity: a.rarity || p.rarity,
+        estimated_value: market || p.estimated_value,
+        condition_prices: market
+          ? {
+              NM: market,
+              LP: Math.round(market * 0.85 * 100) / 100,
+              MP: Math.round(market * 0.6 * 100) / 100,
+              Damaged: Math.max(0.5, Math.round(market * 0.25 * 100) / 100),
+            }
+          : p.condition_prices,
+        reference_image: a.image_url || p.reference_image,
+        overall_confidence: 0.95,
+        match_label: label,
+        confidence: { name: 0.98, set: 0.98, year: 0.95, tcg_number: 0.98, variant: 0.9 },
+        ...(market ? { price_source: "TCGPlayer (Pokémon TCG API)" } : {}),
+      };
+    });
+  }
+
+  function cycleSimilarCard() {
+    if (!pending?.alternatives?.length) return;
+    const nextIndex = pending.alternatives.length === 1 ? 0 : (suggestionIndex + 1) % pending.alternatives.length;
+    applySuggestedCard(pending.alternatives[nextIndex], nextIndex, "Similar database match");
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex items-center justify-between p-3">
