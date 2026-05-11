@@ -2166,171 +2166,43 @@ function LiveDetail() {
     safety.touch("auction_finalized");
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
-    // Ensure we have a snapshot if not already captured
+    // Snapshot capture is a UX nicety the seller does before calling server finalize
     let snapshot = stream.item_image_url;
-    if (!snapshot && isSeller) snapshot = await captureSnapshot();
-    if (winnerId) {
-      const { data: pubRows } = await (supabase.rpc as any)("public_profiles_by_ids", {
-        _ids: [winnerId],
-      });
-      const pubP = (pubRows && pubRows[0]) || null;
-      const winnerUsername = pubP?.username || "buyer";
-      // Fetch shipping address via RPC (only seller of this stream is allowed to read it)
-      const { data: shipRows } = await supabase.rpc("get_winner_shipping", {
-        p_stream_id: id,
-        p_winner_id: winnerId,
-      });
-      const p: any = (shipRows && shipRows[0]) || {};
-      // Bid number for THIS sale on the stream — only increments when an item sells
-      const nextRound = Number(stream.round_number || 0) + 1;
+    if (!snapshot && isSeller) {
+      snapshot = await captureSnapshot();
+      if (snapshot) {
+        await supabase.from("live_streams").update({ item_image_url: snapshot }).eq("id", id);
+      }
+    }
+
+    // 🔒 Server-authoritative finalize: locks winner, creates order, receipt,
+    // notifications, audit log, listing/vault sync — all atomically.
+    const { data: finRes, error: finErr } = await (supabase.rpc as any)(
+      "finalize_auction_round",
+      { _stream_id: id },
+    );
+    if (finErr) {
+      console.error("[live] finalize_auction_round failed", finErr);
+      // Soft-fail: clear the timer locally so the UI recovers
+      if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+      return;
+    }
+
+    if (winnerId && finRes && !finRes.no_winner) {
+      const winnerUsername = finRes.winner_username || "buyer";
+      const nextRound = Number(finRes.round_number || stream.round_number || 1);
       const itemName = stream.current_item || stream.title;
-      const labeledTitle = `Bid #${nextRound} — ${itemName}`;
-      // Pull seller's combined-shipping cap (per buyer, per checkout)
-      const { data: capRaw } = await (supabase.rpc as any)("get_seller_shipping_cap", {
-        _user: stream.seller_id,
-      });
-      const cap = capRaw == null ? null : Number(capRaw);
-      const rawShip = Number(stream.shipping_price || 0);
-      // Sum shipping already on this buyer's open orders from this seller — apply cap
-      const { data: openOrders } = await supabase
-        .from("orders")
-        .select("amount, listing_id, stream_id")
-        .eq("buyer_id", winnerId)
-        .eq("seller_id", stream.seller_id)
-        .eq("payment_status", "awaiting_payment");
-      const priorShip = (openOrders || []).reduce((a: number, _o: any) => a, 0);
-      const shipForThis = cap != null ? Math.max(0, Math.min(rawShip, cap - priorShip)) : rawShip;
-      await supabase.from("receipts").insert({
-        stream_id: id,
-        buyer_id: winnerId,
-        seller_id: stream.seller_id,
-        item_name: labeledTitle,
-        item_image_url: snapshot || null,
-        amount: winningBid,
-      });
-      // Create order so it appears in buyer's "My Orders" and seller's "My Store"
-      // SAFE MODE: order starts as awaiting_payment — buyer must click "Pay Now" later
-      await supabase.from("orders").insert({
-        buyer_id: winnerId,
-        seller_id: stream.seller_id,
-        title: labeledTitle,
-        description: stream.item_description || null,
-        amount: winningBid + shipForThis,
-        item_image_url: snapshot || null,
-        stream_id: id,
-        condition: stream.current_condition || null,
-        status: "pending",
-        payment_status: "awaiting_payment",
-        ship_name: p?.full_name || winnerUsername,
-        ship_address: p?.address_line1 || "",
-        ship_city: p?.address_city || "",
-        ship_state: p?.address_state || "",
-        ship_zip: p?.address_zip || "",
-        ship_country: p?.address_country || "US",
-      });
-      await logPaymentEvent({
-        streamId: id,
-        buyerId: winnerId,
-        buyerUsername: winnerUsername,
-        eventType: "payment_pending",
-        amount: winningBid + shipForThis,
-        itemLabel: labeledTitle,
-        message: "Awaiting payment from buyer",
-      });
-      await supabase.from("notifications").insert({
-        user_id: winnerId,
-        type: "won",
-        body: `🎉 You won Bid #${nextRound} "${itemName}" for $${winningBid}. Tap to pay now.`,
-        link: `/orders`,
-      });
-      // Auto-DM the winner with a clear payment CTA so they don't miss it
-      await supabase.from("direct_messages").insert({
-        sender_id: stream.seller_id,
-        sender_username: profile?.username || "seller",
-        recipient_id: winnerId,
-        content: `🏆 You won "${itemName}" for $${winningBid} on my live stream! Total with shipping: $${(winningBid + shipForThis).toFixed(2)}. Pay here: ${typeof window !== "undefined" ? window.location.origin : ""}/orders`,
-      });
+      // Chat announcement (best-effort, non-authoritative)
       await sendMsg(
         `🏆 Bid #${nextRound} — "${itemName}" sold to @${winnerUsername} for $${winningBid}`,
         true,
       );
-      await supabase
-        .from("live_streams")
-        .update({
-          winner_id: winnerId,
-          winning_bid: winningBid,
-          winner_username: winnerUsername,
-          round_number: nextRound,
-        })
-        .eq("id", id);
-
-      // 🆕 If the host had a card pinned from a scan, mark a matching active
-      // marketplace listing as SOLD OUT so it disappears from the marketplace.
-      try {
-        const pin: any = (stream as any).pinned_card;
-        if (pin?.name) {
-          let q = supabase
-            .from("listings")
-            .select("id, quantity, sold_count, tcg_number, tcg_set")
-            .eq("seller_id", stream.seller_id)
-            .ilike("title", `%${pin.name}%`)
-            .gt("expires_at", new Date().toISOString())
-            .limit(5);
-          const { data: matches } = await q;
-          const best = (matches || []).find((l: any) => {
-            const numOk = !pin.number || !l.tcg_number || String(l.tcg_number).trim() === String(pin.number).trim();
-            const setOk = !pin.set || !l.tcg_set || String(l.tcg_set).toLowerCase() === String(pin.set).toLowerCase();
-            const notSold = Number(l.sold_count ?? 0) < Number(l.quantity ?? 1);
-            return numOk && setOk && notSold;
-          }) || (matches || [])[0];
-          if (best?.id) {
-            await supabase
-              .from("listings")
-              .update({ sold_count: Number(best.quantity ?? 1) } as any)
-              .eq("id", best.id);
-            await sendMsg(`✅ Marketplace listing marked SOLD for "${pin.name}"`, true);
-          }
-        }
-      } catch (e) {
-        console.warn("[live] mark listing sold failed", e);
-      }
-
-      // 🆕 Mark a matching Vault card (host's inventory) as sold so it leaves
-      // their available inventory automatically.
-      try {
-        const pin: any = (stream as any).pinned_card;
-        if (pin?.name) {
-          const { data: vmatches } = await supabase
-            .from("vault_cards")
-            .select("id, name, tcg_number, tcg_set, status")
-            .eq("user_id", stream.seller_id)
-            .eq("status", "available")
-            .ilike("name", `%${pin.name}%`)
-            .limit(5);
-          const vbest = (vmatches || []).find((v: any) => {
-            const numOk = !pin.number || !v.tcg_number || String(v.tcg_number).trim() === String(pin.number).trim();
-            const setOk = !pin.set || !v.tcg_set || String(v.tcg_set).toLowerCase() === String(pin.set).toLowerCase();
-            return numOk && setOk;
-          }) || (vmatches || [])[0];
-          if (vbest?.id) {
-            await supabase
-              .from("vault_cards")
-              .update({ status: "sold", sold_at: new Date().toISOString(), sold_stream_id: id } as any)
-              .eq("id", vbest.id);
-          }
-        }
-      } catch (e) {
-        console.warn("[live] mark vault card sold failed", e);
-      }
-      // 🆕 Auto-trigger pre-selected reveal (Spin Wheel or Mystery Break) for the winner
+      // Pre-selected reveal (UX only)
       const revealMode = (stream as any).auction_reveal_mode as string | undefined;
-      if (isSeller && revealMode === "wheel") {
-        // Fire & forget — pops up overlay for everyone
-        triggerSpin().catch(() => {});
-      } else if (isSeller && revealMode === "break") {
-        spinBreakWheel().catch(() => {});
-      }
-      // Clear winner banner + ends_at after 5s, then auto-rearm next round if quantity remaining
+      if (isSeller && revealMode === "wheel") triggerSpin().catch(() => {});
+      else if (isSeller && revealMode === "break") spinBreakWheel().catch(() => {});
+
+      // Clear banner + auto-rearm next round after 5s (UI affordance, not auth)
       setTimeout(async () => {
         const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
         const sec = Number(stream.default_timer_sec || 30);
@@ -2351,16 +2223,16 @@ function LiveDetail() {
           update.sudden_death_active = false;
           update.quick_start_remaining = remaining - 1;
         }
-        await supabase.from("live_streams").update(update).eq("id", id);
+        if (isSeller) await supabase.from("live_streams").update(update).eq("id", id);
         endedRef.current = false;
         snapshotRef.current = false;
         if (remaining > 0)
           sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
       }, 5000);
     } else {
-      // No winner: silently clear after 5s, no banner/notif
+      // No winner: silently clear after 5s
       setTimeout(async () => {
-        await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+        if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
         endedRef.current = false;
         snapshotRef.current = false;
       }, 5000);
