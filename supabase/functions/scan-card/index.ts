@@ -59,7 +59,7 @@ For each card, follow these steps:
 4. Read the SET CODE.
 5. Identify the VARIANT (Holo, Reverse Holo, Full Art, Alt Art, Promo, 1st Edition, Refractor, Prizm, Auto, etc.).
 6. Identify the RARITY.
-7. Identify the LANGUAGE; translate name to canonical English.
+7. DETECT the LANGUAGE from printed text. Cards may be in English, Japanese (日本語), Chinese (中文 simplified/traditional), Korean (한국어), German, French, Spanish, Italian, Portuguese, Russian, Thai, etc. ALWAYS translate/transliterate the card name to canonical English (e.g. リザードン → "Charizard"). NEVER skip a card because it is not in English — non-Latin scripts are expected.
 
 Skip any obvious non-cards (hands, backgrounds, sleeves). Do NOT duplicate the same card twice. If a card is mostly occluded or unreadable, omit it.
 
