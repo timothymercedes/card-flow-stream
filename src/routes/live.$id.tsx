@@ -3397,7 +3397,7 @@ function LiveDetail() {
       })()}
 
       {/* Stream switcher */}
-      {allStreams.length > 1 && !ended && (
+      {allStreams.length > 1 && !ended && !isSeller && (
         <>
           <button
             onClick={() => swipeStream(-1)}
