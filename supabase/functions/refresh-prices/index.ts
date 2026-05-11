@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
       const k = keyOf(r.name, r.tcg_set, r.tcg_number);
       if (seen.has(k)) continue;
       seen.add(k);
-      identities.push({ name: r.name, set: r.tcg_set, number: r.tcg_number });
+      identities.push({ name: r.name, set: r.tcg_set, number: r.tcg_number, rarity: null, variant: null });
     }
   }
 
@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
 
   for (const id of identities) {
     if (!id.name) continue;
-    const price = await fetchTcgPrice(id.name, id.set, id.number);
+    const price = await fetchTcgPrice(id.name, id.set, id.number, id.rarity, id.variant);
     if (!price || price.market == null) continue;
     if (!firstPrice) firstPrice = { ...price, name: id.name, set: id.set, number: id.number };
 
