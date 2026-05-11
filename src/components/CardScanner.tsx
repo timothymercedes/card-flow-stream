@@ -180,7 +180,7 @@ export function CardScanner({
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas error");
         ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-        dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.82);
       }
 
       // Show the captured photo immediately while AI runs (Photo Scan Mode)
@@ -313,7 +313,7 @@ export function CardScanner({
         reader.onerror = () => reject(new Error("Could not read file"));
         reader.readAsDataURL(file);
       });
-      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1280 : 820);
       await capture(resized);
     } catch (err: any) {
       toast.error(err?.message || "Could not load image");
@@ -951,7 +951,7 @@ async function downscaleDataUrl(src: string, maxDim: number): Promise<string> {
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("Canvas error"));
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", 0.88));
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
     };
     img.onerror = () => reject(new Error("Could not decode image"));
     img.src = src;
