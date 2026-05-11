@@ -272,6 +272,20 @@ Deno.serve(async (req) => {
     }
 
     const out = normalizeCard(parsed, language);
+
+    // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is visual.
+    const isPokemon = /pok[eé]mon/i.test(out.category);
+    if (isPokemon && out.alternatives.length > 0) {
+      const enriched = await Promise.all(
+        out.alternatives.map(async (a) => {
+          if (a.image_url) return a;
+          const img = await enrichPokemonImage(a.name, a.tcg_number, a.set);
+          return { ...a, image_url: img };
+        }),
+      );
+      out.alternatives = enriched;
+    }
+
     await admin.from("card_scans").insert({
       user_id: userId, status: "ok",
       multi: false, language, source, cards_detected: 1,
