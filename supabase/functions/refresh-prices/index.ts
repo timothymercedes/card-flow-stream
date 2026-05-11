@@ -426,6 +426,17 @@ async function fetchTcgPrice(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Allow either: CRON_SECRET (server-to-server), or admin/owner user JWT.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const providedCron = req.headers.get("x-cron-secret");
+  const isCron = !!cronSecret && !!providedCron && providedCron === cronSecret;
+  if (!isCron) {
+    const auth = await verifyUser(req);
+    if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const isAdmin = await userHasAdminRole(auth.userId);
+    if (!isAdmin) return new Response(JSON.stringify({ error: "Admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
