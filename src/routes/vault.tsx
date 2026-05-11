@@ -140,7 +140,19 @@ function Vault() {
       };
       return rows.sort((a, b) => score(b) - score(a)).map((c: any) => {
         const prices: TcgPrices = c.tcgplayer?.prices || {};
-        const price = prices.holofoil?.market ?? prices.normal?.market ?? prices.reverseHolofoil?.market ?? prices["1stEditionHolofoil"]?.market ?? prices["1stEditionNormal"]?.market;
+        const tcgMarket =
+          prices.holofoil?.market ??
+          prices.normal?.market ??
+          prices.reverseHolofoil?.market ??
+          prices["1stEditionHolofoil"]?.market ??
+          prices["1stEditionNormal"]?.market ??
+          prices["1stEdition"]?.market ??
+          prices["unlimited"]?.market ??
+          prices["unlimitedHolofoil"]?.market;
+        // Cardmarket fallback for vintage cards with no TCGplayer market data
+        const cm = c.cardmarket?.prices || {};
+        const cmMarket = Number(cm.trendPrice) || Number(cm.averageSellPrice) || Number(cm.avg30) || undefined;
+        const price = Number(tcgMarket) || cmMarket;
         return {
           id: c.id,
           name: c.name,
