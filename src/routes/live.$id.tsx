@@ -2202,37 +2202,27 @@ function LiveDetail() {
       if (isSeller && revealMode === "wheel") triggerSpin().catch(() => {});
       else if (isSeller && revealMode === "break") spinBreakWheel().catch(() => {});
 
-      // Clear banner + auto-rearm next round after 5s (UI affordance, not auth)
+      // Server-authoritative rearm (cron also re-runs this if seller disconnects).
       setTimeout(async () => {
         const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
         const sec = Number(stream.default_timer_sec || 30);
         const start = Number(stream.default_starting_bid || stream.starting_bid || 1);
-        const update: any = {
-          ends_at: null,
-          winner_id: null,
-          winning_bid: null,
-          winner_username: null,
-          current_bidder_id: null,
-          pinned_card: null,
-        };
-        if (remaining > 0) {
-          update.ends_at = new Date(Date.now() + sec * 1000).toISOString();
-          update.starting_bid = start;
-          update.current_bid = start;
-          update.snipe_extends = 0;
-          update.sudden_death_active = false;
-          update.quick_start_remaining = remaining - 1;
+        try {
+          await (supabase.rpc as any)("rearm_next_round", { _stream_id: id });
+        } catch (e) {
+          console.warn("[live] rearm_next_round failed", e);
         }
-        if (isSeller) await supabase.from("live_streams").update(update).eq("id", id);
         endedRef.current = false;
         snapshotRef.current = false;
         if (remaining > 0)
           sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
       }, 5000);
     } else {
-      // No winner: silently clear after 5s
+      // No winner: server clears via rearm (will null ends_at when remaining=0)
       setTimeout(async () => {
-        if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+        try {
+          await (supabase.rpc as any)("rearm_next_round", { _stream_id: id });
+        } catch {}
         endedRef.current = false;
         snapshotRef.current = false;
       }, 5000);
