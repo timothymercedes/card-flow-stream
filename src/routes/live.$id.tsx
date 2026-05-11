@@ -878,6 +878,11 @@ function LiveDetail() {
         .filter(Boolean)
         .slice(0, 3);
     } catch {}
+    if (stream?.mode === "show_off") {
+      setShowHostCameraEditor(true);
+      setHostCameraPanelCollapsed(false);
+      hostStudio.setScene("freeform");
+    }
     if (ids.length === 0) return;
     setPendingHostCameraIds(ids);
     setShowHostCameraEditor(true);
