@@ -15,9 +15,11 @@ import {
   Tag,
   Gavel,
   Save,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ManualCardFinder, type FinderCard } from "@/components/ManualCardFinder";
 
 export type ScanAlternative = {
   name: string;
