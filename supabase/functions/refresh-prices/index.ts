@@ -33,6 +33,21 @@ function tokenScore(a: string, b: string) {
   return hit / Math.max(aa.size, bb.size);
 }
 
+function characterName(v: string | null | undefined) {
+  return norm(v)
+    .replace(/\b(vmax|vstar|ex|gx|v union|v|mega|radiant|shiny|dark|light|delta species)\b/g, " ")
+    .replace(/\b(full art|alt art|secret|rainbow|promo|trainer gallery|illustration rare)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sameCardFamily(a: string | null | undefined, b: string | null | undefined) {
+  const aa = characterName(a);
+  const bb = characterName(b);
+  if (!aa || !bb) return false;
+  return aa === bb || aa.startsWith(`${bb} `) || bb.startsWith(`${aa} `) || tokenScore(aa, bb) >= 0.75;
+}
+
 function setAlias(v: string) {
   const n = norm(v);
   return n === "base set" ? "base" : n;
@@ -152,11 +167,9 @@ async function fetchTcgPrice(
   const similarRanked = scored
     .filter((x) => {
       if (!x.picked || x.card?.id === card.id) return false;
-      const cn = norm(x.card?.name);
-      const tn = norm(targetName);
-      const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tn.startsWith(`${cn} `) || tokenScore(cn, tn) >= 0.45;
-      const exactNumber = !!cleanNumber && firstCardNumber(x.card.number) === cleanNumber;
-      return nameClose || exactNumber;
+      // Suggestions must look like the same character/card family.
+      // Do NOT recommend random cards just because they share a printed number.
+      return sameCardFamily(x.card?.name, card.name) || sameCardFamily(x.card?.name, targetName);
     })
     .sort((a, b) => b.score - a.score);
   const suggested = [{ card, picked, score: matchScore }, ...similarRanked].slice(0, 8);
