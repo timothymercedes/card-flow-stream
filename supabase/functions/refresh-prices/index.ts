@@ -21,7 +21,7 @@ function norm(v: string | null | undefined) {
 }
 
 function firstCardNumber(v: string | null | undefined) {
-  return String(v || "").replace(/#/g, "").split("/")[0].trim();
+  return String(v || "").replace(/#/g, "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
 }
 
 function tokenScore(a: string, b: string) {
