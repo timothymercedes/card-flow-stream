@@ -109,6 +109,7 @@ export function CardScanner({
   // Confirm-before-save (single)
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
+  const [finderOpen, setFinderOpen] = useState(false);
 
   // Auto-capture
   const [autoCapture, setAutoCapture] = useState(true);
