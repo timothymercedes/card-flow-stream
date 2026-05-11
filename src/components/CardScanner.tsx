@@ -231,8 +231,9 @@ export function CardScanner({
         // on those fields get corrected automatically.
         try {
           const hasEnoughId = !!result.name && (!!result.set || !!result.tcg_number);
-          // Threshold lowered to 0.55 — DB lookup is self-validating (no match = no override)
-          if (hasEnoughId && (result.overall_confidence ?? 0) >= 0.55) {
+          // Always try the database when we have name + set/number. Exact number matching is self-validating,
+          // and avoids trusting low-confidence AI guesses for final identity/pricing.
+          if (hasEnoughId) {
             const params = new URLSearchParams({ name: result.name });
             if (result.set) params.set("set", result.set);
             if (result.tcg_number) params.set("number", result.tcg_number);
@@ -263,6 +264,7 @@ export function CardScanner({
                 // Once we have a DB match, treat identification as confident
                 result.overall_confidence = Math.max(result.overall_confidence ?? 0, 0.92);
                 result.match_label = "Database Match";
+                result.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
               }
             }
           }
