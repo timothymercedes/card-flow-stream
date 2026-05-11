@@ -90,6 +90,9 @@ type Props = {
   onAction?: (action: ScanAction, result: ScanResult) => void;
   /** Optional callback when user taps "Find correct card" (manual finder). */
   onFindCorrect?: (current: ScanResult) => void;
+  /** Live-stream mode: hides inventory/list/draft actions, shows a single
+   *  "Go Live with This Card" button that calls onResult. */
+  liveMode?: boolean;
 };
 
 export function CardScanner({
@@ -100,6 +103,7 @@ export function CardScanner({
   allowMulti = true,
   onAction,
   onFindCorrect,
+  liveMode = false,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
