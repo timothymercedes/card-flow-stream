@@ -950,9 +950,13 @@ function Vault() {
                   {actionFor.image_url
                     ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
                     : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
-                  {parseVariant(actionFor.description).edition === "1st Edition" && (
-                    <span className="absolute left-2 top-2 rounded-md border border-yellow-300/80 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
+                  {parseVariant(actionFor.description).edition === "1st Edition" ? (
+                    <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
+                    </span>
+                  ) : (
+                    <span className="absolute bottom-2 left-2 rounded-md border border-white/30 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white/90 shadow-lg">
+                      Unlimited
                     </span>
                   )}
                 </div>
