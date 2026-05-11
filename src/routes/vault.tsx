@@ -537,6 +537,7 @@ function Vault() {
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
     let newValue = card.estimated_value || 0;
+    let priced = false;
     if (best?.tcgPrices) {
       const raw = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
       const variantPrice = raw != null ? Number(raw) * mult : raw;
@@ -544,12 +545,15 @@ function Vault() {
       if (marketCp) {
         cp = marketCp;
         newValue = priceFor((card.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+        priced = true;
       }
-    } else if (cp) {
-      // No TCG match — apply rough multiplier for 1st Edition + language
+    }
+    if (!priced && cp) {
+      // No TCG variant match — apply rough multiplier for 1st Edition + language
       const baseNm = Number(cp.NM) || 0;
-      // Strip current-language baseline first
-      const englishBase = baseNm / langMult(parseLanguage(card.description));
+      const prev = parseVariant(card.description);
+      const prevPremium = prev.edition === "1st Edition" ? 2.5 : 1;
+      const englishBase = baseNm / (langMult(parseLanguage(card.description)) * prevPremium);
       const adj = (newEd === "1st Edition" ? englishBase * 2.5 : englishBase) * mult;
       const recomputed = conditionPricesFromMarket(adj);
       if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
