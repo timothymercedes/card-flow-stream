@@ -152,26 +152,24 @@ async function fetchJustTcg(
   const candidates: any[] = [];
   for (const q of queries) {
     try {
-      const url = `https://api.justtcg.com/v1/cards?game=pokemon&q=${encodeURIComponent(q)}&limit=30`;
+      const url = `https://api.justtcg.com/v1/cards?game=pokemon&q=${encodeURIComponent(q)}&limit=20`;
       const r = await fetch(url, {
         headers: { "X-API-Key": apiKey, "User-Agent": "PullBidLive/1.0" },
       });
       if (!r.ok) {
         const body = await r.text().catch(() => "");
-        console.log(`[JustTCG] q="${q}" status=${r.status} body=${body.slice(0, 250)}`);
+        console.warn(`[JustTCG] q="${q}" ${r.status} ${body.slice(0, 160)}`);
         continue;
       }
       const j = await r.json();
-      console.log(`[JustTCG] q="${q}" status=${r.status} data=${j?.data?.length ?? "err"}`);
       for (const c of j?.data || []) {
         if (!c?.id || seen.has(c.id)) continue;
         seen.add(c.id);
         candidates.push(c);
       }
-      if (candidates.length >= 25) break;
+      if (candidates.length >= 20) break;
     } catch (e) { console.error("[JustTCG] fetch error:", e); }
   }
-  console.log(`[JustTCG] candidates=${candidates.length} for "${cleanName}"`);
   if (!candidates.length) return null;
 
   const targetName = cleanName.toLowerCase();
