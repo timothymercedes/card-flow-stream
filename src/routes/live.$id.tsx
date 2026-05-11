@@ -128,6 +128,7 @@ function LiveDetail() {
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [liveScanBusy, setLiveScanBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -2528,6 +2529,76 @@ function LiveDetail() {
     else toast.success("KO request sent");
   }
 
+  // Instant scan from the host's live preview frame — no full-screen takeover.
+  // Captures current frame, sends to AI, auto-crops to the card's bounding box,
+  // then pushes the result straight into the AI Spotlight + auction flow.
+  async function quickLiveScan() {
+    if (!isSeller) return;
+    if (liveScanBusy) return;
+    const v = videoRef.current;
+    if (!v || !v.videoWidth || !v.videoHeight) {
+      // No live preview available — fall back to the full scanner UI.
+      setScanning(true);
+      return;
+    }
+    setLiveScanBusy(true);
+    try {
+      const srcW = v.videoWidth;
+      const srcH = v.videoHeight;
+      const MAX = 1280;
+      const scale = Math.min(1, MAX / Math.max(srcW, srcH));
+      const fw = Math.round(srcW * scale);
+      const fh = Math.round(srcH * scale);
+      const full = document.createElement("canvas");
+      full.width = fw;
+      full.height = fh;
+      const fctx = full.getContext("2d");
+      if (!fctx) throw new Error("Canvas error");
+      fctx.drawImage(v, 0, 0, fw, fh);
+      const fullUrl = full.toDataURL("image/jpeg", 0.85);
+
+      toast.message("AI scanning card…");
+      const { data, error } = await supabase.functions.invoke("scan-card", {
+        body: { image: fullUrl, source: "live-quick" },
+      });
+      if (error || (data as any)?.error) {
+        const msg = (data as any)?.error || error?.message || "Scan failed";
+        toast.error(msg);
+        return;
+      }
+      const r: any = data;
+
+      // Auto-crop to the 4 corners of the card using returned bbox (with padding).
+      let croppedUrl = fullUrl;
+      const bbox = r?.bbox;
+      if (bbox && bbox.w > 0.05 && bbox.h > 0.05) {
+        const pad = 0.04;
+        const x = Math.max(0, bbox.x - pad) * fw;
+        const y = Math.max(0, bbox.y - pad) * fh;
+        const w = Math.min(1 - Math.max(0, bbox.x - pad), bbox.w + pad * 2) * fw;
+        const h = Math.min(1 - Math.max(0, bbox.y - pad), bbox.h + pad * 2) * fh;
+        const c = document.createElement("canvas");
+        c.width = Math.max(64, Math.round(w));
+        c.height = Math.max(64, Math.round(h));
+        const cctx = c.getContext("2d");
+        if (cctx) {
+          cctx.drawImage(full, x, y, w, h, 0, 0, c.width, c.height);
+          croppedUrl = c.toDataURL("image/jpeg", 0.9);
+        }
+      }
+
+      // Hand off to the existing spotlight + auction pipeline.
+      await onScanResult({
+        ...r,
+        image: croppedUrl,
+      });
+    } catch (e: any) {
+      toast.error(e?.message || "Live scan failed");
+    } finally {
+      setLiveScanBusy(false);
+    }
+  }
+
   async function onScanResult(r: {
     name: string;
     category: string;
@@ -4534,10 +4605,11 @@ function LiveDetail() {
                       className={`grid gap-0.5 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}
                     >
                       <button
-                        onClick={() => setScanning(true)}
-                        className="flex flex-col items-center justify-center gap-0 rounded-md bg-accent py-0.5 text-[8px] font-bold text-accent-foreground active:scale-[0.98]"
+                        onClick={quickLiveScan}
+                        disabled={liveScanBusy}
+                        className="flex flex-col items-center justify-center gap-0 rounded-md bg-accent py-0.5 text-[8px] font-bold text-accent-foreground active:scale-[0.98] disabled:opacity-60"
                       >
-                        <Camera className="h-2.5 w-2.5" /> Scan
+                        <Camera className="h-2.5 w-2.5" /> {liveScanBusy ? "Scanning…" : "Scan"}
                       </button>
                       <button
                         onClick={() => setShowBreakPanel(true)}

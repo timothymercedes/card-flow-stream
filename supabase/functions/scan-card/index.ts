@@ -23,9 +23,12 @@ const CARD_SCHEMA_TEXT = `{
   "variant": string,
   "rarity": string,
   "language": string,
+  "bbox": { "x": number, "y": number, "w": number, "h": number },
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
   "overall_confidence": number
 }`;
+
+const BBOX_INSTRUCTION = `\n\nALSO RETURN A TIGHT BOUNDING BOX around the card in the image as "bbox" with NORMALIZED coordinates (0..1) where x,y is the top-left corner and w,h are the width/height. The box must hug the 4 corners of the card tightly (no background, no hand, no table). If multiple cards, return the bbox for the most prominent one (single mode) or one per card (multi mode). If you cannot see the card edges clearly, return your best estimate covering the visible card.`;
 
 const SYSTEM_SINGLE = `You read trading card photos for a marketplace scanner. Be FAST and literal.
 
@@ -107,6 +110,17 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
   const alts = Array.isArray(parsed?.alternatives)
     ? parsed.alternatives.slice(0, 3).map(normalizeAlternative).filter((a) => a.name)
     : [];
+  const rawBox = parsed?.bbox || parsed?.box || parsed?.bounding_box;
+  let bbox: { x: number; y: number; w: number; h: number } | null = null;
+  if (rawBox && typeof rawBox === "object") {
+    const x = clamp01(rawBox.x, NaN);
+    const y = clamp01(rawBox.y, NaN);
+    const w = clamp01(rawBox.w ?? rawBox.width, NaN);
+    const h = clamp01(rawBox.h ?? rawBox.height, NaN);
+    if ([x, y, w, h].every((n) => isFinite(n)) && w > 0.02 && h > 0.02) {
+      bbox = { x, y, w, h };
+    }
+  }
   return {
     name: parsed?.name || "Unknown Card",
     category: parsed?.category || "Trading Card",
@@ -116,6 +130,7 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     variant: parsed?.variant || "Standard",
     rarity: parsed?.rarity || "",
     language: parsed?.language || (fallbackLang ? fallbackLang.toUpperCase() : "EN"),
+    bbox,
     confidence: perField,
     overall_confidence: overall,
     match_label: overall >= 0.9 ? `${Math.round(overall * 100)}% Match` : overall >= 0.7 ? `Likely Match (${Math.round(overall * 100)}%)` : "Possible Match",
@@ -213,7 +228,7 @@ Deno.serve(async (req) => {
     ? `\n\nThe seller indicated the printing is ${langName}. Confirm via printed text and set symbol; include language in set name when non-English.`
     : "";
 
-  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint;
+  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint + BBOX_INSTRUCTION;
   const userText = multi
     ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
     : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
