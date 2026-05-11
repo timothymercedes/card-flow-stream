@@ -101,13 +101,107 @@ function Vault() {
     };
   }
 
-  // Look up the real card image + similar printings from the Pokémon TCG API.
-  // Falls back silently if the card isn't in their DB (non-Pokémon).
-  async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string }) {
+  function detectGame(category?: string, name?: string, set?: string): "pokemon" | "mtg" | "yugioh" | "unknown" {
+    const s = `${category || ""} ${name || ""} ${set || ""}`.toLowerCase();
+    if (/pok[eé]mon|pkmn/.test(s)) return "pokemon";
+    if (/magic|mtg|gathering/.test(s)) return "mtg";
+    if (/yu-?gi-?oh|ygo|yugioh/.test(s)) return "yugioh";
+    return "unknown";
+  }
+
+  // Scryfall — free MTG price API (USD, EUR, foil/non-foil)
+  async function fetchMtgMatches(opts: { name?: string; set?: string; number?: string }): Promise<Alt[]> {
+    const name = cleanSearchText(opts.name);
+    const setCode = cleanSearchText(opts.set);
+    const num = cardNumberBase(opts.number);
+    if (!name && !num) return [];
+    try {
+      const parts = [name && `!"${name.replace(/"/g, "")}"`, setCode && `set:"${setCode.replace(/"/g, "")}"`, num && `cn:${num}`].filter(Boolean);
+      const q = parts.join(" ");
+      const r = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=prints&order=released&dir=desc`);
+      if (!r.ok) {
+        // Retry with looser name search
+        if (!name) return [];
+        const r2 = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(`"${name}"`)}&unique=prints&order=released&dir=desc`);
+        if (!r2.ok) return [];
+        const j2 = await r2.json();
+        return (j2?.data || []).slice(0, 12).map(mapScryfall);
+      }
+      const j = await r.json();
+      return (j?.data || []).slice(0, 12).map(mapScryfall);
+    } catch { return []; }
+  }
+  function mapScryfall(c: any): Alt {
+    const p = c.prices || {};
+    const price = Number(p.usd) || Number(p.usd_foil) || Number(p.usd_etched) || (Number(p.eur) ? Number(p.eur) * 1.08 : undefined);
+    return {
+      id: `mtg-${c.id}`,
+      name: c.name,
+      set: c.set_name,
+      number: c.collector_number,
+      image: c.image_uris?.large || c.image_uris?.normal || c.card_faces?.[0]?.image_uris?.large,
+      price: price || undefined,
+      year: c.released_at ? String(c.released_at).slice(0, 4) : undefined,
+      category: "Magic: The Gathering",
+    };
+  }
+
+  // YGOPRODeck — free Yu-Gi-Oh! price API (TCGplayer + Cardmarket)
+  async function fetchYugiohMatches(opts: { name?: string; set?: string; number?: string }): Promise<Alt[]> {
+    const name = cleanSearchText(opts.name);
+    if (!name) return [];
+    try {
+      const r = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(name)}&num=12&offset=0`);
+      if (!r.ok) return [];
+      const j = await r.json();
+      const arr = j?.data || [];
+      return arr.slice(0, 12).map((c: any): Alt => {
+        const sets = c.card_sets || [];
+        const setMatch = opts.set ? sets.find((s: any) => String(s.set_name || "").toLowerCase().includes(opts.set!.toLowerCase())) : sets[0];
+        const tcgPriceFromSets = Number(setMatch?.set_price);
+        const cp = c.card_prices?.[0] || {};
+        const price = tcgPriceFromSets || Number(cp.tcgplayer_price) || Number(cp.ebay_price) || Number(cp.amazon_price) || Number(cp.cardmarket_price);
+        return {
+          id: `ygo-${c.id}-${setMatch?.set_code || "0"}`,
+          name: c.name,
+          set: setMatch?.set_name,
+          number: setMatch?.set_code,
+          image: c.card_images?.[0]?.image_url,
+          price: price || undefined,
+          year: undefined,
+          category: "Yu-Gi-Oh!",
+        };
+      });
+    } catch { return []; }
+  }
+
+  // Look up the real card image + similar printings, routing by detected game.
+  // Falls back silently if the card isn't in any DB.
+  async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string; category?: string }) {
+    const game = detectGame(opts.category, opts.name, opts.set);
+    if (game === "mtg") return fetchMtgMatches(opts);
+    if (game === "yugioh") return fetchYugiohMatches(opts);
     const safeName = cleanSearchText(opts.name).replace(/"/g, "");
     const safeSet = cleanSearchText(opts.set).replace(/"/g, "");
     const safeNumber = cardNumberBase(opts.number).replace(/"/g, "");
-    if (!safeName && !safeSet && !safeNumber) return [] as Alt[];
+    if (!safeName && !safeSet && !safeNumber) {
+      // unknown game with no inputs — try MTG/YGO as a last resort if we have a name
+      return [] as Alt[];
+    }
+    // If "unknown" but we have a name, try Pokémon first, fall through to MTG, then YGO
+    if (game === "unknown" && safeName) {
+      const pkmn = await fetchPokemonMatches(safeName, safeSet, safeNumber);
+      if (pkmn.length) return pkmn;
+      const mtg = await fetchMtgMatches(opts);
+      if (mtg.length) return mtg;
+      const ygo = await fetchYugiohMatches(opts);
+      if (ygo.length) return ygo;
+      return [];
+    }
+    return fetchPokemonMatches(safeName, safeSet, safeNumber);
+  }
+
+  async function fetchPokemonMatches(safeName: string, safeSet: string, safeNumber: string): Promise<Alt[]> {
     const queries = [
       [safeName && `name:"${safeName}"`, safeNumber && `number:"${safeNumber}"`].filter(Boolean).join(" "),
       [safeNumber && `number:"${safeNumber}"`, safeSet && `set.name:"${safeSet}"`].filter(Boolean).join(" "),
@@ -277,7 +371,7 @@ function Vault() {
     if (!stale.length) return;
     let updated = 0;
     for (const c of stale.slice(0, 25)) {
-      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const best = matches[0];
       if (!best) continue;
       const v = parseVariant(c.description);
@@ -308,7 +402,7 @@ function Vault() {
     if (!missing.length) return;
     let updated = 0;
     for (const c of missing.slice(0, 25)) {
-      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const match = matches.find((m) => m.image);
       const img = match?.image;
       if (!img) continue;
@@ -465,6 +559,7 @@ function Vault() {
         name: data?.name || name,
         set: data?.set || tcgSet,
         number: data?.tcg_number || tcgNumber,
+        category: data?.category || category || undefined,
       });
       if (matches.length) {
         setAlternatives(matches);
@@ -508,7 +603,7 @@ function Vault() {
       } catch {/* ignore */}
     }
     let finalImage = imageUrl;
-    const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2 });
+    const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2, category: cat || undefined });
     if (matches.length) {
       const best = matches[0];
       finalName = best.name || finalName;
@@ -637,6 +732,7 @@ function Vault() {
       name: card.name,
       set: card.tcg_set || undefined,
       number: card.tcg_number || undefined,
+      category: card.category || undefined,
     });
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
