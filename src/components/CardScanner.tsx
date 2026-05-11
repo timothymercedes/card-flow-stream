@@ -113,6 +113,10 @@ export function CardScanner({
   const [editing, setEditing] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
 
+  // Photo Scan Mode — captured/uploaded image shown immediately while AI runs
+  const [captured, setCaptured] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Auto-capture
   const [autoCapture, setAutoCapture] = useState(true);
   const [hint, setHint] = useState<string>("Point camera at a card");
