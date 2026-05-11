@@ -366,6 +366,34 @@ export function CardScanner({
     setBatch(null);
     setSelected(new Set());
     setEditing(false);
+    setCaptured(null);
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset so re-picking same file works
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please pick an image file");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error("Image too large (max 12MB)");
+      return;
+    }
+    try {
+      // Read + downscale large uploads so the AI gateway stays fast
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
+      await capture(resized);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not load image");
+    }
   }
 
   function lowConf(v?: number) {
