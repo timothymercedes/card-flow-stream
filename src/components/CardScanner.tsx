@@ -45,8 +45,13 @@ export type ScanResult = {
   language?: string;
   estimated_value?: number;
   condition_prices?: { NM?: number; LP?: number; MP?: number; Damaged?: number };
+  price_source?: string;
+  price_source_url?: string;
+  price_low?: number;
+  price_high?: number;
   trend: string;
   image: string;
+  reference_image?: string;
   confidence?: {
     name?: number;
     set?: number;
@@ -112,6 +117,7 @@ export function CardScanner({
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
 
   // Photo Scan Mode — captured/uploaded image shown immediately while AI runs
   const [captured, setCaptured] = useState<string | null>(null);
@@ -230,9 +236,9 @@ export function CardScanner({
         // gives us canonical rarity, variant, image and PRICE — so AI mistakes
         // on those fields get corrected automatically.
         try {
-          const hasEnoughId = !!result.name && (!!result.set || !!result.tcg_number);
-          // Always try the database when we have name + set/number. Exact number matching is self-validating,
-          // and avoids trusting low-confidence AI guesses for final identity/pricing.
+          const hasEnoughId = !!result.name && result.name !== "Unknown Card";
+          // Always try the database when we have a name. If set/number are missing,
+          // the database still returns priced similar cards the user can tap through.
           if (hasEnoughId) {
             const params = new URLSearchParams({ name: result.name });
             if (result.set) params.set("set", result.set);
@@ -256,8 +262,9 @@ export function CardScanner({
               (result as any).price_source_url = j.price.source_url;
               (result as any).price_low = j.price.low;
               (result as any).price_high = j.price.high;
-              if (Array.isArray(j.price.alternatives) && j.price.alternatives.length) {
-                result.alternatives = j.price.alternatives;
+              const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches.slice(1) : j.price.alternatives;
+              if (Array.isArray(matches) && matches.length) {
+                result.alternatives = matches;
               }
               // Overwrite AI guesses with canonical database values where present
               const c = j.price.canonical;
@@ -280,6 +287,7 @@ export function CardScanner({
             }
           }
         } catch { /* keep AI estimate as fallback */ }
+        setSuggestionIndex(-1);
         setPending(result);
         // Best-effort scan history log (RLS will reject if not signed in — ignore)
         try {
@@ -325,6 +333,7 @@ export function CardScanner({
     setSelected(new Set());
     setEditing(false);
     setCaptured(null);
+    setSuggestionIndex(-1);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -376,6 +385,46 @@ export function CardScanner({
     if (onResults) onResults(picks);
     else picks.forEach((p) => onResult(p)); // fallback for callers w/o batch handler
   }
+
+  function applySuggestedCard(a: ScanAlternative, nextIndex: number, label = "Similar card selected") {
+    setSuggestionIndex(nextIndex);
+    setPending((p) => {
+      if (!p) return p;
+      const market = Number(a.estimated_value || 0);
+      return {
+        ...p,
+        name: a.name || p.name,
+        set: a.set || p.set,
+        year: a.year || p.year,
+        tcg_number: a.tcg_number || p.tcg_number,
+        variant: a.variant || p.variant,
+        rarity: a.rarity || p.rarity,
+        estimated_value: market || p.estimated_value,
+        condition_prices: market
+          ? {
+              NM: market,
+              LP: Math.round(market * 0.85 * 100) / 100,
+              MP: Math.round(market * 0.6 * 100) / 100,
+              Damaged: Math.max(0.5, Math.round(market * 0.25 * 100) / 100),
+            }
+          : p.condition_prices,
+        reference_image: a.image_url || p.reference_image,
+        overall_confidence: 0.95,
+        match_label: label,
+        confidence: { name: 0.98, set: 0.98, year: 0.95, tcg_number: 0.98, variant: 0.9 },
+        ...(market ? { price_source: "TCGPlayer (Pokémon TCG API)" } : {}),
+      };
+    });
+  }
+
+  function cycleSimilarCard() {
+    if (!pending?.alternatives?.length) return;
+    const nextIndex = pending.alternatives.length === 1 ? 0 : (suggestionIndex + 1) % pending.alternatives.length;
+    applySuggestedCard(pending.alternatives[nextIndex], nextIndex, "Similar database match");
+  }
+
+  const displayImage = pending?.reference_image || pending?.image || "";
+  const similarCount = pending?.alternatives?.length ?? 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
@@ -659,11 +708,24 @@ export function CardScanner({
           })()}
 
           <div className="flex gap-3">
-            <img
-              src={pending.image}
-              alt=""
-              className="h-40 w-28 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
-            />
+            <button
+              type="button"
+              onClick={cycleSimilarCard}
+              disabled={!similarCount}
+              className="group relative h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-white/5 text-left ring-1 ring-white/20 disabled:cursor-default"
+              aria-label="Show next similar card"
+            >
+              <img
+                src={displayImage}
+                alt={pending.name}
+                className="h-full w-full object-cover"
+              />
+              {similarCount > 0 && (
+                <div className="absolute inset-x-1 bottom-1 rounded-md bg-black/75 px-1.5 py-1 text-center text-[9px] font-bold text-white">
+                  Tap for similar {suggestionIndex >= 0 ? `${suggestionIndex + 1}/${similarCount}` : `1/${similarCount}`}
+                </div>
+              )}
+            </button>
             <div className="min-w-0 flex-1 space-y-1.5 text-white">
               <Field
                 label="Name"
@@ -734,35 +796,17 @@ export function CardScanner({
             </div>
           </div>
 
-          {/* Did you mean one of these? — shown when overall confidence is < 0.9 and alternatives exist */}
-          {(pending.alternatives?.length ?? 0) > 0 && (pending.overall_confidence ?? 1) < 0.9 && (
+          {/* Similar database matches */}
+          {(pending.alternatives?.length ?? 0) > 0 && (
             <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-white/70">
-                Did you mean one of these?
+                Similar cards — tap one to use set + price
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {pending.alternatives!.slice(0, 3).map((a, i) => (
+                {pending.alternatives!.slice(0, 6).map((a, i) => (
                   <button
                     key={i}
-                    onClick={() =>
-                      setPending((p) =>
-                        p
-                          ? {
-                              ...p,
-                              name: a.name || p.name,
-                              set: a.set || p.set,
-                              year: a.year || p.year,
-                              tcg_number: a.tcg_number || p.tcg_number,
-                              variant: a.variant || p.variant,
-                              rarity: a.rarity || p.rarity,
-                              estimated_value: a.estimated_value || p.estimated_value,
-                              overall_confidence: 0.95,
-                              match_label: "Match confirmed",
-                              alternatives: [],
-                            }
-                          : p,
-                      )
-                    }
+                    onClick={() => applySuggestedCard(a, i, "Match confirmed")}
                     className="overflow-hidden rounded-lg bg-black/40 text-left ring-1 ring-white/10 transition hover:ring-emerald-400/60"
                   >
                     <div className="aspect-[3/4] w-full bg-black">
