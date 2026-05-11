@@ -704,11 +704,24 @@ export function CardScanner({
           })()}
 
           <div className="flex gap-3">
-            <img
-              src={pending.image}
-              alt=""
-              className="h-40 w-28 shrink-0 rounded-lg object-cover ring-1 ring-white/20"
-            />
+            <button
+              type="button"
+              onClick={cycleSimilarCard}
+              disabled={!similarCount}
+              className="group relative h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-white/5 text-left ring-1 ring-white/20 disabled:cursor-default"
+              aria-label="Show next similar card"
+            >
+              <img
+                src={displayImage}
+                alt={pending.name}
+                className="h-full w-full object-cover"
+              />
+              {similarCount > 0 && (
+                <div className="absolute inset-x-1 bottom-1 rounded-md bg-black/75 px-1.5 py-1 text-center text-[9px] font-bold text-white">
+                  Tap for similar {suggestionIndex >= 0 ? `${suggestionIndex + 1}/${similarCount}` : `1/${similarCount}`}
+                </div>
+              )}
+            </button>
             <div className="min-w-0 flex-1 space-y-1.5 text-white">
               <Field
                 label="Name"
@@ -779,35 +792,17 @@ export function CardScanner({
             </div>
           </div>
 
-          {/* Did you mean one of these? — shown when overall confidence is < 0.9 and alternatives exist */}
-          {(pending.alternatives?.length ?? 0) > 0 && (pending.overall_confidence ?? 1) < 0.9 && (
+          {/* Similar database matches */}
+          {(pending.alternatives?.length ?? 0) > 0 && (
             <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-white/70">
-                Did you mean one of these?
+                Similar cards — tap one to use set + price
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {pending.alternatives!.slice(0, 3).map((a, i) => (
+                {pending.alternatives!.slice(0, 6).map((a, i) => (
                   <button
                     key={i}
-                    onClick={() =>
-                      setPending((p) =>
-                        p
-                          ? {
-                              ...p,
-                              name: a.name || p.name,
-                              set: a.set || p.set,
-                              year: a.year || p.year,
-                              tcg_number: a.tcg_number || p.tcg_number,
-                              variant: a.variant || p.variant,
-                              rarity: a.rarity || p.rarity,
-                              estimated_value: a.estimated_value || p.estimated_value,
-                              overall_confidence: 0.95,
-                              match_label: "Match confirmed",
-                              alternatives: [],
-                            }
-                          : p,
-                      )
-                    }
+                    onClick={() => applySuggestedCard(a, i, "Match confirmed")}
                     className="overflow-hidden rounded-lg bg-black/40 text-left ring-1 ring-white/10 transition hover:ring-emerald-400/60"
                   >
                     <div className="aspect-[3/4] w-full bg-black">
