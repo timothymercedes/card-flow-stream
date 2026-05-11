@@ -9,9 +9,26 @@ import {
   Layers,
   Square,
   CheckSquare,
+  Sparkles,
+  Search,
+  Package,
+  Tag,
+  Gavel,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+export type ScanAlternative = {
+  name: string;
+  set?: string;
+  year?: string;
+  tcg_number?: string;
+  variant?: string;
+  rarity?: string;
+  estimated_value?: number;
+  image_url?: string;
+};
 
 export type ScanResult = {
   name: string;
@@ -33,7 +50,12 @@ export type ScanResult = {
     tcg_number?: number;
     variant?: number;
   };
+  overall_confidence?: number;
+  match_label?: string;
+  alternatives?: ScanAlternative[];
 };
+
+export type ScanAction = "inventory" | "list" | "auction" | "draft";
 
 const LANGUAGES = [
   { v: "auto", l: "Auto" },
@@ -55,6 +77,10 @@ type Props = {
   onClose: () => void;
   defaultLanguage?: string;
   allowMulti?: boolean; // shows the multi-card toggle (default true)
+  /** Optional quick-action menu shown on the confirm screen. */
+  onAction?: (action: ScanAction, result: ScanResult) => void;
+  /** Optional callback when user taps "Find correct card" (manual finder). */
+  onFindCorrect?: (current: ScanResult) => void;
 };
 
 export function CardScanner({
@@ -63,6 +89,8 @@ export function CardScanner({
   onClose,
   defaultLanguage = "auto",
   allowMulti = true,
+  onAction,
+  onFindCorrect,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
