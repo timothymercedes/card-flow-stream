@@ -244,6 +244,48 @@ export type Database = {
           },
         ]
       }
+      card_price_history: {
+        Row: {
+          captured_at: string
+          card_key: string
+          id: string
+          last_sold_price: number | null
+          market_price: number | null
+          name: string
+          price_high: number | null
+          price_low: number | null
+          source: string | null
+          tcg_number: string | null
+          tcg_set: string | null
+        }
+        Insert: {
+          captured_at?: string
+          card_key: string
+          id?: string
+          last_sold_price?: number | null
+          market_price?: number | null
+          name: string
+          price_high?: number | null
+          price_low?: number | null
+          source?: string | null
+          tcg_number?: string | null
+          tcg_set?: string | null
+        }
+        Update: {
+          captured_at?: string
+          card_key?: string
+          id?: string
+          last_sold_price?: number | null
+          market_price?: number | null
+          name?: string
+          price_high?: number | null
+          price_low?: number | null
+          source?: string | null
+          tcg_number?: string | null
+          tcg_set?: string | null
+        }
+        Relationships: []
+      }
       card_scans: {
         Row: {
           cards_detected: number
@@ -3708,6 +3750,10 @@ export type Database = {
           order_id: string
           total_amount: number
         }[]
+      }
+      compute_card_key: {
+        Args: { _name: string; _number: string; _set: string }
+        Returns: string
       }
       confirm_live_stream_active: {
         Args: { _stream_id: string }
