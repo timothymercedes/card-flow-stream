@@ -16,6 +16,8 @@ import {
   Gavel,
   Save,
   AlertTriangle,
+  ImageIcon,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,6 +113,10 @@ export function CardScanner({
   const [editing, setEditing] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
 
+  // Photo Scan Mode — captured/uploaded image shown immediately while AI runs
+  const [captured, setCaptured] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Auto-capture
   const [autoCapture, setAutoCapture] = useState(true);
   const [hint, setHint] = useState<string>("Point camera at a card");
@@ -150,32 +156,42 @@ export function CardScanner({
   }
 
   useEffect(() => {
-    if (pending || batch) return;
+    if (pending || batch || captured) return;
     start(facing);
     return () => {
       stopScannerCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facing, pending, batch]);
+  }, [facing, pending, batch, captured]);
 
-  async function capture() {
-    if (!videoRef.current || capturingRef.current) return;
+  async function capture(externalDataUrl?: string) {
+    if (capturingRef.current) return;
+    if (!externalDataUrl && !videoRef.current) return;
     capturingRef.current = true;
     setScanning(true);
     try {
-      const v = videoRef.current;
-      const srcW = v.videoWidth || 1280;
-      const srcH = v.videoHeight || 720;
-      // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
-      const MAX = multi ? 1600 : 1024;
-      const scale = Math.min(1, MAX / Math.max(srcW, srcH));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(srcW * scale);
-      canvas.height = Math.round(srcH * scale);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas error");
-      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+      let dataUrl: string;
+      if (externalDataUrl) {
+        dataUrl = externalDataUrl;
+      } else {
+        const v = videoRef.current!;
+        const srcW = v.videoWidth || 1280;
+        const srcH = v.videoHeight || 720;
+        // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
+        const MAX = multi ? 1600 : 1024;
+        const scale = Math.min(1, MAX / Math.max(srcW, srcH));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(srcW * scale);
+        canvas.height = Math.round(srcH * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas error");
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+      }
+
+      // Show the captured photo immediately while AI runs (Photo Scan Mode)
+      setCaptured(dataUrl);
+      stopScannerCamera();
 
       const { data, error } = await supabase.functions.invoke("scan-card", {
         body: { image: dataUrl, language: language === "auto" ? undefined : language, multi },
@@ -350,6 +366,34 @@ export function CardScanner({
     setBatch(null);
     setSelected(new Set());
     setEditing(false);
+    setCaptured(null);
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset so re-picking same file works
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please pick an image file");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error("Image too large (max 12MB)");
+      return;
+    }
+    try {
+      // Read + downscale large uploads so the AI gateway stays fast
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
+      await capture(resized);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not load image");
+    }
   }
 
   function lowConf(v?: number) {
@@ -408,7 +452,7 @@ export function CardScanner({
         )}
       </div>
 
-      {!pending && !batch && (
+      {!pending && !batch && !captured && (
         <>
           <div className="px-3 pb-2 space-y-2">
             {allowMulti && (
@@ -477,17 +521,39 @@ export function CardScanner({
                 {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
               </button>
             </div>
-            <button
-              onClick={capture}
-              disabled={scanning || !!error}
-              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
-            >
-              {scanning ? (
-                <Loader2 className="h-7 w-7 animate-spin" />
-              ) : (
-                <Camera className="h-7 w-7" />
-              )}
-            </button>
+            <div className="flex items-center justify-center gap-6">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={scanning}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-50"
+                title="Upload photo"
+                aria-label="Upload photo from gallery"
+              >
+                <ImageIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => capture()}
+                disabled={scanning || !!error}
+                className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
+              >
+                {scanning ? (
+                  <Loader2 className="h-7 w-7 animate-spin" />
+                ) : (
+                  <Camera className="h-7 w-7" />
+                )}
+              </button>
+              <div className="h-12 w-12" />
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <p className="mt-1 text-center text-[11px] text-white/50">
+              or tap <ImageIcon className="inline h-3 w-3" /> to upload a photo / screenshot
+            </p>
             <p className="mt-2 text-center text-xs text-white/60">
               {scanning
                 ? multi
@@ -499,6 +565,55 @@ export function CardScanner({
             </p>
           </div>
         </>
+      )}
+
+      {/* Photo Scan Mode — captured photo preview while AI runs */}
+      {captured && !pending && !batch && (
+        <div className="flex flex-1 flex-col">
+          <div className="relative flex-1 overflow-hidden bg-black">
+            <img
+              src={captured}
+              alt="Captured card"
+              className="h-full w-full object-contain"
+            />
+            {scanning && (
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/30 backdrop-blur-[1px]">
+                <div className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-white">
+                  <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+                  <span className="text-sm font-bold">
+                    {multi ? "Reading every card…" : "AI analyzing photo…"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-white/70">
+                  Detecting set symbol, card number, and variant
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            <button
+              onClick={rescan}
+              disabled={scanning}
+              className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
+              <RefreshCw className="mr-1 inline h-4 w-4" /> Retake
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className="rounded-xl bg-white/10 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
+              <Upload className="mr-1 inline h-4 w-4" /> Pick another
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </div>
       )}
 
       {/* Multi-card review */}
@@ -912,4 +1027,24 @@ function Field({
       )}
     </div>
   );
+}
+
+async function downscaleDataUrl(src: string, maxDim: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas error"));
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.88));
+    };
+    img.onerror = () => reject(new Error("Could not decode image"));
+    img.src = src;
+  });
 }
