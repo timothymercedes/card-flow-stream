@@ -62,6 +62,47 @@ function Vault() {
   const [condition, setCondition] = useState<Condition>("NM");
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
+  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number };
+  const [alternatives, setAlternatives] = useState<Alt[]>([]);
+  const [altIndex, setAltIndex] = useState(0);
+
+  // Look up the real card image + similar printings from the Pokémon TCG API.
+  // Falls back silently if the card isn't in their DB (non-Pokémon).
+  async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string }) {
+    const parts: string[] = [];
+    if (opts.name) parts.push(`name:"${opts.name.replace(/"/g, "").split(" ")[0]}*"`);
+    if (opts.number) parts.push(`number:"${opts.number.split("/")[0].trim()}"`);
+    if (opts.set) parts.push(`set.name:"${opts.set.replace(/"/g, "")}*"`);
+    if (!parts.length) return [] as Alt[];
+    try {
+      const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(" "))}&pageSize=12&orderBy=-set.releaseDate`);
+      if (!r.ok) return [];
+      const j = await r.json();
+      return (j?.data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        set: c.set?.name,
+        number: c.number,
+        image: c.images?.large || c.images?.small,
+        price: c.tcgplayer?.prices?.holofoil?.market ?? c.tcgplayer?.prices?.normal?.market ?? c.tcgplayer?.prices?.reverseHolofoil?.market,
+      })) as Alt[];
+    } catch { return []; }
+  }
+
+  function applyAlternative(alt: Alt) {
+    setName(alt.name);
+    if (alt.set) setTcgSet(alt.set);
+    if (alt.number) setTcgNumber(alt.number);
+    if (alt.image) setImageUrl(alt.image);
+    const idx = alternatives.findIndex((a) => a.id === alt.id);
+    if (idx >= 0) setAltIndex(idx);
+  }
+
+  function cycleAlternative(dir: 1 | -1) {
+    if (!alternatives.length) return;
+    const next = (altIndex + dir + alternatives.length) % alternatives.length;
+    applyAlternative(alternatives[next]);
+  }
 
   async function load() {
     if (!user) return;
