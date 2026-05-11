@@ -88,7 +88,7 @@ function mapPokeCard(c: any): FinderCard {
 
 export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) {
   const [name, setName] = useState(initialQuery);
-  const [setQuerySet, setQuerySet2] = useState("");
+  const [setQuery, setSetQuery] = useState("");
   const [number, setNumber] = useState("");
   const [rarity, setRarity] = useState("");
   const [subtype, setSubtype] = useState("");
