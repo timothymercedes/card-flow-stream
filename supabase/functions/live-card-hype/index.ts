@@ -1,5 +1,6 @@
 // Live-stream card HYPE generator. Uses Lovable AI to identify a card and
 // produce SHORT energetic hype lines for the chat. NEVER returns prices.
+import { verifyUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
