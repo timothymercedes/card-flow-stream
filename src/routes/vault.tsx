@@ -140,7 +140,19 @@ function Vault() {
       };
       return rows.sort((a, b) => score(b) - score(a)).map((c: any) => {
         const prices: TcgPrices = c.tcgplayer?.prices || {};
-        const price = prices.holofoil?.market ?? prices.normal?.market ?? prices.reverseHolofoil?.market ?? prices["1stEditionHolofoil"]?.market ?? prices["1stEditionNormal"]?.market;
+        const tcgMarket =
+          prices.holofoil?.market ??
+          prices.normal?.market ??
+          prices.reverseHolofoil?.market ??
+          prices["1stEditionHolofoil"]?.market ??
+          prices["1stEditionNormal"]?.market ??
+          prices["1stEdition"]?.market ??
+          prices["unlimited"]?.market ??
+          prices["unlimitedHolofoil"]?.market;
+        // Cardmarket fallback for vintage cards with no TCGplayer market data
+        const cm = c.cardmarket?.prices || {};
+        const cmMarket = Number(cm.trendPrice) || Number(cm.averageSellPrice) || Number(cm.avg30) || undefined;
+        const price = Number(tcgMarket) || cmMarket;
         return {
           id: c.id,
           name: c.name,
@@ -173,25 +185,32 @@ function Vault() {
   ): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
-    const exactKey =
+    // Try exact slot first, then vintage-style aliases used by older Pokémon sets.
+    const exactKeys: string[] =
       ed === "1st Edition"
         ? fin === "Non-Holo"
-          ? "1stEditionNormal"
+          ? ["1stEditionNormal", "1stEdition"]
           : fin === "Holo"
-            ? "1stEditionHolofoil"
-            : undefined
+            ? ["1stEditionHolofoil", "1stEdition"]
+            : ["1stEditionHolofoil", "1stEdition"]
         : fin === "Non-Holo"
-          ? "normal"
+          ? ["normal", "unlimited"]
           : fin === "Holo"
-            ? "holofoil"
-            : "reverseHolofoil";
-    const exact = exactKey ? get(exactKey) : undefined;
-    if (exact) return exact;
+            ? ["holofoil", "unlimitedHolofoil", "unlimited"]
+            : ["reverseHolofoil"];
+    for (const k of exactKeys) {
+      const v = get(k);
+      if (v) return v;
+    }
 
+    // Fall back to any populated price, then rebase via edition/finish premiums.
     const sources: Array<{ key: string; ed: Edition; fin: Finish }> = [
       { key: "normal", ed: "Unlimited", fin: "Non-Holo" },
+      { key: "unlimited", ed: "Unlimited", fin: "Holo" },
       { key: "holofoil", ed: "Unlimited", fin: "Holo" },
+      { key: "unlimitedHolofoil", ed: "Unlimited", fin: "Holo" },
       { key: "reverseHolofoil", ed: "Unlimited", fin: "Reverse Holo" },
+      { key: "1stEdition", ed: "1st Edition", fin: "Holo" },
       { key: "1stEditionNormal", ed: "1st Edition", fin: "Non-Holo" },
       { key: "1stEditionHolofoil", ed: "1st Edition", fin: "Holo" },
     ];
@@ -244,6 +263,44 @@ function Vault() {
     if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
     // Background backfill: replace missing/generated/uploaded placeholders with official card images when we can match them.
     backfillMissingImages(list);
+    // Re-price cards that look stuck at the $0.50 floor (no real market data captured).
+    backfillMissingPrices(list);
+  }
+
+  async function backfillMissingPrices(list: Card[]) {
+    const stale = list.filter((c) => {
+      const v = Number(c.estimated_value || 0);
+      const cp = c.condition_prices as any;
+      const cpEmpty = !cp || ((Number(cp.NM) || 0) === 0 && (Number(cp.LP) || 0) === 0);
+      return v <= 0.5 && cpEmpty && (c.name || c.tcg_number || c.tcg_set);
+    });
+    if (!stale.length) return;
+    let updated = 0;
+    for (const c of stale.slice(0, 25)) {
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const best = matches[0];
+      if (!best) continue;
+      const v = parseVariant(c.description);
+      const langCode = parseLanguage(c.description);
+      const mult = langMult(langCode);
+      const raw = priceFromVariant(best.tcgPrices, v.edition, v.finish) ?? best.price;
+      const variantPrice = raw != null ? Number(raw) * mult : raw;
+      const marketCp = conditionPricesFromMarket(variantPrice);
+      if (!marketCp) continue;
+      const newValue = priceFor((c.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+      const patch = {
+        condition_prices: marketCp as any,
+        estimated_value: newValue,
+        last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+      if (!error) {
+        updated++;
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
+        setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch } : prev));
+      }
+    }
+    if (updated > 0) toast.success(`Updated values on ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
   async function backfillMissingImages(list: Card[]) {
@@ -1031,7 +1088,16 @@ function Vault() {
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
-                <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
+                  <button
+                    type="button"
+                    onClick={() => { const v = parseVariant(actionFor.description); updateVariant(actionFor, v.edition, v.finish); }}
+                    className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground hover:bg-muted/80"
+                  >
+                    Refresh
+                  </button>
+                </div>
                 {Number(actionFor.estimated_value || 0) > 0 && (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
                 )}
