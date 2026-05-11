@@ -51,7 +51,9 @@ Translate names to canonical English ("リザードン" → "Charizard"). If a f
 Return STRICT JSON matching this schema:
 ${CARD_SCHEMA_TEXT}
 
-CRITICAL: Always provide best-guess values — never null/zero. "set", "year", "tcg_number" must always be filled. Match the EXACT printing.`;
+CRITICAL: Always provide best-guess values — never null/zero. "set", "year", "tcg_number" must always be filled. Match the EXACT printing.
+
+Also set "overall_confidence" (0..1) reflecting how sure you are this is the EXACT printing. If overall_confidence < 0.9, populate "alternatives" with up to 3 OTHER plausible printings the card could be (different sets/numbers/variants). Each alternative needs name, set, year, tcg_number, variant, rarity, estimated_value. Omit alternatives if you are essentially certain.`;
 
 const SYSTEM_MULTI = `You are an EXPERT trading card identifier and appraiser. The image may contain MULTIPLE trading cards laid out together. DETECT EACH CARD SEPARATELY and identify every one of them with the same accuracy as a single-card scan.
 
