@@ -225,12 +225,14 @@ export function CardScanner({
         }
       } else {
         const result: ScanResult = { ...(data as any), image: dataUrl, language };
-        // 🔁 Replace AI-estimated price with REAL TCG market price (free Pokémon TCG API).
-        // Only override when we have enough identity to find the EXACT printing —
-        // name + (set OR card number). Name-only is too ambiguous (random reprints).
+        // 🔁 Cross-reference with REAL TCG database (Pokémon TCG API).
+        // The AI only needs to read name + set + number reliably; the database
+        // gives us canonical rarity, variant, image and PRICE — so AI mistakes
+        // on those fields get corrected automatically.
         try {
           const hasEnoughId = !!result.name && (!!result.set || !!result.tcg_number);
-          if (hasEnoughId && (result.overall_confidence ?? 0) >= 0.7) {
+          // Threshold lowered to 0.55 — DB lookup is self-validating (no match = no override)
+          if (hasEnoughId && (result.overall_confidence ?? 0) >= 0.55) {
             const params = new URLSearchParams({ name: result.name });
             if (result.set) params.set("set", result.set);
             if (result.tcg_number) params.set("number", result.tcg_number);
@@ -247,6 +249,21 @@ export function CardScanner({
               (result as any).price_source_url = j.price.source_url;
               (result as any).price_low = j.price.low;
               (result as any).price_high = j.price.high;
+              // Overwrite AI guesses with canonical database values where present
+              const c = j.price.canonical;
+              if (c) {
+                if (c.name) result.name = c.name;
+                if (c.set) result.set = c.set;
+                if (c.number) result.tcg_number = c.number;
+                if (c.rarity) result.rarity = c.rarity;
+                if (c.year) result.year = c.year;
+                if (c.image_large || c.image_small) {
+                  (result as any).reference_image = c.image_large || c.image_small;
+                }
+                // Once we have a DB match, treat identification as confident
+                result.overall_confidence = Math.max(result.overall_confidence ?? 0, 0.92);
+                result.match_label = "Database Match";
+              }
             }
           }
         } catch { /* keep AI estimate as fallback */ }
