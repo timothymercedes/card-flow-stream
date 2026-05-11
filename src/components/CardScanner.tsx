@@ -659,12 +659,20 @@ export function CardScanner({
                 />
               </div>
               <p className="text-[11px] text-white/70">
-                Est. value:{" "}
+                {(pending as any).price_source ? "Market" : "Est."} value:{" "}
                 <b className="text-emerald-300">
                   ${Number(pending.estimated_value || 0).toFixed(2)}
-                </b>{" "}
-                · {pending.trend}
+                </b>
+                {(pending as any).price_low != null && (pending as any).price_high != null && (
+                  <span className="text-white/50"> · L ${Number((pending as any).price_low).toFixed(2)} / H ${Number((pending as any).price_high).toFixed(2)}</span>
+                )}
+                {" · "}{pending.trend}
               </p>
+              {(pending as any).price_source && (
+                <p className="text-[9px] uppercase tracking-wider text-emerald-400/80">
+                  ✓ Verified price · {(pending as any).price_source}
+                </p>
+              )}
             </div>
           </div>
 
