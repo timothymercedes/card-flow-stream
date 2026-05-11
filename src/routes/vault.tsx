@@ -352,6 +352,7 @@ function Vault() {
 
   async function add() {
     if (!name.trim()) return toast.error("Card name required");
+    let finalName = name.trim();
     let value = Number(estValue) || 0;
     let cat = category;
     let cp: ConditionPrices | null = condPrices;
@@ -362,6 +363,7 @@ function Vault() {
         const q = [name, tcgNumber && `#${tcgNumber}`, tcgSet && `set: ${tcgSet}`, tcgYear && `year: ${tcgYear}`].filter(Boolean).join(" ");
         const { data } = await supabase.functions.invoke("identify-card", { body: { query: q, language } });
         if (data) {
+          finalName = data.name || finalName;
           cp = data.condition_prices || null;
           const base = Number(data.estimated_value) || 0;
           value = priceFor(condition, base, cp);
@@ -373,9 +375,10 @@ function Vault() {
       } catch {/* ignore */}
     }
     let finalImage = imageUrl;
-    const matches = await fetchRealCardMatches({ name, set: setName2, number: num2 });
+    const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2 });
     if (matches.length) {
       const best = matches[0];
+      finalName = best.name || finalName;
       finalImage = best.image || finalImage;
       cat = best.category || cat || "Pokémon";
       setName2 = best.set || setName2;
@@ -390,13 +393,13 @@ function Vault() {
     if (!finalImage) {
       try {
         const { data: img } = await supabase.functions.invoke("generate-card-image", {
-          body: { name, category: cat, set: setName2, year: year2, tcg_number: num2 },
+          body: { name: finalName, category: cat, set: setName2, year: year2, tcg_number: num2 },
         });
         if (img?.image) finalImage = img.image;
       } catch {/* ignore */}
     }
     const { error } = await supabase.from("vault_cards").insert({
-      user_id: user!.id, name, category: cat || "Trading Card",
+      user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
       description: description || null,
       estimated_value: value,
