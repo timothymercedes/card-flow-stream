@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
+import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
@@ -156,6 +157,7 @@ function LiveDetail() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const endedRef = useRef(false);
+  const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
 
@@ -206,11 +208,13 @@ function LiveDetail() {
   const [annOpen, setAnnOpen] = useState(false);
   const [annText, setAnnText] = useState("");
   const [hypeCard, setHypeCard] = useState<{
+    id: string;
     name: string;
     category: string;
     set_guess: string;
     rarity_vibe: string;
     image: string;
+    hype_lines: string[];
   } | null>(null);
 
   // 🆕 Anti-snipe banner
@@ -742,12 +746,23 @@ function LiveDetail() {
     };
   }, [id]);
 
-  // Auto-hide AI hype overlay after 5s
+  // Card spotlight realtime — host broadcasts scanned cards, viewers receive.
   useEffect(() => {
-    if (!hypeCard) return;
-    const t = setTimeout(() => setHypeCard(null), 5000);
-    return () => clearTimeout(t);
-  }, [hypeCard]);
+    if (!id) return;
+    const ch = supabase.channel(`spotlight-${id}`);
+    ch.on("broadcast", { event: "show" }, ({ payload }) => {
+      if (!isSeller) setHypeCard(payload as any);
+    });
+    ch.on("broadcast", { event: "hide" }, () => {
+      if (!isSeller) setHypeCard(null);
+    });
+    ch.subscribe();
+    spotlightChanRef.current = ch;
+    return () => {
+      spotlightChanRef.current = null;
+      supabase.removeChannel(ch);
+    };
+  }, [id, isSeller]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -2543,14 +2558,18 @@ function LiveDetail() {
       /* fall back to scan */
     }
 
-    // Show 5-second card overlay (price-free)
-    setHypeCard({
+    // Show movable card spotlight (price-free) — broadcast to viewers
+    const spotlight = {
+      id: `sp-${Date.now()}`,
       name: hypeName,
       category: hypeCategory,
       set_guess: hypeSet,
       rarity_vibe: hypeVibe,
       image: r.image,
-    });
+      hype_lines: hypeLines,
+    };
+    setHypeCard(spotlight);
+    spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: spotlight });
 
     const update: any = {
       current_item: hypeName,
@@ -4818,30 +4837,16 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* AI HYPE overlay — 5s card details (NEVER price) */}
+      {/* AI Spotlight — movable, collapsible card showcase (host can move/close; viewers can zoom) */}
       {hypeCard && (
-        <div className="pointer-events-none absolute left-1/2 top-24 z-30 w-[88%] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top">
-          <div className="flex gap-3 rounded-2xl border border-primary/40 bg-black/75 p-3 shadow-2xl backdrop-blur">
-            <img
-              src={hypeCard.image}
-              alt={hypeCard.name}
-              className="h-20 w-16 shrink-0 rounded-lg object-cover"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary">
-                <Sparkles className="h-3 w-3" /> AI Spotted
-              </p>
-              <p className="truncate text-sm font-extrabold text-white">{hypeCard.name}</p>
-              <p className="truncate text-[11px] text-white/70">
-                {hypeCard.category}
-                {hypeCard.set_guess ? ` · ${hypeCard.set_guess}` : ""}
-              </p>
-              <span className="mt-1 inline-block rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
-                {hypeCard.rarity_vibe}
-              </span>
-            </div>
-          </div>
-        </div>
+        <CardSpotlight
+          card={hypeCard}
+          isHost={isSeller}
+          onClose={() => {
+            setHypeCard(null);
+            spotlightChanRef.current?.send({ type: "broadcast", event: "hide", payload: {} });
+          }}
+        />
       )}
 
       {/* Announcement composer (host & mods) */}
