@@ -117,13 +117,7 @@ export function CardScanner({
   const [captured, setCaptured] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-capture
-  const [autoCapture, setAutoCapture] = useState(true);
-  const [hint, setHint] = useState<string>("Point camera at a card");
-  const [steadyPct, setSteadyPct] = useState(0);
-  const autoTimerRef = useRef<number | null>(null);
-  const prevFrameRef = useRef<ImageData | null>(null);
-  const steadyTicksRef = useRef(0);
+  // Manual capture only — user explicitly taps the shutter or picks a file.
   const capturingRef = useRef(false);
 
   function stopScannerCamera() {
