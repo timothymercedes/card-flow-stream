@@ -16,30 +16,67 @@ function keyOf(name: string | null, set: string | null, number: string | null) {
   return `${(name || "").toLowerCase()}|${(set || "").toLowerCase()}|${(number || "").toLowerCase()}`;
 }
 
-async function fetchTcgPrice(name: string, set: string | null, number: string | null) {
-  const parts: string[] = [`name:"${name.replace(/"/g, "")}"`];
+async function fetchTcgPrice(
+  name: string,
+  set: string | null,
+  number: string | null,
+  rarity: string | null,
+  variantHint: string | null,
+) {
+  // Use exact-ish match. If we have a card number we drop the name wildcard
+  // (number is far more selective and avoids matching random reprints).
+  const parts: string[] = [];
+  if (number) {
+    parts.push(`name:"${name.replace(/"/g, "")}"`);
+    parts.push(`number:"${number.replace(/"/g, "").split("/")[0].trim()}"`);
+  } else {
+    parts.push(`name:"${name.replace(/"/g, "")}"`);
+  }
   if (set) parts.push(`set.name:"${set.replace(/"/g, "")}"`);
-  if (number) parts.push(`number:"${number.replace(/"/g, "")}"`);
   const q = parts.join(" ");
   const apiKey = Deno.env.get("POKEMONTCG_API_KEY");
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=1`, {
+  // pageSize=5 so we can rank by rarity match if there are reprints
+  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=5&orderBy=-set.releaseDate`, {
     headers: apiKey ? { "X-Api-Key": apiKey } : {},
   });
   if (!res.ok) return null;
   const json = await res.json();
-  const card = json?.data?.[0];
-  if (!card) return null;
+  const candidates: any[] = json?.data || [];
+  if (candidates.length === 0) return null;
+
+  // Pick the candidate whose rarity matches what was scanned (when provided)
+  let card = candidates[0];
+  if (rarity) {
+    const rNorm = rarity.toLowerCase();
+    const match = candidates.find((c) => (c.rarity || "").toLowerCase() === rNorm)
+      ?? candidates.find((c) => (c.rarity || "").toLowerCase().includes(rNorm.split(" ")[0]));
+    if (match) card = match;
+  }
+
   const p = card?.tcgplayer?.prices ?? {};
-  const variant = p.holofoil ?? p.reverseHolofoil ?? p.normal ?? p["1stEditionHolofoil"] ?? p.unlimitedHolofoil ?? null;
+  // Choose the variant that matches the scanned card's actual variant/rarity
+  const want = (variantHint || rarity || "").toLowerCase();
+  let variant: any = null;
+  let variantKey = "normal";
+  if (/reverse/.test(want)) { variant = p.reverseHolofoil; variantKey = "reverseHolofoil"; }
+  else if (/1st\s*edition/.test(want) && p["1stEditionHolofoil"]) { variant = p["1stEditionHolofoil"]; variantKey = "1stEditionHolofoil"; }
+  else if (/holo|rare\s*holo|ultra|secret|illustration|amazing/.test(want)) { variant = p.holofoil ?? p.unlimitedHolofoil; variantKey = "holofoil"; }
+  else { variant = p.normal ?? p.unlimitedHolofoil; variantKey = "normal"; }
+  // Final fallback chain — never just default to holofoil for non-holo cards
+  if (!variant) variant = p.normal ?? p.reverseHolofoil ?? p.holofoil ?? p["1stEditionHolofoil"] ?? p.unlimitedHolofoil ?? null;
   if (!variant) return null;
+
+  const market = variant.market ?? variant.mid ?? null;
+  if (market == null) return null;
+
   return {
-    market: variant.market ?? null,
+    market,
     low: variant.low ?? null,
     high: variant.high ?? null,
     mid: variant.mid ?? null,
     source: "TCGPlayer (Pokémon TCG API)",
     source_url: card?.tcgplayer?.url ?? null,
-    raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id },
+    raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity },
   };
 }
 
