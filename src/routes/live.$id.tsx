@@ -2576,6 +2576,45 @@ function LiveDetail() {
     setHypeCard(spotlight);
     spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: spotlight });
 
+    // Persist the scanned card to the seller's vault as 'available' so that
+    // finalize_auction_round() can flip it to 'sold' + sync any matching
+    // market listing once the auction ends.
+    try {
+      await supabase.from("vault_cards").insert({
+        user_id: user!.id,
+        name: hypeName,
+        category: hypeCategory || "Trading Card",
+        image_url: r.image || null,
+        estimated_value: Number((r as any).estimated_value) || 0,
+        tcg_number: (r as any).tcg_number || null,
+        tcg_set: (r as any).set || hypeSet || null,
+        tcg_year: (r as any).year ? String((r as any).year) : null,
+        condition: "NM",
+        status: "available",
+      });
+    } catch { /* non-fatal */ }
+
+    // Pin the card to the stream so the finalize RPC can match it to vault/market.
+    try {
+      await supabase
+        .from("live_streams")
+        .update({
+          pinned_card: {
+            name: hypeName,
+            set: (r as any).set || hypeSet || null,
+            year: (r as any).year || null,
+            number: (r as any).tcg_number || null,
+            rarity: (r as any).rarity || null,
+            variant: (r as any).variant || null,
+            image: r.image || null,
+            market_value: (r as any).estimated_value || null,
+            pinned_at: new Date().toISOString(),
+          },
+        } as any)
+        .eq("id", stream.id);
+    } catch { /* non-fatal */ }
+
+
     const update: any = {
       current_item: hypeName,
       current_bid: start,
