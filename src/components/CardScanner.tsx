@@ -57,7 +57,7 @@ export type ScanResult = {
   alternatives?: ScanAlternative[];
 };
 
-export type ScanAction = "inventory" | "list" | "auction" | "draft";
+export type ScanAction = "inventory" | "list" | "auction" | "offer" | "draft";
 
 const LANGUAGES = [
   { v: "auto", l: "Auto" },
