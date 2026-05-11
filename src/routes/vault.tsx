@@ -507,7 +507,14 @@ function Vault() {
     const m = String(desc || "").match(/Variant:\s*([^\n]+)/i);
     const v = (m?.[1] || "").toLowerCase();
     const ed: Edition = /1st\s*edition|1版|第1版|edition\s*1/i.test(v) ? "1st Edition" : "Unlimited";
-    const fin: Finish = /reverse/i.test(v) ? "Reverse Holo" : /\bholo|foil/i.test(v) ? "Holo" : "Non-Holo";
+    const isNonHolo = /non[-\s]?holo|non[-\s]?foil|normal/i.test(v);
+    const fin: Finish = /reverse/i.test(v)
+      ? "Reverse Holo"
+      : isNonHolo
+        ? "Non-Holo"
+        : /\bholo(?:foil)?\b|\bfoil\b/i.test(v)
+          ? "Holo"
+          : "Non-Holo";
     return { edition: ed, finish: fin };
   }
 
