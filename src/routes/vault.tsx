@@ -477,6 +477,15 @@ function Vault() {
     toast.success(`Condition: ${newCond} • $${newValue.toFixed(2)}`);
   }
 
+  // Rough market multipliers vs English TCGplayer baseline
+  const LANG_MULT: Record<string, number> = {
+    en: 1.0, jp: 0.55, kr: 0.45, zh: 0.5, de: 0.7, fr: 0.7, es: 0.65, it: 0.65, pt: 0.6, ru: 0.55,
+  };
+  function langMult(code?: string | null) {
+    const k = String(code || "en").toLowerCase();
+    return LANG_MULT[k] ?? 1.0;
+  }
+
   // Parse "Variant: <Edition> · <Finish>" out of a description
   function parseVariant(desc?: string | null): { edition: Edition; finish: Finish } {
     const m = String(desc || "").match(/Variant:\s*([^\n]+)/i);
@@ -486,33 +495,51 @@ function Vault() {
     return { edition: ed, finish: fin };
   }
 
+  function parseLanguage(desc?: string | null): string {
+    const m = String(desc || "").match(/Lang:\s*([a-z]{2})/i);
+    return (m?.[1] || "en").toLowerCase();
+  }
+
   function setVariantInDescription(desc: string | null | undefined, ed: Edition, fin: Finish): string {
     const base = String(desc || "").replace(/Variant:\s*[^\n]*\n?/gi, "").trim();
     const label = `Variant: ${ed} · ${fin}`;
     return base ? `${base}\n${label}` : label;
   }
 
-  async function updateVariant(card: Card, newEd: Edition, newFin: Finish) {
+  function setLanguageInDescription(desc: string | null | undefined, code: string): string {
+    const base = String(desc || "").replace(/Lang:\s*[a-z]{2}\s*\([^)]*\)\s*\n?/gi, "").trim();
+    const label = LANGUAGES.find((l) => l.v === code)?.l || code.toUpperCase();
+    const line = `Lang: ${code} (${label})`;
+    return base ? `${base}\n${line}` : line;
+  }
+
+  async function updateVariant(card: Card, newEd: Edition, newFin: Finish, newLang?: string) {
+    const lang = (newLang ?? parseLanguage(card.description)).toLowerCase();
+    const mult = langMult(lang);
     // Re-fetch TCG prices to get exact variant pricing
     const matches = await fetchRealCardMatches({ name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined });
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
     let newValue = card.estimated_value || 0;
     if (best?.tcgPrices) {
-      const variantPrice = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
+      const raw = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
+      const variantPrice = raw != null ? Number(raw) * mult : raw;
       const marketCp = conditionPricesFromMarket(variantPrice);
       if (marketCp) {
         cp = marketCp;
         newValue = priceFor((card.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
       }
     } else if (cp) {
-      // No TCG match — apply rough multiplier for 1st Edition
-      const base = Number(cp.NM) || 0;
-      const adj = newEd === "1st Edition" ? base * 2.5 : base;
+      // No TCG match — apply rough multiplier for 1st Edition + language
+      const baseNm = Number(cp.NM) || 0;
+      // Strip current-language baseline first
+      const englishBase = baseNm / langMult(parseLanguage(card.description));
+      const adj = (newEd === "1st Edition" ? englishBase * 2.5 : englishBase) * mult;
       const recomputed = conditionPricesFromMarket(adj);
       if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
     }
-    const newDesc = setVariantInDescription(card.description, newEd, newFin);
+    let newDesc = setVariantInDescription(card.description, newEd, newFin);
+    newDesc = setLanguageInDescription(newDesc, lang);
     // Optimistic UI
     setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, description: newDesc, estimated_value: newValue, condition_prices: cp } : prev));
     setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, description: newDesc, estimated_value: newValue, condition_prices: cp } : c)));
@@ -523,7 +550,13 @@ function Vault() {
       last_valued_at: new Date().toISOString(),
     }).eq("id", card.id);
     if (error) { toast.error(error.message); load(); return; }
-    toast.success(`${newEd} · ${newFin} • $${Number(newValue).toFixed(2)}`);
+    const langLbl = (LANGUAGES.find((l) => l.v === lang)?.l) || lang.toUpperCase();
+    toast.success(`${langLbl} • ${newEd} · ${newFin} • $${Number(newValue).toFixed(2)}`);
+  }
+
+  async function updateLanguage(card: Card, code: string) {
+    const v = parseVariant(card.description);
+    return updateVariant(card, v.edition, v.finish, code);
   }
 
   async function saveEdit() {
@@ -921,33 +954,48 @@ function Vault() {
               </div>
             </div>
 
-            {/* Edition & Finish (auto-repricing) */}
+            {/* Language, Edition & Finish (auto-repricing) */}
             {(() => {
               const v = parseVariant(actionFor.description);
+              const lang = parseLanguage(actionFor.description);
               return (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   <div className="rounded-lg bg-muted/40 p-2">
-                    <p className="text-[9px] uppercase text-muted-foreground">Edition</p>
+                    <p className="text-[9px] uppercase text-muted-foreground">Language (repriced automatically)</p>
                     <select
-                      value={v.edition}
-                      onChange={(e) => updateVariant(actionFor, e.target.value as Edition, v.finish)}
+                      value={lang}
+                      onChange={(e) => updateLanguage(actionFor, e.target.value)}
                       className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
                     >
-                      <option value="Unlimited">Unlimited</option>
-                      <option value="1st Edition">1st Edition</option>
+                      {LANGUAGES.map((l) => (
+                        <option key={l.v} value={l.v}>{l.l}</option>
+                      ))}
                     </select>
                   </div>
-                  <div className="rounded-lg bg-muted/40 p-2">
-                    <p className="text-[9px] uppercase text-muted-foreground">Finish</p>
-                    <select
-                      value={v.finish}
-                      onChange={(e) => updateVariant(actionFor, v.edition, e.target.value as Finish)}
-                      className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
-                    >
-                      <option value="Non-Holo">Non-Holo</option>
-                      <option value="Holo">Holo</option>
-                      <option value="Reverse Holo">Reverse Holo</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-muted/40 p-2">
+                      <p className="text-[9px] uppercase text-muted-foreground">Edition</p>
+                      <select
+                        value={v.edition}
+                        onChange={(e) => updateVariant(actionFor, e.target.value as Edition, v.finish)}
+                        className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
+                      >
+                        <option value="Unlimited">Unlimited</option>
+                        <option value="1st Edition">1st Edition</option>
+                      </select>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 p-2">
+                      <p className="text-[9px] uppercase text-muted-foreground">Finish</p>
+                      <select
+                        value={v.finish}
+                        onChange={(e) => updateVariant(actionFor, v.edition, e.target.value as Finish)}
+                        className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
+                      >
+                        <option value="Non-Holo">Non-Holo</option>
+                        <option value="Holo">Holo</option>
+                        <option value="Reverse Holo">Reverse Holo</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               );
