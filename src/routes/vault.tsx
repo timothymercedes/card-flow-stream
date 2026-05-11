@@ -249,6 +249,21 @@ function Vault() {
     await supabase.from("vault_cards").delete().eq("id", id);
     load();
   }
+  async function updateCondition(card: Card, newCond: Condition) {
+    const cp = card.condition_prices || null;
+    const base = Number(cp?.NM) || Number(card.estimated_value) || 0;
+    const newValue = priceFor(newCond, base, cp);
+    // Optimistic UI
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, condition: newCond, estimated_value: newValue } : prev));
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, condition: newCond, estimated_value: newValue } : c)));
+    const { error } = await supabase.from("vault_cards").update({
+      condition: newCond,
+      estimated_value: newValue,
+    }).eq("id", card.id);
+    if (error) { toast.error(error.message); load(); return; }
+    toast.success(`Condition: ${newCond} • $${newValue.toFixed(2)}`);
+  }
+
   async function saveEdit() {
     if (!editing) return;
     // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
@@ -577,10 +592,25 @@ function Vault() {
                 )}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
-                <p className="text-[9px] uppercase text-muted-foreground">Condition</p>
-                <p className="text-base font-bold">{actionFor.condition || "—"}</p>
+                <p className="text-[9px] uppercase text-muted-foreground">Condition (tap to update)</p>
+                <div className="mt-1 grid grid-cols-4 gap-1">
+                  {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => updateCondition(actionFor, c)}
+                      className={`rounded-md px-1.5 py-1 text-[11px] font-bold ${actionFor.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+                {actionFor.condition_prices && (
+                  <p className="mt-1 text-[9px] text-muted-foreground">Market value auto-updates from TCG condition prices</p>
+                )}
               </div>
             </div>
+
 
             {actionFor.description && (
               <div className="rounded-lg bg-muted/40 p-2 text-xs">
