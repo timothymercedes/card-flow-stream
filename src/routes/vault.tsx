@@ -110,8 +110,28 @@ function Vault() {
       supabase.from("vault_cards").select("*").eq("user_id", user.id).neq("status", "sold").order("created_at", { ascending: false }),
       supabase.from("vault_settings").select("visibility").eq("user_id", user.id).maybeSingle(),
     ]);
-    setCards((data || []) as Card[]);
+    const list = (data || []) as Card[];
+    setCards(list);
     if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
+    // Background backfill: pull real card images for any vault entry missing one.
+    backfillMissingImages(list);
+  }
+
+  async function backfillMissingImages(list: Card[]) {
+    const missing = list.filter((c) => !c.image_url && (c.name || c.tcg_number || c.tcg_set));
+    if (!missing.length) return;
+    let updated = 0;
+    for (const c of missing.slice(0, 25)) {
+      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
+      const img = matches.find((m) => m.image)?.image;
+      if (!img) continue;
+      const { error } = await supabase.from("vault_cards").update({ image_url: img }).eq("id", c.id);
+      if (!error) {
+        updated++;
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, image_url: img } : x)));
+      }
+    }
+    if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
   }
   useEffect(() => { load(); }, [user]);
 
