@@ -152,18 +152,20 @@ async function fetchJustTcg(
   const candidates: any[] = [];
   for (const q of queries) {
     try {
-      const r = await fetch(`https://api.justtcg.com/v1/cards?game=pokemon&q=${encodeURIComponent(q)}&limit=30`, {
+      const url = `https://api.justtcg.com/v1/cards?game=pokemon&q=${encodeURIComponent(q)}&limit=30`;
+      const r = await fetch(url, {
         headers: { "X-API-Key": apiKey, "User-Agent": "PullBidLive/1.0" },
       });
-      if (!r.ok) continue;
-      const j = await r.json();
+      const j = r.ok ? await r.json() : null;
+      console.log(`[JustTCG] q="${q}" status=${r.status} data=${j?.data?.length ?? "err"}`);
+      if (!r.ok || !j) continue;
       for (const c of j?.data || []) {
         if (!c?.id || seen.has(c.id)) continue;
         seen.add(c.id);
         candidates.push(c);
       }
       if (candidates.length >= 25) break;
-    } catch { /* keep trying next query */ }
+    } catch (e) { console.error("[JustTCG] fetch error:", e); }
   }
   console.log(`[JustTCG] candidates=${candidates.length} for "${cleanName}"`);
   if (!candidates.length) return null;
