@@ -90,6 +90,9 @@ type Props = {
   onAction?: (action: ScanAction, result: ScanResult) => void;
   /** Optional callback when user taps "Find correct card" (manual finder). */
   onFindCorrect?: (current: ScanResult) => void;
+  /** Live-stream mode: hides inventory/list/draft actions, shows a single
+   *  "Go Live with This Card" button that calls onResult. */
+  liveMode?: boolean;
 };
 
 export function CardScanner({
@@ -100,6 +103,7 @@ export function CardScanner({
   allowMulti = true,
   onAction,
   onFindCorrect,
+  liveMode = false,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -854,7 +858,14 @@ export function CardScanner({
           )}
 
           {/* Quick actions */}
-          {onAction ? (
+          {liveMode ? (
+            <button
+              onClick={confirmResult}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent py-4 text-base font-extrabold text-white shadow-lg"
+            >
+              <Gavel className="h-5 w-5" /> Show on Live & Start Auction
+            </button>
+          ) : onAction ? (
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onAction("inventory", pending)}
