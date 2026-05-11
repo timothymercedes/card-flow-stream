@@ -525,7 +525,9 @@ function Vault() {
   function parseVariant(desc?: string | null): { edition: Edition; finish: Finish } {
     const m = String(desc || "").match(/Variant:\s*([^\n]+)/i);
     const v = (m?.[1] || "").toLowerCase();
-    const ed: Edition = /1st\s*edition|1版|第1版|edition\s*1/i.test(v) ? "1st Edition" : "Unlimited";
+    const ed: Edition = /1st\s*edition|1版|第1版|edition\s*1/i.test(v)
+      ? "1st Edition"
+      : "Unlimited";
     const isNonHolo = /non[-\s]?holo|non[-\s]?foil|normal/i.test(v);
     const fin: Finish = /reverse/i.test(v)
       ? "Reverse Holo"
@@ -542,14 +544,22 @@ function Vault() {
     return (m?.[1] || "en").toLowerCase();
   }
 
-  function setVariantInDescription(desc: string | null | undefined, ed: Edition, fin: Finish): string {
-    const base = String(desc || "").replace(/Variant:\s*[^\n]*\n?/gi, "").trim();
+  function setVariantInDescription(
+    desc: string | null | undefined,
+    ed: Edition,
+    fin: Finish,
+  ): string {
+    const base = String(desc || "")
+      .replace(/Variant:\s*[^\n]*\n?/gi, "")
+      .trim();
     const label = `Variant: ${ed} · ${fin}`;
     return base ? `${base}\n${label}` : label;
   }
 
   function setLanguageInDescription(desc: string | null | undefined, code: string): string {
-    const base = String(desc || "").replace(/Lang:\s*[a-z]{2}\s*\([^)]*\)\s*\n?/gi, "").trim();
+    const base = String(desc || "")
+      .replace(/Lang:\s*[a-z]{2}\s*\([^)]*\)\s*\n?/gi, "")
+      .trim();
     const label = LANGUAGES.find((l) => l.v === code)?.l || code.toUpperCase();
     const line = `Lang: ${code} (${label})`;
     return base ? `${base}\n${line}` : line;
