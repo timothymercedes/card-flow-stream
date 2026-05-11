@@ -3097,13 +3097,18 @@ function LiveDetail() {
               <Camera className="h-4 w-4" />
             </button>
           )}
-          {!ended && isSeller && usingCompositor && (
+          {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
             <button
-              onClick={openHostCameraControls}
+              onClick={flexNeedsCameraSetup ? enableFlexCameraStudio : openHostCameraControls}
+              disabled={flexNeedsCameraSetup && switchingToBrowserCam}
               className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
-              title="Arrange cameras"
+              title={flexNeedsCameraSetup ? "Set up Flex cameras" : "Arrange cameras"}
             >
-              <Settings className="h-4 w-4" />
+              {flexNeedsCameraSetup && switchingToBrowserCam ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Settings className="h-4 w-4" />
+              )}
             </button>
           )}
           {(auctionLive || stream.current_item) && (
