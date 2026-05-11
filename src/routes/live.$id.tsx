@@ -53,6 +53,7 @@ import { CardScanner } from "@/components/CardScanner";
 import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
+import { SHIPPING_PRESETS, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
@@ -293,6 +294,10 @@ function LiveDetail() {
   const [editTimerSec, setEditTimerSec] = useState("30");
   const [editShipPrice, setEditShipPrice] = useState("");
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
+  // 🆕 Shipping preset + weight (oz/lbs) — drives method & price per Shippo guideline
+  const [editShipPreset, setEditShipPreset] = useState<ShippingPresetKey>("bubble");
+  const [editWeight, setEditWeight] = useState("4");
+  const [editWeightUnit, setEditWeightUnit] = useState<"oz" | "lbs">("oz");
   // 🆕 Quantity (back-to-back identical auctions) + voice trigger
   const [editQuantity, setEditQuantity] = useState("1");
   const [editVoiceEnabled, setEditVoiceEnabled] = useState(false);
@@ -3479,43 +3484,137 @@ function LiveDetail() {
               className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
             />
             <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                min="1"
-                value={editStartPrice}
-                onChange={(e) => setEditStartPrice(e.target.value)}
-                placeholder="Start price ($)"
-                className="rounded-lg bg-input px-3 py-2 text-xs outline-none"
-              />
-              <select
-                value={editTimerSec}
-                onChange={(e) => setEditTimerSec(e.target.value)}
-                className="rounded-lg bg-input px-3 py-2 text-xs outline-none"
-              >
-                <option value="5">5s</option>
-                <option value="10">10s</option>
-                <option value="15">15s</option>
-                <option value="20">20s</option>
-                <option value="30">30s</option>
-                <option value="60">60s</option>
-              </select>
+              <label className="block text-[11px] text-muted-foreground">
+                Starting price ($)
+                <input
+                  type="number"
+                  min="1"
+                  value={editStartPrice}
+                  onChange={(e) => setEditStartPrice(e.target.value)}
+                  placeholder="e.g. 1"
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Bid timer (seconds)
+                <select
+                  value={editTimerSec}
+                  onChange={(e) => setEditTimerSec(e.target.value)}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                >
+                  <option value="5">5s</option>
+                  <option value="10">10s</option>
+                  <option value="15">15s</option>
+                  <option value="20">20s</option>
+                  <option value="30">30s</option>
+                  <option value="60">60s</option>
+                </select>
+              </label>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={editShipPrice}
-                onChange={(e) => setEditShipPrice(e.target.value)}
-                placeholder="Shipping ($)"
-                className="rounded-lg bg-input px-3 py-2 text-xs outline-none"
-              />
-              <input
-                value={editShipMethod}
-                onChange={(e) => setEditShipMethod(e.target.value)}
-                placeholder="Method"
-                className="rounded-lg bg-input px-3 py-2 text-xs outline-none"
-              />
+
+            {/* 📦 Shipping — Shippo-guideline based: weight + preset auto-prices */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
+              <p className="text-[11px] font-bold text-foreground">📦 Shipping</p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block text-[11px] text-muted-foreground">
+                  Item weight
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={editWeight}
+                    onChange={(e) => setEditWeight(e.target.value)}
+                    placeholder="e.g. 4"
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                  />
+                </label>
+                <label className="block text-[11px] text-muted-foreground">
+                  Unit
+                  <select
+                    value={editWeightUnit}
+                    onChange={(e) => setEditWeightUnit(e.target.value as "oz" | "lbs")}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                  >
+                    <option value="oz">oz</option>
+                    <option value="lbs">lbs</option>
+                  </select>
+                </label>
+              </div>
+
+              {(() => {
+                const startVal = Number(editStartPrice) || 0;
+                const weightOz =
+                  editWeightUnit === "lbs"
+                    ? (Number(editWeight) || 0) * 16
+                    : Number(editWeight) || 0;
+                const forceBubble = startVal >= 30;
+                // Auto-correct: items $30+ must ship tracked (bubble or small_box)
+                if (forceBubble && (editShipPreset === "stamp" || editShipPreset === "pwe")) {
+                  setTimeout(() => setEditShipPreset(weightOz > 8 ? "small_box" : "bubble"), 0);
+                }
+                return (
+                  <>
+                    <label className="block text-[11px] text-muted-foreground">
+                      Packaging
+                      <select
+                        value={editShipPreset}
+                        onChange={(e) => {
+                          const key = e.target.value as ShippingPresetKey;
+                          setEditShipPreset(key);
+                          const p = SHIPPING_PRESETS[key];
+                          setEditShipMethod(p.label);
+                          if (p.flatRate && p.flatPriceUsd != null) {
+                            setEditShipPrice(String(p.flatPriceUsd));
+                          }
+                        }}
+                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                      >
+                        <option value="stamp" disabled={forceBubble}>
+                          Stamp · 1 card · untracked $0.78 {forceBubble ? "(disabled $30+)" : ""}
+                        </option>
+                        <option value="pwe" disabled={forceBubble}>
+                          PWE · 1–3 cards · untracked $0.99 {forceBubble ? "(disabled $30+)" : ""}
+                        </option>
+                        <option value="bubble">Bubble mailer · tracked (up to ~8 oz)</option>
+                        <option value="small_box">Small box · tracked (box/ETB/slabs)</option>
+                      </select>
+                    </label>
+                    {forceBubble && (
+                      <p className="text-[10px] text-amber-300">
+                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive policy).
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-[11px] text-muted-foreground">
+                        Shipping price ($)
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={editShipPrice}
+                          onChange={(e) => setEditShipPrice(e.target.value)}
+                          disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
+                          placeholder="auto"
+                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none disabled:opacity-60"
+                        />
+                      </label>
+                      <label className="block text-[11px] text-muted-foreground">
+                        Method label
+                        <input
+                          value={editShipMethod}
+                          onChange={(e) => setEditShipMethod(e.target.value)}
+                          placeholder="e.g. USPS Ground"
+                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                        />
+                      </label>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at checkout for tracked options.
+                    </p>
+                  </>
+                );
+              })()}
             </div>
 
             {/* 🆕 Quantity — N total slots, one winner per round */}
