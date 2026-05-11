@@ -126,8 +126,9 @@ async function fetchTcgPrice(
     if (c?.tcgplayer?.prices) s += 3; // has pricing data
     return s;
   }
-  const ranked = candidates
-    .map((card) => ({ card, score: score(card), picked: pickPriceVariant(card?.tcgplayer?.prices ?? {}, rarity, variantHint) }))
+  const scored = candidates
+    .map((card) => ({ card, score: score(card), picked: pickPriceVariant(card?.tcgplayer?.prices ?? {}, rarity, variantHint) }));
+  const ranked = scored
     .filter((x) => {
       if (!x.picked) return false;
       const cn = norm(x.card?.name);
@@ -147,6 +148,18 @@ async function fetchTcgPrice(
 
   const market = variant.market ?? variant.mid ?? null;
   if (market == null) return null;
+
+  const similarRanked = scored
+    .filter((x) => {
+      if (!x.picked || x.card?.id === card.id) return false;
+      const cn = norm(x.card?.name);
+      const tn = norm(targetName);
+      const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tn.startsWith(`${cn} `) || tokenScore(cn, tn) >= 0.45;
+      const exactNumber = !!cleanNumber && firstCardNumber(x.card.number) === cleanNumber;
+      return nameClose || exactNumber;
+    })
+    .sort((a, b) => b.score - a.score);
+  const suggested = [{ card, picked, score: matchScore }, ...similarRanked].slice(0, 8);
 
   return {
     market,
@@ -168,7 +181,7 @@ async function fetchTcgPrice(
       variant_key: variantKey,
       match_score: matchScore,
     },
-    matches: ranked.slice(0, 8).map((x) => ({
+    matches: suggested.map((x) => ({
       name: x.card?.name ?? "",
       set: x.card?.set?.name ?? "",
       year: x.card?.set?.releaseDate ? String(x.card.set.releaseDate).slice(0, 4) : "",
@@ -178,7 +191,7 @@ async function fetchTcgPrice(
       estimated_value: Number(x.picked?.value?.market ?? x.picked?.value?.mid ?? 0),
       image_url: x.card?.images?.small ?? x.card?.images?.large ?? "",
     })),
-    alternatives: ranked.slice(1, 6).map((x) => ({
+    alternatives: suggested.slice(1, 6).map((x) => ({
       name: x.card?.name ?? "",
       set: x.card?.set?.name ?? "",
       year: x.card?.set?.releaseDate ? String(x.card.set.releaseDate).slice(0, 4) : "",
