@@ -4037,6 +4037,20 @@ function LiveDetail() {
                   username={profile?.username || null}
                   currentFilter={stream.video_filter || "none"}
                 />
+                {isSeller && flexNeedsCameraSetup && (
+                  <button
+                    onClick={enableFlexCameraStudio}
+                    disabled={switchingToBrowserCam}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-extrabold text-primary-foreground disabled:opacity-60 active:scale-[0.98]"
+                  >
+                    {switchingToBrowserCam ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5" />
+                    )}
+                    Set up Flex cameras
+                  </button>
+                )}
                 {isSeller && !paused && (
                   <button
                     onClick={endLive}
