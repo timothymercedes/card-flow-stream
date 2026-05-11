@@ -158,32 +158,51 @@ function Vault() {
 
   // Pick the right tcgplayer price slot based on edition + finish (with fallbacks).
   // 1st Edition always applies at least a 2.5x premium over any available Unlimited slot.
-  function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
+  function finishPremium(fin: Finish): number {
+    return fin === "Holo" ? 1.35 : fin === "Reverse Holo" ? 1.18 : 1;
+  }
+
+  function editionPremium(ed: Edition): number {
+    return ed === "1st Edition" ? 2.5 : 1;
+  }
+
+  function priceFromVariant(
+    prices: TcgPrices | undefined,
+    ed: Edition,
+    fin: Finish,
+  ): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
-    const anyUnlimited = () => get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
-    if (ed === "1st Edition") {
-      const premium = 2.5;
-      if (fin === "Holo") {
-        const direct = get("1stEditionHolofoil");
-        if (direct) return direct;
-        const base = get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
-        return base != null ? base * premium : undefined;
-      }
-      if (fin === "Reverse Holo") {
-        const direct = get("1stEditionHolofoil");
-        if (direct) return direct;
-        const base = get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
-        return base != null ? base * premium : undefined;
-      }
-      const direct = get("1stEditionNormal");
-      if (direct) return direct;
-      const base = get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
-      return base != null ? base * premium : undefined;
-    }
-    if (fin === "Holo") return get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
-    if (fin === "Reverse Holo") return get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
-    return anyUnlimited();
+    const exactKey =
+      ed === "1st Edition"
+        ? fin === "Non-Holo"
+          ? "1stEditionNormal"
+          : fin === "Holo"
+            ? "1stEditionHolofoil"
+            : undefined
+        : fin === "Non-Holo"
+          ? "normal"
+          : fin === "Holo"
+            ? "holofoil"
+            : "reverseHolofoil";
+    const exact = exactKey ? get(exactKey) : undefined;
+    if (exact) return exact;
+
+    const sources: Array<{ key: string; ed: Edition; fin: Finish }> = [
+      { key: "normal", ed: "Unlimited", fin: "Non-Holo" },
+      { key: "holofoil", ed: "Unlimited", fin: "Holo" },
+      { key: "reverseHolofoil", ed: "Unlimited", fin: "Reverse Holo" },
+      { key: "1stEditionNormal", ed: "1st Edition", fin: "Non-Holo" },
+      { key: "1stEditionHolofoil", ed: "1st Edition", fin: "Holo" },
+    ];
+    const source =
+      sources.find((s) => s.fin === fin && get(s.key)) ?? sources.find((s) => get(s.key));
+    if (!source) return undefined;
+    const sourcePrice = get(source.key);
+    if (!sourcePrice) return undefined;
+    const baseUnlimitedNonHolo =
+      sourcePrice / (editionPremium(source.ed) * finishPremium(source.fin));
+    return Math.round(baseUnlimitedNonHolo * editionPremium(ed) * finishPremium(fin) * 100) / 100;
   }
 
   function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
@@ -506,8 +525,17 @@ function Vault() {
   function parseVariant(desc?: string | null): { edition: Edition; finish: Finish } {
     const m = String(desc || "").match(/Variant:\s*([^\n]+)/i);
     const v = (m?.[1] || "").toLowerCase();
-    const ed: Edition = /1st\s*edition|1版|第1版|edition\s*1/i.test(v) ? "1st Edition" : "Unlimited";
-    const fin: Finish = /reverse/i.test(v) ? "Reverse Holo" : /\bholo|foil/i.test(v) ? "Holo" : "Non-Holo";
+    const ed: Edition = /1st\s*edition|1版|第1版|edition\s*1/i.test(v)
+      ? "1st Edition"
+      : "Unlimited";
+    const isNonHolo = /non[-\s]?holo|non[-\s]?foil|normal/i.test(v);
+    const fin: Finish = /reverse/i.test(v)
+      ? "Reverse Holo"
+      : isNonHolo
+        ? "Non-Holo"
+        : /\bholo(?:foil)?\b|\bfoil\b/i.test(v)
+          ? "Holo"
+          : "Non-Holo";
     return { edition: ed, finish: fin };
   }
 
@@ -516,14 +544,22 @@ function Vault() {
     return (m?.[1] || "en").toLowerCase();
   }
 
-  function setVariantInDescription(desc: string | null | undefined, ed: Edition, fin: Finish): string {
-    const base = String(desc || "").replace(/Variant:\s*[^\n]*\n?/gi, "").trim();
+  function setVariantInDescription(
+    desc: string | null | undefined,
+    ed: Edition,
+    fin: Finish,
+  ): string {
+    const base = String(desc || "")
+      .replace(/Variant:\s*[^\n]*\n?/gi, "")
+      .trim();
     const label = `Variant: ${ed} · ${fin}`;
     return base ? `${base}\n${label}` : label;
   }
 
   function setLanguageInDescription(desc: string | null | undefined, code: string): string {
-    const base = String(desc || "").replace(/Lang:\s*[a-z]{2}\s*\([^)]*\)\s*\n?/gi, "").trim();
+    const base = String(desc || "")
+      .replace(/Lang:\s*[a-z]{2}\s*\([^)]*\)\s*\n?/gi, "")
+      .trim();
     const label = LANGUAGES.find((l) => l.v === code)?.l || code.toUpperCase();
     const line = `Lang: ${code} (${label})`;
     return base ? `${base}\n${line}` : line;
@@ -532,11 +568,22 @@ function Vault() {
   async function updateVariant(card: Card, newEd: Edition, newFin: Finish, newLang?: string) {
     const lang = (newLang ?? parseLanguage(card.description)).toLowerCase();
     const mult = langMult(lang);
+    const previousVariant = parseVariant(card.description);
+    const previousLangMult = langMult(parseLanguage(card.description));
+    const currentBaseNm = Number(card.condition_prices?.NM) || Number(card.estimated_value) || 0;
+    const previousEditionPremium = editionPremium(previousVariant.edition);
+    const previousFinishPremium = finishPremium(previousVariant.finish);
+    const nextEditionPremium = editionPremium(newEd);
+    const nextFinishPremium = finishPremium(newFin);
     // Re-fetch TCG prices to get exact variant pricing
-    const matches = await fetchRealCardMatches({ name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined });
+    const matches = await fetchRealCardMatches({
+      name: card.name,
+      set: card.tcg_set || undefined,
+      number: card.tcg_number || undefined,
+    });
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
-    let newValue = card.estimated_value || 0;
+    let newValue = currentBaseNm;
     let priced = false;
     if (best?.tcgPrices) {
       const raw = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
@@ -544,19 +591,29 @@ function Vault() {
       const marketCp = conditionPricesFromMarket(variantPrice);
       if (marketCp) {
         cp = marketCp;
-        newValue = priceFor((card.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+        newValue = priceFor(
+          (card.condition || "NM") as Condition,
+          marketCp.NM || variantPrice || 0,
+          marketCp,
+        );
         priced = true;
       }
     }
-    if (!priced && cp) {
-      // No TCG variant match — apply rough multiplier for 1st Edition + language
-      const baseNm = Number(cp.NM) || 0;
-      const prev = parseVariant(card.description);
-      const prevPremium = prev.edition === "1st Edition" ? 2.5 : 1;
-      const englishBase = baseNm / (langMult(parseLanguage(card.description)) * prevPremium);
-      const adj = (newEd === "1st Edition" ? englishBase * 2.5 : englishBase) * mult;
+    if (!priced && currentBaseNm > 0) {
+      // No exact TCG variant match — rebase from the card's current NM value and apply edition, finish, and language multipliers.
+      const englishNonHoloBase =
+        currentBaseNm /
+        Math.max(0.01, previousLangMult * previousEditionPremium * previousFinishPremium);
+      const adj = englishNonHoloBase * nextEditionPremium * nextFinishPremium * mult;
       const recomputed = conditionPricesFromMarket(adj);
-      if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
+      if (recomputed) {
+        cp = recomputed;
+        newValue = priceFor(
+          (card.condition || "NM") as Condition,
+          recomputed.NM || adj,
+          recomputed,
+        );
+      }
     }
     let newDesc = setVariantInDescription(card.description, newEd, newFin);
     newDesc = setLanguageInDescription(newDesc, lang);
