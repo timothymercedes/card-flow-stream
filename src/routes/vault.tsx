@@ -185,25 +185,32 @@ function Vault() {
   ): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
-    const exactKey =
+    // Try exact slot first, then vintage-style aliases used by older Pokémon sets.
+    const exactKeys: string[] =
       ed === "1st Edition"
         ? fin === "Non-Holo"
-          ? "1stEditionNormal"
+          ? ["1stEditionNormal", "1stEdition"]
           : fin === "Holo"
-            ? "1stEditionHolofoil"
-            : undefined
+            ? ["1stEditionHolofoil", "1stEdition"]
+            : ["1stEditionHolofoil", "1stEdition"]
         : fin === "Non-Holo"
-          ? "normal"
+          ? ["normal", "unlimited"]
           : fin === "Holo"
-            ? "holofoil"
-            : "reverseHolofoil";
-    const exact = exactKey ? get(exactKey) : undefined;
-    if (exact) return exact;
+            ? ["holofoil", "unlimitedHolofoil", "unlimited"]
+            : ["reverseHolofoil"];
+    for (const k of exactKeys) {
+      const v = get(k);
+      if (v) return v;
+    }
 
+    // Fall back to any populated price, then rebase via edition/finish premiums.
     const sources: Array<{ key: string; ed: Edition; fin: Finish }> = [
       { key: "normal", ed: "Unlimited", fin: "Non-Holo" },
+      { key: "unlimited", ed: "Unlimited", fin: "Holo" },
       { key: "holofoil", ed: "Unlimited", fin: "Holo" },
+      { key: "unlimitedHolofoil", ed: "Unlimited", fin: "Holo" },
       { key: "reverseHolofoil", ed: "Unlimited", fin: "Reverse Holo" },
+      { key: "1stEdition", ed: "1st Edition", fin: "Holo" },
       { key: "1stEditionNormal", ed: "1st Edition", fin: "Non-Holo" },
       { key: "1stEditionHolofoil", ed: "1st Edition", fin: "Holo" },
     ];
