@@ -3132,11 +3132,19 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && !callJoined && (
+          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined) && (
             <button
-              onClick={() => setCallJoined(true)}
+              onClick={() => {
+                if (usingCompositor && isSeller) {
+                  // Compositor sellers don't use the WebRTC call — reopen the
+                  // multi-cam studio panel and restart cameras if they were stopped.
+                  openHostCameraControls();
+                } else {
+                  setCallJoined(true);
+                }
+              }}
               className="rounded-full bg-emerald-600/80 p-2 backdrop-blur"
-              title="Go on camera"
+              title={usingCompositor ? "Reopen camera panel" : "Go on camera"}
             >
               <Camera className="h-4 w-4" />
             </button>
