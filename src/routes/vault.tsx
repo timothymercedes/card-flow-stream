@@ -170,15 +170,24 @@ function Vault() {
     return get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
   }
 
-  function applyAlternative(alt: Alt) {
+  function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
     setName(alt.name);
     if (alt.set) setTcgSet(alt.set);
     if (alt.number) setTcgNumber(alt.number);
     if (alt.image) setImageUrl(alt.image);
     if (alt.year) setTcgYear(alt.year);
     if (alt.category) setCategory(alt.category);
-    const cp = conditionPricesFromMarket(alt.price);
-    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || alt.price || 0, cp))); }
+    // Auto-suggest finish based on what prices the card actually has
+    if (alt.tcgPrices) {
+      const has = (k: string) => Number(alt.tcgPrices?.[k]?.market) > 0;
+      if (fin === "Non-Holo" && !has("normal") && !has("1stEditionNormal") && (has("holofoil") || has("1stEditionHolofoil"))) {
+        fin = "Holo";
+        setFinish("Holo");
+      }
+    }
+    const variantPrice = priceFromVariant(alt.tcgPrices, ed, fin) ?? alt.price;
+    const cp = conditionPricesFromMarket(variantPrice);
+    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || variantPrice || 0, cp))); }
     const idx = alternatives.findIndex((a) => a.id === alt.id);
     if (idx >= 0) setAltIndex(idx);
   }
