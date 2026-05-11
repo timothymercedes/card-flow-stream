@@ -576,7 +576,11 @@ function Vault() {
     const nextEditionPremium = editionPremium(newEd);
     const nextFinishPremium = finishPremium(newFin);
     // Re-fetch TCG prices to get exact variant pricing
-    const matches = await fetchRealCardMatches({ name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined });
+    const matches = await fetchRealCardMatches({
+      name: card.name,
+      set: card.tcg_set || undefined,
+      number: card.tcg_number || undefined,
+    });
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
     let newValue = currentBaseNm;
@@ -587,16 +591,29 @@ function Vault() {
       const marketCp = conditionPricesFromMarket(variantPrice);
       if (marketCp) {
         cp = marketCp;
-        newValue = priceFor((card.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+        newValue = priceFor(
+          (card.condition || "NM") as Condition,
+          marketCp.NM || variantPrice || 0,
+          marketCp,
+        );
         priced = true;
       }
     }
     if (!priced && currentBaseNm > 0) {
       // No exact TCG variant match — rebase from the card's current NM value and apply edition, finish, and language multipliers.
-      const englishNonHoloBase = currentBaseNm / Math.max(0.01, previousLangMult * previousEditionPremium * previousFinishPremium);
+      const englishNonHoloBase =
+        currentBaseNm /
+        Math.max(0.01, previousLangMult * previousEditionPremium * previousFinishPremium);
       const adj = englishNonHoloBase * nextEditionPremium * nextFinishPremium * mult;
       const recomputed = conditionPricesFromMarket(adj);
-      if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
+      if (recomputed) {
+        cp = recomputed;
+        newValue = priceFor(
+          (card.condition || "NM") as Condition,
+          recomputed.NM || adj,
+          recomputed,
+        );
+      }
     }
     let newDesc = setVariantInDescription(card.description, newEd, newFin);
     newDesc = setLanguageInDescription(newDesc, lang);
