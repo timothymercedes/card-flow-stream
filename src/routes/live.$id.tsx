@@ -128,6 +128,7 @@ function LiveDetail() {
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [liveScanBusy, setLiveScanBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
