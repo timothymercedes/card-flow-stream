@@ -246,10 +246,19 @@ export function CardScanner({
             const j = await r.json();
             if (j?.price?.market != null) {
               (result as any).estimated_value = j.price.market;
+              result.condition_prices = {
+                NM: Number(j.price.market),
+                LP: Math.round(Number(j.price.market) * 0.85 * 100) / 100,
+                MP: Math.round(Number(j.price.market) * 0.6 * 100) / 100,
+                Damaged: Math.max(0.5, Math.round(Number(j.price.market) * 0.25 * 100) / 100),
+              };
               (result as any).price_source = j.price.source;
               (result as any).price_source_url = j.price.source_url;
               (result as any).price_low = j.price.low;
               (result as any).price_high = j.price.high;
+              if (Array.isArray(j.price.alternatives) && j.price.alternatives.length) {
+                result.alternatives = j.price.alternatives;
+              }
               // Overwrite AI guesses with canonical database values where present
               const c = j.price.canonical;
               if (c) {
@@ -261,10 +270,12 @@ export function CardScanner({
                 if (c.image_large || c.image_small) {
                   (result as any).reference_image = c.image_large || c.image_small;
                 }
-                // Once we have a DB match, treat identification as confident
-                result.overall_confidence = Math.max(result.overall_confidence ?? 0, 0.92);
-                result.match_label = "Database Match";
-                result.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
+                const strongMatch = Number(c.match_score || 0) >= 90;
+                result.overall_confidence = strongMatch ? Math.max(result.overall_confidence ?? 0, 0.95) : 0.82;
+                result.match_label = strongMatch ? "Database Match" : "Best database match — verify";
+                result.confidence = strongMatch
+                  ? { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 }
+                  : { name: 0.85, set: 0.8, year: 0.8, tcg_number: 0.85, variant: 0.75 };
               }
             }
           }
