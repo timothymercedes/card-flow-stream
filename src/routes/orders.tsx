@@ -157,6 +157,26 @@ function Orders() {
                         <ShipIcon s={o.status} /> {o.status}
                       </span>
                       {o.stream_id && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400" title="Winning bid recorded server-side">
+                          ✓ Verified bid
+                        </span>
+                      )}
+                      {pay === "paid" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400" title="Payment captured and held by Stripe">
+                          🔒 Payment secured
+                        </span>
+                      )}
+                      {o.stream_id && pay !== "awaiting_payment" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary" title="Auction finalized by server">
+                          🏆 Auction finalized
+                        </span>
+                      )}
+                      {o.status !== "pending" && pay === "paid" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary" title="Order confirmed and queued for fulfillment">
+                          ✓ Order confirmed
+                        </span>
+                      )}
+                      {o.stream_id && (
                         <Link to="/live/$id" params={{ id: o.stream_id }} className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-400">
                           🔴 Live sale
                         </Link>
