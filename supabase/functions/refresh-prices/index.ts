@@ -33,6 +33,22 @@ function tokenScore(a: string, b: string) {
   return hit / Math.max(aa.size, bb.size);
 }
 
+function setAlias(v: string) {
+  const n = norm(v);
+  return n === "base set" ? "base" : n;
+}
+
+function setMatchScore(cardSet: string, targetSet: string) {
+  const c = norm(cardSet);
+  const t = norm(targetSet);
+  if (!t) return 0;
+  if (c === t) return 24;
+  if (setAlias(c) === setAlias(t)) return 22;
+  if (c.startsWith(`${t} `)) return /\b\d+\b/.test(c.slice(t.length)) ? 4 : 10;
+  if (t.startsWith(`${c} `)) return 10;
+  return tokenScore(c, t) * 6;
+}
+
 function pickPriceVariant(prices: any, rarity: string | null, variantHint: string | null) {
   const want = norm(`${variantHint || ""} ${rarity || ""}`);
   const entries = [
@@ -103,9 +119,7 @@ async function fetchTcgPrice(
     if (cn === targetName) s += 10;
     else if (cn.startsWith(targetName)) s += 4;
     else s += tokenScore(cn, targetName) * 3;
-    if (targetSet && cset === targetSet) s += 20;
-    else if (targetSet && (cset.includes(targetSet) || targetSet.includes(cset))) s += 10;
-    else if (targetSet) s += tokenScore(cset, targetSet) * 6;
+    if (targetSet) s += setMatchScore(cset, targetSet);
     if (targetRarity && (c.rarity || "").toLowerCase() === targetRarity) s += 5;
     else if (targetRarity && (c.rarity || "").toLowerCase().includes(targetRarity.split(" ")[0])) s += 2;
     if (c?.tcgplayer?.prices) s += 3; // has pricing data
@@ -113,7 +127,13 @@ async function fetchTcgPrice(
   }
   const ranked = candidates
     .map((card) => ({ card, score: score(card), picked: pickPriceVariant(card?.tcgplayer?.prices ?? {}, rarity, variantHint) }))
-    .filter((x) => x.picked && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45))
+    .filter((x) => {
+      if (!x.picked) return false;
+      const cn = norm(x.card?.name);
+      const tn = norm(targetName);
+      const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
+      return nameClose && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
+    })
     .sort((a, b) => b.score - a.score);
   if (!ranked.length) return null;
 
