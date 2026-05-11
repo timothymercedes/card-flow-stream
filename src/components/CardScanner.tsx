@@ -45,6 +45,10 @@ export type ScanResult = {
   language?: string;
   estimated_value?: number;
   condition_prices?: { NM?: number; LP?: number; MP?: number; Damaged?: number };
+  price_source?: string;
+  price_source_url?: string;
+  price_low?: number;
+  price_high?: number;
   trend: string;
   image: string;
   reference_image?: string;
