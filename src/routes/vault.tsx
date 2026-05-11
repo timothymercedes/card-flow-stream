@@ -655,6 +655,21 @@ function Vault() {
             onResult={onScanResult}
             onResults={async (rs) => { for (const r of rs) await onScanResult(r as any); }}
             onClose={() => setScanning(false)}
+            onAction={(action, r) => {
+              if (action === "inventory" || action === "draft") {
+                onScanResult(r as any);
+                return;
+              }
+              // Stash for the Sell page to pick up and auto-fill
+              try {
+                sessionStorage.setItem("pbl_prefill_listing", JSON.stringify({
+                  ...r,
+                  listing_type: action === "auction" ? "auction" : "buy_now",
+                }));
+              } catch {}
+              setScanning(false);
+              nav({ to: "/sell" });
+            }}
           />
         </Suspense>
       )}

@@ -1013,6 +1013,7 @@ export type Database = {
           pause_message: string | null
           pause_started_at: string | null
           pause_until: string | null
+          pinned_card: Json | null
           quantity: number
           quantity_remaining: number | null
           quick_start_enabled: boolean
@@ -1107,6 +1108,7 @@ export type Database = {
           pause_message?: string | null
           pause_started_at?: string | null
           pause_until?: string | null
+          pinned_card?: Json | null
           quantity?: number
           quantity_remaining?: number | null
           quick_start_enabled?: boolean
@@ -1201,6 +1203,7 @@ export type Database = {
           pause_message?: string | null
           pause_started_at?: string | null
           pause_until?: string | null
+          pinned_card?: Json | null
           quantity?: number
           quantity_remaining?: number | null
           quick_start_enabled?: boolean
@@ -1699,6 +1702,72 @@ export type Database = {
         }
         Relationships: []
       }
+      pokemon_cards: {
+        Row: {
+          created_at: string
+          id: string
+          image_large: string | null
+          image_small: string | null
+          is_holo: boolean | null
+          is_reverse_holo: boolean | null
+          last_sold_price: number | null
+          name: string
+          number: string | null
+          prices_updated_at: string | null
+          rarity: string | null
+          raw: Json | null
+          set_code: string | null
+          set_name: string | null
+          subtypes: string[] | null
+          tcgplayer_price: number | null
+          trend: string | null
+          updated_at: string
+          year: string | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          image_large?: string | null
+          image_small?: string | null
+          is_holo?: boolean | null
+          is_reverse_holo?: boolean | null
+          last_sold_price?: number | null
+          name: string
+          number?: string | null
+          prices_updated_at?: string | null
+          rarity?: string | null
+          raw?: Json | null
+          set_code?: string | null
+          set_name?: string | null
+          subtypes?: string[] | null
+          tcgplayer_price?: number | null
+          trend?: string | null
+          updated_at?: string
+          year?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_large?: string | null
+          image_small?: string | null
+          is_holo?: boolean | null
+          is_reverse_holo?: boolean | null
+          last_sold_price?: number | null
+          name?: string
+          number?: string | null
+          prices_updated_at?: string | null
+          rarity?: string | null
+          raw?: Json | null
+          set_code?: string | null
+          set_name?: string | null
+          subtypes?: string[] | null
+          tcgplayer_price?: number | null
+          trend?: string | null
+          updated_at?: string
+          year?: string | null
+        }
+        Relationships: []
+      }
       post_comments: {
         Row: {
           content: string
@@ -2089,6 +2158,74 @@ export type Database = {
           stream_id?: string | null
         }
         Relationships: []
+      }
+      scan_history: {
+        Row: {
+          alternatives: Json | null
+          created_at: string
+          duplicate_of: string | null
+          id: string
+          image_url: string | null
+          overall_confidence: number | null
+          picked_card_id: string | null
+          raw: Json | null
+          source: string | null
+          top_name: string | null
+          top_number: string | null
+          top_rarity: string | null
+          top_set: string | null
+          top_value: number | null
+          top_variant: string | null
+          user_id: string
+          was_corrected: boolean | null
+        }
+        Insert: {
+          alternatives?: Json | null
+          created_at?: string
+          duplicate_of?: string | null
+          id?: string
+          image_url?: string | null
+          overall_confidence?: number | null
+          picked_card_id?: string | null
+          raw?: Json | null
+          source?: string | null
+          top_name?: string | null
+          top_number?: string | null
+          top_rarity?: string | null
+          top_set?: string | null
+          top_value?: number | null
+          top_variant?: string | null
+          user_id: string
+          was_corrected?: boolean | null
+        }
+        Update: {
+          alternatives?: Json | null
+          created_at?: string
+          duplicate_of?: string | null
+          id?: string
+          image_url?: string | null
+          overall_confidence?: number | null
+          picked_card_id?: string | null
+          raw?: Json | null
+          source?: string | null
+          top_name?: string | null
+          top_number?: string | null
+          top_rarity?: string | null
+          top_set?: string | null
+          top_value?: number | null
+          top_variant?: string | null
+          user_id?: string
+          was_corrected?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_history_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "scan_history"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_shows: {
         Row: {
