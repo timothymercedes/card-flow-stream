@@ -92,7 +92,7 @@ async function fetchTcgPrice(
   const candidates: any[] = [];
   for (const q of queries) {
     const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=30`, {
-      headers: apiKey ? { "X-Api-Key": apiKey } : {},
+      headers: { ...(apiKey ? { "X-Api-Key": apiKey } : {}), "User-Agent": "PullBidLive/1.0" },
     });
     if (!res.ok) continue;
     const json = await res.json();
@@ -167,7 +167,17 @@ async function fetchTcgPrice(
       variant_key: variantKey,
       match_score: matchScore,
     },
-    alternatives: ranked.slice(1, 4).map((x) => ({
+    matches: ranked.slice(0, 8).map((x) => ({
+      name: x.card?.name ?? "",
+      set: x.card?.set?.name ?? "",
+      year: x.card?.set?.releaseDate ? String(x.card.set.releaseDate).slice(0, 4) : "",
+      tcg_number: x.card?.number ?? "",
+      rarity: x.card?.rarity ?? "",
+      variant: x.picked?.key ?? "",
+      estimated_value: Number(x.picked?.value?.market ?? x.picked?.value?.mid ?? 0),
+      image_url: x.card?.images?.small ?? x.card?.images?.large ?? "",
+    })),
+    alternatives: ranked.slice(1, 6).map((x) => ({
       name: x.card?.name ?? "",
       set: x.card?.set?.name ?? "",
       year: x.card?.set?.releaseDate ? String(x.card.set.releaseDate).slice(0, 4) : "",
