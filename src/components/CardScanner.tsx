@@ -47,6 +47,7 @@ export type ScanResult = {
   condition_prices?: { NM?: number; LP?: number; MP?: number; Damaged?: number };
   trend: string;
   image: string;
+  reference_image?: string;
   confidence?: {
     name?: number;
     set?: number;
@@ -112,6 +113,7 @@ export function CardScanner({
   const [pending, setPending] = useState<ScanResult | null>(null);
   const [editing, setEditing] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
 
   // Photo Scan Mode — captured/uploaded image shown immediately while AI runs
   const [captured, setCaptured] = useState<string | null>(null);
@@ -256,8 +258,9 @@ export function CardScanner({
               (result as any).price_source_url = j.price.source_url;
               (result as any).price_low = j.price.low;
               (result as any).price_high = j.price.high;
-              if (Array.isArray(j.price.alternatives) && j.price.alternatives.length) {
-                result.alternatives = j.price.alternatives;
+              const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches : j.price.alternatives;
+              if (Array.isArray(matches) && matches.length) {
+                result.alternatives = matches;
               }
               // Overwrite AI guesses with canonical database values where present
               const c = j.price.canonical;
@@ -280,6 +283,7 @@ export function CardScanner({
             }
           }
         } catch { /* keep AI estimate as fallback */ }
+        setSuggestionIndex(0);
         setPending(result);
         // Best-effort scan history log (RLS will reject if not signed in — ignore)
         try {
@@ -325,6 +329,7 @@ export function CardScanner({
     setSelected(new Set());
     setEditing(false);
     setCaptured(null);
+    setSuggestionIndex(0);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
