@@ -494,7 +494,7 @@ export function CardScanner({
               </button>
             </div>
             <button
-              onClick={capture}
+              onClick={() => capture()}
               disabled={scanning || !!error}
               className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
             >
