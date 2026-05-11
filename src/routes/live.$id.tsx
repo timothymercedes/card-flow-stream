@@ -4836,30 +4836,16 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* AI HYPE overlay — 5s card details (NEVER price) */}
+      {/* AI Spotlight — movable, collapsible card showcase (host can move/close; viewers can zoom) */}
       {hypeCard && (
-        <div className="pointer-events-none absolute left-1/2 top-24 z-30 w-[88%] max-w-md -translate-x-1/2 animate-in fade-in slide-in-from-top">
-          <div className="flex gap-3 rounded-2xl border border-primary/40 bg-black/75 p-3 shadow-2xl backdrop-blur">
-            <img
-              src={hypeCard.image}
-              alt={hypeCard.name}
-              className="h-20 w-16 shrink-0 rounded-lg object-cover"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary">
-                <Sparkles className="h-3 w-3" /> AI Spotted
-              </p>
-              <p className="truncate text-sm font-extrabold text-white">{hypeCard.name}</p>
-              <p className="truncate text-[11px] text-white/70">
-                {hypeCard.category}
-                {hypeCard.set_guess ? ` · ${hypeCard.set_guess}` : ""}
-              </p>
-              <span className="mt-1 inline-block rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
-                {hypeCard.rarity_vibe}
-              </span>
-            </div>
-          </div>
-        </div>
+        <CardSpotlight
+          card={hypeCard}
+          isHost={isSeller}
+          onClose={() => {
+            setHypeCard(null);
+            spotlightChanRef.current?.send({ type: "broadcast", event: "hide", payload: {} });
+          }}
+        />
       )}
 
       {/* Announcement composer (host & mods) */}
