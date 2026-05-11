@@ -92,10 +92,16 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const singleName = url.searchParams.get("name");
 
-  let identities: { name: string; set: string | null; number: string | null }[] = [];
+  let identities: { name: string; set: string | null; number: string | null; rarity: string | null; variant: string | null }[] = [];
 
   if (singleName) {
-    identities = [{ name: singleName, set: url.searchParams.get("set"), number: url.searchParams.get("number") }];
+    identities = [{
+      name: singleName,
+      set: url.searchParams.get("set"),
+      number: url.searchParams.get("number"),
+      rarity: url.searchParams.get("rarity"),
+      variant: url.searchParams.get("variant"),
+    }];
   } else {
     const { data: vc } = await supabase
       .from("vault_cards")
