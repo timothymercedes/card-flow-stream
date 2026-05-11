@@ -1598,6 +1598,7 @@ export type Database = {
           delivered_at: string | null
           description: string | null
           id: string
+          idempotency_key: string | null
           item_image_url: string | null
           listing_id: string | null
           order_group_id: string | null
@@ -1607,6 +1608,8 @@ export type Database = {
           payment_retry_deadline: string | null
           payment_status: string
           quantity: number
+          refunded_amount: number | null
+          refunded_at: string | null
           seller_id: string
           seller_payout_amount: number | null
           seller_stripe_account_id: string | null
@@ -1619,6 +1622,8 @@ export type Database = {
           shipped_at: string | null
           status: string
           stream_id: string | null
+          stripe_charge_id: string | null
+          stripe_payment_intent_id: string | null
           title: string
           tracking_number: string | null
           tracking_url: string | null
@@ -1634,6 +1639,7 @@ export type Database = {
           delivered_at?: string | null
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           item_image_url?: string | null
           listing_id?: string | null
           order_group_id?: string | null
@@ -1643,6 +1649,8 @@ export type Database = {
           payment_retry_deadline?: string | null
           payment_status?: string
           quantity?: number
+          refunded_amount?: number | null
+          refunded_at?: string | null
           seller_id: string
           seller_payout_amount?: number | null
           seller_stripe_account_id?: string | null
@@ -1655,6 +1663,8 @@ export type Database = {
           shipped_at?: string | null
           status?: string
           stream_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
           title: string
           tracking_number?: string | null
           tracking_url?: string | null
@@ -1670,6 +1680,7 @@ export type Database = {
           delivered_at?: string | null
           description?: string | null
           id?: string
+          idempotency_key?: string | null
           item_image_url?: string | null
           listing_id?: string | null
           order_group_id?: string | null
@@ -1679,6 +1690,8 @@ export type Database = {
           payment_retry_deadline?: string | null
           payment_status?: string
           quantity?: number
+          refunded_amount?: number | null
+          refunded_at?: string | null
           seller_id?: string
           seller_payout_amount?: number | null
           seller_stripe_account_id?: string | null
@@ -1691,6 +1704,8 @@ export type Database = {
           shipped_at?: string | null
           status?: string
           stream_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string | null
           title?: string
           tracking_number?: string | null
           tracking_url?: string | null
