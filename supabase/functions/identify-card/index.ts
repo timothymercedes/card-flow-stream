@@ -1,6 +1,7 @@
 // Identify any trading card (TCG, sports, anime/franchise) using Lovable AI.
 // Returns: name, category, set, year, tcg_number, base estimated_value (NM),
 // and condition_prices map for NM/LP/MP/Damaged.
+import { verifyUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -33,6 +34,8 @@ Always provide best-guess numeric values — never null, never zero. If totally 
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const auth = await verifyUser(req);
+  if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const { query, language } = await req.json();
     if (!query) return new Response(JSON.stringify({ error: "Missing query" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

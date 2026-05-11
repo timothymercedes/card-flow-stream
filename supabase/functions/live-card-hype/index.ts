@@ -1,5 +1,6 @@
 // Live-stream card HYPE generator. Uses Lovable AI to identify a card and
 // produce SHORT energetic hype lines for the chat. NEVER returns prices.
+import { verifyUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -46,6 +47,8 @@ function stripPrices(s: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const auth = await verifyUser(req);
+  if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const { image, language } = await req.json();
     if (!image) return new Response(JSON.stringify({ error: "Missing image" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

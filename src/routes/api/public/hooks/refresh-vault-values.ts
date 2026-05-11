@@ -4,7 +4,13 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        // Require shared cron secret — this endpoint burns AI credits and writes to all users' vault cards.
+        const cronSecret = process.env.CRON_SECRET;
+        const provided = request.headers.get("x-cron-secret");
+        if (!cronSecret || !provided || provided !== cronSecret) {
+          return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+        }
         const apiKey = process.env.LOVABLE_API_KEY;
         if (!apiKey) return new Response(JSON.stringify({ error: "missing key" }), { status: 500 });
 

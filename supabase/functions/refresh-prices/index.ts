@@ -2,6 +2,7 @@
 // referenced in vault_cards or listings (where prices are not locked), updates
 // rows, logs history snapshot, and notifies vault owners of significant swings.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { verifyUser, userHasAdminRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -424,6 +425,17 @@ async function fetchTcgPrice(
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Allow either: CRON_SECRET (server-to-server), or admin/owner user JWT.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const providedCron = req.headers.get("x-cron-secret");
+  const isCron = !!cronSecret && !!providedCron && providedCron === cronSecret;
+  if (!isCron) {
+    const auth = await verifyUser(req);
+    if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const isAdmin = await userHasAdminRole(auth.userId);
+    if (!isAdmin) return new Response(JSON.stringify({ error: "Admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

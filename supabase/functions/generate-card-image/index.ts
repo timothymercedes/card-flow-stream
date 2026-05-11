@@ -1,5 +1,6 @@
 // Generate a representative card image via Lovable AI Gateway and upload to vault-images bucket.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { verifyUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,20 +9,17 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const auth = await verifyUser(req);
+  if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const { name, category, set, year, tcg_number } = await req.json();
     if (!name) return new Response(JSON.stringify({ error: "Missing name" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Identify caller (so we can store under their folder for RLS)
     const supaUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const authHeader = req.headers.get("Authorization") || "";
-    const userClient = createClient(supaUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
-    const { data: userData } = await userClient.auth.getUser();
-    const userId = userData?.user?.id;
+    const userId = auth.userId;
 
     const desc = [name, category, set, year, tcg_number && `#${tcg_number}`].filter(Boolean).join(" • ");
     const prompt = `A high-quality, photorealistic image of the trading card "${desc}". Centered card, clean neutral background, sharp focus, accurate artwork and typography for this specific card. Square aspect ratio.`;

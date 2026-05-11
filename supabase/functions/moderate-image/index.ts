@@ -1,5 +1,6 @@
 // Moderate an image (e.g. profile avatar) using Lovable AI vision.
 // Returns { allowed: boolean, reason?: string, category?: string }.
+import { verifyUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -19,10 +20,18 @@ Return STRICT JSON: { "allowed": boolean, "category": string, "reason": string }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const auth = await verifyUser(req);
+  if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const { image_url } = await req.json();
-    if (!image_url) {
+    if (!image_url || typeof image_url !== "string") {
       return new Response(JSON.stringify({ error: "Missing image_url" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Only allow trusted schemes (data: image, or https URLs) — block file://, gopher://, etc.
+    if (!/^https:\/\//i.test(image_url) && !/^data:image\//i.test(image_url)) {
+      return new Response(JSON.stringify({ error: "Unsupported image_url scheme" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
