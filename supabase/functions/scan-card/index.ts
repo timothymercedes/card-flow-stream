@@ -229,7 +229,8 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        // Flash is ~3-5x faster than Pro and accurate enough for card ID; fall back to Pro only for multi-card.
+        model: multi ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: [

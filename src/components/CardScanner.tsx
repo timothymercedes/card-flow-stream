@@ -117,13 +117,7 @@ export function CardScanner({
   const [captured, setCaptured] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-capture
-  const [autoCapture, setAutoCapture] = useState(true);
-  const [hint, setHint] = useState<string>("Point camera at a card");
-  const [steadyPct, setSteadyPct] = useState(0);
-  const autoTimerRef = useRef<number | null>(null);
-  const prevFrameRef = useRef<ImageData | null>(null);
-  const steadyTicksRef = useRef(0);
+  // Manual capture only — user explicitly taps the shutter or picks a file.
   const capturingRef = useRef(false);
 
   function stopScannerCamera() {
@@ -177,8 +171,8 @@ export function CardScanner({
         const v = videoRef.current!;
         const srcW = v.videoWidth || 1280;
         const srcH = v.videoHeight || 720;
-        // Multi-card mode keeps higher resolution so small text/symbols on each card stay legible.
-        const MAX = multi ? 1600 : 1024;
+        // Smaller payload = much faster AI round-trip. Multi-card keeps a bit more res for legibility.
+        const MAX = multi ? 1280 : 820;
         const scale = Math.min(1, MAX / Math.max(srcW, srcH));
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(srcW * scale);
@@ -186,7 +180,7 @@ export function CardScanner({
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas error");
         ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-        dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.82);
       }
 
       // Show the captured photo immediately while AI runs (Photo Scan Mode)
@@ -279,78 +273,8 @@ export function CardScanner({
     }
   }
 
-  // Auto-capture: detect a stable, well-framed card and snap automatically — tuned faster.
-  useEffect(() => {
-    if (pending || batch || !autoCapture) {
-      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
-      return;
-    }
-    const small = document.createElement("canvas");
-    small.width = 80;
-    small.height = 60;
-    const sctx = small.getContext("2d", { willReadFrequently: true });
-    if (!sctx) return;
+  // Auto-capture has been intentionally removed — users tap the shutter or upload a photo manually.
 
-    autoTimerRef.current = window.setInterval(() => {
-      const v = videoRef.current;
-      if (!v || v.readyState < 2 || capturingRef.current || scanning) return;
-      sctx.drawImage(v, 0, 0, small.width, small.height);
-      const frame = sctx.getImageData(0, 0, small.width, small.height);
-
-      let lumaSum = 0;
-      let edgeCount = 0;
-      const d = frame.data;
-      const w = small.width;
-      for (let y = 1; y < small.height - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const i = (y * w + x) * 4;
-          const l = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          lumaSum += l;
-          const ir = (y * w + (x + 1)) * 4;
-          const lr = 0.299 * d[ir] + 0.587 * d[ir + 1] + 0.114 * d[ir + 2];
-          if (Math.abs(l - lr) > 28) edgeCount++;
-        }
-      }
-      const avgLuma = lumaSum / (w * small.height);
-      const edgeRatio = edgeCount / (w * small.height);
-
-      let diff = 0;
-      const prev = prevFrameRef.current;
-      if (prev && prev.data.length === d.length) {
-        for (let i = 0; i < d.length; i += 16) diff += Math.abs(d[i] - prev.data[i]);
-        diff = diff / (d.length / 16);
-      }
-      prevFrameRef.current = frame;
-
-      const wellLit = avgLuma > 35 && avgLuma < 235;
-      const hasCard = edgeRatio > (multi ? 0.06 : 0.045);
-      const steady = diff < 8; // a touch more forgiving — feels near-instant
-
-      if (wellLit && hasCard && steady) steadyTicksRef.current += 1;
-      else steadyTicksRef.current = Math.max(0, steadyTicksRef.current - 1);
-
-      const need = 3; // ~300ms steady → near-instant capture
-      const pct = Math.min(100, (steadyTicksRef.current / need) * 100);
-      setSteadyPct(pct);
-
-      if (!hasCard) setHint(multi ? "Show your cards" : "Point camera at a card");
-      else if (!wellLit) setHint("More light needed");
-      else if (!steady) setHint("Hold steady…");
-      else setHint("Locking…");
-
-      if (steadyTicksRef.current >= need) {
-        steadyTicksRef.current = 0;
-        setSteadyPct(0);
-        setHint("Capturing…");
-        capture();
-      }
-    }, 100);
-
-    return () => {
-      if (autoTimerRef.current) window.clearInterval(autoTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, batch, autoCapture, scanning, multi]);
 
   function confirmResult() {
     if (!pending) return;
@@ -389,7 +313,7 @@ export function CardScanner({
         reader.onerror = () => reject(new Error("Could not read file"));
         reader.readAsDataURL(file);
       });
-      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1280 : 820);
       await capture(resized);
     } catch (err: any) {
       toast.error(err?.message || "Could not load image");
@@ -498,14 +422,8 @@ export function CardScanner({
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
             <div
-              className="pointer-events-none absolute inset-8 rounded-2xl border-2 transition-colors"
-              style={{ borderColor: steadyPct > 60 ? "rgb(16,185,129)" : "rgba(255,255,255,0.6)" }}
+              className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/60"
             />
-            {autoCapture && !scanning && (
-              <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
-                {hint} {steadyPct > 0 && steadyPct < 100 ? `· ${Math.round(steadyPct)}%` : ""}
-              </div>
-            )}
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
               {multi
                 ? "Lay cards flat, no overlap · keep all set symbols visible"
@@ -513,14 +431,6 @@ export function CardScanner({
             </p>
           </div>
           <div className="p-4">
-            <div className="mb-2 flex items-center justify-center gap-2">
-              <button
-                onClick={() => setAutoCapture((a) => !a)}
-                className={`rounded-full px-3 py-1 text-[11px] font-bold ${autoCapture ? "bg-emerald-500 text-white" : "bg-white/10 text-white"}`}
-              >
-                {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
-              </button>
-            </div>
             <div className="flex items-center justify-center gap-6">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -535,6 +445,7 @@ export function CardScanner({
                 onClick={() => capture()}
                 disabled={scanning || !!error}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
+                aria-label="Capture photo"
               >
                 {scanning ? (
                   <Loader2 className="h-7 w-7 animate-spin" />
@@ -559,9 +470,7 @@ export function CardScanner({
                 ? multi
                   ? "Reading every card…"
                   : "Identifying…"
-                : autoCapture
-                  ? "Hold steady — auto-snaps when ready"
-                  : "Tap to capture"}
+                : "Tap the shutter when your card is in frame"}
             </p>
           </div>
         </>
@@ -1042,7 +951,7 @@ async function downscaleDataUrl(src: string, maxDim: number): Promise<string> {
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("Canvas error"));
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", 0.88));
+      resolve(canvas.toDataURL("image/jpeg", 0.82));
     };
     img.onerror = () => reject(new Error("Could not decode image"));
     img.src = src;
