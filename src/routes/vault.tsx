@@ -184,6 +184,7 @@ function Vault() {
     setName(""); setTcgNumber(""); setTcgSet(""); setTcgYear(""); setCategory("");
     setImageUrl(""); setBackImageUrl("");
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
+    setAlternatives([]); setAltIndex(0);
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
