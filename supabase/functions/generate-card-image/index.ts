@@ -1,5 +1,6 @@
 // Generate a representative card image via Lovable AI Gateway and upload to vault-images bucket.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { verifyUser } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
