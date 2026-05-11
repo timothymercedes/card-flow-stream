@@ -744,12 +744,23 @@ function LiveDetail() {
     };
   }, [id]);
 
-  // Auto-hide AI hype overlay after 5s
+  // Card spotlight realtime — host broadcasts scanned cards, viewers receive.
   useEffect(() => {
-    if (!hypeCard) return;
-    const t = setTimeout(() => setHypeCard(null), 5000);
-    return () => clearTimeout(t);
-  }, [hypeCard]);
+    if (!id) return;
+    const ch = supabase.channel(`spotlight-${id}`);
+    ch.on("broadcast", { event: "show" }, ({ payload }) => {
+      if (!isSeller) setHypeCard(payload as any);
+    });
+    ch.on("broadcast", { event: "hide" }, () => {
+      if (!isSeller) setHypeCard(null);
+    });
+    ch.subscribe();
+    spotlightChanRef.current = ch;
+    return () => {
+      spotlightChanRef.current = null;
+      supabase.removeChannel(ch);
+    };
+  }, [id, isSeller]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
