@@ -858,7 +858,14 @@ export function CardScanner({
           )}
 
           {/* Quick actions */}
-          {onAction ? (
+          {liveMode ? (
+            <button
+              onClick={confirmResult}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent py-4 text-base font-extrabold text-white shadow-lg"
+            >
+              <Gavel className="h-5 w-5" /> Show on Live & Start Auction
+            </button>
+          ) : onAction ? (
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onAction("inventory", pending)}
