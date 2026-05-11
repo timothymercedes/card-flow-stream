@@ -146,6 +146,16 @@ async function fetchTcgPrice(
       variant_key: variantKey,
       match_score: matchScore,
     },
+    alternatives: ranked.slice(1, 4).map((x) => ({
+      name: x.card?.name ?? "",
+      set: x.card?.set?.name ?? "",
+      year: x.card?.set?.releaseDate ? String(x.card.set.releaseDate).slice(0, 4) : "",
+      tcg_number: x.card?.number ?? "",
+      rarity: x.card?.rarity ?? "",
+      variant: x.picked?.key ?? "",
+      estimated_value: Number(x.picked?.value?.market ?? x.picked?.value?.mid ?? 0),
+      image_url: x.card?.images?.small ?? x.card?.images?.large ?? "",
+    })),
     raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity, matchScore },
   };
 }
