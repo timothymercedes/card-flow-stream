@@ -758,6 +758,14 @@ export function CardScanner({
             </div>
           )}
 
+          {/* ALWAYS-VISIBLE wrong-card escape hatch — opens the manual finder */}
+          <button
+            onClick={() => setFinderOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/15 py-3 text-sm font-extrabold text-red-200 ring-1 ring-red-400/40"
+          >
+            <AlertTriangle className="h-4 w-4" /> Wrong card? Find it manually
+          </button>
+
           <div className="flex items-center justify-center gap-3 text-[11px]">
             <button
               onClick={() => setEditing((e) => !e)}
@@ -765,19 +773,76 @@ export function CardScanner({
             >
               <Pencil className="h-3 w-3" /> {editing ? "Done editing" : "Edit fields"}
             </button>
-            {onFindCorrect && (
-              <button
-                onClick={() => pending && onFindCorrect(pending)}
-                className="flex items-center gap-1 text-emerald-300 underline"
-              >
-                <Search className="h-3 w-3" /> Find correct card
-              </button>
-            )}
             <button onClick={rescan} className="text-white/60 underline">
               Rescan
             </button>
           </div>
         </div>
+      )}
+
+      {finderOpen && (
+        <ManualCardFinder
+          initialQuery={pending?.name || ""}
+          onClose={() => setFinderOpen(false)}
+          onPick={async (c: FinderCard) => {
+            // Replace the pending scan with the manually-picked card
+            setPending((p) => {
+              const base: ScanResult = p || {
+                name: c.name,
+                category: "Trading Card",
+                trend: "Stable Demand 📊",
+                image: c.image_large || c.image_small || "",
+              };
+              return {
+                ...base,
+                name: c.name,
+                set: c.set || base.set,
+                year: c.year || base.year,
+                tcg_number: c.number || base.tcg_number,
+                rarity: c.rarity || base.rarity,
+                variant: c.is_holo ? "Holo" : c.is_reverse_holo ? "Reverse Holo" : base.variant || "Standard",
+                estimated_value: c.tcgplayer_price ?? base.estimated_value,
+                image: c.image_large || c.image_small || base.image,
+                overall_confidence: 1,
+                match_label: "Manually selected",
+                alternatives: [],
+              };
+            });
+            setFinderOpen(false);
+            // Mark this user's most recent scan as corrected (best-effort)
+            try {
+              const { data: u } = await supabase.auth.getUser();
+              if (u?.user?.id) {
+                const { data: last } = await supabase
+                  .from("scan_history")
+                  .select("id")
+                  .eq("user_id", u.user.id)
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                if (last?.id) {
+                  await supabase
+                    .from("scan_history")
+                    .update({ was_corrected: true, picked_card_id: c.id })
+                    .eq("id", last.id);
+                }
+              }
+            } catch { /* non-fatal */ }
+            toast.success(`Switched to ${c.name}`);
+            onFindCorrect?.({
+              name: c.name,
+              category: "Trading Card",
+              trend: "Stable Demand 📊",
+              image: c.image_large || c.image_small || "",
+              set: c.set,
+              year: c.year,
+              tcg_number: c.number,
+              rarity: c.rarity,
+              variant: c.is_holo ? "Holo" : c.is_reverse_holo ? "Reverse Holo" : "Standard",
+              estimated_value: c.tcgplayer_price,
+            });
+          }}
+        />
       )}
     </div>
   );
