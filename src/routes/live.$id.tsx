@@ -2571,15 +2571,17 @@ function LiveDetail() {
       }
       const r: any = data;
 
-      // Auto-crop to the 4 corners of the card using returned bbox (with padding).
+      // Auto-crop to the 4 corners of the card. Prefer the AI-returned bbox;
+      // fall back to a sensible center crop (cards are usually held in the middle of frame).
       let croppedUrl = fullUrl;
       const bbox = r?.bbox;
-      if (bbox && bbox.w > 0.05 && bbox.h > 0.05) {
-        const pad = 0.04;
-        const x = Math.max(0, bbox.x - pad) * fw;
-        const y = Math.max(0, bbox.y - pad) * fh;
-        const w = Math.min(1 - Math.max(0, bbox.x - pad), bbox.w + pad * 2) * fw;
-        const h = Math.min(1 - Math.max(0, bbox.y - pad), bbox.h + pad * 2) * fh;
+      const pad = 0.04;
+      const doCrop = (nx: number, ny: number, nw: number, nh: number) => {
+        const cx = Math.max(0, Math.min(1, nx - pad));
+        const cy = Math.max(0, Math.min(1, ny - pad));
+        const cw = Math.max(0.05, Math.min(1 - cx, nw + pad * 2));
+        const ch = Math.max(0.05, Math.min(1 - cy, nh + pad * 2));
+        const x = cx * fw, y = cy * fh, w = cw * fw, h = ch * fh;
         const c = document.createElement("canvas");
         c.width = Math.max(64, Math.round(w));
         c.height = Math.max(64, Math.round(h));
@@ -2588,11 +2590,46 @@ function LiveDetail() {
           cctx.drawImage(full, x, y, w, h, 0, 0, c.width, c.height);
           croppedUrl = c.toDataURL("image/jpeg", 0.9);
         }
+      };
+      if (bbox && Number(bbox.w) > 0.05 && Number(bbox.h) > 0.05) {
+        doCrop(Number(bbox.x), Number(bbox.y), Number(bbox.w), Number(bbox.h));
+      } else {
+        // Fallback: center crop ~ trading-card aspect (2.5:3.5)
+        doCrop(0.22, 0.12, 0.56, 0.76);
       }
+
+      // Use the same "identify-card" lookup the vault uses so the spotlight
+      // labels the correct set / year / number from the TCG database instead
+      // of the scanner's free-text guess.
+      let authoritative: any = null;
+      try {
+        const q = [
+          r?.name,
+          r?.tcg_number ? `#${r.tcg_number}` : "",
+          r?.set ? `set: ${r.set}` : "",
+          r?.year ? `year: ${r.year}` : "",
+        ].filter(Boolean).join(" ");
+        if (q.trim()) {
+          const { data: idData } = await supabase.functions.invoke("identify-card", {
+            body: { query: q, language: (r as any)?.language },
+          });
+          if (idData && (idData as any).name) authoritative = idData;
+        }
+      } catch { /* non-fatal */ }
 
       // Hand off to the existing spotlight + auction pipeline.
       await onScanResult({
         ...r,
+        ...(authoritative
+          ? {
+              name: authoritative.name || r.name,
+              category: authoritative.category || r.category,
+              set: authoritative.set || (r as any).set,
+              year: authoritative.year || (r as any).year,
+              tcg_number: authoritative.tcg_number || (r as any).tcg_number,
+              estimated_value: authoritative.estimated_value || (r as any).estimated_value,
+            }
+          : {}),
         image: croppedUrl,
       });
     } catch (e: any) {
