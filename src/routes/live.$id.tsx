@@ -3151,7 +3151,7 @@ function LiveDetail() {
               aria-label="Open payment activity log"
             >
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Pay
+              Payment
             </button>
           )}
         </div>
