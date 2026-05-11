@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, identities: identities.length, updated, swings }),
+    JSON.stringify({ ok: true, identities: identities.length, updated, swings, price: firstPrice }),
     { headers: { ...corsHeaders, "content-type": "application/json" } },
   );
 });
