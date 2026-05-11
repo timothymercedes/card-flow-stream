@@ -215,6 +215,27 @@ export function CardScanner({
         }
       } else {
         const result: ScanResult = { ...(data as any), image: dataUrl, language };
+        // 🔁 Replace AI-estimated price with REAL TCG market price (free Pokémon TCG API).
+        // Only override when AI identification is confident enough to trust the name/set/number.
+        try {
+          if (result.name && (result.overall_confidence ?? 0) >= 0.7) {
+            const params = new URLSearchParams({ name: result.name });
+            if (result.set) params.set("set", result.set);
+            if (result.tcg_number) params.set("number", result.tcg_number);
+            const r = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
+              { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } },
+            );
+            const j = await r.json();
+            if (j?.price?.market != null) {
+              (result as any).estimated_value = j.price.market;
+              (result as any).price_source = j.price.source;
+              (result as any).price_source_url = j.price.source_url;
+              (result as any).price_low = j.price.low;
+              (result as any).price_high = j.price.high;
+            }
+          }
+        } catch { /* keep AI estimate as fallback */ }
         setPending(result);
         // Best-effort scan history log (RLS will reject if not signed in — ignore)
         try {
