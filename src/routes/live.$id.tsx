@@ -2887,7 +2887,11 @@ function LiveDetail() {
           stream.mode === "show_off" ? { filter: flexFilterCss(stream.video_filter) } : undefined
         }
       >
-        {usingObs ? (
+        {isSeller && !usingObs ? (
+          // Host's own preview (WebRTC / compositor canvas) — keep raw video
+          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+        ) : stream.cf_playback_hls ? (
+          // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser
           <HlsPlayer
             src={stream.cf_playback_hls}
             className="h-full w-full"
@@ -2896,8 +2900,6 @@ function LiveDetail() {
             autoPlay
             muted={isSeller}
           />
-        ) : isSeller ? (
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 via-black to-live/30">
             <Radio className="h-24 w-24 opacity-40" />
