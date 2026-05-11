@@ -6022,10 +6022,10 @@ function LiveDetail() {
           {/* 🆕 Quick Mod Chat — one-tap private DM with mods/host */}
           {!showQuickMod && (
             <FloatingBox
-              box={{ ...quickModBox, h: quickModBox.h || 32, w: Math.min(quickModBox.w, 144) }}
+              box={{ ...quickModBox, h: quickModBox.h || 28, w: Math.min(quickModBox.w || 84, 100) }}
               onChange={setQuickModBox}
-              minW={92}
-              minH={30}
+              minW={72}
+              minH={24}
               resize
               className="z-40"
             >
@@ -6033,12 +6033,12 @@ function LiveDetail() {
                 <button
                   {...dragHandleProps}
                   onClick={() => setShowQuickMod(true)}
-                  className="flex h-full w-full cursor-move items-center justify-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
+                  className="flex h-full w-full cursor-move items-center justify-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
                   aria-label="Open quick mod chat"
                 >
-                  <Shield className="h-3.5 w-3.5" /> Mods
+                  <Shield className="h-3 w-3" /> Mods
                   {modChat.length > 0 && (
-                    <span className="rounded-full bg-live px-1.5 text-[9px] text-live-foreground">
+                    <span className="rounded-full bg-live px-1 text-[8px] text-live-foreground">
                       {modChat.length}
                     </span>
                   )}
