@@ -2,6 +2,7 @@
 // referenced in vault_cards or listings (where prices are not locked), updates
 // rows, logs history snapshot, and notifies vault owners of significant swings.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { verifyUser, userHasAdminRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
