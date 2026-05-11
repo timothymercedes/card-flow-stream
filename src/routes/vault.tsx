@@ -227,8 +227,18 @@ function Vault() {
       const base = Number(data?.estimated_value) || 0;
       if (base) setEstValue(String(priceFor(condition, base, cp)));
       toast.success(`Identified: ${data?.name || name} • ${data?.set || ""} ${data?.year || ""}`);
-      // Auto-generate front image if user hasn't uploaded one
-      if (!imageUrl) {
+      // Try to pull the REAL card image + similar printings from the Pokémon TCG API
+      const matches = await fetchRealCardMatches({
+        name: data?.name || name,
+        set: data?.set || tcgSet,
+        number: data?.tcg_number || tcgNumber,
+      });
+      if (matches.length) {
+        setAlternatives(matches);
+        setAltIndex(0);
+        if (matches[0].image) setImageUrl(matches[0].image);
+      } else if (!imageUrl) {
+        // Fallback: AI-generated artwork only if no real match found
         try {
           const { data: img } = await supabase.functions.invoke("generate-card-image", {
             body: { name: data?.name || name, category: data?.category || category, set: data?.set || tcgSet, year: data?.year || tcgYear, tcg_number: data?.tcg_number || tcgNumber },
