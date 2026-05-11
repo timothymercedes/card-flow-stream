@@ -793,6 +793,28 @@ function Sell() {
               allowMulti={false}
               onClose={() => setScanning(false)}
               onResult={onScanResult}
+              onAction={(action, r) => {
+                // Always auto-fill the form first
+                if (!imageUrl) setImageUrl(r.image);
+                applyIdResult(r);
+                if (action === "list") {
+                  setEnableBuyNow(true);
+                  setEnableAuction(false);
+                  toast.success("Listing details filled — review and post");
+                } else if (action === "auction") {
+                  setEnableAuction(true);
+                  setEnableBuyNow(false);
+                  toast.success("Auction details filled — set duration and post");
+                } else if (action === "inventory") {
+                  toast.success("Card details filled — save to Vault from there");
+                } else if (action === "draft") {
+                  try {
+                    sessionStorage.setItem("pbl_sell_draft", JSON.stringify(r));
+                    toast.success("Draft saved");
+                  } catch {}
+                }
+                setScanning(false);
+              }}
             />
           </Suspense>
         )}
