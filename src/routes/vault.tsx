@@ -941,9 +941,16 @@ function Vault() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
-                {actionFor.image_url
-                  ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
-                  : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+                <div className="relative">
+                  {actionFor.image_url
+                    ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                    : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+                  {parseVariant(actionFor.description).edition === "1st Edition" && (
+                    <span className="absolute left-2 top-2 rounded-md border border-yellow-300/80 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
+                      1st Edition
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Back</p>
