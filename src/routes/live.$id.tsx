@@ -2802,6 +2802,48 @@ function LiveDetail() {
         )}
       </div>
 
+      {/* Pinned card overlay (host scan → broadcast) */}
+      {(stream as any)?.pinned_card?.name && (
+        <div className="pointer-events-none absolute right-3 top-20 z-30 max-w-[60%] sm:max-w-xs">
+          <div className="pointer-events-auto flex gap-2 rounded-xl bg-black/80 p-2 ring-1 ring-white/20 backdrop-blur">
+            {(stream as any).pinned_card.image && (
+              <img
+                src={(stream as any).pinned_card.image}
+                alt=""
+                className="h-20 w-14 shrink-0 rounded object-cover ring-1 ring-white/20"
+              />
+            )}
+            <div className="min-w-0 flex-1 text-white">
+              <p className="truncate text-xs font-extrabold">{(stream as any).pinned_card.name}</p>
+              <p className="truncate text-[10px] text-white/70">
+                {(stream as any).pinned_card.set || "—"}
+                {(stream as any).pinned_card.number ? ` · #${(stream as any).pinned_card.number}` : ""}
+              </p>
+              {(stream as any).pinned_card.market_value ? (
+                <p className="text-[11px] font-bold text-emerald-300">
+                  Market ${Number((stream as any).pinned_card.market_value).toFixed(2)}
+                </p>
+              ) : null}
+              {isSeller && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await supabase
+                        .from("live_streams")
+                        .update({ pinned_card: null } as any)
+                        .eq("id", stream.id);
+                    } catch {}
+                  }}
+                  className="mt-1 rounded bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white"
+                >
+                  Unpin
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isSeller && usingCompositor && showHostCameraEditor && !ended && !showSettings && (
         <>
           <FreeformOverlay
