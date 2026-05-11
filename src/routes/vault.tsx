@@ -156,18 +156,34 @@ function Vault() {
     } catch { return []; }
   }
 
-  // Pick the right tcgplayer price slot based on edition + finish (with fallbacks)
+  // Pick the right tcgplayer price slot based on edition + finish (with fallbacks).
+  // 1st Edition always applies at least a 2.5x premium over any available Unlimited slot.
   function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
     if (!prices) return undefined;
     const get = (k: string) => Number(prices[k]?.market) || undefined;
+    const anyUnlimited = () => get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
     if (ed === "1st Edition") {
-      if (fin === "Holo") return get("1stEditionHolofoil") ?? (get("holofoil") ? get("holofoil")! * 2.5 : undefined);
-      if (fin === "Reverse Holo") return get("1stEditionHolofoil") ?? get("reverseHolofoil") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
-      return get("1stEditionNormal") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
+      const premium = 2.5;
+      if (fin === "Holo") {
+        const direct = get("1stEditionHolofoil");
+        if (direct) return direct;
+        const base = get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
+        return base != null ? base * premium : undefined;
+      }
+      if (fin === "Reverse Holo") {
+        const direct = get("1stEditionHolofoil");
+        if (direct) return direct;
+        const base = get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
+        return base != null ? base * premium : undefined;
+      }
+      const direct = get("1stEditionNormal");
+      if (direct) return direct;
+      const base = get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
+      return base != null ? base * premium : undefined;
     }
     if (fin === "Holo") return get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
     if (fin === "Reverse Holo") return get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
-    return get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
+    return anyUnlimited();
   }
 
   function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
@@ -521,6 +537,7 @@ function Vault() {
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
     let newValue = card.estimated_value || 0;
+    let priced = false;
     if (best?.tcgPrices) {
       const raw = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
       const variantPrice = raw != null ? Number(raw) * mult : raw;
@@ -528,12 +545,15 @@ function Vault() {
       if (marketCp) {
         cp = marketCp;
         newValue = priceFor((card.condition || "NM") as Condition, marketCp.NM || variantPrice || 0, marketCp);
+        priced = true;
       }
-    } else if (cp) {
-      // No TCG match — apply rough multiplier for 1st Edition + language
+    }
+    if (!priced && cp) {
+      // No TCG variant match — apply rough multiplier for 1st Edition + language
       const baseNm = Number(cp.NM) || 0;
-      // Strip current-language baseline first
-      const englishBase = baseNm / langMult(parseLanguage(card.description));
+      const prev = parseVariant(card.description);
+      const prevPremium = prev.edition === "1st Edition" ? 2.5 : 1;
+      const englishBase = baseNm / (langMult(parseLanguage(card.description)) * prevPremium);
       const adj = (newEd === "1st Edition" ? englishBase * 2.5 : englishBase) * mult;
       const recomputed = conditionPricesFromMarket(adj);
       if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
@@ -877,10 +897,16 @@ function Vault() {
         <div className="grid grid-cols-2 gap-3">
           {filteredCards.map((c) => {
             const meta = [c.tcg_set, c.tcg_year, c.tcg_number && `#${c.tcg_number}`].filter(Boolean).join(" • ");
+            const cv = parseVariant(c.description);
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
-                <div className="aspect-square bg-muted">
+                <div className="relative aspect-square bg-muted">
                   {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  {cv.edition === "1st Edition" && (
+                    <span className="absolute left-1.5 top-1.5 rounded-md border border-yellow-300/80 bg-black/80 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
+                      1st Edition
+                    </span>
+                  )}
                 </div>
                 <div className="p-2">
                   <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
@@ -915,9 +941,16 @@ function Vault() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
-                {actionFor.image_url
-                  ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
-                  : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+                <div className="relative">
+                  {actionFor.image_url
+                    ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                    : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+                  {parseVariant(actionFor.description).edition === "1st Edition" && (
+                    <span className="absolute left-2 top-2 rounded-md border border-yellow-300/80 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
+                      1st Edition
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Back</p>
