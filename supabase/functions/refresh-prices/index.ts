@@ -21,7 +21,7 @@ function norm(v: string | null | undefined) {
 }
 
 function firstCardNumber(v: string | null | undefined) {
-  return String(v || "").replace(/#/g, "").split("/")[0].trim();
+  return String(v || "").replace(/#/g, "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
 }
 
 function tokenScore(a: string, b: string) {
@@ -84,6 +84,198 @@ function pickPriceVariant(prices: any, rarity: string | null, variantHint: strin
   return { key: picked[0], value: picked[1] };
 }
 
+async function fetchPokemonImage(setName: string, number: string) {
+  const num = firstCardNumber(number);
+  if (!setName || !num) return { small: null as string | null, large: null as string | null };
+  const apiKey = Deno.env.get("POKEMONTCG_API_KEY");
+  const q = `set.name:"${setName.replace(/"/g, "")}" number:"${num}"`;
+  try {
+    const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=1`, {
+      headers: { ...(apiKey ? { "X-Api-Key": apiKey } : {}), "User-Agent": "PullBidLive/1.0" },
+    });
+    if (!r.ok) return { small: null, large: null };
+    const j = await r.json();
+    const c = j?.data?.[0];
+    return { small: c?.images?.small ?? null, large: c?.images?.large ?? null };
+  } catch { return { small: null, large: null }; }
+}
+
+function pickJtVariant(card: any, variantHint: string | null, rarity: string | null) {
+  const want = `${variantHint || ""} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
+  const all = (card?.variants || []).filter((v: any) => v?.price > 0 && (v?.language || "English") === "English");
+  if (!all.length) return null;
+  const nm = all.filter((v: any) => v.condition === "Near Mint");
+  const pool = nm.length ? nm : all;
+  const wantReverse = /reverse/.test(want);
+  const wantHolo = !wantReverse && /(holo|foil|ultra|secret|illustration|alt art|full art|amazing|rainbow)/.test(want);
+  const wantNormal = /(non ?holo|standard|^normal$|common|uncommon)/.test(want);
+  let pick =
+    wantReverse ? pool.find((v: any) => /reverse/i.test(v.printing)) :
+    wantHolo ? pool.find((v: any) => /holo/i.test(v.printing) && !/reverse/i.test(v.printing)) :
+    wantNormal ? pool.find((v: any) => /normal/i.test(v.printing)) :
+    null;
+  if (!pick) pick = pool.slice().sort((a: any, b: any) => (b.price || 0) - (a.price || 0))[0];
+  return pick || null;
+}
+
+function conditionMap(card: any, printing: string) {
+  const m: Record<string, number> = {};
+  for (const v of (card?.variants || [])) {
+    if (v.printing === printing && (v.language || "English") === "English" && v.price > 0) {
+      m[v.condition] = v.price;
+    }
+  }
+  return m;
+}
+
+async function fetchJustTcg(
+  name: string,
+  set: string | null,
+  number: string | null,
+  rarity: string | null,
+  variantHint: string | null,
+) {
+  const apiKey = Deno.env.get("JUSTTCG_API_KEY");
+  if (!apiKey) return null;
+
+  const cleanName = name.replace(/"/g, "").trim();
+  const cleanSet = (set || "").replace(/"/g, "").trim();
+  const cleanNumber = firstCardNumber(number);
+
+  const queries: string[] = [];
+  if (cleanName && cleanSet && cleanNumber) queries.push(`${cleanName} ${cleanSet} ${cleanNumber}`);
+  if (cleanName && cleanSet) queries.push(`${cleanName} ${cleanSet}`);
+  if (cleanName && cleanNumber) queries.push(`${cleanName} ${cleanNumber}`);
+  if (cleanName) queries.push(cleanName);
+
+  const seen = new Set<string>();
+  const candidates: any[] = [];
+  for (const q of queries) {
+    try {
+      const url = `https://api.justtcg.com/v1/cards?game=pokemon&q=${encodeURIComponent(q)}&limit=20`;
+      const r = await fetch(url, {
+        headers: { "X-API-Key": apiKey, "User-Agent": "PullBidLive/1.0" },
+      });
+      if (!r.ok) {
+        const body = await r.text().catch(() => "");
+        console.warn(`[JustTCG] q="${q}" ${r.status} ${body.slice(0, 160)}`);
+        continue;
+      }
+      const j = await r.json();
+      for (const c of j?.data || []) {
+        if (!c?.id || seen.has(c.id)) continue;
+        seen.add(c.id);
+        candidates.push(c);
+      }
+      if (candidates.length >= 20) break;
+    } catch (e) { console.error("[JustTCG] fetch error:", e); }
+  }
+  if (!candidates.length) return null;
+
+  const targetName = cleanName.toLowerCase();
+  const targetSet = norm(cleanSet);
+  const targetRarity = (rarity || "").toLowerCase();
+  function score(c: any) {
+    let s = 0;
+    const cn = (c.name || "").toLowerCase();
+    const cnum = firstCardNumber(c.number);
+    const cset = norm(c.set_name);
+    if (cleanNumber && cnum === cleanNumber) s += 60;
+    else if (cleanNumber && (c.number || "").includes(cleanNumber)) s += 25;
+    if (cn === targetName) s += 10;
+    else if (cn.startsWith(targetName)) s += 4;
+    else s += tokenScore(cn, targetName) * 3;
+    if (targetSet) s += setMatchScore(cset, targetSet);
+    if (targetRarity && (c.rarity || "").toLowerCase().includes(targetRarity.split(" ")[0])) s += 3;
+    if ((c.variants || []).some((v: any) => v.price > 0)) s += 3;
+    return s;
+  }
+  const scored = candidates
+    .map((c) => ({ c, s: score(c), v: pickJtVariant(c, variantHint, rarity) }))
+    .filter((x) => x.v && x.v.price > 0);
+  
+  if (!scored.length) return null;
+
+  const ranked = scored
+    .filter((x) => {
+      const cn = norm(x.c?.name);
+      const tn = norm(targetName);
+      const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
+      return nameClose;
+    })
+    .sort((a, b) => b.s - a.s);
+  const final = ranked.length ? ranked : scored.sort((a, b) => b.s - a.s);
+  const top = final[0];
+
+  // Filter similar to same character family
+  const similar = final.slice(1).filter((x) =>
+    sameCardFamily(x.c?.name, top.c?.name) || sameCardFamily(x.c?.name, targetName)
+  );
+  const slice = [top, ...similar].slice(0, 8);
+
+  // Fetch images in parallel from pokemontcg.io
+  const images = await Promise.all(
+    slice.map((x) => fetchPokemonImage(x.c?.set_name || "", x.c?.number || ""))
+  );
+
+  const topV = top.v!;
+  const market = Number(topV.price);
+  const conds = conditionMap(top.c, topV.printing);
+  const nm = conds["Near Mint"] ?? market;
+  const lp = conds["Lightly Played"] ?? null;
+  const mp = conds["Moderately Played"] ?? null;
+  const hp = conds["Heavily Played"] ?? null;
+  const dmg = conds["Damaged"] ?? null;
+
+  const matches = slice.map((x, i) => ({
+    name: x.c?.name ?? "",
+    set: x.c?.set_name ?? "",
+    year: "",
+    tcg_number: x.c?.number ?? "",
+    rarity: x.c?.rarity ?? "",
+    variant: x.v?.printing ?? "Normal",
+    estimated_value: Number(x.v?.price || 0),
+    image_url: images[i]?.small || "",
+  }));
+
+  return {
+    market: nm,
+    low: dmg ?? hp ?? mp ?? lp ?? null,
+    high: nm,
+    mid: lp ?? market,
+    source: "JustTCG (TCGplayer live)",
+    source_url: top.c?.tcgplayerId ? `https://www.tcgplayer.com/product/${top.c.tcgplayerId}` : null,
+    canonical: {
+      name: top.c?.name ?? null,
+      set: top.c?.set_name ?? null,
+      set_code: top.c?.set ?? null,
+      number: top.c?.number ?? null,
+      rarity: top.c?.rarity ?? null,
+      year: null,
+      image_small: images[0]?.small ?? null,
+      image_large: images[0]?.large ?? null,
+      variant_key: topV.printing,
+      match_score: top.s,
+    },
+    matches,
+    alternatives: matches.slice(1, 6),
+    raw: {
+      justtcg_id: top.c?.id,
+      tcgplayerId: top.c?.tcgplayerId,
+      variantId: topV.id,
+      printing: topV.printing,
+      conditions: conds,
+      priceChange7d: topV.priceChange7d,
+      priceChange30d: topV.priceChange30d,
+      priceChange90d: topV.priceChange90d,
+      avgPrice30d: topV.avgPrice30d,
+      minPrice90d: topV.minPrice90d,
+      maxPrice90d: topV.maxPrice90d,
+      matchScore: top.s,
+    },
+  };
+}
+
 async function fetchTcgPrice(
   name: string,
   set: string | null,
@@ -91,6 +283,18 @@ async function fetchTcgPrice(
   rarity: string | null,
   variantHint: string | null,
 ) {
+  // PRIMARY: JustTCG (real per-condition TCGplayer prices)
+  try {
+    const jt = await fetchJustTcg(name, set, number, rarity, variantHint);
+    if (jt && jt.market != null) {
+      console.log(`[JustTCG] hit "${jt.canonical?.name}" ${jt.canonical?.set} #${jt.canonical?.number} → $${jt.market}`);
+      return jt;
+    }
+  } catch (e) {
+    console.error("JustTCG lookup failed:", e);
+  }
+
+  // FALLBACK: pokemontcg.io / TCGPlayer cached data
   const cleanName = name.replace(/"/g, "");
   const cleanSet = (set || "").replace(/"/g, "");
   const cleanNumber = firstCardNumber(number);
