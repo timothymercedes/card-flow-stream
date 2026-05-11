@@ -2837,7 +2837,12 @@ function LiveDetail() {
       {/* Pinned card overlay (host scan → broadcast) */}
       {(stream as any)?.pinned_card?.name && (
         <div className="pointer-events-none absolute right-3 top-20 z-30 max-w-[60%] sm:max-w-xs">
-          <div className="pointer-events-auto flex gap-2 rounded-xl bg-black/80 p-2 ring-1 ring-white/20 backdrop-blur">
+          <div className="pointer-events-auto relative flex gap-2 rounded-xl bg-black/80 p-2 ring-1 ring-white/20 backdrop-blur">
+            {stream?.winner_id && (
+              <div className="absolute -top-2 -right-2 rotate-6 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-lg ring-2 ring-black">
+                SOLD ✅
+              </div>
+            )}
             {(stream as any).pinned_card.image && (
               <img
                 src={(stream as any).pinned_card.image}
