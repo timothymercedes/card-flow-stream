@@ -664,7 +664,7 @@ function Vault() {
               try {
                 sessionStorage.setItem("pbl_prefill_listing", JSON.stringify({
                   ...r,
-                  listing_type: action === "auction" ? "auction" : "buy_now",
+                  listing_type: action === "auction" ? "auction" : action === "offer" ? "offer" : "buy_now",
                 }));
               } catch {}
               setScanning(false);

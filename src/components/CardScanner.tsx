@@ -57,7 +57,7 @@ export type ScanResult = {
   alternatives?: ScanAlternative[];
 };
 
-export type ScanAction = "inventory" | "list" | "auction" | "draft";
+export type ScanAction = "inventory" | "list" | "auction" | "offer" | "draft";
 
 const LANGUAGES = [
   { v: "auto", l: "Auto" },
@@ -735,8 +735,14 @@ export function CardScanner({
                 <Gavel className="h-4 w-4" /> Start Auction
               </button>
               <button
+                onClick={() => onAction("offer", pending)}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-primary/20 py-3 text-sm font-bold text-primary"
+              >
+                <Tag className="h-4 w-4" /> Make Offer
+              </button>
+              <button
                 onClick={() => onAction("draft", pending)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
+                className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
               >
                 <Save className="h-4 w-4" /> Save Draft
               </button>
