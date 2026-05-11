@@ -45,6 +45,7 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               const orderId = pi.metadata?.order_id;
               const orderIdsStr = pi.metadata?.order_ids as string | undefined;
               const tipId = pi.metadata?.tip_id;
+              const chargeId = pi.latest_charge as string | undefined;
               if (tipId) {
                 await supabaseAdmin
                   .from("stream_tips")
@@ -55,7 +56,12 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               if (ids.length > 0) {
                 await supabaseAdmin
                   .from("orders")
-                  .update({ payment_status: "paid", paid_at: new Date().toISOString() })
+                  .update({
+                    payment_status: "paid",
+                    paid_at: new Date().toISOString(),
+                    stripe_payment_intent_id: pi.id,
+                    stripe_charge_id: chargeId ?? null,
+                  })
                   .in("id", ids);
                 // Clear any bid blocks once payment recovers
                 const { data: paid } = await supabaseAdmin.from("orders").select("buyer_id, stream_id").in("id", ids);
