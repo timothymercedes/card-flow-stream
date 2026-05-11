@@ -1,6 +1,7 @@
 // Identify any trading card (TCG, sports, anime/franchise) using Lovable AI.
 // Returns: name, category, set, year, tcg_number, base estimated_value (NM),
 // and condition_prices map for NM/LP/MP/Damaged.
+import { verifyUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
