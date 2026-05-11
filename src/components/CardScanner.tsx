@@ -521,17 +521,39 @@ export function CardScanner({
                 {autoCapture ? "Auto-capture: ON" : "Auto-capture: OFF"}
               </button>
             </div>
-            <button
-              onClick={() => capture()}
-              disabled={scanning || !!error}
-              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
-            >
-              {scanning ? (
-                <Loader2 className="h-7 w-7 animate-spin" />
-              ) : (
-                <Camera className="h-7 w-7" />
-              )}
-            </button>
+            <div className="flex items-center justify-center gap-6">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={scanning}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-50"
+                title="Upload photo"
+                aria-label="Upload photo from gallery"
+              >
+                <ImageIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => capture()}
+                disabled={scanning || !!error}
+                className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
+              >
+                {scanning ? (
+                  <Loader2 className="h-7 w-7 animate-spin" />
+                ) : (
+                  <Camera className="h-7 w-7" />
+                )}
+              </button>
+              <div className="h-12 w-12" />
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <p className="mt-1 text-center text-[11px] text-white/50">
+              or tap <ImageIcon className="inline h-3 w-3" /> to upload a photo / screenshot
+            </p>
             <p className="mt-2 text-center text-xs text-white/60">
               {scanning
                 ? multi
