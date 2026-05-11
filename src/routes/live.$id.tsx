@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
+import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
