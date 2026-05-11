@@ -589,7 +589,8 @@ function Vault() {
               </div>
             )}
 
-            
+            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} />
+
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
