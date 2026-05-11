@@ -539,11 +539,18 @@ function Vault() {
   async function updateVariant(card: Card, newEd: Edition, newFin: Finish, newLang?: string) {
     const lang = (newLang ?? parseLanguage(card.description)).toLowerCase();
     const mult = langMult(lang);
+    const previousVariant = parseVariant(card.description);
+    const previousLangMult = langMult(parseLanguage(card.description));
+    const currentBaseNm = Number(card.condition_prices?.NM) || Number(card.estimated_value) || 0;
+    const previousEditionPremium = previousVariant.edition === "1st Edition" ? 2.5 : 1;
+    const previousFinishPremium = previousVariant.finish === "Holo" ? 1.35 : previousVariant.finish === "Reverse Holo" ? 1.18 : 1;
+    const nextEditionPremium = newEd === "1st Edition" ? 2.5 : 1;
+    const nextFinishPremium = newFin === "Holo" ? 1.35 : newFin === "Reverse Holo" ? 1.18 : 1;
     // Re-fetch TCG prices to get exact variant pricing
     const matches = await fetchRealCardMatches({ name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined });
     const best = matches[0];
     let cp: ConditionPrices | null = card.condition_prices || null;
-    let newValue = card.estimated_value || 0;
+    let newValue = currentBaseNm;
     let priced = false;
     if (best?.tcgPrices) {
       const raw = priceFromVariant(best.tcgPrices, newEd, newFin) ?? best.price;
@@ -555,13 +562,10 @@ function Vault() {
         priced = true;
       }
     }
-    if (!priced && cp) {
-      // No TCG variant match — apply rough multiplier for 1st Edition + language
-      const baseNm = Number(cp.NM) || 0;
-      const prev = parseVariant(card.description);
-      const prevPremium = prev.edition === "1st Edition" ? 2.5 : 1;
-      const englishBase = baseNm / (langMult(parseLanguage(card.description)) * prevPremium);
-      const adj = (newEd === "1st Edition" ? englishBase * 2.5 : englishBase) * mult;
+    if (!priced && currentBaseNm > 0) {
+      // No exact TCG variant match — rebase from the card's current NM value and apply edition, finish, and language multipliers.
+      const englishNonHoloBase = currentBaseNm / Math.max(0.01, previousLangMult * previousEditionPremium * previousFinishPremium);
+      const adj = englishNonHoloBase * nextEditionPremium * nextFinishPremium * mult;
       const recomputed = conditionPricesFromMarket(adj);
       if (recomputed) { cp = recomputed; newValue = priceFor((card.condition || "NM") as Condition, recomputed.NM || adj, recomputed); }
     }
