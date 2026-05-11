@@ -1184,8 +1184,8 @@ function Vault() {
 
       {/* Card expanded view */}
       {actionFor && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/80 p-4 sm:items-center" onClick={() => setActionFor(null)}>
-          <div className="my-4 w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/80 p-4" onClick={() => setActionFor(null)}>
+          <div className="my-4 max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-3 overflow-y-auto rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-2">
               <button onClick={() => setActionFor(null)} aria-label="Back" className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted/80">
                 <ArrowLeft className="h-3.5 w-3.5" /> Back
