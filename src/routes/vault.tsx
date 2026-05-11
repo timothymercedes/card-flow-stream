@@ -177,22 +177,37 @@ function Vault() {
     const list = (data || []) as Card[];
     setCards(list);
     if (vs?.visibility) setVaultVisibility(vs.visibility as Visibility);
-    // Background backfill: pull real card images for any vault entry missing one.
+    // Background backfill: replace missing/generated/uploaded placeholders with official card images when we can match them.
     backfillMissingImages(list);
   }
 
   async function backfillMissingImages(list: Card[]) {
-    const missing = list.filter((c) => !c.image_url && (c.name || c.tcg_number || c.tcg_set));
+    const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
     if (!missing.length) return;
     let updated = 0;
     for (const c of missing.slice(0, 25)) {
       const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined });
-      const img = matches.find((m) => m.image)?.image;
+      const match = matches.find((m) => m.image);
+      const img = match?.image;
       if (!img) continue;
-      const { error } = await supabase.from("vault_cards").update({ image_url: img }).eq("id", c.id);
+      const cp = conditionPricesFromMarket(match?.price) || c.condition_prices || null;
+      const newValue = cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
+      const patch = {
+        image_url: img,
+        name: match?.name || c.name,
+        tcg_set: match?.set || c.tcg_set,
+        tcg_number: match?.number || c.tcg_number,
+        tcg_year: match?.year || c.tcg_year,
+        category: match?.category || c.category || "Pokémon",
+        condition_prices: cp as any,
+        estimated_value: newValue,
+        last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
       if (!error) {
         updated++;
-        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, image_url: img } : x)));
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch, condition_prices: cp } : x)));
+        setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch, condition_prices: cp } : prev));
       }
     }
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
