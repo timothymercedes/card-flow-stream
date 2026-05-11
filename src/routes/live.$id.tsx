@@ -183,18 +183,41 @@ function LiveDetail() {
   const [showQuickMod, setShowQuickMod] = useState(false);
   const [quickModInput, setQuickModInput] = useState("");
   const [showViewerPreview, setShowViewerPreview] = useState(true);
-  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() => ({
-    x: 12,
-    y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
-    w: 104,
-    h: 32,
-  }));
-  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>(() => ({
-    x: 124,
-    y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
-    w: 132,
-    h: 32,
-  }));
+  const loadBox = (key: string, fallback: FloatingBoxRect): FloatingBoxRect => {
+    if (typeof window === "undefined") return fallback;
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p?.x === "number" && typeof p?.y === "number") {
+          return { x: p.x, y: p.y, w: p.w ?? fallback.w, h: p.h ?? fallback.h };
+        }
+      }
+    } catch { /* ignore */ }
+    return fallback;
+  };
+  const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() =>
+    loadBox("live.paymentBtnBox", {
+      x: 12,
+      y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
+      w: 104,
+      h: 32,
+    }),
+  );
+  const [quickModBox, setQuickModBox] = useState<FloatingBoxRect>(() =>
+    loadBox("live.quickModBox", {
+      x: 124,
+      y: typeof window === "undefined" ? 520 : Math.max(200, window.innerHeight - 180),
+      w: 84,
+      h: 28,
+    }),
+  );
+  useEffect(() => {
+    try { window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox)); } catch { /* ignore */ }
+  }, [paymentButtonBox]);
+  useEffect(() => {
+    try { window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox)); } catch { /* ignore */ }
+  }, [quickModBox]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
@@ -5999,10 +6022,10 @@ function LiveDetail() {
           {/* 🆕 Quick Mod Chat — one-tap private DM with mods/host */}
           {!showQuickMod && (
             <FloatingBox
-              box={{ ...quickModBox, h: quickModBox.h || 32, w: Math.min(quickModBox.w, 144) }}
+              box={{ ...quickModBox, h: quickModBox.h || 28, w: Math.min(quickModBox.w || 84, 100) }}
               onChange={setQuickModBox}
-              minW={92}
-              minH={30}
+              minW={72}
+              minH={24}
               resize
               className="z-40"
             >
@@ -6010,12 +6033,12 @@ function LiveDetail() {
                 <button
                   {...dragHandleProps}
                   onClick={() => setShowQuickMod(true)}
-                  className="flex h-full w-full cursor-move items-center justify-center gap-1.5 rounded-full bg-primary/90 px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
+                  className="flex h-full w-full cursor-move items-center justify-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] font-bold text-primary-foreground shadow-2xl ring-1 ring-white/20 backdrop-blur hover:bg-primary"
                   aria-label="Open quick mod chat"
                 >
-                  <Shield className="h-3.5 w-3.5" /> Mods
+                  <Shield className="h-3 w-3" /> Mods
                   {modChat.length > 0 && (
-                    <span className="rounded-full bg-live px-1.5 text-[9px] text-live-foreground">
+                    <span className="rounded-full bg-live px-1 text-[8px] text-live-foreground">
                       {modChat.length}
                     </span>
                   )}
