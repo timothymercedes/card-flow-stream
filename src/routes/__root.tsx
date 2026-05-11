@@ -45,8 +45,18 @@ export const Route = createRootRoute({
             { name: "googlebot", content: "noindex, nofollow" },
           ]
         : []),
+      { name: "theme-color", content: "#0a0a0a" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "PullBidLive" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/logo.png" },
+      { rel: "icon", href: "/logo.png", type: "image/png" },
+    ],
   }),
   shellComponent: ({ children }) => (
     <html lang="en" className="dark">
