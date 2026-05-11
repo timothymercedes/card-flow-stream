@@ -62,9 +62,14 @@ function Vault() {
   const [condition, setCondition] = useState<Condition>("NM");
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
-  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number; year?: string; category?: string };
+  type TcgPrices = Record<string, { market?: number; mid?: number; low?: number; high?: number } | undefined>;
+  type Alt = { id: string; name: string; set?: string; number?: string; image?: string; price?: number; year?: string; category?: string; tcgPrices?: TcgPrices };
   const [alternatives, setAlternatives] = useState<Alt[]>([]);
   const [altIndex, setAltIndex] = useState(0);
+  type Edition = "Unlimited" | "1st Edition";
+  type Finish = "Holo" | "Non-Holo" | "Reverse Holo";
+  const [edition, setEdition] = useState<Edition>("Unlimited");
+  const [finish, setFinish] = useState<Finish>("Non-Holo");
 
   function cleanSearchText(v?: string | null) {
     return String(v || "")
@@ -134,7 +139,8 @@ function Vault() {
         return s;
       };
       return rows.sort((a, b) => score(b) - score(a)).map((c: any) => {
-        const price = c.tcgplayer?.prices?.holofoil?.market ?? c.tcgplayer?.prices?.normal?.market ?? c.tcgplayer?.prices?.reverseHolofoil?.market;
+        const prices: TcgPrices = c.tcgplayer?.prices || {};
+        const price = prices.holofoil?.market ?? prices.normal?.market ?? prices.reverseHolofoil?.market ?? prices["1stEditionHolofoil"]?.market ?? prices["1stEditionNormal"]?.market;
         return {
           id: c.id,
           name: c.name,
@@ -144,20 +150,44 @@ function Vault() {
           price: Number(price) || undefined,
           year: c.set?.releaseDate ? String(c.set.releaseDate).slice(0, 4) : undefined,
           category: "Pokémon",
+          tcgPrices: prices,
         };
       }) as Alt[];
     } catch { return []; }
   }
 
-  function applyAlternative(alt: Alt) {
+  // Pick the right tcgplayer price slot based on edition + finish (with fallbacks)
+  function priceFromVariant(prices: TcgPrices | undefined, ed: Edition, fin: Finish): number | undefined {
+    if (!prices) return undefined;
+    const get = (k: string) => Number(prices[k]?.market) || undefined;
+    if (ed === "1st Edition") {
+      if (fin === "Holo") return get("1stEditionHolofoil") ?? (get("holofoil") ? get("holofoil")! * 2.5 : undefined);
+      if (fin === "Reverse Holo") return get("1stEditionHolofoil") ?? get("reverseHolofoil") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
+      return get("1stEditionNormal") ?? (get("normal") ? get("normal")! * 2.5 : undefined);
+    }
+    if (fin === "Holo") return get("holofoil") ?? get("reverseHolofoil") ?? get("normal");
+    if (fin === "Reverse Holo") return get("reverseHolofoil") ?? get("holofoil") ?? get("normal");
+    return get("normal") ?? get("holofoil") ?? get("reverseHolofoil");
+  }
+
+  function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
     setName(alt.name);
     if (alt.set) setTcgSet(alt.set);
     if (alt.number) setTcgNumber(alt.number);
     if (alt.image) setImageUrl(alt.image);
     if (alt.year) setTcgYear(alt.year);
     if (alt.category) setCategory(alt.category);
-    const cp = conditionPricesFromMarket(alt.price);
-    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || alt.price || 0, cp))); }
+    // Auto-suggest finish based on what prices the card actually has
+    if (alt.tcgPrices) {
+      const has = (k: string) => Number(alt.tcgPrices?.[k]?.market) > 0;
+      if (fin === "Non-Holo" && !has("normal") && !has("1stEditionNormal") && (has("holofoil") || has("1stEditionHolofoil"))) {
+        fin = "Holo";
+        setFinish("Holo");
+      }
+    }
+    const variantPrice = priceFromVariant(alt.tcgPrices, ed, fin) ?? alt.price;
+    const cp = conditionPricesFromMarket(variantPrice);
+    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || variantPrice || 0, cp))); }
     const idx = alternatives.findIndex((a) => a.id === alt.id);
     if (idx >= 0) setAltIndex(idx);
   }
@@ -284,6 +314,7 @@ function Vault() {
     setImageUrl(""); setBackImageUrl("");
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
     setAlternatives([]); setAltIndex(0);
+    setEdition("Unlimited"); setFinish("Non-Holo");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -308,6 +339,16 @@ function Vault() {
     setEstValue(String(priceFor(condition, base, condPrices)));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [condition, condPrices]);
+
+  // Recompute price when edition/finish changes, using current alternative's TCG prices
+  useEffect(() => {
+    const alt = alternatives[altIndex];
+    if (!alt?.tcgPrices) return;
+    const variantPrice = priceFromVariant(alt.tcgPrices, edition, finish) ?? alt.price;
+    const cp = conditionPricesFromMarket(variantPrice);
+    if (cp) { setCondPrices(cp); setEstValue(String(priceFor(condition, cp.NM || variantPrice || 0, cp))); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edition, finish]);
 
   async function identifyNow() {
     const hasAny = name.trim() || tcgNumber.trim() || tcgSet.trim();
@@ -384,10 +425,11 @@ function Vault() {
       setName2 = best.set || setName2;
       year2 = best.year || year2;
       num2 = best.number || num2;
-      const marketCp = conditionPricesFromMarket(best.price);
+      const variantPrice = priceFromVariant(best.tcgPrices, edition, finish) ?? best.price;
+      const marketCp = conditionPricesFromMarket(variantPrice);
       if (marketCp) {
         cp = marketCp;
-        value = priceFor(condition, marketCp.NM || best.price || value, marketCp);
+        value = priceFor(condition, marketCp.NM || variantPrice || value, marketCp);
       }
     }
     if (!finalImage) {
@@ -398,10 +440,12 @@ function Vault() {
         if (img?.image) finalImage = img.image;
       } catch {/* ignore */}
     }
+    const variantLabel = `${edition} · ${finish}`;
+    const fullDesc = [description?.trim(), `Variant: ${variantLabel}`].filter(Boolean).join("\n");
     const { error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
-      description: description || null,
+      description: fullDesc || null,
       estimated_value: value,
       condition_prices: cp as any,
       price: price ? Number(price) : null,
@@ -661,6 +705,24 @@ function Vault() {
               </div>
             )}
             <input className="w-full rounded-lg bg-input px-3 py-2 text-sm" placeholder="Category (Pokémon, MTG, ...)" value={category} onChange={(e) => setCategory(e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="mb-1 text-[10px] text-muted-foreground">Edition</p>
+                <select value={edition} onChange={(e) => setEdition(e.target.value as Edition)} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
+                  <option value="Unlimited">Unlimited</option>
+                  <option value="1st Edition">1st Edition</option>
+                </select>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] text-muted-foreground">Finish</p>
+                <select value={finish} onChange={(e) => setFinish(e.target.value as Finish)} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
+                  <option value="Non-Holo">Non-Holo</option>
+                  <option value="Holo">Holo</option>
+                  <option value="Reverse Holo">Reverse Holo</option>
+                </select>
+              </div>
+            </div>
+            <p className="-mt-1 text-[10px] text-muted-foreground">Price auto-updates from TCG market for the selected edition & finish.</p>
             <div>
               <p className="text-[10px] text-muted-foreground">Condition</p>
               <div className="mt-1 grid grid-cols-4 gap-1">
