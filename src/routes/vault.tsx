@@ -954,33 +954,48 @@ function Vault() {
               </div>
             </div>
 
-            {/* Edition & Finish (auto-repricing) */}
+            {/* Language, Edition & Finish (auto-repricing) */}
             {(() => {
               const v = parseVariant(actionFor.description);
+              const lang = parseLanguage(actionFor.description);
               return (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
                   <div className="rounded-lg bg-muted/40 p-2">
-                    <p className="text-[9px] uppercase text-muted-foreground">Edition</p>
+                    <p className="text-[9px] uppercase text-muted-foreground">Language (repriced automatically)</p>
                     <select
-                      value={v.edition}
-                      onChange={(e) => updateVariant(actionFor, e.target.value as Edition, v.finish)}
+                      value={lang}
+                      onChange={(e) => updateLanguage(actionFor, e.target.value)}
                       className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
                     >
-                      <option value="Unlimited">Unlimited</option>
-                      <option value="1st Edition">1st Edition</option>
+                      {LANGUAGES.map((l) => (
+                        <option key={l.v} value={l.v}>{l.l}</option>
+                      ))}
                     </select>
                   </div>
-                  <div className="rounded-lg bg-muted/40 p-2">
-                    <p className="text-[9px] uppercase text-muted-foreground">Finish</p>
-                    <select
-                      value={v.finish}
-                      onChange={(e) => updateVariant(actionFor, v.edition, e.target.value as Finish)}
-                      className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
-                    >
-                      <option value="Non-Holo">Non-Holo</option>
-                      <option value="Holo">Holo</option>
-                      <option value="Reverse Holo">Reverse Holo</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-muted/40 p-2">
+                      <p className="text-[9px] uppercase text-muted-foreground">Edition</p>
+                      <select
+                        value={v.edition}
+                        onChange={(e) => updateVariant(actionFor, e.target.value as Edition, v.finish)}
+                        className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
+                      >
+                        <option value="Unlimited">Unlimited</option>
+                        <option value="1st Edition">1st Edition</option>
+                      </select>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 p-2">
+                      <p className="text-[9px] uppercase text-muted-foreground">Finish</p>
+                      <select
+                        value={v.finish}
+                        onChange={(e) => updateVariant(actionFor, v.edition, e.target.value as Finish)}
+                        className="mt-1 w-full rounded-md bg-input px-2 py-1 text-xs"
+                      >
+                        <option value="Non-Holo">Non-Holo</option>
+                        <option value="Holo">Holo</option>
+                        <option value="Reverse Holo">Reverse Holo</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               );
