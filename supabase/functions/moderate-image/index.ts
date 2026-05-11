@@ -1,5 +1,6 @@
 // Moderate an image (e.g. profile avatar) using Lovable AI vision.
 // Returns { allowed: boolean, reason?: string, category?: string }.
+import { verifyUser } from "../_shared/auth.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
