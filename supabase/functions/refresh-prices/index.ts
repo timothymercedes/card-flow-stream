@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
       price_source: price.source,
       price_source_url: price.source_url,
       price_updated_at: now,
-      pricing_details: price.raw,
+      pricing_details: { ...(price.raw || {}), debug: price.debug ?? null },
     } as any;
 
     let vaultUpdate = supabase
