@@ -345,9 +345,23 @@ export function CardScanner({
 
   // Auto-capture has been intentionally removed — users tap the shutter or upload a photo manually.
 
+  function requiresManualConfirmation(result: ScanResult | null) {
+    if (!result) return false;
+    if (result.match_label === "Manually selected" || result.match_label === "Match confirmed") return false;
+    const oc = result.overall_confidence ?? 0;
+    const nameOk = (result.confidence?.name ?? 0) >= 0.85;
+    const setOk = (result.confidence?.set ?? 0) >= 0.85;
+    const numberOk = (result.confidence?.tcg_number ?? 0) >= 0.9;
+    return oc < 0.85 || !nameOk || !setOk || !numberOk || !result.price_source || Number(result.estimated_value || 0) <= 0;
+  }
 
   function confirmResult() {
     if (!pending) return;
+    if (requiresManualConfirmation(pending)) {
+      toast.error("Pick the exact card picture before saving — this scan is not safe to auto-save.");
+      setFinderOpen(true);
+      return;
+    }
     onResult(pending);
   }
 
