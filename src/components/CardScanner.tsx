@@ -1016,9 +1016,12 @@ export function CardScanner({
                 variant: c.is_holo ? "Holo" : c.is_reverse_holo ? "Reverse Holo" : base.variant || "Standard",
                 estimated_value: c.tcgplayer_price ?? base.estimated_value,
                 image: c.image_large || c.image_small || base.image,
+                reference_image: c.image_large || c.image_small || base.reference_image,
+                price_source: c.tcgplayer_price ? "Manual database selection" : base.price_source,
                 overall_confidence: 1,
                 match_label: "Manually selected",
                 alternatives: [],
+                confidence: { name: 1, set: 1, year: 1, tcg_number: 1, variant: 1 },
               };
             });
             setFinderOpen(false);
