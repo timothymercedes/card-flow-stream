@@ -375,6 +375,7 @@ export function CardScanner({
         return;
       }
 
+      const ocrRaw = (data as any)?.ocr_raw ?? null;
       if (multi) {
         const cards: ScanResult[] = await Promise.all(
           ((data as any)?.cards || []).map((c: any) =>
@@ -382,6 +383,7 @@ export function CardScanner({
               ...c,
               image: dataUrl,
               language: c.language || language,
+              scan_debug: { ocr_raw: c?.ocr_raw ?? ocrRaw },
             }),
           ),
         );
@@ -402,6 +404,7 @@ export function CardScanner({
           ...(data as any),
           image: dataUrl,
           language,
+          scan_debug: { ocr_raw: ocrRaw },
         });
         setSuggestionIndex(-1);
         setPending(result);
