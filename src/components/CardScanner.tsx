@@ -62,6 +62,17 @@ export type ScanResult = {
   overall_confidence?: number;
   match_label?: string;
   alternatives?: ScanAlternative[];
+  scan_debug?: {
+    ocr_raw?: any;
+    price_debug?: any;
+    enrichment?: {
+      trustedDatabaseIdentity: boolean;
+      setReliable: boolean;
+      numberReliable: boolean;
+      reason: string;
+      params: Record<string, string>;
+    };
+  };
 };
 
 export type ScanAction = "inventory" | "list" | "auction" | "offer" | "draft";
