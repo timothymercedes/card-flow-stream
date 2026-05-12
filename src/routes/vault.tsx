@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows } from "lucide-react";
 import { toast } from "sonner";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
@@ -38,6 +38,12 @@ function Vault() {
   const [query, setQuery] = useState("");
   const [showSuggest, setShowSuggest] = useState(false);
   const [listening, setListening] = useState(false);
+  const [viewMode, setViewMode] = useState<"small" | "grid" | "large" | "list">(() => {
+    if (typeof window === "undefined") return "grid";
+    return (localStorage.getItem("pbl_vault_view") as any) || "grid";
+  });
+  const [viewMenu, setViewMenu] = useState(false);
+  useEffect(() => { try { localStorage.setItem("pbl_vault_view", viewMode); } catch {} }, [viewMode]);
   const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const LANGUAGES = [
@@ -1158,10 +1164,10 @@ function Vault() {
           </div>
         )}
 
-        {/* Search */}
+        {/* Search + view mode */}
         {cards.length > 0 && (
-          <div className="relative mb-3">
-            <div className="flex items-center gap-2 rounded-xl bg-input px-3 py-2">
+          <div className="relative mb-3 flex items-stretch gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-input px-3 py-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 value={query}
@@ -1182,9 +1188,46 @@ function Vault() {
                 {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
             </div>
-            {showSuggest && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                {suggestions.map((s) => (
+            {/* View mode dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setViewMenu((v) => !v)}
+                aria-label="Change view"
+                className="flex h-full items-center gap-1 rounded-xl bg-input px-3 text-xs font-semibold text-foreground"
+              >
+                {viewMode === "small" && <Grid3x3 className="h-4 w-4" />}
+                {viewMode === "grid" && <LayoutGrid className="h-4 w-4" />}
+                {viewMode === "large" && <Rows className="h-4 w-4" />}
+                {viewMode === "list" && <List className="h-4 w-4" />}
+              </button>
+              {viewMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setViewMenu(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                    {([
+                      { id: "small", label: "Small", icon: Grid3x3 },
+                      { id: "grid", label: "Grid", icon: LayoutGrid },
+                      { id: "large", label: "Large", icon: Rows },
+                      { id: "list", label: "List", icon: List },
+                    ] as const).map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => { setViewMode(id); setViewMenu(false); }}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted ${viewMode === id ? "bg-muted font-bold" : ""}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {cards.length > 0 && showSuggest && suggestions.length > 0 && (
+          <div className="relative -mt-2 mb-3">
+            <div className="absolute left-0 right-0 top-0 z-10 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+              {suggestions.map((s) => (
                   <button
                     key={s}
                     onMouseDown={(e) => { e.preventDefault(); setQuery(s); setShowSuggest(false); }}
@@ -1193,8 +1236,7 @@ function Vault() {
                     <Search className="mr-2 inline h-3 w-3 text-muted-foreground" />{s}
                   </button>
                 ))}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -1202,15 +1244,36 @@ function Vault() {
         {cards.length > 0 && filteredCards.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">No cards match "{query}"</p>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={
+          viewMode === "small" ? "grid grid-cols-4 gap-2" :
+          viewMode === "grid" ? "grid grid-cols-2 gap-3" :
+          viewMode === "large" ? "grid grid-cols-1 gap-3" :
+          "flex flex-col gap-2"
+        }>
           {filteredCards.map((c) => {
             const meta = [c.tcg_set, c.tcg_year, c.tcg_number && `#${c.tcg_number}`].filter(Boolean).join(" • ");
             const cv = parseVariant(c.description);
+            if (viewMode === "list") {
+              return (
+                <button key={c.id} onClick={() => setActionFor(c)} className="flex items-center gap-3 overflow-hidden rounded-xl bg-card p-2 text-left active:scale-[0.99]">
+                  <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                    {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
+                    <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
+                  </div>
+                  {Number(c.estimated_value || 0) > 0 && (
+                    <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                  )}
+                </button>
+              );
+            }
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
                   {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
-                  {/* Edition badge — overlays the print-stamp corner so the chosen edition is the visible truth */}
                   {cv.edition === "1st Edition" ? (
                     <span className="absolute bottom-1.5 left-1.5 rounded-md border border-yellow-300/80 bg-black/85 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
@@ -1221,16 +1284,21 @@ function Vault() {
                     </span>
                   )}
                 </div>
-                <div className="p-2">
-                  <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
-                  {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
-                  <p className="text-[10px] text-muted-foreground">
-                    {c.category || "—"}{c.condition && ` • ${c.condition}`}
-                  </p>
-                  {Number(c.estimated_value || 0) > 0 && (
-                    <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
-                  )}
-                </div>
+                {viewMode !== "small" && (
+                  <div className="p-2">
+                    <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                    {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
+                    <p className="text-[10px] text-muted-foreground">
+                      {c.category || "—"}{c.condition && ` • ${c.condition}`}
+                    </p>
+                    {Number(c.estimated_value || 0) > 0 && (
+                      <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                    )}
+                  </div>
+                )}
+                {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
+                  <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                )}
               </button>
             );
           })}
