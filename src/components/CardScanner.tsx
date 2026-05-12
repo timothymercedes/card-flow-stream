@@ -288,11 +288,11 @@ export function CardScanner({
 
       if (multi) {
         const cards: ScanResult[] =
-          (data as any)?.cards?.map((c: any) => ({
+          await Promise.all(((data as any)?.cards || []).map((c: any) => enrichWithMarketPrice({
             ...c,
             image: dataUrl,
             language: c.language || language,
-          })) || [];
+          })));
         if (cards.length === 0) {
           toast.error("No cards detected — try better lighting or fewer cards");
         } else {
