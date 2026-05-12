@@ -66,6 +66,7 @@ function setMatchScore(cardSet: string, targetSet: string) {
 }
 
 function pickPriceVariant(prices: any, rarity: string | null, variantHint: string | null) {
+  const hint = norm(variantHint);
   const want = norm(`${variantHint || ""} ${rarity || ""}`);
   const entries = [
     ["normal", prices?.normal],
@@ -79,9 +80,9 @@ function pickPriceVariant(prices: any, rarity: string | null, variantHint: strin
   // hint. Never force "normal" just because the AI guessed Common/Uncommon —
   // that's the #1 cause of $0.25 prices on $80 holo cards. Default = highest.
   const explicitVariant =
-    /reverse/.test(variantHint || "") ? entries.find(([k]) => k === "reverseHolofoil") :
-    /1st|first/.test(variantHint || "") ? entries.find(([k]) => k === "1stEditionHolofoil") :
-    /\bnon ?holo|standard|^normal$/.test(variantHint || "") ? entries.find(([k]) => k === "normal") :
+    /reverse/.test(hint) ? entries.find(([k]) => k === "reverseHolofoil") :
+    /1st|first/.test(hint) ? entries.find(([k]) => k === "1stEditionHolofoil") :
+    /\bnon ?holo\b|^normal$/.test(hint) ? entries.find(([k]) => k === "normal") :
     /holo|foil|alt art|full art|secret|illustration|rainbow|amazing/.test(want) ?
       (entries.find(([k]) => k === "holofoil") || entries.find(([k]) => k === "unlimitedHolofoil") || entries.find(([k]) => k === "1stEditionHolofoil")) :
     null;
@@ -106,14 +107,15 @@ async function fetchPokemonImage(setName: string, number: string) {
 }
 
 function pickJtVariant(card: any, variantHint: string | null, rarity: string | null) {
-  const want = `${variantHint || ""} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
+  const hint = `${variantHint || ""}`.toLowerCase();
+  const want = `${hint} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
   const all = (card?.variants || []).filter((v: any) => v?.price > 0 && (v?.language || "English") === "English");
   if (!all.length) return null;
   const nm = all.filter((v: any) => v.condition === "Near Mint");
   const pool = nm.length ? nm : all;
-  const wantReverse = /reverse/.test(want);
+  const wantReverse = /reverse/.test(hint);
   const wantHolo = !wantReverse && /(holo|foil|ultra|secret|illustration|alt art|full art|amazing|rainbow)/.test(want);
-  const wantNormal = /(non ?holo|standard|^normal$|common|uncommon)/.test(want);
+  const wantNormal = /\bnon ?holo\b|^normal$/.test(hint);
   let pick =
     wantReverse ? pool.find((v: any) => /reverse/i.test(v.printing)) :
     wantHolo ? pool.find((v: any) => /holo/i.test(v.printing) && !/reverse/i.test(v.printing)) :
