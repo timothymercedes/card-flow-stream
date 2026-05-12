@@ -1228,6 +1228,102 @@ async function downscaleDataUrl(src: string, maxDim: number): Promise<string> {
       resolve(canvas.toDataURL("image/jpeg", 0.85));
     };
     img.onerror = () => reject(new Error("Could not decode image"));
-    img.src = src;
-  });
+}
+
+function ScanDebugPanel({ debug, result }: { debug: NonNullable<ScanResult["scan_debug"]>; result: ScanResult }) {
+  const [open, setOpen] = useState(false);
+  const ocr = debug.ocr_raw;
+  const pd = debug.price_debug;
+  const enr = debug.enrichment;
+  const copy = () => {
+    const payload = {
+      scanned: {
+        name: result.name,
+        set: result.set,
+        number: result.tcg_number,
+        rarity: result.rarity,
+        variant: result.variant,
+        confidence: result.confidence,
+        overall_confidence: result.overall_confidence,
+        estimated_value: result.estimated_value,
+        price_source: result.price_source,
+        match_label: result.match_label,
+      },
+      ocr_raw: ocr,
+      enrichment: enr,
+      price_debug: pd,
+    };
+    try {
+      navigator.clipboard?.writeText(JSON.stringify(payload, null, 2));
+      toast.success("Debug report copied");
+    } catch {
+      toast.error("Could not copy");
+    }
+  };
+  return (
+    <div className="rounded-xl bg-black/40 p-3 ring-1 ring-white/10">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between text-[11px] font-bold uppercase tracking-wide text-white/70"
+      >
+        <span>🔍 Debug report {enr?.trustedDatabaseIdentity ? "(trusted match)" : "(needs review)"}</span>
+        <span>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-3 text-[11px] text-white/80">
+          {enr && (
+            <div>
+              <p className="font-bold text-white">Enrichment</p>
+              <p>{enr.reason}</p>
+              <p className="text-white/60">
+                setReliable={String(enr.setReliable)} · numberReliable={String(enr.numberReliable)}
+              </p>
+              <p className="text-white/60">params: {JSON.stringify(enr.params)}</p>
+            </div>
+          )}
+          {pd && (
+            <div>
+              <p className="font-bold text-white">Price lookup ({pd.source || "n/a"})</p>
+              <p className="text-white/60">Input: {JSON.stringify(pd.query_input)}</p>
+              <p className="text-white/60">Queries tried: {(pd.queries_tried || []).join(" | ")}</p>
+              <p className="text-white/60">Candidates returned: {pd.candidate_count ?? 0}</p>
+              {pd.chosen && (
+                <p className="text-emerald-300">
+                  Chosen: {pd.chosen.name} · {pd.chosen.set} · #{pd.chosen.number} ·{" "}
+                  {pd.chosen.variant} · ${pd.chosen.price} (score {pd.chosen.score})
+                </p>
+              )}
+              {Array.isArray(pd.top_candidates) && pd.top_candidates.length > 0 && (
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-white/70">Top candidates ({pd.top_candidates.length})</summary>
+                  <ul className="ml-3 mt-1 list-disc space-y-0.5 text-white/70">
+                    {pd.top_candidates.map((c: any, i: number) => (
+                      <li key={i}>
+                        [{c.score}] {c.name} · {c.set} · #{c.number} · {c.variant} · ${c.price}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {pd.price_logic && <p className="text-white/60">Logic: {pd.price_logic}</p>}
+            </div>
+          )}
+          {ocr && (
+            <details>
+              <summary className="cursor-pointer font-bold text-white">Raw OCR / AI output</summary>
+              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded bg-black/60 p-2 text-[10px] text-white/70">
+{JSON.stringify(ocr, null, 2)}
+              </pre>
+            </details>
+          )}
+          <button
+            onClick={copy}
+            className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-bold text-white hover:bg-white/20"
+          >
+            Copy debug report
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
