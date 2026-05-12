@@ -74,7 +74,7 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
       <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
         <div className="flex items-center justify-between">
           <span>Not enough price history yet. Updates daily.</span>
-          <button onClick={refresh} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
+          <button onClick={() => refresh()} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
             <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
           </button>
         </div>
@@ -98,7 +98,7 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
             {up ? "+" : ""}${delta.toFixed(2)} ({pct.toFixed(1)}%)
           </p>
         </div>
-        <button onClick={refresh} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
+        <button onClick={() => refresh()} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
           <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
         </button>
       </div>
