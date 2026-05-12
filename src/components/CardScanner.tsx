@@ -231,8 +231,7 @@ export function CardScanner({
       if (j?.price?.market == null) return result;
       const market = Number(j.price.market);
       const c = j.price.canonical;
-      const trustedDatabaseIdentity =
-        c && Number(c.match_score || 0) >= 90 && (setReliable || numberReliable);
+      const trustedDatabaseIdentity = c && Number(c.match_score || 0) >= 90 && setReliable && numberReliable;
       const next: ScanResult = {
         ...result,
         estimated_value: trustedDatabaseIdentity ? market : 0,
