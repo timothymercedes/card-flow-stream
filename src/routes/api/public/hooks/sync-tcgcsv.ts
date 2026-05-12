@@ -23,7 +23,12 @@ function cleanName(s: string) {
 }
 
 async function fetchJson(url: string): Promise<any> {
-  const r = await fetch(url, { headers: { Accept: "application/json" } });
+  const r = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "PullBidLive/1.0 (contact@pullbidlive.com)",
+    },
+  });
   if (!r.ok) throw new Error(`${url} → ${r.status}`);
   return r.json();
 }
