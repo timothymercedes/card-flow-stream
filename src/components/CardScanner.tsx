@@ -262,9 +262,11 @@ export function CardScanner({
             const rarityConf = result.confidence?.variant ?? result.confidence?.set ?? 0;
             if (result.rarity && rarityConf >= 0.85) params.set("rarity", result.rarity);
             if (result.variant && (result.confidence?.variant ?? 0) >= 0.85) params.set("variant", result.variant);
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
             const r = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
-              { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } },
+              { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` } },
             );
             const j = await r.json();
             if (j?.price?.market != null) {
