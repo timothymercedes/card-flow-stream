@@ -25,6 +25,10 @@ function firstCardNumber(v: string | null | undefined) {
   return String(v || "").replace(/#/g, "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
 }
 
+function hasFullCardNumber(v: string | null | undefined) {
+  return /\d+\s*\/\s*\d+/.test(String(v || ""));
+}
+
 function tokenScore(a: string, b: string) {
   const aa = new Set(norm(a).split(" ").filter(Boolean));
   const bb = new Set(norm(b).split(" ").filter(Boolean));
@@ -159,6 +163,7 @@ async function fetchJustTcg(
   const cleanName = name.replace(/"/g, "").trim();
   const cleanSet = (set || "").replace(/"/g, "").trim();
   const cleanNumber = firstCardNumber(number);
+  const numberIsSpecific = hasFullCardNumber(number) || !!cleanSet;
 
   const queries: string[] = [];
   if (cleanName && cleanSet && cleanNumber) queries.push(`${cleanName} ${cleanSet} ${cleanNumber}`);
@@ -198,8 +203,9 @@ async function fetchJustTcg(
     const cn = (c.name || "").toLowerCase();
     const cnum = firstCardNumber(c.number);
     const cset = norm(c.set_name);
-    if (cleanNumber && cnum === cleanNumber) s += 60;
-    else if (cleanNumber && (c.number || "").includes(cleanNumber)) s += 25;
+    if (cleanNumber && numberIsSpecific && cnum === cleanNumber) s += 60;
+    else if (cleanNumber && numberIsSpecific && (c.number || "").includes(cleanNumber)) s += 25;
+    else if (cleanNumber && cnum === cleanNumber) s += 8;
     if (cn === targetName) s += 10;
     else if (cn.startsWith(targetName)) s += 4;
     else s += tokenScore(cn, targetName) * 3;
@@ -219,7 +225,8 @@ async function fetchJustTcg(
       const cn = norm(x.c?.name);
       const tn = norm(targetName);
       const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
-      return nameClose;
+      const exactSetNumber = !!cleanNumber && numberIsSpecific && firstCardNumber(x.c?.number) === cleanNumber && targetSet && setMatchScore(x.c?.set_name, targetSet) >= 20;
+      return nameClose || exactSetNumber;
     })
     .sort((a, b) => b.s - a.s);
   const final = ranked.length ? ranked : scored.sort((a, b) => b.s - a.s);
