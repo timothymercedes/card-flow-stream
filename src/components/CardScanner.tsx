@@ -963,8 +963,7 @@ export function CardScanner({
               </button>
               <button
                 onClick={confirmResult}
-                disabled={requiresManualConfirmation(pending)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
               >
                 <Check className="h-4 w-4" /> Confirm & save
               </button>
