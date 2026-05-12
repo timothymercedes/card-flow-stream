@@ -192,8 +192,15 @@ export function CardScanner({
     if (!hasEnoughId) return result;
     try {
       const params = new URLSearchParams({ name: result.name });
-      if (result.set) params.set("set", result.set);
-      if (result.tcg_number) params.set("number", result.tcg_number);
+      const overall = result.overall_confidence ?? 0;
+      const setReliable = (result.confidence?.set ?? 0) >= 0.85 && overall >= 0.75;
+      const numberReliable = (result.confidence?.tcg_number ?? 0) >= 0.9 && overall >= 0.85;
+      // A bad OCR card number was forcing exact DB hits for the wrong printing
+      // (ex: #021 instead of #118). Only use set/number as hard lookup hints when
+      // the model was actually confident in those fields.
+      if (result.set && setReliable) params.set("set", result.set);
+      if (result.tcg_number && numberReliable) params.set("number", result.tcg_number);
+      params.set("scanConfidence", String(overall || 0));
       const rarityConf = result.confidence?.variant ?? result.confidence?.set ?? 0;
       if (result.rarity && rarityConf >= 0.85) params.set("rarity", result.rarity);
       if (result.variant && (result.confidence?.variant ?? 0) >= 0.85) params.set("variant", result.variant);
@@ -217,7 +224,8 @@ export function CardScanner({
       const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches.slice(1) : j.price.alternatives;
       if (Array.isArray(matches) && matches.length) next.alternatives = matches;
       const c = j.price.canonical;
-      if (c && Number(c.match_score || 0) >= 90) {
+      const trustedDatabaseIdentity = c && Number(c.match_score || 0) >= 90 && (setReliable || numberReliable);
+      if (trustedDatabaseIdentity) {
         if (c.name) next.name = c.name;
         if (c.set) next.set = c.set;
         if (c.number) next.tcg_number = c.number;
@@ -228,7 +236,7 @@ export function CardScanner({
         next.match_label = "Database Match";
         next.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
       } else {
-        next.match_label = "Price estimated — tap a similar card if the picture is wrong";
+        next.match_label = "Needs confirmation — tap the correct picture before saving";
       }
       return next;
     } catch {
