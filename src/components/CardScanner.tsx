@@ -1011,6 +1011,7 @@ export function CardScanner({
                   </button>
                 ))}
               </div>
+            </div>
           )}
 
           {pending.scan_debug && <ScanDebugPanel debug={pending.scan_debug} result={pending} />}
