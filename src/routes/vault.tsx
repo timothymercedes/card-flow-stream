@@ -75,7 +75,7 @@ function Vault() {
   type Edition = "Unlimited" | "1st Edition";
   type Finish = "Holo" | "Non-Holo" | "Reverse Holo";
   const [edition, setEdition] = useState<Edition>("Unlimited");
-  const [finish, setFinish] = useState<Finish>("Non-Holo");
+  const [finish, setFinish] = useState<Finish>("Holo");
 
   function cleanSearchText(v?: string | null) {
     return String(v || "")
@@ -549,7 +549,7 @@ function Vault() {
     setImageUrl(""); setBackImageUrl("");
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
     setAlternatives([]); setAltIndex(0);
-    setEdition("Unlimited"); setFinish("Non-Holo");
+    setEdition("Unlimited"); setFinish("Holo");
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
