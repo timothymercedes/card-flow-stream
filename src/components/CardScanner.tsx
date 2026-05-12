@@ -464,6 +464,7 @@ export function CardScanner({
               Damaged: Math.max(0.5, Math.round(market * 0.25 * 100) / 100),
             }
           : p.condition_prices,
+        image: a.image_url || p.image,
         reference_image: a.image_url || p.reference_image,
         overall_confidence: 0.95,
         match_label: label,
