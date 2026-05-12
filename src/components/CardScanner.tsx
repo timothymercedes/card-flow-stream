@@ -1228,6 +1228,8 @@ async function downscaleDataUrl(src: string, maxDim: number): Promise<string> {
       resolve(canvas.toDataURL("image/jpeg", 0.85));
     };
     img.onerror = () => reject(new Error("Could not decode image"));
+    img.src = src;
+  });
 }
 
 function ScanDebugPanel({ debug, result }: { debug: NonNullable<ScanResult["scan_debug"]>; result: ScanResult }) {
