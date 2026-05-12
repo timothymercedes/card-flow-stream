@@ -313,6 +313,23 @@ async function fetchJustTcg(
       maxPrice90d: topV.maxPrice90d,
       matchScore: top.s,
     },
+    debug: {
+      source: "JustTCG",
+      query_input: { name: cleanName, set: cleanSet || null, number: cleanNumber || null, numberIsSpecific, rarity: rarity || null, variantHint: variantHint || null },
+      queries_tried: queries,
+      candidate_count: candidates.length,
+      top_candidates: final.slice(0, 8).map((x) => ({
+        name: x.c?.name,
+        set: x.c?.set_name,
+        number: x.c?.number,
+        rarity: x.c?.rarity,
+        variant: x.v?.printing,
+        price: Number(x.v?.price || 0),
+        score: Math.round(x.s * 100) / 100,
+      })),
+      chosen: { name: top.c?.name, set: top.c?.set_name, number: top.c?.number, variant: topV.printing, price: market, score: top.s },
+      price_logic: `NM=$${nm} (used as market) | LP=${lp ?? "?"} | MP=${mp ?? "?"} | HP=${hp ?? "?"} | DMG=${dmg ?? "?"}`,
+    },
   };
 }
 
