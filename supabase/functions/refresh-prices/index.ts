@@ -25,6 +25,10 @@ function firstCardNumber(v: string | null | undefined) {
   return String(v || "").replace(/#/g, "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
 }
 
+function hasFullCardNumber(v: string | null | undefined) {
+  return /\d+\s*\/\s*\d+/.test(String(v || ""));
+}
+
 function tokenScore(a: string, b: string) {
   const aa = new Set(norm(a).split(" ").filter(Boolean));
   const bb = new Set(norm(b).split(" ").filter(Boolean));
@@ -106,6 +110,16 @@ async function fetchPokemonImage(setName: string, number: string) {
   } catch { return { small: null, large: null }; }
 }
 
+function scryDexPokemonImage(setCode: string | null | undefined, number: string | null | undefined) {
+  const code = String(setCode || "").trim().toLowerCase();
+  const num = firstCardNumber(number);
+  if (!code || !num) return { small: null as string | null, large: null as string | null };
+  return {
+    small: `https://images.scrydex.com/pokemon/${code}-${num}/small`,
+    large: `https://images.scrydex.com/pokemon/${code}-${num}/large`,
+  };
+}
+
 function pickJtVariant(card: any, variantHint: string | null, rarity: string | null) {
   const hint = `${variantHint || ""}`.toLowerCase();
   const want = `${hint} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
@@ -159,6 +173,7 @@ async function fetchJustTcg(
   const cleanName = name.replace(/"/g, "").trim();
   const cleanSet = (set || "").replace(/"/g, "").trim();
   const cleanNumber = firstCardNumber(number);
+  const numberIsSpecific = hasFullCardNumber(number) || !!cleanSet;
 
   const queries: string[] = [];
   if (cleanName && cleanSet && cleanNumber) queries.push(`${cleanName} ${cleanSet} ${cleanNumber}`);
@@ -198,14 +213,17 @@ async function fetchJustTcg(
     const cn = (c.name || "").toLowerCase();
     const cnum = firstCardNumber(c.number);
     const cset = norm(c.set_name);
-    if (cleanNumber && cnum === cleanNumber) s += 60;
-    else if (cleanNumber && (c.number || "").includes(cleanNumber)) s += 25;
+    const bestPrice = Math.max(0, ...(c.variants || []).map((v: any) => Number(v?.price) || 0));
+    if (cleanNumber && numberIsSpecific && cnum === cleanNumber) s += 60;
+    else if (cleanNumber && numberIsSpecific && (c.number || "").includes(cleanNumber)) s += 25;
+    else if (cleanNumber && cnum === cleanNumber) s += 8;
     if (cn === targetName) s += 10;
     else if (cn.startsWith(targetName)) s += 4;
     else s += tokenScore(cn, targetName) * 3;
     if (targetSet) s += setMatchScore(cset, targetSet);
     if (targetRarity && (c.rarity || "").toLowerCase().includes(targetRarity.split(" ")[0])) s += 3;
     if ((c.variants || []).some((v: any) => v.price > 0)) s += 3;
+    if (!numberIsSpecific && !targetSet && bestPrice > 0) s += Math.min(18, Math.log10(bestPrice + 1) * 7);
     return s;
   }
   const scored = candidates
@@ -219,7 +237,8 @@ async function fetchJustTcg(
       const cn = norm(x.c?.name);
       const tn = norm(targetName);
       const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
-      return nameClose;
+      const exactSetNumber = !!cleanNumber && numberIsSpecific && firstCardNumber(x.c?.number) === cleanNumber && targetSet && setMatchScore(x.c?.set_name, targetSet) >= 20;
+      return nameClose || exactSetNumber;
     })
     .sort((a, b) => b.s - a.s);
   const final = ranked.length ? ranked : scored.sort((a, b) => b.s - a.s);
@@ -233,7 +252,10 @@ async function fetchJustTcg(
 
   // Fetch images in parallel from pokemontcg.io
   const images = await Promise.all(
-    slice.map((x) => fetchPokemonImage(x.c?.set_name || "", x.c?.number || ""))
+    slice.map(async (x) => {
+      const img = await fetchPokemonImage(x.c?.set_name || "", x.c?.number || "");
+      return img.small || img.large ? img : scryDexPokemonImage(x.c?.set || "", x.c?.number || "");
+    })
   );
 
   const topV = top.v!;
@@ -316,6 +338,7 @@ async function fetchTcgPrice(
   const cleanName = name.replace(/"/g, "");
   const cleanSet = (set || "").replace(/"/g, "");
   const cleanNumber = firstCardNumber(number);
+  const numberIsSpecific = hasFullCardNumber(number) || !!cleanSet;
   const apiKey = Deno.env.get("POKEMONTCG_API_KEY");
 
   const queries: string[] = [];
@@ -352,8 +375,9 @@ async function fetchTcgPrice(
     const cn = (c.name || "").toLowerCase();
     const cnum = firstCardNumber(c.number);
     const cset = norm(c?.set?.name);
-    if (cleanNumber && cnum === cleanNumber) s += 60;
-    else if (cleanNumber && (c.number || "").includes(cleanNumber)) s += 25;
+    if (cleanNumber && numberIsSpecific && cnum === cleanNumber) s += 60;
+    else if (cleanNumber && numberIsSpecific && (c.number || "").includes(cleanNumber)) s += 25;
+    else if (cleanNumber && cnum === cleanNumber) s += 8;
     if (cn === targetName) s += 10;
     else if (cn.startsWith(targetName)) s += 4;
     else s += tokenScore(cn, targetName) * 3;
@@ -371,8 +395,8 @@ async function fetchTcgPrice(
       const cn = norm(x.card?.name);
       const tn = norm(targetName);
       const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
-      const exactSetNumber = !!cleanNumber && firstCardNumber(x.card.number) === cleanNumber && targetSet && setMatchScore(x.card?.set?.name, targetSet) >= 20;
-      return (nameClose || exactSetNumber) && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
+      const exactSetNumber = !!cleanNumber && numberIsSpecific && firstCardNumber(x.card.number) === cleanNumber && targetSet && setMatchScore(x.card?.set?.name, targetSet) >= 20;
+      return (nameClose || exactSetNumber) && (!cleanNumber || !numberIsSpecific || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
     })
     .sort((a, b) => b.score - a.score);
   if (!ranked.length) return null;
