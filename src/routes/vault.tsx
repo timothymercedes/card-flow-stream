@@ -845,16 +845,19 @@ function Vault() {
     if (editing.condition_prices) {
       newValue = priceFor((editing.condition || "NM") as Condition, Number(editing.condition_prices.NM || editing.estimated_value || 0), editing.condition_prices);
     }
-    const { error } = await supabase.from("vault_cards").update({
+    const patch = {
       name: editing.name, category: editing.category, image_url: editing.image_url,
       back_image_url: editing.back_image_url || null,
       description: editing.description,
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
-      
       estimated_value: newValue,
-    }).eq("id", editing.id);
+    };
+    setCards((prev) => prev.map((c) => (c.id === editing.id ? { ...c, ...patch } : c)));
+    setActionFor((prev) => (prev && prev.id === editing.id ? { ...prev, ...patch } : prev));
+    const { error, data } = await supabase.from("vault_cards").update(patch).eq("id", editing.id).select("id").single();
+    if (!data && !error) return toast.error("Save did not update this card. Please reopen the vault and try again.");
     if (error) return toast.error(error.message);
     toast.success("Saved");
     setEditing(null);
@@ -1439,14 +1442,14 @@ function Vault() {
               </div>
             )}
 
-            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} />
+            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} />
 
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
             </button>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
+              <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
                 <Pencil className="h-4 w-4" /> Edit
               </button>
               <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">

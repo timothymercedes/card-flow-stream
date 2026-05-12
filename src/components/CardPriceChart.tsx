@@ -5,13 +5,20 @@ import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 type Point = { captured_at: string; market_price: number };
-type Props = { name: string; tcgSet?: string | null; tcgNumber?: string | null };
+type Props = { name: string; tcgSet?: string | null; tcgNumber?: string | null; currentValue?: number | null };
 
 function keyOf(name: string, set?: string | null, number?: string | null) {
   return `${(name || "").toLowerCase()}|${(set || "").toLowerCase()}|${(number || "").toLowerCase()}`;
 }
 
-export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
+function sixMonthFlatLine(value: number): Point[] {
+  return [
+    { captured_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 183).toISOString(), market_price: value },
+    { captured_at: new Date().toISOString(), market_price: value },
+  ];
+}
+
+export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue }: Props) {
   const [points, setPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -69,7 +76,10 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
 
   if (loading) return <div className="h-24 rounded-lg bg-muted/40" />;
 
-  if (points.length < 2) {
+  const fallbackValue = Number(currentValue || points[0]?.market_price || 0);
+  const chartPoints = points.length >= 2 ? points : fallbackValue > 0 ? sixMonthFlatLine(fallbackValue) : points;
+
+  if (chartPoints.length < 2) {
     return (
       <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
         <div className="flex items-center justify-between">
@@ -82,8 +92,13 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
     );
   }
 
-  const first = points[0].market_price;
-  const last = points[points.length - 1].market_price;
+  const first = chartPoints[0].market_price;
+  const last = chartPoints[chartPoints.length - 1].market_price;
+  const values = chartPoints.map((p) => Number(p.market_price || 0));
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const pad = Math.max(1, (maxValue - minValue) * 0.2);
+  const yDomain: [number, number] = minValue === maxValue ? [minValue - pad, maxValue + pad] : [minValue - pad, maxValue + pad];
   const delta = last - first;
   const pct = first > 0 ? (delta / first) * 100 : 0;
   const up = delta >= 0;
@@ -104,16 +119,16 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
       </div>
       <div className="h-24">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={points} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <LineChart data={chartPoints} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <XAxis dataKey="captured_at" hide />
-            <YAxis hide domain={["auto", "auto"]} />
+            <YAxis hide domain={yDomain} />
             <Tooltip
-              contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }}
+              contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11 }}
               labelFormatter={(v) => new Date(v).toLocaleDateString()}
               formatter={(v: any) => [`$${Number(v).toFixed(2)}`, "Market"]}
             />
-            <ReferenceLine y={first} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-            <Line type="monotone" dataKey="market_price" stroke={up ? "hsl(var(--primary))" : "#ef4444"} strokeWidth={2} dot={false} />
+            <ReferenceLine y={first} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="market_price" stroke={up ? "var(--primary)" : "var(--destructive)"} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
