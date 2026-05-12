@@ -279,23 +279,28 @@ export function CardScanner({
               if (Array.isArray(matches) && matches.length) {
                 result.alternatives = matches;
               }
-              // Overwrite AI guesses with canonical database values where present
+              // Only overwrite AI-read fields when the database match is STRONG.
+              // A weak match means the canonical card is likely a different printing —
+              // overwriting would replace correct AI info (and image) with wrong data.
               const c = j.price.canonical;
               if (c) {
-                if (c.name) result.name = c.name;
-                if (c.set) result.set = c.set;
-                if (c.number) result.tcg_number = c.number;
-                if (c.rarity) result.rarity = c.rarity;
-                if (c.year) result.year = c.year;
-                if (c.image_large || c.image_small) {
-                  (result as any).reference_image = c.image_large || c.image_small;
-                }
                 const strongMatch = Number(c.match_score || 0) >= 90;
-                result.overall_confidence = strongMatch ? Math.max(result.overall_confidence ?? 0, 0.95) : 0.82;
-                result.match_label = strongMatch ? "Database Match" : "Best database match — verify";
-                result.confidence = strongMatch
-                  ? { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 }
-                  : { name: 0.85, set: 0.8, year: 0.8, tcg_number: 0.85, variant: 0.75 };
+                if (strongMatch) {
+                  if (c.name) result.name = c.name;
+                  if (c.set) result.set = c.set;
+                  if (c.number) result.tcg_number = c.number;
+                  if (c.rarity) result.rarity = c.rarity;
+                  if (c.year) result.year = c.year;
+                  if (c.image_large || c.image_small) {
+                    (result as any).reference_image = c.image_large || c.image_small;
+                  }
+                  result.overall_confidence = Math.max(result.overall_confidence ?? 0, 0.95);
+                  result.match_label = "Database Match";
+                  result.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
+                } else {
+                  // Keep AI-read identity + photo. Surface alternatives so the user can pick.
+                  result.match_label = "Price estimated — tap a similar card if the picture is wrong";
+                }
               }
             }
           }
