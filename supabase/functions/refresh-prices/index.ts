@@ -110,6 +110,16 @@ async function fetchPokemonImage(setName: string, number: string) {
   } catch { return { small: null, large: null }; }
 }
 
+function scryDexPokemonImage(setCode: string | null | undefined, number: string | null | undefined) {
+  const code = String(setCode || "").trim().toLowerCase();
+  const num = firstCardNumber(number);
+  if (!code || !num) return { small: null as string | null, large: null as string | null };
+  return {
+    small: `https://images.scrydex.com/pokemon/${code}-${num}/small`,
+    large: `https://images.scrydex.com/pokemon/${code}-${num}/large`,
+  };
+}
+
 function pickJtVariant(card: any, variantHint: string | null, rarity: string | null) {
   const hint = `${variantHint || ""}`.toLowerCase();
   const want = `${hint} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
