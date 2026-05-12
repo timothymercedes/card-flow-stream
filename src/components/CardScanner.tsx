@@ -422,10 +422,24 @@ export function CardScanner({
   }
   function addSelected() {
     if (!batch) return;
-    const picks = batch.filter((_, i) => selected.has(i));
+    const chosen = batch.filter((_, i) => selected.has(i));
+    const picks = chosen.filter((p) => !requiresManualConfirmation(p));
     if (picks.length === 0) return toast.error("Select at least one card");
+    if (picks.length !== chosen.length) {
+      toast.error("Skipped cards that need exact-picture confirmation first.");
+    }
     if (onResults) onResults(picks);
     else picks.forEach((p) => onResult(p)); // fallback for callers w/o batch handler
+  }
+
+  function handleAction(action: ScanAction) {
+    if (!pending) return;
+    if (requiresManualConfirmation(pending)) {
+      toast.error("Pick the exact card picture before using this scan.");
+      setFinderOpen(true);
+      return;
+    }
+    onAction?.(action, pending);
   }
 
   function applySuggestedCard(a: ScanAlternative, nextIndex: number, label = "Similar card selected") {
