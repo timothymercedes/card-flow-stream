@@ -912,7 +912,7 @@ export function CardScanner({
           </div>
 
           {requiresManualConfirmation(pending) && (
-            <div className="rounded-xl bg-red-500/15 p-3 text-[12px] font-semibold text-red-100 ring-1 ring-red-400/40">
+            <div className="rounded-xl bg-destructive/15 p-3 text-[12px] font-semibold text-destructive ring-1 ring-destructive/40">
               Not safe to auto-save yet. Choose the exact card image below or use “Find it manually”
               so the vault doesn’t save the wrong picture or price.
             </div>
