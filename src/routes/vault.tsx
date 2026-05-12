@@ -1244,15 +1244,36 @@ function Vault() {
         {cards.length > 0 && filteredCards.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">No cards match "{query}"</p>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={
+          viewMode === "small" ? "grid grid-cols-4 gap-2" :
+          viewMode === "grid" ? "grid grid-cols-2 gap-3" :
+          viewMode === "large" ? "grid grid-cols-1 gap-3" :
+          "flex flex-col gap-2"
+        }>
           {filteredCards.map((c) => {
             const meta = [c.tcg_set, c.tcg_year, c.tcg_number && `#${c.tcg_number}`].filter(Boolean).join(" • ");
             const cv = parseVariant(c.description);
+            if (viewMode === "list") {
+              return (
+                <button key={c.id} onClick={() => setActionFor(c)} className="flex items-center gap-3 overflow-hidden rounded-xl bg-card p-2 text-left active:scale-[0.99]">
+                  <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                    {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
+                    <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
+                  </div>
+                  {Number(c.estimated_value || 0) > 0 && (
+                    <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                  )}
+                </button>
+              );
+            }
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
                   {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
-                  {/* Edition badge — overlays the print-stamp corner so the chosen edition is the visible truth */}
                   {cv.edition === "1st Edition" ? (
                     <span className="absolute bottom-1.5 left-1.5 rounded-md border border-yellow-300/80 bg-black/85 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
@@ -1263,16 +1284,21 @@ function Vault() {
                     </span>
                   )}
                 </div>
-                <div className="p-2">
-                  <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
-                  {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
-                  <p className="text-[10px] text-muted-foreground">
-                    {c.category || "—"}{c.condition && ` • ${c.condition}`}
-                  </p>
-                  {Number(c.estimated_value || 0) > 0 && (
-                    <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
-                  )}
-                </div>
+                {viewMode !== "small" && (
+                  <div className="p-2">
+                    <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                    {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
+                    <p className="text-[10px] text-muted-foreground">
+                      {c.category || "—"}{c.condition && ` • ${c.condition}`}
+                    </p>
+                    {Number(c.estimated_value || 0) > 0 && (
+                      <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                    )}
+                  </div>
+                )}
+                {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
+                  <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                )}
               </button>
             );
           })}
