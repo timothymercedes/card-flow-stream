@@ -302,74 +302,7 @@ export function CardScanner({
           stopScannerCamera();
         }
       } else {
-        const result: ScanResult = { ...(data as any), image: dataUrl, language };
-        // 🔁 Cross-reference with REAL TCG database (Pokémon TCG API).
-        // The AI only needs to read name + set + number reliably; the database
-        // gives us canonical rarity, variant, image and PRICE — so AI mistakes
-        // on those fields get corrected automatically.
-        try {
-          const hasEnoughId = !!result.name && result.name !== "Unknown Card";
-          // Always try the database when we have a name. If set/number are missing,
-          // the database still returns priced similar cards the user can tap through.
-          if (hasEnoughId) {
-            const params = new URLSearchParams({ name: result.name });
-            if (result.set) params.set("set", result.set);
-            if (result.tcg_number) params.set("number", result.tcg_number);
-            // Only pass rarity/variant when the AI is confident. Low-confidence
-            // guesses (e.g. "Common" on an actual holo) force the wrong variant
-            // and turn $80 cards into $0.25.
-            const rarityConf = result.confidence?.variant ?? result.confidence?.set ?? 0;
-            if (result.rarity && rarityConf >= 0.85) params.set("rarity", result.rarity);
-            if (result.variant && (result.confidence?.variant ?? 0) >= 0.85) params.set("variant", result.variant);
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-            const r = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
-              { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` } },
-            );
-            const j = await r.json();
-            if (j?.price?.market != null) {
-              (result as any).estimated_value = j.price.market;
-              result.condition_prices = {
-                NM: Number(j.price.market),
-                LP: Math.round(Number(j.price.market) * 0.85 * 100) / 100,
-                MP: Math.round(Number(j.price.market) * 0.6 * 100) / 100,
-                Damaged: Math.max(0.5, Math.round(Number(j.price.market) * 0.25 * 100) / 100),
-              };
-              (result as any).price_source = j.price.source;
-              (result as any).price_source_url = j.price.source_url;
-              (result as any).price_low = j.price.low;
-              (result as any).price_high = j.price.high;
-              const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches.slice(1) : j.price.alternatives;
-              if (Array.isArray(matches) && matches.length) {
-                result.alternatives = matches;
-              }
-              // Only overwrite AI-read fields when the database match is STRONG.
-              // A weak match means the canonical card is likely a different printing —
-              // overwriting would replace correct AI info (and image) with wrong data.
-              const c = j.price.canonical;
-              if (c) {
-                const strongMatch = Number(c.match_score || 0) >= 90;
-                if (strongMatch) {
-                  if (c.name) result.name = c.name;
-                  if (c.set) result.set = c.set;
-                  if (c.number) result.tcg_number = c.number;
-                  if (c.rarity) result.rarity = c.rarity;
-                  if (c.year) result.year = c.year;
-                  if (c.image_large || c.image_small) {
-                    (result as any).reference_image = c.image_large || c.image_small;
-                  }
-                  result.overall_confidence = Math.max(result.overall_confidence ?? 0, 0.95);
-                  result.match_label = "Database Match";
-                  result.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
-                } else {
-                  // Keep AI-read identity + photo. Surface alternatives so the user can pick.
-                  result.match_label = "Price estimated — tap a similar card if the picture is wrong";
-                }
-              }
-            }
-          }
-        } catch { /* keep AI estimate as fallback */ }
+        const result: ScanResult = await enrichWithMarketPrice({ ...(data as any), image: dataUrl, language });
         setSuggestionIndex(-1);
         setPending(result);
         // Best-effort scan history log (RLS will reject if not signed in — ignore)
