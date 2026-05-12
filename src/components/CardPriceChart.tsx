@@ -15,23 +15,27 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
   const [points, setPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [autoRefreshed, setAutoRefreshed] = useState(false);
 
   const load = async () => {
     setLoading(true);
     const key = keyOf(name, tcgSet, tcgNumber);
+    // Last 6 months
+    const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 183).toISOString();
     const { data } = await supabase
       .from("card_price_history")
       .select("captured_at, market_price")
       .eq("card_key", key)
+      .gte("captured_at", since)
       .order("captured_at", { ascending: true })
-      .limit(180);
+      .limit(200);
     setPoints((data || []).filter((p: any) => p.market_price != null) as Point[]);
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber]);
+  useEffect(() => { setAutoRefreshed(false); load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber]);
 
-  const refresh = async () => {
+  const refresh = async (opts?: { silent?: boolean }) => {
     setRefreshing(true);
     try {
       const params = new URLSearchParams({ name });
@@ -43,13 +47,25 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
         { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
       );
       const j = await res.json();
-      if (j.ok) toast.success("Price refreshed");
-      else toast.error("Could not refresh");
+      if (!opts?.silent) {
+        if (j.ok) toast.success("Price refreshed");
+        else toast.error("Could not refresh");
+      }
       await load();
     } finally {
       setRefreshing(false);
     }
   };
+
+  // Auto-pull a fresh snapshot the first time a card is opened with no history.
+  useEffect(() => {
+    if (loading) return;
+    if (autoRefreshed) return;
+    if (points.length >= 2) return;
+    setAutoRefreshed(true);
+    refresh({ silent: true });
+    // eslint-disable-next-line
+  }, [loading, points.length, autoRefreshed]);
 
   if (loading) return <div className="h-24 rounded-lg bg-muted/40" />;
 
@@ -58,7 +74,7 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
       <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
         <div className="flex items-center justify-between">
           <span>Not enough price history yet. Updates daily.</span>
-          <button onClick={refresh} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
+          <button onClick={() => refresh()} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
             <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
           </button>
         </div>
@@ -82,7 +98,7 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
             {up ? "+" : ""}${delta.toFixed(2)} ({pct.toFixed(1)}%)
           </p>
         </div>
-        <button onClick={refresh} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
+        <button onClick={() => refresh()} disabled={refreshing} className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary disabled:opacity-50">
           <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
         </button>
       </div>
