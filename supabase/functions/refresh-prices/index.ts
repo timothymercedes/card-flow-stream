@@ -533,14 +533,15 @@ Deno.serve(async (req) => {
       pricing_details: price.raw,
     } as any;
 
-    const { data: vaultRows } = await supabase
+    let vaultUpdate = supabase
       .from("vault_cards")
       .update(update)
       .eq("name", id.name)
       .eq("price_locked", false)
-      .eq("status", "active")
-      .or(`tcg_set.eq.${id.set ?? ""},tcg_set.is.null`)
-      .select("id, user_id, estimated_value");
+      .neq("status", "sold")
+      .or(`tcg_set.eq.${id.set ?? ""},tcg_set.is.null`);
+    if (limitToUserId) vaultUpdate = vaultUpdate.eq("user_id", limitToUserId);
+    const { data: vaultRows } = await vaultUpdate.select("id, user_id, estimated_value");
 
     await supabase
       .from("listings")
