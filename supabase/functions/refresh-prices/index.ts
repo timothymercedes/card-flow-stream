@@ -135,6 +135,17 @@ function conditionMap(card: any, printing: string) {
   return m;
 }
 
+function conditionPricesFromMarket(market: number, raw?: any) {
+  const nm = Number(raw?.conditions?.["Near Mint"] ?? market) || 0;
+  if (!nm) return null;
+  return {
+    NM: Math.round(nm * 100) / 100,
+    LP: Math.round(Number(raw?.conditions?.["Lightly Played"] ?? nm * 0.85) * 100) / 100,
+    MP: Math.round(Number(raw?.conditions?.["Moderately Played"] ?? nm * 0.6) * 100) / 100,
+    Damaged: Math.max(0.5, Math.round(Number(raw?.conditions?.["Damaged"] ?? raw?.conditions?.["Heavily Played"] ?? nm * 0.25) * 100) / 100),
+  };
+}
+
 async function fetchJustTcg(
   name: string,
   set: string | null,
@@ -532,6 +543,8 @@ Deno.serve(async (req) => {
       market_price: price.market,
       price_low: price.low,
       price_high: price.high,
+      estimated_value: price.market,
+      condition_prices: conditionPricesFromMarket(price.market, price.raw),
       last_sold_price: price.market,
       price_source: price.source,
       price_source_url: price.source_url,
