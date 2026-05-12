@@ -1164,10 +1164,10 @@ function Vault() {
           </div>
         )}
 
-        {/* Search */}
+        {/* Search + view mode */}
         {cards.length > 0 && (
-          <div className="relative mb-3">
-            <div className="flex items-center gap-2 rounded-xl bg-input px-3 py-2">
+          <div className="relative mb-3 flex items-stretch gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl bg-input px-3 py-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 value={query}
@@ -1188,9 +1188,46 @@ function Vault() {
                 {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
             </div>
-            {showSuggest && suggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                {suggestions.map((s) => (
+            {/* View mode dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setViewMenu((v) => !v)}
+                aria-label="Change view"
+                className="flex h-full items-center gap-1 rounded-xl bg-input px-3 text-xs font-semibold text-foreground"
+              >
+                {viewMode === "small" && <Grid3x3 className="h-4 w-4" />}
+                {viewMode === "grid" && <LayoutGrid className="h-4 w-4" />}
+                {viewMode === "large" && <Rows className="h-4 w-4" />}
+                {viewMode === "list" && <List className="h-4 w-4" />}
+              </button>
+              {viewMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setViewMenu(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+                    {([
+                      { id: "small", label: "Small", icon: Grid3x3 },
+                      { id: "grid", label: "Grid", icon: LayoutGrid },
+                      { id: "large", label: "Large", icon: Rows },
+                      { id: "list", label: "List", icon: List },
+                    ] as const).map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => { setViewMode(id); setViewMenu(false); }}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted ${viewMode === id ? "bg-muted font-bold" : ""}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" /> {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {cards.length > 0 && showSuggest && suggestions.length > 0 && (
+          <div className="relative -mt-2 mb-3">
+            <div className="absolute left-0 right-0 top-0 z-10 overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+              {suggestions.map((s) => (
                   <button
                     key={s}
                     onMouseDown={(e) => { e.preventDefault(); setQuery(s); setShowSuggest(false); }}
