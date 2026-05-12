@@ -86,6 +86,22 @@ function mapPokeCard(c: any): FinderCard {
   };
 }
 
+function mapPriceMatch(m: any, index: number): FinderCard | null {
+  const name = String(m?.name || "").trim();
+  if (!name) return null;
+  return {
+    id: `price-${m?.set || "set"}-${m?.tcg_number || index}-${index}`,
+    name,
+    set: m?.set || undefined,
+    number: m?.tcg_number || undefined,
+    rarity: m?.rarity || undefined,
+    year: m?.year || undefined,
+    image_small: m?.image_url || undefined,
+    image_large: m?.image_url || undefined,
+    tcgplayer_price: Number(m?.estimated_value || 0) || undefined,
+  };
+}
+
 export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) {
   const [name, setName] = useState(initialQuery);
   const [setQuery, setSetQuery] = useState("");
