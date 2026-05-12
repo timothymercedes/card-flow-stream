@@ -1459,8 +1459,8 @@ function Vault() {
 
       {/* Edit modal */}
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setEditing(null)}>
-          <div className="w-full max-w-md space-y-2 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/70 p-4" onClick={() => setEditing(null)}>
+          <div className="my-4 max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-2 overflow-y-auto rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <p className="font-bold">Edit card</p>
               <button onClick={() => setEditing(null)}><X className="h-4 w-4" /></button>
