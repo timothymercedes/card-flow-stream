@@ -904,12 +904,14 @@ export function CardScanner({
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => onAction("inventory", pending)}
+                disabled={requiresManualConfirmation(pending)}
                 className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
               >
                 <Package className="h-4 w-4" /> Add to Inventory
               </button>
               <button
                 onClick={() => onAction("list", pending)}
+                disabled={requiresManualConfirmation(pending)}
                 className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-3 text-sm font-extrabold text-black"
               >
                 <Tag className="h-4 w-4" /> List for Sale
@@ -943,6 +945,7 @@ export function CardScanner({
               </button>
               <button
                 onClick={confirmResult}
+                disabled={requiresManualConfirmation(pending)}
                 className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
               >
                 <Check className="h-4 w-4" /> Confirm & save
