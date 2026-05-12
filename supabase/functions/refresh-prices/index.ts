@@ -323,6 +323,7 @@ async function fetchTcgPrice(
   const cleanName = name.replace(/"/g, "");
   const cleanSet = (set || "").replace(/"/g, "");
   const cleanNumber = firstCardNumber(number);
+  const numberIsSpecific = hasFullCardNumber(number) || !!cleanSet;
   const apiKey = Deno.env.get("POKEMONTCG_API_KEY");
 
   const queries: string[] = [];
@@ -359,8 +360,9 @@ async function fetchTcgPrice(
     const cn = (c.name || "").toLowerCase();
     const cnum = firstCardNumber(c.number);
     const cset = norm(c?.set?.name);
-    if (cleanNumber && cnum === cleanNumber) s += 60;
-    else if (cleanNumber && (c.number || "").includes(cleanNumber)) s += 25;
+    if (cleanNumber && numberIsSpecific && cnum === cleanNumber) s += 60;
+    else if (cleanNumber && numberIsSpecific && (c.number || "").includes(cleanNumber)) s += 25;
+    else if (cleanNumber && cnum === cleanNumber) s += 8;
     if (cn === targetName) s += 10;
     else if (cn.startsWith(targetName)) s += 4;
     else s += tokenScore(cn, targetName) * 3;
@@ -378,8 +380,8 @@ async function fetchTcgPrice(
       const cn = norm(x.card?.name);
       const tn = norm(targetName);
       const nameClose = !tn || cn === tn || cn.startsWith(`${tn} `) || tokenScore(cn, tn) >= 0.5;
-      const exactSetNumber = !!cleanNumber && firstCardNumber(x.card.number) === cleanNumber && targetSet && setMatchScore(x.card?.set?.name, targetSet) >= 20;
-      return (nameClose || exactSetNumber) && (!cleanNumber || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
+      const exactSetNumber = !!cleanNumber && numberIsSpecific && firstCardNumber(x.card.number) === cleanNumber && targetSet && setMatchScore(x.card?.set?.name, targetSet) >= 20;
+      return (nameClose || exactSetNumber) && (!cleanNumber || !numberIsSpecific || firstCardNumber(x.card.number) === cleanNumber || x.score >= 45);
     })
     .sort((a, b) => b.score - a.score);
   if (!ranked.length) return null;
