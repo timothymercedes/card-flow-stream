@@ -1449,7 +1449,7 @@ function Vault() {
               <Tag className="h-4 w-4" /> Sell this card
             </button>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { setEditing(actionFor); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
+              <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
                 <Pencil className="h-4 w-4" /> Edit
               </button>
               <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
