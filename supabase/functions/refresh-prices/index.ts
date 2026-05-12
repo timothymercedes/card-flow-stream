@@ -213,6 +213,7 @@ async function fetchJustTcg(
     const cn = (c.name || "").toLowerCase();
     const cnum = firstCardNumber(c.number);
     const cset = norm(c.set_name);
+    const bestPrice = Math.max(0, ...(c.variants || []).map((v: any) => Number(v?.price) || 0));
     if (cleanNumber && numberIsSpecific && cnum === cleanNumber) s += 60;
     else if (cleanNumber && numberIsSpecific && (c.number || "").includes(cleanNumber)) s += 25;
     else if (cleanNumber && cnum === cleanNumber) s += 8;
@@ -222,6 +223,7 @@ async function fetchJustTcg(
     if (targetSet) s += setMatchScore(cset, targetSet);
     if (targetRarity && (c.rarity || "").toLowerCase().includes(targetRarity.split(" ")[0])) s += 3;
     if ((c.variants || []).some((v: any) => v.price > 0)) s += 3;
+    if (!numberIsSpecific && !targetSet && bestPrice > 0) s += Math.min(18, Math.log10(bestPrice + 1) * 7);
     return s;
   }
   const scored = candidates
@@ -250,7 +252,10 @@ async function fetchJustTcg(
 
   // Fetch images in parallel from pokemontcg.io
   const images = await Promise.all(
-    slice.map((x) => fetchPokemonImage(x.c?.set_name || "", x.c?.number || ""))
+    slice.map(async (x) => {
+      const img = await fetchPokemonImage(x.c?.set_name || "", x.c?.number || "");
+      return img.small || img.large ? img : scryDexPokemonImage(x.c?.set || "", x.c?.number || "");
+    })
   );
 
   const topV = top.v!;
