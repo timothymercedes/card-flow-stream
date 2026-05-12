@@ -309,7 +309,7 @@ export function CardScanner({
           toast.error("No cards detected — try better lighting or fewer cards");
         } else {
           setBatch(cards);
-          setSelected(new Set(cards.map((_, i) => i))); // pre-select all
+          setSelected(new Set(cards.map((c, i) => (requiresManualConfirmation(c) ? -1 : i)).filter((i) => i >= 0))); // only pre-select safe matches
           // stop camera while reviewing
           stopScannerCamera();
         }
