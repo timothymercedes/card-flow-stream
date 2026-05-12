@@ -1425,7 +1425,10 @@ function Vault() {
               </div>
               <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" />
             </div>
-            <button onClick={saveEdit} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save changes</button>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={saveEdit} className="rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save changes</button>
+              <button onClick={verifyWithTcg} className="rounded-lg bg-emerald-500/20 py-2 text-sm font-bold text-emerald-400 hover:bg-emerald-500/30">Verify with TCG</button>
+            </div>
           </div>
         </div>
       )}
