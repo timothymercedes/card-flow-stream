@@ -1236,8 +1236,7 @@ function Vault() {
                     <Search className="mr-2 inline h-3 w-3 text-muted-foreground" />{s}
                   </button>
                 ))}
-              </div>
-            )}
+            </div>
           </div>
         )}
 
