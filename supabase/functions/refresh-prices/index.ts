@@ -465,11 +465,8 @@ Deno.serve(async (req) => {
     const isAdmin = await userHasAdminRole(auth.userId);
     if (!isAdmin) {
       if (!singleName) return new Response(JSON.stringify({ error: "Admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      let owned = supabase.from("vault_cards").select("id").eq("user_id", auth.userId).eq("name", singleName).neq("status", "sold").limit(1);
-      if (singleSet) owned = owned.eq("tcg_set", singleSet);
-      if (singleNumber) owned = owned.eq("tcg_number", singleNumber);
-      const { data: ownedRows } = await owned;
-      if (!ownedRows?.length) return new Response(JSON.stringify({ error: "Card not found in your vault" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Signed-in users may price-check a card before saving it. Any database
+      // updates below are still scoped to their own vault only.
       limitToUserId = auth.userId;
     }
   }
