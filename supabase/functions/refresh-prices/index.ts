@@ -66,6 +66,7 @@ function setMatchScore(cardSet: string, targetSet: string) {
 }
 
 function pickPriceVariant(prices: any, rarity: string | null, variantHint: string | null) {
+  const hint = norm(variantHint);
   const want = norm(`${variantHint || ""} ${rarity || ""}`);
   const entries = [
     ["normal", prices?.normal],
@@ -79,9 +80,9 @@ function pickPriceVariant(prices: any, rarity: string | null, variantHint: strin
   // hint. Never force "normal" just because the AI guessed Common/Uncommon —
   // that's the #1 cause of $0.25 prices on $80 holo cards. Default = highest.
   const explicitVariant =
-    /reverse/.test(variantHint || "") ? entries.find(([k]) => k === "reverseHolofoil") :
-    /1st|first/.test(variantHint || "") ? entries.find(([k]) => k === "1stEditionHolofoil") :
-    /\bnon ?holo|standard|^normal$/.test(variantHint || "") ? entries.find(([k]) => k === "normal") :
+    /reverse/.test(hint) ? entries.find(([k]) => k === "reverseHolofoil") :
+    /1st|first/.test(hint) ? entries.find(([k]) => k === "1stEditionHolofoil") :
+    /\bnon ?holo\b|^normal$/.test(hint) ? entries.find(([k]) => k === "normal") :
     /holo|foil|alt art|full art|secret|illustration|rainbow|amazing/.test(want) ?
       (entries.find(([k]) => k === "holofoil") || entries.find(([k]) => k === "unlimitedHolofoil") || entries.find(([k]) => k === "1stEditionHolofoil")) :
     null;
@@ -106,14 +107,15 @@ async function fetchPokemonImage(setName: string, number: string) {
 }
 
 function pickJtVariant(card: any, variantHint: string | null, rarity: string | null) {
-  const want = `${variantHint || ""} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
+  const hint = `${variantHint || ""}`.toLowerCase();
+  const want = `${hint} ${rarity || ""} ${card?.rarity || ""}`.toLowerCase();
   const all = (card?.variants || []).filter((v: any) => v?.price > 0 && (v?.language || "English") === "English");
   if (!all.length) return null;
   const nm = all.filter((v: any) => v.condition === "Near Mint");
   const pool = nm.length ? nm : all;
-  const wantReverse = /reverse/.test(want);
+  const wantReverse = /reverse/.test(hint);
   const wantHolo = !wantReverse && /(holo|foil|ultra|secret|illustration|alt art|full art|amazing|rainbow)/.test(want);
-  const wantNormal = /(non ?holo|standard|^normal$|common|uncommon)/.test(want);
+  const wantNormal = /\bnon ?holo\b|^normal$/.test(hint);
   let pick =
     wantReverse ? pool.find((v: any) => /reverse/i.test(v.printing)) :
     wantHolo ? pool.find((v: any) => /holo/i.test(v.printing) && !/reverse/i.test(v.printing)) :
@@ -131,6 +133,17 @@ function conditionMap(card: any, printing: string) {
     }
   }
   return m;
+}
+
+function conditionPricesFromMarket(market: number, raw?: any) {
+  const nm = Number(raw?.conditions?.["Near Mint"] ?? market) || 0;
+  if (!nm) return null;
+  return {
+    NM: Math.round(nm * 100) / 100,
+    LP: Math.round(Number(raw?.conditions?.["Lightly Played"] ?? nm * 0.85) * 100) / 100,
+    MP: Math.round(Number(raw?.conditions?.["Moderately Played"] ?? nm * 0.6) * 100) / 100,
+    Damaged: Math.max(0.5, Math.round(Number(raw?.conditions?.["Damaged"] ?? raw?.conditions?.["Heavily Played"] ?? nm * 0.25) * 100) / 100),
+  };
 }
 
 async function fetchJustTcg(
@@ -452,11 +465,8 @@ Deno.serve(async (req) => {
     const isAdmin = await userHasAdminRole(auth.userId);
     if (!isAdmin) {
       if (!singleName) return new Response(JSON.stringify({ error: "Admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      let owned = supabase.from("vault_cards").select("id").eq("user_id", auth.userId).eq("name", singleName).neq("status", "sold").limit(1);
-      if (singleSet) owned = owned.eq("tcg_set", singleSet);
-      if (singleNumber) owned = owned.eq("tcg_number", singleNumber);
-      const { data: ownedRows } = await owned;
-      if (!ownedRows?.length) return new Response(JSON.stringify({ error: "Card not found in your vault" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // Signed-in users may price-check a card before saving it. Any database
+      // updates below are still scoped to their own vault only.
       limitToUserId = auth.userId;
     }
   }
@@ -530,6 +540,8 @@ Deno.serve(async (req) => {
       market_price: price.market,
       price_low: price.low,
       price_high: price.high,
+      estimated_value: price.market,
+      condition_prices: conditionPricesFromMarket(price.market, price.raw),
       last_sold_price: price.market,
       price_source: price.source,
       price_source_url: price.source_url,
