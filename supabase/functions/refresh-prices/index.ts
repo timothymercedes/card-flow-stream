@@ -426,17 +426,6 @@ async function fetchTcgPrice(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Allow either: CRON_SECRET (server-to-server), or admin/owner user JWT.
-  const cronSecret = Deno.env.get("CRON_SECRET");
-  const providedCron = req.headers.get("x-cron-secret");
-  const isCron = !!cronSecret && !!providedCron && providedCron === cronSecret;
-  if (!isCron) {
-    const auth = await verifyUser(req);
-    if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const isAdmin = await userHasAdminRole(auth.userId);
-    if (!isAdmin) return new Response(JSON.stringify({ error: "Admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -445,14 +434,36 @@ Deno.serve(async (req) => {
   // Optional: single-card refresh via ?name=&set=&number=
   const url = new URL(req.url);
   const singleName = url.searchParams.get("name");
+  const singleSet = url.searchParams.get("set");
+  const singleNumber = url.searchParams.get("number");
+
+  // Allow either: CRON_SECRET, admin/owner JWT, or a signed-in user refreshing their own vault card.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const providedCron = req.headers.get("x-cron-secret");
+  const isCron = !!cronSecret && !!providedCron && providedCron === cronSecret;
+  let limitToUserId: string | null = null;
+  if (!isCron) {
+    const auth = await verifyUser(req);
+    if (!auth.ok) return new Response(JSON.stringify({ error: auth.error }), { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const isAdmin = await userHasAdminRole(auth.userId);
+    if (!isAdmin) {
+      if (!singleName) return new Response(JSON.stringify({ error: "Admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      let owned = supabase.from("vault_cards").select("id").eq("user_id", auth.userId).eq("name", singleName).neq("status", "sold").limit(1);
+      if (singleSet) owned = owned.eq("tcg_set", singleSet);
+      if (singleNumber) owned = owned.eq("tcg_number", singleNumber);
+      const { data: ownedRows } = await owned;
+      if (!ownedRows?.length) return new Response(JSON.stringify({ error: "Card not found in your vault" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      limitToUserId = auth.userId;
+    }
+  }
 
   let identities: { name: string; set: string | null; number: string | null; rarity: string | null; variant: string | null }[] = [];
 
   if (singleName) {
     identities = [{
       name: singleName,
-      set: url.searchParams.get("set"),
-      number: url.searchParams.get("number"),
+      set: singleSet,
+      number: singleNumber,
       rarity: url.searchParams.get("rarity"),
       variant: url.searchParams.get("variant"),
     }];
@@ -461,7 +472,7 @@ Deno.serve(async (req) => {
       .from("vault_cards")
       .select("name, tcg_set, tcg_number")
       .eq("price_locked", false)
-      .eq("status", "active")
+      .neq("status", "sold")
       .limit(MAX_CARDS_PER_RUN);
     const { data: ls } = await supabase
       .from("listings")
