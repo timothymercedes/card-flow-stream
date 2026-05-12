@@ -177,6 +177,65 @@ export function CardScanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing, pending, batch, captured]);
 
+  function conditionPricesForMarket(market: number, raw?: any) {
+    const nm = Number(raw?.conditions?.["Near Mint"] ?? market) || 0;
+    return {
+      NM: Math.round(nm * 100) / 100,
+      LP: Math.round(Number(raw?.conditions?.["Lightly Played"] ?? nm * 0.85) * 100) / 100,
+      MP: Math.round(Number(raw?.conditions?.["Moderately Played"] ?? nm * 0.6) * 100) / 100,
+      Damaged: Math.max(0.5, Math.round(Number(raw?.conditions?.["Damaged"] ?? raw?.conditions?.["Heavily Played"] ?? nm * 0.25) * 100) / 100),
+    };
+  }
+
+  async function enrichWithMarketPrice(result: ScanResult): Promise<ScanResult> {
+    const hasEnoughId = !!result.name && result.name !== "Unknown Card";
+    if (!hasEnoughId) return result;
+    try {
+      const params = new URLSearchParams({ name: result.name });
+      if (result.set) params.set("set", result.set);
+      if (result.tcg_number) params.set("number", result.tcg_number);
+      const rarityConf = result.confidence?.variant ?? result.confidence?.set ?? 0;
+      if (result.rarity && rarityConf >= 0.85) params.set("rarity", result.rarity);
+      if (result.variant && (result.confidence?.variant ?? 0) >= 0.85) params.set("variant", result.variant);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`, {
+        headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
+      });
+      const j = await r.json();
+      if (j?.price?.market == null) return result;
+      const market = Number(j.price.market);
+      const next: ScanResult = {
+        ...result,
+        estimated_value: market,
+        condition_prices: conditionPricesForMarket(market, j.price.raw),
+        price_source: j.price.source,
+        price_source_url: j.price.source_url,
+        price_low: j.price.low,
+        price_high: j.price.high,
+      };
+      const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches.slice(1) : j.price.alternatives;
+      if (Array.isArray(matches) && matches.length) next.alternatives = matches;
+      const c = j.price.canonical;
+      if (c && Number(c.match_score || 0) >= 90) {
+        if (c.name) next.name = c.name;
+        if (c.set) next.set = c.set;
+        if (c.number) next.tcg_number = c.number;
+        if (c.rarity) next.rarity = c.rarity;
+        if (c.year) next.year = c.year;
+        if (c.image_large || c.image_small) next.reference_image = c.image_large || c.image_small;
+        next.overall_confidence = Math.max(next.overall_confidence ?? 0, 0.95);
+        next.match_label = "Database Match";
+        next.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
+      } else {
+        next.match_label = "Price estimated — tap a similar card if the picture is wrong";
+      }
+      return next;
+    } catch {
+      return result;
+    }
+  }
+
   async function capture(externalDataUrl?: string) {
     if (capturingRef.current) return;
     if (!externalDataUrl && !videoRef.current) return;
