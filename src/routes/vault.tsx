@@ -93,7 +93,9 @@ function Vault() {
   function needsOfficialCardImage(url?: string | null) {
     if (!url) return true;
     const u = url.toLowerCase();
-    return u.startsWith("data:image") || u.includes("images.unsplash.com") || u.includes("/storage/v1/object/public/vault-images/") || u.includes("generate-card-image");
+    // Never replace a user's actual scan/upload with a guessed catalog image.
+    // Bad OCR on a card number can otherwise swap the photo to the wrong card.
+    return u.includes("images.unsplash.com") || u.includes("generate-card-image");
   }
 
   function conditionPricesFromMarket(price?: number): ConditionPrices | null {
