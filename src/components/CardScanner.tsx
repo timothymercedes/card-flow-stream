@@ -1014,6 +1014,8 @@ export function CardScanner({
           )}
 
           {pending.scan_debug && <ScanDebugPanel debug={pending.scan_debug} result={pending} />}
+
+          {(lowConf(pending.confidence?.set) ||
             lowConf(pending.confidence?.year) ||
             lowConf(pending.confidence?.tcg_number)) && (
             <div className="rounded-lg bg-yellow-500/15 px-3 py-2 text-[11px] text-yellow-200">
