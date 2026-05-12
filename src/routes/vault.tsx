@@ -855,6 +855,61 @@ function Vault() {
     load();
   }
 
+  // Verify the edited card against TCG sources and re-price using the new name/set/number.
+  async function verifyWithTcg() {
+    if (!editing) return;
+    const t = toast.loading("Verifying with TCG…");
+    try {
+      // Persist user edits first so the verified value sits on top of the right card.
+      await supabase.from("vault_cards").update({
+        name: editing.name,
+        category: editing.category,
+        tcg_number: editing.tcg_number || null,
+        tcg_set: editing.tcg_set || null,
+        tcg_year: editing.tcg_year || null,
+        condition: editing.condition || null,
+        description: editing.description,
+      }).eq("id", editing.id);
+
+      const matches = await fetchRealCardMatches({
+        name: editing.name,
+        set: editing.tcg_set || undefined,
+        number: editing.tcg_number || undefined,
+        category: editing.category || undefined,
+      });
+      const best = matches[0];
+      if (!best) {
+        toast.error("No TCG match found — check name, set, and card #", { id: t });
+        return;
+      }
+      const v = parseVariant(editing.description);
+      const langCode = parseLanguage(editing.description);
+      const mult = langMult(langCode);
+      const raw = priceFromVariant(best.tcgPrices, v.edition, v.finish) ?? best.price;
+      const variantPrice = raw != null ? Number(raw) * mult : raw;
+      const cp = conditionPricesFromMarket(variantPrice) || editing.condition_prices || null;
+      const newValue = cp
+        ? priceFor((editing.condition || "NM") as Condition, Number(cp.NM) || Number(variantPrice) || 0, cp)
+        : Number(variantPrice) || editing.estimated_value;
+      const patch: any = {
+        estimated_value: newValue,
+        condition_prices: cp,
+        image_url: editing.image_url || best.image || null,
+        tcg_set: editing.tcg_set || best.set || null,
+        tcg_number: editing.tcg_number || best.number || null,
+        tcg_year: editing.tcg_year || best.year || null,
+        last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch).eq("id", editing.id);
+      if (error) { toast.error(error.message, { id: t }); return; }
+      toast.success(`Verified • $${Number(newValue).toFixed(2)}`, { id: t });
+      setEditing({ ...editing, ...patch });
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Verify failed", { id: t });
+    }
+  }
+
   // 🆕 Auto-save the scanned card immediately (with retry) instead of dropping into a form.
   // The scanner already shows a confirm/edit step before calling this.
   async function onScanResult(r: {
