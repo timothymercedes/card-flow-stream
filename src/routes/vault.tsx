@@ -845,16 +845,19 @@ function Vault() {
     if (editing.condition_prices) {
       newValue = priceFor((editing.condition || "NM") as Condition, Number(editing.condition_prices.NM || editing.estimated_value || 0), editing.condition_prices);
     }
-    const { error } = await supabase.from("vault_cards").update({
+    const patch = {
       name: editing.name, category: editing.category, image_url: editing.image_url,
       back_image_url: editing.back_image_url || null,
       description: editing.description,
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
-      
       estimated_value: newValue,
-    }).eq("id", editing.id);
+    };
+    setCards((prev) => prev.map((c) => (c.id === editing.id ? { ...c, ...patch } : c)));
+    setActionFor((prev) => (prev && prev.id === editing.id ? { ...prev, ...patch } : prev));
+    const { error, data } = await supabase.from("vault_cards").update(patch).eq("id", editing.id).select("id").single();
+    if (!data && !error) return toast.error("Save did not update this card. Please reopen the vault and try again.");
     if (error) return toast.error(error.message);
     toast.success("Saved");
     setEditing(null);
