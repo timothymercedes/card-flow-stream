@@ -838,6 +838,12 @@ export function CardScanner({
             </div>
           </div>
 
+          {requiresManualConfirmation(pending) && (
+            <div className="rounded-xl bg-red-500/15 p-3 text-[12px] font-semibold text-red-100 ring-1 ring-red-400/40">
+              Not safe to auto-save yet. Choose the exact card image below or use “Find it manually” so the vault doesn’t save the wrong picture or price.
+            </div>
+          )}
+
           {/* Similar database matches */}
           {(pending.alternatives?.length ?? 0) > 0 && (
             <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
