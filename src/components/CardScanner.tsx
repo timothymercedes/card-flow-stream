@@ -212,19 +212,21 @@ export function CardScanner({
       const j = await r.json();
       if (j?.price?.market == null) return result;
       const market = Number(j.price.market);
-      const next: ScanResult = {
-        ...result,
-        estimated_value: market,
-        condition_prices: conditionPricesForMarket(market, j.price.raw),
-        price_source: j.price.source,
-        price_source_url: j.price.source_url,
-        price_low: j.price.low,
-        price_high: j.price.high,
-      };
-      const matches = Array.isArray(j.price.matches) && j.price.matches.length ? j.price.matches.slice(1) : j.price.alternatives;
-      if (Array.isArray(matches) && matches.length) next.alternatives = matches;
       const c = j.price.canonical;
       const trustedDatabaseIdentity = c && Number(c.match_score || 0) >= 90 && (setReliable || numberReliable);
+      const next: ScanResult = {
+        ...result,
+        estimated_value: trustedDatabaseIdentity ? market : 0,
+        condition_prices: trustedDatabaseIdentity ? conditionPricesForMarket(market, j.price.raw) : undefined,
+        price_source: trustedDatabaseIdentity ? j.price.source : undefined,
+        price_source_url: trustedDatabaseIdentity ? j.price.source_url : undefined,
+        price_low: trustedDatabaseIdentity ? j.price.low : undefined,
+        price_high: trustedDatabaseIdentity ? j.price.high : undefined,
+      };
+      const matches = Array.isArray(j.price.matches) && j.price.matches.length
+        ? (trustedDatabaseIdentity ? j.price.matches.slice(1) : j.price.matches)
+        : j.price.alternatives;
+      if (Array.isArray(matches) && matches.length) next.alternatives = matches;
       if (trustedDatabaseIdentity) {
         if (c.name) next.name = c.name;
         if (c.set) next.set = c.set;
@@ -236,6 +238,8 @@ export function CardScanner({
         next.match_label = "Database Match";
         next.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
       } else {
+        next.reference_image = undefined;
+        next.overall_confidence = Math.min(next.overall_confidence ?? 0.6, 0.69);
         next.match_label = "Needs confirmation — tap the correct picture before saving";
       }
       return next;
