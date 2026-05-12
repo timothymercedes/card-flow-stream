@@ -15,21 +15,25 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
   const [points, setPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [autoRefreshed, setAutoRefreshed] = useState(false);
 
   const load = async () => {
     setLoading(true);
     const key = keyOf(name, tcgSet, tcgNumber);
+    // Last 6 months
+    const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 183).toISOString();
     const { data } = await supabase
       .from("card_price_history")
       .select("captured_at, market_price")
       .eq("card_key", key)
+      .gte("captured_at", since)
       .order("captured_at", { ascending: true })
-      .limit(180);
+      .limit(200);
     setPoints((data || []).filter((p: any) => p.market_price != null) as Point[]);
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber]);
+  useEffect(() => { setAutoRefreshed(false); load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber]);
 
   const refresh = async () => {
     setRefreshing(true);
