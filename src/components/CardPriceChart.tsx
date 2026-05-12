@@ -94,6 +94,11 @@ export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue }: Props)
 
   const first = chartPoints[0].market_price;
   const last = chartPoints[chartPoints.length - 1].market_price;
+  const values = chartPoints.map((p) => Number(p.market_price || 0));
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const pad = Math.max(1, (maxValue - minValue) * 0.2);
+  const yDomain: [number, number] = minValue === maxValue ? [minValue - pad, maxValue + pad] : [minValue - pad, maxValue + pad];
   const delta = last - first;
   const pct = first > 0 ? (delta / first) * 100 : 0;
   const up = delta >= 0;
@@ -116,7 +121,7 @@ export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue }: Props)
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartPoints} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
             <XAxis dataKey="captured_at" hide />
-            <YAxis hide domain={["auto", "auto"]} />
+            <YAxis hide domain={yDomain} />
             <Tooltip
               contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11 }}
               labelFormatter={(v) => new Date(v).toLocaleDateString()}
