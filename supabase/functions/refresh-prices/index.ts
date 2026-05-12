@@ -478,6 +478,23 @@ async function fetchTcgPrice(
       image_url: x.card?.images?.small ?? x.card?.images?.large ?? "",
     })),
     raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity, matchScore },
+    debug: {
+      source: "pokemontcg.io",
+      query_input: { name: cleanName, set: cleanSet || null, number: cleanNumber || null, numberIsSpecific, rarity: rarity || null, variantHint: variantHint || null },
+      queries_tried: queries,
+      candidate_count: candidates.length,
+      top_candidates: ranked.slice(0, 8).map((x: any) => ({
+        name: x.card?.name,
+        set: x.card?.set?.name,
+        number: x.card?.number,
+        rarity: x.card?.rarity,
+        variant: x.picked?.key,
+        price: Number(x.picked?.value?.market ?? x.picked?.value?.mid ?? 0),
+        score: Math.round(x.score * 100) / 100,
+      })),
+      chosen: { name: card.name, set: card?.set?.name, number: card.number, variant: variantKey, price: market, score: matchScore },
+      price_logic: `Variant=${variantKey} market=$${market} | low=$${variant.low ?? "?"} mid=$${variant.mid ?? "?"} high=$${variant.high ?? "?"}`,
+    },
   };
 }
 
