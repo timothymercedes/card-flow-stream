@@ -919,36 +919,31 @@ export function CardScanner({
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => handleAction("inventory")}
-                disabled={requiresManualConfirmation(pending)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-3 text-sm font-extrabold text-white"
               >
                 <Package className="h-4 w-4" /> Add to Inventory
               </button>
               <button
                 onClick={() => handleAction("list")}
-                disabled={requiresManualConfirmation(pending)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-3 text-sm font-extrabold text-black disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-3 text-sm font-extrabold text-black"
               >
                 <Tag className="h-4 w-4" /> List for Sale
               </button>
               <button
                 onClick={() => handleAction("auction")}
-                disabled={requiresManualConfirmation(pending)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
               >
                 <Gavel className="h-4 w-4" /> Start Auction
               </button>
               <button
                 onClick={() => handleAction("offer")}
-                disabled={requiresManualConfirmation(pending)}
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-primary/20 py-3 text-sm font-bold text-primary disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-primary/20 py-3 text-sm font-bold text-primary"
               >
                 <Tag className="h-4 w-4" /> Make Offer
               </button>
               <button
                 onClick={() => handleAction("draft")}
-                disabled={requiresManualConfirmation(pending)}
-                className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white disabled:opacity-50"
+                className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 py-3 text-sm font-bold text-white"
               >
                 <Save className="h-4 w-4" /> Save Draft
               </button>
