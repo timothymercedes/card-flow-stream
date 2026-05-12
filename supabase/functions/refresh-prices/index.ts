@@ -540,16 +540,20 @@ Deno.serve(async (req) => {
       variant: url.searchParams.get("variant"),
     }];
   } else {
-    const { data: vc } = await supabase
+    const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+    const pageSize = Math.min(2000, Math.max(50, Number(url.searchParams.get("limit") || MAX_CARDS_PER_RUN)));
+    const includeLocked = url.searchParams.get("includeLocked") === "1";
+    let vcq = supabase
       .from("vault_cards")
       .select("name, tcg_set, tcg_number")
-      .eq("price_locked", false)
       .neq("status", "sold")
-      .limit(MAX_CARDS_PER_RUN);
+      .range(offset, offset + pageSize - 1);
+    if (!includeLocked) vcq = vcq.eq("price_locked", false);
+    const { data: vc } = await vcq;
     const { data: ls } = await supabase
       .from("listings")
       .select("name, tcg_set, tcg_number")
-      .limit(MAX_CARDS_PER_RUN);
+      .range(offset, offset + pageSize - 1);
     const seen = new Set<string>();
     for (const r of [...(vc || []), ...(ls || [])]) {
       const k = keyOf(r.name, r.tcg_set, r.tcg_number);
