@@ -157,7 +157,10 @@ export function CardScanner({
         } catch (err: any) {
           // Ignore AbortError / "interrupted" errors caused by rapid effect
           // re-runs (camera flip, unmount). Surface real failures only.
-          if (err?.name !== "AbortError" && !/interrupted|removed from the document/i.test(err?.message || "")) {
+          if (
+            err?.name !== "AbortError" &&
+            !/interrupted|removed from the document/i.test(err?.message || "")
+          ) {
             throw err;
           }
         }
@@ -183,7 +186,13 @@ export function CardScanner({
       NM: Math.round(nm * 100) / 100,
       LP: Math.round(Number(raw?.conditions?.["Lightly Played"] ?? nm * 0.85) * 100) / 100,
       MP: Math.round(Number(raw?.conditions?.["Moderately Played"] ?? nm * 0.6) * 100) / 100,
-      Damaged: Math.max(0.5, Math.round(Number(raw?.conditions?.["Damaged"] ?? raw?.conditions?.["Heavily Played"] ?? nm * 0.25) * 100) / 100),
+      Damaged: Math.max(
+        0.5,
+        Math.round(
+          Number(raw?.conditions?.["Damaged"] ?? raw?.conditions?.["Heavily Played"] ?? nm * 0.25) *
+            100,
+        ) / 100,
+      ),
     };
   }
 
@@ -203,29 +212,44 @@ export function CardScanner({
       params.set("scanConfidence", String(overall || 0));
       const rarityConf = result.confidence?.variant ?? result.confidence?.set ?? 0;
       if (result.rarity && rarityConf >= 0.85) params.set("rarity", result.rarity);
-      if (result.variant && (result.confidence?.variant ?? 0) >= 0.85) params.set("variant", result.variant);
-      const { data: { session } } = await supabase.auth.getSession();
+      if (result.variant && (result.confidence?.variant ?? 0) >= 0.85)
+        params.set("variant", result.variant);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`, {
-        headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
-      });
+      const r = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       const j = await r.json();
       if (j?.price?.market == null) return result;
       const market = Number(j.price.market);
       const c = j.price.canonical;
-      const trustedDatabaseIdentity = c && Number(c.match_score || 0) >= 90 && (setReliable || numberReliable);
+      const trustedDatabaseIdentity =
+        c && Number(c.match_score || 0) >= 90 && (setReliable || numberReliable);
       const next: ScanResult = {
         ...result,
         estimated_value: trustedDatabaseIdentity ? market : 0,
-        condition_prices: trustedDatabaseIdentity ? conditionPricesForMarket(market, j.price.raw) : undefined,
+        condition_prices: trustedDatabaseIdentity
+          ? conditionPricesForMarket(market, j.price.raw)
+          : undefined,
         price_source: trustedDatabaseIdentity ? j.price.source : undefined,
         price_source_url: trustedDatabaseIdentity ? j.price.source_url : undefined,
         price_low: trustedDatabaseIdentity ? j.price.low : undefined,
         price_high: trustedDatabaseIdentity ? j.price.high : undefined,
       };
-      const matches = Array.isArray(j.price.matches) && j.price.matches.length
-        ? (trustedDatabaseIdentity ? j.price.matches.slice(1) : j.price.matches)
-        : j.price.alternatives;
+      const matches =
+        Array.isArray(j.price.matches) && j.price.matches.length
+          ? trustedDatabaseIdentity
+            ? j.price.matches.slice(1)
+            : j.price.matches
+          : j.price.alternatives;
       if (Array.isArray(matches) && matches.length) next.alternatives = matches;
       if (trustedDatabaseIdentity) {
         if (c.name) next.name = c.name;
@@ -299,22 +323,33 @@ export function CardScanner({
       }
 
       if (multi) {
-        const cards: ScanResult[] =
-          await Promise.all(((data as any)?.cards || []).map((c: any) => enrichWithMarketPrice({
-            ...c,
-            image: dataUrl,
-            language: c.language || language,
-          })));
+        const cards: ScanResult[] = await Promise.all(
+          ((data as any)?.cards || []).map((c: any) =>
+            enrichWithMarketPrice({
+              ...c,
+              image: dataUrl,
+              language: c.language || language,
+            }),
+          ),
+        );
         if (cards.length === 0) {
           toast.error("No cards detected — try better lighting or fewer cards");
         } else {
           setBatch(cards);
-          setSelected(new Set(cards.map((c, i) => (requiresManualConfirmation(c) ? -1 : i)).filter((i) => i >= 0))); // only pre-select safe matches
+          setSelected(
+            new Set(
+              cards.map((c, i) => (requiresManualConfirmation(c) ? -1 : i)).filter((i) => i >= 0),
+            ),
+          ); // only pre-select safe matches
           // stop camera while reviewing
           stopScannerCamera();
         }
       } else {
-        const result: ScanResult = await enrichWithMarketPrice({ ...(data as any), image: dataUrl, language });
+        const result: ScanResult = await enrichWithMarketPrice({
+          ...(data as any),
+          image: dataUrl,
+          language,
+        });
         setSuggestionIndex(-1);
         setPending(result);
         // Best-effort scan history log (RLS will reject if not signed in — ignore)
@@ -333,7 +368,9 @@ export function CardScanner({
               alternatives: result.alternatives || [],
             });
           }
-        } catch { /* non-fatal */ }
+        } catch {
+          /* non-fatal */
+        }
       }
     } catch (e: any) {
       toast.error(e?.message || "Scan failed");
@@ -347,18 +384,28 @@ export function CardScanner({
 
   function requiresManualConfirmation(result: ScanResult | null) {
     if (!result) return false;
-    if (result.match_label === "Manually selected" || result.match_label === "Match confirmed") return false;
+    if (result.match_label === "Manually selected" || result.match_label === "Match confirmed")
+      return false;
     const oc = result.overall_confidence ?? 0;
     const nameOk = (result.confidence?.name ?? 0) >= 0.85;
     const setOk = (result.confidence?.set ?? 0) >= 0.85;
     const numberOk = (result.confidence?.tcg_number ?? 0) >= 0.9;
-    return oc < 0.85 || !nameOk || !setOk || !numberOk || !result.price_source || Number(result.estimated_value || 0) <= 0;
+    return (
+      oc < 0.85 ||
+      !nameOk ||
+      !setOk ||
+      !numberOk ||
+      !result.price_source ||
+      Number(result.estimated_value || 0) <= 0
+    );
   }
 
   function confirmResult() {
     if (!pending) return;
     if (requiresManualConfirmation(pending)) {
-      toast.error("Pick the exact card picture before saving — this scan is not safe to auto-save.");
+      toast.error(
+        "Pick the exact card picture before saving — this scan is not safe to auto-save.",
+      );
       setFinderOpen(true);
       return;
     }
@@ -442,7 +489,11 @@ export function CardScanner({
     onAction?.(action, pending);
   }
 
-  function applySuggestedCard(a: ScanAlternative, nextIndex: number, label = "Similar card selected") {
+  function applySuggestedCard(
+    a: ScanAlternative,
+    nextIndex: number,
+    label = "Similar card selected",
+  ) {
     setSuggestionIndex(nextIndex);
     setPending((p) => {
       if (!p) return p;
@@ -476,7 +527,8 @@ export function CardScanner({
 
   function cycleSimilarCard() {
     if (!pending?.alternatives?.length) return;
-    const nextIndex = pending.alternatives.length === 1 ? 0 : (suggestionIndex + 1) % pending.alternatives.length;
+    const nextIndex =
+      pending.alternatives.length === 1 ? 0 : (suggestionIndex + 1) % pending.alternatives.length;
     applySuggestedCard(pending.alternatives[nextIndex], nextIndex, "Similar database match");
   }
 
@@ -561,9 +613,7 @@ export function CardScanner({
             ) : (
               <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
             )}
-            <div
-              className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/60"
-            />
+            <div className="pointer-events-none absolute inset-8 rounded-2xl border-2 border-white/60" />
             <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] text-white/70">
               {multi
                 ? "Lay cards flat, no overlap · keep all set symbols visible"
@@ -620,11 +670,7 @@ export function CardScanner({
       {captured && !pending && !batch && (
         <div className="flex flex-1 flex-col">
           <div className="relative flex-1 overflow-hidden bg-black">
-            <img
-              src={captured}
-              alt="Captured card"
-              className="h-full w-full object-contain"
-            />
+            <img src={captured} alt="Captured card" className="h-full w-full object-contain" />
             {scanning && (
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/30 backdrop-blur-[1px]">
                 <div className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-white">
@@ -753,9 +799,17 @@ export function CardScanner({
                 : oc >= 0.7
                   ? "bg-yellow-500/15 text-yellow-200 ring-yellow-400/40"
                   : "bg-red-500/15 text-red-300 ring-red-400/40";
-            const label = pending.match_label || (oc >= 0.9 ? `${pct}% Match` : oc >= 0.7 ? `Likely Match (${pct}%)` : "Possible Match");
+            const label =
+              pending.match_label ||
+              (oc >= 0.9
+                ? `${pct}% Match`
+                : oc >= 0.7
+                  ? `Likely Match (${pct}%)`
+                  : "Possible Match");
             return (
-              <div className={`flex items-center justify-between rounded-xl px-3 py-2 ring-1 ${tone}`}>
+              <div
+                className={`flex items-center justify-between rounded-xl px-3 py-2 ring-1 ${tone}`}
+              >
                 <div className="flex items-center gap-2 text-[12px] font-bold">
                   <Sparkles className="h-3.5 w-3.5" /> {label}
                 </div>
@@ -772,14 +826,13 @@ export function CardScanner({
               className="group relative h-40 w-28 shrink-0 overflow-hidden rounded-lg bg-white/5 text-left ring-1 ring-white/20 disabled:cursor-default"
               aria-label="Show next similar card"
             >
-              <img
-                src={displayImage}
-                alt={pending.name}
-                className="h-full w-full object-cover"
-              />
+              <img src={displayImage} alt={pending.name} className="h-full w-full object-cover" />
               {similarCount > 0 && (
                 <div className="absolute inset-x-1 bottom-1 rounded-md bg-black/75 px-1.5 py-1 text-center text-[9px] font-bold text-white">
-                  Tap for similar {suggestionIndex >= 0 ? `${suggestionIndex + 1}/${similarCount}` : `1/${similarCount}`}
+                  Tap for similar{" "}
+                  {suggestionIndex >= 0
+                    ? `${suggestionIndex + 1}/${similarCount}`
+                    : `1/${similarCount}`}
                 </div>
               )}
             </button>
@@ -841,9 +894,14 @@ export function CardScanner({
                   ${Number(pending.estimated_value || 0).toFixed(2)}
                 </b>
                 {(pending as any).price_low != null && (pending as any).price_high != null && (
-                  <span className="text-white/50"> · L ${Number((pending as any).price_low).toFixed(2)} / H ${Number((pending as any).price_high).toFixed(2)}</span>
+                  <span className="text-white/50">
+                    {" "}
+                    · L ${Number((pending as any).price_low).toFixed(2)} / H $
+                    {Number((pending as any).price_high).toFixed(2)}
+                  </span>
                 )}
-                {" · "}{pending.trend}
+                {" · "}
+                {pending.trend}
               </p>
               {(pending as any).price_source && (
                 <p className="text-[9px] uppercase tracking-wider text-emerald-400/80">
@@ -855,7 +913,8 @@ export function CardScanner({
 
           {requiresManualConfirmation(pending) && (
             <div className="rounded-xl bg-red-500/15 p-3 text-[12px] font-semibold text-red-100 ring-1 ring-red-400/40">
-              Not safe to auto-save yet. Choose the exact card image below or use “Find it manually” so the vault doesn’t save the wrong picture or price.
+              Not safe to auto-save yet. Choose the exact card image below or use “Find it manually”
+              so the vault doesn’t save the wrong picture or price.
             </div>
           )}
 
@@ -1007,7 +1066,11 @@ export function CardScanner({
                 year: c.year || base.year,
                 tcg_number: c.number || base.tcg_number,
                 rarity: c.rarity || base.rarity,
-                variant: c.is_holo ? "Holo" : c.is_reverse_holo ? "Reverse Holo" : base.variant || "Standard",
+                variant: c.is_holo
+                  ? "Holo"
+                  : c.is_reverse_holo
+                    ? "Reverse Holo"
+                    : base.variant || "Standard",
                 estimated_value: c.tcgplayer_price ?? base.estimated_value,
                 image: c.image_large || c.image_small || base.image,
                 reference_image: c.image_large || c.image_small || base.reference_image,
@@ -1037,7 +1100,9 @@ export function CardScanner({
                     .eq("id", last.id);
                 }
               }
-            } catch { /* non-fatal */ }
+            } catch {
+              /* non-fatal */
+            }
             toast.success(`Switched to ${c.name}`);
             onFindCorrect?.({
               name: c.name,

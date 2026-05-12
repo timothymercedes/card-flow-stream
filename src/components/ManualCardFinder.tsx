@@ -34,8 +34,15 @@ type Props = {
 };
 
 const RARITIES = [
-  "Common", "Uncommon", "Rare", "Rare Holo", "Ultra Rare", "Secret Rare",
-  "Promo", "Amazing Rare", "Illustration Rare",
+  "Common",
+  "Uncommon",
+  "Rare",
+  "Rare Holo",
+  "Ultra Rare",
+  "Secret Rare",
+  "Promo",
+  "Amazing Rare",
+  "Illustration Rare",
 ];
 
 const SUBTYPES = ["Pokémon", "Trainer", "Item", "Supporter", "Stadium", "Energy"];
@@ -47,13 +54,17 @@ function readRecents(): string[] {
     const raw = typeof window !== "undefined" ? localStorage.getItem(RECENT_KEY) : null;
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr.slice(0, 8) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 function pushRecent(q: string) {
   if (!q || typeof window === "undefined") return;
   const prev = readRecents().filter((r) => r.toLowerCase() !== q.toLowerCase());
   const next = [q, ...prev].slice(0, 8);
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {}
 }
 
 function pokeQ(parts: Record<string, string | undefined>): string {
@@ -117,7 +128,9 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
   const [error, setError] = useState<string | null>(null);
   const debRef = useRef<number | null>(null);
 
-  useEffect(() => { setRecents(readRecents()); }, []);
+  useEffect(() => {
+    setRecents(readRecents());
+  }, []);
 
   // Recently scanned (from this user's scan history)
   useEffect(() => {
@@ -128,34 +141,44 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
         .order("created_at", { ascending: false })
         .limit(8);
       if (data) {
-        setRecentScans(data
-          .filter((d) => d.top_name)
-          .map((d, i) => ({
-            id: `scan-${i}`,
-            name: d.top_name as string,
-            set: d.top_set || undefined,
-            number: d.top_number || undefined,
-            rarity: d.top_rarity || undefined,
-          })));
+        setRecentScans(
+          data
+            .filter((d) => d.top_name)
+            .map((d, i) => ({
+              id: `scan-${i}`,
+              name: d.top_name as string,
+              set: d.top_set || undefined,
+              number: d.top_number || undefined,
+              rarity: d.top_rarity || undefined,
+            })),
+        );
       }
     })();
   }, []);
 
   // Debounced search
-  const queryStr = useMemo(() => pokeQ({
-    name: name.trim() || undefined,
-    set: setQuery.trim() || undefined,
-    number: number.trim() || undefined,
-    rarity: rarity || undefined,
-    subtype: subtype || undefined,
-  }), [name, setQuery, number, rarity, subtype]);
+  const queryStr = useMemo(
+    () =>
+      pokeQ({
+        name: name.trim() || undefined,
+        set: setQuery.trim() || undefined,
+        number: number.trim() || undefined,
+        rarity: rarity || undefined,
+        subtype: subtype || undefined,
+      }),
+    [name, setQuery, number, rarity, subtype],
+  );
 
   useEffect(() => {
     if (debRef.current) window.clearTimeout(debRef.current);
     const trimmed = name.trim();
-    if (!queryStr && trimmed.length < 2) { setResults([]); return; }
+    if (!queryStr && trimmed.length < 2) {
+      setResults([]);
+      return;
+    }
     debRef.current = window.setTimeout(async () => {
-      setLoading(true); setError(null);
+      setLoading(true);
+      setError(null);
       try {
         // 1) Pokémon TCG API (free, public)
         let list: FinderCard[] = [];
@@ -167,17 +190,27 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
             if (setQuery.trim()) params.set("set", setQuery.trim());
             if (number.trim()) params.set("number", number.trim());
             if (rarity) params.set("rarity", rarity);
-            const { data: { session } } = await supabase.auth.getSession();
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
             const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-            const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`, {
-              headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
-            });
+            const r = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
+              {
+                headers: {
+                  apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            );
             if (r.ok) {
               const j = await r.json();
               const matches = Array.isArray(j?.price?.matches) ? j.price.matches : [];
               list = matches.map(mapPriceMatch).filter(Boolean) as FinderCard[];
             }
-          } catch { /* fall through to public/local search */ }
+          } catch {
+            /* fall through to public/local search */
+          }
         }
         if (queryStr) {
           try {
@@ -186,12 +219,20 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
             if (r.ok) {
               const j = await r.json();
               for (const card of (j?.data || []).map(mapPokeCard)) {
-                if (!list.some((c) => c.id === card.id || (c.name === card.name && c.set === card.set && c.number === card.number))) {
+                if (
+                  !list.some(
+                    (c) =>
+                      c.id === card.id ||
+                      (c.name === card.name && c.set === card.set && c.number === card.number),
+                  )
+                ) {
                   list.push(card);
                 }
               }
             }
-          } catch { /* fall through to local catalog */ }
+          } catch {
+            /* fall through to local catalog */
+          }
         }
         // 2) Local catalog (One Piece / Lorcana / DBSFW / SW Unlimited / FAB / cached Pokémon)
         if (trimmed.length >= 2) {
@@ -229,7 +270,9 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
         setLoading(false);
       }
     }, 250);
-    return () => { if (debRef.current) window.clearTimeout(debRef.current); };
+    return () => {
+      if (debRef.current) window.clearTimeout(debRef.current);
+    };
   }, [queryStr, year, holoOnly, name, setQuery, number, rarity]);
 
   function pickAndClose(c: FinderCard) {
@@ -283,25 +326,35 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
             className="rounded-lg bg-white/5 px-3 py-2 text-xs text-white"
           >
             <option value="">Any rarity</option>
-            {RARITIES.map((r) => <option key={r} value={r}>{r}</option>)}
+            {RARITIES.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
           </select>
         </div>
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setSubtype("")}
             className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${subtype === "" ? "bg-white text-black" : "bg-white/10 text-white"}`}
-          >All</button>
+          >
+            All
+          </button>
           {SUBTYPES.map((s) => (
             <button
               key={s}
               onClick={() => setSubtype(subtype === s ? "" : s)}
               className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${subtype === s ? "bg-emerald-500 text-white" : "bg-white/10 text-white"}`}
-            >{s}</button>
+            >
+              {s}
+            </button>
           ))}
           <button
             onClick={() => setHoloOnly((h) => !h)}
             className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${holoOnly ? "bg-fuchsia-500 text-white" : "bg-white/10 text-white"}`}
-          >Holo / Reverse</button>
+          >
+            Holo / Reverse
+          </button>
         </div>
       </div>
 
@@ -320,7 +373,9 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
                       key={r}
                       onClick={() => setName(r)}
                       className="rounded-full bg-white/10 px-3 py-1 text-[11px] text-white"
-                    >{r}</button>
+                    >
+                      {r}
+                    </button>
                   ))}
                 </div>
               </section>
@@ -336,7 +391,10 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
                       key={c.id}
                       onClick={() => setName(c.name)}
                       className="rounded-full bg-white/10 px-3 py-1 text-[11px] text-white"
-                    >{c.name}{c.set ? ` · ${c.set}` : ""}</button>
+                    >
+                      {c.name}
+                      {c.set ? ` · ${c.set}` : ""}
+                    </button>
                   ))}
                 </div>
               </section>
@@ -364,19 +422,32 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
               >
                 <div className="aspect-[3/4] w-full bg-black">
                   {c.image_small ? (
-                    <img src={c.image_small} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
-                  ) : <div className="flex h-full w-full items-center justify-center text-[10px] text-white/40">No image</div>}
+                    <img
+                      src={c.image_small}
+                      alt={c.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[10px] text-white/40">
+                      No image
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-0.5 p-2 text-white">
                   <p className="truncate text-[12px] font-bold">{c.name}</p>
                   <p className="truncate text-[10px] text-white/60">
-                    {c.set || "—"}{c.number ? ` · #${c.number}` : ""}
+                    {c.set || "—"}
+                    {c.number ? ` · #${c.number}` : ""}
                   </p>
                   <p className="truncate text-[10px] text-white/60">
-                    {c.rarity || "—"}{c.year ? ` · ${c.year}` : ""}
+                    {c.rarity || "—"}
+                    {c.year ? ` · ${c.year}` : ""}
                   </p>
                   {c.tcgplayer_price ? (
-                    <p className="text-[10px] font-bold text-emerald-300">${c.tcgplayer_price.toFixed(2)}</p>
+                    <p className="text-[10px] font-bold text-emerald-300">
+                      ${c.tcgplayer_price.toFixed(2)}
+                    </p>
                   ) : null}
                 </div>
               </button>
@@ -385,7 +456,9 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
         )}
 
         {!loading && queryStr && results.length === 0 && !error && (
-          <p className="py-6 text-center text-xs text-white/50">No matches — try a different filter.</p>
+          <p className="py-6 text-center text-xs text-white/50">
+            No matches — try a different filter.
+          </p>
         )}
       </div>
     </div>
