@@ -313,6 +313,23 @@ async function fetchJustTcg(
       maxPrice90d: topV.maxPrice90d,
       matchScore: top.s,
     },
+    debug: {
+      source: "JustTCG",
+      query_input: { name: cleanName, set: cleanSet || null, number: cleanNumber || null, numberIsSpecific, rarity: rarity || null, variantHint: variantHint || null },
+      queries_tried: queries,
+      candidate_count: candidates.length,
+      top_candidates: final.slice(0, 8).map((x) => ({
+        name: x.c?.name,
+        set: x.c?.set_name,
+        number: x.c?.number,
+        rarity: x.c?.rarity,
+        variant: x.v?.printing,
+        price: Number(x.v?.price || 0),
+        score: Math.round(x.s * 100) / 100,
+      })),
+      chosen: { name: top.c?.name, set: top.c?.set_name, number: top.c?.number, variant: topV.printing, price: market, score: top.s },
+      price_logic: `NM=$${nm} (used as market) | LP=${lp ?? "?"} | MP=${mp ?? "?"} | HP=${hp ?? "?"} | DMG=${dmg ?? "?"}`,
+    },
   };
 }
 
@@ -461,6 +478,23 @@ async function fetchTcgPrice(
       image_url: x.card?.images?.small ?? x.card?.images?.large ?? "",
     })),
     raw: { tcgplayer: card?.tcgplayer ?? null, cardId: card.id, variantKey, matchedRarity: card.rarity, matchScore },
+    debug: {
+      source: "pokemontcg.io",
+      query_input: { name: cleanName, set: cleanSet || null, number: cleanNumber || null, numberIsSpecific, rarity: rarity || null, variantHint: variantHint || null },
+      queries_tried: queries,
+      candidate_count: candidates.length,
+      top_candidates: ranked.slice(0, 8).map((x: any) => ({
+        name: x.card?.name,
+        set: x.card?.set?.name,
+        number: x.card?.number,
+        rarity: x.card?.rarity,
+        variant: x.picked?.key,
+        price: Number(x.picked?.value?.market ?? x.picked?.value?.mid ?? 0),
+        score: Math.round(x.score * 100) / 100,
+      })),
+      chosen: { name: card.name, set: card?.set?.name, number: card.number, variant: variantKey, price: market, score: matchScore },
+      price_logic: `Variant=${variantKey} market=$${market} | low=$${variant.low ?? "?"} mid=$${variant.mid ?? "?"} high=$${variant.high ?? "?"}`,
+    },
   };
 }
 
@@ -506,16 +540,20 @@ Deno.serve(async (req) => {
       variant: url.searchParams.get("variant"),
     }];
   } else {
-    const { data: vc } = await supabase
+    const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+    const pageSize = Math.min(2000, Math.max(50, Number(url.searchParams.get("limit") || MAX_CARDS_PER_RUN)));
+    const includeLocked = url.searchParams.get("includeLocked") === "1";
+    let vcq = supabase
       .from("vault_cards")
       .select("name, tcg_set, tcg_number")
-      .eq("price_locked", false)
       .neq("status", "sold")
-      .limit(MAX_CARDS_PER_RUN);
+      .range(offset, offset + pageSize - 1);
+    if (!includeLocked) vcq = vcq.eq("price_locked", false);
+    const { data: vc } = await vcq;
     const { data: ls } = await supabase
       .from("listings")
       .select("name, tcg_set, tcg_number")
-      .limit(MAX_CARDS_PER_RUN);
+      .range(offset, offset + pageSize - 1);
     const seen = new Set<string>();
     for (const r of [...(vc || []), ...(ls || [])]) {
       const k = keyOf(r.name, r.tcg_set, r.tcg_number);
@@ -570,7 +608,7 @@ Deno.serve(async (req) => {
       price_source: price.source,
       price_source_url: price.source_url,
       price_updated_at: now,
-      pricing_details: price.raw,
+      pricing_details: { ...(price.raw || {}), debug: price.debug ?? null },
     } as any;
 
     let vaultUpdate = supabase

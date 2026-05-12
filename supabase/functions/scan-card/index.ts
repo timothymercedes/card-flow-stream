@@ -288,10 +288,11 @@ Deno.serve(async (req) => {
         top_name: top?.name, top_set: top?.set, top_value: top?.estimated_value,
         duration_ms: Date.now() - t0,
       });
-      return jsonResp({ cards });
+      return jsonResp({ cards, ocr_raw: parsed });
     }
 
     const out = normalizeCard(parsed, language);
+    (out as any).ocr_raw = parsed;
 
     // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is visual.
     const isPokemon = /pok[eé]mon/i.test(out.category);
