@@ -38,6 +38,12 @@ function Vault() {
   const [query, setQuery] = useState("");
   const [showSuggest, setShowSuggest] = useState(false);
   const [listening, setListening] = useState(false);
+  const [viewMode, setViewMode] = useState<"small" | "grid" | "large" | "list">(() => {
+    if (typeof window === "undefined") return "grid";
+    return (localStorage.getItem("pbl_vault_view") as any) || "grid";
+  });
+  const [viewMenu, setViewMenu] = useState(false);
+  useEffect(() => { try { localStorage.setItem("pbl_vault_view", viewMode); } catch {} }, [viewMode]);
   const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const LANGUAGES = [
