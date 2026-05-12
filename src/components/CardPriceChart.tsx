@@ -35,7 +35,7 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
 
   useEffect(() => { setAutoRefreshed(false); load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber]);
 
-  const refresh = async () => {
+  const refresh = async (opts?: { silent?: boolean }) => {
     setRefreshing(true);
     try {
       const params = new URLSearchParams({ name });
@@ -47,13 +47,25 @@ export function CardPriceChart({ name, tcgSet, tcgNumber }: Props) {
         { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
       );
       const j = await res.json();
-      if (j.ok) toast.success("Price refreshed");
-      else toast.error("Could not refresh");
+      if (!opts?.silent) {
+        if (j.ok) toast.success("Price refreshed");
+        else toast.error("Could not refresh");
+      }
       await load();
     } finally {
       setRefreshing(false);
     }
   };
+
+  // Auto-pull a fresh snapshot the first time a card is opened with no history.
+  useEffect(() => {
+    if (loading) return;
+    if (autoRefreshed) return;
+    if (points.length >= 2) return;
+    setAutoRefreshed(true);
+    refresh({ silent: true });
+    // eslint-disable-next-line
+  }, [loading, points.length, autoRefreshed]);
 
   if (loading) return <div className="h-24 rounded-lg bg-muted/40" />;
 
