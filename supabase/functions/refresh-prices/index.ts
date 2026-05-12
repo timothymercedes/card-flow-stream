@@ -75,13 +75,17 @@ function pickPriceVariant(prices: any, rarity: string | null, variantHint: strin
     ["unlimitedHolofoil", prices?.unlimitedHolofoil],
   ].filter(([, v]) => v && (v.market ?? v.mid) != null) as [string, any][];
   if (!entries.length) return null;
-  const exact =
-    /reverse/.test(want) ? entries.find(([k]) => k === "reverseHolofoil") :
-    /1st|first/.test(want) ? entries.find(([k]) => k === "1stEditionHolofoil") :
-    /non holo|nonholo|standard|normal|common|uncommon/.test(want) && !/holo/.test(want.replace(/non ?holo/g, "")) ? entries.find(([k]) => k === "normal") :
-    /holo|foil|rare|ultra|secret|illustration|alt art|full art|amazing/.test(want) ? entries.find(([k]) => k === "holofoil") || entries.find(([k]) => k === "unlimitedHolofoil") :
+  // ONLY force a specific variant when the user/AI gave an EXPLICIT variant
+  // hint. Never force "normal" just because the AI guessed Common/Uncommon —
+  // that's the #1 cause of $0.25 prices on $80 holo cards. Default = highest.
+  const explicitVariant =
+    /reverse/.test(variantHint || "") ? entries.find(([k]) => k === "reverseHolofoil") :
+    /1st|first/.test(variantHint || "") ? entries.find(([k]) => k === "1stEditionHolofoil") :
+    /\bnon ?holo|standard|^normal$/.test(variantHint || "") ? entries.find(([k]) => k === "normal") :
+    /holo|foil|alt art|full art|secret|illustration|rainbow|amazing/.test(want) ?
+      (entries.find(([k]) => k === "holofoil") || entries.find(([k]) => k === "unlimitedHolofoil") || entries.find(([k]) => k === "1stEditionHolofoil")) :
     null;
-  const picked = exact || entries.slice().sort((a, b) => Number(b[1].market ?? b[1].mid) - Number(a[1].market ?? a[1].mid))[0];
+  const picked = explicitVariant || entries.slice().sort((a, b) => Number(b[1].market ?? b[1].mid) - Number(a[1].market ?? a[1].mid))[0];
   return { key: picked[0], value: picked[1] };
 }
 
