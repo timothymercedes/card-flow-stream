@@ -239,7 +239,24 @@ export function CardScanner({
         },
       );
       const j = await r.json();
-      if (j?.price?.market == null) return result;
+      const paramsRecord: Record<string, string> = {};
+      params.forEach((v, k) => { paramsRecord[k] = v; });
+      if (j?.price?.market == null) {
+        return {
+          ...result,
+          scan_debug: {
+            ...(result.scan_debug || {}),
+            price_debug: j?.price?.debug ?? { note: "No price match", response: j },
+            enrichment: {
+              trustedDatabaseIdentity: false,
+              setReliable,
+              numberReliable,
+              reason: "refresh-prices returned no market price",
+              params: paramsRecord,
+            },
+          },
+        };
+      }
       const market = Number(j.price.market);
       const c = j.price.canonical;
       const trustedDatabaseIdentity =
@@ -254,6 +271,19 @@ export function CardScanner({
         price_source_url: trustedDatabaseIdentity ? j.price.source_url : undefined,
         price_low: trustedDatabaseIdentity ? j.price.low : undefined,
         price_high: trustedDatabaseIdentity ? j.price.high : undefined,
+        scan_debug: {
+          ...(result.scan_debug || {}),
+          price_debug: j.price.debug ?? null,
+          enrichment: {
+            trustedDatabaseIdentity: !!trustedDatabaseIdentity,
+            setReliable,
+            numberReliable,
+            reason: trustedDatabaseIdentity
+              ? `Database match accepted (match_score=${c.match_score}).`
+              : `Identity not trusted (match_score=${c?.match_score ?? "n/a"}, setReliable=${setReliable}, numberReliable=${numberReliable}). Manual confirmation required.`,
+            params: paramsRecord,
+          },
+        },
       };
       const matches =
         Array.isArray(j.price.matches) && j.price.matches.length
@@ -278,8 +308,20 @@ export function CardScanner({
         next.match_label = "Needs confirmation — tap the correct picture before saving";
       }
       return next;
-    } catch {
-      return result;
+    } catch (e: any) {
+      return {
+        ...result,
+        scan_debug: {
+          ...(result.scan_debug || {}),
+          enrichment: {
+            trustedDatabaseIdentity: false,
+            setReliable: false,
+            numberReliable: false,
+            reason: `enrichWithMarketPrice threw: ${e?.message || e}`,
+            params: {},
+          },
+        },
+      };
     }
   }
 
