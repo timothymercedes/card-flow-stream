@@ -136,17 +136,52 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
 
   useEffect(() => {
     if (debRef.current) window.clearTimeout(debRef.current);
-    if (!queryStr) { setResults([]); return; }
+    const trimmed = name.trim();
+    if (!queryStr && trimmed.length < 2) { setResults([]); return; }
     debRef.current = window.setTimeout(async () => {
       setLoading(true); setError(null);
       try {
-        const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(queryStr)}&pageSize=30&orderBy=-set.releaseDate`;
-        const r = await fetch(url);
-        if (!r.ok) throw new Error("Search failed");
-        const j = await r.json();
-        let list: FinderCard[] = (j?.data || []).map(mapPokeCard);
+        // 1) Pokémon TCG API (free, public)
+        let list: FinderCard[] = [];
+        if (queryStr) {
+          try {
+            const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(queryStr)}&pageSize=30&orderBy=-set.releaseDate`;
+            const r = await fetch(url);
+            if (r.ok) {
+              const j = await r.json();
+              list = (j?.data || []).map(mapPokeCard);
+            }
+          } catch { /* fall through to local catalog */ }
+        }
+        // 2) Local catalog (One Piece / Lorcana / DBSFW / SW Unlimited / FAB / cached Pokémon)
+        if (trimmed.length >= 2) {
+          let q = supabase
+            .from("tcg_prices")
+            .select("tcgplayer_product_id, name, set_name, number, rarity, image_url, market_price")
+            .ilike("name", `%${trimmed}%`)
+            .order("market_price", { ascending: false, nullsFirst: false })
+            .limit(30);
+          if (setQuery.trim()) q = q.ilike("set_name", `%${setQuery.trim()}%`);
+          if (number.trim()) q = q.ilike("number", `%${number.trim().split("/")[0]}%`);
+          if (rarity) q = q.ilike("rarity", `%${rarity}%`);
+          const { data } = await q;
+          for (const row of data || []) {
+            const id = `tcg-${row.tcgplayer_product_id}`;
+            if (list.some((c) => c.id === id)) continue;
+            list.push({
+              id,
+              name: row.name,
+              set: row.set_name || undefined,
+              number: row.number || undefined,
+              rarity: row.rarity || undefined,
+              image_small: row.image_url || undefined,
+              image_large: row.image_url || undefined,
+              tcgplayer_price: row.market_price ? Number(row.market_price) : undefined,
+            });
+          }
+        }
         if (year) list = list.filter((c) => c.year === year);
-        if (holoOnly) list = list.filter((c) => /holo|reverse/i.test(c.rarity || ""));
+        if (holoOnly) list = list.filter((c) => /holo|reverse|foil/i.test(c.rarity || ""));
         setResults(list);
       } catch (e: any) {
         setError(e?.message || "Search failed");
@@ -155,7 +190,7 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
       }
     }, 250);
     return () => { if (debRef.current) window.clearTimeout(debRef.current); };
-  }, [queryStr, year, holoOnly]);
+  }, [queryStr, year, holoOnly, name, setQuery, number, rarity]);
 
   function pickAndClose(c: FinderCard) {
     pushRecent(c.name);

@@ -256,8 +256,12 @@ export function CardScanner({
             const params = new URLSearchParams({ name: result.name });
             if (result.set) params.set("set", result.set);
             if (result.tcg_number) params.set("number", result.tcg_number);
-            if (result.rarity) params.set("rarity", result.rarity);
-            if (result.variant) params.set("variant", result.variant);
+            // Only pass rarity/variant when the AI is confident. Low-confidence
+            // guesses (e.g. "Common" on an actual holo) force the wrong variant
+            // and turn $80 cards into $0.25.
+            const rarityConf = result.confidence?.variant ?? result.confidence?.set ?? 0;
+            if (result.rarity && rarityConf >= 0.85) params.set("rarity", result.rarity);
+            if (result.variant && (result.confidence?.variant ?? 0) >= 0.85) params.set("variant", result.variant);
             const r = await fetch(
               `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
               { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } },
