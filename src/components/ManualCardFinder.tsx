@@ -159,13 +159,37 @@ export function ManualCardFinder({ onPick, onClose, initialQuery = "" }: Props) 
       try {
         // 1) Pokémon TCG API (free, public)
         let list: FinderCard[] = [];
+        // Live pricing lookup first: this hits the same backend matcher used by scans,
+        // including JustTCG-backed TCGplayer pricing when available.
+        if (trimmed.length >= 2) {
+          try {
+            const params = new URLSearchParams({ name: trimmed });
+            if (setQuery.trim()) params.set("set", setQuery.trim());
+            if (number.trim()) params.set("number", number.trim());
+            if (rarity) params.set("rarity", rarity);
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+            const r = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`, {
+              headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
+            });
+            if (r.ok) {
+              const j = await r.json();
+              const matches = Array.isArray(j?.price?.matches) ? j.price.matches : [];
+              list = matches.map(mapPriceMatch).filter(Boolean) as FinderCard[];
+            }
+          } catch { /* fall through to public/local search */ }
+        }
         if (queryStr) {
           try {
             const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(queryStr)}&pageSize=30&orderBy=-set.releaseDate`;
             const r = await fetch(url);
             if (r.ok) {
               const j = await r.json();
-              list = (j?.data || []).map(mapPokeCard);
+              for (const card of (j?.data || []).map(mapPokeCard)) {
+                if (!list.some((c) => c.id === card.id || (c.name === card.name && c.set === card.set && c.number === card.number))) {
+                  list.push(card);
+                }
+              }
             }
           } catch { /* fall through to local catalog */ }
         }
