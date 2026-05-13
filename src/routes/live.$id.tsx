@@ -4497,6 +4497,18 @@ function LiveDetail() {
                       Shout
                     </button>
                   )}
+                  {!ended && !isSeller && (stream as any)?.promotions_enabled !== false && (
+                    <button
+                      onClick={() =>
+                        user ? setPromoteOpen(true) : toast.error("Sign in to promote")
+                      }
+                      title="Promote this live — boosts ranking on Discover"
+                      className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 px-3 py-2 text-[10px] font-bold text-white active:scale-[0.98]"
+                    >
+                      <Flame className="h-4 w-4" />
+                      Promote
+                    </button>
+                  )}
                 </div>
               </>
             )}
