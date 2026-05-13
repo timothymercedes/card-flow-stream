@@ -1775,7 +1775,9 @@ export type Database = {
           description: string | null
           id: string
           idempotency_key: string | null
+          is_late_shipment: boolean
           item_image_url: string | null
+          last_ship_reminder_at: string | null
           listing_id: string | null
           order_group_id: string | null
           paid_at: string | null
@@ -1783,6 +1785,7 @@ export type Database = {
           payment_failure_count: number
           payment_retry_deadline: string | null
           payment_status: string
+          payout_held: boolean
           quantity: number
           refunded_amount: number | null
           refunded_at: string | null
@@ -1793,11 +1796,13 @@ export type Database = {
           ship_city: string
           ship_country: string
           ship_name: string
+          ship_reminder_count: number
           ship_state: string | null
           ship_zip: string
           shipment_verification_code: string | null
           shipment_verified_at: string | null
           shipped_at: string | null
+          shipping_due_at: string | null
           status: string
           stream_id: string | null
           stripe_charge_id: string | null
@@ -1819,7 +1824,9 @@ export type Database = {
           description?: string | null
           id?: string
           idempotency_key?: string | null
+          is_late_shipment?: boolean
           item_image_url?: string | null
+          last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
           paid_at?: string | null
@@ -1827,6 +1834,7 @@ export type Database = {
           payment_failure_count?: number
           payment_retry_deadline?: string | null
           payment_status?: string
+          payout_held?: boolean
           quantity?: number
           refunded_amount?: number | null
           refunded_at?: string | null
@@ -1837,11 +1845,13 @@ export type Database = {
           ship_city: string
           ship_country?: string
           ship_name: string
+          ship_reminder_count?: number
           ship_state?: string | null
           ship_zip: string
           shipment_verification_code?: string | null
           shipment_verified_at?: string | null
           shipped_at?: string | null
+          shipping_due_at?: string | null
           status?: string
           stream_id?: string | null
           stripe_charge_id?: string | null
@@ -1863,7 +1873,9 @@ export type Database = {
           description?: string | null
           id?: string
           idempotency_key?: string | null
+          is_late_shipment?: boolean
           item_image_url?: string | null
+          last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
           paid_at?: string | null
@@ -1871,6 +1883,7 @@ export type Database = {
           payment_failure_count?: number
           payment_retry_deadline?: string | null
           payment_status?: string
+          payout_held?: boolean
           quantity?: number
           refunded_amount?: number | null
           refunded_at?: string | null
@@ -1881,11 +1894,13 @@ export type Database = {
           ship_city?: string
           ship_country?: string
           ship_name?: string
+          ship_reminder_count?: number
           ship_state?: string | null
           ship_zip?: string
           shipment_verification_code?: string | null
           shipment_verified_at?: string | null
           shipped_at?: string | null
+          shipping_due_at?: string | null
           status?: string
           stream_id?: string | null
           stripe_charge_id?: string | null
@@ -2248,6 +2263,7 @@ export type Database = {
           agreements_review_required: boolean
           agreements_version: string
           avatar_url: string | null
+          avg_response_minutes: number | null
           buyer_verified: boolean
           created_at: string
           creator_tier: string
@@ -2262,9 +2278,11 @@ export type Database = {
           is_demo: boolean
           is_seller: boolean
           last_login_date: string | null
+          late_shipment_count: number
           live_verified: boolean
           longest_streak: number
           onboarding_completed: boolean
+          payout_hold: boolean
           phone: string | null
           phone_verified: boolean
           phone_verified_at: string | null
@@ -2280,6 +2298,7 @@ export type Database = {
           seller_agreement_review_required: boolean
           seller_agreement_version: string | null
           seller_status: string
+          selling_restricted_until: string | null
           shipping_cap: number | null
           shop_name: string | null
           shop_name_changes: number
@@ -2297,6 +2316,7 @@ export type Database = {
           verification_requested_at: string | null
           verification_status: string
           verified_at: string | null
+          visibility_penalty_until: string | null
         }
         Insert: {
           a11y_settings?: Json
@@ -2311,6 +2331,7 @@ export type Database = {
           agreements_review_required?: boolean
           agreements_version?: string
           avatar_url?: string | null
+          avg_response_minutes?: number | null
           buyer_verified?: boolean
           created_at?: string
           creator_tier?: string
@@ -2325,9 +2346,11 @@ export type Database = {
           is_demo?: boolean
           is_seller?: boolean
           last_login_date?: string | null
+          late_shipment_count?: number
           live_verified?: boolean
           longest_streak?: number
           onboarding_completed?: boolean
+          payout_hold?: boolean
           phone?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
@@ -2343,6 +2366,7 @@ export type Database = {
           seller_agreement_review_required?: boolean
           seller_agreement_version?: string | null
           seller_status?: string
+          selling_restricted_until?: string | null
           shipping_cap?: number | null
           shop_name?: string | null
           shop_name_changes?: number
@@ -2360,6 +2384,7 @@ export type Database = {
           verification_requested_at?: string | null
           verification_status?: string
           verified_at?: string | null
+          visibility_penalty_until?: string | null
         }
         Update: {
           a11y_settings?: Json
@@ -2374,6 +2399,7 @@ export type Database = {
           agreements_review_required?: boolean
           agreements_version?: string
           avatar_url?: string | null
+          avg_response_minutes?: number | null
           buyer_verified?: boolean
           created_at?: string
           creator_tier?: string
@@ -2388,9 +2414,11 @@ export type Database = {
           is_demo?: boolean
           is_seller?: boolean
           last_login_date?: string | null
+          late_shipment_count?: number
           live_verified?: boolean
           longest_streak?: number
           onboarding_completed?: boolean
+          payout_hold?: boolean
           phone?: string | null
           phone_verified?: boolean
           phone_verified_at?: string | null
@@ -2406,6 +2434,7 @@ export type Database = {
           seller_agreement_review_required?: boolean
           seller_agreement_version?: string | null
           seller_status?: string
+          selling_restricted_until?: string | null
           shipping_cap?: number | null
           shop_name?: string | null
           shop_name_changes?: number
@@ -2423,6 +2452,7 @@ export type Database = {
           verification_requested_at?: string | null
           verification_status?: string
           verified_at?: string | null
+          visibility_penalty_until?: string | null
         }
         Relationships: []
       }
@@ -4024,6 +4054,10 @@ export type Database = {
         Args: { _user_agent?: string; _version?: string }
         Returns: Json
       }
+      add_business_days: {
+        Args: { _days: number; _from: string }
+        Returns: string
+      }
       add_stream_minutes: {
         Args: { _minutes: number; _user_id: string }
         Returns: undefined
@@ -4142,6 +4176,7 @@ export type Database = {
         Returns: undefined
       }
       create_giveaway_order: { Args: { _giveaway_id: string }; Returns: string }
+      enforce_late_shipments: { Args: never; Returns: Json }
       extend_flex_live_session: {
         Args: { _stream_id: string }
         Returns: string
@@ -4149,17 +4184,31 @@ export type Database = {
       finalize_auction_round: { Args: { _stream_id: string }; Returns: Json }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
+      get_seller_badges: {
+        Args: { _seller_id: string }
+        Returns: {
+          badge: string
+          label: string
+          tier: string
+        }[]
+      }
       get_seller_completed_count: { Args: { _user: string }; Returns: number }
       get_seller_shipping_cap: { Args: { _user: string }; Returns: number }
       get_seller_stats: {
         Args: { _seller_id: string }
         Returns: {
           avg_rating: number
+          avg_response_minutes: number
           avg_shipping_days: number
           avg_shipping_rating: number
+          cancel_rate: number
           completed_sales: number
+          late_rate: number
+          on_time_rate: number
+          refund_rate: number
           review_count: number
           success_rate: number
+          total_sales: number
         }[]
       }
       get_winner_shipping: {
