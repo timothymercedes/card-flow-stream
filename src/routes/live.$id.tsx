@@ -6181,7 +6181,36 @@ function LiveDetail() {
         />
       )}
 
-      {tipOverlay && (
+      {promoteOpen && (
+        <PromoteCheckout
+          streamId={id}
+          streamerName={sellerUsername}
+          minAmount={Number((stream as any)?.promotion_min_amount || 1)}
+          onClose={() => setPromoteOpen(false)}
+        />
+      )}
+
+      {promoOverlay && (
+        <div className="pointer-events-none fixed left-1/2 top-16 z-[160] w-[min(92vw,420px)] -translate-x-1/2 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-orange-400/50 bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 shadow-2xl shadow-orange-500/50">
+            <Flame className="h-6 w-6 shrink-0 text-white animate-pulse" />
+            <div className="min-w-0 flex-1 text-white">
+              <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">
+                🔥 Promoted Live
+              </div>
+              <div className="truncate text-sm font-extrabold">
+                @{promoOverlay.username} promoted this for ${promoOverlay.amount.toFixed(2)}
+              </div>
+              {promoOverlay.message && (
+                <div className="mt-0.5 truncate text-xs italic opacity-95">
+                  "{promoOverlay.message}"
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
         <div className="pointer-events-none fixed left-1/2 top-24 z-[150] -translate-x-1/2 animate-in fade-in slide-in-from-top-4">
           <div className="flex items-center gap-3 rounded-2xl border border-pink-400/50 bg-gradient-to-r from-pink-500 to-rose-600 px-5 py-3 shadow-2xl shadow-pink-500/40">
             <Gift className="h-6 w-6 text-white" />
