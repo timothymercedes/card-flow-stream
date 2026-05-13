@@ -320,7 +320,11 @@ function PublicStore() {
 
         {sellerStats && Number(sellerStats.completed_sales || 0) > 0 && (
           <div className="mb-4 space-y-2">
-            <SellerTrustBadges sellerId={seller.id} />
+            <div className="flex flex-wrap items-center gap-1">
+              <SellerTrustBadges sellerId={seller.id} />
+              <SellerResponseBadges sellerId={seller.id} />
+              <BuyerTrustBadges userId={seller.id} compact />
+            </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-xl bg-card p-3 text-center">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Completed sales</p>
