@@ -1764,6 +1764,7 @@ export type Database = {
       orders: {
         Row: {
           amount: number
+          auction_number: number | null
           buyer_id: string
           carrier: string | null
           commission_amount: number | null
@@ -1794,6 +1795,8 @@ export type Database = {
           ship_name: string
           ship_state: string | null
           ship_zip: string
+          shipment_verification_code: string | null
+          shipment_verified_at: string | null
           shipped_at: string | null
           status: string
           stream_id: string | null
@@ -1805,6 +1808,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          auction_number?: number | null
           buyer_id: string
           carrier?: string | null
           commission_amount?: number | null
@@ -1835,6 +1839,8 @@ export type Database = {
           ship_name: string
           ship_state?: string | null
           ship_zip: string
+          shipment_verification_code?: string | null
+          shipment_verified_at?: string | null
           shipped_at?: string | null
           status?: string
           stream_id?: string | null
@@ -1846,6 +1852,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          auction_number?: number | null
           buyer_id?: string
           carrier?: string | null
           commission_amount?: number | null
@@ -1876,6 +1883,8 @@ export type Database = {
           ship_name?: string
           ship_state?: string | null
           ship_zip?: string
+          shipment_verification_code?: string | null
+          shipment_verified_at?: string | null
           shipped_at?: string | null
           status?: string
           stream_id?: string | null
@@ -2592,6 +2601,7 @@ export type Database = {
           created_at: string
           id: string
           order_id: string
+          photo_urls: string[]
           rating: number
           seller_id: string
           shipping_rating: number
@@ -2603,6 +2613,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_id: string
+          photo_urls?: string[]
           rating: number
           seller_id: string
           shipping_rating: number
@@ -2614,6 +2625,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_id?: string
+          photo_urls?: string[]
           rating?: number
           seller_id?: string
           shipping_rating?: number
@@ -4139,6 +4151,17 @@ export type Database = {
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
       get_seller_completed_count: { Args: { _user: string }; Returns: number }
       get_seller_shipping_cap: { Args: { _user: string }; Returns: number }
+      get_seller_stats: {
+        Args: { _seller_id: string }
+        Returns: {
+          avg_rating: number
+          avg_shipping_days: number
+          avg_shipping_rating: number
+          completed_sales: number
+          review_count: number
+          success_rate: number
+        }[]
+      }
       get_winner_shipping: {
         Args: { p_stream_id: string; p_winner_id: string }
         Returns: {
