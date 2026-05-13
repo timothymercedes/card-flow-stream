@@ -66,11 +66,11 @@ function Home() {
 
   useEffect(() => {
     const load = async () => {
-      let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(40);
+      let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
       if (interests.length > 0) sQ = sQ.in("category", interests);
       const { data: sData } = await sQ;
       if ((sData?.length || 0) === 0 && interests.length > 0) {
-        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("created_at", { ascending: false }).limit(40);
+        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
         setStreamsAll(fallback || []);
       } else setStreamsAll(sData || []);
 
