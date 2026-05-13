@@ -141,6 +141,15 @@ function PublicStore() {
     setVaultCards(vc.data || []);
     const { data: ss } = await (supabase.rpc as any)("get_seller_stats", { _seller_id: prof.id });
     setSellerStats(Array.isArray(ss) ? ss[0] : ss);
+    const { data: live } = await supabase
+      .from("live_streams")
+      .select("id")
+      .eq("seller_id", prof.id)
+      .eq("status", "live")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLiveStreamId((live as any)?.id ?? null);
   }
   useEffect(() => { loadSeller(); }, [username]);
 
