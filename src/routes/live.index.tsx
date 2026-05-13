@@ -365,6 +365,15 @@ function LiveList() {
           </div>
         </div>
       )}
+
+      <ShareLiveModal
+        open={!!shareTarget}
+        onClose={() => setShareTarget(null)}
+        streamId={shareTarget?.id || ""}
+        title={shareTarget?.title || ""}
+        thumbnailUrl={shareTarget?.thumbnail_url}
+        isLive={true}
+      />
     </AppShell>
   );
 }
