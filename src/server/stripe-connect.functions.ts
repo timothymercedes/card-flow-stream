@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
-import { getStripe, calculateFees } from "@/lib/stripe.server";
+import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds } from "@/lib/stripe.server";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getOptionalUserIdFromRequest() {
@@ -204,7 +204,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       amount: fees.buyerTotal,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      application_fee_amount: fees.platformFee + fees.buyerServiceFee,
+      application_fee_amount: fees.platformFee,
       transfer_data: { destination: (sellerAcct as any).stripe_account_id },
       metadata: {
         buyer_id: userId,
@@ -279,7 +279,9 @@ export const createStreamTipPaymentIntent = createServerFn({ method: "POST" })
       .maybeSingle();
     const buyerUsername = (profile as any)?.username ?? "viewer";
 
-    // Insert pending tip row
+    const fees = calculateTipFees(data.amountCents);
+
+    // Insert pending tip row with computed platform fee + streamer payout.
     const { data: tipRow, error: tipErr } = await supabaseAdmin
       .from("stream_tips")
       .insert({
@@ -288,6 +290,8 @@ export const createStreamTipPaymentIntent = createServerFn({ method: "POST" })
         buyer_id: userId,
         buyer_username: buyerUsername,
         amount: data.amountCents / 100,
+        platform_fee: fees.platformFee / 100,
+        streamer_payout: fees.streamerPayout / 100,
         message: data.message || null,
         status: "pending",
       })
@@ -295,13 +299,11 @@ export const createStreamTipPaymentIntent = createServerFn({ method: "POST" })
       .single();
     if (tipErr || !tipRow) throw new Error(tipErr?.message ?? "Failed to record tip");
 
-    const fees = calculateFees(data.amountCents);
-
     const intent = await stripe.paymentIntents.create({
       amount: fees.buyerTotal,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      application_fee_amount: fees.platformFee + fees.buyerServiceFee,
+      application_fee_amount: fees.platformFee,
       transfer_data: { destination: (sellerAcct as any).stripe_account_id },
       metadata: {
         kind: "stream_tip",
@@ -309,6 +311,10 @@ export const createStreamTipPaymentIntent = createServerFn({ method: "POST" })
         stream_id: data.streamId,
         buyer_id: userId,
         seller_id: sellerId,
+        buyer_username: buyerUsername,
+        tip_amount_cents: String(data.amountCents),
+        platform_fee_cents: String(fees.platformFee),
+        streamer_payout_cents: String(fees.streamerPayout),
       },
     });
 
