@@ -502,23 +502,8 @@ function PublicStore() {
             </div>
           </>
         )}
-        {tab === "reviews" && (
-          <>
-            {reviews.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No reviews yet.</p>}
-            <div className="space-y-3">
-              {reviews.map((r) => (
-                <div key={r.id} className="rounded-xl bg-card p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold">@{r.buyer_username}</p>
-                    <Stars n={r.rating} size={12} />
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">📦 Shipping: <Stars n={r.shipping_rating} size={10} /></p>
-                  {r.comment && <p className="mt-1 text-xs">{r.comment}</p>}
-                  <p className="mt-1 text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
-                </div>
-              ))}
-            </div>
-          </>
+        {tab === "reviews" && seller && (
+          <SellerReviewsPanel sellerId={seller.id} currentUserId={user?.id ?? null} />
         )}
       </div>
     </AppShell>
