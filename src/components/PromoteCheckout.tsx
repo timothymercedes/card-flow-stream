@@ -24,7 +24,18 @@ function getStripeJs(getKey: () => Promise<{ publishableKey: string }>) {
   return _stripePromise;
 }
 
-const PRESETS = [100, 300, 500]; // $1, $3, $5
+const PRESETS = [100, 500, 1000]; // $1, $5, $10
+
+function durationLabel(amountCents: number): string {
+  const dollars = amountCents / 100;
+  let minutes: number;
+  if (dollars <= 1) minutes = 5;
+  else if (dollars <= 5) minutes = 5 + (dollars - 1) * 2.5;
+  else if (dollars <= 10) minutes = 15 + (dollars - 5) * 2;
+  else minutes = 25 + (dollars - 10) * 2;
+  minutes = Math.max(1, Math.round(minutes));
+  return `${minutes} min${minutes === 1 ? "" : "s"}`;
+}
 
 export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose }: Props) {
   const getKey = useServerFn(getStripePublishableKey);
@@ -81,6 +92,10 @@ export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose
               Boost this live's ranking on Discover & the homepage. Promotions
               show in chat and a pinned banner.
             </p>
+            <p className="text-xs text-muted-foreground">
+              Promotions go to PullBidLive (platform advertising) and boost
+              this live's ranking on Discover & the homepage.
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {PRESETS.map((v) => {
                 const disabled = v < minCents;
@@ -92,13 +107,16 @@ export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose
                       setAmountCents(v);
                       setCustomAmount("");
                     }}
-                    className={`rounded-xl border py-2 text-sm font-bold transition disabled:opacity-40 ${
+                    className={`flex flex-col items-center justify-center rounded-xl border py-2 text-sm font-bold transition disabled:opacity-40 ${
                       amountCents === v && !customAmount
                         ? "border-orange-500 bg-orange-500/10 text-orange-500"
                         : "border-border hover:bg-muted"
                     }`}
                   >
-                    ${v / 100}
+                    <span>${v / 100}</span>
+                    <span className="text-[10px] font-medium opacity-70">
+                      {durationLabel(v)}
+                    </span>
                   </button>
                 );
               })}
