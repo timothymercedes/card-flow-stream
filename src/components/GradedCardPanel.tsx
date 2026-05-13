@@ -76,7 +76,7 @@ export function GradedCardPanel({ cardId, rawMarketPrice, initial, onSaved, vari
     try {
       const isGraded = tab === "graded";
       const finalPrice = isGraded ? (Number(price) || suggested || 0) : 0;
-      const patch: GradedFields & { estimated_value?: number; price_locked?: boolean } = {
+      const patch: any = {
         is_graded: isGraded,
         grader: isGraded ? grader : null,
         grade: isGraded ? grade : null,
