@@ -1229,6 +1229,7 @@ export type Database = {
           pause_started_at: string | null
           pause_until: string | null
           pinned_card: Json | null
+          promotion_active_until: string | null
           promotion_min_amount: number
           promotion_score: number
           promotions_enabled: boolean
@@ -1329,6 +1330,7 @@ export type Database = {
           pause_started_at?: string | null
           pause_until?: string | null
           pinned_card?: Json | null
+          promotion_active_until?: string | null
           promotion_min_amount?: number
           promotion_score?: number
           promotions_enabled?: boolean
@@ -1429,6 +1431,7 @@ export type Database = {
           pause_started_at?: string | null
           pause_until?: string | null
           pinned_card?: Json | null
+          promotion_active_until?: string | null
           promotion_min_amount?: number
           promotion_score?: number
           promotions_enabled?: boolean
@@ -3049,11 +3052,13 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          duration_seconds: number
           id: string
           message: string | null
           paid_at: string | null
           promoter_id: string
           promoter_username: string
+          promotion_ends_at: string | null
           status: string
           stream_id: string
           stripe_payment_intent_id: string | null
@@ -3061,11 +3066,13 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          duration_seconds?: number
           id?: string
           message?: string | null
           paid_at?: string | null
           promoter_id: string
           promoter_username: string
+          promotion_ends_at?: string | null
           status?: string
           stream_id: string
           stripe_payment_intent_id?: string | null
@@ -3073,11 +3080,13 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          duration_seconds?: number
           id?: string
           message?: string | null
           paid_at?: string | null
           promoter_id?: string
           promoter_username?: string
+          promotion_ends_at?: string | null
           status?: string
           stream_id?: string
           stripe_payment_intent_id?: string | null
@@ -3175,9 +3184,11 @@ export type Database = {
           id: string
           message: string | null
           paid_at: string | null
+          platform_fee: number
           seller_id: string
           status: string
           stream_id: string
+          streamer_payout: number
           stripe_payment_intent_id: string | null
         }
         Insert: {
@@ -3188,9 +3199,11 @@ export type Database = {
           id?: string
           message?: string | null
           paid_at?: string | null
+          platform_fee?: number
           seller_id: string
           status?: string
           stream_id: string
+          streamer_payout?: number
           stripe_payment_intent_id?: string | null
         }
         Update: {
@@ -3201,9 +3214,11 @@ export type Database = {
           id?: string
           message?: string | null
           paid_at?: string | null
+          platform_fee?: number
           seller_id?: string
           status?: string
           stream_id?: string
+          streamer_payout?: number
           stripe_payment_intent_id?: string | null
         }
         Relationships: []
