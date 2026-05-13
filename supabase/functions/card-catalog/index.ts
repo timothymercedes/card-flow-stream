@@ -122,30 +122,26 @@ Deno.serve(async (req) => {
     const top = ranked.slice(0, limit);
     const chosen = top[0]?.s >= 60 ? top[0].c : null;
 
-    // Best-effort: upsert any new remote results into local cache (fire-and-forget)
-    const newRows = top
-      .filter(({ c }) => c.source !== "local")
-      .map(({ c }) => ({
-        id: c.id,
-        name: c.name,
-        set_name: c.set_name,
-        set_code: c.set_code,
-        number: c.number,
-        rarity: c.rarity,
-        year: c.year,
-        image_small: c.image_small,
-        image_large: c.image_large,
-        source: c.source,
-        source_ids: c.source_ids,
-        last_seen_at: new Date().toISOString(),
-        raw: c.raw,
-      }));
-    if (newRows.length) {
-      admin.from("pokemon_cards").upsert(newRows, { onConflict: "id" })
-        .then(({ error }) => { if (error) console.warn("catalog upsert", error.message); });
+    // Best-effort: upsert remote Pokémon results into local cache
+    // (other games are cached via tcg_prices / per-game tables, not pokemon_cards).
+    if (game.id === "pokemon") {
+      const newRows = top
+        .filter(({ c }) => c.source !== "local" && c.source !== "tcg_prices")
+        .map(({ c }) => ({
+          id: c.id, name: c.name, set_name: c.set_name, set_code: c.set_code,
+          number: c.number, rarity: c.rarity, year: c.year,
+          image_small: c.image_small, image_large: c.image_large,
+          source: c.source, source_ids: c.source_ids,
+          last_seen_at: new Date().toISOString(), raw: c.raw,
+        }));
+      if (newRows.length) {
+        admin.from("pokemon_cards").upsert(newRows, { onConflict: "id" })
+          .then(({ error }) => { if (error) console.warn("catalog upsert", error.message); });
+      }
     }
 
     return new Response(JSON.stringify({
+      game: game.id,
       candidates: top.map(({ c, s }) => ({ ...c, _score: s })),
       chosen,
       sources_tried: sourcesTried,
