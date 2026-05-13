@@ -39,6 +39,7 @@ export function ViewerListModal({
   }, []);
 
   // Load + realtime presence
+  const [presenceTick, setPresenceTick] = useState(0);
   useEffect(() => {
     let cancelled = false;
     const joinedSeen = new Map<string, number>();
@@ -58,7 +59,6 @@ export function ViewerListModal({
       });
       setViewers(enriched);
 
-      // Fetch verified flags for unknown users
       const ids = rows.map((r) => r.user_id).filter((id) => !(id in verifiedMap));
       if (ids.length) {
         const { data: profs } = await supabase.from("profiles").select("id, live_verified").in("id", ids);
@@ -74,11 +74,11 @@ export function ViewerListModal({
     const refresh = setInterval(load, 25_000);
     return () => { cancelled = true; clearInterval(refresh); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamId]);
+  }, [streamId, presenceTick]);
   useRealtimeChannel({ name: `viewer-list-${streamId}` }, (ch) =>
     ch.on("postgres_changes" as any,
       { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` } as any,
-      () => setViewers((v) => v))); // realtime tick — interval already reloads
+      () => setPresenceTick((n) => n + 1)));
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
