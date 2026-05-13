@@ -145,6 +145,11 @@ export function UsernamePopover({
               <p className="mt-2 line-clamp-2 text-[11px] text-muted-foreground">{profile.bio}</p>
             )}
 
+            <div className="mt-2 flex flex-wrap gap-1">
+              <SellerResponseBadges sellerId={profile.id} compact />
+              <BuyerTrustBadges userId={profile.id} compact />
+            </div>
+
             <div className="mt-2 grid grid-cols-3 gap-1.5 text-center text-[10px]">
               <div className="rounded-lg bg-muted/50 p-1.5">
                 <p className="text-muted-foreground">Sales</p>
