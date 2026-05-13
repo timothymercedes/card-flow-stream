@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
+import { GradedCardPanel } from "@/components/GradedCardPanel";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
