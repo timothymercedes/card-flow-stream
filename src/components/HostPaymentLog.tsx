@@ -41,6 +41,7 @@ export function HostPaymentLog({
   streamId, open, onClose,
 }: { streamId: string; open: boolean; onClose: () => void }) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<Tab>("processing");
   const [busy, setBusy] = useState<string | null>(null);
   const [panelBox, setPanelBox] = useState<FloatingBoxRect>(() => ({
