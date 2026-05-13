@@ -8,12 +8,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   searchPokemonTcg,
-  tcgplayerQuoteFromCard,
-  fetchPriceCharting,
   aggregatePrices,
   type PriceQuote,
   type NormalizedCard,
 } from "../_shared/cards/sources.ts";
+import { enabledProviders, pricingProviders } from "../_shared/cards/providers.ts";
+
+function pricingProvidersSkipped(active: { id: string }[]) {
+  const activeIds = new Set(active.map((p) => p.id));
+  return pricingProviders.filter((p) => !activeIds.has(p.id)).map((p) => p.id);
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,22 +89,31 @@ Deno.serve(async (req) => {
       card = list[0] ?? null;
     }
 
-    // 3) Gather quotes from every source in parallel
-    const quotes: PriceQuote[] = [];
+    // 3) Gather quotes from every ENABLED provider in parallel.
+    //    Disabled providers (e.g. PriceCharting until paid key + flag) are skipped.
+    const providers = enabledProviders();
     const sourcesTried: string[] = [];
     const sourcesFailed: string[] = [];
+    const sourcesSkipped = pricingProvidersSkipped(providers);
 
-    const tcgQuote = card ? tcgplayerQuoteFromCard(card) : null;
-    sourcesTried.push("tcg_api");
-    if (tcgQuote) quotes.push(tcgQuote); else sourcesFailed.push("tcg_api");
-
-    sourcesTried.push("pricecharting");
-    const pcQuote = await fetchPriceCharting({
+    const q = {
       name: card?.name || name,
-      set: card?.set_name || set,
-      number: card?.number || number,
-    });
-    if (pcQuote) quotes.push(pcQuote); else sourcesFailed.push("pricecharting");
+      set: card?.set_name || set || null,
+      number: card?.number || number || null,
+    };
+    const settled = await Promise.all(providers.map(async (p) => {
+      sourcesTried.push(p.id);
+      try {
+        const quote = await p.quote(card, q);
+        if (!quote) { sourcesFailed.push(p.id); return null; }
+        return quote;
+      } catch (e) {
+        console.warn(`[card-price] ${p.id} threw`, e);
+        sourcesFailed.push(p.id);
+        return null;
+      }
+    }));
+    const quotes: PriceQuote[] = settled.filter((q): q is PriceQuote => !!q);
 
     const aggregated = aggregatePrices(quotes);
 
@@ -121,6 +134,7 @@ Deno.serve(async (req) => {
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
+      sources_skipped: sourcesSkipped, // disabled providers (e.g. paid APIs without flag/key)
       primary_source: aggregated.primary_source,
       cached: false,
       duration_ms: Date.now() - t0,

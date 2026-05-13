@@ -2,7 +2,14 @@
 // All third-party calls are wrapped with timeout, retry, and a process-local
 // circuit breaker so a single bad source can never stall the chain.
 
-export type Source = "tcg_api" | "tcgdex" | "pricecharting" | "local" | "manual";
+export type Source =
+  | "tcg_api"        // PokémonTCG API (catalog + bundled TCGplayer prices)
+  | "tcgdex"         // TCGdex (catalog fallback)
+  | "pricecharting"  // PriceCharting (disabled until paid key + ENABLE_PRICECHARTING=1)
+  | "ebay_sold"      // eBay sold comps (planned)
+  | "psa"            // PSA pop/price (planned)
+  | "local"          // local Supabase cache
+  | "manual";
 
 export interface NormalizedCard {
   id: string;                 // canonical id (prefer tcg_api id, else tcgdex id)
