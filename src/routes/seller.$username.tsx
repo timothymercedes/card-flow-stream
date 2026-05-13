@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff, Radio, Share2 } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { SellerTrustBadges } from "@/components/SellerTrustBadges";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
