@@ -151,6 +151,13 @@ function LiveDetail() {
   const [shoutouts, setShoutouts] = useState<any[]>([]);
   const [mySpent, setMySpent] = useState(0);
   const [tipOpen, setTipOpen] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoOverlay, setPromoOverlay] = useState<{
+    id: string;
+    username: string;
+    amount: number;
+    message?: string;
+  } | null>(null);
   const [tipOverlay, setTipOverlay] = useState<{
     id: string;
     username: string;
