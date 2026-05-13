@@ -10,6 +10,9 @@ import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { SellerTrustBadges } from "@/components/SellerTrustBadges";
+import { SellerResponseBadges } from "@/components/SellerResponseBadges";
+import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
+import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { UserAvatar } from "@/components/UserAvatar";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
@@ -317,7 +320,11 @@ function PublicStore() {
 
         {sellerStats && Number(sellerStats.completed_sales || 0) > 0 && (
           <div className="mb-4 space-y-2">
-            <SellerTrustBadges sellerId={seller.id} />
+            <div className="flex flex-wrap items-center gap-1">
+              <SellerTrustBadges sellerId={seller.id} />
+              <SellerResponseBadges sellerId={seller.id} />
+              <BuyerTrustBadges userId={seller.id} compact />
+            </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-xl bg-card p-3 text-center">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Completed sales</p>
@@ -499,23 +506,8 @@ function PublicStore() {
             </div>
           </>
         )}
-        {tab === "reviews" && (
-          <>
-            {reviews.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No reviews yet.</p>}
-            <div className="space-y-3">
-              {reviews.map((r) => (
-                <div key={r.id} className="rounded-xl bg-card p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold">@{r.buyer_username}</p>
-                    <Stars n={r.rating} size={12} />
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">📦 Shipping: <Stars n={r.shipping_rating} size={10} /></p>
-                  {r.comment && <p className="mt-1 text-xs">{r.comment}</p>}
-                  <p className="mt-1 text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</p>
-                </div>
-              ))}
-            </div>
-          </>
+        {tab === "reviews" && seller && (
+          <SellerReviewsPanel sellerId={seller.id} currentUserId={user?.id ?? null} />
         )}
       </div>
     </AppShell>

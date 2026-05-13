@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Truck, MessageCircle, Store, Radio, Flag, BadgeCheck } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { SellerResponseBadges } from "@/components/SellerResponseBadges";
+import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 
 type Stats = {
   completed_sales?: number;
@@ -142,6 +144,11 @@ export function UsernamePopover({
             {profile.bio && (
               <p className="mt-2 line-clamp-2 text-[11px] text-muted-foreground">{profile.bio}</p>
             )}
+
+            <div className="mt-2 flex flex-wrap gap-1">
+              <SellerResponseBadges sellerId={profile.id} compact />
+              <BuyerTrustBadges userId={profile.id} compact />
+            </div>
 
             <div className="mt-2 grid grid-cols-3 gap-1.5 text-center text-[10px]">
               <div className="rounded-lg bg-muted/50 p-1.5">
