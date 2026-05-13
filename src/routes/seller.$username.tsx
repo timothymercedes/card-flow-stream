@@ -40,6 +40,7 @@ function PublicStore() {
   const [posts, setPosts] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
   const [vaultCards, setVaultCards] = useState<any[]>([]);
+  const [sellerStats, setSellerStats] = useState<any>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [notifyOnLive, setNotifyOnLive] = useState(true);
 
