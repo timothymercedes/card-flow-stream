@@ -324,10 +324,12 @@ function SellerHub() {
 
   // Filtered orders by sub-tab
   const filteredOrders = orders.filter((o) =>
-    ordersTab === "to_ship" ? o.status === "pending" :
+    ordersTab === "to_ship" ? (o.status === "pending" && !["failed", "chargeback"].includes(o.payment_status)) :
     ordersTab === "shipped" ? o.status === "shipped" :
     ordersTab === "delivered" ? o.status === "delivered" :
-    (o.status === "cancelled" || o.payment_status === "refunded")
+    ordersTab === "failed" ? ["failed", "chargeback"].includes(o.payment_status) :
+    ordersTab === "refunds" ? o.payment_status === "refunded" :
+    o.status === "cancelled"
   );
 
   const filteredListings = listings.filter((l) => {
