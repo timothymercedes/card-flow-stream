@@ -381,21 +381,16 @@ export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST
       throw new Error("Please wait a few seconds before promoting again");
     }
 
-    const { data: sellerAcct } = await supabaseAdmin
-      .from("stripe_accounts")
-      .select("stripe_account_id, charges_enabled")
-      .eq("seller_id", sellerId)
-      .maybeSingle();
-    if (!sellerAcct || !(sellerAcct as any).charges_enabled) {
-      throw new Error("Streamer is not ready to accept promotions");
-    }
-
+    // Promotions are PLATFORM revenue (advertising). They do NOT go to the
+    // streamer's Connect account — no transfer_data/destination here.
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("username")
       .eq("id", userId)
       .maybeSingle();
     const promoterUsername = (profile as any)?.username ?? "viewer";
+
+    const durationSeconds = promotionDurationSeconds(data.amountCents);
 
     const { data: promoRow, error: promoErr } = await supabaseAdmin
       .from("stream_promotions")
@@ -404,6 +399,7 @@ export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST
         promoter_id: userId,
         promoter_username: promoterUsername,
         amount: data.amountCents / 100,
+        duration_seconds: durationSeconds,
         message: data.message || null,
         status: "pending",
       })
@@ -411,14 +407,12 @@ export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST
       .single();
     if (promoErr || !promoRow) throw new Error(promoErr?.message ?? "Failed to record promotion");
 
-    const fees = calculateFees(data.amountCents);
-
+    // Buyer pays exactly the promotion amount; entire amount stays on the
+    // platform Stripe account (no application_fee_amount, no transfer_data).
     const intent = await stripe.paymentIntents.create({
-      amount: fees.buyerTotal,
+      amount: data.amountCents,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      application_fee_amount: fees.platformFee + fees.buyerServiceFee,
-      transfer_data: { destination: (sellerAcct as any).stripe_account_id },
       metadata: {
         kind: "stream_promotion",
         promotion_id: (promoRow as any).id,
@@ -427,6 +421,7 @@ export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST
         seller_id: sellerId,
         promoter_username: promoterUsername,
         amount_cents: String(data.amountCents),
+        duration_seconds: String(durationSeconds),
       },
     });
 
@@ -439,7 +434,11 @@ export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST
       clientSecret: intent.client_secret,
       paymentIntentId: intent.id,
       promotionId: (promoRow as any).id,
-      ...fees,
+      durationSeconds,
+      subtotalCents: data.amountCents,
+      platformFee: data.amountCents,
+      buyerServiceFee: 0,
+      buyerTotal: data.amountCents,
     };
   });
 
