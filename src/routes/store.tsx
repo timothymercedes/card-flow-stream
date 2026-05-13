@@ -272,10 +272,12 @@ function SellerHub() {
   const counts = useMemo(() => {
     const o = orders;
     return {
-      to_ship: o.filter((x) => x.status === "pending").length,
+      to_ship: o.filter((x) => x.status === "pending" && !["failed", "chargeback"].includes(x.payment_status)).length,
       shipped: o.filter((x) => x.status === "shipped").length,
       delivered: o.filter((x) => x.status === "delivered").length,
-      cancelled: o.filter((x) => x.status === "cancelled" || x.payment_status === "refunded").length,
+      failed: o.filter((x) => ["failed", "chargeback"].includes(x.payment_status)).length,
+      refunds: o.filter((x) => x.payment_status === "refunded").length,
+      cancelled: o.filter((x) => x.status === "cancelled").length,
       active: listings.filter((l) => (l.auction_status || "active") === "active").length,
       draft: listings.filter((l) => l.auction_status === "draft").length,
       scheduled: listings.filter((l) => l.auction_status === "scheduled").length,
