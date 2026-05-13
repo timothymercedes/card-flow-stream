@@ -10,6 +10,7 @@ import { VerificationInbox } from "@/components/admin/VerificationInbox";
 import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
 const ROLE_BADGES: Record<Role, string> = {
@@ -107,36 +108,27 @@ function Admin() {
   }
 
   useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
-  useEffect(() => {
-    if (!canViewAdmin) return;
-    const refresh = async () => {
-      const { count } = await supabase
-        .from("support_tickets")
-        .select("id", { head: true, count: "exact" })
-        .in("status", ["open", "pending"]);
-      setOpenSupport(count || 0);
-    };
-    refresh();
-    const ch = supabase.channel("admin-support-count")
-      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, refresh)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [canViewAdmin]);
-  useEffect(() => {
-    if (!canViewAdmin) return;
-    const refresh = async () => {
-      const { count } = await supabase
-        .from("profiles")
-        .select("id", { head: true, count: "exact" })
-        .in("verification_status", ["pending", "reverify_required"]);
-      setPendingVerifications(count || 0);
-    };
-    refresh();
-    const ch = supabase.channel("admin-verif-count")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, refresh)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [canViewAdmin]);
+  const refreshSupport = async () => {
+    const { count } = await supabase
+      .from("support_tickets")
+      .select("id", { head: true, count: "exact" })
+      .in("status", ["open", "pending"]);
+    setOpenSupport(count || 0);
+  };
+  useEffect(() => { if (canViewAdmin) refreshSupport(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [canViewAdmin]);
+  useRealtimeChannel({ name: "admin-support-count", enabled: canViewAdmin }, (ch) =>
+    ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "support_tickets" } as any, () => refreshSupport()));
+
+  const refreshVerif = async () => {
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { head: true, count: "exact" })
+      .in("verification_status", ["pending", "reverify_required"]);
+    setPendingVerifications(count || 0);
+  };
+  useEffect(() => { if (canViewAdmin) refreshVerif(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [canViewAdmin]);
+  useRealtimeChannel({ name: "admin-verif-count", enabled: canViewAdmin }, (ch) =>
+    ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" } as any, () => refreshVerif()));
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
   useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
   useEffect(() => {

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, Search, Users, BadgeCheck, Shield, UserPlus } from "lucide-react";
 import type { PresenceUser } from "@/hooks/useStreamPresence";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Enrich = { id: string; live_verified: boolean };
 
