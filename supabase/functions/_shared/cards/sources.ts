@@ -5,6 +5,10 @@
 export type Source =
   | "tcg_api"        // PokémonTCG API (catalog + bundled TCGplayer prices)
   | "tcgdex"         // TCGdex (catalog fallback)
+  | "ygoprodeck"     // Yu-Gi-Oh! catalog + TCGplayer/CardMarket prices
+  | "scryfall"       // Magic: The Gathering catalog + price hints
+  | "justtcg"        // JustTCG aggregated pricing (where supported)
+  | "tcg_prices"     // local tcg_prices cache (One Piece / Lorcana / DBSFW / SWU / FaB)
   | "pricecharting"  // PriceCharting (disabled until paid key + ENABLE_PRICECHARTING=1)
   | "ebay_sold"      // eBay sold comps (planned)
   | "psa"            // PSA pop/price (planned)
@@ -290,5 +294,175 @@ export function aggregatePrices(quotes: PriceQuote[]): AggregatedPrice {
     currency: valid[0].currency || "USD",
     sources: valid,
     primary_source: valid[0].source,
+  };
+}
+
+// ============================================================================
+// Multi-game catalog adapters (free / no-key sources)
+// ============================================================================
+
+// --- Yu-Gi-Oh! via YGOPRODeck (free, no key) -------------------------------
+export async function searchYugioh(
+  q: { name?: string },
+  limit = 8,
+): Promise<NormalizedCard[]> {
+  if (!q.name) return [];
+  const url = `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(q.name)}&num=${limit}&offset=0`;
+  const res = await safeFetch("ygoprodeck", url);
+  if (!res) return [];
+  try {
+    const j = await res.json();
+    const list: any[] = Array.isArray(j?.data) ? j.data.slice(0, limit) : [];
+    return list.map((c): NormalizedCard => {
+      const set = Array.isArray(c.card_sets) ? c.card_sets[0] : null;
+      const img = Array.isArray(c.card_images) ? c.card_images[0] : null;
+      const tcgPrice = Array.isArray(c.card_prices) ? c.card_prices[0] : null;
+      return {
+        id: `ygo:${c.id}`,
+        source: "ygoprodeck",
+        source_ids: { ygoprodeck: String(c.id) },
+        name: String(c.name ?? ""),
+        set_name: set?.set_name ?? null,
+        set_code: set?.set_code ?? null,
+        number: set?.set_code ?? null,
+        rarity: set?.set_rarity ?? c.rarity ?? null,
+        year: null,
+        image_small: img?.image_url_small ?? null,
+        image_large: img?.image_url ?? null,
+        variants: [],
+        raw: { ...c, _firstPrice: tcgPrice },
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function ygoQuoteFromCard(card: NormalizedCard): PriceQuote | null {
+  const raw = card.raw as any;
+  const p = raw?._firstPrice;
+  if (!p) return null;
+  const market = Number(p.tcgplayer_price) || Number(p.cardmarket_price) || null;
+  if (market == null) return null;
+  return {
+    source: "ygoprodeck",
+    market, low: market, mid: market, high: market,
+    currency: "USD",
+    raw: p,
+  };
+}
+
+// --- MTG via Scryfall (free, no key) ---------------------------------------
+export async function searchScryfallMtg(
+  q: { name?: string; set?: string | null; number?: string | null },
+  limit = 8,
+): Promise<NormalizedCard[]> {
+  if (!q.name) return [];
+  const parts = [q.name];
+  if (q.set) parts.push(`set:${q.set}`);
+  if (q.number) parts.push(`number:${String(q.number).split("/")[0].trim()}`);
+  const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(parts.join(" "))}&unique=cards&order=released`;
+  const res = await safeFetch("scryfall", url);
+  if (!res) return [];
+  try {
+    const j = await res.json();
+    const list: any[] = Array.isArray(j?.data) ? j.data.slice(0, limit) : [];
+    return list.map((c): NormalizedCard => ({
+      id: `mtg:${c.id}`,
+      source: "scryfall",
+      source_ids: { scryfall: String(c.id) },
+      name: String(c.name ?? ""),
+      set_name: c.set_name ?? null,
+      set_code: c.set ?? null,
+      number: c.collector_number ?? null,
+      rarity: c.rarity ?? null,
+      year: c.released_at ? String(c.released_at).slice(0, 4) : null,
+      image_small: c.image_uris?.small ?? c.card_faces?.[0]?.image_uris?.small ?? null,
+      image_large: c.image_uris?.large ?? c.card_faces?.[0]?.image_uris?.large ?? null,
+      variants: [c.finishes ?? []].flat(),
+      raw: c,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function scryfallQuoteFromCard(card: NormalizedCard): PriceQuote | null {
+  const raw = card.raw as any;
+  const p = raw?.prices;
+  if (!p) return null;
+  const market = Number(p.usd) || Number(p.usd_foil) || null;
+  if (market == null) return null;
+  return {
+    source: "scryfall",
+    market, low: market, mid: market, high: market,
+    currency: "USD",
+    url: raw?.purchase_uris?.tcgplayer ?? null,
+    raw: p,
+  };
+}
+
+// --- Local tcg_prices cache lookup (multi-game) ----------------------------
+// Reads from the `tcg_prices` table populated by sync-tcgcsv. No outbound
+// network — pure DB query, used as the catalog source for games without a
+// free public catalog API (One Piece, Lorcana, DBS Fusion, SWU, FaB).
+export async function searchTcgPricesTable(
+  game: string,
+  q: { name?: string; number?: string; set?: string },
+  limit = 8,
+): Promise<NormalizedCard[]> {
+  if (!q.name) return [];
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return [];
+  const clean = String(q.name).toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, " ").trim();
+  const params = new URLSearchParams({
+    select: "tcgplayer_product_id,name,set_name,number,rarity,image_url,market_price,low_price,mid_price,high_price",
+    game: `eq.${game}`,
+    clean_name: `ilike.*${clean}*`,
+    limit: String(limit),
+  });
+  if (q.number) params.append("number", `eq.${String(q.number).split("/")[0].trim()}`);
+  if (q.set) params.append("set_name", `ilike.*${q.set}*`);
+  const res = await safeFetch(
+    `tcg_prices:${game}`,
+    `${url}/rest/v1/tcg_prices?${params.toString()}`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+  );
+  if (!res) return [];
+  try {
+    const rows: any[] = await res.json();
+    return rows.map((r): NormalizedCard => ({
+      id: `tcgp:${game}:${r.tcgplayer_product_id}`,
+      source: "tcg_prices",
+      source_ids: { tcgplayer: String(r.tcgplayer_product_id) },
+      name: r.name,
+      set_name: r.set_name ?? null,
+      set_code: null,
+      number: r.number ?? null,
+      rarity: r.rarity ?? null,
+      year: null,
+      image_small: r.image_url ?? null,
+      image_large: r.image_url ?? null,
+      variants: [],
+      raw: r,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function tcgPricesQuoteFromCard(card: NormalizedCard): PriceQuote | null {
+  if (card.source !== "tcg_prices") return null;
+  const r = card.raw as any;
+  const market = Number(r?.market_price) || null;
+  if (market == null && !r?.low_price && !r?.high_price) return null;
+  return {
+    source: "tcg_prices",
+    market,
+    low: Number(r?.low_price) || null,
+    mid: Number(r?.mid_price) || null,
+    high: Number(r?.high_price) || null,
+    currency: "USD",
   };
 }
