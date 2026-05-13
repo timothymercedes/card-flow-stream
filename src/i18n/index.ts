@@ -30,6 +30,11 @@ if (!i18n.isInitialized) {
       resources: {
         en: { translation: en },
         es: { translation: es },
+        fr: { translation: fr },
+        de: { translation: de },
+        pt: { translation: pt },
+        ja: { translation: ja },
+        zh: { translation: zh },
       },
       lng: "en",
       fallbackLng: "en",
