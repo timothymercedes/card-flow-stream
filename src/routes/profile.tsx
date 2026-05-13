@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote, Star, ExternalLink, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -10,6 +10,10 @@ import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/pa
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
 import { AgreementModal } from "@/components/AgreementModal";
 import { LiveNowPill } from "@/components/ReturnToLiveBadge";
+import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
+import { SellerTrustBadges } from "@/components/SellerTrustBadges";
+import { SellerResponseBadges } from "@/components/SellerResponseBadges";
+import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -50,6 +54,11 @@ function Profile() {
   const [showSellerAgreement, setShowSellerAgreement] = useState(false);
   const [acceptingAgreement, setAcceptingAgreement] = useState(false);
 
+  const [myLiveStreamId, setMyLiveStreamId] = useState<string | null>(null);
+  const [myStats, setMyStats] = useState<any>(null);
+  const [showMyReviews, setShowMyReviews] = useState(false);
+  const [restriction, setRestriction] = useState<any>(null);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
@@ -58,6 +67,9 @@ function Profile() {
     (supabase.rpc as any)("get_seller_completed_count", { _user: user.id }).then(({ data }: any) => setSellerCompleted(Number(data ?? 0)));
     (supabase.rpc as any)("get_buyer_completed_count", { _user: user.id }).then(({ data }: any) => setBuyerCompleted(Number(data ?? 0)));
     supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["owner","admin","moderator","support"]).then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
+    supabase.from("live_streams").select("id").eq("seller_id", user.id).eq("status","live").order("started_at",{ascending:false}).limit(1).maybeSingle().then(({ data }) => setMyLiveStreamId((data as any)?.id ?? null));
+    (supabase.rpc as any)("get_seller_stats", { _seller_id: user.id }).then(({ data }: any) => setMyStats(Array.isArray(data) ? data[0] : data));
+    supabase.from("user_suspensions").select("*").eq("user_id", user.id).eq("active", true).order("created_at",{ascending:false}).limit(1).maybeSingle().then(({ data }) => setRestriction(data));
   }, [user]);
 
   async function openList(kind: "followers" | "following") {
@@ -253,6 +265,84 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Quick action bar — own profile shortcuts */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {p.username && (
+            <Link to="/seller/$username" params={{ username: p.username }} className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground">
+              <ExternalLink className="h-3.5 w-3.5" /> View Storefront
+            </Link>
+          )}
+          {myLiveStreamId ? (
+            <Link to="/live/$id" params={{ id: myLiveStreamId }} className="flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-live to-live/70 px-3 py-2.5 text-xs font-bold text-live-foreground">
+              <Radio className="h-3.5 w-3.5 animate-pulse" /> Join My Live
+            </Link>
+          ) : p.seller_status === "approved" ? (
+            <Link to="/sell" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+              <Radio className="h-3.5 w-3.5 text-live" /> Go Live
+            </Link>
+          ) : null}
+          <button onClick={() => setShowMyReviews((v) => !v)} className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+            <Star className="h-3.5 w-3.5 text-amber-400" /> {showMyReviews ? "Hide" : "View"} Reviews
+          </button>
+          <Link to="/messages" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+            <MessageSquare className="h-3.5 w-3.5 text-primary" /> Messages
+          </Link>
+        </div>
+
+        {/* Trust + response badges (own view) */}
+        <div className="flex flex-wrap items-center gap-1">
+          <SellerTrustBadges sellerId={user.id} />
+          <SellerResponseBadges sellerId={user.id} />
+          <BuyerTrustBadges userId={user.id} compact />
+        </div>
+
+        {/* Failed-payment / restriction banner */}
+        {restriction && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs">
+            <p className="font-bold text-destructive">⚠ Account {restriction.type === "ban" ? "banned" : "restricted"}</p>
+            <p className="mt-1 text-muted-foreground">{restriction.reason}</p>
+            {restriction.expires_at && <p className="mt-1 text-[10px] text-muted-foreground">Until {new Date(restriction.expires_at).toLocaleString()}</p>}
+            <p className="mt-2 text-[10px] text-muted-foreground">Resolve outstanding payments to request review.</p>
+          </div>
+        )}
+
+        {/* Seller stats quick-view */}
+        {myStats && Number(myStats.completed_sales || 0) > 0 && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Sold</p>
+              <p className="mt-1 text-base font-bold text-primary">{myStats.completed_sales ?? 0}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Rating</p>
+              <p className="mt-1 text-base font-bold text-amber-400">{myStats.avg_rating ? `${Number(myStats.avg_rating).toFixed(1)}★` : "—"}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">On-time</p>
+              <p className="mt-1 text-base font-bold text-emerald-400">{myStats.on_time_rate != null ? `${Number(myStats.on_time_rate).toFixed(0)}%` : "—"}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Reviews</p>
+              <p className="mt-1 text-base font-bold">{myStats.review_count ?? 0}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Inline reviews panel — manage/respond from own profile */}
+        {showMyReviews && (
+          <section className="rounded-xl bg-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-bold">My Reviews</p>
+              {p.username && (
+                <Link to="/seller/$username" params={{ username: p.username }} className="text-[11px] font-bold text-primary">
+                  Open public storefront →
+                </Link>
+              )}
+            </div>
+            <SellerReviewsPanel sellerId={user.id} currentUserId={user.id} />
+          </section>
+        )}
 
         {isAdmin && (
           <Link to="/admin" className="flex items-center justify-between rounded-xl bg-primary/10 p-3 hover:bg-primary/20">
