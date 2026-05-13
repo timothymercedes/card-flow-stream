@@ -3428,6 +3428,14 @@ function LiveDetail() {
                 </Link>
               )}
             </div>
+            {Number((stream as any).total_promoted_amount || 0) > 0 && (
+              <span
+                title="Total promoted on this live"
+                className="shrink-0 rounded-md bg-gradient-to-r from-orange-500 to-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white"
+              >
+                🔥 ${Number((stream as any).total_promoted_amount).toFixed(0)}
+              </span>
+            )}
             {stream.current_condition && (
               <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                 {stream.current_condition}
