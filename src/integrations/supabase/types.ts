@@ -1220,6 +1220,7 @@ export type Database = {
           last_activity_at: string
           last_activity_type: string
           last_host_confirmed_at: string | null
+          last_promoted_at: string | null
           listing_type: string
           max_collab_count: number
           min_bid_increment: number
@@ -1228,6 +1229,9 @@ export type Database = {
           pause_started_at: string | null
           pause_until: string | null
           pinned_card: Json | null
+          promotion_min_amount: number
+          promotion_score: number
+          promotions_enabled: boolean
           quantity: number
           quantity_remaining: number | null
           quick_start_enabled: boolean
@@ -1252,6 +1256,7 @@ export type Database = {
           tcg_tags: string[]
           thumbnail_url: string | null
           title: string
+          total_promoted_amount: number
           video_filter: string
           voice_trigger_enabled: boolean
           voice_trigger_phrase: string | null
@@ -1315,6 +1320,7 @@ export type Database = {
           last_activity_at?: string
           last_activity_type?: string
           last_host_confirmed_at?: string | null
+          last_promoted_at?: string | null
           listing_type?: string
           max_collab_count?: number
           min_bid_increment?: number
@@ -1323,6 +1329,9 @@ export type Database = {
           pause_started_at?: string | null
           pause_until?: string | null
           pinned_card?: Json | null
+          promotion_min_amount?: number
+          promotion_score?: number
+          promotions_enabled?: boolean
           quantity?: number
           quantity_remaining?: number | null
           quick_start_enabled?: boolean
@@ -1347,6 +1356,7 @@ export type Database = {
           tcg_tags?: string[]
           thumbnail_url?: string | null
           title: string
+          total_promoted_amount?: number
           video_filter?: string
           voice_trigger_enabled?: boolean
           voice_trigger_phrase?: string | null
@@ -1410,6 +1420,7 @@ export type Database = {
           last_activity_at?: string
           last_activity_type?: string
           last_host_confirmed_at?: string | null
+          last_promoted_at?: string | null
           listing_type?: string
           max_collab_count?: number
           min_bid_increment?: number
@@ -1418,6 +1429,9 @@ export type Database = {
           pause_started_at?: string | null
           pause_until?: string | null
           pinned_card?: Json | null
+          promotion_min_amount?: number
+          promotion_score?: number
+          promotions_enabled?: boolean
           quantity?: number
           quantity_remaining?: number | null
           quick_start_enabled?: boolean
@@ -1442,6 +1456,7 @@ export type Database = {
           tcg_tags?: string[]
           thumbnail_url?: string | null
           title?: string
+          total_promoted_amount?: number
           video_filter?: string
           voice_trigger_enabled?: boolean
           voice_trigger_phrase?: string | null
@@ -3029,6 +3044,53 @@ export type Database = {
           stream_id?: string
         }
         Relationships: []
+      }
+      stream_promotions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          message: string | null
+          paid_at: string | null
+          promoter_id: string
+          promoter_username: string
+          status: string
+          stream_id: string
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          message?: string | null
+          paid_at?: string | null
+          promoter_id: string
+          promoter_username: string
+          status?: string
+          stream_id: string
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          message?: string | null
+          paid_at?: string | null
+          promoter_id?: string
+          promoter_username?: string
+          status?: string
+          stream_id?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_promotions_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stream_reactions: {
         Row: {

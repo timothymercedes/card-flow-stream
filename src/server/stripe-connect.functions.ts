@@ -324,3 +324,149 @@ export const createStreamTipPaymentIntent = createServerFn({ method: "POST" })
       ...fees,
     };
   });
+
+/**
+ * Create a PaymentIntent for a viewer "promotion" — pays to boost a live
+ * stream's discoverability. Same Connect split as tips, but recorded in
+ * stream_promotions and (on webhook) increments the stream's promotion_score.
+ *
+ * Anti-spam: 30s cooldown per (user, stream) on pending+paid promotions.
+ */
+export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { streamId: string; amountCents: number; message?: string }) => {
+    if (!data.streamId) throw new Error("streamId required");
+    if (!Number.isFinite(data.amountCents) || data.amountCents < 100) {
+      throw new Error("Minimum promotion is $1");
+    }
+    if (data.amountCents > 50000) throw new Error("Maximum promotion is $500");
+    if (data.message && data.message.length > 140) throw new Error("Message too long");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const stripe = getStripe();
+
+    const { data: stream } = await supabaseAdmin
+      .from("live_streams")
+      .select("seller_id, promotions_enabled, promotion_min_amount")
+      .eq("id", data.streamId)
+      .maybeSingle();
+    if (!stream) throw new Error("Stream not found");
+    const s = stream as any;
+    if (s.promotions_enabled === false) throw new Error("Host has disabled promotions");
+    const minCents = Math.round(Number(s.promotion_min_amount || 1) * 100);
+    if (data.amountCents < minCents) {
+      throw new Error(`Minimum promotion on this stream is $${(minCents / 100).toFixed(2)}`);
+    }
+    const sellerId = s.seller_id as string;
+    if (sellerId === userId) throw new Error("You can't promote your own stream");
+
+    // Cooldown: 30s between attempts per (user, stream)
+    const cutoff = new Date(Date.now() - 30_000).toISOString();
+    const { data: recent } = await supabaseAdmin
+      .from("stream_promotions")
+      .select("id, created_at")
+      .eq("stream_id", data.streamId)
+      .eq("promoter_id", userId)
+      .gte("created_at", cutoff)
+      .limit(1);
+    if (recent && recent.length > 0) {
+      throw new Error("Please wait a few seconds before promoting again");
+    }
+
+    const { data: sellerAcct } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id, charges_enabled")
+      .eq("seller_id", sellerId)
+      .maybeSingle();
+    if (!sellerAcct || !(sellerAcct as any).charges_enabled) {
+      throw new Error("Streamer is not ready to accept promotions");
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+    const promoterUsername = (profile as any)?.username ?? "viewer";
+
+    const { data: promoRow, error: promoErr } = await supabaseAdmin
+      .from("stream_promotions")
+      .insert({
+        stream_id: data.streamId,
+        promoter_id: userId,
+        promoter_username: promoterUsername,
+        amount: data.amountCents / 100,
+        message: data.message || null,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (promoErr || !promoRow) throw new Error(promoErr?.message ?? "Failed to record promotion");
+
+    const fees = calculateFees(data.amountCents);
+
+    const intent = await stripe.paymentIntents.create({
+      amount: fees.buyerTotal,
+      currency: "usd",
+      automatic_payment_methods: { enabled: true },
+      application_fee_amount: fees.platformFee + fees.buyerServiceFee,
+      transfer_data: { destination: (sellerAcct as any).stripe_account_id },
+      metadata: {
+        kind: "stream_promotion",
+        promotion_id: (promoRow as any).id,
+        stream_id: data.streamId,
+        buyer_id: userId,
+        seller_id: sellerId,
+        promoter_username: promoterUsername,
+        amount_cents: String(data.amountCents),
+      },
+    });
+
+    await supabaseAdmin
+      .from("stream_promotions")
+      .update({ stripe_payment_intent_id: intent.id })
+      .eq("id", (promoRow as any).id);
+
+    return {
+      clientSecret: intent.client_secret,
+      paymentIntentId: intent.id,
+      promotionId: (promoRow as any).id,
+      ...fees,
+    };
+  });
+
+/**
+ * Host updates promotion settings on their own stream.
+ */
+export const updateStreamPromotionSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { streamId: string; enabled?: boolean; minAmount?: number }) => {
+    if (!data.streamId) throw new Error("streamId required");
+    if (data.minAmount !== undefined && (!Number.isFinite(data.minAmount) || data.minAmount < 1 || data.minAmount > 100)) {
+      throw new Error("Min amount must be $1–$100");
+    }
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { data: stream } = await supabaseAdmin
+      .from("live_streams")
+      .select("seller_id")
+      .eq("id", data.streamId)
+      .maybeSingle();
+    if (!stream || (stream as any).seller_id !== userId) throw new Error("Not your stream");
+
+    const patch: any = {};
+    if (data.enabled !== undefined) patch.promotions_enabled = data.enabled;
+    if (data.minAmount !== undefined) patch.promotion_min_amount = data.minAmount;
+    if (Object.keys(patch).length === 0) return { ok: true };
+
+    const { error } = await supabaseAdmin
+      .from("live_streams")
+      .update(patch)
+      .eq("id", data.streamId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

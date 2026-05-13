@@ -60,11 +60,12 @@ import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
+import { PromoteCheckout } from "@/components/PromoteCheckout";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
 import { ReportDialog } from "@/components/ReportDialog";
-import { Flag } from "lucide-react";
+import { Flag, Flame } from "lucide-react";
 import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 import { CollabPanel } from "@/components/CollabPanel";
@@ -148,6 +149,13 @@ function LiveDetail() {
   const [shoutouts, setShoutouts] = useState<any[]>([]);
   const [mySpent, setMySpent] = useState(0);
   const [tipOpen, setTipOpen] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoOverlay, setPromoOverlay] = useState<{
+    id: string;
+    username: string;
+    amount: number;
+    message?: string;
+  } | null>(null);
   const [tipOverlay, setTipOverlay] = useState<{
     id: string;
     username: string;
@@ -456,6 +464,29 @@ function LiveDetail() {
           filter: `stream_id=eq.${id}`,
         },
         (p) => setShoutouts((s) => [p.new, ...s]),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "stream_promotions",
+          filter: `stream_id=eq.${id}`,
+        },
+        (p: any) => {
+          if (p.new?.status === "paid") {
+            const pid = p.new.id;
+            setPromoOverlay({
+              id: pid,
+              username: p.new.promoter_username,
+              amount: Number(p.new.amount),
+              message: p.new.message,
+            });
+            setTimeout(() => {
+              setPromoOverlay((cur) => (cur?.id === pid ? null : cur));
+            }, 6000);
+          }
+        },
       )
       .on(
         "postgres_changes",
@@ -3395,6 +3426,14 @@ function LiveDetail() {
                 </Link>
               )}
             </div>
+            {Number((stream as any).total_promoted_amount || 0) > 0 && (
+              <span
+                title="Total promoted on this live"
+                className="shrink-0 rounded-md bg-gradient-to-r from-orange-500 to-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white"
+              >
+                🔥 ${Number((stream as any).total_promoted_amount).toFixed(0)}
+              </span>
+            )}
             {stream.current_condition && (
               <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                 {stream.current_condition}
@@ -4462,6 +4501,18 @@ function LiveDetail() {
                     >
                       <Megaphone className="h-4 w-4" />
                       Shout
+                    </button>
+                  )}
+                  {!ended && !isSeller && (stream as any)?.promotions_enabled !== false && (
+                    <button
+                      onClick={() =>
+                        user ? setPromoteOpen(true) : toast.error("Sign in to promote")
+                      }
+                      title="Promote this live — boosts ranking on Discover"
+                      className="flex shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 px-3 py-2 text-[10px] font-bold text-white active:scale-[0.98]"
+                    >
+                      <Flame className="h-4 w-4" />
+                      Promote
                     </button>
                   )}
                 </div>
@@ -6134,6 +6185,36 @@ function LiveDetail() {
           streamerName={sellerUsername}
           onClose={() => setTipOpen(false)}
         />
+      )}
+
+      {promoteOpen && (
+        <PromoteCheckout
+          streamId={id}
+          streamerName={sellerUsername}
+          minAmount={Number((stream as any)?.promotion_min_amount || 1)}
+          onClose={() => setPromoteOpen(false)}
+        />
+      )}
+
+      {promoOverlay && (
+        <div className="pointer-events-none fixed left-1/2 top-16 z-[160] w-[min(92vw,420px)] -translate-x-1/2 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-orange-400/50 bg-gradient-to-r from-orange-500 to-red-600 px-4 py-3 shadow-2xl shadow-orange-500/50">
+            <Flame className="h-6 w-6 shrink-0 text-white animate-pulse" />
+            <div className="min-w-0 flex-1 text-white">
+              <div className="text-[10px] font-bold uppercase tracking-wider opacity-90">
+                🔥 Promoted Live
+              </div>
+              <div className="truncate text-sm font-extrabold">
+                @{promoOverlay.username} promoted this for ${promoOverlay.amount.toFixed(2)}
+              </div>
+              {promoOverlay.message && (
+                <div className="mt-0.5 truncate text-xs italic opacity-95">
+                  "{promoOverlay.message}"
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {tipOverlay && (
