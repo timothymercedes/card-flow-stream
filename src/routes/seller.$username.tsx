@@ -216,9 +216,7 @@ function PublicStore() {
               size="lg"
               noLink={!liveStreamId}
             />
-            {!seller.avatar_url && !liveStreamId && (
-              <StoreIcon className="-ml-12 h-6 w-6 text-muted-foreground pointer-events-none" aria-hidden="true" />
-            )}
+
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
