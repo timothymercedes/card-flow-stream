@@ -499,6 +499,25 @@ function SellerHub() {
                     <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
                     {o.tracking_number && <p className="text-[11px] text-primary">Tracking: {o.tracking_number}{o.carrier && ` · ${o.carrier}`}</p>}
 
+                    {ordersTab === "to_ship" && o.payment_status === "paid" && o.shipping_due_at && (() => {
+                      const dueMs = new Date(o.shipping_due_at).getTime() - Date.now();
+                      const hrs = Math.round(dueMs / 3_600_000);
+                      if (o.is_late_shipment || dueMs < 0) {
+                        return (
+                          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-400">
+                            ⚠️ Late · was due {new Date(o.shipping_due_at).toLocaleDateString()}
+                            {o.payout_held && " · payout on hold"}
+                          </p>
+                        );
+                      }
+                      return (
+                        <p className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${hrs <= 24 ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/10 text-emerald-400"}`}>
+                          📦 Ship by {new Date(o.shipping_due_at).toLocaleDateString()}
+                          {hrs > 0 ? ` · ${hrs}h left` : ""}
+                        </p>
+                      );
+                    })()}
+
                     {ordersTab === "to_ship" && o.payment_status !== "paid" && (
                       <p className="mt-2 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-300">Waiting for buyer to pay before you can ship.</p>
                     )}
