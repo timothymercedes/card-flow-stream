@@ -71,13 +71,14 @@ export function ViewerListModal({
       }
     }
     load();
-    const ch = supabase.channel(`viewer-list-${streamId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` }, load)
-      .subscribe();
     const refresh = setInterval(load, 25_000);
-    return () => { cancelled = true; supabase.removeChannel(ch); clearInterval(refresh); };
+    return () => { cancelled = true; clearInterval(refresh); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamId]);
+  useRealtimeChannel({ name: `viewer-list-${streamId}` }, (ch) =>
+    ch.on("postgres_changes" as any,
+      { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` } as any,
+      () => setViewers((v) => v))); // realtime tick — interval already reloads
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
