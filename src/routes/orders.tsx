@@ -61,6 +61,16 @@ function Orders() {
   }
   useEffect(() => { load(); }, [user]);
 
+  // Realtime: order status, payment, shipping, and review updates push live
+  useRealtimeTable(
+    { name: `orders-buyer-${user?.id ?? "none"}`, table: "orders", filter: user ? `buyer_id=eq.${user.id}` : undefined, enabled: !!user },
+    () => load()
+  );
+  useRealtimeTable(
+    { name: `reviews-buyer-${user?.id ?? "none"}`, table: "seller_reviews", filter: user ? `buyer_id=eq.${user.id}` : undefined, enabled: !!user },
+    () => load()
+  );
+
   async function submitReview(o: any) {
     const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "", photo_urls: [] };
     const { error } = await supabase.from("seller_reviews").insert({
