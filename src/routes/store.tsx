@@ -79,6 +79,7 @@ function SellerHub() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [streams, setStreams] = useState<any[]>([]);
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
+  const [sellerStanding, setSellerStanding] = useState<{ payout_hold?: boolean; late_shipment_count?: number; visibility_penalty_until?: string | null; selling_restricted_until?: string | null }>({});
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [pweSettings, setPweSettings] = useState({ enabled: true, max: 20, price: 0.99, stamp: 0.78 });
@@ -119,7 +120,7 @@ function SellerHub() {
       supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
       supabase.from("seller_reviews").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("stripe_onboarding_status, pwe_enabled, pwe_max_order_value, pwe_price_usd, pwe_stamp_price_usd").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("stripe_onboarding_status, pwe_enabled, pwe_max_order_value, pwe_price_usd, pwe_stamp_price_usd, payout_hold, late_shipment_count, visibility_penalty_until, selling_restricted_until").eq("id", user.id).maybeSingle(),
       supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", user.id),
       supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("live_streams").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }).limit(50),
@@ -129,6 +130,12 @@ function SellerHub() {
     setReviews(revs.data || []);
     const pp = prof.data as any;
     setPayoutStatus(pp?.stripe_onboarding_status || "not_started");
+    setSellerStanding({
+      payout_hold: pp?.payout_hold ?? false,
+      late_shipment_count: pp?.late_shipment_count ?? 0,
+      visibility_penalty_until: pp?.visibility_penalty_until ?? null,
+      selling_restricted_until: pp?.selling_restricted_until ?? null,
+    });
     setPweSettings({
       enabled: pp?.pwe_enabled ?? true,
       max: Number(pp?.pwe_max_order_value ?? 20),
@@ -393,6 +400,22 @@ function SellerHub() {
           </div>
         )}
 
+        {(sellerStanding.payout_hold || (sellerStanding.visibility_penalty_until && new Date(sellerStanding.visibility_penalty_until) > new Date()) || (sellerStanding.selling_restricted_until && new Date(sellerStanding.selling_restricted_until) > new Date())) && (
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3">
+            <p className="text-sm font-bold text-red-400">⚠️ Seller standing alert</p>
+            <ul className="mt-1 space-y-0.5 text-[11px] text-red-200/90">
+              {sellerStanding.payout_hold && <li>• Payouts are temporarily on hold for unshipped orders. Ship or refund pending items to restore.</li>}
+              {sellerStanding.visibility_penalty_until && new Date(sellerStanding.visibility_penalty_until) > new Date() && (
+                <li>• Store visibility reduced until {new Date(sellerStanding.visibility_penalty_until).toLocaleDateString()} due to repeated late shipments.</li>
+              )}
+              {sellerStanding.selling_restricted_until && new Date(sellerStanding.selling_restricted_until) > new Date() && (
+                <li>• Selling temporarily restricted until {new Date(sellerStanding.selling_restricted_until).toLocaleDateString()}.</li>
+              )}
+              {(sellerStanding.late_shipment_count ?? 0) > 0 && <li>• Late shipments on record: {sellerStanding.late_shipment_count}</li>}
+            </ul>
+          </div>
+        )}
+
         {/* Section nav */}
         <div className="mb-4 grid grid-cols-6 gap-1 rounded-xl bg-muted p-1">
           {SECTIONS.map((s) => {
@@ -498,6 +521,25 @@ function SellerHub() {
                     </div>
                     <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
                     {o.tracking_number && <p className="text-[11px] text-primary">Tracking: {o.tracking_number}{o.carrier && ` · ${o.carrier}`}</p>}
+
+                    {ordersTab === "to_ship" && o.payment_status === "paid" && o.shipping_due_at && (() => {
+                      const dueMs = new Date(o.shipping_due_at).getTime() - Date.now();
+                      const hrs = Math.round(dueMs / 3_600_000);
+                      if (o.is_late_shipment || dueMs < 0) {
+                        return (
+                          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-400">
+                            ⚠️ Late · was due {new Date(o.shipping_due_at).toLocaleDateString()}
+                            {o.payout_held && " · payout on hold"}
+                          </p>
+                        );
+                      }
+                      return (
+                        <p className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${hrs <= 24 ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/10 text-emerald-400"}`}>
+                          📦 Ship by {new Date(o.shipping_due_at).toLocaleDateString()}
+                          {hrs > 0 ? ` · ${hrs}h left` : ""}
+                        </p>
+                      );
+                    })()}
 
                     {ordersTab === "to_ship" && o.payment_status !== "paid" && (
                       <p className="mt-2 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-300">Waiting for buyer to pay before you can ship.</p>

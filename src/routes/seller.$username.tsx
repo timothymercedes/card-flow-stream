@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { SellerTrustBadges } from "@/components/SellerTrustBadges";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -267,31 +268,63 @@ function PublicStore() {
         </div>
 
         {sellerStats && Number(sellerStats.completed_sales || 0) > 0 && (
-          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-xl bg-card p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Completed sales</p>
-              <p className="mt-1 text-lg font-bold text-primary">{sellerStats.completed_sales ?? 0}</p>
-            </div>
-            <div className="rounded-xl bg-card p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg rating</p>
-              <p className="mt-1 text-lg font-bold text-amber-400">
-                {sellerStats.avg_rating ? `${Number(sellerStats.avg_rating).toFixed(1)}★` : "—"}
-              </p>
-              <p className="text-[9px] text-muted-foreground">{sellerStats.review_count ?? 0} review{sellerStats.review_count === 1 ? "" : "s"}</p>
-            </div>
-            <div className="rounded-xl bg-card p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ship speed</p>
-              <p className="mt-1 text-lg font-bold text-emerald-400">
-                {sellerStats.avg_shipping_days != null ? `${Number(sellerStats.avg_shipping_days).toFixed(1)}d` : "—"}
-              </p>
-              <p className="text-[9px] text-muted-foreground">avg paid → shipped</p>
-            </div>
-            <div className="rounded-xl bg-card p-3 text-center">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Success rate</p>
-              <p className="mt-1 text-lg font-bold text-primary">
-                {sellerStats.success_rate != null ? `${Number(sellerStats.success_rate).toFixed(0)}%` : "—"}
-              </p>
-              <p className="text-[9px] text-muted-foreground">delivered / paid</p>
+          <div className="mb-4 space-y-2">
+            <SellerTrustBadges sellerId={seller.id} />
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Completed sales</p>
+                <p className="mt-1 text-lg font-bold text-primary">{sellerStats.completed_sales ?? 0}</p>
+                <p className="text-[9px] text-muted-foreground">of {sellerStats.total_sales ?? 0} paid</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg rating</p>
+                <p className="mt-1 text-lg font-bold text-amber-400">
+                  {sellerStats.avg_rating ? `${Number(sellerStats.avg_rating).toFixed(1)}★` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">{sellerStats.review_count ?? 0} review{sellerStats.review_count === 1 ? "" : "s"}</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ship speed</p>
+                <p className="mt-1 text-lg font-bold text-emerald-400">
+                  {sellerStats.avg_shipping_days != null ? `${Number(sellerStats.avg_shipping_days).toFixed(1)}d` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">avg paid → shipped</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">On-time</p>
+                <p className="mt-1 text-lg font-bold text-primary">
+                  {sellerStats.on_time_rate != null ? `${Number(sellerStats.on_time_rate).toFixed(0)}%` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">within 3-day SLA</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Success rate</p>
+                <p className="mt-1 text-lg font-bold text-primary">
+                  {sellerStats.success_rate != null ? `${Number(sellerStats.success_rate).toFixed(0)}%` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">delivered / paid</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Refund rate</p>
+                <p className={`mt-1 text-lg font-bold ${Number(sellerStats.refund_rate || 0) > 5 ? "text-amber-400" : "text-foreground"}`}>
+                  {sellerStats.refund_rate != null ? `${Number(sellerStats.refund_rate).toFixed(0)}%` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">refunded orders</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cancel rate</p>
+                <p className={`mt-1 text-lg font-bold ${Number(sellerStats.cancel_rate || 0) > 5 ? "text-amber-400" : "text-foreground"}`}>
+                  {sellerStats.cancel_rate != null ? `${Number(sellerStats.cancel_rate).toFixed(0)}%` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">cancelled orders</p>
+              </div>
+              <div className="rounded-xl bg-card p-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Response</p>
+                <p className="mt-1 text-lg font-bold text-foreground">
+                  {sellerStats.avg_response_minutes != null ? `${Math.max(1, Math.round(Number(sellerStats.avg_response_minutes) / 60))}h` : "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">avg reply time</p>
+              </div>
             </div>
           </div>
         )}
