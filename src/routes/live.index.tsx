@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Radio, Calendar, Plus, X, Trash2, Users, Filter } from "lucide-react";
+import { Radio, Calendar, Plus, X, Trash2, Users, Filter, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
 import { SellerBadge } from "@/components/SellerBadge";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { ShareLiveModal } from "@/components/ShareLiveModal";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
