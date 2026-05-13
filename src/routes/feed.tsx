@@ -7,6 +7,7 @@ import { Pencil, Trash2, History, X, Check, Sparkles, Plus } from "lucide-react"
 import { toast } from "sonner";
 import { StoryRail } from "@/components/StoryRail";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export const Route = createFileRoute("/feed")({ component: Feed });
 
@@ -53,15 +54,11 @@ function Feed() {
     setHype((hs as HypePost[]) || []);
   }
 
-  useEffect(() => {
-    load();
-    const ch = supabase.channel("feed-all")
-      .on("postgres_changes", { event: "*", schema: "public", table: "post_reactions" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "ai_hype_posts" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+  useEffect(() => { load(); }, []);
+  useRealtimeChannel({ name: "feed-all" }, (ch) => ch
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "post_reactions" } as any, () => load())
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "posts" } as any, () => load())
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "ai_hype_posts" } as any, () => load()));
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }

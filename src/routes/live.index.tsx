@@ -9,6 +9,7 @@ import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingC
 import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
 import { SellerBadge } from "@/components/SellerBadge";
 import { WatchTutorial } from "@/components/WatchTutorial";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
@@ -104,14 +105,10 @@ function LiveList() {
     });
   }, [streams, catFilter, typeFilter, tcgFilter, viewerBucket, viewerCounts]);
 
-  useEffect(() => {
-    load();
-    const ch = supabase.channel("live-shows")
-      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_shows" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_streams" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+  useEffect(() => { load(); }, []);
+  useRealtimeChannel({ name: "live-shows" }, (ch) => ch
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "scheduled_shows" } as any, () => load())
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "live_streams" } as any, () => load()));
 
   async function createShow() {
     if (!user || !profile) return toast.error("Sign in first");

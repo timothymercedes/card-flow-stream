@@ -12,6 +12,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import PublicLanding from "@/components/PublicLanding";
 import { isTutorialMode } from "@/lib/tutorialMode";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -102,13 +103,11 @@ function Home() {
       setStats({ live: liveCount || 0, collectors: collectorCount || 0, listings: listingCount || 0 });
     };
     load();
-    const ch = supabase.channel("home-discover")
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_streams" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
   }, [interests.join(",")]);
+  useRealtimeChannel({ name: "home-discover" }, (ch) => ch
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "live_streams" } as any, () => { /* triggers re-load via state above */ window.dispatchEvent(new CustomEvent("home-discover-refresh")); })
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "posts" } as any, () => window.dispatchEvent(new CustomEvent("home-discover-refresh")))
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "listings" } as any, () => window.dispatchEvent(new CustomEvent("home-discover-refresh"))));
 
   return (
     <AppShell>
