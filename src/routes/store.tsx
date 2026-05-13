@@ -448,6 +448,8 @@ function SellerHub() {
                 { k: "to_ship", l: "Needs Shipping", n: counts.to_ship },
                 { k: "shipped", l: "Shipped", n: counts.shipped },
                 { k: "delivered", l: "Delivered", n: counts.delivered },
+                { k: "failed", l: "Failed", n: counts.failed },
+                { k: "refunds", l: "Refunds", n: counts.refunds },
                 { k: "cancelled", l: "Cancelled", n: counts.cancelled },
               ]}
             />
