@@ -1551,6 +1551,7 @@ function LiveDetail() {
       _amount: amount,
     });
     if (error) return toast.error(error.message);
+    playSfx("bid");
     const extended = !!(bidRes as any)?.extended;
     const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
     const exts = Number(stream.snipe_extends || 0);
