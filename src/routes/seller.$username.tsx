@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff } from "lucide-react";
+import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff, Radio, Share2 } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { SellerTrustBadges } from "@/components/SellerTrustBadges";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -43,6 +44,7 @@ function PublicStore() {
   const [stories, setStories] = useState<any[]>([]);
   const [vaultCards, setVaultCards] = useState<any[]>([]);
   const [sellerStats, setSellerStats] = useState<any>(null);
+  const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [notifyOnLive, setNotifyOnLive] = useState(true);
 
@@ -139,6 +141,15 @@ function PublicStore() {
     setVaultCards(vc.data || []);
     const { data: ss } = await (supabase.rpc as any)("get_seller_stats", { _seller_id: prof.id });
     setSellerStats(Array.isArray(ss) ? ss[0] : ss);
+    const { data: live } = await supabase
+      .from("live_streams")
+      .select("id")
+      .eq("seller_id", prof.id)
+      .eq("status", "live")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLiveStreamId((live as any)?.id ?? null);
   }
   useEffect(() => { loadSeller(); }, [username]);
 
@@ -148,6 +159,16 @@ function PublicStore() {
   useRealtimeTable({ name: `seller-orders-${sellerId ?? "none"}`, table: "orders", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 400 }, () => loadSeller());
   useRealtimeTable({ name: `seller-reviews-${sellerId ?? "none"}`, table: "seller_reviews", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 200 }, () => loadSeller());
   useRealtimeTable({ name: `seller-follows-${sellerId ?? "none"}`, table: "follows", filter: sellerId ? `followee_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 500 }, () => loadSeller());
+  useRealtimeTable({ name: `seller-live-${sellerId ?? "none"}`, table: "live_streams", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 300 }, () => loadSeller());
+
+  async function shareProfile() {
+    const url = `${window.location.origin}/seller/${seller.username}`;
+    const text = `Check out @${seller.username} on PullBid Live`;
+    try {
+      if (navigator.share) await navigator.share({ title: text, url });
+      else { await navigator.clipboard.writeText(url); toast.success("Profile link copied"); }
+    } catch { /* user cancelled */ }
+  }
 
   const stats = useMemo(() => {
     if (!reviews.length) return { count: 0, avg: 0, ship: 0 };
@@ -171,11 +192,31 @@ function PublicStore() {
       <div className="px-4 py-4">
         <Link to="/market" className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground"><ArrowLeft className="h-3.5 w-3.5" /> Back</Link>
 
+        {liveStreamId && (
+          <Link
+            to="/live/$id"
+            params={{ id: liveStreamId }}
+            className="mb-3 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-live to-live/70 px-4 py-2.5 text-live-foreground shadow-lg"
+          >
+            <span className="inline-flex items-center gap-2 text-sm font-bold">
+              <Radio className="h-4 w-4 animate-pulse" />
+              @{seller.username} is live now
+            </span>
+            <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold">Join →</span>
+          </Link>
+        )}
+
         <div className="mb-4 rounded-2xl bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-muted">
-              {seller.avatar_url ? <img src={seller.avatar_url} alt={seller.username} className="h-full w-full object-cover" /> : <StoreIcon className="h-6 w-6 text-muted-foreground" />}
-            </div>
+            <UserAvatar
+              username={seller.username}
+              avatarUrl={seller.avatar_url}
+              isLive={!!liveStreamId}
+              liveStreamId={liveStreamId}
+              size="lg"
+              noLink={!liveStreamId}
+            />
+
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -213,6 +254,13 @@ function PublicStore() {
                       </button>
                     </>
                   )}
+                  <button
+                    onClick={shareProfile}
+                    aria-label="Share profile"
+                    className="inline-flex items-center justify-center rounded-full bg-card p-1.5 ring-1 ring-border hover:bg-muted"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                  </button>
                   <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
                 </div>
               </div>
