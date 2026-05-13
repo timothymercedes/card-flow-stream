@@ -2282,7 +2282,10 @@ function LiveDetail() {
       const winnerUsername = finRes.winner_username || "buyer";
       const nextRound = Number(finRes.round_number || stream.round_number || 1);
       const itemName = stream.current_item || stream.title;
-      // Chat announcement (best-effort, non-authoritative)
+      // 🆕 Animated SOLD overlay + sound (host-side trigger; viewers see chat msg)
+      setSoldBanner({ key: Date.now(), item: itemName, user: winnerUsername, amount: winningBid });
+      playSfx("sold");
+      // Chat announcement (best-effort, non-authoritative) — viewers also see this
       await sendMsg(
         `🏆 Bid #${nextRound} — "${itemName}" sold to @${winnerUsername} for $${winningBid}`,
         true,
