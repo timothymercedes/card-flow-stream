@@ -8,6 +8,7 @@ import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingC
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
 
@@ -48,6 +49,12 @@ function MyListings() {
     setItems((data || []) as Listing[]);
   }
   useEffect(() => { load(); }, [user]);
+
+  // Realtime: bids, sales, and edits to my listings sync instantly
+  useRealtimeTable(
+    { name: `my-listings-${user?.id ?? "none"}`, table: "listings", filter: user ? `seller_id=eq.${user.id}` : undefined, enabled: !!user, debounceMs: 300 },
+    () => load()
+  );
 
   async function remove(id: string) {
     if (!confirm("Delete this listing?")) return;

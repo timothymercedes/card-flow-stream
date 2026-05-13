@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 

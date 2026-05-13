@@ -10,6 +10,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { OrderCancellation } from "@/components/OrderCancellation";
 import { XCircle } from "lucide-react";
 import { WatchTutorial } from "@/components/WatchTutorial";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
