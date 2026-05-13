@@ -1,147 +1,309 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, AlertCircle, CheckCircle2, RefreshCw, XCircle, Clock, Activity } from "lucide-react";
+import { X, AlertCircle, CheckCircle2, RefreshCw, XCircle, Clock, Activity, Bell, ShieldCheck } from "lucide-react";
 import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 
-type Event = {
+type Order = {
   id: string;
-  stream_id: string;
-  buyer_id: string | null;
-  buyer_username: string | null;
-  order_id: string | null;
-  event_type: string;
-  amount: number | null;
-  item_label: string | null;
-  message: string | null;
+  stream_id: string | null;
+  buyer_id: string;
+  seller_id: string;
+  title: string;
+  amount: number;
+  payment_status: string;
+  status: string;
+  auction_number: number | null;
   created_at: string;
+  paid_at: string | null;
+  item_image_url: string | null;
 };
 
-const TYPE_META: Record<string, { label: string; color: string; icon: any }> = {
-  payment_pending:   { label: "Pending",   color: "text-amber-300",   icon: Clock },
-  payment_paid:      { label: "Paid",      color: "text-emerald-300", icon: CheckCircle2 },
-  payment_declined:  { label: "Declined",  color: "text-rose-400",    icon: XCircle },
-  payment_recovered: { label: "Recovered", color: "text-emerald-300", icon: RefreshCw },
-  payment_refunded:  { label: "Refunded",  color: "text-violet-300",  icon: RefreshCw },
-  payment_failed:    { label: "Failed",    color: "text-rose-400",    icon: AlertCircle },
-  payment_retry:     { label: "Retrying",  color: "text-amber-300",   icon: RefreshCw },
+type Tab = "processing" | "paid" | "failed" | "fixed";
+
+const TAB_META: Record<Tab, { label: string; cls: string }> = {
+  processing: { label: "Processing", cls: "text-amber-300" },
+  paid:       { label: "Paid",       cls: "text-emerald-300" },
+  failed:     { label: "Failed",     cls: "text-rose-400" },
+  fixed:      { label: "Fixed",      cls: "text-violet-300" },
 };
+
+function classifyOrder(o: Order): Tab | null {
+  const s = o.payment_status;
+  if (s === "paid") return "paid";
+  if (s === "failed" || s === "chargeback") return "failed";
+  if (s === "resolved") return "fixed";
+  if (s === "awaiting_payment" || s === "processing" || s === "pending") return "processing";
+  return null;
+}
 
 export function HostPaymentLog({
   streamId, open, onClose,
 }: { streamId: string; open: boolean; onClose: () => void }) {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [unread, setUnread] = useState(0);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [tab, setTab] = useState<Tab>("processing");
+  const [busy, setBusy] = useState<string | null>(null);
   const [panelBox, setPanelBox] = useState<FloatingBoxRect>(() => ({
-    x: typeof window === "undefined" ? 24 : Math.max(4, window.innerWidth - 392),
+    x: typeof window === "undefined" ? 24 : Math.max(4, window.innerWidth - 412),
     y: 4,
-    w: 388,
-    h: typeof window === "undefined" ? 620 : Math.max(260, window.innerHeight - 8),
+    w: 408,
+    h: typeof window === "undefined" ? 640 : Math.max(280, window.innerHeight - 8),
   }));
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       const { data } = await supabase
-        .from("stream_payment_events")
-        .select("*").eq("stream_id", streamId)
-        .order("created_at", { ascending: false }).limit(100);
-      if (!cancelled) setEvents((data || []) as any);
+        .from("orders")
+        .select("id,stream_id,buyer_id,seller_id,title,amount,payment_status,status,auction_number,created_at,paid_at,item_image_url")
+        .eq("stream_id", streamId)
+        .order("auction_number", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (!cancelled) setOrders((data || []) as any);
     }
     load();
 
     const ch = supabase
-      .channel(`payment-events-${streamId}`)
+      .channel(`payment-orders-${streamId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "stream_payment_events", filter: `stream_id=eq.${streamId}` },
+        { event: "*", schema: "public", table: "orders", filter: `stream_id=eq.${streamId}` },
         (p) => {
-          const row = p.new as any;
-          setEvents((s) => [row, ...s]);
-          if (!open) setUnread((u) => u + 1);
-          // Toast alert for important events
-          const meta = TYPE_META[row.event_type];
-          if (row.event_type === "payment_declined" || row.event_type === "payment_failed") {
-            toast.error(`⚠️ ${meta?.label || row.event_type} — @${row.buyer_username || "buyer"}`, {
-              description: row.item_label || row.message || undefined,
-            });
-          } else if (row.event_type === "payment_recovered" || row.event_type === "payment_paid") {
-            toast.success(`✓ ${meta?.label || row.event_type} — @${row.buyer_username || "buyer"}`, {
-              description: row.item_label || row.message || undefined,
-            });
+          const row = (p.new || p.old) as Order;
+          if (p.eventType === "DELETE") {
+            setOrders((s) => s.filter((o) => o.id !== row.id));
+            return;
           }
+          setOrders((s) => {
+            const next = [...s];
+            const idx = next.findIndex((o) => o.id === row.id);
+            if (idx === -1) next.unshift(row);
+            else next[idx] = { ...next[idx], ...row };
+            // Side-effects on state transitions
+            if (p.eventType === "UPDATE") {
+              const prev = (p.old || {}) as Order;
+              if (prev.payment_status !== row.payment_status) {
+                if (row.payment_status === "paid") {
+                  toast.success(`✓ Paid — @ #${row.auction_number ?? "?"}`, { description: row.title });
+                } else if (row.payment_status === "failed" || row.payment_status === "chargeback") {
+                  toast.error(`⚠️ Payment failed — #${row.auction_number ?? "?"}`, { description: row.title });
+                } else if (row.payment_status === "resolved") {
+                  toast.success(`✓ Marked resolved — #${row.auction_number ?? "?"}`);
+                }
+              }
+            }
+            next.sort((a, b) => (b.auction_number ?? 0) - (a.auction_number ?? 0)
+              || (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+            return next;
+          });
         },
       )
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [streamId, open]);
+  }, [streamId]);
 
-  useEffect(() => { if (open) setUnread(0); }, [open]);
+  const counts = useMemo(() => {
+    const c: Record<Tab, number> = { processing: 0, paid: 0, failed: 0, fixed: 0 };
+    for (const o of orders) {
+      const k = classifyOrder(o);
+      if (k) c[k]++;
+    }
+    return c;
+  }, [orders]);
 
-  if (!open) {
-    // Render a small floating button when there are unread events (host opens it via parent button normally)
-    return null;
+  const filtered = useMemo(
+    () => orders.filter((o) => classifyOrder(o) === tab),
+    [orders, tab],
+  );
+
+  async function notifyBuyerRetry(o: Order) {
+    setBusy(o.id);
+    const { error } = await supabase.from("notifications").insert({
+      user_id: o.buyer_id, type: "payment_failed",
+      body: `❗ Payment for "${o.title}" failed — please retry payment to keep bidding.`,
+      link: "/orders",
+    });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Buyer notified to retry");
   }
+
+  async function blockBidder(o: Order) {
+    setBusy(o.id);
+    const { error } = await supabase.from("live_bid_blocks").upsert(
+      { stream_id: streamId, user_id: o.buyer_id, reason: `Unpaid order #${o.auction_number ?? ""}` },
+      { onConflict: "stream_id,user_id" },
+    );
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Bidder blocked from this stream");
+  }
+
+  async function markResolved(o: Order) {
+    setBusy(o.id);
+    const { error } = await supabase.from("orders").update({
+      payment_status: "resolved",
+    }).eq("id", o.id);
+    if (!error) {
+      // Remove the block, if any
+      await supabase.from("live_bid_blocks").delete()
+        .eq("stream_id", streamId).eq("user_id", o.buyer_id);
+      await supabase.from("notifications").insert({
+        user_id: o.buyer_id, type: "payment",
+        body: `✓ Payment for "${o.title}" was marked resolved. You can keep bidding.`,
+        link: "/orders",
+      });
+    }
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Marked resolved · bidder unblocked");
+  }
+
+  // Auto-block bidders with failed payments and auto-unblock when paid/resolved
+  useEffect(() => {
+    const failed = orders.filter((o) =>
+      ["failed", "chargeback"].includes(o.payment_status));
+    failed.forEach((o) => {
+      supabase.from("live_bid_blocks").upsert(
+        { stream_id: streamId, user_id: o.buyer_id, reason: `Unpaid order #${o.auction_number ?? ""}` },
+        { onConflict: "stream_id,user_id" },
+      ).then(() => {});
+    });
+    // Unblock for any paid/resolved buyer who has no remaining failed order in this stream
+    const okBuyers = new Set(
+      orders.filter((o) => ["paid", "resolved"].includes(o.payment_status)).map((o) => o.buyer_id),
+    );
+    okBuyers.forEach((buyerId) => {
+      const stillFailed = orders.some((o) =>
+        o.buyer_id === buyerId && ["failed", "chargeback"].includes(o.payment_status));
+      if (!stillFailed) {
+        supabase.from("live_bid_blocks").delete()
+          .eq("stream_id", streamId).eq("user_id", buyerId).then(() => {});
+      }
+    });
+  }, [orders, streamId]);
+
+  if (!open) return null;
 
   return (
     <FloatingBox
       box={panelBox}
       onChange={setPanelBox}
-      minW={280}
-      minH={260}
+      minW={300}
+      minH={300}
       resize
       className="z-50 max-w-[calc(100vw-0.5rem)] overflow-hidden bg-card shadow-2xl ring-1 ring-white/10"
     >
       {({ dragHandleProps }) => (
         <div className="flex h-full w-full flex-col">
-      <div {...dragHandleProps} className="flex cursor-move items-center justify-between border-b border-white/10 p-3 select-none">
-        <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4 text-primary" />
-          <p className="text-sm font-bold text-foreground">Payment Activity</p>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{events.length}</span>
-        </div>
-        <button onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="rounded-full p-1.5 hover:bg-muted">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        {events.length === 0 ? (
-          <p className="p-6 text-center text-xs text-muted-foreground">
-            No payment events yet. You'll see paid, declined, and recovered payments here in real time.
-          </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {events.map((e) => {
-              const meta = TYPE_META[e.event_type] || { label: e.event_type, color: "text-foreground", icon: Activity };
-              const Icon = meta.icon;
+          <div {...dragHandleProps} className="flex cursor-move items-center justify-between border-b border-white/10 p-3 select-none">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" />
+              <p className="text-sm font-bold">Payments</p>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{orders.length}</span>
+            </div>
+            <button onPointerDown={(e) => e.stopPropagation()} onClick={onClose} className="rounded-full p-1.5 hover:bg-muted">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div onPointerDown={(e) => e.stopPropagation()} className="grid grid-cols-4 gap-1 border-b border-white/10 p-2">
+            {(Object.keys(TAB_META) as Tab[]).map((k) => {
+              const m = TAB_META[k];
+              const active = tab === k;
               return (
-                <li key={e.id} className="rounded-lg bg-muted/40 p-2.5">
-                  <div className="flex items-start gap-2">
-                    <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${meta.color}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className={`text-xs font-bold ${meta.color}`}>{meta.label}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
-                      <p className="truncate text-[11px] text-foreground">
-                        @{e.buyer_username || "buyer"}
-                        {e.amount != null && <span className="ml-1.5 font-bold tabular-nums">${Number(e.amount).toFixed(2)}</span>}
-                      </p>
-                      {(e.item_label || e.message) && (
-                        <p className="truncate text-[10px] text-muted-foreground">
-                          {e.item_label || e.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </li>
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={`rounded-lg px-1 py-1.5 text-[10px] font-bold leading-tight ${active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                >
+                  <div>{m.label}</div>
+                  <div className={`text-[10px] ${active ? "" : m.cls}`}>{counts[k]}</div>
+                </button>
               );
             })}
-          </ul>
-        )}
-      </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2">
+            {filtered.length === 0 ? (
+              <p className="p-6 text-center text-xs text-muted-foreground">
+                No {TAB_META[tab].label.toLowerCase()} orders.
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {filtered.map((o) => {
+                  const isFailed = tab === "failed";
+                  const isPaid = o.payment_status === "paid";
+                  return (
+                    <li
+                      key={o.id}
+                      className={`rounded-lg p-2.5 ${isFailed ? "bg-rose-500/10 ring-1 ring-rose-500/30" : isPaid ? "bg-emerald-500/10 ring-1 ring-emerald-500/30" : "bg-muted/40"}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {o.item_image_url && (
+                          <img src={o.item_image_url} alt="" className="h-10 w-10 rounded object-cover" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-bold">
+                              <span className="rounded bg-card px-1.5 py-0.5 text-[10px] text-muted-foreground">#{o.auction_number ?? "?"}</span>
+                              <span className={`ml-1.5 ${TAB_META[tab].cls}`}>{TAB_META[classifyOrder(o) || tab].label}</span>
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(o.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
+                          </div>
+                          <p className="truncate text-[11px]">
+                            <span className="text-muted-foreground">won by</span>{" "}
+                            <span className="font-semibold">@buyer</span>
+                            <span className="ml-1.5 font-bold tabular-nums text-primary">${Number(o.amount).toFixed(2)}</span>
+                          </p>
+                          <p className="truncate text-[10px] text-muted-foreground">{o.title}</p>
+                          {isPaid && o.shipment_verified_at_marker && null}
+                          {isPaid && (
+                            <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">
+                              <CheckCircle2 className="h-3 w-3" /> Item marked sold · queued for shipping
+                            </p>
+                          )}
+                          {isFailed && (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              <button
+                                disabled={busy === o.id}
+                                onClick={() => notifyBuyerRetry(o)}
+                                className="inline-flex items-center gap-1 rounded-md bg-amber-500/20 px-2 py-1 text-[10px] font-bold text-amber-200 disabled:opacity-50"
+                              >
+                                <Bell className="h-3 w-3" /> Notify retry
+                              </button>
+                              <button
+                                disabled={busy === o.id}
+                                onClick={() => blockBidder(o)}
+                                className="inline-flex items-center gap-1 rounded-md bg-rose-500/20 px-2 py-1 text-[10px] font-bold text-rose-200 disabled:opacity-50"
+                              >
+                                <XCircle className="h-3 w-3" /> Block bidder
+                              </button>
+                              <button
+                                disabled={busy === o.id}
+                                onClick={() => markResolved(o)}
+                                className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground disabled:opacity-50"
+                              >
+                                <ShieldCheck className="h-3 w-3" /> Mark fixed
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="border-t border-white/10 p-2 text-center text-[10px] text-muted-foreground">
+            Live updates · failed payments highlighted in red · paid orders flow into Seller Hub shipping.
+          </div>
         </div>
       )}
     </FloatingBox>
@@ -159,7 +321,6 @@ export async function logPaymentEvent(input: {
   itemLabel?: string | null;
   message?: string | null;
 }) {
-  // seller_id is auto-filled by DB trigger; cast bypasses strict insert types.
   const payload: any = {
     stream_id: input.streamId,
     buyer_id: input.buyerId ?? null,
