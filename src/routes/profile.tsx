@@ -266,6 +266,84 @@ function Profile() {
           </div>
         </div>
 
+        {/* Quick action bar — own profile shortcuts */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {p.username && (
+            <Link to="/seller/$username" params={{ username: p.username }} className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground">
+              <ExternalLink className="h-3.5 w-3.5" /> View Storefront
+            </Link>
+          )}
+          {myLiveStreamId ? (
+            <Link to="/live/$id" params={{ id: myLiveStreamId }} className="flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-live to-live/70 px-3 py-2.5 text-xs font-bold text-live-foreground">
+              <Radio className="h-3.5 w-3.5 animate-pulse" /> Join My Live
+            </Link>
+          ) : p.seller_status === "approved" ? (
+            <Link to="/sell" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+              <Radio className="h-3.5 w-3.5 text-live" /> Go Live
+            </Link>
+          ) : null}
+          <button onClick={() => setShowMyReviews((v) => !v)} className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+            <Star className="h-3.5 w-3.5 text-amber-400" /> {showMyReviews ? "Hide" : "View"} Reviews
+          </button>
+          <Link to="/messages" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+            <MessageSquare className="h-3.5 w-3.5 text-primary" /> Messages
+          </Link>
+        </div>
+
+        {/* Trust + response badges (own view) */}
+        <div className="flex flex-wrap items-center gap-1">
+          <SellerTrustBadges sellerId={user.id} />
+          <SellerResponseBadges sellerId={user.id} />
+          <BuyerTrustBadges userId={user.id} compact />
+        </div>
+
+        {/* Failed-payment / restriction banner */}
+        {restriction && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs">
+            <p className="font-bold text-destructive">⚠ Account {restriction.type === "ban" ? "banned" : "restricted"}</p>
+            <p className="mt-1 text-muted-foreground">{restriction.reason}</p>
+            {restriction.expires_at && <p className="mt-1 text-[10px] text-muted-foreground">Until {new Date(restriction.expires_at).toLocaleString()}</p>}
+            <p className="mt-2 text-[10px] text-muted-foreground">Resolve outstanding payments to request review.</p>
+          </div>
+        )}
+
+        {/* Seller stats quick-view */}
+        {myStats && Number(myStats.completed_sales || 0) > 0 && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Sold</p>
+              <p className="mt-1 text-base font-bold text-primary">{myStats.completed_sales ?? 0}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Rating</p>
+              <p className="mt-1 text-base font-bold text-amber-400">{myStats.avg_rating ? `${Number(myStats.avg_rating).toFixed(1)}★` : "—"}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">On-time</p>
+              <p className="mt-1 text-base font-bold text-emerald-400">{myStats.on_time_rate != null ? `${Number(myStats.on_time_rate).toFixed(0)}%` : "—"}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase text-muted-foreground">Reviews</p>
+              <p className="mt-1 text-base font-bold">{myStats.review_count ?? 0}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Inline reviews panel — manage/respond from own profile */}
+        {showMyReviews && (
+          <section className="rounded-xl bg-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-bold">My Reviews</p>
+              {p.username && (
+                <Link to="/seller/$username" params={{ username: p.username }} className="text-[11px] font-bold text-primary">
+                  Open public storefront →
+                </Link>
+              )}
+            </div>
+            <SellerReviewsPanel sellerId={user.id} currentUserId={user.id} />
+          </section>
+        )}
+
         {isAdmin && (
           <Link to="/admin" className="flex items-center justify-between rounded-xl bg-primary/10 p-3 hover:bg-primary/20">
             <span className="flex items-center gap-2 text-sm font-bold text-primary"><ShieldCheck className="h-4 w-4" /> Admin Dashboard</span>
