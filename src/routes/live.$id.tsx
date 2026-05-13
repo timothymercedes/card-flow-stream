@@ -3217,16 +3217,12 @@ function LiveDetail() {
             </button>
           )}
           {!ended && (
-            <button
+            <AnimatedViewerCount
+              count={Math.max(viewerCount, liveViewers.length)}
               onClick={() => setShowViewerList(true)}
-              data-tour="viewer-count"
-              className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur transition active:scale-95"
-              title="See who's watching"
-            >
-              <Users className="h-3 w-3" />{" "}
-              {Math.max(viewerCount, liveViewers.length).toLocaleString()}
-            </button>
+            />
           )}
+          {!ended && <TopSupporterBadge streamId={id} />}
         </div>
         <div className="flex gap-1">
           <button
