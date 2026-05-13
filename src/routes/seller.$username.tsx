@@ -192,11 +192,33 @@ function PublicStore() {
       <div className="px-4 py-4">
         <Link to="/market" className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground"><ArrowLeft className="h-3.5 w-3.5" /> Back</Link>
 
+        {liveStreamId && (
+          <Link
+            to="/live/$id"
+            params={{ id: liveStreamId }}
+            className="mb-3 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-live to-live/70 px-4 py-2.5 text-live-foreground shadow-lg"
+          >
+            <span className="inline-flex items-center gap-2 text-sm font-bold">
+              <Radio className="h-4 w-4 animate-pulse" />
+              @{seller.username} is live now
+            </span>
+            <span className="rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold">Join →</span>
+          </Link>
+        )}
+
         <div className="mb-4 rounded-2xl bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-muted">
-              {seller.avatar_url ? <img src={seller.avatar_url} alt={seller.username} className="h-full w-full object-cover" /> : <StoreIcon className="h-6 w-6 text-muted-foreground" />}
-            </div>
+            <UserAvatar
+              username={seller.username}
+              avatarUrl={seller.avatar_url}
+              isLive={!!liveStreamId}
+              liveStreamId={liveStreamId}
+              size="lg"
+              noLink={!liveStreamId}
+            />
+            {!seller.avatar_url && !liveStreamId && (
+              <StoreIcon className="-ml-12 h-6 w-6 text-muted-foreground pointer-events-none" aria-hidden="true" />
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
