@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
+import { GradedCardPanel } from "@/components/GradedCardPanel";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
@@ -22,6 +23,9 @@ type Card = {
   condition?: Condition | null;
   condition_prices?: ConditionPrices | null;
   visibility?: Visibility | null;
+  market_price?: number | null;
+  is_graded?: boolean | null; grader?: string | null; grade?: string | null;
+  grading_cert?: string | null; graded_price?: number | null;
 };
 
 function Vault() {
@@ -1436,6 +1440,22 @@ function Vault() {
               );
             })()}
 
+            {/* Graded card pricing */}
+            <GradedCardPanel
+              cardId={actionFor.id}
+              rawMarketPrice={actionFor.market_price ?? actionFor.condition_prices?.NM ?? actionFor.estimated_value}
+              initial={{
+                is_graded: actionFor.is_graded,
+                grader: actionFor.grader,
+                grade: actionFor.grade,
+                grading_cert: actionFor.grading_cert,
+                graded_price: actionFor.graded_price,
+              }}
+              onSaved={(patch) => {
+                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
+                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
+              }}
+            />
 
             {actionFor.description && (
               <div className="rounded-lg bg-muted/40 p-2 text-xs">
