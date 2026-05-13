@@ -4993,61 +4993,15 @@ function LiveDetail() {
       )}
 
       {/* Share modal */}
-      {shareOpen && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-3 sm:items-center"
-          onClick={() => setShareOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl bg-card p-4 text-foreground shadow-2xl"
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-bold">Share live</p>
-              <button onClick={() => setShareOpen(false)}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <button
-              onClick={async () => {
-                const url = `${window.location.origin}/live/${id}`;
-                try {
-                  if (navigator.share) await navigator.share({ title: stream.title, url });
-                  else {
-                    await navigator.clipboard.writeText(url);
-                    toast.success("Link copied");
-                  }
-                } catch {
-                  /* ignore */
-                }
-              }}
-              className="mb-2 w-full rounded-lg bg-muted px-3 py-2 text-xs font-semibold"
-            >
-              Copy / system share
-            </button>
-            <input
-              value={shareQuery}
-              onChange={(e) => {
-                setShareQuery(e.target.value);
-                searchUsers(e.target.value, setShareUsers);
-              }}
-              placeholder="Search users to DM"
-              className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
-            />
-            <div className="mt-2 max-h-56 overflow-y-auto">
-              {shareUsers.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => shareLiveTo(u.id, u.username)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs hover:bg-muted"
-                >
-                  @{u.username}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <ShareLiveModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        streamId={id}
+        title={stream?.title || "Live auction"}
+        thumbnailUrl={stream?.thumbnail_url}
+        sellerUsername={sellerUsername}
+        isLive={stream?.status === "live"}
+      />
 
       {scanning && (
         <CardScanner
