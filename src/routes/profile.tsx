@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote, Star, ExternalLink, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -10,6 +10,10 @@ import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/pa
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
 import { AgreementModal } from "@/components/AgreementModal";
 import { LiveNowPill } from "@/components/ReturnToLiveBadge";
+import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
+import { SellerTrustBadges } from "@/components/SellerTrustBadges";
+import { SellerResponseBadges } from "@/components/SellerResponseBadges";
+import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
