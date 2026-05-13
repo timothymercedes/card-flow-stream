@@ -61,8 +61,6 @@ import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
 import { PromoteCheckout } from "@/components/PromoteCheckout";
-import { useServerFn } from "@tanstack/react-start";
-import { updateStreamPromotionSettings } from "@/server/stripe-connect.functions";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
