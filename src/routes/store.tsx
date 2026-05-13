@@ -466,6 +466,12 @@ function SellerHub() {
                       {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-16 w-16 rounded-lg object-cover" />}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold">{o.title}</p>
+                        <p className="truncate text-sm font-bold">
+                          {o.auction_number && o.stream_id && (
+                            <span className="mr-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">#{o.auction_number}</span>
+                          )}
+                          {o.title}
+                        </p>
                         <p className="text-xs font-semibold text-primary">${amount.toFixed(2)}</p>
                         <p className="text-[10px] text-muted-foreground">Fee ${fee.toFixed(2)} · Net <span className="font-bold text-primary">${net.toFixed(2)}</span></p>
                       </div>
@@ -473,9 +479,7 @@ function SellerHub() {
                         <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold capitalize">
                           <StatusIcon s={o.status} /> {o.status}
                         </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${o.payment_status === "paid" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"}`}>
-                          {o.payment_status === "paid" ? "Paid" : "Awaiting Payment"}
-                        </span>
+                        <PaymentStatusBadge s={o.payment_status} />
                       </div>
                     </div>
                     <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
