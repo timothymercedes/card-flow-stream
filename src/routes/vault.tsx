@@ -1440,8 +1440,24 @@ function Vault() {
               );
             })()}
 
+            {/* Graded card pricing */}
+            <GradedCardPanel
+              cardId={actionFor.id}
+              rawMarketPrice={actionFor.market_price ?? actionFor.condition_prices?.NM ?? actionFor.estimated_value}
+              initial={{
+                is_graded: actionFor.is_graded,
+                grader: actionFor.grader,
+                grade: actionFor.grade,
+                grading_cert: actionFor.grading_cert,
+                graded_price: actionFor.graded_price,
+              }}
+              onSaved={(patch) => {
+                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
+                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
+              }}
+            />
 
-            {actionFor.description && (
+
               <div className="rounded-lg bg-muted/40 p-2 text-xs">
                 <p className="text-[9px] uppercase text-muted-foreground">Description</p>
                 <p className="mt-0.5 whitespace-pre-wrap">{actionFor.description}</p>
