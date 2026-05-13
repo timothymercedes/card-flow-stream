@@ -259,6 +259,36 @@ function PublicStore() {
           </div>
         </div>
 
+        {sellerStats && Number(sellerStats.completed_sales || 0) > 0 && (
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Completed sales</p>
+              <p className="mt-1 text-lg font-bold text-primary">{sellerStats.completed_sales ?? 0}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg rating</p>
+              <p className="mt-1 text-lg font-bold text-amber-400">
+                {sellerStats.avg_rating ? `${Number(sellerStats.avg_rating).toFixed(1)}★` : "—"}
+              </p>
+              <p className="text-[9px] text-muted-foreground">{sellerStats.review_count ?? 0} review{sellerStats.review_count === 1 ? "" : "s"}</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ship speed</p>
+              <p className="mt-1 text-lg font-bold text-emerald-400">
+                {sellerStats.avg_shipping_days != null ? `${Number(sellerStats.avg_shipping_days).toFixed(1)}d` : "—"}
+              </p>
+              <p className="text-[9px] text-muted-foreground">avg paid → shipped</p>
+            </div>
+            <div className="rounded-xl bg-card p-3 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Success rate</p>
+              <p className="mt-1 text-lg font-bold text-primary">
+                {sellerStats.success_rate != null ? `${Number(sellerStats.success_rate).toFixed(0)}%` : "—"}
+              </p>
+              <p className="text-[9px] text-muted-foreground">delivered / paid</p>
+            </div>
+          </div>
+        )}
+
         {listOpen && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setListOpen(null)}>
             <div onClick={(e) => e.stopPropagation()} className="max-h-[70vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-4">
