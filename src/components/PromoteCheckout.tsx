@@ -154,6 +154,9 @@ export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose
                 {message.length}/140
               </div>
             </div>
+            <div className="rounded-lg bg-orange-500/5 border border-orange-500/30 p-2 text-[11px] text-orange-700 dark:text-orange-300">
+              Boosts ranking for <b>{durationLabel(amountCents)}</b>.
+            </div>
             {error && (
               <div className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
                 {error}
@@ -218,14 +221,13 @@ function PromoteForm({
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
-        <div className="flex justify-between text-muted-foreground">
-          <span>Service fee</span>
-          <span>${(fees.buyerServiceFee / 100).toFixed(2)}</span>
-        </div>
-        <div className="border-t border-border pt-1 mt-1 flex justify-between font-semibold text-sm">
-          <span>Total</span>
+        <div className="flex justify-between font-semibold text-sm">
+          <span>Promotion total</span>
           <span>${(fees.buyerTotal / 100).toFixed(2)}</span>
         </div>
+        <p className="text-[10px] text-muted-foreground pt-1">
+          Goes to PullBidLive (platform advertising).
+        </p>
       </div>
       <PaymentElement />
       <button
