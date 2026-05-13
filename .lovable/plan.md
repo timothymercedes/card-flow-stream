@@ -1,89 +1,60 @@
-# Multi-Source Card Intelligence System
+# Profile, Reviews & Buyer/Seller Trust Overhaul
 
-Upgrade the scanner + pricing pipeline from a single-API setup into a modular, multi-source service with fallback, caching, and a path to an owned card database.
+A large, multi-area upgrade. I'll deliver it in 4 phased migrations + UI so each piece ships safely.
 
-## What you'll get
+## Phase 1 — Reviews schema + responses + reports
 
-1. **Unified card catalog** — PokémonTCG API (primary) + TCGdex (fallback), normalized into one Supabase schema so the rest of the app never cares which source answered.
-2. **Aggregated pricing** — TCGplayer (via existing data + TCGCSV sync) primary, PriceCharting fallback, with outlier removal, caching, and graceful degradation when any source is down.
-3. **Smarter AI scanner** — current Lovable AI Gateway vision pipeline kept, but the matching layer now queries the unified catalog (multi-source) and returns confidence + candidate suggestions when unsure.
-4. **Graded card scaffolding** — schema + service stubs ready for PSA / CGC / BGS cert lookups (no live calls until you supply keys).
-5. **Owned data layer** — every scan, price snapshot, and match decision is logged so over time the app can answer from its own DB instead of third parties.
+DB migration:
+- `reviews` table additions (if missing): `shipping_rating`, `communication_rating`, `accuracy_rating` (1-5), `verified_purchase bool`, `verified_live_auction bool`, `order_id`, `stream_id`. Backfill `verified_purchase` from existing order link.
+- `review_responses` table — `review_id`, `author_id` (buyer or seller), `body`, timestamps. RLS: anyone can read, only review's seller OR review's author can insert their own response (one per author per review). Edit/delete own.
+- `review_reports` table — `review_id`, `reporter_id`, `reason`, `status` (open/dismissed/actioned). RLS: insert by auth, sellers can report reviews about them, admins read all.
+- `get_seller_stats` RPC: extend to return `avg_shipping`, `avg_communication`, `avg_accuracy`, `response_rate`, `avg_response_hours`, `recent_reviews` count, plus existing fields. (Backwards compatible.)
+- `get_seller_recent_reviews(_seller_id, _limit)` RPC returning latest reviews with response and reporter-eligibility flag.
 
-## Architecture
+## Phase 2 — Seller response badges + buyer reputation
 
-```text
-                 ┌────────────────────────────┐
-   Photo ──▶     │  scan-card (vision OCR)    │
-                 └─────────────┬──────────────┘
-                               ▼
-                 ┌────────────────────────────┐
-                 │  card-identify (matcher)   │  ← unified catalog
-                 │  • PokémonTCG  (primary)   │
-                 │  • TCGdex      (fallback)  │
-                 │  • local cache (pokemon_cards)
-                 └─────────────┬──────────────┘
-                               ▼
-                 ┌────────────────────────────┐
-                 │  card-price (aggregator)   │
-                 │  • TCGplayer (primary)     │
-                 │  • PriceCharting (fallback)│
-                 │  • outlier filter + cache  │
-                 └─────────────┬──────────────┘
-                               ▼
-                 ┌────────────────────────────┐
-                 │  vault_cards / scan_log    │
-                 │  (owned historical data)   │
-                 └────────────────────────────┘
+DB migration:
+- `buyer_reputation` view/function `get_buyer_reputation(_user_id)` returning:
+  - completed_purchases, payment_success_rate, avg_payment_minutes, cancellation_rate, chargeback_count, unpaid_wins, unresolved_payments, account_age_days, last_active_at.
+- `buyer_trust_badges(_user_id)` returns array of earned positive badges (`trusted_buyer`, `fast_payer`, `verified_buyer`, `repeat_customer`, `auction_veteran`, `supportive_buyer`).
+- `seller_response_badges(_seller_id)` returns `responds_fast`, `active_seller`, `top_rated`.
+- Indexes for fast lookup.
 
-   (future) cert# ─▶ grading-lookup ─▶ PSA / CGC / BGS
-```
+## Phase 3 — Failed payment enforcement
 
-Each block is a separate edge function with its own retries, timeouts, and cache TTLs, so failures in one source never break the chain.
+DB migration:
+- `profiles.bid_restricted_until timestamptz`, `profiles.bid_restricted_reason text`, `profiles.unpaid_strikes int default 0`.
+- `record_unpaid_auction_win(_order_id)` — called by `reconcile_stale_payments`, increments strikes. At 10 across 10 distinct streams with no resolved payment, sets `bid_restricted_until = now() + 30 days`, inserts row in admin review queue (`buyer_review_queue` table), notifies buyer + admins.
+- Update `place_live_bid` + `place_listing_bid` to reject if `bid_restricted_until > now()`.
+- Admin RPCs: `admin_waive_buyer_restriction`, `admin_extend_buyer_restriction`, `admin_ban_buyer`.
 
-## Database changes
+## Phase 4 — UI
 
-- Extend `pokemon_cards` with: `source` (`tcg_api` | `tcgdex` | `manual`), `source_ids jsonb` (cross-IDs), `last_seen_at`.
-- New `card_price_history` (card_id, source, market, low, mid, high, captured_at) — feeds your owned trend data.
-- New `card_price_cache` (card_id, payload jsonb, expires_at) — short TTL aggregator cache.
-- New `graded_cards` (vault_card_id, grader, cert_number, grade, pop_data jsonb, verified_at) — ready for PSA/CGC/BGS.
-- Extend `card_scans` with `match_candidates jsonb`, `chosen_source`, `price_sources jsonb` for full audit trail (debug report you already asked for plugs straight in).
+New components:
+- `SellerReviewsPanel.tsx` — full reviews list with star breakdown, filter, response thread, report button (sellers), reply (sellers/buyers). Used in `/seller/$username?tab=reviews` and `/profile`.
+- `ReviewCard.tsx` — single review with timestamp, verified-purchase / live-auction badge, response thread, report.
+- `BuyerTrustBadges.tsx` — public positive badges only.
+- `BuyerInsightsPanel.tsx` — private metrics (visible only to the seller of an active order, mods, admins).
+- `ProfileActionBar.tsx` — refactor existing action area: View Reviews · Join Live (if live) · Message · Follow · Share · Report. Cleaner mobile spacing.
+- `SellerStatsQuickView.tsx` — popover triggered from "View Reviews" in store/seller pages.
 
-## Edge functions (new / refactored)
+Edits:
+- `src/routes/seller.$username.tsx` — wire new ProfileActionBar, embed SellerReviewsPanel under reviews tab, surface response badges next to seller name, show shipping/comm/accuracy averages, embed live ring/banner (already present), order metrics row.
+- `src/routes/profile.tsx` — "My Reviews" section using SellerReviewsPanel for self; "My Buyer Trust" panel using BuyerTrustBadges + private breakdown; quick links to followers/live history/listings/shipping perf.
+- `src/components/SellerTrustBadges.tsx` — extend with response badges.
+- `src/components/UsernamePopover.tsx` — show buyer trust badges when target isn't a seller; show response badges when seller.
+- New admin tab in `src/routes/admin.tsx`: "Buyer Review Queue" — waive/extend/ban actions.
 
-- `card-catalog` — unified lookup. Tries local cache → PokémonTCG → TCGdex. Normalizes to one shape.
-- `card-price` — aggregator. Pulls TCGplayer (already synced via `sync-tcgcsv`) + PriceCharting, drops outliers (>2σ), returns merged price + per-source breakdown, caches 6 h.
-- `grading-lookup` — stub with PSA/CGC/BGS adapters; returns `not_configured` until keys are added. Wired into vault UI behind a feature flag.
-- Refactor `refresh-prices` to call `card-price` so single source of truth.
-- Refactor `scan-card` enrichment step to call `card-catalog` instead of inline Pokémon API call.
+Realtime:
+- `useRealtimeTable` on `reviews`, `review_responses` for live updates on the active profile.
+- `useRealtimeTable` on `buyer_review_queue` for admins.
 
-## Frontend changes
+## Out of scope for this pass
+- Redesigning review submission flow (already exists).
+- Moderating responses with AI — manual report flow only for now.
 
-- `CardScanner` + `ManualCardFinder` switch to the new `card-catalog` endpoint; UI shows source badge ("via TCGdex") and per-source price breakdown in the existing debug panel.
-- Vault card detail gets a "Pricing sources" expander (TCGplayer $X, PriceCharting $Y, aggregated $Z).
-- Hidden "Add grading" action on each vault card — opens a form that will hit `grading-lookup` once keys exist.
-
-## Resilience & rate limits
-
-- Per-source circuit breaker in each edge function (skip a source for 5 min after 3 failures).
-- All third-party calls wrapped with 8 s timeout + 2 retries (exp. backoff).
-- Cache layer (`card_price_cache`) prevents hot cards from hitting external APIs more than once per 6 h.
-- Background cron (existing `sync-tcgcsv` pattern) keeps top-traded cards warm.
-
-## Secrets I'll need from you
-
-- `PRICECHARTING_API_KEY` + `ENABLE_PRICECHARTING=1` (paid — disabled by default; provider stays in registry, off until both are set)
-- `EBAY_APP_ID` + `ENABLE_EBAY_SOLD=1` (planned eBay sold-comps adapter)
-- `PSA_API_TOKEN` + `ENABLE_PSA=1` (planned PSA cert/price adapter)
-- `CGC_API_KEY` (only when grading goes live)
-
-PokémonTCG (with bundled TCGplayer prices) and TCGdex don't require keys for read access and remain the active free sources.
-
-## Rollout
-
-1. **Phase 1 (this PR)**: schema migration, `card-catalog` + `card-price` + cache, refactor scanner/refresh to use them, source badges in UI.
-2. **Phase 2**: PriceCharting adapter live (after key), price history charting in vault.
-3. **Phase 3**: `grading-lookup` adapters live (after keys), graded card UI.
-4. **Phase 4**: Switch reads to prefer local DB once history is dense enough — third-party calls become refresh-only.
-
-Approve and I'll start with Phase 1 (migration + new edge functions + scanner/vault wiring).
+## Technical notes
+- All new RPCs `SECURITY DEFINER` with `REVOKE EXECUTE FROM anon`.
+- Public profile visibility: only positive badges exposed via `get_buyer_public_badges`. Private metrics behind `get_buyer_private_insights` gated by has_role(admin/owner/moderator) OR existence of an order between caller and target.
+- All mutations validated with zod on client AND DB triggers.
+- Mobile-first: action bar uses flex-wrap with min-w-0, tap targets ≥40px.
