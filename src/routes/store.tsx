@@ -6,7 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import {
   Package, Truck, CheckCircle2, Star, Store as StoreIcon,
   ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
+  AlertTriangle, RotateCcw, ScanLine, ShieldCheck,
 } from "lucide-react";
+import { useRealtimeChannel } from "@/lib/realtime";
 import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
@@ -35,6 +37,20 @@ function StatusIcon({ s }: { s: string }) {
   if (s === "delivered") return <CheckCircle2 className="h-4 w-4 text-primary" />;
   if (s === "shipped") return <Truck className="h-4 w-4 text-primary" />;
   return <Package className="h-4 w-4 text-muted-foreground" />;
+}
+
+function PaymentStatusBadge({ s }: { s: string }) {
+  const map: Record<string, { l: string; cls: string }> = {
+    awaiting_payment: { l: "Awaiting", cls: "bg-amber-500/15 text-amber-400" },
+    processing: { l: "Processing", cls: "bg-sky-500/15 text-sky-400" },
+    paid: { l: "Paid", cls: "bg-primary/15 text-primary" },
+    failed: { l: "Failed", cls: "bg-destructive/15 text-destructive" },
+    chargeback: { l: "Chargeback", cls: "bg-destructive/20 text-destructive" },
+    refunded: { l: "Refunded", cls: "bg-muted text-muted-foreground" },
+    resolved: { l: "Resolved", cls: "bg-emerald-500/15 text-emerald-400" },
+  };
+  const v = map[s] || map.awaiting_payment;
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${v.cls}`}>{v.l}</span>;
 }
 
 function SubTabs<T extends string>({ tabs, value, onChange }: { tabs: { k: T; l: string; n?: number }[]; value: T; onChange: (v: T) => void }) {
@@ -71,7 +87,7 @@ function SellerHub() {
   // UI
   const [section, setSection] = useState<Section>("orders");
   const [listingsTab, setListingsTab] = useState<"active" | "draft" | "scheduled" | "sold">("active");
-  const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "cancelled">("to_ship");
+  const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed" | "refunds" | "cancelled">("to_ship");
   const [liveTab, setLiveTab] = useState<"upcoming" | "history" | "tools">("upcoming");
   const [shippingTab, setShippingTab] = useState<"presets" | "auto" | "combined" | "caps" | "carriers">("presets");
   const [payoutsTab, setPayoutsTab] = useState<"pending" | "completed" | "fees">("pending");
@@ -85,6 +101,7 @@ function SellerHub() {
   const [preset, setPreset] = useState<Record<string, ShippingPresetKey>>({});
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
   const [recommended, setRecommended] = useState<Record<string, string | null>>({});
+  const [scanCode, setScanCode] = useState<Record<string, string>>({});
 
   async function load() {
     if (!user) return;
@@ -123,6 +140,42 @@ function SellerHub() {
     setStreams(str.data || []);
   }
   useEffect(() => { load(); }, [user, tutorial]);
+
+  // Realtime: refresh seller hub on any of this seller's order changes
+  useRealtimeChannel(
+    { name: `seller-orders-${user?.id ?? "anon"}`, enabled: !!user && !tutorial },
+    (ch) => ch.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "orders", filter: `seller_id=eq.${user?.id}` },
+      () => load(),
+    ),
+  );
+
+  async function verifyShipment(o: any) {
+    const code = (scanCode[o.id] || "").trim();
+    if (!code) return toast.error("Scan or enter the item barcode/QR");
+    const { error } = await supabase.from("orders").update({
+      shipment_verification_code: code,
+      shipment_verified_at: new Date().toISOString(),
+    }).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Item verified — ready to ship");
+    load();
+  }
+
+  async function markResolved(o: any) {
+    const { error } = await supabase.from("orders").update({
+      payment_status: "resolved",
+    }).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({
+      user_id: o.buyer_id, type: "order",
+      body: `Payment for "${o.title}" was marked resolved by the seller.`,
+      link: "/orders",
+    });
+    toast.success("Marked resolved");
+    load();
+  }
 
   async function ship(o: any) {
     const tn = tracking[o.id];
@@ -233,10 +286,12 @@ function SellerHub() {
   const counts = useMemo(() => {
     const o = orders;
     return {
-      to_ship: o.filter((x) => x.status === "pending").length,
+      to_ship: o.filter((x) => x.status === "pending" && !["failed", "chargeback"].includes(x.payment_status)).length,
       shipped: o.filter((x) => x.status === "shipped").length,
       delivered: o.filter((x) => x.status === "delivered").length,
-      cancelled: o.filter((x) => x.status === "cancelled" || x.payment_status === "refunded").length,
+      failed: o.filter((x) => ["failed", "chargeback"].includes(x.payment_status)).length,
+      refunds: o.filter((x) => x.payment_status === "refunded").length,
+      cancelled: o.filter((x) => x.status === "cancelled").length,
       active: listings.filter((l) => (l.auction_status || "active") === "active").length,
       draft: listings.filter((l) => l.auction_status === "draft").length,
       scheduled: listings.filter((l) => l.auction_status === "scheduled").length,
@@ -283,10 +338,12 @@ function SellerHub() {
 
   // Filtered orders by sub-tab
   const filteredOrders = orders.filter((o) =>
-    ordersTab === "to_ship" ? o.status === "pending" :
+    ordersTab === "to_ship" ? (o.status === "pending" && !["failed", "chargeback"].includes(o.payment_status)) :
     ordersTab === "shipped" ? o.status === "shipped" :
     ordersTab === "delivered" ? o.status === "delivered" :
-    (o.status === "cancelled" || o.payment_status === "refunded")
+    ordersTab === "failed" ? ["failed", "chargeback"].includes(o.payment_status) :
+    ordersTab === "refunds" ? o.payment_status === "refunded" :
+    o.status === "cancelled"
   );
 
   const filteredListings = listings.filter((l) => {
@@ -405,6 +462,8 @@ function SellerHub() {
                 { k: "to_ship", l: "Needs Shipping", n: counts.to_ship },
                 { k: "shipped", l: "Shipped", n: counts.shipped },
                 { k: "delivered", l: "Delivered", n: counts.delivered },
+                { k: "failed", l: "Failed", n: counts.failed },
+                { k: "refunds", l: "Refunds", n: counts.refunds },
                 { k: "cancelled", l: "Cancelled", n: counts.cancelled },
               ]}
             />
@@ -421,6 +480,12 @@ function SellerHub() {
                       {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-16 w-16 rounded-lg object-cover" />}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold">{o.title}</p>
+                        <p className="truncate text-sm font-bold">
+                          {o.auction_number && o.stream_id && (
+                            <span className="mr-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">#{o.auction_number}</span>
+                          )}
+                          {o.title}
+                        </p>
                         <p className="text-xs font-semibold text-primary">${amount.toFixed(2)}</p>
                         <p className="text-[10px] text-muted-foreground">Fee ${fee.toFixed(2)} · Net <span className="font-bold text-primary">${net.toFixed(2)}</span></p>
                       </div>
@@ -428,9 +493,7 @@ function SellerHub() {
                         <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold capitalize">
                           <StatusIcon s={o.status} /> {o.status}
                         </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${o.payment_status === "paid" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-400"}`}>
-                          {o.payment_status === "paid" ? "Paid" : "Awaiting Payment"}
-                        </span>
+                        <PaymentStatusBadge s={o.payment_status} />
                       </div>
                     </div>
                     <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
