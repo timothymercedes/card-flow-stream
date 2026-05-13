@@ -6287,6 +6287,14 @@ function LiveDetail() {
           onConfirm={confirmKO}
         />
       )}
-    </div>
-  );
-}
+
+      {/* 🆕 Live polish overlays */}
+      <HypeBurst lastBidAt={hypeTick} />
+      {soldBanner && (
+        <SoldBanner
+          triggerKey={soldBanner.key}
+          itemName={soldBanner.item}
+          winnerUsername={soldBanner.user}
+          amount={soldBanner.amount}
+        />
+      )}
