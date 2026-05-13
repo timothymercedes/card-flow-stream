@@ -45,10 +45,16 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
   try {
     const body = await req.json().catch(() => ({}));
+    if (body?.list_games) {
+      return new Response(JSON.stringify({ games: listGames() }), {
+        headers: { ...corsHeaders, "content-type": "application/json" },
+      });
+    }
     const name = String(body?.name || "").trim();
     const number = body?.number ? String(body.number).trim() : "";
     const set = body?.set ? String(body.set).trim() : "";
     const limit = Math.min(Math.max(Number(body?.limit) || 8, 1), 20);
+    const game = resolveGame(body?.game);
     if (!name && !number) {
       return new Response(JSON.stringify({ error: "name or number required" }), {
         status: 400, headers: { ...corsHeaders, "content-type": "application/json" },
@@ -64,49 +70,46 @@ Deno.serve(async (req) => {
     const sourcesTried: string[] = [];
     const candidates: NormalizedCard[] = [];
 
-    // 1) Local cache (pokemon_cards). Cheap & fast.
-    sourcesTried.push("local");
-    let local = admin.from("pokemon_cards")
-      .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
-      .limit(limit);
-    if (name) local = local.ilike("name", `%${name}%`);
-    if (number) {
-      const n = number.split("/")[0].trim().replace(/^0+(\d)/, "$1");
-      local = local.eq("number", n);
-    }
-    const { data: localRows } = await local;
-    for (const r of localRows ?? []) {
-      candidates.push({
-        id: r.id,
-        source: "local",
-        source_ids: (r.source_ids as Record<string, string>) || { tcg_api: r.id },
-        name: r.name,
-        set_name: r.set_name,
-        set_code: r.set_code,
-        number: r.number,
-        rarity: r.rarity,
-        year: r.year,
-        image_small: r.image_small,
-        image_large: r.image_large,
-        variants: [],
-        raw: r.raw,
-      });
+    // 1) Local Pokémon cache (only meaningful for game=pokemon).
+    if (game.id === "pokemon") {
+      sourcesTried.push("local");
+      let local = admin.from("pokemon_cards")
+        .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
+        .limit(limit);
+      if (name) local = local.ilike("name", `%${name}%`);
+      if (number) {
+        const n = number.split("/")[0].trim().replace(/^0+(\d)/, "$1");
+        local = local.eq("number", n);
+      }
+      const { data: localRows } = await local;
+      for (const r of localRows ?? []) {
+        candidates.push({
+          id: r.id, source: "local",
+          source_ids: (r.source_ids as Record<string, string>) || { tcg_api: r.id },
+          name: r.name, set_name: r.set_name, set_code: r.set_code,
+          number: r.number, rarity: r.rarity, year: r.year,
+          image_small: r.image_small, image_large: r.image_large,
+          variants: [], raw: r.raw,
+        });
+      }
     }
 
-    // 2) PokémonTCG (primary remote)
-    sourcesTried.push("tcg_api");
-    const remote1 = await searchPokemonTcg({ name, number, set }, limit);
-    candidates.push(...remote1);
-
-    // 3) TCGdex fallback (only if we still don't have a strong match)
-    const bestSoFar = candidates
-      .map((c) => ({ c, s: scoreCandidate(c, { name, number, set }) }))
-      .sort((a, b) => b.s - a.s)[0];
-    if (!bestSoFar || bestSoFar.s < 70) {
-      sourcesTried.push("tcgdex");
-      const remote2 = await searchTcgdex({ name, number }, limit);
-      candidates.push(...remote2);
+    // 2) Game-specific adapter chain. First adapter is primary; subsequent
+    //    adapters only run if no candidate scores >= 70 yet.
+    for (const adapter of game.catalog) {
+      const bestSoFar = candidates
+        .map((c) => ({ c, s: scoreCandidate(c, { name, number, set }) }))
+        .sort((a, b) => b.s - a.s)[0];
+      if (bestSoFar && bestSoFar.s >= 70 && sourcesTried.length > 1) break;
+      sourcesTried.push(adapter.id);
+      try {
+        const rows = await adapter.search({ name, number, set, limit });
+        candidates.push(...rows);
+      } catch (e) {
+        console.warn(`[card-catalog] adapter ${adapter.id} failed:`, (e as Error)?.message);
+      }
     }
+
 
     // Dedupe by id, keep best-scoring instance
     const byId = new Map<string, { c: NormalizedCard; s: number }>();
