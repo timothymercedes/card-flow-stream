@@ -449,7 +449,23 @@ function LiveDetail() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` },
-        (p) => setMessages((m) => [...m, p.new]),
+        (p) => {
+          const msg = p.new as any;
+          setMessages((m) => [...m, msg]);
+          // 🆕 Viewer-side SOLD banner: parse the system "🏆 Bid #N — \"item\" sold to @user for $X"
+          if (msg?.is_system && typeof msg.body === "string" && msg.body.startsWith("🏆")) {
+            const match = msg.body.match(/"(.+?)" sold to @(\S+) for \$([\d.]+)/);
+            if (match) {
+              setSoldBanner({ key: Date.now(), item: match[1], user: match[2], amount: Number(match[3]) });
+              playSfx("sold");
+            }
+          }
+          // Tip / promotion / shoutout audio cues
+          if (msg?.is_system && typeof msg.body === "string") {
+            if (msg.body.startsWith("💸")) playSfx("shoutout");
+            else if (msg.body.startsWith("🔥")) playSfx("promote");
+          }
+        },
       )
       .on(
         "postgres_changes",
@@ -461,6 +477,11 @@ function LiveDetail() {
             if (prev && next.snipe_extends > (prev.snipe_extends || 0)) {
               setSnipeFlash(true);
               setTimeout(() => setSnipeFlash(false), 1500);
+            }
+            // 🆕 Bid increase → SFX (for viewers) + hype tick
+            if (prev && Number(next.current_bid || 0) > Number(prev.current_bid || 0) && next.current_bidder_id) {
+              playSfx("bid", 0.4);
+              setHypeTick(Date.now());
             }
             return next;
           });
