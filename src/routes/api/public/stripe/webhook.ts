@@ -48,45 +48,69 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               const promotionId = pi.metadata?.promotion_id;
               const chargeId = pi.latest_charge as string | undefined;
               if (tipId) {
-                await supabaseAdmin
+                const { data: tipRow } = await supabaseAdmin
                   .from("stream_tips")
                   .update({ status: "paid", paid_at: new Date().toISOString() })
-                  .eq("id", tipId);
+                  .eq("id", tipId)
+                  .select("stream_id, seller_id, buyer_username, amount, message")
+                  .maybeSingle();
+                if (tipRow) {
+                  const t: any = tipRow;
+                  await supabaseAdmin.from("chat_messages").insert({
+                    stream_id: t.stream_id,
+                    username: "system",
+                    content: `💸 ${t.buyer_username} sent a $${Number(t.amount).toFixed(2)} shoutout${t.message ? ` — "${t.message}"` : ""}`,
+                    is_system: true,
+                  });
+                  await supabaseAdmin.from("notifications").insert({
+                    user_id: t.seller_id,
+                    type: "stream_tip",
+                    body: `💸 ${t.buyer_username} sent you a $${Number(t.amount).toFixed(2)} shoutout`,
+                    link: `/live/${t.stream_id}`,
+                  });
+                }
               }
               if (promotionId) {
                 const nowIso = new Date().toISOString();
+                const durationSeconds = Number(pi.metadata?.duration_seconds || 0);
+                const promoEndsAt = durationSeconds > 0
+                  ? new Date(Date.now() + durationSeconds * 1000).toISOString()
+                  : null;
                 const { data: promo } = await supabaseAdmin
                   .from("stream_promotions")
-                  .update({ status: "paid", paid_at: nowIso })
+                  .update({ status: "paid", paid_at: nowIso, promotion_ends_at: promoEndsAt })
                   .eq("id", promotionId)
-                  .select("stream_id, promoter_id, promoter_username, amount, message")
+                  .select("stream_id, promoter_id, promoter_username, amount, message, duration_seconds")
                   .maybeSingle();
                 if (promo) {
                   const p: any = promo;
-                  // Increment stream score, total, last_promoted_at
+                  // Increment stream score, total, extend active_until
                   const { data: streamRow } = await supabaseAdmin
                     .from("live_streams")
-                    .select("promotion_score, total_promoted_amount, seller_id, title")
+                    .select("promotion_score, total_promoted_amount, promotion_active_until, seller_id, title")
                     .eq("id", p.stream_id)
                     .maybeSingle();
                   if (streamRow) {
                     const sr: any = streamRow;
+                    const dur = Number(p.duration_seconds || durationSeconds || 0);
+                    const currentEnd = sr.promotion_active_until ? new Date(sr.promotion_active_until).getTime() : 0;
+                    const base = Math.max(currentEnd, Date.now());
+                    const newActiveUntil = dur > 0 ? new Date(base + dur * 1000).toISOString() : sr.promotion_active_until;
                     await supabaseAdmin
                       .from("live_streams")
                       .update({
                         promotion_score: Number(sr.promotion_score || 0) + Number(p.amount),
                         total_promoted_amount: Number(sr.total_promoted_amount || 0) + Number(p.amount),
                         last_promoted_at: nowIso,
+                        promotion_active_until: newActiveUntil,
                       })
                       .eq("id", p.stream_id);
-                    // System chat message
                     await supabaseAdmin.from("chat_messages").insert({
                       stream_id: p.stream_id,
                       username: "system",
                       content: `🔥 ${p.promoter_username} promoted this live for $${Number(p.amount).toFixed(2)}${p.message ? ` — "${p.message}"` : ""}`,
                       is_system: true,
                     });
-                    // Notify host
                     await supabaseAdmin.from("notifications").insert({
                       user_id: sr.seller_id,
                       type: "stream_promotion",

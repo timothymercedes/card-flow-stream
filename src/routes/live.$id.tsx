@@ -61,6 +61,7 @@ import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
 import { PromoteCheckout } from "@/components/PromoteCheckout";
+import { PromotionCountdown } from "@/components/PromotionCountdown";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
@@ -3434,6 +3435,7 @@ function LiveDetail() {
                 🔥 ${Number((stream as any).total_promoted_amount).toFixed(0)}
               </span>
             )}
+            <PromotionCountdown activeUntil={(stream as any).promotion_active_until} />
             {stream.current_condition && (
               <span className="shrink-0 rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                 {stream.current_condition}

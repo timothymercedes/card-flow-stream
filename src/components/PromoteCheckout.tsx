@@ -24,7 +24,18 @@ function getStripeJs(getKey: () => Promise<{ publishableKey: string }>) {
   return _stripePromise;
 }
 
-const PRESETS = [100, 300, 500]; // $1, $3, $5
+const PRESETS = [100, 500, 1000]; // $1, $5, $10
+
+function durationLabel(amountCents: number): string {
+  const dollars = amountCents / 100;
+  let minutes: number;
+  if (dollars <= 1) minutes = 5;
+  else if (dollars <= 5) minutes = 5 + (dollars - 1) * 2.5;
+  else if (dollars <= 10) minutes = 15 + (dollars - 5) * 2;
+  else minutes = 25 + (dollars - 10) * 2;
+  minutes = Math.max(1, Math.round(minutes));
+  return `${minutes} min${minutes === 1 ? "" : "s"}`;
+}
 
 export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose }: Props) {
   const getKey = useServerFn(getStripePublishableKey);
@@ -81,6 +92,10 @@ export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose
               Boost this live's ranking on Discover & the homepage. Promotions
               show in chat and a pinned banner.
             </p>
+            <p className="text-xs text-muted-foreground">
+              Promotions go to PullBidLive (platform advertising) and boost
+              this live's ranking on Discover & the homepage.
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {PRESETS.map((v) => {
                 const disabled = v < minCents;
@@ -92,13 +107,16 @@ export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose
                       setAmountCents(v);
                       setCustomAmount("");
                     }}
-                    className={`rounded-xl border py-2 text-sm font-bold transition disabled:opacity-40 ${
+                    className={`flex flex-col items-center justify-center rounded-xl border py-2 text-sm font-bold transition disabled:opacity-40 ${
                       amountCents === v && !customAmount
                         ? "border-orange-500 bg-orange-500/10 text-orange-500"
                         : "border-border hover:bg-muted"
                     }`}
                   >
-                    ${v / 100}
+                    <span>${v / 100}</span>
+                    <span className="text-[10px] font-medium opacity-70">
+                      {durationLabel(v)}
+                    </span>
                   </button>
                 );
               })}
@@ -135,6 +153,9 @@ export function PromoteCheckout({ streamId, streamerName, minAmount = 1, onClose
               <div className="text-[10px] text-muted-foreground text-right mt-0.5">
                 {message.length}/140
               </div>
+            </div>
+            <div className="rounded-lg bg-orange-500/5 border border-orange-500/30 p-2 text-[11px] text-orange-700 dark:text-orange-300">
+              Boosts ranking for <b>{durationLabel(amountCents)}</b>.
             </div>
             {error && (
               <div className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
@@ -200,14 +221,13 @@ function PromoteForm({
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
-        <div className="flex justify-between text-muted-foreground">
-          <span>Service fee</span>
-          <span>${(fees.buyerServiceFee / 100).toFixed(2)}</span>
-        </div>
-        <div className="border-t border-border pt-1 mt-1 flex justify-between font-semibold text-sm">
-          <span>Total</span>
+        <div className="flex justify-between font-semibold text-sm">
+          <span>Promotion total</span>
           <span>${(fees.buyerTotal / 100).toFixed(2)}</span>
         </div>
+        <p className="text-[10px] text-muted-foreground pt-1">
+          Goes to PullBidLive (platform advertising).
+        </p>
       </div>
       <PaymentElement />
       <button
