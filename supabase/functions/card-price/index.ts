@@ -8,12 +8,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   searchPokemonTcg,
-  tcgplayerQuoteFromCard,
-  fetchPriceCharting,
   aggregatePrices,
   type PriceQuote,
   type NormalizedCard,
 } from "../_shared/cards/sources.ts";
+import { enabledProviders } from "../_shared/cards/providers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
