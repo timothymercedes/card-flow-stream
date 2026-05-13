@@ -242,16 +242,60 @@ export function CardScanner({
       const paramsRecord: Record<string, string> = {};
       params.forEach((v, k) => { paramsRecord[k] = v; });
       if (j?.price?.market == null) {
+        // Fallback: hit the new multi-source aggregator (PokémonTCG + TCGdex + PriceCharting)
+        let aggregated: any = null;
+        try {
+          const ar = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/card-price`,
+            {
+              method: "POST",
+              headers: {
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${token}`,
+                "content-type": "application/json",
+              },
+              body: JSON.stringify({
+                name: result.name,
+                set: setReliable ? result.set : undefined,
+                number: numberReliable ? result.tcg_number : undefined,
+              }),
+            },
+          );
+          aggregated = await ar.json();
+        } catch (e) {
+          aggregated = { error: String((e as any)?.message || e) };
+        }
+        const aggMarket = Number(aggregated?.price?.market);
+        if (Number.isFinite(aggMarket) && aggMarket > 0 && setReliable && numberReliable) {
+          return {
+            ...result,
+            estimated_value: aggMarket,
+            price_source: aggregated?.primary_source || "aggregated",
+            price_low: aggregated?.price?.low ?? undefined,
+            price_high: aggregated?.price?.high ?? undefined,
+            condition_prices: conditionPricesForMarket(aggMarket, null),
+            scan_debug: {
+              ...(result.scan_debug || {}),
+              price_debug: { aggregator: aggregated },
+              enrichment: {
+                trustedDatabaseIdentity: false,
+                setReliable, numberReliable,
+                reason: `Primary lookup empty — aggregator returned $${aggMarket} via ${aggregated?.primary_source}`,
+                params: paramsRecord,
+              },
+            },
+          };
+        }
         return {
           ...result,
           scan_debug: {
             ...(result.scan_debug || {}),
-            price_debug: j?.price?.debug ?? { note: "No price match", response: j },
+            price_debug: j?.price?.debug ?? { note: "No price match", response: j, aggregator: aggregated },
             enrichment: {
               trustedDatabaseIdentity: false,
               setReliable,
               numberReliable,
-              reason: "refresh-prices returned no market price",
+              reason: "refresh-prices and aggregator both returned no market price",
               params: paramsRecord,
             },
           },

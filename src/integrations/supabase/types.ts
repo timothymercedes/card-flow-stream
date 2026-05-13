@@ -244,14 +244,38 @@ export type Database = {
           },
         ]
       }
+      card_price_cache: {
+        Row: {
+          card_key: string
+          expires_at: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          card_key: string
+          expires_at: string
+          payload: Json
+          updated_at?: string
+        }
+        Update: {
+          card_key?: string
+          expires_at?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       card_price_history: {
         Row: {
           captured_at: string
           card_key: string
+          currency: string
           id: string
           last_sold_price: number | null
           market_price: number | null
+          mid: number | null
           name: string
+          payload: Json
           price_high: number | null
           price_low: number | null
           source: string | null
@@ -261,10 +285,13 @@ export type Database = {
         Insert: {
           captured_at?: string
           card_key: string
+          currency?: string
           id?: string
           last_sold_price?: number | null
           market_price?: number | null
+          mid?: number | null
           name: string
+          payload?: Json
           price_high?: number | null
           price_low?: number | null
           source?: string | null
@@ -274,10 +301,13 @@ export type Database = {
         Update: {
           captured_at?: string
           card_key?: string
+          currency?: string
           id?: string
           last_sold_price?: number | null
           market_price?: number | null
+          mid?: number | null
           name?: string
+          payload?: Json
           price_high?: number | null
           price_low?: number | null
           source?: string | null
@@ -289,12 +319,15 @@ export type Database = {
       card_scans: {
         Row: {
           cards_detected: number
+          chosen_source: string | null
           created_at: string
           duration_ms: number | null
           error_message: string | null
           id: string
           language: string | null
+          match_candidates: Json | null
           multi: boolean
+          price_sources: Json | null
           source: string | null
           status: string
           top_name: string | null
@@ -304,12 +337,15 @@ export type Database = {
         }
         Insert: {
           cards_detected?: number
+          chosen_source?: string | null
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
           id?: string
           language?: string | null
+          match_candidates?: Json | null
           multi?: boolean
+          price_sources?: Json | null
           source?: string | null
           status?: string
           top_name?: string | null
@@ -319,12 +355,15 @@ export type Database = {
         }
         Update: {
           cards_detected?: number
+          chosen_source?: string | null
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
           id?: string
           language?: string | null
+          match_candidates?: Json | null
           multi?: boolean
+          price_sources?: Json | null
           source?: string | null
           status?: string
           top_name?: string | null
@@ -689,6 +728,59 @@ export type Database = {
           winner_username?: string | null
         }
         Relationships: []
+      }
+      graded_cards: {
+        Row: {
+          cert_number: string
+          created_at: string
+          grade: string | null
+          grader: string
+          id: string
+          pop_data: Json
+          raw: Json
+          slab_image_url: string | null
+          updated_at: string
+          user_id: string
+          vault_card_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          cert_number: string
+          created_at?: string
+          grade?: string | null
+          grader: string
+          id?: string
+          pop_data?: Json
+          raw?: Json
+          slab_image_url?: string | null
+          updated_at?: string
+          user_id: string
+          vault_card_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          cert_number?: string
+          created_at?: string
+          grade?: string | null
+          grader?: string
+          id?: string
+          pop_data?: Json
+          raw?: Json
+          slab_image_url?: string | null
+          updated_at?: string
+          user_id?: string
+          vault_card_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graded_cards_vault_card_id_fkey"
+            columns: ["vault_card_id"]
+            isOneToOne: false
+            referencedRelation: "vault_cards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ko_requests: {
         Row: {
@@ -1847,6 +1939,7 @@ export type Database = {
           image_small: string | null
           is_holo: boolean | null
           is_reverse_holo: boolean | null
+          last_seen_at: string | null
           last_sold_price: number | null
           name: string
           number: string | null
@@ -1855,6 +1948,8 @@ export type Database = {
           raw: Json | null
           set_code: string | null
           set_name: string | null
+          source: string | null
+          source_ids: Json
           subtypes: string[] | null
           tcgplayer_price: number | null
           trend: string | null
@@ -1868,6 +1963,7 @@ export type Database = {
           image_small?: string | null
           is_holo?: boolean | null
           is_reverse_holo?: boolean | null
+          last_seen_at?: string | null
           last_sold_price?: number | null
           name: string
           number?: string | null
@@ -1876,6 +1972,8 @@ export type Database = {
           raw?: Json | null
           set_code?: string | null
           set_name?: string | null
+          source?: string | null
+          source_ids?: Json
           subtypes?: string[] | null
           tcgplayer_price?: number | null
           trend?: string | null
@@ -1889,6 +1987,7 @@ export type Database = {
           image_small?: string | null
           is_holo?: boolean | null
           is_reverse_holo?: boolean | null
+          last_seen_at?: string | null
           last_sold_price?: number | null
           name?: string
           number?: string | null
@@ -1897,6 +1996,8 @@ export type Database = {
           raw?: Json | null
           set_code?: string | null
           set_name?: string | null
+          source?: string | null
+          source_ids?: Json
           subtypes?: string[] | null
           tcgplayer_price?: number | null
           trend?: string | null
