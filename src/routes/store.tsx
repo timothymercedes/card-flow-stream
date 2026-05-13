@@ -600,6 +600,14 @@ function SellerHub() {
                     {ordersTab === "shipped" && (
                       <button onClick={() => markDelivered(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
                     )}
+                    {ordersTab === "failed" && o.payment_status !== "resolved" && (
+                      <button
+                        onClick={() => markResolved(o)}
+                        className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                      >
+                        Mark resolved
+                      </button>
+                    )}
                     {(ordersTab === "to_ship" || ordersTab === "shipped") && (
                       <button
                         onClick={() => setCancelOrder(o)}
