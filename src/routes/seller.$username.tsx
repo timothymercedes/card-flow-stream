@@ -136,6 +136,8 @@ function PublicStore() {
       setPosts(ps.data || []);
       setStories(st.data || []);
       setVaultCards(vc.data || []);
+      const { data: ss } = await (supabase.rpc as any)("get_seller_stats", { _seller_id: prof.id });
+      setSellerStats(Array.isArray(ss) ? ss[0] : ss);
     })();
   }, [username]);
 
