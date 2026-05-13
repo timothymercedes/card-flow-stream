@@ -3231,6 +3231,12 @@ function LiveDetail() {
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />}{" "}
             {ended ? "ENDED" : "LIVE"}
           </div>
+          {!ended && (
+            <AnimatedViewerCount
+              count={Math.max(viewerCount, liveViewers.length)}
+              onClick={() => setShowViewerList(true)}
+            />
+          )}
           {isStaff && !hostFocus && !ended && stream.mode !== "show_off" && (
             <button
               onClick={() => setShowQuickMod(true)}
@@ -3244,12 +3250,6 @@ function LiveDetail() {
                 </span>
               )}
             </button>
-          )}
-          {!ended && (
-            <AnimatedViewerCount
-              count={Math.max(viewerCount, liveViewers.length)}
-              onClick={() => setShowViewerList(true)}
-            />
           )}
           {!ended && <TopSupporterBadge streamId={id} />}
         </div>
