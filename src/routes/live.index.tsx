@@ -66,6 +66,7 @@ function LiveList() {
   const [tcgFilter, setTcgFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewerBucket, setViewerBucket] = useState<ViewerBucket>("any");
+  const [shareTarget, setShareTarget] = useState<Stream | null>(null);
 
   async function load() {
     const [{ data: s }, { data: sh }] = await Promise.all([
