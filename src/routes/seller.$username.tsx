@@ -109,7 +109,6 @@ function PublicStore() {
     nav({ to: "/messages/$userId", params: { userId: seller.id } });
   }
 
-  useEffect(() => {
   async function loadSeller() {
     const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
     const prof = Array.isArray(profRows) ? profRows[0] : null;
