@@ -54,6 +54,11 @@ function Profile() {
   const [showSellerAgreement, setShowSellerAgreement] = useState(false);
   const [acceptingAgreement, setAcceptingAgreement] = useState(false);
 
+  const [myLiveStreamId, setMyLiveStreamId] = useState<string | null>(null);
+  const [myStats, setMyStats] = useState<any>(null);
+  const [showMyReviews, setShowMyReviews] = useState(false);
+  const [restriction, setRestriction] = useState<any>(null);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
@@ -62,6 +67,9 @@ function Profile() {
     (supabase.rpc as any)("get_seller_completed_count", { _user: user.id }).then(({ data }: any) => setSellerCompleted(Number(data ?? 0)));
     (supabase.rpc as any)("get_buyer_completed_count", { _user: user.id }).then(({ data }: any) => setBuyerCompleted(Number(data ?? 0)));
     supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["owner","admin","moderator","support"]).then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
+    supabase.from("live_streams").select("id").eq("seller_id", user.id).eq("status","live").order("started_at",{ascending:false}).limit(1).maybeSingle().then(({ data }) => setMyLiveStreamId((data as any)?.id ?? null));
+    (supabase.rpc as any)("get_seller_stats", { _seller_id: user.id }).then(({ data }: any) => setMyStats(Array.isArray(data) ? data[0] : data));
+    supabase.from("user_suspensions").select("*").eq("user_id", user.id).eq("active", true).order("created_at",{ascending:false}).limit(1).maybeSingle().then(({ data }) => setRestriction(data));
   }, [user]);
 
   async function openList(kind: "followers" | "following") {
