@@ -127,6 +127,42 @@ function SellerHub() {
   }
   useEffect(() => { load(); }, [user, tutorial]);
 
+  // Realtime: refresh seller hub on any of this seller's order changes
+  useRealtimeChannel(
+    { name: `seller-orders-${user?.id ?? "anon"}`, enabled: !!user && !tutorial },
+    (ch) => ch.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "orders", filter: `seller_id=eq.${user?.id}` },
+      () => load(),
+    ),
+  );
+
+  async function verifyShipment(o: any) {
+    const code = (scanCode[o.id] || "").trim();
+    if (!code) return toast.error("Scan or enter the item barcode/QR");
+    const { error } = await supabase.from("orders").update({
+      shipment_verification_code: code,
+      shipment_verified_at: new Date().toISOString(),
+    }).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Item verified — ready to ship");
+    load();
+  }
+
+  async function markResolved(o: any) {
+    const { error } = await supabase.from("orders").update({
+      payment_status: "resolved",
+    }).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    await supabase.from("notifications").insert({
+      user_id: o.buyer_id, type: "order",
+      body: `Payment for "${o.title}" was marked resolved by the seller.`,
+      link: "/orders",
+    });
+    toast.success("Marked resolved");
+    load();
+  }
+
   async function ship(o: any) {
     const tn = tracking[o.id];
     if (!tn) return toast.error("Add tracking number");
