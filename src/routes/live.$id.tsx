@@ -62,6 +62,12 @@ import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
 import { PromoteCheckout } from "@/components/PromoteCheckout";
 import { PromotionCountdown } from "@/components/PromotionCountdown";
+import { AnimatedViewerCount } from "@/components/AnimatedViewerCount";
+import { SoldBanner } from "@/components/SoldBanner";
+import { HypeBurst } from "@/components/HypeBurst";
+import { TopSupporterBadge } from "@/components/TopSupporterBadge";
+import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
+import { playSfx } from "@/lib/sfx";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
@@ -305,6 +311,10 @@ function LiveDetail() {
   // 🆕 Live presence — viewer count + "joined the live" announcements
   const [viewerCount, setViewerCount] = useState(0);
   const announcedJoinsRef = useRef<Set<string>>(new Set());
+  // 🆕 Live polish: bid-hype trigger + auto-sold banner state
+  const [hypeTick, setHypeTick] = useState<number>(0);
+  const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
@@ -439,7 +449,23 @@ function LiveDetail() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `stream_id=eq.${id}` },
-        (p) => setMessages((m) => [...m, p.new]),
+        (p) => {
+          const msg = p.new as any;
+          setMessages((m) => [...m, msg]);
+          // 🆕 Viewer-side SOLD banner: parse the system "🏆 Bid #N — \"item\" sold to @user for $X"
+          if (msg?.is_system && typeof msg.body === "string" && msg.body.startsWith("🏆")) {
+            const match = msg.body.match(/"(.+?)" sold to @(\S+) for \$([\d.]+)/);
+            if (match) {
+              setSoldBanner({ key: Date.now(), item: match[1], user: match[2], amount: Number(match[3]) });
+              playSfx("sold");
+            }
+          }
+          // Tip / promotion / shoutout audio cues
+          if (msg?.is_system && typeof msg.body === "string") {
+            if (msg.body.startsWith("💸")) playSfx("shoutout");
+            else if (msg.body.startsWith("🔥")) playSfx("promote");
+          }
+        },
       )
       .on(
         "postgres_changes",
@@ -451,6 +477,11 @@ function LiveDetail() {
             if (prev && next.snipe_extends > (prev.snipe_extends || 0)) {
               setSnipeFlash(true);
               setTimeout(() => setSnipeFlash(false), 1500);
+            }
+            // 🆕 Bid increase → SFX (for viewers) + hype tick
+            if (prev && Number(next.current_bid || 0) > Number(prev.current_bid || 0) && next.current_bidder_id) {
+              playSfx("bid", 0.4);
+              setHypeTick(Date.now());
             }
             return next;
           });
@@ -1545,6 +1576,7 @@ function LiveDetail() {
       _amount: amount,
     });
     if (error) return toast.error(error.message);
+    playSfx("bid");
     const extended = !!(bidRes as any)?.extended;
     const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
     const exts = Number(stream.snipe_extends || 0);
@@ -2271,7 +2303,10 @@ function LiveDetail() {
       const winnerUsername = finRes.winner_username || "buyer";
       const nextRound = Number(finRes.round_number || stream.round_number || 1);
       const itemName = stream.current_item || stream.title;
-      // Chat announcement (best-effort, non-authoritative)
+      // 🆕 Animated SOLD overlay + sound (host-side trigger; viewers see chat msg)
+      setSoldBanner({ key: Date.now(), item: itemName, user: winnerUsername, amount: winningBid });
+      playSfx("sold");
+      // Chat announcement (best-effort, non-authoritative) — viewers also see this
       await sendMsg(
         `🏆 Bid #${nextRound} — "${itemName}" sold to @${winnerUsername} for $${winningBid}`,
         true,
@@ -3211,16 +3246,12 @@ function LiveDetail() {
             </button>
           )}
           {!ended && (
-            <button
+            <AnimatedViewerCount
+              count={Math.max(viewerCount, liveViewers.length)}
               onClick={() => setShowViewerList(true)}
-              data-tour="viewer-count"
-              className="flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold text-white backdrop-blur transition active:scale-95"
-              title="See who's watching"
-            >
-              <Users className="h-3 w-3" />{" "}
-              {Math.max(viewerCount, liveViewers.length).toLocaleString()}
-            </button>
+            />
           )}
+          {!ended && <TopSupporterBadge streamId={id} />}
         </div>
         <div className="flex gap-1">
           <button
@@ -6256,6 +6287,54 @@ function LiveDetail() {
           destinations={Array.isArray(stream.ko_destinations) ? stream.ko_destinations : []}
           onConfirm={confirmKO}
         />
+      )}
+
+      {/* 🆕 Live polish overlays */}
+      <HypeBurst lastBidAt={hypeTick} />
+      {soldBanner && (
+        <SoldBanner
+          triggerKey={soldBanner.key}
+          itemName={soldBanner.item}
+          winnerUsername={soldBanner.user}
+          amount={soldBanner.amount}
+        />
+      )}
+
+      {/* 🆕 Auction queue — viewers see a small "Up next" strip; host gets full CRUD drawer */}
+      {stream && !isSeller && stream.mode !== "show_off" && !ended && (
+        <div className="pointer-events-auto fixed left-2 right-2 top-28 z-40 mx-auto max-w-md">
+          <AuctionQueuePanel streamId={id} hostId={stream.seller_id} isHost={false} auctionLive={auctionLive} />
+        </div>
+      )}
+      {stream && isSeller && stream.mode !== "show_off" && !ended && (
+        <>
+          <button
+            onClick={() => setQueueOpen((v) => !v)}
+            className="fixed bottom-32 left-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600 px-3 py-2 text-[11px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95"
+            title="Auction queue"
+          >
+            📋 Queue
+          </button>
+          {queueOpen && (
+            <div className="fixed bottom-44 left-2 z-40 w-[min(92vw,360px)]">
+              <AuctionQueuePanel
+                streamId={id}
+                hostId={stream.seller_id}
+                isHost={true}
+                auctionLive={auctionLive}
+                onStart={async (item) => {
+                  await quickStartAuction({
+                    item: item.title,
+                    start: String(item.starting_bid),
+                    timer: String(item.duration_seconds),
+                    buyNow: item.snipe_price ? String(item.snipe_price) : "",
+                  });
+                  setQueueOpen(false);
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

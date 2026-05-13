@@ -47,6 +47,71 @@ export type Database = {
         }
         Relationships: []
       }
+      auction_queue: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          finished_at: string | null
+          host_id: string
+          id: string
+          image_url: string | null
+          position: number
+          reveal_mode: string | null
+          snipe_price: number | null
+          started_at: string | null
+          starting_bid: number
+          status: string
+          stream_id: string
+          title: string
+          winner_id: string | null
+          winning_bid: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          finished_at?: string | null
+          host_id: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          reveal_mode?: string | null
+          snipe_price?: number | null
+          started_at?: string | null
+          starting_bid?: number
+          status?: string
+          stream_id: string
+          title: string
+          winner_id?: string | null
+          winning_bid?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          finished_at?: string | null
+          host_id?: string
+          id?: string
+          image_url?: string | null
+          position?: number
+          reveal_mode?: string | null
+          snipe_price?: number | null
+          started_at?: string | null
+          starting_bid?: number
+          status?: string
+          stream_id?: string
+          title?: string
+          winner_id?: string | null
+          winning_bid?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_queue_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           actor_id: string | null
