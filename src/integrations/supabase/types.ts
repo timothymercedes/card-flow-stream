@@ -3578,9 +3578,14 @@ export type Database = {
           custom_price_source: string | null
           description: string | null
           estimated_value: number | null
+          grade: string | null
+          graded_price: number | null
+          grader: string | null
+          grading_cert: string | null
           id: string
           image_url: string | null
           is_demo: boolean
+          is_graded: boolean
           language: string | null
           last_sold_price: number | null
           last_valued_at: string | null
@@ -3614,9 +3619,14 @@ export type Database = {
           custom_price_source?: string | null
           description?: string | null
           estimated_value?: number | null
+          grade?: string | null
+          graded_price?: number | null
+          grader?: string | null
+          grading_cert?: string | null
           id?: string
           image_url?: string | null
           is_demo?: boolean
+          is_graded?: boolean
           language?: string | null
           last_sold_price?: number | null
           last_valued_at?: string | null
@@ -3650,9 +3660,14 @@ export type Database = {
           custom_price_source?: string | null
           description?: string | null
           estimated_value?: number | null
+          grade?: string | null
+          graded_price?: number | null
+          grader?: string | null
+          grading_cert?: string | null
           id?: string
           image_url?: string | null
           is_demo?: boolean
+          is_graded?: boolean
           language?: string | null
           last_sold_price?: number | null
           last_valued_at?: string | null
