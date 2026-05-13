@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Truck, MessageCircle, Store, Radio, Flag, BadgeCheck } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { SellerResponseBadges } from "@/components/SellerResponseBadges";
+import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 
 type Stats = {
   completed_sales?: number;
