@@ -12,7 +12,12 @@ import {
   type PriceQuote,
   type NormalizedCard,
 } from "../_shared/cards/sources.ts";
-import { enabledProviders } from "../_shared/cards/providers.ts";
+import { enabledProviders, pricingProviders } from "../_shared/cards/providers.ts";
+
+function pricingProvidersSkipped(active: { id: string }[]) {
+  const activeIds = new Set(active.map((p) => p.id));
+  return pricingProviders.filter((p) => !activeIds.has(p.id)).map((p) => p.id);
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
