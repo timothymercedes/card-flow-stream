@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle, RefreshCw } from "lucide-react";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Req = {
   id: string;
@@ -30,13 +31,9 @@ export function VerificationInbox() {
     setLoading(false);
   }
 
-  useEffect(() => {
-    load();
-    const ch = supabase.channel("admin-verifications")
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+  useEffect(() => { load(); }, []);
+  useRealtimeChannel({ name: "admin-verifications" }, (ch) =>
+    ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" } as any, () => load()));
 
   async function setStatus(u: Req, status: "approved" | "denied" | "reverify_required") {
     const reason = status === "approved" ? null

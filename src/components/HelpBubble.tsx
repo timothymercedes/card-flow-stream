@@ -6,6 +6,7 @@ import { useTour } from "@/components/MascotGuide";
 import { MASCOTS, TOURS } from "@/lib/tours";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Escalation = { suggested: boolean; category?: TicketCategory; reason?: string; priority?: "low" | "normal" | "high" | "urgent" };
@@ -101,12 +102,13 @@ export function HelpBubble() {
     supabase.from("support_ticket_messages")
       .select("*").eq("ticket_id", activeTicket.id).order("created_at")
       .then(({ data }) => { if (!cancel) setTicketMsgs((data as TicketMessage[]) || []); });
-    const ch = supabase.channel(`ticket-${activeTicket.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "support_ticket_messages", filter: `ticket_id=eq.${activeTicket.id}` },
-        (p) => setTicketMsgs((m) => [...m, p.new as TicketMessage]))
-      .subscribe();
-    return () => { cancel = true; supabase.removeChannel(ch); };
+    return () => { cancel = true; };
   }, [mode, activeTicket]);
+  useRealtimeChannel(
+    { name: `ticket-${activeTicket?.id ?? "none"}`, enabled: mode === "ticket" && !!activeTicket },
+    (ch) => ch.on("postgres_changes" as any,
+      { event: "INSERT", schema: "public", table: "support_ticket_messages", filter: `ticket_id=eq.${activeTicket?.id}` } as any,
+      (p: any) => setTicketMsgs((m) => [...m, p.new as TicketMessage])));
 
   async function send() {
     const text = input.trim();

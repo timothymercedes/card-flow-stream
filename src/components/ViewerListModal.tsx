@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, Search, Users, BadgeCheck, Shield, UserPlus } from "lucide-react";
 import type { PresenceUser } from "@/hooks/useStreamPresence";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Enrich = { id: string; live_verified: boolean };
 
@@ -38,6 +39,7 @@ export function ViewerListModal({
   }, []);
 
   // Load + realtime presence
+  const [presenceTick, setPresenceTick] = useState(0);
   useEffect(() => {
     let cancelled = false;
     const joinedSeen = new Map<string, number>();
@@ -57,7 +59,6 @@ export function ViewerListModal({
       });
       setViewers(enriched);
 
-      // Fetch verified flags for unknown users
       const ids = rows.map((r) => r.user_id).filter((id) => !(id in verifiedMap));
       if (ids.length) {
         const { data: profs } = await supabase.from("profiles").select("id, live_verified").in("id", ids);
@@ -70,13 +71,14 @@ export function ViewerListModal({
       }
     }
     load();
-    const ch = supabase.channel(`viewer-list-${streamId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` }, load)
-      .subscribe();
     const refresh = setInterval(load, 25_000);
-    return () => { cancelled = true; supabase.removeChannel(ch); clearInterval(refresh); };
+    return () => { cancelled = true; clearInterval(refresh); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamId]);
+  }, [streamId, presenceTick]);
+  useRealtimeChannel({ name: `viewer-list-${streamId}` }, (ch) =>
+    ch.on("postgres_changes" as any,
+      { event: "*", schema: "public", table: "live_stream_presence", filter: `stream_id=eq.${streamId}` } as any,
+      () => setPresenceTick((n) => n + 1)));
 
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();

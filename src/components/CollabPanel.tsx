@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, Search, UserPlus, Check, Trash2, Mic, MicOff, BadgeCheck, Users2 } from "lucide-react";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 type Profile = { id: string; username: string; avatar_url: string | null; live_verified?: boolean };
 type Participant = { id: string; user_id: string; username: string; avatar_url: string | null; is_muted: boolean };
@@ -46,6 +47,7 @@ export function CollabPanel({
   }, [q]);
 
   // Load lists + realtime
+  const [reloadTick, setReloadTick] = useState(0);
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -64,13 +66,12 @@ export function CollabPanel({
       }
     }
     load();
-    const ch = supabase.channel(`collab-${streamId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stream_collab_participants", filter: `stream_id=eq.${streamId}` }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stream_collab_invites", filter: `stream_id=eq.${streamId}` }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "stream_collab_join_requests", filter: `stream_id=eq.${streamId}` }, load)
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [streamId, currentUserId, isHost]);
+    return () => { cancelled = true; };
+  }, [streamId, currentUserId, isHost, reloadTick]);
+  useRealtimeChannel({ name: `collab-${streamId}` }, (ch) => ch
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "stream_collab_participants", filter: `stream_id=eq.${streamId}` } as any, () => setReloadTick((n) => n + 1))
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "stream_collab_invites", filter: `stream_id=eq.${streamId}` } as any, () => setReloadTick((n) => n + 1))
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "stream_collab_join_requests", filter: `stream_id=eq.${streamId}` } as any, () => setReloadTick((n) => n + 1)));
 
   async function invite(u: Profile) {
     if (!u.live_verified) return toast.error(`@${u.username} isn't verified — only verified users can collab`);

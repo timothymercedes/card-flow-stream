@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { MessageCircle, Search, Inbox, Check, X as XIcon, PenSquare } from "lucide-react";
 import { toast } from "sonner";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export const Route = createFileRoute("/messages/")({ component: Messages });
 
@@ -49,16 +50,10 @@ function Messages() {
     setRequests(reqs || []);
   }
 
-  useEffect(() => {
-    load();
-    if (!user) return;
-    const ch = supabase.channel("dm-list")
-      .on("postgres_changes", { event: "*", schema: "public", table: "direct_messages" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_requests" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  useEffect(() => { if (user) load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
+  useRealtimeChannel({ name: `dm-list-${user?.id ?? "anon"}`, enabled: !!user }, (ch) => ch
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "direct_messages" } as any, () => load())
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "message_requests" } as any, () => load()));
 
   useEffect(() => {
     if (!query.trim()) return setResults([]);

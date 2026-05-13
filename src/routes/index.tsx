@@ -12,6 +12,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import PublicLanding from "@/components/PublicLanding";
 import { isTutorialMode } from "@/lib/tutorialMode";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -64,6 +65,7 @@ function Home() {
   const posts = useMemo(() => shuffleBy(postsAll, bucket + 3).slice(0, 4), [postsAll, bucket]);
   const vault = useMemo(() => shuffleBy(vaultAll, bucket + 4).slice(0, 4), [vaultAll, bucket]);
 
+  const [rtTick, setRtTick] = useState(0);
   useEffect(() => {
     const load = async () => {
       let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
@@ -102,13 +104,11 @@ function Home() {
       setStats({ live: liveCount || 0, collectors: collectorCount || 0, listings: listingCount || 0 });
     };
     load();
-    const ch = supabase.channel("home-discover")
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_streams" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, load)
-      .on("postgres_changes", { event: "*", schema: "public", table: "listings" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [interests.join(",")]);
+  }, [interests.join(","), rtTick]);
+  useRealtimeChannel({ name: "home-discover" }, (ch) => ch
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "live_streams" } as any, () => setRtTick((n) => n + 1))
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "posts" } as any, () => setRtTick((n) => n + 1))
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "listings" } as any, () => setRtTick((n) => n + 1)));
 
   return (
     <AppShell>

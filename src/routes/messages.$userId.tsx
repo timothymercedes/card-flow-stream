@@ -6,6 +6,7 @@ import { ArrowLeft, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { ReportDialog } from "@/components/ReportDialog";
 import { HeaderSearch } from "@/components/HeaderSearch";
+import { useRealtimeChannel } from "@/lib/realtime";
 
 export const Route = createFileRoute("/messages/$userId")({ component: ChatThread });
 
@@ -50,14 +51,15 @@ function ChatThread() {
       setMessages(data || []);
     }
     load();
-    const ch = supabase.channel(`dm-${userId}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, (p: any) => {
+  }, [user, userId]);
+  useRealtimeChannel({ name: `dm-${user?.id ?? "anon"}-${userId}`, enabled: !!user }, (ch) =>
+    ch.on("postgres_changes" as any, { event: "INSERT", schema: "public", table: "direct_messages" } as any, (p: any) => {
       const m = p.new;
+      if (!user) return;
       if ((m.sender_id === user.id && m.recipient_id === userId) || (m.sender_id === userId && m.recipient_id === user.id)) {
         setMessages((prev) => [...prev, m]);
       }
-    }).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user, userId]);
+    }));
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
