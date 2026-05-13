@@ -254,6 +254,13 @@ function PublicStore() {
                       </button>
                     </>
                   )}
+                  <button
+                    onClick={shareProfile}
+                    aria-label="Share profile"
+                    className="inline-flex items-center justify-center rounded-full bg-card p-1.5 ring-1 ring-border hover:bg-muted"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                  </button>
                   <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
                 </div>
               </div>
