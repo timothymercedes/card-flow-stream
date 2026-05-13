@@ -6181,7 +6181,7 @@ function LiveDetail() {
         />
       )}
 
-      {tipOpen && (
+      {tipOpen && !isSeller && (
         <TipCheckout
           streamId={id}
           streamerName={sellerUsername}
@@ -6189,7 +6189,7 @@ function LiveDetail() {
         />
       )}
 
-      {promoteOpen && (
+      {promoteOpen && !isSeller && (
         <PromoteCheckout
           streamId={id}
           streamerName={sellerUsername}
