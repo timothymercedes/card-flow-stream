@@ -62,6 +62,12 @@ import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
 import { PromoteCheckout } from "@/components/PromoteCheckout";
 import { PromotionCountdown } from "@/components/PromotionCountdown";
+import { AnimatedViewerCount } from "@/components/AnimatedViewerCount";
+import { SoldBanner } from "@/components/SoldBanner";
+import { HypeBurst } from "@/components/HypeBurst";
+import { TopSupporterBadge } from "@/components/TopSupporterBadge";
+import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
+import { playSfx } from "@/lib/sfx";
 
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
