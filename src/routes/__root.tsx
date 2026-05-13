@@ -11,6 +11,7 @@ import { TutorialModeBootstrap } from "@/components/TutorialModeBootstrap";
 import { PerfMonitorBootstrap } from "@/components/PerfMonitorBootstrap";
 import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
+import { BidAnnouncer } from "@/components/BidAnnouncer";
 
 function NotFoundComponent() {
   return (
@@ -76,6 +77,7 @@ export const Route = createRootRoute({
           <LegalGate />
         </BetaGate>
         <RealtimeStatusBadge />
+        <BidAnnouncer />
         <Toaster />
       </MascotTourProvider>
     </AuthProvider>
