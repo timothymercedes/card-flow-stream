@@ -309,6 +309,42 @@ export type Database = {
           },
         ]
       }
+      buyer_review_queue: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          reason: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          unpaid_strikes: number
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          unpaid_strikes?: number
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          unpaid_strikes?: number
+        }
+        Relationships: []
+      }
       card_price_cache: {
         Row: {
           card_key: string
@@ -2264,6 +2300,8 @@ export type Database = {
           agreements_version: string
           avatar_url: string | null
           avg_response_minutes: number | null
+          bid_restricted_reason: string | null
+          bid_restricted_until: string | null
           buyer_verified: boolean
           created_at: string
           creator_tier: string
@@ -2310,6 +2348,7 @@ export type Database = {
           tos_accepted: boolean
           tos_accepted_at: string | null
           total_stream_minutes: number
+          unpaid_strikes: number
           username: string
           verification_history: Json
           verification_reason: string | null
@@ -2332,6 +2371,8 @@ export type Database = {
           agreements_version?: string
           avatar_url?: string | null
           avg_response_minutes?: number | null
+          bid_restricted_reason?: string | null
+          bid_restricted_until?: string | null
           buyer_verified?: boolean
           created_at?: string
           creator_tier?: string
@@ -2378,6 +2419,7 @@ export type Database = {
           tos_accepted?: boolean
           tos_accepted_at?: string | null
           total_stream_minutes?: number
+          unpaid_strikes?: number
           username: string
           verification_history?: Json
           verification_reason?: string | null
@@ -2400,6 +2442,8 @@ export type Database = {
           agreements_version?: string
           avatar_url?: string | null
           avg_response_minutes?: number | null
+          bid_restricted_reason?: string | null
+          bid_restricted_until?: string | null
           buyer_verified?: boolean
           created_at?: string
           creator_tier?: string
@@ -2446,6 +2490,7 @@ export type Database = {
           tos_accepted?: boolean
           tos_accepted_at?: string | null
           total_stream_minutes?: number
+          unpaid_strikes?: number
           username?: string
           verification_history?: Json
           verification_reason?: string | null
@@ -2518,6 +2563,88 @@ export type Database = {
           stream_id?: string | null
         }
         Relationships: []
+      }
+      review_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          review_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "seller_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_responses: {
+        Row: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          review_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at?: string
+          id?: string
+          review_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          review_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_responses_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "seller_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scan_history: {
         Row: {
@@ -2625,9 +2752,11 @@ export type Database = {
       }
       seller_reviews: {
         Row: {
+          accuracy_rating: number | null
           buyer_id: string
           buyer_username: string
           comment: string | null
+          communication_rating: number | null
           created_at: string
           id: string
           order_id: string
@@ -2635,11 +2764,16 @@ export type Database = {
           rating: number
           seller_id: string
           shipping_rating: number
+          stream_id: string | null
+          verified_live_auction: boolean
+          verified_purchase: boolean
         }
         Insert: {
+          accuracy_rating?: number | null
           buyer_id: string
           buyer_username: string
           comment?: string | null
+          communication_rating?: number | null
           created_at?: string
           id?: string
           order_id: string
@@ -2647,11 +2781,16 @@ export type Database = {
           rating: number
           seller_id: string
           shipping_rating: number
+          stream_id?: string | null
+          verified_live_auction?: boolean
+          verified_purchase?: boolean
         }
         Update: {
+          accuracy_rating?: number | null
           buyer_id?: string
           buyer_username?: string
           comment?: string | null
+          communication_rating?: number | null
           created_at?: string
           id?: string
           order_id?: string
@@ -2659,6 +2798,9 @@ export type Database = {
           rating?: number
           seller_id?: string
           shipping_rating?: number
+          stream_id?: string | null
+          verified_live_auction?: boolean
+          verified_purchase?: boolean
         }
         Relationships: []
       }
@@ -4069,6 +4211,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_ban_buyer: {
+        Args: { _buyer: string; _notes?: string }
+        Returns: undefined
+      }
+      admin_extend_buyer_restriction: {
+        Args: { _buyer: string; _days: number; _notes?: string }
+        Returns: undefined
+      }
       admin_force_rearm: { Args: { _stream_id: string }; Returns: Json }
       admin_force_seller_reaccept: {
         Args: { _reason?: string; _target_user: string }
@@ -4134,6 +4284,10 @@ export type Database = {
         Args: { _reason?: string; _status: string; _target_user: string }
         Returns: undefined
       }
+      admin_waive_buyer_restriction: {
+        Args: { _buyer: string; _notes?: string }
+        Returns: undefined
+      }
       apply_live_stream_safety: {
         Args: { _stream_id?: string }
         Returns: number
@@ -4184,6 +4338,33 @@ export type Database = {
       finalize_auction_round: { Args: { _stream_id: string }; Returns: Json }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
+      get_buyer_private_insights: { Args: { _user_id: string }; Returns: Json }
+      get_buyer_public_badges: {
+        Args: { _user_id: string }
+        Returns: {
+          badge: string
+          label: string
+          tier: string
+        }[]
+      }
+      get_buyer_reputation: {
+        Args: { _user_id: string }
+        Returns: {
+          account_age_days: number
+          avg_payment_minutes: number
+          bid_restricted_until: string
+          cancellation_rate: number
+          chargeback_count: number
+          completed_purchases: number
+          last_active_at: string
+          paid_orders: number
+          payment_success_rate: number
+          refund_rate: number
+          unpaid_strikes: number
+          unpaid_wins: number
+          unresolved_payments: number
+        }[]
+      }
       get_seller_badges: {
         Args: { _seller_id: string }
         Returns: {
@@ -4193,10 +4374,39 @@ export type Database = {
         }[]
       }
       get_seller_completed_count: { Args: { _user: string }; Returns: number }
+      get_seller_recent_reviews: {
+        Args: { _limit?: number; _seller_id: string }
+        Returns: {
+          accuracy_rating: number
+          buyer_id: string
+          buyer_response: Json
+          buyer_username: string
+          comment: string
+          communication_rating: number
+          created_at: string
+          id: string
+          photo_urls: string[]
+          rating: number
+          seller_response: Json
+          shipping_rating: number
+          verified_live_auction: boolean
+          verified_purchase: boolean
+        }[]
+      }
+      get_seller_response_badges: {
+        Args: { _seller_id: string }
+        Returns: {
+          badge: string
+          label: string
+          tier: string
+        }[]
+      }
       get_seller_shipping_cap: { Args: { _user: string }; Returns: number }
       get_seller_stats: {
         Args: { _seller_id: string }
         Returns: {
+          avg_accuracy_rating: number
+          avg_communication_rating: number
           avg_rating: number
           avg_response_minutes: number
           avg_shipping_days: number
@@ -4206,6 +4416,7 @@ export type Database = {
           late_rate: number
           on_time_rate: number
           refund_rate: number
+          response_rate: number
           review_count: number
           success_rate: number
           total_sales: number
@@ -4234,6 +4445,7 @@ export type Database = {
         Args: { _stream_id: string; _user_id: string }
         Returns: boolean
       }
+      is_bid_restricted: { Args: { _user: string }; Returns: boolean }
       is_stream_staff: {
         Args: { _stream_id: string; _user: string }
         Returns: boolean
@@ -4334,6 +4546,7 @@ export type Database = {
       reconcile_auction_states: { Args: never; Returns: number }
       reconcile_sold_items: { Args: never; Returns: number }
       reconcile_stale_payments: { Args: never; Returns: number }
+      record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
