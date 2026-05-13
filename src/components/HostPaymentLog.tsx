@@ -52,6 +52,7 @@ export function HostPaymentLog({
     h: typeof window === "undefined" ? 640 : Math.max(280, window.innerHeight - 8),
   }));
 
+  const loadRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -73,14 +74,21 @@ export function HostPaymentLog({
         }
       }
     }
+    loadRef.current = load;
     load();
+    return () => { cancelled = true; };
+  }, [streamId]);
 
-    const ch = supabase
-      .channel(`payment-orders-${streamId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders", filter: `stream_id=eq.${streamId}` },
-        (p) => {
+  // Resilient realtime: auto-reconnects after socket drops, mobile network
+  // switches, or sleep/wake. Falls back to a fresh load() on reconnect so
+  // we never miss a payment event during a transient disconnect.
+  useRealtimeChannel(
+    { name: `payment-orders-${streamId}`, enabled: !!streamId && open },
+    (ch) =>
+      ch.on(
+        "postgres_changes" as any,
+        { event: "*", schema: "public", table: "orders", filter: `stream_id=eq.${streamId}` } as any,
+        (p: any) => {
           const row = (p.new || p.old) as Order;
           if (p.eventType === "DELETE") {
             setOrders((s) => s.filter((o) => o.id !== row.id));
@@ -91,7 +99,6 @@ export function HostPaymentLog({
             const idx = next.findIndex((o) => o.id === row.id);
             if (idx === -1) next.unshift(row);
             else next[idx] = { ...next[idx], ...row };
-            // Side-effects on state transitions
             if (p.eventType === "UPDATE") {
               const prev = (p.old || {}) as Order;
               if (prev.payment_status !== row.payment_status) {
@@ -109,10 +116,9 @@ export function HostPaymentLog({
             return next;
           });
         },
-      )
-      .subscribe();
-    return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [streamId]);
+      ),
+  );
+
 
   const counts = useMemo(() => {
     const c: Record<Tab, number> = { processing: 0, paid: 0, failed: 0, fixed: 0 };
