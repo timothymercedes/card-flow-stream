@@ -134,6 +134,7 @@ Deno.serve(async (req) => {
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
+      sources_skipped: sourcesSkipped, // disabled providers (e.g. paid APIs without flag/key)
       primary_source: aggregated.primary_source,
       cached: false,
       duration_ms: Date.now() - t0,
