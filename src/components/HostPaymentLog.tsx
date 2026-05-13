@@ -261,7 +261,7 @@ export function HostPaymentLog({
                             <span className="ml-1.5 font-bold tabular-nums text-primary">${Number(o.amount).toFixed(2)}</span>
                           </p>
                           <p className="truncate text-[10px] text-muted-foreground">{o.title}</p>
-                          {isPaid && o.shipment_verified_at_marker && null}
+                          
                           {isPaid && (
                             <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">
                               <CheckCircle2 className="h-3 w-3" /> Item marked sold · queued for shipping
