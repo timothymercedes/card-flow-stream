@@ -6,7 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import {
   Package, Truck, CheckCircle2, Star, Store as StoreIcon,
   ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
+  AlertTriangle, RotateCcw, ScanLine, ShieldCheck,
 } from "lucide-react";
+import { useRealtimeChannel } from "@/lib/realtime";
 import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
