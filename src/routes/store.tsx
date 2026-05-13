@@ -79,6 +79,7 @@ function SellerHub() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [streams, setStreams] = useState<any[]>([]);
   const [payoutStatus, setPayoutStatus] = useState<string>("not_started");
+  const [sellerStanding, setSellerStanding] = useState<{ payout_hold?: boolean; late_shipment_count?: number; visibility_penalty_until?: string | null; selling_restricted_until?: string | null }>({});
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
   const [pweSettings, setPweSettings] = useState({ enabled: true, max: 20, price: 0.99, stamp: 0.78 });
@@ -129,6 +130,12 @@ function SellerHub() {
     setReviews(revs.data || []);
     const pp = prof.data as any;
     setPayoutStatus(pp?.stripe_onboarding_status || "not_started");
+    setSellerStanding({
+      payout_hold: pp?.payout_hold ?? false,
+      late_shipment_count: pp?.late_shipment_count ?? 0,
+      visibility_penalty_until: pp?.visibility_penalty_until ?? null,
+      selling_restricted_until: pp?.selling_restricted_until ?? null,
+    });
     setPweSettings({
       enabled: pp?.pwe_enabled ?? true,
       max: Number(pp?.pwe_max_order_value ?? 20),
@@ -390,6 +397,22 @@ function SellerHub() {
             <p className="text-sm font-bold">💳 Connect your payout account</p>
             <p className="mt-1 text-xs text-muted-foreground">Required to receive funds when live payments turn on. 5% platform commission.</p>
             <Link to="/payouts" className="mt-2 inline-block rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">Set up payouts</Link>
+          </div>
+        )}
+
+        {(sellerStanding.payout_hold || (sellerStanding.visibility_penalty_until && new Date(sellerStanding.visibility_penalty_until) > new Date()) || (sellerStanding.selling_restricted_until && new Date(sellerStanding.selling_restricted_until) > new Date())) && (
+          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3">
+            <p className="text-sm font-bold text-red-400">⚠️ Seller standing alert</p>
+            <ul className="mt-1 space-y-0.5 text-[11px] text-red-200/90">
+              {sellerStanding.payout_hold && <li>• Payouts are temporarily on hold for unshipped orders. Ship or refund pending items to restore.</li>}
+              {sellerStanding.visibility_penalty_until && new Date(sellerStanding.visibility_penalty_until) > new Date() && (
+                <li>• Store visibility reduced until {new Date(sellerStanding.visibility_penalty_until).toLocaleDateString()} due to repeated late shipments.</li>
+              )}
+              {sellerStanding.selling_restricted_until && new Date(sellerStanding.selling_restricted_until) > new Date() && (
+                <li>• Selling temporarily restricted until {new Date(sellerStanding.selling_restricted_until).toLocaleDateString()}.</li>
+              )}
+              {(sellerStanding.late_shipment_count ?? 0) > 0 && <li>• Late shipments on record: {sellerStanding.late_shipment_count}</li>}
+            </ul>
           </div>
         )}
 
