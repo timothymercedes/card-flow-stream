@@ -39,6 +39,20 @@ function StatusIcon({ s }: { s: string }) {
   return <Package className="h-4 w-4 text-muted-foreground" />;
 }
 
+function PaymentStatusBadge({ s }: { s: string }) {
+  const map: Record<string, { l: string; cls: string }> = {
+    awaiting_payment: { l: "Awaiting", cls: "bg-amber-500/15 text-amber-400" },
+    processing: { l: "Processing", cls: "bg-sky-500/15 text-sky-400" },
+    paid: { l: "Paid", cls: "bg-primary/15 text-primary" },
+    failed: { l: "Failed", cls: "bg-destructive/15 text-destructive" },
+    chargeback: { l: "Chargeback", cls: "bg-destructive/20 text-destructive" },
+    refunded: { l: "Refunded", cls: "bg-muted text-muted-foreground" },
+    resolved: { l: "Resolved", cls: "bg-emerald-500/15 text-emerald-400" },
+  };
+  const v = map[s] || map.awaiting_payment;
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${v.cls}`}>{v.l}</span>;
+}
+
 function SubTabs<T extends string>({ tabs, value, onChange }: { tabs: { k: T; l: string; n?: number }[]; value: T; onChange: (v: T) => void }) {
   return (
     <div className="mb-3 flex gap-1 overflow-x-auto rounded-lg bg-muted p-1">
