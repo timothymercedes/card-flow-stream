@@ -250,13 +250,20 @@ function LiveList() {
                     <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
                       <Users className="h-2.5 w-2.5" />{viewerCounts[s.id] || 0}
                     </div>
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShareTarget(s); }}
+                      className="absolute right-2 bottom-2 rounded-full bg-black/70 p-1.5 text-white backdrop-blur hover:bg-primary"
+                      aria-label="Share live"
+                    >
+                      <Share2 className="h-3 w-3" />
+                    </button>
                     {s.category && (
                       <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
                         {categoryEmoji(s.category)} {categoryLabel(s.category)}
                       </div>
                     )}
                     {s.ends_at && (
-                      <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                      <div className="absolute bottom-9 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
                         <StreamCountdown endsAt={s.ends_at} />
                       </div>
                     )}
