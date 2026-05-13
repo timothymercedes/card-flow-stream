@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ensurePushSubscribed, pushSupported } from "@/lib/push";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
 
@@ -108,38 +109,44 @@ function PublicStore() {
     nav({ to: "/messages/$userId", params: { userId: seller.id } });
   }
 
-  useEffect(() => {
-    (async () => {
-      const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
-      const prof = Array.isArray(profRows) ? profRows[0] : null;
-      if (!prof) return;
-      setSeller(prof);
-      const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
-        supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
-        supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
-        supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
-        supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
-        supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
-        (supabase.rpc as any)("get_seller_completed_count", { _user: prof.id }),
-        (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
-        supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
-        supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
-        supabase.from("vault_cards").select("*").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
-      ]);
-      setListings((l.data || []).filter(isPublicListingVisible));
-      setSoldOrders(o.data || []);
-      setReviews(r.data || []);
-      setFollowers(fr.count || 0);
-      setFollowing(fg.count || 0);
-      setSellerCompleted(Number(sc?.data ?? 0));
-      setBuyerCompleted(Number(bc?.data ?? 0));
-      setPosts(ps.data || []);
-      setStories(st.data || []);
-      setVaultCards(vc.data || []);
-      const { data: ss } = await (supabase.rpc as any)("get_seller_stats", { _seller_id: prof.id });
-      setSellerStats(Array.isArray(ss) ? ss[0] : ss);
-    })();
-  }, [username]);
+  async function loadSeller() {
+    const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
+    const prof = Array.isArray(profRows) ? profRows[0] : null;
+    if (!prof) return;
+    setSeller(prof);
+    const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
+      supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
+      supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
+      supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
+      supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
+      supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),
+      (supabase.rpc as any)("get_seller_completed_count", { _user: prof.id }),
+      (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
+      supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
+      supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
+      supabase.from("vault_cards").select("*").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
+    ]);
+    setListings((l.data || []).filter(isPublicListingVisible));
+    setSoldOrders(o.data || []);
+    setReviews(r.data || []);
+    setFollowers(fr.count || 0);
+    setFollowing(fg.count || 0);
+    setSellerCompleted(Number(sc?.data ?? 0));
+    setBuyerCompleted(Number(bc?.data ?? 0));
+    setPosts(ps.data || []);
+    setStories(st.data || []);
+    setVaultCards(vc.data || []);
+    const { data: ss } = await (supabase.rpc as any)("get_seller_stats", { _seller_id: prof.id });
+    setSellerStats(Array.isArray(ss) ? ss[0] : ss);
+  }
+  useEffect(() => { loadSeller(); }, [username]);
+
+  // Realtime: listings/sold/reviews/follows update profile instantly
+  const sellerId = seller?.id as string | undefined;
+  useRealtimeTable({ name: `seller-listings-${sellerId ?? "none"}`, table: "listings", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 400 }, () => loadSeller());
+  useRealtimeTable({ name: `seller-orders-${sellerId ?? "none"}`, table: "orders", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 400 }, () => loadSeller());
+  useRealtimeTable({ name: `seller-reviews-${sellerId ?? "none"}`, table: "seller_reviews", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 200 }, () => loadSeller());
+  useRealtimeTable({ name: `seller-follows-${sellerId ?? "none"}`, table: "follows", filter: sellerId ? `followee_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 500 }, () => loadSeller());
 
   const stats = useMemo(() => {
     if (!reviews.length) return { count: 0, avg: 0, ship: 0 };

@@ -8,6 +8,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
 import { useShuffleBucket, seededHash } from "@/lib/shuffle";
 import { WatchTutorial } from "@/components/WatchTutorial";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
@@ -33,18 +34,22 @@ function Market() {
   const [category, setCategory] = useState<string>("all");
   const seed = useShuffleBucket();
 
-  useEffect(() => {
-    supabase
+  async function loadMarket() {
+    const { data, error } = await supabase
       .from("listings")
       .select("*")
       .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) { console.error("[market] listings query failed", error); return; }
-        const visible = (data || []).filter(isPublicListingVisible);
-        setItems(visible);
-      });
-  }, []);
+      .order("created_at", { ascending: false });
+    if (error) { console.error("[market] listings query failed", error); return; }
+    setItems(((data || []) as any[]).filter(isPublicListingVisible));
+  }
+  useEffect(() => { loadMarket(); }, []);
+
+  // Realtime: new listings, bid bumps, and sold-outs reflect across the marketplace
+  useRealtimeTable(
+    { name: "market-listings", table: "listings", debounceMs: 500 },
+    () => loadMarket()
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};

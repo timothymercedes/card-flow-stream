@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -96,6 +97,12 @@ function ListingDetail() {
     }
   }
   useEffect(() => { load(); }, [id]);
+
+  // Realtime: bid + offer + listing edits sync instantly across viewers
+  useRealtimeTable({ name: `listing-${id}`, table: "listings", filter: `id=eq.${id}`, debounceMs: 150 }, () => load());
+  useRealtimeTable({ name: `listing-bids-${id}`, table: "listing_bids", filter: `listing_id=eq.${id}`, debounceMs: 150 }, () => load());
+  useRealtimeTable({ name: `listing-offers-${id}`, table: "offers", filter: `listing_id=eq.${id}`, debounceMs: 150 }, () => load());
+
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
