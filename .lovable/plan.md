@@ -72,10 +72,12 @@ Each block is a separate edge function with its own retries, timeouts, and cache
 
 ## Secrets I'll need from you
 
-- `PRICECHARTING_API_KEY` (optional — feature degrades gracefully without it)
-- `PSA_API_TOKEN`, `CGC_API_KEY` (only when you want grading live; not required to ship phase 1)
+- `PRICECHARTING_API_KEY` + `ENABLE_PRICECHARTING=1` (paid — disabled by default; provider stays in registry, off until both are set)
+- `EBAY_APP_ID` + `ENABLE_EBAY_SOLD=1` (planned eBay sold-comps adapter)
+- `PSA_API_TOKEN` + `ENABLE_PSA=1` (planned PSA cert/price adapter)
+- `CGC_API_KEY` (only when grading goes live)
 
-PokémonTCG and TCGdex don't require keys for read access. TCGplayer data flows through your existing TCGCSV sync.
+PokémonTCG (with bundled TCGplayer prices) and TCGdex don't require keys for read access and remain the active free sources.
 
 ## Rollout
 
