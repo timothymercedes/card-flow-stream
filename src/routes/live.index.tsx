@@ -3,13 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Radio, Calendar, Plus, X, Trash2, Users, Filter } from "lucide-react";
+import { Radio, Calendar, Plus, X, Trash2, Users, Filter, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { STREAM_TYPES, TCG_TAGS, tcgTagMeta } from "@/lib/streamTaxonomy";
 import { SellerBadge } from "@/components/SellerBadge";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { ShareLiveModal } from "@/components/ShareLiveModal";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
@@ -65,6 +66,7 @@ function LiveList() {
   const [tcgFilter, setTcgFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [viewerBucket, setViewerBucket] = useState<ViewerBucket>("any");
+  const [shareTarget, setShareTarget] = useState<Stream | null>(null);
 
   async function load() {
     const [{ data: s }, { data: sh }] = await Promise.all([
@@ -248,13 +250,20 @@ function LiveList() {
                     <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
                       <Users className="h-2.5 w-2.5" />{viewerCounts[s.id] || 0}
                     </div>
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShareTarget(s); }}
+                      className="absolute right-2 bottom-2 rounded-full bg-black/70 p-1.5 text-white backdrop-blur hover:bg-primary"
+                      aria-label="Share live"
+                    >
+                      <Share2 className="h-3 w-3" />
+                    </button>
                     {s.category && (
                       <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
                         {categoryEmoji(s.category)} {categoryLabel(s.category)}
                       </div>
                     )}
                     {s.ends_at && (
-                      <div className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                      <div className="absolute bottom-9 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
                         <StreamCountdown endsAt={s.ends_at} />
                       </div>
                     )}
@@ -356,6 +365,15 @@ function LiveList() {
           </div>
         </div>
       )}
+
+      <ShareLiveModal
+        open={!!shareTarget}
+        onClose={() => setShareTarget(null)}
+        streamId={shareTarget?.id || ""}
+        title={shareTarget?.title || ""}
+        thumbnailUrl={shareTarget?.thumbnail_url}
+        isLive={true}
+      />
     </AppShell>
   );
 }
