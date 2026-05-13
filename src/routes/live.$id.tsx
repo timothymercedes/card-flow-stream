@@ -314,6 +314,7 @@ function LiveDetail() {
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
   const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
