@@ -23,6 +23,9 @@ type Card = {
   condition?: Condition | null;
   condition_prices?: ConditionPrices | null;
   visibility?: Visibility | null;
+  market_price?: number | null;
+  is_graded?: boolean | null; grader?: string | null; grade?: string | null;
+  grading_cert?: string | null; graded_price?: number | null;
 };
 
 function Vault() {
