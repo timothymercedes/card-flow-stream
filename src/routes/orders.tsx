@@ -43,7 +43,8 @@ function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [paying, setPaying] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<string, any>>({});
-  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string }>>({});
+  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string; photo_urls: string[] }>>({});
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
 
   async function load() {
