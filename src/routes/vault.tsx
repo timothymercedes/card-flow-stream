@@ -1457,7 +1457,7 @@ function Vault() {
               }}
             />
 
-
+            {actionFor.description && (
               <div className="rounded-lg bg-muted/40 p-2 text-xs">
                 <p className="text-[9px] uppercase text-muted-foreground">Description</p>
                 <p className="mt-0.5 whitespace-pre-wrap">{actionFor.description}</p>
