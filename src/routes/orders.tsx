@@ -62,7 +62,7 @@ function Orders() {
   useEffect(() => { load(); }, [user]);
 
   async function submitReview(o: any) {
-    const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "" };
+    const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "", photo_urls: [] };
     const { error } = await supabase.from("seller_reviews").insert({
       order_id: o.id,
       seller_id: o.seller_id,
@@ -71,10 +71,24 @@ function Orders() {
       rating: f.rating,
       shipping_rating: f.shipping_rating,
       comment: f.comment || null,
+      photo_urls: f.photo_urls || [],
     });
     if (error) return toast.error(error.message);
     toast.success("Review submitted");
     load();
+  }
+
+  async function uploadReviewPhoto(orderId: string, file: File) {
+    if (!user) return;
+    if (file.size > 8 * 1024 * 1024) return toast.error("Photo must be under 8MB");
+    setUploadingPhoto(orderId);
+    const path = `${user.id}/${orderId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+    const { error } = await supabase.storage.from("review-photos").upload(path, file, { upsert: false, contentType: file.type });
+    setUploadingPhoto(null);
+    if (error) return toast.error(error.message);
+    const { data: pub } = supabase.storage.from("review-photos").getPublicUrl(path);
+    const cur = reviewForm[orderId] || { rating: 5, shipping_rating: 5, comment: "", photo_urls: [] };
+    setReviewForm({ ...reviewForm, [orderId]: { ...cur, photo_urls: [...(cur.photo_urls || []), pub.publicUrl] } });
   }
 
   async function payNow(o: any) {
