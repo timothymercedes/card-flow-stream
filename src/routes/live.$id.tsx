@@ -72,6 +72,7 @@ import { playSfx } from "@/lib/sfx";
 import { Confetti } from "@/components/Confetti";
 import { useStreamPresence } from "@/hooks/useStreamPresence";
 import { ReportDialog } from "@/components/ReportDialog";
+import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { Flag, Flame } from "lucide-react";
 import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
