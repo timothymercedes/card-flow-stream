@@ -4331,10 +4331,14 @@ export type Database = {
       purge_old_perf_data: { Args: never; Returns: number }
       rate_limit_card_scan: { Args: { _user_id: string }; Returns: Json }
       rearm_next_round: { Args: { _stream_id: string }; Returns: Json }
+      reconcile_auction_states: { Args: never; Returns: number }
+      reconcile_sold_items: { Args: never; Returns: number }
+      reconcile_stale_payments: { Args: never; Returns: number }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
       }
+      run_platform_reconciliation: { Args: never; Returns: Json }
       search_public_profiles: {
         Args: { _limit?: number; _query: string }
         Returns: {
