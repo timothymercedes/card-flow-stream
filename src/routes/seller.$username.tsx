@@ -159,6 +159,16 @@ function PublicStore() {
   useRealtimeTable({ name: `seller-orders-${sellerId ?? "none"}`, table: "orders", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 400 }, () => loadSeller());
   useRealtimeTable({ name: `seller-reviews-${sellerId ?? "none"}`, table: "seller_reviews", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 200 }, () => loadSeller());
   useRealtimeTable({ name: `seller-follows-${sellerId ?? "none"}`, table: "follows", filter: sellerId ? `followee_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 500 }, () => loadSeller());
+  useRealtimeTable({ name: `seller-live-${sellerId ?? "none"}`, table: "live_streams", filter: sellerId ? `seller_id=eq.${sellerId}` : undefined, enabled: !!sellerId, debounceMs: 300 }, () => loadSeller());
+
+  async function shareProfile() {
+    const url = `${window.location.origin}/seller/${seller.username}`;
+    const text = `Check out @${seller.username} on PullBid Live`;
+    try {
+      if (navigator.share) await navigator.share({ title: text, url });
+      else { await navigator.clipboard.writeText(url); toast.success("Profile link copied"); }
+    } catch { /* user cancelled */ }
+  }
 
   const stats = useMemo(() => {
     if (!reviews.length) return { count: 0, avg: 0, ship: 0 };
