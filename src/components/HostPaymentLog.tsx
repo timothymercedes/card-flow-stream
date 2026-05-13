@@ -62,6 +62,15 @@ export function HostPaymentLog({
         .order("created_at", { ascending: false })
         .limit(200);
       if (!cancelled) setOrders((data || []) as any);
+      const ids = Array.from(new Set((data || []).map((o: any) => o.buyer_id))).filter(Boolean);
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles").select("id,username").in("id", ids);
+        if (!cancelled) {
+          const map: Record<string, string> = {};
+          (profs || []).forEach((p: any) => { map[p.id] = p.username; });
+          setUsernames(map);
+        }
+      }
     }
     load();
 
