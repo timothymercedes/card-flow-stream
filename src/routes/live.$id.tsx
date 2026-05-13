@@ -6299,6 +6299,43 @@ function LiveDetail() {
           amount={soldBanner.amount}
         />
       )}
+
+      {/* 🆕 Auction queue — viewers see a small "Up next" strip; host gets full CRUD drawer */}
+      {stream && !isSeller && stream.mode !== "show_off" && !ended && (
+        <div className="pointer-events-auto fixed left-2 right-2 top-28 z-40 mx-auto max-w-md">
+          <AuctionQueuePanel streamId={id} hostId={stream.seller_id} isHost={false} auctionLive={auctionLive} />
+        </div>
+      )}
+      {stream && isSeller && stream.mode !== "show_off" && !ended && (
+        <>
+          <button
+            onClick={() => setQueueOpen((v) => !v)}
+            className="fixed bottom-32 left-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600 px-3 py-2 text-[11px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95"
+            title="Auction queue"
+          >
+            📋 Queue
+          </button>
+          {queueOpen && (
+            <div className="fixed bottom-44 left-2 z-40 w-[min(92vw,360px)]">
+              <AuctionQueuePanel
+                streamId={id}
+                hostId={stream.seller_id}
+                isHost={true}
+                auctionLive={auctionLive}
+                onStart={async (item) => {
+                  await quickStartAuction({
+                    item: item.title,
+                    start: String(item.starting_bid),
+                    timer: String(item.duration_seconds),
+                    buyNow: item.snipe_price ? String(item.snipe_price) : "",
+                  });
+                  setQueueOpen(false);
+                }}
+              />
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
