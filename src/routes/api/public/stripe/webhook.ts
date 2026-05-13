@@ -45,12 +45,56 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               const orderId = pi.metadata?.order_id;
               const orderIdsStr = pi.metadata?.order_ids as string | undefined;
               const tipId = pi.metadata?.tip_id;
+              const promotionId = pi.metadata?.promotion_id;
               const chargeId = pi.latest_charge as string | undefined;
               if (tipId) {
                 await supabaseAdmin
                   .from("stream_tips")
                   .update({ status: "paid", paid_at: new Date().toISOString() })
                   .eq("id", tipId);
+              }
+              if (promotionId) {
+                const nowIso = new Date().toISOString();
+                const { data: promo } = await supabaseAdmin
+                  .from("stream_promotions")
+                  .update({ status: "paid", paid_at: nowIso })
+                  .eq("id", promotionId)
+                  .select("stream_id, promoter_id, promoter_username, amount, message")
+                  .maybeSingle();
+                if (promo) {
+                  const p: any = promo;
+                  // Increment stream score, total, last_promoted_at
+                  const { data: streamRow } = await supabaseAdmin
+                    .from("live_streams")
+                    .select("promotion_score, total_promoted_amount, seller_id, title")
+                    .eq("id", p.stream_id)
+                    .maybeSingle();
+                  if (streamRow) {
+                    const sr: any = streamRow;
+                    await supabaseAdmin
+                      .from("live_streams")
+                      .update({
+                        promotion_score: Number(sr.promotion_score || 0) + Number(p.amount),
+                        total_promoted_amount: Number(sr.total_promoted_amount || 0) + Number(p.amount),
+                        last_promoted_at: nowIso,
+                      })
+                      .eq("id", p.stream_id);
+                    // System chat message
+                    await supabaseAdmin.from("chat_messages").insert({
+                      stream_id: p.stream_id,
+                      username: "system",
+                      content: `🔥 ${p.promoter_username} promoted this live for $${Number(p.amount).toFixed(2)}${p.message ? ` — "${p.message}"` : ""}`,
+                      is_system: true,
+                    });
+                    // Notify host
+                    await supabaseAdmin.from("notifications").insert({
+                      user_id: sr.seller_id,
+                      type: "stream_promotion",
+                      body: `🔥 ${p.promoter_username} promoted "${sr.title}" for $${Number(p.amount).toFixed(2)}`,
+                      link: `/live/${p.stream_id}`,
+                    });
+                  }
+                }
               }
               const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
               if (ids.length > 0) {
