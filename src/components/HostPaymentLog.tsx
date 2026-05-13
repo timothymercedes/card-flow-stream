@@ -267,7 +267,7 @@ export function HostPaymentLog({
                           </div>
                           <p className="truncate text-[11px]">
                             <span className="text-muted-foreground">won by</span>{" "}
-                            <span className="font-semibold">@buyer</span>
+                            <span className="font-semibold">@{usernames[o.buyer_id] || "buyer"}</span>
                             <span className="ml-1.5 font-bold tabular-nums text-primary">${Number(o.amount).toFixed(2)}</span>
                           </p>
                           <p className="truncate text-[10px] text-muted-foreground">{o.title}</p>
