@@ -1,9 +1,12 @@
-// Unified card catalog lookup. Tries local cache → PokémonTCG → TCGdex.
-// Returns a list of normalized candidates with confidence scoring.
+// Unified card catalog lookup. Game-aware: routes through the per-game
+// adapter chain declared in _shared/cards/games.ts (Pokémon, Yu-Gi-Oh, MTG,
+// One Piece, Lorcana, DBSFW, SWU, FaB, …). Pokémon also gets the local
+// `pokemon_cards` cache prepended.
 //
-// POST { name, number?, set?, limit? } → { candidates: NormalizedCard[], sources_tried: string[], chosen?: NormalizedCard }
+// POST { name, number?, set?, game?, limit? } → { candidates, chosen, sources_tried, game }
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { searchPokemonTcg, searchTcgdex, type NormalizedCard } from "../_shared/cards/sources.ts";
+import type { NormalizedCard } from "../_shared/cards/sources.ts";
+import { resolveGame, listGames } from "../_shared/cards/games.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
