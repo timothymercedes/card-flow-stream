@@ -470,6 +470,29 @@ function LiveDetail() {
       .on(
         "postgres_changes",
         {
+          event: "UPDATE",
+          schema: "public",
+          table: "stream_promotions",
+          filter: `stream_id=eq.${id}`,
+        },
+        (p: any) => {
+          if (p.new?.status === "paid") {
+            const pid = p.new.id;
+            setPromoOverlay({
+              id: pid,
+              username: p.new.promoter_username,
+              amount: Number(p.new.amount),
+              message: p.new.message,
+            });
+            setTimeout(() => {
+              setPromoOverlay((cur) => (cur?.id === pid ? null : cur));
+            }, 6000);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "INSERT",
           schema: "public",
           table: "stream_moderators",
