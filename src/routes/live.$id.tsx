@@ -6298,3 +6298,6 @@ function LiveDetail() {
           amount={soldBanner.amount}
         />
       )}
+    </div>
+  );
+}
