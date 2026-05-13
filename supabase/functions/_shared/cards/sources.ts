@@ -5,6 +5,10 @@
 export type Source =
   | "tcg_api"        // PokémonTCG API (catalog + bundled TCGplayer prices)
   | "tcgdex"         // TCGdex (catalog fallback)
+  | "ygoprodeck"     // Yu-Gi-Oh! catalog + TCGplayer/CardMarket prices
+  | "scryfall"       // Magic: The Gathering catalog + price hints
+  | "justtcg"        // JustTCG aggregated pricing (where supported)
+  | "tcg_prices"     // local tcg_prices cache (One Piece / Lorcana / DBSFW / SWU / FaB)
   | "pricecharting"  // PriceCharting (disabled until paid key + ENABLE_PRICECHARTING=1)
   | "ebay_sold"      // eBay sold comps (planned)
   | "psa"            // PSA pop/price (planned)
