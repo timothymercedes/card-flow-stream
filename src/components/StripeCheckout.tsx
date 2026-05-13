@@ -93,7 +93,10 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
         <Row label="Subtotal" cents={subtotalCents} />
-        <Row label="Service fee" cents={fees.buyerServiceFee} />
+        <Row label="Platform Fee" cents={fees.platformFee} />
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Platform Fee — helps cover payment processing and marketplace operations.
+        </p>
         <div className="border-t border-border pt-1 mt-1 flex justify-between font-semibold text-sm">
           <span>Total</span>
           <span>${(fees.buyerTotal / 100).toFixed(2)}</span>
