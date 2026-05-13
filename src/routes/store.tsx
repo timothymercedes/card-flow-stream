@@ -502,7 +502,27 @@ function SellerHub() {
                     {ordersTab === "to_ship" && o.payment_status !== "paid" && (
                       <p className="mt-2 rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-300">Waiting for buyer to pay before you can ship.</p>
                     )}
-                    {ordersTab === "to_ship" && o.payment_status === "paid" && (
+                    {ordersTab === "to_ship" && o.payment_status === "paid" && !o.shipment_verified_at && (
+                      <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2">
+                        <p className="text-[11px] font-bold text-amber-300">🔍 Scan to verify item</p>
+                        <p className="mb-2 text-[10px] text-amber-200/80">Scan or type the item barcode/QR to confirm you're shipping the correct item. Required before printing labels.</p>
+                        <div className="flex gap-2">
+                          <input
+                            value={scanCode[o.id] || ""}
+                            onChange={(e) => setScanCode({ ...scanCode, [o.id]: e.target.value })}
+                            placeholder="Item code / barcode"
+                            className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none"
+                          />
+                          <button onClick={() => verifyShipment(o)} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Verify</button>
+                        </div>
+                      </div>
+                    )}
+                    {ordersTab === "to_ship" && o.payment_status === "paid" && o.shipment_verified_at && (
+                      <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                        ✅ Item verified · code {String(o.shipment_verification_code || "").slice(0, 12)}
+                      </p>
+                    )}
+                    {ordersTab === "to_ship" && o.payment_status === "paid" && o.shipment_verified_at && (
                       <div className="mt-2 space-y-2">
                         <div className="flex gap-2">
                           <input value={tracking[o.id] || ""} onChange={(e) => setTracking({ ...tracking, [o.id]: e.target.value })} placeholder="Tracking #" className="flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none" />
@@ -579,6 +599,14 @@ function SellerHub() {
                     )}
                     {ordersTab === "shipped" && (
                       <button onClick={() => markDelivered(o)} className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Mark Delivered</button>
+                    )}
+                    {ordersTab === "failed" && o.payment_status !== "resolved" && (
+                      <button
+                        onClick={() => markResolved(o)}
+                        className="mt-2 w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                      >
+                        Mark resolved
+                      </button>
                     )}
                     {(ordersTab === "to_ship" || ordersTab === "shipped") && (
                       <button

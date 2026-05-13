@@ -43,7 +43,8 @@ function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [paying, setPaying] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<string, any>>({});
-  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string }>>({});
+  const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string; photo_urls: string[] }>>({});
+  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
 
   async function load() {
@@ -61,7 +62,7 @@ function Orders() {
   useEffect(() => { load(); }, [user]);
 
   async function submitReview(o: any) {
-    const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "" };
+    const f = reviewForm[o.id] || { rating: 5, shipping_rating: 5, comment: "", photo_urls: [] };
     const { error } = await supabase.from("seller_reviews").insert({
       order_id: o.id,
       seller_id: o.seller_id,
@@ -70,10 +71,24 @@ function Orders() {
       rating: f.rating,
       shipping_rating: f.shipping_rating,
       comment: f.comment || null,
+      photo_urls: f.photo_urls || [],
     });
     if (error) return toast.error(error.message);
     toast.success("Review submitted");
     load();
+  }
+
+  async function uploadReviewPhoto(orderId: string, file: File) {
+    if (!user) return;
+    if (file.size > 8 * 1024 * 1024) return toast.error("Photo must be under 8MB");
+    setUploadingPhoto(orderId);
+    const path = `${user.id}/${orderId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+    const { error } = await supabase.storage.from("review-photos").upload(path, file, { upsert: false, contentType: file.type });
+    setUploadingPhoto(null);
+    if (error) return toast.error(error.message);
+    const { data: pub } = supabase.storage.from("review-photos").getPublicUrl(path);
+    const cur = reviewForm[orderId] || { rating: 5, shipping_rating: 5, comment: "", photo_urls: [] };
+    setReviewForm({ ...reviewForm, [orderId]: { ...cur, photo_urls: [...(cur.photo_urls || []), pub.publicUrl] } });
   }
 
   async function payNow(o: any) {
@@ -230,6 +245,13 @@ function Orders() {
                         </span>
                       </div>
                       {reviews[o.id].comment && <p className="mt-1 text-muted-foreground">"{reviews[o.id].comment}"</p>}
+                      {reviews[o.id].photo_urls?.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {reviews[o.id].photo_urls.map((u: string) => (
+                            <img key={u} src={u} alt="" className="h-12 w-12 rounded object-cover" />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-2 space-y-2 rounded-lg bg-muted/40 p-2">
@@ -242,7 +264,7 @@ function Orders() {
                             return (
                               <button
                                 key={i}
-                                onClick={() => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "" }, ...(reviewForm[o.id] || {}), [k]: i } })}
+                                onClick={() => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "", photo_urls: [] }, ...(reviewForm[o.id] || {}), [k]: i } })}
                                 aria-label={`${i} stars`}
                               >
                                 <Star className={`h-4 w-4 ${i <= cur ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
@@ -255,9 +277,38 @@ function Orders() {
                         type="text"
                         placeholder="Optional comment (how was the shipping & item?)"
                         value={reviewForm[o.id]?.comment || ""}
-                        onChange={(e) => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "" }, ...(reviewForm[o.id] || {}), comment: e.target.value } })}
+                        onChange={(e) => setReviewForm({ ...reviewForm, [o.id]: { ...{ rating: 5, shipping_rating: 5, comment: "", photo_urls: [] }, ...(reviewForm[o.id] || {}), comment: e.target.value } })}
                         className="w-full rounded-lg bg-input px-3 py-2 text-xs outline-none"
                       />
+                      <div className="space-y-1">
+                        {(reviewForm[o.id]?.photo_urls?.length ?? 0) > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {reviewForm[o.id]!.photo_urls.map((u, idx) => (
+                              <div key={u} className="relative">
+                                <img src={u} alt="" className="h-12 w-12 rounded object-cover" />
+                                <button
+                                  onClick={() => {
+                                    const cur = reviewForm[o.id]!;
+                                    setReviewForm({ ...reviewForm, [o.id]: { ...cur, photo_urls: cur.photo_urls.filter((_, i) => i !== idx) } });
+                                  }}
+                                  className="absolute -right-1 -top-1 rounded-full bg-background px-1 text-[9px] font-bold text-destructive"
+                                  aria-label="Remove photo"
+                                >×</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <label className="flex cursor-pointer items-center justify-center gap-1 rounded-lg bg-card py-1.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">
+                          {uploadingPhoto === o.id ? "Uploading…" : "📷 Add photo (optional)"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPhoto === o.id || (reviewForm[o.id]?.photo_urls?.length ?? 0) >= 4}
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadReviewPhoto(o.id, f); e.target.value = ""; }}
+                          />
+                        </label>
+                      </div>
                       <button onClick={() => submitReview(o)} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Submit review</button>
                     </div>
                   )
