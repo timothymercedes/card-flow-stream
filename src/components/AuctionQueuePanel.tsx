@@ -14,6 +14,7 @@ type QueueItem = {
   duration_seconds: number;
   snipe_price: number | null;
   status: "queued" | "running" | "sold" | "unsold" | "skipped";
+  quantity?: number | null;
 };
 
 /**
