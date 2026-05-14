@@ -458,6 +458,13 @@ function LiveDetail() {
       /* ignore */
     }
   }, [quickControlsBox, quickControlsScale]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("live.quickControlBoxes", JSON.stringify(quickControlBoxes));
+    } catch {
+      /* ignore */
+    }
+  }, [quickControlBoxes]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
