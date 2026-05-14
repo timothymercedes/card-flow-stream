@@ -7,6 +7,7 @@ import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
+import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -14,6 +15,8 @@ function Cart() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [checkoutSeller, setCheckoutSeller] = useState<string | null>(null);
+  const [buyerCountry, setBuyerCountry] = useState<string>("US");
+  const [sellerCountries, setSellerCountries] = useState<Record<string, string>>({});
 
   async function load() {
     if (!user) return;
@@ -25,6 +28,22 @@ function Cart() {
     setOrders(data || []);
   }
   useEffect(() => { load(); }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("address_country").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.address_country) setBuyerCountry(String(data.address_country).toUpperCase()); });
+  }, [user]);
+
+  useEffect(() => {
+    const ids = Array.from(new Set(orders.map((o) => o.seller_id))).filter((id) => !(id in sellerCountries));
+    if (!ids.length) return;
+    Promise.all(ids.map((id) =>
+      (supabase.rpc as any)("seller_country", { _seller_id: id }).then((r: any) => [id, String(r.data || "US").toUpperCase()] as const)
+    )).then((entries) => {
+      setSellerCountries((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    }).catch(() => {});
+  }, [orders]);
 
   const groups = useMemo(() => {
     const m: Record<string, any[]> = {};
