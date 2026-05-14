@@ -1,5 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
@@ -283,8 +290,10 @@ function LiveDetail() {
         ev.preventDefault();
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
-        const maxX = panelRect && controlsRect ? Math.max(0, panelRect.width - controlsRect.width - 8) : 260;
-        const maxY = panelRect && controlsRect ? Math.max(0, panelRect.height - controlsRect.height - 8) : 260;
+        const maxX =
+          panelRect && controlsRect ? Math.max(0, panelRect.width - controlsRect.width - 8) : 260;
+        const maxY =
+          panelRect && controlsRect ? Math.max(0, panelRect.height - controlsRect.height - 8) : 260;
         setQuickControlsBox((cur) => ({
           ...cur,
           x: Math.min(Math.max(startBox.x + dx, -8), maxX),
@@ -319,7 +328,9 @@ function LiveDetail() {
       const onMove = (ev: PointerEvent) => {
         ev.preventDefault();
         const delta = (ev.clientX - startX + ev.clientY - startY) / 260;
-        setQuickControlsScale(Math.min(1.3, Math.max(0.72, Number((startScale + delta).toFixed(2)))));
+        setQuickControlsScale(
+          Math.min(1.3, Math.max(0.72, Number((startScale + delta).toFixed(2)))),
+        );
       };
       const onUp = () => {
         window.removeEventListener("pointermove", onMove);
@@ -4726,7 +4737,9 @@ function LiveDetail() {
               </button>
               <button
                 type="button"
-                onClick={() => setQuickControlsScale((s) => Math.max(0.72, Number((s - 0.08).toFixed(2))))}
+                onClick={() =>
+                  setQuickControlsScale((s) => Math.max(0.72, Number((s - 0.08).toFixed(2))))
+                }
                 className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
                 title="Shrink controls"
               >
@@ -4734,7 +4747,9 @@ function LiveDetail() {
               </button>
               <button
                 type="button"
-                onClick={() => setQuickControlsScale((s) => Math.min(1.3, Number((s + 0.08).toFixed(2))))}
+                onClick={() =>
+                  setQuickControlsScale((s) => Math.min(1.3, Number((s + 0.08).toFixed(2))))
+                }
                 className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
                 title="Grow controls"
               >
