@@ -6317,29 +6317,22 @@ function LiveDetail() {
         />
       )}
 
-      {/* 🆕 Auction queue — viewers see a small "Up next" strip + Pre-B FAB; host gets full CRUD drawer */}
+      {/* 🆕 Pre-B — small floating bubble (viewer + host). Tap to open the panel. */}
       {stream && !isSeller && stream.mode !== "show_off" && !ended && (
         <>
-          <div className="pointer-events-auto fixed left-2 right-2 top-28 z-40 mx-auto max-w-md">
-            <AuctionQueuePanel streamId={id} hostId={stream.seller_id} isHost={false} auctionLive={auctionLive} />
-          </div>
           <button
             onClick={() => setPrebidOpen(true)}
-            className="fixed bottom-44 right-2 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 px-3 py-2 text-[11px] font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
-            title="Open Pre-Bid panel"
+            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-600 text-base font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
+            title="Open Pre-B panel"
+            aria-label="Open Pre-B panel"
           >
-            🔖 Pre-B
+            🔖
             {prebidCount > 0 && (
-              <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[9px] font-extrabold tabular-nums">
+              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
                 {prebidCount}
               </span>
             )}
           </button>
-          {prebidCount > 0 && (
-            <div className="pointer-events-none fixed left-2 top-20 z-40 animate-pulse rounded-full bg-fuchsia-500/95 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-lg ring-2 ring-white/30">
-              ✨ Pre-B Available · {prebidCount} upcoming
-            </div>
-          )}
           {prebidOpen && <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />}
         </>
       )}
@@ -6347,10 +6340,16 @@ function LiveDetail() {
         <>
           <button
             onClick={() => setQueueOpen((v) => !v)}
-            className="fixed bottom-44 right-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600/95 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95 md:bottom-48"
-            title="Auction queue"
+            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-fuchsia-600/95 text-base font-extrabold text-white shadow-xl ring-2 ring-white/20 active:scale-95 md:bottom-48"
+            title="Pre-B (manage queue)"
+            aria-label="Pre-B host panel"
           >
-            🔖 Pre-B
+            🔖
+            {prebidCount > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
+                {prebidCount}
+              </span>
+            )}
           </button>
           {queueOpen && (
             <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">
