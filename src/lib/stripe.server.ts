@@ -15,6 +15,12 @@ export function getStripe(): Stripe {
 // Helps offset Stripe processing fees (2.9% + $0.30) for sellers.
 export const BUYER_PLATFORM_FEE_CENTS = 123; // $1.23
 
+// International processing fee — applied when buyer or seller is outside
+// the USA. Helps cover cross-border card processing, FX conversion, and
+// dispute exposure. Routed entirely to the platform Stripe account via the
+// Connect application_fee_amount split (NOT to the seller).
+export const INTL_PROCESSING_FEE_RATE = 0.04; // 4%
+
 // Tip platform fee — platform takes 10% of tip amount before payout.
 export const TIP_PLATFORM_FEE_RATE = 0.10;
 
