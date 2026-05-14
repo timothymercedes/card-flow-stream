@@ -2154,10 +2154,9 @@ function LiveDetail() {
 
   async function startAuction() {
     if (!isSeller) return;
-    const item = quickItem.trim();
-    if (!item) return toast.error("Type Item is required");
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
+    const item = quickItem.trim() || `Item $${start}`;
     const buyNowRaw = Number(quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
@@ -2234,10 +2233,9 @@ function LiveDetail() {
     buyNow?: string;
   }) {
     if (!isSeller || !stream) return;
-    const item = (opts?.item ?? quickItem).trim();
-    if (!item) return toast.error("Add the item name");
     const sec = Math.max(5, Math.min(600, Number(opts?.timer ?? editTimerSec) || 30));
     const start = Math.max(1, Number(opts?.start ?? editStartPrice) || 1);
+    const item = (opts?.item ?? quickItem).trim() || `Item $${start}`;
     const buyNowRaw = Number(opts?.buyNow ?? quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
@@ -3829,13 +3827,12 @@ function LiveDetail() {
           </div>
           <div className="space-y-2">
             <label className="block text-[11px] text-muted-foreground">
-              Type Item <span className="text-rose-400">*</span>
+              Item name <span className="text-[10px] text-muted-foreground">(optional)</span>
               <input
                 value={quickItem}
                 onChange={(e) => setQuickItem(e.target.value)}
-                required
                 maxLength={60}
-                placeholder="Type Item (required)"
+                placeholder="Leave blank to auto-name by bid price"
                 className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs font-bold text-foreground outline-none"
               />
             </label>
@@ -4826,13 +4823,12 @@ function LiveDetail() {
                         {/* Item row — bigger, full width */}
                         <div className="flex items-center gap-1.5">
                           <span className="shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-white/80">
-                            Item<span className="text-rose-400">*</span>
+                            Item
                           </span>
                           <input
                             value={quickItem}
                             onChange={(e) => setQuickItem(e.target.value)}
-                            placeholder="Type Item (required)"
-                            required
+                            placeholder="Optional — auto-names by bid price"
                             maxLength={60}
                             className="flex-1 rounded-md bg-background/80 px-2 py-1.5 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500/50"
                           />
