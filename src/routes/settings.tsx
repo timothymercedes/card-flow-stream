@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { writeA11yLocal, readA11yLocal } from "@/components/A11yClassSync";
 import { toast } from "sonner";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — PullBid Live" }] }),
