@@ -198,11 +198,47 @@ export function AuctionQueuePanel({
   async function startItem(item: QueueItem) {
     if (!isHost) return;
     if (auctionLive) return toast.error("Finish current round first");
+    // Pre-bid rule: if there are pre-bids on this item, the live round starts at
+    // the highest pre-bid amount (so existing bidders carry into the live round).
+    let effective = { ...item };
+    try {
+      const { data: top } = await supabase
+        .from("prebids" as any)
+        .select("amount")
+        .eq("queue_item_id", item.id)
+        .order("amount", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const topAmt = Number((top as any)?.amount || 0);
+      if (topAmt > Number(item.starting_bid || 0)) {
+        effective = { ...effective, starting_bid: topAmt };
+      }
+    } catch { /* non-fatal */ }
     await supabase
       .from("auction_queue" as any)
-      .update({ status: "running", started_at: new Date().toISOString() })
+      .update({ status: "running", started_at: new Date().toISOString(), starting_bid: effective.starting_bid })
       .eq("id", item.id);
-    await onStart?.(item);
+    await onStart?.(effective);
+  }
+
+  async function saveEdit(patch: Partial<QueueItem> & { id: string }) {
+    const { id: itemId, ...rest } = patch;
+    const { error } = await supabase.from("auction_queue" as any).update(rest as any).eq("id", itemId);
+    if (error) return toast.error(error.message);
+    toast.success("Item updated");
+    setEditing(null);
+  }
+
+  async function uploadEditImage(file: File): Promise<string | null> {
+    if (!isHost) return null;
+    setEditUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${hostId}/queue-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("show-banners").upload(path, file, { upsert: true });
+    setEditUploading(false);
+    if (error) { toast.error(error.message); return null; }
+    const { data } = supabase.storage.from("show-banners").getPublicUrl(path);
+    return data.publicUrl;
   }
 
   async function startByTrigger() {
