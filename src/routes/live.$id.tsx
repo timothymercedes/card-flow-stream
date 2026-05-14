@@ -3826,6 +3826,22 @@ function LiveDetail() {
             </button>
           </div>
           <div className="space-y-2">
+            <label className="block text-[11px] text-muted-foreground">
+              Type Item <span className="text-rose-400">*</span>
+              <input
+                value={quickItem}
+                onChange={(e) => setQuickItem(e.target.value)}
+                required
+                maxLength={60}
+                placeholder="Type Item (required)"
+                className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs font-bold text-foreground outline-none"
+              />
+            </label>
+            {(quickItem.trim() || stream?.current_item) && (
+              <div className="rounded-lg bg-primary/10 px-3 py-2 text-[11px] font-bold text-primary">
+                Selected item: {quickItem.trim() || stream?.current_item}
+              </div>
+            )}
             <textarea
               value={editDesc}
               onChange={(e) => setEditDesc(e.target.value)}
@@ -3835,13 +3851,24 @@ function LiveDetail() {
             />
             <div className="grid grid-cols-2 gap-2">
               <label className="block text-[11px] text-muted-foreground">
-                Starting price ($)
+                Bid Start ($)
                 <input
                   type="number"
                   min="1"
                   value={editStartPrice}
                   onChange={(e) => setEditStartPrice(e.target.value)}
-                  placeholder="e.g. 1"
+                  placeholder="1"
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Buy Now ($)
+                <input
+                  type="number"
+                  min="1"
+                  value={quickBuyNow}
+                  onChange={(e) => setQuickBuyNow(e.target.value)}
+                  placeholder="Optional"
                   className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
                 />
               </label>
@@ -3858,6 +3885,31 @@ function LiveDetail() {
                   <option value="20">20s</option>
                   <option value="30">30s</option>
                   <option value="60">60s</option>
+                </select>
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Slow chat
+                <select
+                  value={editSlowMode}
+                  onChange={async (e) => {
+                    const s = Number(e.target.value);
+                    setEditSlowMode(String(s));
+                    await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                    await sendMsg(
+                      s === 0
+                        ? "📌 Slow chat is off."
+                        : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
+                      true,
+                      { isAnnouncement: true },
+                    );
+                  }}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                >
+                  <option value="0">Off</option>
+                  <option value="3">3s</option>
+                  <option value="5">5s</option>
+                  <option value="10">10s</option>
+                  <option value="30">30s</option>
                 </select>
               </label>
             </div>
