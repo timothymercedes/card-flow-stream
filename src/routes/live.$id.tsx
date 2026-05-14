@@ -4009,6 +4009,29 @@ function LiveDetail() {
                           <option value="bubble">📦 Bubble</option>
                           <option value="small_box">📫 Box</option>
                         </select>
+                        <span className="text-[10px] font-bold text-muted-foreground ml-1">Slow chat</span>
+                        <select
+                          value={editSlowMode}
+                          onChange={async (e) => {
+                            const s = Number(e.target.value);
+                            setEditSlowMode(String(s));
+                            await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                            await sendMsg(
+                              s === 0
+                                ? "📌 Slow chat is off."
+                                : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
+                              true,
+                              { isAnnouncement: true },
+                            );
+                          }}
+                          className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none w-16"
+                        >
+                          <option value="0">Off</option>
+                          <option value="3">3s</option>
+                          <option value="5">5s</option>
+                          <option value="10">10s</option>
+                          <option value="30">30s</option>
+                        </select>
                         <span className="ml-auto rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300">
                           Ship ${Number(editShipPrice || 0).toFixed(2)} auto
                         </span>
