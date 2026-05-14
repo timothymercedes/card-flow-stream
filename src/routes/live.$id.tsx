@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
@@ -264,7 +264,7 @@ function LiveDetail() {
     return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
   });
   const startQuickControlsDrag = useCallback(
-    (e: React.PointerEvent<HTMLElement>) => {
+    (e: ReactPointerEvent<HTMLElement>) => {
       e.preventDefault();
       e.stopPropagation();
       const handle = e.currentTarget;
