@@ -132,6 +132,13 @@ export function AuctionQueuePanel({
       base.starting_bid = bn;
       base.buy_now_price = bn;
       base.duration_seconds = 30;
+    } else if (draft.sale_type === "either") {
+      const bn = Number(draft.buy_now_price);
+      if (!bn || bn <= 0) return toast.error("Set a Buy Now price");
+      base.starting_bid = Number(draft.starting_bid) || 1;
+      base.duration_seconds = Math.max(10, Math.min(600, Number(draft.duration_seconds) || 30));
+      base.buy_now_price = bn;
+      base.snipe_price = bn;
     } else {
       base.starting_bid = 1;
       base.duration_seconds = 30;
