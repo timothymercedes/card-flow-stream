@@ -6176,6 +6176,15 @@ function LiveDetail() {
               </button>
             </div>
 
+            {/* 🆕 Host-only reminder: wheel wins still need to ship */}
+            <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+              <span className="text-base leading-none">📦</span>
+              <span>
+                <span className="font-bold">Host reminder:</span> any item won on the wheel{" "}
+                <span className="font-bold">must ship out to the buyer</span>. The win auto-creates an order in your Seller Hub → Orders/Shipping.
+              </span>
+            </div>
+
             {wheel?.is_spinning && (
               <div className="mb-3 flex items-center gap-2 rounded-lg bg-yellow-500/20 p-2 text-[11px] text-yellow-300">
                 <Lock className="h-3.5 w-3.5" /> Locked while spinning
