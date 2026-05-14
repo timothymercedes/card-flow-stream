@@ -255,6 +255,14 @@ function LiveDetail() {
       h: 28,
     }),
   );
+  const [quickControlsBox, setQuickControlsBox] = useState<FloatingBoxRect>(() =>
+    loadBox("live.quickControlsBox", { x: 0, y: 0, w: 0, h: 0 }),
+  );
+  const [quickControlsScale, setQuickControlsScale] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const raw = window.localStorage.getItem("live.quickControlsScale");
+    return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
+  });
   useEffect(() => {
     try {
       window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
@@ -269,6 +277,14 @@ function LiveDetail() {
       /* ignore */
     }
   }, [quickModBox]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("live.quickControlsBox", JSON.stringify(quickControlsBox));
+      window.localStorage.setItem("live.quickControlsScale", String(quickControlsScale));
+    } catch {
+      /* ignore */
+    }
+  }, [quickControlsBox, quickControlsScale]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
