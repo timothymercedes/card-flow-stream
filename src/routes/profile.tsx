@@ -542,6 +542,10 @@ function Profile() {
             <Bell className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">My Bookmarks</p><p className="text-xs text-muted-foreground">Saved shows & reminder settings</p></div>
           </Link>
+          <Link to="/support" className="flex items-center gap-3 rounded-xl bg-card p-4">
+            <LifeBuoy className="h-5 w-5 text-primary" />
+            <div className="flex-1"><p className="text-sm font-semibold">Help & Support</p><p className="text-xs text-muted-foreground">FAQs and contact our team</p></div>
+          </Link>
           <PushToggle userId={user!.id} />
           <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
             <ShieldCheck className="h-5 w-5 text-primary" />
