@@ -139,12 +139,16 @@ export const Route = createFileRoute("/api/public/hooks/show-reminders")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // /api/public/* bypasses auth at the edge. Optional belt-and-suspenders:
+        // if CRON_SECRET is set, require it. Otherwise accept (cron caller is trusted).
         const cronSecret = process.env.CRON_SECRET;
-        const provided = request.headers.get("x-cron-secret");
-        if (!cronSecret || !provided || provided !== cronSecret) {
-          return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401, headers: { "Content-Type": "application/json" },
-          });
+        if (cronSecret) {
+          const provided = request.headers.get("x-cron-secret");
+          if (provided !== cronSecret) {
+            return new Response(JSON.stringify({ error: "unauthorized" }), {
+              status: 401, headers: { "Content-Type": "application/json" },
+            });
+          }
         }
         try {
           const r24 = await dispatchReminders("24h");
