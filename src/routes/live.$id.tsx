@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -119,6 +120,21 @@ function fmtRemaining(ms: number) {
     return `${h}:${mm}:${ss}`;
   }
   return `${m.toString().padStart(2, "0")}:${ss}`;
+}
+
+type QuickControlBoxKey = "item" | "price" | "shipping" | "voice" | "go" | "end";
+
+const QUICK_CONTROL_LABELS: Record<QuickControlBoxKey, string> = {
+  item: "Item",
+  price: "Price",
+  shipping: "Ship",
+  voice: "Mic",
+  go: "GO",
+  end: "End",
+};
+
+function clampPanelValue(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), Math.max(min, max));
 }
 
 function LiveDetail() {
@@ -270,6 +286,82 @@ function LiveDetail() {
     const raw = window.localStorage.getItem("live.quickControlsScale");
     return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
   });
+  const defaultQuickControlBoxes = (): Record<QuickControlBoxKey, FloatingBoxRect> => ({
+    item: { x: 4, y: 28, w: 212, h: 32 },
+    price: { x: 4, y: 64, w: 212, h: 30 },
+    shipping: { x: 4, y: 98, w: 212, h: 30 },
+    voice: { x: 4, y: 132, w: 36, h: 30 },
+    go: { x: 44, y: 132, w: 70, h: 34 },
+    end: { x: 118, y: 132, w: 54, h: 34 },
+  });
+  const [quickControlBoxes, setQuickControlBoxes] = useState<
+    Record<QuickControlBoxKey, FloatingBoxRect>
+  >(() => {
+    if (typeof window === "undefined") return defaultQuickControlBoxes();
+    try {
+      const raw = window.localStorage.getItem("live.quickControlBoxes");
+      if (raw) return { ...defaultQuickControlBoxes(), ...JSON.parse(raw) };
+    } catch {
+      /* ignore */
+    }
+    return defaultQuickControlBoxes();
+  });
+  const startQuickControlBoxDrag = useCallback(
+    (e: ReactPointerEvent<HTMLElement>, key: QuickControlBoxKey, mode: "move" | "resize") => {
+      e.preventDefault();
+      e.stopPropagation();
+      const handle = e.currentTarget;
+      const panel = handle.closest("[data-quick-controls]") as HTMLElement | null;
+      const panelRect = panel?.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startBox = quickControlBoxes[key];
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      handle.setPointerCapture?.(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        ev.preventDefault();
+        const dx = (ev.clientX - startX) / quickControlsScale;
+        const dy = (ev.clientY - startY) / quickControlsScale;
+        const maxW = panelRect ? panelRect.width / quickControlsScale - 8 : 260;
+        const maxH = panelRect ? panelRect.height / quickControlsScale - 8 : 210;
+
+        setQuickControlBoxes((cur) => {
+          const current = cur[key];
+          if (mode === "move") {
+            return {
+              ...cur,
+              [key]: {
+                ...current,
+                x: clampPanelValue(startBox.x + dx, 4, maxW - startBox.w),
+                y: clampPanelValue(startBox.y + dy, 24, maxH - startBox.h),
+              },
+            };
+          }
+          return {
+            ...cur,
+            [key]: {
+              ...current,
+              w: clampPanelValue(startBox.w + dx, 34, maxW - startBox.x),
+              h: clampPanelValue(startBox.h + dy, 26, maxH - startBox.y),
+            },
+          };
+        });
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        document.body.style.userSelect = previousUserSelect;
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [quickControlBoxes, quickControlsScale],
+  );
   const startQuickControlsDrag = useCallback(
     (e: ReactPointerEvent<HTMLElement>) => {
       e.preventDefault();
@@ -367,6 +459,13 @@ function LiveDetail() {
       /* ignore */
     }
   }, [quickControlsBox, quickControlsScale]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("live.quickControlBoxes", JSON.stringify(quickControlBoxes));
+    } catch {
+      /* ignore */
+    }
+  }, [quickControlBoxes]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
@@ -3257,6 +3356,32 @@ function LiveDetail() {
     { id: "grid", label: "Grid", Icon: Grid2X2 },
     { id: "freeform", label: "Move", Icon: Move },
   ];
+  const renderQuickControlBox = (key: QuickControlBoxKey, children: ReactNode) => {
+    const box = quickControlBoxes[key];
+    return (
+      <div
+        key={key}
+        className="absolute rounded-lg ring-1 ring-white/15"
+        style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
+      >
+        <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
+        <button
+          type="button"
+          onPointerDown={(e) => startQuickControlBoxDrag(e, key, "move")}
+          className="absolute -top-2 left-1 z-20 flex h-4 cursor-move touch-none select-none items-center gap-0.5 rounded-full bg-white/25 px-1.5 text-[7px] font-black uppercase text-white ring-1 ring-white/25 active:scale-95"
+          title={`Move ${QUICK_CONTROL_LABELS[key]}`}
+        >
+          <Move className="h-2 w-2" /> {QUICK_CONTROL_LABELS[key]}
+        </button>
+        <div
+          onPointerDown={(e) => startQuickControlBoxDrag(e, key, "resize")}
+          className="absolute -bottom-1 -right-1 z-20 h-4 w-4 cursor-nwse-resize touch-none bg-primary/90"
+          style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
+          title={`Resize ${QUICK_CONTROL_LABELS[key]}`}
+        />
+      </div>
+    );
+  };
 
   async function scanHostStudioCameras() {
     const devices = hostStudioCameraAccessNeeded
@@ -4761,6 +4886,7 @@ function LiveDetail() {
                   setBottomPanelMaxH(null);
                   setQuickControlsScale(1);
                   setQuickControlsBox({ x: 0, y: 0, w: 0, h: 0 });
+                  setQuickControlBoxes(defaultQuickControlBoxes());
                 }}
                 className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
                 title="Reset panel and controls"
@@ -5087,7 +5213,7 @@ function LiveDetail() {
                     {!auctionLive && (
                       <div
                         data-quick-controls
-                        className="relative space-y-1 rounded-xl bg-card/60 p-1.5 pt-6 ring-1 ring-white/10 backdrop-blur"
+                        className="relative min-h-[180px] rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur"
                         style={{
                           transform: `translate3d(${quickControlsBox.x}px, ${quickControlsBox.y}px, 0) scale(${quickControlsScale})`,
                           transformOrigin: "top left",
@@ -5106,118 +5232,127 @@ function LiveDetail() {
                           style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
                           title="Drag to resize these controls"
                         />
-                        <div className="flex items-center gap-1">
-                          <input
-                            value={quickItem}
-                            onChange={(e) => setQuickItem(e.target.value)}
-                            placeholder="Item (e.g. Charizard PSA 9)"
-                            maxLength={60}
-                            className="flex-1 rounded-md bg-background/70 px-1.5 py-1 text-[11px] text-foreground outline-none placeholder:text-muted-foreground"
-                          />
-                          <button
-                            onClick={() => repeatLastQuick()}
-                            disabled={!lastQuick}
-                            title={lastQuick ? `Repeat: ${lastQuick.item}` : "No previous round"}
-                            className="rounded-md bg-white/10 px-1.5 py-1 text-[9px] font-bold text-white disabled:opacity-40"
-                          >
-                            ↻
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                            $
+                        {renderQuickControlBox(
+                          "item",
+                          <div className="flex h-full items-center gap-1 p-1">
                             <input
-                              type="number"
-                              min="1"
-                              inputMode="decimal"
-                              value={editStartPrice}
-                              onChange={(e) => setEditStartPrice(e.target.value)}
-                              className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none"
+                              value={quickItem}
+                              onChange={(e) => setQuickItem(e.target.value)}
+                              placeholder="Item (e.g. Charizard PSA 9)"
+                              maxLength={60}
+                              className="h-full min-w-0 flex-1 rounded-md bg-background/70 px-1.5 text-[11px] text-foreground outline-none placeholder:text-muted-foreground"
                             />
-                          </label>
-                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                            Buy
-                            <input
-                              type="number"
-                              min="1"
-                              inputMode="decimal"
-                              value={quickBuyNow}
-                              onChange={(e) => setQuickBuyNow(e.target.value)}
-                              placeholder="—"
-                              className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
-                            />
-                          </label>
-                          <label
-                            title="Quantity — same item auto-refills after each sale"
-                            className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground"
-                          >
-                            ×
-                            <input
-                              type="number"
-                              min="1"
-                              max="99"
-                              inputMode="numeric"
-                              value={quickQty}
-                              onChange={(e) => setQuickQty(e.target.value)}
-                              className="w-7 bg-transparent text-[11px] font-bold text-foreground outline-none"
-                            />
-                          </label>
-                          <div className="flex items-center gap-0.5">
-                            {([15, 30, 60, 120] as const).map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => setEditTimerSec(String(s))}
-                                className={`rounded-md px-1 py-0.5 text-[9px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
-                              >
-                                {s < 60 ? `${s}s` : `${s / 60}m`}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        {/* 📦 Shipping + 🎤 Voice — inline */}
-                        <div className="flex items-center gap-0.5">
-                          <Package className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
-                          <select
-                            value={editShipPreset}
-                            onChange={(e) =>
-                              setQuickShipPreset(e.target.value as ShippingPresetKey)
-                            }
-                            title="Packaging"
-                            className="flex-1 min-w-0 rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-foreground outline-none"
-                          >
-                            <option value="stamp">Stamp $.78</option>
-                            <option value="pwe">PWE $.99</option>
-                            <option value="bubble">Bubble</option>
-                            <option value="small_box">Box</option>
-                          </select>
-                          <label
-                            title="oz"
-                            className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground"
-                          >
-                            <input
-                              type="number"
-                              min="0.1"
-                              step="0.1"
-                              value={editWeight}
-                              onChange={(e) => setEditWeight(e.target.value)}
-                              className="w-6 bg-transparent text-[9px] font-bold text-foreground outline-none"
-                            />
-                            oz
-                          </label>
-                          <label className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground">
-                            $
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={editShipPrice}
-                              onChange={(e) => setEditShipPrice(e.target.value)}
-                              disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
-                              className="w-7 bg-transparent text-[9px] font-bold text-foreground outline-none disabled:opacity-60"
-                            />
-                          </label>
-                        </div>
-                        <div className="flex items-stretch gap-1">
+                            <button
+                              onClick={() => repeatLastQuick()}
+                              disabled={!lastQuick}
+                              title={lastQuick ? `Repeat: ${lastQuick.item}` : "No previous round"}
+                              className="h-full rounded-md bg-white/10 px-1.5 text-[9px] font-bold text-white disabled:opacity-40"
+                            >
+                              ↻
+                            </button>
+                          </div>,
+                        )}
+                        {renderQuickControlBox(
+                          "price",
+                          <div className="flex h-full items-center gap-1 overflow-x-auto p-1">
+                            <label className="flex h-full items-center gap-0.5 rounded-md bg-background/70 px-1.5 text-[9px] text-muted-foreground">
+                              $
+                              <input
+                                type="number"
+                                min="1"
+                                inputMode="decimal"
+                                value={editStartPrice}
+                                onChange={(e) => setEditStartPrice(e.target.value)}
+                                className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none"
+                              />
+                            </label>
+                            <label className="flex h-full items-center gap-0.5 rounded-md bg-background/70 px-1.5 text-[9px] text-muted-foreground">
+                              Buy
+                              <input
+                                type="number"
+                                min="1"
+                                inputMode="decimal"
+                                value={quickBuyNow}
+                                onChange={(e) => setQuickBuyNow(e.target.value)}
+                                placeholder="—"
+                                className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                              />
+                            </label>
+                            <label
+                              title="Quantity — same item auto-refills after each sale"
+                              className="flex h-full items-center gap-0.5 rounded-md bg-background/70 px-1.5 text-[9px] text-muted-foreground"
+                            >
+                              ×
+                              <input
+                                type="number"
+                                min="1"
+                                max="99"
+                                inputMode="numeric"
+                                value={quickQty}
+                                onChange={(e) => setQuickQty(e.target.value)}
+                                className="w-7 bg-transparent text-[11px] font-bold text-foreground outline-none"
+                              />
+                            </label>
+                            <div className="flex h-full items-center gap-0.5">
+                              {([15, 30, 60, 120] as const).map((s) => (
+                                <button
+                                  key={s}
+                                  onClick={() => setEditTimerSec(String(s))}
+                                  className={`h-full rounded-md px-1 text-[9px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
+                                >
+                                  {s < 60 ? `${s}s` : `${s / 60}m`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>,
+                        )}
+                        {renderQuickControlBox(
+                          "shipping",
+                          <div className="flex h-full items-center gap-0.5 overflow-x-auto p-1">
+                            <Package className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                            <select
+                              value={editShipPreset}
+                              onChange={(e) =>
+                                setQuickShipPreset(e.target.value as ShippingPresetKey)
+                              }
+                              title="Packaging"
+                              className="h-full min-w-[70px] flex-1 rounded-md bg-background/70 px-1 text-[8px] text-foreground outline-none"
+                            >
+                              <option value="stamp">Stamp $.78</option>
+                              <option value="pwe">PWE $.99</option>
+                              <option value="bubble">Bubble</option>
+                              <option value="small_box">Box</option>
+                            </select>
+                            <label
+                              title="oz"
+                              className="flex h-full items-center rounded-md bg-background/70 px-1 text-[8px] text-muted-foreground"
+                            >
+                              <input
+                                type="number"
+                                min="0.1"
+                                step="0.1"
+                                value={editWeight}
+                                onChange={(e) => setEditWeight(e.target.value)}
+                                className="w-6 bg-transparent text-[9px] font-bold text-foreground outline-none"
+                              />
+                              oz
+                            </label>
+                            <label className="flex h-full items-center rounded-md bg-background/70 px-1 text-[8px] text-muted-foreground">
+                              $
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={editShipPrice}
+                                onChange={(e) => setEditShipPrice(e.target.value)}
+                                disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
+                                className="w-7 bg-transparent text-[9px] font-bold text-foreground outline-none disabled:opacity-60"
+                              />
+                            </label>
+                          </div>,
+                        )}
+                        {renderQuickControlBox(
+                          "voice",
                           <button
                             onClick={toggleVoiceTrigger}
                             title={
@@ -5228,32 +5363,40 @@ function LiveDetail() {
                                   : "Enable voice"
                             }
                             disabled={!voice.supported}
-                            className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-0.5 active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
+                            className={`flex h-full w-full items-center justify-center rounded-lg active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
                           >
                             {editVoiceEnabled ? (
-                              <Mic className="h-2.5 w-2.5" />
+                              <Mic className="h-3.5 w-3.5" />
                             ) : (
-                              <MicOff className="h-2.5 w-2.5" />
+                              <MicOff className="h-3.5 w-3.5" />
                             )}
-                          </button>
+                          </button>,
+                        )}
+                        {renderQuickControlBox(
+                          "go",
                           <button
                             onClick={() => quickStartAuction()}
                             disabled={!quickItem.trim()}
                             title="Start round"
-                            className="flex shrink-0 items-center justify-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                            className="flex h-full w-full items-center justify-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
                           >
-                            <Play className="h-2 w-2" />
-                            GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
-                          </button>
+                            <Play className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">
+                              GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
+                            </span>
+                          </button>,
+                        )}
+                        {renderQuickControlBox(
+                          "end",
                           <button
                             onClick={endLive}
                             title="End live"
-                            className="flex shrink-0 items-center justify-center gap-0.5 rounded-md bg-live px-1.5 py-0.5 text-[9px] font-bold text-live-foreground active:scale-[0.98]"
+                            className="flex h-full w-full items-center justify-center gap-0.5 rounded-md bg-live px-1 text-[9px] font-bold text-live-foreground active:scale-[0.98]"
                           >
-                            <Square className="h-2 w-2" />
-                            End
-                          </button>
-                        </div>
+                            <Square className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">End</span>
+                          </button>,
+                        )}
                       </div>
                     )}
                     {auctionLive && (
