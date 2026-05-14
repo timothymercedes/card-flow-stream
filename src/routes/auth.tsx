@@ -65,7 +65,7 @@ function Auth() {
     return true;
   }
 
-  useEffect(() => { if (user) nav({ to: "/" }); }, [user, nav]);
+  useEffect(() => { if (user) window.location.replace(returnTo); }, [user, returnTo]);
 
   // Debounced uniqueness check
   useEffect(() => {
@@ -81,10 +81,12 @@ function Auth() {
 
   async function oauth(provider: "google" | "apple") {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin + returnTo,
+    });
     setLoading(false);
     if (result.error) toast.error(result.error.message || "Sign-in failed");
-    else if (!result.redirected) nav({ to: "/" });
+    else if (!result.redirected) window.location.replace(returnTo);
   }
 
   async function passkeyLogin() {
@@ -97,7 +99,7 @@ function Auth() {
       } as any);
       if (error) throw error;
       toast.success("Welcome back");
-      nav({ to: "/" });
+      window.location.replace(returnTo);
     } catch (e: any) {
       toast.error(e?.message || "Passkey sign-in failed");
     }
@@ -132,7 +134,7 @@ function Auth() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setCaptchaToken(null);
-    if (error) toast.error(error.message); else nav({ to: "/" });
+    if (error) toast.error(error.message); else window.location.replace(returnTo);
     setLoading(false);
   }
 
