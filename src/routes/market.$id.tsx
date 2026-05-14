@@ -11,6 +11,9 @@ import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { IntlWarningBanner, useIntlAck } from "@/components/InternationalShippingWarning";
+import { InternationalBadge } from "@/components/InternationalBadge";
+import { getIntlContext } from "@/lib/internationalShipping";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
