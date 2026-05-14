@@ -74,7 +74,7 @@ export function SellMenu() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   );
 }
