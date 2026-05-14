@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { Plus, Radio, Tag, Calendar, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -21,7 +22,7 @@ export function SellMenu() {
         <Plus className="h-3.5 w-3.5" aria-hidden="true" /> {t("nav.sell")}
       </button>
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal((
         <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm md:items-center" onClick={() => setOpen(false)}>
           <div
             className="w-full max-w-sm rounded-t-2xl bg-card p-4 text-card-foreground shadow-2xl ring-1 ring-border md:rounded-2xl"
@@ -73,7 +74,7 @@ export function SellMenu() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   );
 }
