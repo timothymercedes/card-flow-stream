@@ -4882,16 +4882,20 @@ function LiveDetail() {
                           </label>
                         </div>
                         <div className="flex items-stretch gap-1">
-                          <button onClick={toggleVoiceTrigger} title={!voice.supported ? "Voice unsupported" : editVoiceEnabled ? \ : "Enable voice"} disabled={!voice.supported} className={\}>
+                          <button
+                            onClick={toggleVoiceTrigger}
+                            title={!voice.supported ? "Voice unsupported" : editVoiceEnabled ? `Voice ON — say "${voicePhrase}"` : "Enable voice"}
+                            disabled={!voice.supported}
+                            className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-0.5 active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
+                          >
                             {editVoiceEnabled ? <Mic className="h-2.5 w-2.5" /> : <MicOff className="h-2.5 w-2.5" />}
                           </button>
                           <button onClick={() => quickStartAuction()} disabled={!quickItem.trim()} title="Start round" className="flex flex-1 items-center justify-center gap-0.5 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
-                            <Play className="h-2 w-2" />GO{quickRemaining > 0 ? \ : ""}
+                            <Play className="h-2 w-2" />GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
                           </button>
                           <button onClick={endLive} title="End live" className="flex shrink-0 items-center justify-center gap-0.5 rounded-md bg-live px-1.5 py-0.5 text-[9px] font-bold text-live-foreground active:scale-[0.98]">
                             <Square className="h-2 w-2" />End
                           </button>
-                        </div>
                         </div>
                       </div>
                     )}
