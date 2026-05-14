@@ -3827,13 +3827,12 @@ function LiveDetail() {
           </div>
           <div className="space-y-2">
             <label className="block text-[11px] text-muted-foreground">
-              Type Item <span className="text-rose-400">*</span>
+              Item name <span className="text-[10px] text-muted-foreground">(optional)</span>
               <input
                 value={quickItem}
                 onChange={(e) => setQuickItem(e.target.value)}
-                required
                 maxLength={60}
-                placeholder="Type Item (required)"
+                placeholder="Leave blank to auto-name by bid price"
                 className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs font-bold text-foreground outline-none"
               />
             </label>
