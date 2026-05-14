@@ -4637,6 +4637,7 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
+        data-bottom-panel
         className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-10 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "opacity-80" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
         style={
           bottomPanelMaxH
