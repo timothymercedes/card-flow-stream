@@ -13,10 +13,11 @@ import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { CardQuickActions } from "@/components/CardQuickActions";
+import { InternationalBadge } from "@/components/InternationalBadge";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
-type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null };
+type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null; ships_internationally?: boolean | null };
 type Show = {
   id: string; seller_id: string; seller_username: string; title: string;
   description: string | null; thumbnail_url: string | null; category: string | null;
