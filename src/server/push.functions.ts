@@ -3,8 +3,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendPushToUsers } from "./push.server";
+import { sendEmail } from "./email.server";
 
-// Notify all followers of the seller that they just went live.
+// Notify all followers of the seller, AND any users who bookmarked one of the
+// seller's upcoming scheduled shows, that the seller just went live.
 export const notifyGoingLive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({
@@ -26,18 +28,82 @@ export const notifyGoingLive = createServerFn({ method: "POST" })
       const { data: profile } = await supabaseAdmin
         .from("profiles").select("username").eq("id", sellerId).maybeSingle();
 
+      // 1) Followers who opted into "notify on live"
       const { data: followers } = await supabaseAdmin
         .from("follows").select("follower_id").eq("followee_id", sellerId).eq("notify_on_live", true);
-      const userIds = (followers || []).map((f) => f.follower_id).filter(Boolean);
-      if (userIds.length === 0) return { sent: 0, cleaned: 0 };
+      const followerIds = new Set((followers || []).map((f) => f.follower_id).filter(Boolean));
 
-      const result = await sendPushToUsers(userIds, {
-        title: `${profile?.username || "A seller you follow"} is LIVE 🔴`,
-        body: stream.title || "Tap to jump into the auction",
-        url: `/live/${stream.id}`,
-        tag: `live-${stream.id}`,
-      });
-      return result;
+      // 2) Bookmarkers of any of seller's nearby scheduled shows
+      const since = new Date(Date.now() - 12 * 3600_000).toISOString();
+      const until = new Date(Date.now() + 24 * 3600_000).toISOString();
+      const { data: shows } = await supabaseAdmin
+        .from("scheduled_shows").select("id")
+        .eq("seller_id", sellerId)
+        .gte("scheduled_for", since)
+        .lte("scheduled_for", until);
+      const showIds = (shows || []).map((s: any) => s.id);
+
+      const bookmarkers: Array<{ user_id: string; notify_push: boolean; notify_inapp: boolean; notify_email: boolean }> = [];
+      if (showIds.length > 0) {
+        const { data: bms } = await supabaseAdmin
+          .from("show_bookmarks" as any)
+          .select("user_id, notify_push, notify_inapp, notify_email")
+          .in("show_id", showIds);
+        (bms || []).forEach((b: any) => bookmarkers.push(b));
+      }
+
+      const sellerName = profile?.username || "A seller you follow";
+      const title = `${sellerName} is LIVE 🔴`;
+      const body = stream.title || "Tap to jump into the auction";
+      const url = `/live/${stream.id}`;
+
+      // ---- Push: union of followers + bookmarkers (push pref true) ----
+      const pushUserIds = new Set<string>(followerIds);
+      bookmarkers.filter((b) => b.notify_push).forEach((b) => pushUserIds.add(b.user_id));
+      let pushResult = { sent: 0, cleaned: 0 };
+      if (pushUserIds.size > 0) {
+        pushResult = await sendPushToUsers(Array.from(pushUserIds), {
+          title, body, url, tag: `live-${stream.id}`,
+        });
+      }
+
+      // ---- In-app notification rows for bookmarkers who opted in ----
+      const inappUserIds = bookmarkers.filter((b) => b.notify_inapp).map((b) => b.user_id);
+      if (inappUserIds.length > 0) {
+        const rows = inappUserIds.map((uid) => ({
+          user_id: uid,
+          type: "live_started",
+          body: `${sellerName} is LIVE: ${body}`,
+          link: url,
+        }));
+        await supabaseAdmin.from("notifications").insert(rows);
+      }
+
+      // ---- Email for bookmarkers who opted in (best-effort, capped) ----
+      const emailUserIds = bookmarkers.filter((b) => b.notify_email).map((b) => b.user_id).slice(0, 200);
+      let emailsSent = 0;
+      if (emailUserIds.length > 0) {
+        const { data: users } = await supabaseAdmin
+          .from("profiles").select("id, email").in("id", emailUserIds);
+        const origin = process.env.PUBLIC_APP_URL || "https://pullbidlive.com";
+        const link = `${origin}${url}`;
+        await Promise.all((users || []).map(async (u: any) => {
+          if (!u.email) return;
+          const r = await sendEmail({
+            to: u.email,
+            subject: `🔴 ${sellerName} is live now on PullBidLive`,
+            html: `<p>${sellerName} just started: <strong>${body}</strong></p><p><a href="${link}">Tap to join the live show →</a></p><p style="color:#888;font-size:12px">You're receiving this because you bookmarked one of their shows. Manage your bookmarks in the app to stop these emails.</p>`,
+          });
+          if ((r as any)?.ok) emailsSent++;
+        }));
+      }
+
+      return {
+        sent: pushResult.sent,
+        cleaned: pushResult.cleaned,
+        inapp: inappUserIds.length,
+        emails: emailsSent,
+      };
     } catch (err) {
       console.error("notifyGoingLive failed:", err);
       return { sent: 0, cleaned: 0, error: "PUSH_UNAVAILABLE" as const };
