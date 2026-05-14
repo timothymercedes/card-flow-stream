@@ -1592,58 +1592,60 @@ function LiveDetail() {
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
     const prevBidder = stream.current_bidder_id;
 
-    // Atomic server-side bid: locks the row, enforces min increment, applies
-    // anti-snipe / sudden-death, writes bid history + audit log.
-    const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
-      _stream_id: id,
-      _amount: amount,
-    });
-    if (error) return toast.error(error.message);
-    playSfx("bid");
-    const extended = !!(bidRes as any)?.extended;
-    const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
-    const exts = Number(stream.snipe_extends || 0);
-    safety.touch("auction_bid");
+    intlAck.gate(async () => {
+      // Atomic server-side bid: locks the row, enforces min increment, applies
+      // anti-snipe / sudden-death, writes bid history + audit log.
+      const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
+        _stream_id: id,
+        _amount: amount,
+      });
+      if (error) return toast.error(error.message);
+      playSfx("bid");
+      const extended = !!(bidRes as any)?.extended;
+      const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
+      const exts = Number(stream.snipe_extends || 0);
+      safety.touch("auction_bid");
 
-    if (extended) {
-      endedRef.current = false;
-      snapshotRef.current = false;
-      const willArm = exts + 1 >= 3;
-      await sendMsg(
-        willArm
-          ? `💀 SUDDEN DEATH ARMED — next bid INSTANTLY wins! (@${profile.username} forced it)`
-          : `⚡ OVERTIME +3s — @${profile.username} struck in the final 3s! (${exts + 1}/3)`,
-        true,
-      );
-    }
-    if (suddenDeathWin) {
-      endedRef.current = false;
-      snapshotRef.current = false;
-      await sendMsg(`💥 SUDDEN-DEATH WIN — @${profile.username} took it for $${amount}!`, true);
-    }
-    await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
-    if (stream.seller_id !== user.id) {
+      if (extended) {
+        endedRef.current = false;
+        snapshotRef.current = false;
+        const willArm = exts + 1 >= 3;
+        await sendMsg(
+          willArm
+            ? `💀 SUDDEN DEATH ARMED — next bid INSTANTLY wins! (@${profile.username} forced it)`
+            : `⚡ OVERTIME +3s — @${profile.username} struck in the final 3s! (${exts + 1}/3)`,
+          true,
+        );
+      }
+      if (suddenDeathWin) {
+        endedRef.current = false;
+        snapshotRef.current = false;
+        await sendMsg(`💥 SUDDEN-DEATH WIN — @${profile.username} took it for $${amount}!`, true);
+      }
+      await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
+      if (stream.seller_id !== user.id) {
+        await supabase.from("notifications").insert({
+          user_id: stream.seller_id,
+          type: "bid",
+          body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
+          link: `/live/${id}`,
+        });
+      }
+      if (prevBidder && prevBidder !== user.id) {
+        await supabase.from("notifications").insert({
+          user_id: prevBidder,
+          type: "outbid",
+          body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
+          link: `/live/${id}`,
+        });
+      }
+      // Notify the new top bidder they're winning
       await supabase.from("notifications").insert({
-        user_id: stream.seller_id,
-        type: "bid",
-        body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
+        user_id: user.id,
+        type: "winning",
+        body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
         link: `/live/${id}`,
       });
-    }
-    if (prevBidder && prevBidder !== user.id) {
-      await supabase.from("notifications").insert({
-        user_id: prevBidder,
-        type: "outbid",
-        body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
-        link: `/live/${id}`,
-      });
-    }
-    // Notify the new top bidder they're winning
-    await supabase.from("notifications").insert({
-      user_id: user.id,
-      type: "winning",
-      body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
-      link: `/live/${id}`,
     });
   }
 
