@@ -1511,6 +1511,8 @@ function LiveDetail() {
 
   // 🆕 Buyer readiness — must have completed shipping profile to bid/buy
   const [buyerReady, setBuyerReady] = useState(false);
+  const [buyerCountry, setBuyerCountry] = useState<string>("US");
+  const [sellerCountry, setSellerCountry] = useState<string>("US");
   useEffect(() => {
     if (!user) {
       setBuyerReady(false);
@@ -1519,7 +1521,7 @@ function LiveDetail() {
     let cancelled = false;
     supabase
       .from("profiles")
-      .select("full_name,address_line1,address_city,address_zip,buyer_verified")
+      .select("full_name,address_line1,address_city,address_zip,address_country,buyer_verified")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -1531,11 +1533,26 @@ function LiveDetail() {
           data.address_zip
         );
         setBuyerReady(ok || !!data.buyer_verified);
+        setBuyerCountry(((data.address_country as string) || "US").toUpperCase());
       });
     return () => {
       cancelled = true;
     };
   }, [user?.id]);
+
+  // Fetch seller country once stream loads
+  useEffect(() => {
+    if (!stream?.seller_id) return;
+    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id })
+      .then(({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()));
+  }, [stream?.seller_id]);
+
+  // International acknowledgement gate (per-stream)
+  const intlAck = useIntlAck(`live-${id}`, buyerCountry, sellerCountry);
+  const intlBlocked = intlAck.isIntl && (
+    (Array.isArray((stream as any)?.blocked_countries) && (stream as any).blocked_countries.map((c: string) => c.toUpperCase()).includes(buyerCountry))
+    || (stream && (stream as any).ships_internationally === false)
+  );
 
   const { requireAuth } = useAuthGate();
   function requireBuyerReady(action = "continue"): boolean {
