@@ -44,6 +44,7 @@ function ListingDetail() {
   const [now, setNow] = useState(Date.now());
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   const [qty, setQty] = useState(1);
+  const [quotedShipUsd, setQuotedShipUsd] = useState<number | null>(null);
   const [cartMode, setCartMode] = useState<"buy" | "cart">("buy");
   const [sellerCountry, setSellerCountry] = useState<string>("US");
 
