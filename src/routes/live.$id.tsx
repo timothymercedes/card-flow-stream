@@ -3957,38 +3957,63 @@ function LiveDetail() {
                 }
                 return (
                   <>
-                    <label className="block text-[11px] text-muted-foreground">
-                      Packaging
-                      <select
-                        value={editShipPreset}
-                        onChange={(e) => {
-                          const key = e.target.value as ShippingPresetKey;
-                          setEditShipPreset(key);
-                          const p = SHIPPING_PRESETS[key];
-                          setEditShipMethod(p.label);
-                          const auto = p.flatRate && p.flatPriceUsd != null
-                            ? p.flatPriceUsd
-                            : Number(
-                                estimateShippingAndImportFees({
-                                  subtotal: startVal,
-                                  weightOz: p.weightOz,
-                                  quantity: Number(editQuantity) || 1,
-                                }).shipping.toFixed(2),
-                              );
-                          setEditShipPrice(String(auto));
-                        }}
-                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
-                      >
-                        <option value="stamp" disabled={forceBubble}>
-                          Stamp · 1 card · untracked $0.78 {forceBubble ? "(disabled $30+)" : ""}
-                        </option>
-                        <option value="pwe" disabled={forceBubble}>
-                          PWE · 1–3 cards · untracked $0.99 {forceBubble ? "(disabled $30+)" : ""}
-                        </option>
-                        <option value="bubble">Bubble mailer · tracked (up to ~8 oz)</option>
-                        <option value="small_box">Small box · tracked (box/ETB/slabs)</option>
-                      </select>
-                    </label>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-bold text-foreground">Extras</p>
+                      <div className="flex flex-wrap items-center gap-1 rounded-lg bg-background/40 p-1.5">
+                        <label className="flex cursor-pointer items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={!!stream?.sudden_death_enabled}
+                            onChange={async (e) => {
+                              await supabase
+                                .from("live_streams")
+                                .update({ sudden_death_enabled: e.target.checked })
+                                .eq("id", id);
+                            }}
+                            className="h-3 w-3 accent-rose-500"
+                          />
+                          💀 SD
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={editVoiceEnabled}
+                            onChange={(e) => setEditVoiceEnabled(e.target.checked)}
+                            className="h-3 w-3 accent-emerald-500"
+                          />
+                          🎙️ Voice
+                        </label>
+                        <span className="text-[10px] font-bold text-muted-foreground">Pkg</span>
+                        <select
+                          value={editShipPreset}
+                          onChange={(e) => {
+                            const key = e.target.value as ShippingPresetKey;
+                            setEditShipPreset(key);
+                            const p = SHIPPING_PRESETS[key];
+                            setEditShipMethod(p.label);
+                            const auto = p.flatRate && p.flatPriceUsd != null
+                              ? p.flatPriceUsd
+                              : Number(
+                                  estimateShippingAndImportFees({
+                                    subtotal: startVal,
+                                    weightOz: p.weightOz,
+                                    quantity: Number(editQuantity) || 1,
+                                  }).shipping.toFixed(2),
+                                );
+                            setEditShipPrice(String(auto));
+                          }}
+                          className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none"
+                        >
+                          <option value="stamp" disabled={forceBubble}>📮 Stamp</option>
+                          <option value="pwe" disabled={forceBubble}>✉️ PWE</option>
+                          <option value="bubble">📦 Bubble</option>
+                          <option value="small_box">📫 Box</option>
+                        </select>
+                        <span className="ml-auto rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300">
+                          Ship ${Number(editShipPrice || 0).toFixed(2)} auto
+                        </span>
+                      </div>
+                    </div>
                     {forceBubble && (
                       <p className="text-[10px] text-amber-300">
                         ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive policy).
