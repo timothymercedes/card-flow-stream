@@ -4777,7 +4777,8 @@ function LiveDetail() {
                           <div className="flex min-w-0 flex-1 flex-col gap-1">
                             <div className="flex flex-wrap items-center gap-1">
                               <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                $
+                                <span className="font-bold uppercase tracking-wide text-white/70">Bid Start</span>
+                                <span className="ml-1">$</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -4788,7 +4789,8 @@ function LiveDetail() {
                                 />
                               </label>
                               <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                Buy
+                                <span className="font-bold uppercase tracking-wide text-white/70">Buy Now</span>
+                                <span className="ml-1">$</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -4808,6 +4810,7 @@ function LiveDetail() {
                               </button>
                             </div>
                             <div className="flex flex-wrap items-center gap-0.5">
+                              <span className="mr-1 text-[9px] font-bold uppercase tracking-wide text-white/60">Timer</span>
                               {([5, 10, 15, 20, 30, 60] as const).map((s) => (
                                 <button
                                   key={s}
