@@ -156,10 +156,12 @@ function ListingDetail() {
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
     if (listing.auction_ends_at && new Date(listing.auction_ends_at).getTime() <= Date.now()) return toast.error("Auction ended");
-    const { error } = await (supabase.rpc as any)("place_listing_bid", { _listing_id: id, _amount: amt });
-    if (error) return toast.error(error.message || "Could not place bid");
-    await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "bid", body: `@${profile.username} bid $${amt} on "${listing.title}"`, link: `/market/${id}` });
-    setBidAmt(""); load(); toast.success("Bid placed");
+    gateIntl(async () => {
+      const { error } = await (supabase.rpc as any)("place_listing_bid", { _listing_id: id, _amount: amt });
+      if (error) return toast.error(error.message || "Could not place bid");
+      await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "bid", body: `@${profile.username} bid $${amt} on "${listing.title}"`, link: `/market/${id}` });
+      setBidAmt(""); load(); toast.success("Bid placed");
+    });
   }
 
   async function makeOffer() {
