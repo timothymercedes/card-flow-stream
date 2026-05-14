@@ -3324,16 +3324,18 @@ function LiveDetail() {
           {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined) && (
             <button
               onClick={() => {
+                // Close other panels so the camera UI is always visible.
+                if (showSettings) setShowSettings(false);
+                setHostCameraPanelCollapsed(false);
                 if (usingCompositor && isSeller) {
-                  // Compositor sellers don't use the WebRTC call — reopen the
-                  // multi-cam studio panel and restart cameras if they were stopped.
                   openHostCameraControls();
                 } else {
                   setCallJoined(true);
+                  setShowHostCameraEditor(true);
                 }
               }}
               className="rounded-full bg-emerald-600/80 p-2 backdrop-blur"
-              title={usingCompositor ? "Reopen camera panel" : "Go on camera"}
+              title={usingCompositor ? "Open camera panel" : "Go on camera"}
             >
               <Camera className="h-4 w-4" />
             </button>
