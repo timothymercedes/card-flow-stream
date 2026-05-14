@@ -52,6 +52,7 @@ export function ShareLiveModal({
   isLive?: boolean;
 }) {
   const { user, profile } = useAuth();
+  const { requireAuth } = useAuthGate();
   const [follows, setFollows] = useState<Recipient[]>([]);
   const [recents, setRecents] = useState<Recipient[]>([]);
   const [query, setQuery] = useState("");
@@ -166,7 +167,8 @@ export function ShareLiveModal({
   }
 
   async function sendInApp(r: Recipient) {
-    if (!user || !profile) return toast.error("Sign in to share");
+    if (!requireAuth("share to a friend")) return;
+    if (!user || !profile) return;
     if (sentTo.has(r.id)) return;
     const content = `📺 ${shareText}\n${url}`;
     const { error } = await supabase.from("direct_messages").insert({
