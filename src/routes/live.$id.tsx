@@ -3453,11 +3453,11 @@ function LiveDetail() {
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
             </button>
           )}
-          {isSeller && !ended && (
+          {isSeller && !ended && stream.mode === "show_off" && (
             <button
               onClick={() => setShowSettings((v) => !v)}
               className="rounded-full bg-black/50 p-2 backdrop-blur"
-              title={stream.mode === "show_off" ? "Flex settings" : "Settings"}
+              title="Flex settings"
             >
               <Settings className="h-4 w-4" />
             </button>
