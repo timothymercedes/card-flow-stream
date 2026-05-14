@@ -55,6 +55,7 @@ import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
 import { SHIPPING_PRESETS, type ShippingPresetKey } from "@/lib/shippingPresets";
+import { estimateShippingAndImportFees } from "@/lib/shippingEstimate";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
@@ -3905,9 +3906,16 @@ function LiveDetail() {
                           setEditShipPreset(key);
                           const p = SHIPPING_PRESETS[key];
                           setEditShipMethod(p.label);
-                          if (p.flatRate && p.flatPriceUsd != null) {
-                            setEditShipPrice(String(p.flatPriceUsd));
-                          }
+                          const auto = p.flatRate && p.flatPriceUsd != null
+                            ? p.flatPriceUsd
+                            : Number(
+                                estimateShippingAndImportFees({
+                                  subtotal: startVal,
+                                  weightOz: p.weightOz,
+                                  quantity: Number(editQuantity) || 1,
+                                }).shipping.toFixed(2),
+                              );
+                          setEditShipPrice(String(auto));
                         }}
                         className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
                       >
@@ -3928,16 +3936,14 @@ function LiveDetail() {
                     )}
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block text-[11px] text-muted-foreground">
-                        Shipping price ($)
+                        Shipping price ($) <span className="text-emerald-400">· auto</span>
                         <input
                           type="number"
-                          min="0"
-                          step="0.01"
                           value={editShipPrice}
-                          onChange={(e) => setEditShipPrice(e.target.value)}
-                          disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
+                          disabled
+                          readOnly
                           placeholder="auto"
-                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none disabled:opacity-60"
+                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none opacity-70"
                         />
                       </label>
                       <label className="block text-[11px] text-muted-foreground">
@@ -3951,7 +3957,7 @@ function LiveDetail() {
                       </label>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at checkout for tracked options.
+                      Weight: {weightOz.toFixed(1)} oz · Shipping is auto-quoted from package size — host can't override. Real carrier rate is finalized via Shippo at checkout for tracked options.
                     </p>
                   </>
                 );
@@ -4828,6 +4834,108 @@ function LiveDetail() {
                             </button>
                           </div>
                         </div>
+                        {/* 🆕 Inline extras row — Sudden Death, Voice trigger, Packaging (auto-priced) */}
+                        {(() => {
+                          const sdOn = !!(stream as any)?.sudden_death_enabled;
+                          const vOn = editVoiceEnabled;
+                          const pkgKey = (editShipPreset || "bubble") as ShippingPresetKey;
+                          const preset = SHIPPING_PRESETS[pkgKey];
+                          const startVal = Number(editStartPrice) || 0;
+                          // Auto shipping price from preset/weight — host never sets it manually
+                          const autoShip = preset.flatRate && preset.flatPriceUsd != null
+                            ? preset.flatPriceUsd
+                            : Number(
+                                estimateShippingAndImportFees({
+                                  subtotal: startVal,
+                                  weightOz: preset.weightOz,
+                                  quantity: Number(editQuantity) || 1,
+                                }).shipping.toFixed(2),
+                              );
+                          async function applyPackaging(key: ShippingPresetKey) {
+                            const p = SHIPPING_PRESETS[key];
+                            const price = p.flatRate && p.flatPriceUsd != null
+                              ? p.flatPriceUsd
+                              : Number(
+                                  estimateShippingAndImportFees({
+                                    subtotal: startVal,
+                                    weightOz: p.weightOz,
+                                    quantity: Number(editQuantity) || 1,
+                                  }).shipping.toFixed(2),
+                                );
+                            setEditShipPreset(key);
+                            setEditShipMethod(p.label);
+                            setEditShipPrice(String(price));
+                            await supabase
+                              .from("live_streams")
+                              .update({
+                                shipping_price: price,
+                                shipping_method: p.label,
+                              } as any)
+                              .eq("id", id);
+                          }
+                          return (
+                            <div className="flex flex-wrap items-center gap-1 border-t border-white/10 pt-1">
+                              <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/60 px-1.5 py-0.5 text-[9px] font-bold text-white/80">
+                                <input
+                                  type="checkbox"
+                                  checked={sdOn}
+                                  onChange={async (e) => {
+                                    await supabase
+                                      .from("live_streams")
+                                      .update({ sudden_death_enabled: e.target.checked })
+                                      .eq("id", id);
+                                  }}
+                                  className="h-3 w-3 accent-rose-500"
+                                />
+                                💀 SD
+                              </label>
+                              <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/60 px-1.5 py-0.5 text-[9px] font-bold text-white/80">
+                                <input
+                                  type="checkbox"
+                                  checked={vOn}
+                                  onChange={async (e) => {
+                                    setEditVoiceEnabled(e.target.checked);
+                                    await supabase
+                                      .from("live_streams")
+                                      .update({ voice_trigger_enabled: e.target.checked })
+                                      .eq("id", id);
+                                  }}
+                                  className="h-3 w-3 accent-emerald-500"
+                                />
+                                🎙️ Voice
+                              </label>
+                              {vOn && (
+                                <input
+                                  value={editVoicePhrase}
+                                  onChange={(e) => setEditVoicePhrase(e.target.value)}
+                                  onBlur={async (e) => {
+                                    const v = e.target.value.trim().toLowerCase() || "next";
+                                    await supabase
+                                      .from("live_streams")
+                                      .update({ voice_trigger_phrase: v })
+                                      .eq("id", id);
+                                  }}
+                                  placeholder="cmd word"
+                                  className="w-16 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
+                                />
+                              )}
+                              <select
+                                value={pkgKey}
+                                onChange={(e) => applyPackaging(e.target.value as ShippingPresetKey)}
+                                className="rounded-md bg-background/60 px-1 py-0.5 text-[9px] font-bold text-white/90 outline-none"
+                                title="Packaging — shipping price is auto-quoted from Shippo / size"
+                              >
+                                <option value="stamp" disabled={startVal >= 30}>📮 Stamp</option>
+                                <option value="pwe" disabled={startVal >= 30}>✉️ PWE</option>
+                                <option value="bubble">📦 Bubble</option>
+                                <option value="small_box">📫 Box</option>
+                              </select>
+                              <span className="ml-auto rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-200">
+                                Ship ${autoShip.toFixed(2)} <span className="opacity-60">auto</span>
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                     {auctionLive && (
