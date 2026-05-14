@@ -343,17 +343,17 @@ function LiveDetail() {
   // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
   // now, or makes an offer on any of this stream's queued items.
   useEffect(() => {
-    if (!id || !isSeller) return;
+    const sellerId = stream?.seller_id;
+    if (!id || !user || !sellerId || user.id !== sellerId) return;
     const mountedAt = Date.now();
     const ch = supabase
       .channel(`host-prebid-notify-${id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "prebids" }, async (payload: any) => {
         const row = payload.new;
-        // Verify this prebid belongs to one of MY queued items
         const { data: q } = await supabase.from("auction_queue" as any)
-          .select("title, stream_id, host_id").eq("id", row.queue_item_id).maybeSingle();
+          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
         if (!q || (q as any).stream_id !== id) return;
-        if (Date.now() - mountedAt < 1500) return; // skip backlog flush
+        if (Date.now() - mountedAt < 1500) return;
         toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
           description: `from @${row.bidder_username || "anon"}`,
         });
@@ -376,7 +376,7 @@ function LiveDetail() {
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [id, isSeller]);
+  }, [id, user?.id, stream?.seller_id]);
 
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
