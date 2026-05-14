@@ -2154,8 +2154,12 @@ function LiveDetail() {
 
   async function startAuction() {
     if (!isSeller) return;
+    const item = quickItem.trim();
+    if (!item) return toast.error("Type Item is required");
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
+    const buyNowRaw = Number(quickBuyNow);
+    const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
     const patch = {
@@ -2166,6 +2170,7 @@ function LiveDetail() {
       default_timer_sec: sec,
       current_bid: start,
       current_bidder_id: null,
+      current_item: item,
       item_description: editDesc || null,
       shipping_price: Number(editShipPrice) || 0,
       shipping_method: editShipMethod,
@@ -2174,7 +2179,7 @@ function LiveDetail() {
       winning_bid: null,
       winner_username: null,
       snipe_extends: 0,
-      snipe_price: null,
+      snipe_price: buyNow,
       sudden_death_active: false,
       quick_start_quantity: qty,
       quick_start_remaining: qty - 1,
@@ -2190,9 +2195,12 @@ function LiveDetail() {
     await supabase.from("live_streams").update(patch).eq("id", id);
     safety.touch("auction_started");
     await sendMsg(
-      `▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`,
+      `▶️ ${item} — ${sec}s, starting $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}${qty > 1 ? ` · qty ${qty}` : ""}`,
       true,
     );
+    setLastQuick({ item, start: String(start), timer: String(sec), buyNow: buyNow ? String(buyNow) : "" });
+    setQuickItem("");
+    setQuickBuyNow("");
     toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
   }
