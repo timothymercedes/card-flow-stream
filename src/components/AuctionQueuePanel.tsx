@@ -240,10 +240,11 @@ export function AuctionQueuePanel({
     );
   }
 
-  const saleTypeLabel: Record<SaleType, string> = { prebid: "Pre-Bid", buynow: "Buy Now", offer: "Make Offer" };
+  const saleTypeLabel: Record<SaleType, string> = { prebid: "Pre-Bid", buynow: "Buy Now", either: "Pre-Bid + Buy Now", offer: "Make Offer" };
   const saleTypeChip: Record<SaleType, string> = {
     prebid: "bg-fuchsia-500/30 text-fuchsia-100",
     buynow: "bg-emerald-500/30 text-emerald-100",
+    either: "bg-cyan-500/30 text-cyan-100",
     offer: "bg-amber-500/30 text-amber-100",
   };
 
