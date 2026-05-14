@@ -142,12 +142,19 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
-  // Resizable bottom panel — host drags the top edge to set max height (px). null = auto.
+  // Resizable bottom panel — host drags the top edge or taps +/- to set height (px). null = auto.
   const [bottomPanelMaxH, setBottomPanelMaxH] = useState<number | null>(() => {
     if (typeof window === "undefined") return null;
     const v = window.localStorage.getItem("pbl:bottom-panel-h");
     return v ? Number(v) || null : null;
   });
+  const resizeBottomPanel = useCallback((delta: number) => {
+    if (typeof window === "undefined") return;
+    setBottomPanelMaxH((current) => {
+      const base = current ?? Math.min(320, Math.max(180, Math.round(window.innerHeight * 0.36)));
+      return Math.max(120, Math.min(window.innerHeight - 96, base + delta));
+    });
+  }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (bottomPanelMaxH == null) window.localStorage.removeItem("pbl:bottom-panel-h");
@@ -227,7 +234,9 @@ function LiveDetail() {
           return { x: p.x, y: p.y, w: p.w ?? fallback.w, h: p.h ?? fallback.h };
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return fallback;
   };
   const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() =>
@@ -247,10 +256,18 @@ function LiveDetail() {
     }),
   );
   useEffect(() => {
-    try { window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox)); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
+    } catch {
+      /* ignore */
+    }
   }, [paymentButtonBox]);
   useEffect(() => {
-    try { window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox)); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox));
+    } catch {
+      /* ignore */
+    }
   }, [quickModBox]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
@@ -332,7 +349,12 @@ function LiveDetail() {
   const announcedJoinsRef = useRef<Set<string>>(new Set());
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
-  const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
+  const [soldBanner, setSoldBanner] = useState<{
+    key: number;
+    item: string;
+    user: string;
+    amount: number;
+  } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
   const [prebidCount, setPrebidCount] = useState(0);
@@ -342,16 +364,26 @@ function LiveDetail() {
     if (!id) return;
     let alive = true;
     async function refresh() {
-      const { count } = await supabase.from("auction_queue" as any)
+      const { count } = await supabase
+        .from("auction_queue" as any)
         .select("id", { count: "exact", head: true })
-        .eq("stream_id", id).eq("status", "queued");
+        .eq("stream_id", id)
+        .eq("status", "queued");
       if (alive) setPrebidCount(count || 0);
     }
     refresh();
-    const ch = supabase.channel(`prebid-count-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, refresh)
+    const ch = supabase
+      .channel(`prebid-count-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
+        refresh,
+      )
       .subscribe();
-    return () => { alive = false; supabase.removeChannel(ch); };
+    return () => {
+      alive = false;
+      supabase.removeChannel(ch);
+    };
   }, [id]);
 
   // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
@@ -362,34 +394,55 @@ function LiveDetail() {
     const mountedAt = Date.now();
     const ch = supabase
       .channel(`host-prebid-notify-${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "prebids" }, async (payload: any) => {
-        const row = payload.new;
-        const { data: q } = await supabase.from("auction_queue" as any)
-          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
-        if (!q || (q as any).stream_id !== id) return;
-        if (Date.now() - mountedAt < 1500) return;
-        toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
-          description: `from @${row.bidder_username || "anon"}`,
-        });
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "queue_offers" }, async (payload: any) => {
-        const row = payload.new;
-        const { data: q } = await supabase.from("auction_queue" as any)
-          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
-        if (!q || (q as any).stream_id !== id) return;
-        if (Date.now() - mountedAt < 1500) return;
-        toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
-          description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
-        });
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, (payload: any) => {
-        const before = payload.old, after = payload.new;
-        if (!before?.sold_to && after?.sold_to) {
-          toast.success(`🛒 Buy Now: "${after.title}" sold!`);
-        }
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "prebids" },
+        async (payload: any) => {
+          const row = payload.new;
+          const { data: q } = await supabase
+            .from("auction_queue" as any)
+            .select("title, stream_id")
+            .eq("id", row.queue_item_id)
+            .maybeSingle();
+          if (!q || (q as any).stream_id !== id) return;
+          if (Date.now() - mountedAt < 1500) return;
+          toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
+            description: `from @${row.bidder_username || "anon"}`,
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "queue_offers" },
+        async (payload: any) => {
+          const row = payload.new;
+          const { data: q } = await supabase
+            .from("auction_queue" as any)
+            .select("title, stream_id")
+            .eq("id", row.queue_item_id)
+            .maybeSingle();
+          if (!q || (q as any).stream_id !== id) return;
+          if (Date.now() - mountedAt < 1500) return;
+          toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
+            description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
+        (payload: any) => {
+          const before = payload.old,
+            after = payload.new;
+          if (!before?.sold_to && after?.sold_to) {
+            toast.success(`🛒 Buy Now: "${after.title}" sold!`);
+          }
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [id, user?.id, stream?.seller_id]);
 
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
@@ -536,7 +589,12 @@ function LiveDetail() {
           if (msg?.is_system && typeof msg.body === "string" && msg.body.startsWith("🏆")) {
             const match = msg.body.match(/"(.+?)" sold to @(\S+) for \$([\d.]+)/);
             if (match) {
-              setSoldBanner({ key: Date.now(), item: match[1], user: match[2], amount: Number(match[3]) });
+              setSoldBanner({
+                key: Date.now(),
+                item: match[1],
+                user: match[2],
+                amount: Number(match[3]),
+              });
               playSfx("sold");
             }
           }
@@ -559,7 +617,11 @@ function LiveDetail() {
               setTimeout(() => setSnipeFlash(false), 1500);
             }
             // 🆕 Bid increase → SFX (for viewers) + hype tick
-            if (prev && Number(next.current_bid || 0) > Number(prev.current_bid || 0) && next.current_bidder_id) {
+            if (
+              prev &&
+              Number(next.current_bid || 0) > Number(prev.current_bid || 0) &&
+              next.current_bidder_id
+            ) {
               playSfx("bid", 0.4);
               setHypeTick(Date.now());
             }
@@ -955,7 +1017,8 @@ function LiveDetail() {
   //   - else:            legacy in-app camera preview only
   const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
   const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
-  const flexNeedsCameraSetup = stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
+  const flexNeedsCameraSetup =
+    stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
   const hostStudio = useStudio({
     whipUrl: stream?.cf_whip_url ?? null,
     autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
@@ -1129,7 +1192,10 @@ function LiveDetail() {
       else if (reused > 0) toast.success("That camera is already ready in cockpit");
       else if (lastErr) toast.error(lastErr);
       else if (hostStudio.error) toast.error(hostStudio.error);
-      else toast.error("Camera didn't start. Check browser permission, close other apps using the cam, and try again.");
+      else
+        toast.error(
+          "Camera didn't start. Check browser permission, close other apps using the cam, and try again.",
+        );
     } finally {
       setStartingHostCameras(false);
     }
@@ -1619,16 +1685,20 @@ function LiveDetail() {
   // Fetch seller country once stream loads
   useEffect(() => {
     if (!stream?.seller_id) return;
-    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id })
-      .then(({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()));
+    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id }).then(
+      ({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()),
+    );
   }, [stream?.seller_id]);
 
   // International acknowledgement gate (per-stream)
   const intlAck = useIntlAck(`live-${id}`, buyerCountry, sellerCountry);
-  const intlBlocked = intlAck.isIntl && (
-    (Array.isArray((stream as any)?.blocked_countries) && (stream as any).blocked_countries.map((c: string) => c.toUpperCase()).includes(buyerCountry))
-    || (stream && (stream as any).ships_internationally === false)
-  );
+  const intlBlocked =
+    intlAck.isIntl &&
+    ((Array.isArray((stream as any)?.blocked_countries) &&
+      (stream as any).blocked_countries
+        .map((c: string) => c.toUpperCase())
+        .includes(buyerCountry)) ||
+      (stream && (stream as any).ships_internationally === false));
 
   const { requireAuth } = useAuthGate();
   function requireBuyerReady(action = "continue"): boolean {
@@ -2433,10 +2503,9 @@ function LiveDetail() {
 
     // 🔒 Server-authoritative finalize: locks winner, creates order, receipt,
     // notifications, audit log, listing/vault sync — all atomically.
-    const { data: finRes, error: finErr } = await (supabase.rpc as any)(
-      "finalize_auction_round",
-      { _stream_id: id },
-    );
+    const { data: finRes, error: finErr } = await (supabase.rpc as any)("finalize_auction_round", {
+      _stream_id: id,
+    });
     if (finErr) {
       console.error("[live] finalize_auction_round failed", finErr);
       // Soft-fail: clear the timer locally so the UI recovers
@@ -2587,12 +2656,15 @@ function LiveDetail() {
       const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
       const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
       if (updateErr) throw updateErr;
-      await supabase.from("live_stream_credentials" as any).upsert({
-        stream_id: id,
-        cf_live_input_id: d.live_input_id ?? null,
-        cf_rtmps_url: d.rtmps_url ?? null,
-        cf_stream_key: d.stream_key ?? null,
-      }, { onConflict: "stream_id" });
+      await supabase.from("live_stream_credentials" as any).upsert(
+        {
+          stream_id: id,
+          cf_live_input_id: d.live_input_id ?? null,
+          cf_rtmps_url: d.rtmps_url ?? null,
+          cf_stream_key: d.stream_key ?? null,
+        },
+        { onConflict: "stream_id" },
+      );
       setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
       setShowHostCameraEditor(true);
       setHostCameraPanelCollapsed(false);
@@ -2816,7 +2888,10 @@ function LiveDetail() {
         const cy = Math.max(0, Math.min(1, ny - pad));
         const cw = Math.max(0.05, Math.min(1 - cx, nw + pad * 2));
         const ch = Math.max(0.05, Math.min(1 - cy, nh + pad * 2));
-        const x = cx * fw, y = cy * fh, w = cw * fw, h = ch * fh;
+        const x = cx * fw,
+          y = cy * fh,
+          w = cw * fw,
+          h = ch * fh;
         const c = document.createElement("canvas");
         c.width = Math.max(64, Math.round(w));
         c.height = Math.max(64, Math.round(h));
@@ -2843,14 +2918,18 @@ function LiveDetail() {
           r?.tcg_number ? `#${r.tcg_number}` : "",
           r?.set ? `set: ${r.set}` : "",
           r?.year ? `year: ${r.year}` : "",
-        ].filter(Boolean).join(" ");
+        ]
+          .filter(Boolean)
+          .join(" ");
         if (q.trim()) {
           const { data: idData } = await supabase.functions.invoke("identify-card", {
             body: { query: q, language: (r as any)?.language },
           });
           if (idData && (idData as any).name) authoritative = idData;
         }
-      } catch { /* non-fatal */ }
+      } catch {
+        /* non-fatal */
+      }
 
       // Hand off to the existing spotlight + auction pipeline.
       await onScanResult({
@@ -2940,7 +3019,9 @@ function LiveDetail() {
         condition: "NM",
         status: "available",
       });
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     // Pin the card to the stream so the finalize RPC can match it to vault/market.
     try {
@@ -2960,8 +3041,9 @@ function LiveDetail() {
           },
         } as any)
         .eq("id", stream.id);
-    } catch { /* non-fatal */ }
-
+    } catch {
+      /* non-fatal */
+    }
 
     const update: any = {
       current_item: hypeName,
@@ -3095,7 +3177,11 @@ function LiveDetail() {
       {intlAck.modal}
       {!isSeller && intlAck.isIntl && (
         <div className="absolute left-2 right-2 top-14 z-40">
-          <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountry} variant="compact" />
+          <IntlWarningBanner
+            buyerCountry={buyerCountry}
+            sellerCountry={sellerCountry}
+            variant="compact"
+          />
         </div>
       )}
       {/* Full-screen video */}
@@ -3441,35 +3527,37 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined || isSeller) && (
-            <button
-              onClick={async () => {
-                if (showSettings) setShowSettings(false);
-                setHostCameraPanelCollapsed(false);
-                if (isSeller) {
-                  // If compositor not yet provisioned, set it up first so the
-                  // editor panel actually has somewhere to render.
-                  if (!usingCompositor) {
-                    if (switchingToBrowserCam) return;
-                    await enableFlexCameraStudio();
+          {!ended &&
+            (isSeller || isCohostParticipant) &&
+            (usingCompositor ? isSeller : !callJoined || isSeller) && (
+              <button
+                onClick={async () => {
+                  if (showSettings) setShowSettings(false);
+                  setHostCameraPanelCollapsed(false);
+                  if (isSeller) {
+                    // If compositor not yet provisioned, set it up first so the
+                    // editor panel actually has somewhere to render.
+                    if (!usingCompositor) {
+                      if (switchingToBrowserCam) return;
+                      await enableFlexCameraStudio();
+                    }
+                    openHostCameraControls();
+                  } else {
+                    setCallJoined(true);
+                    setShowHostCameraEditor(true);
                   }
-                  openHostCameraControls();
-                } else {
-                  setCallJoined(true);
-                  setShowHostCameraEditor(true);
-                }
-              }}
-              disabled={isSeller && !usingCompositor && switchingToBrowserCam}
-              className="rounded-full bg-emerald-600/80 p-2 backdrop-blur disabled:opacity-60"
-              title={usingCompositor ? "Open camera panel" : "Go on camera"}
-            >
-              {isSeller && !usingCompositor && switchingToBrowserCam ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Camera className="h-4 w-4" />
-              )}
-            </button>
-          )}
+                }}
+                disabled={isSeller && !usingCompositor && switchingToBrowserCam}
+                className="rounded-full bg-emerald-600/80 p-2 backdrop-blur disabled:opacity-60"
+                title={usingCompositor ? "Open camera panel" : "Go on camera"}
+              >
+                {isSeller && !usingCompositor && switchingToBrowserCam ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </button>
+            )}
           {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
             <button
               onClick={flexNeedsCameraSetup ? enableFlexCameraStudio : openHostCameraControls}
@@ -3984,7 +4072,8 @@ function LiveDetail() {
                     </label>
                     {forceBubble && (
                       <p className="text-[10px] text-amber-300">
-                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive policy).
+                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive
+                        policy).
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-2">
@@ -4012,7 +4101,8 @@ function LiveDetail() {
                       </label>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at checkout for tracked options.
+                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at
+                      checkout for tracked options.
                     </p>
                   </>
                 );
@@ -4490,36 +4580,72 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
-        style={bottomPanelMaxH ? { maxHeight: `${bottomPanelMaxH}px` } : undefined}
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-10 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "opacity-80" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
+        style={
+          bottomPanelMaxH
+            ? { height: `${bottomPanelMaxH}px`, maxHeight: "calc(100dvh - 6rem)" }
+            : undefined
+        }
       >
         {/* 🆕 Drag handle — host can resize the panel by dragging this top edge */}
         {isSeller && !ended && (
-          <div
-            onPointerDown={(e) => {
-              e.preventDefault();
-              const startY = e.clientY;
-              const containerEl = (e.currentTarget as HTMLElement).parentElement as HTMLElement | null;
-              const startH = bottomPanelMaxH ?? containerEl?.offsetHeight ?? 240;
-              const onMove = (ev: PointerEvent) => {
-                const dy = startY - ev.clientY; // drag up = bigger
-                const next = Math.max(80, Math.min(window.innerHeight - 100, startH + dy));
-                setBottomPanelMaxH(next);
-              };
-              const onUp = () => {
-                window.removeEventListener("pointermove", onMove);
-                window.removeEventListener("pointerup", onUp);
-              };
-              window.addEventListener("pointermove", onMove);
-              window.addEventListener("pointerup", onUp);
-            }}
-            onDoubleClick={() => setBottomPanelMaxH(null)}
-            title="Drag to resize · double-click to reset"
-            className="absolute left-1/2 -top-3 z-30 flex h-7 w-24 -translate-x-1/2 cursor-ns-resize touch-none items-center justify-center gap-1 rounded-full bg-white/25 ring-1 ring-white/50 shadow-lg backdrop-blur hover:bg-white/40"
-          >
-            <div className="h-1 w-10 rounded-full bg-white/90" />
-            <div className="h-1 w-10 rounded-full bg-white/90" />
-          </div>
+          <>
+            <div
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const startY = e.clientY;
+                const containerEl = (e.currentTarget as HTMLElement)
+                  .parentElement as HTMLElement | null;
+                const startH =
+                  bottomPanelMaxH ?? containerEl?.getBoundingClientRect().height ?? 240;
+                const onMove = (ev: PointerEvent) => {
+                  const dy = startY - ev.clientY; // drag up = bigger
+                  const next = Math.max(120, Math.min(window.innerHeight - 96, startH + dy));
+                  setBottomPanelMaxH(next);
+                };
+                const onUp = () => {
+                  window.removeEventListener("pointermove", onMove);
+                  window.removeEventListener("pointerup", onUp);
+                };
+                window.addEventListener("pointermove", onMove);
+                window.addEventListener("pointerup", onUp);
+              }}
+              onDoubleClick={() => setBottomPanelMaxH(null)}
+              title="Drag to resize · double-click to reset"
+              className="absolute left-1/2 -top-1 z-50 flex h-11 w-32 -translate-x-1/2 cursor-ns-resize touch-none select-none flex-col items-center justify-center gap-1 rounded-full bg-white/35 ring-2 ring-white/70 shadow-xl backdrop-blur hover:bg-white/50 active:scale-[0.98]"
+            >
+              <Move className="h-3.5 w-3.5 text-white" />
+              <div className="h-1 w-16 rounded-full bg-white/95" />
+            </div>
+            <div className="absolute right-3 top-2 z-50 flex items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/20 backdrop-blur">
+              <button
+                type="button"
+                onClick={() => resizeBottomPanel(-56)}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95"
+                title="Make panel smaller"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                onClick={() => resizeBottomPanel(56)}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95"
+                title="Make panel bigger"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setBottomPanelMaxH(null)}
+                className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
+                title="Reset panel size"
+              >
+                Reset
+              </button>
+            </div>
+          </>
         )}
         {stream.mode === "show_off" && (
           <>
@@ -4908,33 +5034,81 @@ function LiveDetail() {
                         {/* 📦 Shipping + 🎤 Voice — inline */}
                         <div className="flex items-center gap-0.5">
                           <Package className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
-                          <select value={editShipPreset} onChange={(e) => setQuickShipPreset(e.target.value as ShippingPresetKey)} title="Packaging" className="flex-1 min-w-0 rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-foreground outline-none">
+                          <select
+                            value={editShipPreset}
+                            onChange={(e) =>
+                              setQuickShipPreset(e.target.value as ShippingPresetKey)
+                            }
+                            title="Packaging"
+                            className="flex-1 min-w-0 rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-foreground outline-none"
+                          >
                             <option value="stamp">Stamp $.78</option>
                             <option value="pwe">PWE $.99</option>
                             <option value="bubble">Bubble</option>
                             <option value="small_box">Box</option>
                           </select>
-                          <label title="oz" className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground">
-                            <input type="number" min="0.1" step="0.1" value={editWeight} onChange={(e) => setEditWeight(e.target.value)} className="w-6 bg-transparent text-[9px] font-bold text-foreground outline-none" />oz
+                          <label
+                            title="oz"
+                            className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground"
+                          >
+                            <input
+                              type="number"
+                              min="0.1"
+                              step="0.1"
+                              value={editWeight}
+                              onChange={(e) => setEditWeight(e.target.value)}
+                              className="w-6 bg-transparent text-[9px] font-bold text-foreground outline-none"
+                            />
+                            oz
                           </label>
-                          <label className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground">$
-                            <input type="number" min="0" step="0.01" value={editShipPrice} onChange={(e) => setEditShipPrice(e.target.value)} disabled={SHIPPING_PRESETS[editShipPreset].flatRate} className="w-7 bg-transparent text-[9px] font-bold text-foreground outline-none disabled:opacity-60" />
+                          <label className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground">
+                            $
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editShipPrice}
+                              onChange={(e) => setEditShipPrice(e.target.value)}
+                              disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
+                              className="w-7 bg-transparent text-[9px] font-bold text-foreground outline-none disabled:opacity-60"
+                            />
                           </label>
                         </div>
                         <div className="flex items-stretch gap-1">
                           <button
                             onClick={toggleVoiceTrigger}
-                            title={!voice.supported ? "Voice unsupported" : editVoiceEnabled ? `Voice ON — say "${voicePhrase}"` : "Enable voice"}
+                            title={
+                              !voice.supported
+                                ? "Voice unsupported"
+                                : editVoiceEnabled
+                                  ? `Voice ON — say "${voicePhrase}"`
+                                  : "Enable voice"
+                            }
                             disabled={!voice.supported}
                             className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-0.5 active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
                           >
-                            {editVoiceEnabled ? <Mic className="h-2.5 w-2.5" /> : <MicOff className="h-2.5 w-2.5" />}
+                            {editVoiceEnabled ? (
+                              <Mic className="h-2.5 w-2.5" />
+                            ) : (
+                              <MicOff className="h-2.5 w-2.5" />
+                            )}
                           </button>
-                          <button onClick={() => quickStartAuction()} disabled={!quickItem.trim()} title="Start round" className="flex shrink-0 items-center justify-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
-                            <Play className="h-2 w-2" />GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
+                          <button
+                            onClick={() => quickStartAuction()}
+                            disabled={!quickItem.trim()}
+                            title="Start round"
+                            className="flex shrink-0 items-center justify-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                          >
+                            <Play className="h-2 w-2" />
+                            GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
                           </button>
-                          <button onClick={endLive} title="End live" className="flex shrink-0 items-center justify-center gap-0.5 rounded-md bg-live px-1.5 py-0.5 text-[9px] font-bold text-live-foreground active:scale-[0.98]">
-                            <Square className="h-2 w-2" />End
+                          <button
+                            onClick={endLive}
+                            title="End live"
+                            className="flex shrink-0 items-center justify-center gap-0.5 rounded-md bg-live px-1.5 py-0.5 text-[9px] font-bold text-live-foreground active:scale-[0.98]"
+                          >
+                            <Square className="h-2 w-2" />
+                            End
                           </button>
                         </div>
                       </div>
