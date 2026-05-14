@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap } from "lucide-react";
+import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap, Pencil, X } from "lucide-react";
 
-type SaleType = "prebid" | "buynow" | "offer";
+type SaleType = "prebid" | "buynow" | "either" | "offer";
 
 type QueueItem = {
   id: string;
