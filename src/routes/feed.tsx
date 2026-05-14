@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Pencil, Trash2, History, X, Check, Sparkles, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { StoryRail } from "@/components/StoryRail";
+import { SellerBadge } from "@/components/SellerBadge";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { useRealtimeChannel } from "@/lib/realtime";
 
@@ -238,7 +239,7 @@ function Feed() {
             return (
               <div key={p.id} className="relative rounded-xl bg-card p-3">
                   <div className="flex items-center justify-between">
-                  <Link to="/seller/$username" params={{ username: p.username }} className="text-xs font-semibold text-primary hover:underline">@{p.username}</Link>
+                  <SellerBadge sellerId={p.user_id} username={p.username} />
                   <div className="flex items-center gap-1">
                     <button onClick={() => openHistory(p)} className="rounded-full p-1 text-muted-foreground hover:bg-muted" title="History"><History className="h-3.5 w-3.5" /></button>
                     {mine && !isEditing && (
