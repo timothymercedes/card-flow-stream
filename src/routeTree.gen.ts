@@ -27,6 +27,7 @@ import { Route as FeedRouteImport } from './routes/feed'
 import { Route as DisputesRouteImport } from './routes/disputes'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -50,6 +51,7 @@ import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$str
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
+import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 
 const VaultRoute = VaultRouteImport.update({
@@ -140,6 +142,11 @@ const DiscoverRoute = DiscoverRouteImport.update({
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookmarksRoute = BookmarksRouteImport.update({
+  id: '/bookmarks',
+  path: '/bookmarks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -260,6 +267,12 @@ const ApiPublicHooksSyncTcgcsvRoute =
     path: '/api/public/hooks/sync-tcgcsv',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksShowRemindersRoute =
+  ApiPublicHooksShowRemindersRouteImport.update({
+    id: '/api/public/hooks/show-reminders',
+    path: '/api/public/hooks/show-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRefreshVaultValuesRoute =
   ApiPublicHooksRefreshVaultValuesRouteImport.update({
     id: '/api/public/hooks/refresh-vault-values',
@@ -271,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
@@ -308,6 +322,7 @@ export interface FileRoutesByFullPath {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -315,6 +330,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
@@ -352,6 +368,7 @@ export interface FileRoutesByTo {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -360,6 +377,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
@@ -397,6 +415,7 @@ export interface FileRoutesById {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -406,6 +425,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bookmarks'
     | '/cart'
     | '/discover'
     | '/disputes'
@@ -443,6 +463,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -450,6 +471,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bookmarks'
     | '/cart'
     | '/discover'
     | '/disputes'
@@ -487,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
   id:
@@ -494,6 +517,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bookmarks'
     | '/cart'
     | '/discover'
     | '/disputes'
@@ -531,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
   fileRoutesById: FileRoutesById
@@ -539,6 +564,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BookmarksRoute: typeof BookmarksRoute
   CartRoute: typeof CartRoute
   DiscoverRoute: typeof DiscoverRoute
   DisputesRoute: typeof DisputesRoute
@@ -575,6 +601,7 @@ export interface RootRouteChildren {
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
+  ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
@@ -705,6 +732,13 @@ declare module '@tanstack/react-router' {
       path: '/cart'
       fullPath: '/cart'
       preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bookmarks': {
+      id: '/bookmarks'
+      path: '/bookmarks'
+      fullPath: '/bookmarks'
+      preLoaderRoute: typeof BookmarksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -868,6 +902,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncTcgcsvRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/show-reminders': {
+      id: '/api/public/hooks/show-reminders'
+      path: '/api/public/hooks/show-reminders'
+      fullPath: '/api/public/hooks/show-reminders'
+      preLoaderRoute: typeof ApiPublicHooksShowRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-vault-values': {
       id: '/api/public/hooks/refresh-vault-values'
       path: '/api/public/hooks/refresh-vault-values'
@@ -892,6 +933,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  BookmarksRoute: BookmarksRoute,
   CartRoute: CartRoute,
   DiscoverRoute: DiscoverRoute,
   DisputesRoute: DisputesRoute,
@@ -928,6 +970,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
+  ApiPublicHooksShowRemindersRoute: ApiPublicHooksShowRemindersRoute,
   ApiPublicHooksSyncTcgcsvRoute: ApiPublicHooksSyncTcgcsvRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
