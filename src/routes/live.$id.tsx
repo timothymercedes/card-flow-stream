@@ -419,11 +419,14 @@ function LiveDetail() {
   // 🆕 Host quick-bar state — start a round in one tap without opening Settings
   const [quickItem, setQuickItem] = useState("");
   const [quickBuyNow, setQuickBuyNow] = useState("");
+  const [quickQty, setQuickQty] = useState("1");
+  const [quickRemaining, setQuickRemaining] = useState(0);
   const [lastQuick, setLastQuick] = useState<{
     item: string;
     start: string;
     timer: string;
     buyNow: string;
+    qty: string;
   } | null>(null);
   const lastChatTsRef = useRef<number>(0);
 
@@ -2258,16 +2261,33 @@ function LiveDetail() {
       `▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`,
       true,
     );
+    const qtyNum = Math.max(1, Math.min(99, Number(quickQty) || 1));
     setLastQuick({
       item,
       start: String(start),
       timer: String(sec),
       buyNow: buyNow ? String(buyNow) : "",
+      qty: String(qtyNum),
     });
+    // remaining = qty - 1 (this round counts as one). Auto-refill on round end.
+    setQuickRemaining((prev) => (opts ? Math.max(0, prev - 1) : Math.max(0, qtyNum - 1)));
     setQuickItem("");
     setQuickBuyNow("");
-    toast.success("Round started");
+    toast.success(qtyNum > 1 ? `Round started · ${qtyNum - 1} more queued` : "Round started");
   }
+
+  // Auto-refill the quick bar when a round ends and quantity remains
+  useEffect(() => {
+    if (auctionLive) return;
+    if (quickRemaining <= 0 || !lastQuick) return;
+    if (quickItem) return;
+    setQuickItem(lastQuick.item);
+    setQuickBuyNow(lastQuick.buyNow);
+    setEditStartPrice(lastQuick.start);
+    setEditTimerSec(lastQuick.timer);
+    setQuickQty(String(quickRemaining));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auctionLive]);
 
   async function repeatLastQuick() {
     if (!lastQuick) return;
@@ -4785,7 +4805,22 @@ function LiveDetail() {
                               value={quickBuyNow}
                               onChange={(e) => setQuickBuyNow(e.target.value)}
                               placeholder="—"
-                              className="w-10 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                              className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                            />
+                          </label>
+                          <label
+                            title="Quantity — same item auto-refills after each sale"
+                            className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground"
+                          >
+                            ×
+                            <input
+                              type="number"
+                              min="1"
+                              max="99"
+                              inputMode="numeric"
+                              value={quickQty}
+                              onChange={(e) => setQuickQty(e.target.value)}
+                              className="w-7 bg-transparent text-[11px] font-bold text-foreground outline-none"
                             />
                           </label>
                           <div className="flex items-center gap-0.5">
@@ -4804,19 +4839,15 @@ function LiveDetail() {
                           <button
                             onClick={() => quickStartAuction()}
                             disabled={!quickItem.trim()}
+                            title="Start round"
                             className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-1 text-[11px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
                           >
-                            <Play className="h-3 w-3" /> START
-                          </button>
-                          <button
-                            onClick={() => setShowSettings(true)}
-                            title="Advanced settings"
-                            className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-bold text-white"
-                          >
-                            <Settings className="h-3 w-3" />
+                            <Play className="h-3 w-3" />
+                            GO{quickRemaining > 0 ? ` ·${quickRemaining + 1}` : ""}
                           </button>
                           <button
                             onClick={endLive}
+                            title="End live"
                             className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2 py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]"
                           >
                             <Square className="h-2.5 w-2.5" /> End
