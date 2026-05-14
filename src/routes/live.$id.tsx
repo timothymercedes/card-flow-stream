@@ -3929,16 +3929,14 @@ function LiveDetail() {
                     )}
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block text-[11px] text-muted-foreground">
-                        Shipping price ($)
+                        Shipping price ($) <span className="text-emerald-400">· auto</span>
                         <input
                           type="number"
-                          min="0"
-                          step="0.01"
                           value={editShipPrice}
-                          onChange={(e) => setEditShipPrice(e.target.value)}
-                          disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
+                          disabled
+                          readOnly
                           placeholder="auto"
-                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none disabled:opacity-60"
+                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none opacity-70"
                         />
                       </label>
                       <label className="block text-[11px] text-muted-foreground">
@@ -3952,7 +3950,7 @@ function LiveDetail() {
                       </label>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at checkout for tracked options.
+                      Weight: {weightOz.toFixed(1)} oz · Shipping is auto-quoted from package size — host can't override. Real carrier rate is finalized via Shippo at checkout for tracked options.
                     </p>
                   </>
                 );
