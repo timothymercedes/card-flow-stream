@@ -4716,6 +4716,7 @@ export type Database = {
           username: string
         }[]
       }
+      seller_country: { Args: { _seller_id: string }; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       suggested_users: {
