@@ -71,6 +71,7 @@ export function AuctionQueuePanel({
     const start = Number(draft.starting_bid) || 1;
     const dur = Math.max(10, Math.min(600, Number(draft.duration_seconds) || 30));
     const snipe = draft.snipe_price ? Number(draft.snipe_price) : null;
+    const qty = Math.max(1, Math.min(999, Number(draft.quantity) || 1));
     const nextPos = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 0;
     const { error } = await supabase.from("auction_queue" as any).insert({
       stream_id: streamId,
@@ -80,9 +81,10 @@ export function AuctionQueuePanel({
       starting_bid: start,
       duration_seconds: dur,
       snipe_price: snipe,
+      quantity: qty,
     } as any);
     if (error) return toast.error(error.message);
-    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "" });
+    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1 });
     setAdding(false);
   }
 
