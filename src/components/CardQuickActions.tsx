@@ -97,7 +97,7 @@ export function CardQuickActions({
         >
           {sellerId && (
             <div className="flex items-center">
-              <FollowButton sellerId={sellerId} variant="icon" />
+              <FollowButton userId={sellerId} size="sm" />
             </div>
           )}
           {showId && (
