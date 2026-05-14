@@ -320,6 +320,8 @@ function LiveDetail() {
   const [hypeTick, setHypeTick] = useState<number>(0);
   const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [prebidOpen, setPrebidOpen] = useState(false);
+  const [prebidCount, setPrebidCount] = useState(0);
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
