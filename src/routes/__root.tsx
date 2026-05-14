@@ -12,6 +12,7 @@ import { PerfMonitorBootstrap } from "@/components/PerfMonitorBootstrap";
 import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
 import { BidAnnouncer } from "@/components/BidAnnouncer";
+import { AuthGateProvider } from "@/hooks/useAuthGate";
 
 function NotFoundComponent() {
   return (
@@ -67,19 +68,21 @@ export const Route = createRootRoute({
   ),
   component: () => (
     <AuthProvider>
-      <MascotTourProvider>
-        <LanguageSync />
-        <A11yClassSync />
-        <TutorialModeBootstrap />
-        <PerfMonitorBootstrap />
-        <BetaGate>
-          <Outlet />
-          <LegalGate />
-        </BetaGate>
-        <RealtimeStatusBadge />
-        <BidAnnouncer />
-        <Toaster />
-      </MascotTourProvider>
+      <AuthGateProvider>
+        <MascotTourProvider>
+          <LanguageSync />
+          <A11yClassSync />
+          <TutorialModeBootstrap />
+          <PerfMonitorBootstrap />
+          <BetaGate>
+            <Outlet />
+            <LegalGate />
+          </BetaGate>
+          <RealtimeStatusBadge />
+          <BidAnnouncer />
+          <Toaster />
+        </MascotTourProvider>
+      </AuthGateProvider>
     </AuthProvider>
   ),
   notFoundComponent: NotFoundComponent,
