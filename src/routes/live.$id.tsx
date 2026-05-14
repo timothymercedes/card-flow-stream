@@ -1,5 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
@@ -255,6 +262,89 @@ function LiveDetail() {
       h: 28,
     }),
   );
+  const [quickControlsBox, setQuickControlsBox] = useState<FloatingBoxRect>(() =>
+    loadBox("live.quickControlsBox", { x: 0, y: 0, w: 0, h: 0 }),
+  );
+  const [quickControlsScale, setQuickControlsScale] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const raw = window.localStorage.getItem("live.quickControlsScale");
+    return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
+  });
+  const startQuickControlsDrag = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const handle = e.currentTarget;
+      const panel = handle.closest("[data-bottom-panel]") as HTMLElement | null;
+      const controls = handle.closest("[data-quick-controls]") as HTMLElement | null;
+      const panelRect = panel?.getBoundingClientRect();
+      const controlsRect = controls?.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startBox = quickControlsBox;
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      handle.setPointerCapture?.(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        ev.preventDefault();
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        const maxX =
+          panelRect && controlsRect ? Math.max(0, panelRect.width - controlsRect.width - 8) : 260;
+        const maxY =
+          panelRect && controlsRect ? Math.max(0, panelRect.height - controlsRect.height - 8) : 260;
+        setQuickControlsBox((cur) => ({
+          ...cur,
+          x: Math.min(Math.max(startBox.x + dx, -8), maxX),
+          y: Math.min(Math.max(startBox.y + dy, -8), maxY),
+        }));
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        document.body.style.userSelect = previousUserSelect;
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [quickControlsBox],
+  );
+  const startQuickControlsResize = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const handle = e.currentTarget;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startScale = quickControlsScale;
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      handle.setPointerCapture?.(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        ev.preventDefault();
+        const delta = (ev.clientX - startX + ev.clientY - startY) / 260;
+        setQuickControlsScale(
+          Math.min(1.3, Math.max(0.72, Number((startScale + delta).toFixed(2)))),
+        );
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        document.body.style.userSelect = previousUserSelect;
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [quickControlsScale],
+  );
   useEffect(() => {
     try {
       window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
@@ -269,6 +359,14 @@ function LiveDetail() {
       /* ignore */
     }
   }, [quickModBox]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("live.quickControlsBox", JSON.stringify(quickControlsBox));
+      window.localStorage.setItem("live.quickControlsScale", String(quickControlsScale));
+    } catch {
+      /* ignore */
+    }
+  }, [quickControlsBox, quickControlsScale]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
@@ -4580,6 +4678,7 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
+        data-bottom-panel
         className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-10 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "opacity-80" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
         style={
           bottomPanelMaxH
@@ -4638,9 +4737,33 @@ function LiveDetail() {
               </button>
               <button
                 type="button"
-                onClick={() => setBottomPanelMaxH(null)}
+                onClick={() =>
+                  setQuickControlsScale((s) => Math.max(0.72, Number((s - 0.08).toFixed(2))))
+                }
+                className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
+                title="Shrink controls"
+              >
+                UI−
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setQuickControlsScale((s) => Math.min(1.3, Number((s + 0.08).toFixed(2))))
+                }
+                className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
+                title="Grow controls"
+              >
+                UI+
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBottomPanelMaxH(null);
+                  setQuickControlsScale(1);
+                  setQuickControlsBox({ x: 0, y: 0, w: 0, h: 0 });
+                }}
                 className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
-                title="Reset panel size"
+                title="Reset panel and controls"
               >
                 Reset
               </button>
@@ -4962,7 +5085,27 @@ function LiveDetail() {
                   <>
                     {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
                     {!auctionLive && (
-                      <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
+                      <div
+                        data-quick-controls
+                        className="relative space-y-1 rounded-xl bg-card/60 p-1.5 pt-6 ring-1 ring-white/10 backdrop-blur"
+                        style={{
+                          transform: `translate3d(${quickControlsBox.x}px, ${quickControlsBox.y}px, 0) scale(${quickControlsScale})`,
+                          transformOrigin: "top left",
+                        }}
+                      >
+                        <div
+                          onPointerDown={startQuickControlsDrag}
+                          className="absolute left-1.5 top-1 flex h-4 cursor-move touch-none select-none items-center gap-1 rounded-full bg-white/15 px-2 text-[8px] font-black uppercase tracking-wide text-white ring-1 ring-white/20 active:scale-95"
+                          title="Drag to move these controls"
+                        >
+                          <Move className="h-2.5 w-2.5" /> Move
+                        </div>
+                        <div
+                          onPointerDown={startQuickControlsResize}
+                          className="absolute right-1 bottom-1 z-10 h-5 w-5 cursor-nwse-resize touch-none bg-primary/80"
+                          style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
+                          title="Drag to resize these controls"
+                        />
                         <div className="flex items-center gap-1">
                           <input
                             value={quickItem}
