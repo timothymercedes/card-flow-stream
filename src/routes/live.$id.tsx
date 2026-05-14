@@ -121,6 +121,21 @@ function fmtRemaining(ms: number) {
   return `${m.toString().padStart(2, "0")}:${ss}`;
 }
 
+type QuickControlBoxKey = "item" | "price" | "shipping" | "voice" | "go" | "end";
+
+const QUICK_CONTROL_LABELS: Record<QuickControlBoxKey, string> = {
+  item: "Item",
+  price: "Price",
+  shipping: "Ship",
+  voice: "Mic",
+  go: "GO",
+  end: "End",
+};
+
+function clampPanelValue(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), Math.max(min, max));
+}
+
 function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
