@@ -4764,63 +4764,69 @@ function LiveDetail() {
                             ↻
                           </button>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                            $
-                            <input
-                              type="number"
-                              min="1"
-                              inputMode="decimal"
-                              value={editStartPrice}
-                              onChange={(e) => setEditStartPrice(e.target.value)}
-                              className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none"
-                            />
-                          </label>
-                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                            Buy
-                            <input
-                              type="number"
-                              min="1"
-                              inputMode="decimal"
-                              value={quickBuyNow}
-                              onChange={(e) => setQuickBuyNow(e.target.value)}
-                              placeholder="—"
-                              className="w-10 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
-                            />
-                          </label>
-                          <div className="flex items-center gap-0.5">
-                            {([15, 30, 60, 120] as const).map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => setEditTimerSec(String(s))}
-                                className={`rounded-md px-1 py-0.5 text-[9px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
-                              >
-                                {s < 60 ? `${s}s` : `${s / 60}m`}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                         <div className="flex items-stretch gap-1">
-                          <button
-                            onClick={() => quickStartAuction()}
-                            disabled={!quickItem.trim()}
-                            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-1 text-[11px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
-                          >
-                            <Play className="h-3 w-3" /> START
-                          </button>
-                          <button
-                            onClick={() => setShowSettings(true)}
-                            title="Advanced settings"
-                            className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-bold text-white"
-                          >
-                            <Settings className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={endLive}
-                            className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2 py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]"
-                          >
-                            <Square className="h-2.5 w-2.5" /> End
-                          </button>
+                          {/* Left column: price/buy/timer pickers */}
+                          <div className="flex min-w-0 flex-1 flex-col gap-1">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                                $
+                                <input
+                                  type="number"
+                                  min="1"
+                                  inputMode="decimal"
+                                  value={editStartPrice}
+                                  onChange={(e) => setEditStartPrice(e.target.value)}
+                                  className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none"
+                                />
+                              </label>
+                              <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                                Buy
+                                <input
+                                  type="number"
+                                  min="1"
+                                  inputMode="decimal"
+                                  value={quickBuyNow}
+                                  onChange={(e) => setQuickBuyNow(e.target.value)}
+                                  placeholder="—"
+                                  className="w-10 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                                />
+                              </label>
+                              <button
+                                onClick={() => setShowSettings((v) => !v)}
+                                title="Advanced settings (shipping, voice, sudden death…)"
+                                className="ml-auto rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                              >
+                                <Settings className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-0.5">
+                              {([5, 10, 15, 20, 30, 60] as const).map((s) => (
+                                <button
+                                  key={s}
+                                  onClick={() => setEditTimerSec(String(s))}
+                                  className={`rounded-md px-1 py-0.5 text-[9px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
+                                >
+                                  {s}s
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Right column: START stacked above End */}
+                          <div className="flex w-20 shrink-0 flex-col gap-1">
+                            <button
+                              onClick={() => quickStartAuction()}
+                              disabled={!quickItem.trim()}
+                              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-1.5 text-[11px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                            >
+                              <Play className="h-3 w-3" /> START
+                            </button>
+                            <button
+                              onClick={endLive}
+                              className="flex items-center justify-center gap-1 rounded-lg bg-live py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]"
+                            >
+                              <Square className="h-2.5 w-2.5" /> End
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
