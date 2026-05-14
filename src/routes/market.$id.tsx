@@ -405,7 +405,8 @@ function ListingDetail() {
 
         {showShip && (() => {
           const itemPrice = Number(listing.price || 0) * qty;
-          const shipPrice = Number(listing.shipping_price || 0);
+          const manualShip = Number(listing.shipping_price || 0);
+          const shipPrice = quotedShipUsd ?? manualShip;
           const total = itemPrice + shipPrice;
           return (
             <div className="mt-4 space-y-2 rounded-xl bg-card p-4">
@@ -419,6 +420,15 @@ function ListingDetail() {
                 <p className="text-muted-foreground">{ship.city}, {ship.state} {ship.zip}</p>
                 <p className="text-muted-foreground">{ship.country}</p>
               </div>
+              <ShippingEstimator
+                sellerId={(listing as any).seller_id}
+                presetKey={(listing as any).shipping_preset || "bubble"}
+                weightOz={(listing as any).weight_oz || undefined}
+                buyerCountry={ship.country}
+                buyerZip={ship.zip}
+                subtotalUsd={itemPrice}
+                onResolved={(r) => setQuotedShipUsd(r.amountUsd)}
+              />
               <div className="rounded-lg bg-muted/50 p-2 text-xs space-y-1">
                 <div className="flex justify-between"><span>Item{qty > 1 ? ` × ${qty}` : ""}</span><span>${itemPrice.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Shipping</span><span>{shipPrice > 0 ? `$${shipPrice.toFixed(2)}` : "Free"}</span></div>
