@@ -2972,6 +2972,12 @@ function LiveDetail() {
       onTouchStart={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchStart}
       onTouchEnd={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchEnd}
     >
+      {intlAck.modal}
+      {!isSeller && intlAck.isIntl && (
+        <div className="absolute left-2 right-2 top-14 z-40">
+          <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountry} variant="compact" />
+        </div>
+      )}
       {/* Full-screen video */}
       <div
         className="absolute inset-0"
