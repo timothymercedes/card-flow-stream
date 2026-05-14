@@ -2154,8 +2154,12 @@ function LiveDetail() {
 
   async function startAuction() {
     if (!isSeller) return;
+    const item = quickItem.trim();
+    if (!item) return toast.error("Type Item is required");
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
+    const buyNowRaw = Number(quickBuyNow);
+    const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
     const patch = {
@@ -2166,6 +2170,7 @@ function LiveDetail() {
       default_timer_sec: sec,
       current_bid: start,
       current_bidder_id: null,
+      current_item: item,
       item_description: editDesc || null,
       shipping_price: Number(editShipPrice) || 0,
       shipping_method: editShipMethod,
@@ -2174,7 +2179,7 @@ function LiveDetail() {
       winning_bid: null,
       winner_username: null,
       snipe_extends: 0,
-      snipe_price: null,
+      snipe_price: buyNow,
       sudden_death_active: false,
       quick_start_quantity: qty,
       quick_start_remaining: qty - 1,
@@ -2190,9 +2195,12 @@ function LiveDetail() {
     await supabase.from("live_streams").update(patch).eq("id", id);
     safety.touch("auction_started");
     await sendMsg(
-      `▶️ Auction started — ${sec}s, starting $${start}${qty > 1 ? ` · qty ${qty}` : ""}`,
+      `▶️ ${item} — ${sec}s, starting $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}${qty > 1 ? ` · qty ${qty}` : ""}`,
       true,
     );
+    setLastQuick({ item, start: String(start), timer: String(sec), buyNow: buyNow ? String(buyNow) : "" });
+    setQuickItem("");
+    setQuickBuyNow("");
     toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
   }
@@ -3818,6 +3826,22 @@ function LiveDetail() {
             </button>
           </div>
           <div className="space-y-2">
+            <label className="block text-[11px] text-muted-foreground">
+              Type Item <span className="text-rose-400">*</span>
+              <input
+                value={quickItem}
+                onChange={(e) => setQuickItem(e.target.value)}
+                required
+                maxLength={60}
+                placeholder="Type Item (required)"
+                className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs font-bold text-foreground outline-none"
+              />
+            </label>
+            {(quickItem.trim() || stream?.current_item) && (
+              <div className="rounded-lg bg-primary/10 px-3 py-2 text-[11px] font-bold text-primary">
+                Selected item: {quickItem.trim() || stream?.current_item}
+              </div>
+            )}
             <textarea
               value={editDesc}
               onChange={(e) => setEditDesc(e.target.value)}
@@ -3827,13 +3851,24 @@ function LiveDetail() {
             />
             <div className="grid grid-cols-2 gap-2">
               <label className="block text-[11px] text-muted-foreground">
-                Starting price ($)
+                Bid Start ($)
                 <input
                   type="number"
                   min="1"
                   value={editStartPrice}
                   onChange={(e) => setEditStartPrice(e.target.value)}
-                  placeholder="e.g. 1"
+                  placeholder="1"
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                />
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Buy Now ($)
+                <input
+                  type="number"
+                  min="1"
+                  value={quickBuyNow}
+                  onChange={(e) => setQuickBuyNow(e.target.value)}
+                  placeholder="Optional"
                   className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
                 />
               </label>
@@ -3850,6 +3885,31 @@ function LiveDetail() {
                   <option value="20">20s</option>
                   <option value="30">30s</option>
                   <option value="60">60s</option>
+                </select>
+              </label>
+              <label className="block text-[11px] text-muted-foreground">
+                Slow chat
+                <select
+                  value={editSlowMode}
+                  onChange={async (e) => {
+                    const s = Number(e.target.value);
+                    setEditSlowMode(String(s));
+                    await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                    await sendMsg(
+                      s === 0
+                        ? "📌 Slow chat is off."
+                        : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
+                      true,
+                      { isAnnouncement: true },
+                    );
+                  }}
+                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
+                >
+                  <option value="0">Off</option>
+                  <option value="3">3s</option>
+                  <option value="5">5s</option>
+                  <option value="10">10s</option>
+                  <option value="30">30s</option>
                 </select>
               </label>
             </div>
@@ -3897,38 +3957,63 @@ function LiveDetail() {
                 }
                 return (
                   <>
-                    <label className="block text-[11px] text-muted-foreground">
-                      Packaging
-                      <select
-                        value={editShipPreset}
-                        onChange={(e) => {
-                          const key = e.target.value as ShippingPresetKey;
-                          setEditShipPreset(key);
-                          const p = SHIPPING_PRESETS[key];
-                          setEditShipMethod(p.label);
-                          const auto = p.flatRate && p.flatPriceUsd != null
-                            ? p.flatPriceUsd
-                            : Number(
-                                estimateShippingAndImportFees({
-                                  subtotal: startVal,
-                                  weightOz: p.weightOz,
-                                  quantity: Number(editQuantity) || 1,
-                                }).shipping.toFixed(2),
-                              );
-                          setEditShipPrice(String(auto));
-                        }}
-                        className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
-                      >
-                        <option value="stamp" disabled={forceBubble}>
-                          Stamp · 1 card · untracked $0.78 {forceBubble ? "(disabled $30+)" : ""}
-                        </option>
-                        <option value="pwe" disabled={forceBubble}>
-                          PWE · 1–3 cards · untracked $0.99 {forceBubble ? "(disabled $30+)" : ""}
-                        </option>
-                        <option value="bubble">Bubble mailer · tracked (up to ~8 oz)</option>
-                        <option value="small_box">Small box · tracked (box/ETB/slabs)</option>
-                      </select>
-                    </label>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-bold text-foreground">Extras</p>
+                      <div className="flex flex-wrap items-center gap-1 rounded-lg bg-background/40 p-1.5">
+                        <label className="flex cursor-pointer items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={!!stream?.sudden_death_enabled}
+                            onChange={async (e) => {
+                              await supabase
+                                .from("live_streams")
+                                .update({ sudden_death_enabled: e.target.checked })
+                                .eq("id", id);
+                            }}
+                            className="h-3 w-3 accent-rose-500"
+                          />
+                          💀 SD
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={editVoiceEnabled}
+                            onChange={(e) => setEditVoiceEnabled(e.target.checked)}
+                            className="h-3 w-3 accent-emerald-500"
+                          />
+                          🎙️ Voice
+                        </label>
+                        <span className="text-[10px] font-bold text-muted-foreground">Pkg</span>
+                        <select
+                          value={editShipPreset}
+                          onChange={(e) => {
+                            const key = e.target.value as ShippingPresetKey;
+                            setEditShipPreset(key);
+                            const p = SHIPPING_PRESETS[key];
+                            setEditShipMethod(p.label);
+                            const auto = p.flatRate && p.flatPriceUsd != null
+                              ? p.flatPriceUsd
+                              : Number(
+                                  estimateShippingAndImportFees({
+                                    subtotal: startVal,
+                                    weightOz: p.weightOz,
+                                    quantity: Number(editQuantity) || 1,
+                                  }).shipping.toFixed(2),
+                                );
+                            setEditShipPrice(String(auto));
+                          }}
+                          className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none"
+                        >
+                          <option value="stamp" disabled={forceBubble}>📮 Stamp</option>
+                          <option value="pwe" disabled={forceBubble}>✉️ PWE</option>
+                          <option value="bubble">📦 Bubble</option>
+                          <option value="small_box">📫 Box</option>
+                        </select>
+                        <span className="ml-auto rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300">
+                          Ship ${Number(editShipPrice || 0).toFixed(2)} auto
+                        </span>
+                      </div>
+                    </div>
                     {forceBubble && (
                       <p className="text-[10px] text-amber-300">
                         ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive policy).
@@ -4006,13 +4091,12 @@ function LiveDetail() {
                 />
               </label>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                Hands-free auction control. Commands: <b>{voicePhrase || "next"}</b>, "start",
-                "sold", "extend", "end live".
+                Hands-free auction control. Active trigger: <b>{voicePhrase || "your custom word"}</b>, plus "start", "sold", "extend", "end live".
               </p>
               <input
                 value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
-                placeholder='Custom "next round" phrase (e.g. "next" or "go go go")'
+                placeholder="Type your custom trigger word ✨"
                 className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
               />
               {!voice.supported && editVoiceEnabled && (
@@ -4027,45 +4111,6 @@ function LiveDetail() {
               >
                 💾 Save voice & quantity
               </button>
-            </div>
-
-            {/* 🆕 Chat slow-mode */}
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
-              <p className="flex items-center justify-between text-xs font-bold">
-                <span className="flex items-center gap-1.5">
-                  🐢 Slow chat
-                  {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
-                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
-                      {(stream as any).chat_slow_mode_sec}s
-                    </span>
-                  )}
-                </span>
-              </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                Limit how often each viewer can chat. Host & mods bypass.
-              </p>
-              <div className="mt-2 grid grid-cols-5 gap-1">
-                {[0, 3, 5, 10, 30].map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={async () => {
-                      setEditSlowMode(String(s));
-                      await supabase
-                        .from("live_streams")
-                        .update({ chat_slow_mode_sec: s })
-                        .eq("id", id);
-                      sendMsg(
-                        s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s between messages`,
-                        true,
-                      );
-                    }}
-                    className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}
-                  >
-                    {s === 0 ? "Off" : `${s}s`}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* 🆕 Sudden Death config */}
@@ -4839,137 +4884,6 @@ function LiveDetail() {
                             </button>
                           </div>
                         </div>
-                        {/* 🆕 Inline extras row — Sudden Death, Voice trigger, Packaging (auto-priced) */}
-                        {(() => {
-                          const sdOn = !!(stream as any)?.sudden_death_enabled;
-                          const vOn = editVoiceEnabled;
-                          const pkgKey = (editShipPreset || "bubble") as ShippingPresetKey;
-                          const preset = SHIPPING_PRESETS[pkgKey];
-                          const startVal = Number(editStartPrice) || 0;
-                          // Auto shipping price from preset/weight — host never sets it manually
-                          const autoShip = preset.flatRate && preset.flatPriceUsd != null
-                            ? preset.flatPriceUsd
-                            : Number(
-                                estimateShippingAndImportFees({
-                                  subtotal: startVal,
-                                  weightOz: preset.weightOz,
-                                  quantity: Number(editQuantity) || 1,
-                                }).shipping.toFixed(2),
-                              );
-                          async function applyPackaging(key: ShippingPresetKey) {
-                            const p = SHIPPING_PRESETS[key];
-                            const price = p.flatRate && p.flatPriceUsd != null
-                              ? p.flatPriceUsd
-                              : Number(
-                                  estimateShippingAndImportFees({
-                                    subtotal: startVal,
-                                    weightOz: p.weightOz,
-                                    quantity: Number(editQuantity) || 1,
-                                  }).shipping.toFixed(2),
-                                );
-                            setEditShipPreset(key);
-                            setEditShipMethod(p.label);
-                            setEditShipPrice(String(price));
-                            await supabase
-                              .from("live_streams")
-                              .update({
-                                shipping_price: price,
-                                shipping_method: p.label,
-                              } as any)
-                              .eq("id", id);
-                          }
-                          return (
-                            <div className="flex flex-wrap items-center gap-1 border-t border-white/10 pt-1">
-                              <span className="text-[9px] font-bold uppercase tracking-wide text-white/60">Extras</span>
-                              <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/60 px-1.5 py-0.5 text-[9px] font-bold text-white/80">
-                                <input
-                                  type="checkbox"
-                                  checked={sdOn}
-                                  onChange={async (e) => {
-                                    await supabase
-                                      .from("live_streams")
-                                      .update({ sudden_death_enabled: e.target.checked })
-                                      .eq("id", id);
-                                  }}
-                                  className="h-3 w-3 accent-rose-500"
-                                />
-                                💀 SD
-                              </label>
-                              <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/60 px-1.5 py-0.5 text-[9px] font-bold text-white/80">
-                                <input
-                                  type="checkbox"
-                                  checked={vOn}
-                                  onChange={async (e) => {
-                                    setEditVoiceEnabled(e.target.checked);
-                                    await supabase
-                                      .from("live_streams")
-                                      .update({ voice_trigger_enabled: e.target.checked })
-                                      .eq("id", id);
-                                  }}
-                                  className="h-3 w-3 accent-emerald-500"
-                                />
-                                🎙️ Voice
-                              </label>
-                              {vOn && (
-                                <input
-                                  value={editVoicePhrase}
-                                  onChange={(e) => setEditVoicePhrase(e.target.value)}
-                                  onBlur={async (e) => {
-                                    const v = e.target.value.trim().toLowerCase() || "next";
-                                    await supabase
-                                      .from("live_streams")
-                                      .update({ voice_trigger_phrase: v })
-                                      .eq("id", id);
-                                  }}
-                                  placeholder="🪄 your magic word…"
-                                  className="w-24 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
-                                />
-                              )}
-                              <span className="ml-1 text-[9px] font-bold uppercase tracking-wide text-white/60">🐢 Slow</span>
-                              <select
-                                value={String((stream as any)?.chat_slow_mode_sec ?? 0)}
-                                onChange={async (e) => {
-                                  const s = Number(e.target.value);
-                                  setEditSlowMode(String(s));
-                                  await supabase
-                                    .from("live_streams")
-                                    .update({ chat_slow_mode_sec: s })
-                                    .eq("id", id);
-                                  sendMsg(
-                                    s === 0
-                                      ? "🐢 Slow chat is OFF"
-                                      : `🐢 Slow chat is ON — chat is slowed by ${s} second${s === 1 ? "" : "s"}`,
-                                    true,
-                                    { isAnnouncement: true },
-                                  );
-                                }}
-                                className="rounded-md bg-background/60 px-1 py-0.5 text-[9px] font-bold text-white/90 outline-none"
-                                title="Slow chat — limit how often each viewer can chat"
-                              >
-                                <option value="0">Off</option>
-                                <option value="3">3s</option>
-                                <option value="5">5s</option>
-                                <option value="10">10s</option>
-                                <option value="30">30s</option>
-                              </select>
-                              <span className="ml-1 text-[9px] font-bold uppercase tracking-wide text-white/60">Pkg</span>
-                              <select
-                                value={pkgKey}
-                                onChange={(e) => applyPackaging(e.target.value as ShippingPresetKey)}
-                                className="rounded-md bg-background/60 px-1 py-0.5 text-[9px] font-bold text-white/90 outline-none"
-                                title="Packaging — shipping price is auto-quoted from Shippo / size"
-                              >
-                                <option value="stamp" disabled={startVal >= 30}>📮 Stamp</option>
-                                <option value="pwe" disabled={startVal >= 30}>✉️ PWE</option>
-                                <option value="bubble">📦 Bubble</option>
-                                <option value="small_box">📫 Box</option>
-                              </select>
-                              <span className="ml-auto rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-200">
-                                Ship ${autoShip.toFixed(2)} <span className="opacity-60">auto</span>
-                              </span>
-                            </div>
-                          );
-                        })()}
                       </div>
                     )}
                     {auctionLive && (
@@ -6180,8 +6094,7 @@ function LiveDetail() {
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
               <span className="text-base leading-none">📦</span>
               <span>
-                <span className="font-bold">Host reminder:</span> any item won on the wheel{" "}
-                <span className="font-bold">must ship out to the buyer</span>. The win auto-creates an order in your Seller Hub → Orders/Shipping.
+                <span className="font-bold">Host only:</span> an item must ship out to the buyer when it is won on the wheel. The win auto-creates an order in your Seller Hub → Orders/Shipping.
               </span>
             </div>
 
