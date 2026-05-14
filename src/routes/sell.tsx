@@ -7,6 +7,7 @@ const CardScanner = lazy(() =>
   import("@/components/CardScanner").then((m) => ({ default: m.CardScanner })),
 );
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
+import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import {
