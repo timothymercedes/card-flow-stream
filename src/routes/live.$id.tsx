@@ -4929,7 +4929,7 @@ function LiveDetail() {
                           >
                             {editVoiceEnabled ? <Mic className="h-2.5 w-2.5" /> : <MicOff className="h-2.5 w-2.5" />}
                           </button>
-                          <button onClick={() => quickStartAuction()} disabled={!quickItem.trim()} title="Start round" className="flex flex-1 items-center justify-center gap-0.5 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
+                          <button onClick={() => quickStartAuction()} disabled={!quickItem.trim()} title="Start round" className="flex shrink-0 items-center justify-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
                             <Play className="h-2 w-2" />GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
                           </button>
                           <button onClick={endLive} title="End live" className="flex shrink-0 items-center justify-center gap-0.5 rounded-md bg-live px-1.5 py-0.5 text-[9px] font-bold text-live-foreground active:scale-[0.98]">
