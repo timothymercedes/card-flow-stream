@@ -4515,9 +4515,10 @@ function LiveDetail() {
             }}
             onDoubleClick={() => setBottomPanelMaxH(null)}
             title="Drag to resize · double-click to reset"
-            className="absolute left-1/2 top-1.5 z-30 flex h-4 w-16 -translate-x-1/2 cursor-ns-resize touch-none items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 backdrop-blur hover:bg-white/25"
+            className="absolute left-1/2 -top-3 z-30 flex h-7 w-24 -translate-x-1/2 cursor-ns-resize touch-none items-center justify-center gap-1 rounded-full bg-white/25 ring-1 ring-white/50 shadow-lg backdrop-blur hover:bg-white/40"
           >
-            <div className="h-0.5 w-8 rounded-full bg-white/70" />
+            <div className="h-1 w-10 rounded-full bg-white/90" />
+            <div className="h-1 w-10 rounded-full bg-white/90" />
           </div>
         )}
         {stream.mode === "show_off" && (
