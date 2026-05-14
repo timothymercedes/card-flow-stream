@@ -2154,10 +2154,9 @@ function LiveDetail() {
 
   async function startAuction() {
     if (!isSeller) return;
-    const item = quickItem.trim();
-    if (!item) return toast.error("Type Item is required");
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
+    const item = quickItem.trim() || `Item $${start}`;
     const buyNowRaw = Number(quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
