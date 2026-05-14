@@ -89,6 +89,16 @@ function ListingDetail() {
     return true;
   }
 
+  // Intl ack hook — depends on ship/seller country state.
+  const ackHook = useIntlAck(`listing-${id}`, ship.country, sellerCountry);
+  const intlBlocked = ackHook.isIntl && (
+    (Array.isArray(listing?.blocked_countries) && listing.blocked_countries.map((c: string) => c.toUpperCase()).includes((ship.country || "US").toUpperCase()))
+    || (listing && listing.ships_internationally === false)
+  );
+  function gateIntl(action: () => void) {
+    if (intlBlocked) { toast.error("Seller does not ship internationally to your country"); return; }
+    ackHook.gate(action);
+  }
 
   async function load() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
