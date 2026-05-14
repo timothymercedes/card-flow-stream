@@ -448,8 +448,9 @@ export function AuctionQueuePanel({
               </label>
             </div>
           )}
+
+          {draft.sale_type === "offer" && (
             <div className="grid grid-cols-2 gap-1.5">
-              <label className="text-[9px] uppercase text-white/60">Min Offer $
                 <input type="number" min={1} placeholder="optional" value={draft.min_offer}
                   onChange={(e) => setDraft((d) => ({ ...d, min_offer: e.target.value }))}
                   className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
