@@ -278,7 +278,10 @@ function ListingDetail() {
         <Link to="/market" className="absolute left-3 top-3 rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4 text-white" /></Link>
       </div>
       <div className="px-4 py-4">
-        <h1 className="text-xl font-bold">{listing.title}</h1>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <span className="flex-1">{listing.title}</span>
+          <InternationalBadge enabled={listing.ships_internationally} />
+        </h1>
         <div className="mt-1 flex items-center justify-between gap-2">
           <SellerBadge sellerId={listing.seller_id} username={seller?.username} avatarUrl={seller?.avatar_url} />
           {!isSeller && seller && (
