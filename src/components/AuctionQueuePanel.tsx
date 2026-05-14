@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw } from "lucide-react";
+import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package } from "lucide-react";
 
 type QueueItem = {
   id: string;
@@ -15,16 +15,16 @@ type QueueItem = {
   snipe_price: number | null;
   status: "queued" | "running" | "sold" | "unsold" | "skipped";
   quantity?: number | null;
+  prebid_enabled?: boolean;
 };
+
+type Listing = { id: string; title: string; price: number | null; image_url: string | null };
 
 /**
  * AuctionQueuePanel — host preloads items before going live; viewers see "up next".
- *
- * - Host mode: full CRUD (add/remove/reorder), one-tap "Start" applies the
- *   item's params to the live_streams row and starts the round.
- * - Viewer mode: read-only "Up next" preview of the first 3 queued items.
- * - Quick-relist: any item with status='unsold' shows a relist button that
- *   resets it to 'queued' and bumps it to the top.
+ * Host UI now includes: per-item image upload, pre-bid enable/disable toggle,
+ * and vault/marketplace import picker. Viewer mode still renders the small
+ * "Up next" strip used elsewhere on the live page.
  */
 export function AuctionQueuePanel({
   streamId,
@@ -41,7 +41,10 @@ export function AuctionQueuePanel({
 }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1 });
+  const [importing, setImporting] = useState(false);
+  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1, image_url: "" });
+  const [uploading, setUploading] = useState(false);
+  const [listings, setListings] = useState<Listing[]>([]);
 
   useEffect(() => {
     if (!streamId) return;
@@ -64,6 +67,18 @@ export function AuctionQueuePanel({
     return () => { alive = false; supabase.removeChannel(ch); };
   }, [streamId]);
 
+  async function uploadImage(file: File): Promise<string | null> {
+    if (!isHost) return null;
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${hostId}/queue-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("show-banners").upload(path, file, { upsert: true });
+    setUploading(false);
+    if (error) { toast.error(error.message); return null; }
+    const { data } = supabase.storage.from("show-banners").getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   async function addItem() {
     if (!isHost) return;
     const title = draft.title.trim();
@@ -82,10 +97,35 @@ export function AuctionQueuePanel({
       duration_seconds: dur,
       snipe_price: snipe,
       quantity: qty,
+      image_url: draft.image_url || null,
     } as any);
     if (error) return toast.error(error.message);
-    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1 });
+    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1, image_url: "" });
     setAdding(false);
+  }
+
+  async function loadListings() {
+    const { data } = await supabase.from("listings").select("id, title, price, image_url")
+      .eq("seller_id", hostId).eq("status", "active" as any).order("created_at", { ascending: false }).limit(40);
+    setListings((data as any[] as Listing[]) || []);
+    setImporting(true);
+  }
+
+  async function importListing(l: Listing) {
+    const nextPos = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 0;
+    const { error } = await supabase.from("auction_queue" as any).insert({
+      stream_id: streamId,
+      host_id: hostId,
+      position: nextPos,
+      title: l.title,
+      starting_bid: l.price ? Math.max(1, Math.floor(Number(l.price) * 0.5)) : 1,
+      duration_seconds: 30,
+      snipe_price: l.price,
+      quantity: 1,
+      image_url: l.image_url,
+    } as any);
+    if (error) return toast.error(error.message);
+    toast.success(`Added "${l.title}" from your listings`);
   }
 
   async function remove(id: string) {
@@ -101,6 +141,10 @@ export function AuctionQueuePanel({
       supabase.from("auction_queue" as any).update({ position: b.position }).eq("id", a.id),
       supabase.from("auction_queue" as any).update({ position: a.position }).eq("id", b.id),
     ]);
+  }
+
+  async function togglePrebid(item: QueueItem) {
+    await supabase.from("auction_queue" as any).update({ prebid_enabled: !(item.prebid_enabled ?? true) }).eq("id", item.id);
   }
 
   async function startItem(item: QueueItem) {
@@ -150,17 +194,44 @@ export function AuctionQueuePanel({
 
   return (
     <div className="space-y-2 rounded-xl bg-black/70 p-3 text-white ring-1 ring-white/10 backdrop-blur">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-white/70">
-          <ListOrdered className="h-3 w-3" /> Auction queue ({queued.length})
+          <ListOrdered className="h-3 w-3" /> Pre-B Queue ({queued.length})
         </p>
-        <button
-          onClick={() => setAdding((v) => !v)}
-          className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-1 text-[10px] font-bold text-white"
-        >
-          <Plus className="h-3 w-3" /> Add
-        </button>
+        <div className="flex gap-1">
+          <button onClick={loadListings} title="Import from your listings"
+            className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold text-white">
+            <Package className="h-3 w-3" /> Import
+          </button>
+          <button onClick={() => setAdding((v) => !v)}
+            className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-1 text-[10px] font-bold text-white">
+            <Plus className="h-3 w-3" /> Add
+          </button>
+        </div>
       </div>
+
+      {importing && (
+        <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg bg-white/5 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase text-white/60">Your listings</p>
+            <button onClick={() => setImporting(false)} className="text-[10px] text-white/60">Close</button>
+          </div>
+          {listings.length === 0 && <p className="text-[10px] text-white/50">No active listings to import.</p>}
+          {listings.map((l) => (
+            <button key={l.id} onClick={() => importListing(l)}
+              className="flex w-full items-center gap-2 rounded-md bg-white/5 p-1.5 text-left hover:bg-white/10">
+              {l.image_url
+                ? <img src={l.image_url} alt="" className="h-8 w-8 rounded object-cover" />
+                : <div className="h-8 w-8 rounded bg-white/10" />}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[11px] font-bold">{l.title}</p>
+                <p className="text-[9px] text-white/60">{l.price ? `$${Number(l.price).toFixed(0)}` : "—"}</p>
+              </div>
+              <Plus className="h-3 w-3 text-fuchsia-300" />
+            </button>
+          ))}
+        </div>
+      )}
 
       {adding && (
         <div className="space-y-1.5 rounded-lg bg-white/5 p-2">
@@ -170,6 +241,18 @@ export function AuctionQueuePanel({
             placeholder="Card / item title"
             className="w-full rounded-md bg-white/10 px-2 py-1.5 text-xs placeholder:text-white/40 focus:outline-none"
           />
+          <div className="flex items-center gap-2">
+            {draft.image_url && <img src={draft.image_url} alt="" className="h-10 w-10 rounded object-cover" />}
+            <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-md bg-white/10 px-2 py-1.5 text-[11px] hover:bg-white/15">
+              <ImagePlus className="h-3 w-3" />
+              {uploading ? "Uploading…" : draft.image_url ? "Replace photo" : "Add photo (optional)"}
+              <input type="file" accept="image/*" hidden onChange={async (e) => {
+                const f = e.target.files?.[0]; if (!f) return;
+                const url = await uploadImage(f);
+                if (url) setDraft((d) => ({ ...d, image_url: url }));
+              }} />
+            </label>
+          </div>
           <div className="grid grid-cols-4 gap-1.5">
             <label className="text-[9px] uppercase text-white/60">Start $
               <input type="number" min={1} value={draft.starting_bid}
@@ -205,37 +288,47 @@ export function AuctionQueuePanel({
 
       {queued.length === 0 && !adding && (
         <p className="rounded-lg bg-white/5 p-2 text-center text-[11px] text-white/50">
-          Queue is empty. Tap Add to preload items before going live.
+          Queue is empty. Tap Add or Import to preload items before going live.
         </p>
       )}
 
-      {queued.map((it, i) => (
-        <div key={it.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-2">
-          <span className="font-extrabold text-amber-300 text-[11px] tabular-nums w-5">#{i + 1}</span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold">
-              {it.title}
-              {Number(it.quantity || 1) > 1 && <span className="ml-1 rounded bg-fuchsia-500/30 px-1 text-[9px] font-extrabold text-fuchsia-100">×{it.quantity}</span>}
-            </p>
-            <p className="text-[10px] text-white/60">
-              ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s
-              {it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}
-            </p>
+      {queued.map((it, i) => {
+        const prebidOn = it.prebid_enabled ?? true;
+        return (
+          <div key={it.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-2">
+            {it.image_url
+              ? <img src={it.image_url} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
+              : <span className="grid h-10 w-10 shrink-0 place-items-center rounded bg-white/10 text-[11px] font-extrabold text-amber-300">#{i + 1}</span>}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold">
+                {it.title}
+                {Number(it.quantity || 1) > 1 && <span className="ml-1 rounded bg-fuchsia-500/30 px-1 text-[9px] font-extrabold text-fuchsia-100">×{it.quantity}</span>}
+              </p>
+              <p className="text-[10px] text-white/60">
+                ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s
+                {it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <button onClick={() => togglePrebid(it)}
+                title={prebidOn ? "Pre-bidding ON · tap to disable" : "Pre-bidding OFF · tap to enable"}
+                className={`rounded p-1 ${prebidOn ? "text-fuchsia-300 hover:bg-white/10" : "text-white/40 hover:bg-white/10"}`}>
+                {prebidOn ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </button>
+              <button onClick={() => move(it.id, -1)} disabled={i === 0}
+                className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronUp className="h-3 w-3" /></button>
+              <button onClick={() => move(it.id, 1)} disabled={i === queued.length - 1}
+                className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronDown className="h-3 w-3" /></button>
+              <button onClick={() => startItem(it)} disabled={auctionLive}
+                title={auctionLive ? "Finish current round first" : "Start this item"}
+                className="rounded-md bg-emerald-500 p-1.5 text-white disabled:opacity-40"><Play className="h-3 w-3" /></button>
+              <button onClick={() => remove(it.id)} className="rounded p-1 text-white/60 hover:bg-rose-500/30 hover:text-rose-200">
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-0.5">
-            <button onClick={() => move(it.id, -1)} disabled={i === 0}
-              className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronUp className="h-3 w-3" /></button>
-            <button onClick={() => move(it.id, 1)} disabled={i === queued.length - 1}
-              className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronDown className="h-3 w-3" /></button>
-            <button onClick={() => startItem(it)} disabled={auctionLive}
-              title={auctionLive ? "Finish current round first" : "Start this item"}
-              className="rounded-md bg-emerald-500 p-1.5 text-white disabled:opacity-40"><Play className="h-3 w-3" /></button>
-            <button onClick={() => remove(it.id)} className="rounded p-1 text-white/60 hover:bg-rose-500/30 hover:text-rose-200">
-              <Trash2 className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {unsold.length > 0 && (
         <div className="space-y-1 border-t border-white/10 pt-2">
