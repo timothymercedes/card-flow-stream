@@ -7,6 +7,7 @@ import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
+import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -14,6 +15,8 @@ function Cart() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [checkoutSeller, setCheckoutSeller] = useState<string | null>(null);
+  const [buyerCountry, setBuyerCountry] = useState<string>("US");
+  const [sellerCountries, setSellerCountries] = useState<Record<string, string>>({});
 
   async function load() {
     if (!user) return;
@@ -25,6 +28,22 @@ function Cart() {
     setOrders(data || []);
   }
   useEffect(() => { load(); }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("address_country").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.address_country) setBuyerCountry(String(data.address_country).toUpperCase()); });
+  }, [user]);
+
+  useEffect(() => {
+    const ids = Array.from(new Set(orders.map((o) => o.seller_id))).filter((id) => !(id in sellerCountries));
+    if (!ids.length) return;
+    Promise.all(ids.map((id) =>
+      (supabase.rpc as any)("seller_country", { _seller_id: id }).then((r: any) => [id, String(r.data || "US").toUpperCase()] as const)
+    )).then((entries) => {
+      setSellerCountries((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    }).catch(() => {});
+  }, [orders]);
 
   const groups = useMemo(() => {
     const m: Record<string, any[]> = {};
@@ -85,12 +104,20 @@ function Cart() {
         <div className="space-y-4">
           {Object.entries(groups).map(([sellerId, items]) => {
             const total = items.reduce((a, o) => a + Number(o.amount || 0), 0);
+            const sellerCountry = sellerCountries[sellerId] || "US";
+            const isIntl = sellerCountry !== buyerCountry;
             return (
               <div key={sellerId} className="rounded-xl bg-card p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-bold">{items.length} item{items.length === 1 ? "" : "s"} from this seller</p>
                   <p className="text-base font-extrabold text-primary">${total.toFixed(2)}</p>
                 </div>
+                {isIntl && (
+                  <div className="mb-2">
+                    <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountry} variant="full" />
+                    <p className="mt-1 text-[11px] text-amber-300/90">A 4% International Processing Fee will be itemized at checkout.</p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   {items.map((o) => (
                     <div key={o.id} className="flex items-center gap-2 rounded-lg bg-muted/40 p-2">
@@ -125,6 +152,11 @@ function Cart() {
             <div className="relative w-full max-w-md rounded-t-2xl bg-card p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setCheckoutSeller(null)} className="absolute right-3 top-3 rounded-full bg-muted p-1.5"><X className="h-4 w-4" /></button>
               <h2 className="mb-3 text-lg font-bold">Checkout</h2>
+              {(sellerCountries[checkoutSeller] || "US") !== buyerCountry && (
+                <div className="mb-3">
+                  <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountries[checkoutSeller] || "US"} variant="full" />
+                </div>
+              )}
               <StripeCheckout
                 sellerId={checkoutSeller}
                 subtotalCents={Math.round(checkoutSubtotal * 100)}
