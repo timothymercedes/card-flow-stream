@@ -14,6 +14,7 @@ import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { IntlWarningBanner, useIntlAck } from "@/components/InternationalShippingWarning";
 import { InternationalBadge } from "@/components/InternationalBadge";
 import { getIntlContext } from "@/lib/internationalShipping";
+import { ShippingEstimator } from "@/components/ShippingEstimator";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
