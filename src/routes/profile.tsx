@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote, Star, ExternalLink, MessageSquare } from "lucide-react";
+import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote, Star, ExternalLink, MessageSquare, LifeBuoy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -541,6 +541,10 @@ function Profile() {
           <Link to="/bookmarks" className="flex items-center gap-3 rounded-xl bg-card p-4">
             <Bell className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">My Bookmarks</p><p className="text-xs text-muted-foreground">Saved shows & reminder settings</p></div>
+          </Link>
+          <Link to="/support" className="flex items-center gap-3 rounded-xl bg-card p-4">
+            <LifeBuoy className="h-5 w-5 text-primary" />
+            <div className="flex-1"><p className="text-sm font-semibold">Help & Support</p><p className="text-xs text-muted-foreground">FAQs and contact our team</p></div>
           </Link>
           <PushToggle userId={user!.id} />
           <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
