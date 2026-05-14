@@ -307,6 +307,7 @@ function LiveList() {
                       {new Date(sh.scheduled_for).toLocaleString()}
                       <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">in {fmtCountdown(sh.scheduled_for)}</span>
                     </p>
+                    <div className="mt-2"><BookmarkButton showId={sh.id} /></div>
                   </div>
                 </div>
               ))}
