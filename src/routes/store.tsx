@@ -527,8 +527,28 @@ function SellerHub() {
                         <PaymentStatusBadge s={o.payment_status} />
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Buyer: <span className="font-semibold text-foreground">@{o.buyer_username || "unknown"}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Ship to: {o.ship_name}, {o.ship_address}, {o.ship_city} {o.ship_state} {o.ship_zip}</p>
+                    {o.is_giveaway && (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-bold text-fuchsia-300">
+                        🎁 Giveaway shipment · host pays shipping
+                      </p>
+                    )}
                     {o.tracking_number && <p className="text-[11px] text-primary">Tracking: {o.tracking_number}{o.carrier && ` · ${o.carrier}`}</p>}
+                    {o.label_url && (
+                      <button
+                        onClick={() => {
+                          const w = window.open(o.label_url, "_blank", "noopener,noreferrer");
+                          // best-effort auto-print once the PDF loads
+                          try { w?.addEventListener?.("load", () => w?.print?.()); } catch {}
+                        }}
+                        className="mt-2 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground"
+                      >
+                        🖨️ Print Label
+                      </button>
+                    )}
 
                     {ordersTab === "to_ship" && o.payment_status === "paid" && o.shipping_due_at && (() => {
                       const dueMs = new Date(o.shipping_due_at).getTime() - Date.now();
