@@ -169,7 +169,7 @@ export function AuctionQueuePanel({
             placeholder="Card / item title"
             className="w-full rounded-md bg-white/10 px-2 py-1.5 text-xs placeholder:text-white/40 focus:outline-none"
           />
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             <label className="text-[9px] uppercase text-white/60">Start $
               <input type="number" min={1} value={draft.starting_bid}
                 onChange={(e) => setDraft((d) => ({ ...d, starting_bid: Number(e.target.value) }))}
@@ -183,6 +183,11 @@ export function AuctionQueuePanel({
             <label className="text-[9px] uppercase text-white/60">Buy-now
               <input type="number" placeholder="—" value={draft.snipe_price}
                 onChange={(e) => setDraft((d) => ({ ...d, snipe_price: e.target.value }))}
+                className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+            </label>
+            <label className="text-[9px] uppercase text-white/60">Qty
+              <input type="number" min={1} max={999} value={draft.quantity}
+                onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
                 className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
             </label>
           </div>
