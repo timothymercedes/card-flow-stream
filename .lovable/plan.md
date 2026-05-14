@@ -1,92 +1,95 @@
-# Pre-B (Pre-Bid) System & Scheduled Shows
+# Pre-B v2: Editable Shows, Trigger Words, Buy Now → Ship
 
-Replaces the viewer-facing "Queue" button with a full Pre-Bid experience and adds scheduled show support with viewer bookmarks. Internal seller queue logic stays intact behind the scenes.
+## 1. Sell button menu (quick win)
+Replace single "Sell" CTA with a popover containing three actions:
+- **Go Live** → `/live/new` (or existing live entry)
+- **List Item** → `/sell`
+- **Schedule Show** → opens `ScheduledShowForm` modal
 
-## 1. Database changes (migration)
+Touched: `src/components/AppShell.tsx` (or wherever the Sell button lives — will grep).
 
-Extend `auction_queue` (already used as the internal queue) and add new tables:
+## 2. Database changes (one migration)
+Extend `auction_queue` so each item is more than just an auction line:
+- `sale_type text default 'prebid'` — one of `'prebid' | 'buynow' | 'offer'`
+- `buy_now_price numeric` — required when sale_type='buynow' or as BIN on prebid
+- `trigger_word text` — host-chosen phrase that activates the item live
+- `scheduled_show_id` already exists (good)
+- `sold_to uuid`, `sold_at timestamptz`, `order_id uuid` — tracks Buy Now sale
 
-- `auction_queue` — add columns:
-  - `image_url text` (host-uploaded item photo)
-  - `prebid_enabled boolean default true`
-  - `position int` (manual ordering; falls back to created_at)
-- `prebids` — viewer pre-bids placed before item goes live
-  - `id, queue_item_id (fk), bidder_id, amount numeric, created_at`
-  - RLS: viewers insert their own; everyone reads for the item; host can see all
-- `scheduled_shows` — future live shows
-  - `id, host_id, title, description, banner_url, categories text[], scheduled_at timestamptz, stream_id (nullable, links once live), created_at, updated_at`
-  - RLS: public read; host manages own
-- `show_bookmarks` — viewer bookmarks + reminder opt-in
-  - `id, show_id (fk), user_id, remind boolean default true, created_at`
-  - Unique (show_id, user_id). RLS: user manages own; host can count via view
-- `show_bookmark_counts` view — aggregate count per show (public read)
-- Realtime: enable on `auction_queue`, `prebids`, `scheduled_shows`, `show_bookmarks`
+Add `offers` table for "Make Offer" items:
+- `id, queue_item_id fk, buyer_id, amount, status (pending/accepted/declined), created_at`
+- RLS: buyer inserts/reads own; host (queue_item.host) reads/updates all on their items
 
-## 2. Components
+Realtime on `offers` + extended `auction_queue`.
 
-- `src/components/PreBidPanel.tsx` — viewer-facing panel
-  - List of upcoming items (image, title, starting bid, buy-now, timer, current pre-bid leader)
-  - "Place Pre-Bid" input per item (when `prebid_enabled`)
-  - Bookmark/watch icon per item
-  - Realtime subscription so bids/items update live
-- `src/components/PreBidHostPanel.tsx` — host management (extends existing AuctionQueuePanel logic)
-  - Add/remove/reorder (drag handles up/down)
-  - Edit start price, sec, buy-now, quantity, image upload
-  - Toggle `prebid_enabled` per item
-  - "Import from Vault/Marketplace" picker (lists host's listings)
-  - View pre-bids placed on each item
-- `src/components/ScheduledShowForm.tsx` — host create/edit show
-  - Title, description, banner upload, categories, datetime
-- `src/components/ScheduledShowCard.tsx` — viewer card with bookmark button + bookmark count
+## 3. Unified Pre-B Host Manager (`PreBHostManager.tsx`)
+One component used in TWO places:
+- inside `live.$id.tsx` (host view, replaces current AuctionQueuePanel host UI)
+- inside `ScheduledShowEditor` (pre-stream editing)
 
-## 3. Routes
+Per-item editor row:
+- image upload (existing ListingImageUpload)
+- title, description, qty
+- **Sale type selector**: Pre-Bid / Buy Now / Make Offer (radio chips)
+- conditional fields: starting bid + duration (prebid), price (buynow), min offer (offer)
+- **Trigger word** input ("say this on stream to start")
+- reorder ↑/↓, delete
+- "Import from Vault/Marketplace" (already exists)
 
-- `src/routes/shows.tsx` — public list of upcoming scheduled shows
-- `src/routes/shows.$id.tsx` — show detail: banner, info, pre-bid items, bookmark button
-- `src/routes/profile.tsx` — add "My Bookmarked Shows" section (or new tab)
-- `src/routes/seller-hub.tsx` (or equivalent) — add "Scheduled Shows" management section
-- `src/routes/live.$id.tsx`:
-  - Rename viewer button "📋 Queue" → "🔖 Pre-B"
-  - Show "Pre-B Available" badge in header when `auction_queue` has upcoming items with `prebid_enabled`
-  - Replace viewer `AuctionQueuePanel` mount with `PreBidPanel`
-  - Host keeps `AuctionQueuePanel` (rebranded internally as PreBidHostPanel) with new fields
+## 4. Trigger word activation
+- During live stream, host has a "Start next item" button AND can type/say the trigger word.
+- Add a small input above the queue: "Type trigger word to start item" → matches against `trigger_word`, calls existing `start` flow on match.
+- (Voice/transcript matching can hook into existing ElevenLabs caption stream if present — Phase 2; keyboard match ships now.)
 
-## 4. Notifications
+## 5. Viewer Pre-B panel updates
+Extend existing `PreBidPanel.tsx`:
+- Render different action per `sale_type`:
+  - **prebid** → existing pre-bid input
+  - **buynow** → "Buy Now $X" button → creates order → item marked sold
+  - **offer** → "Make Offer" input → inserts into `offers` table
+- Hide items where `sold_to is not null`
+- Show "SOLD" badge briefly before removal
 
-When a bookmarked item/show goes live:
-- Server fn `notifyBookmarkers` triggered when:
-  - host starts a queue item (called from existing `start` flow)
-  - scheduled show's stream_id is set / show goes live
-- Inserts into existing `notifications` table (if present) for users who bookmarked with `remind=true`
-- If no notifications table, create minimal one in same migration
+## 6. Buy Now → Items to Ship
+On Buy Now click:
+- server fn `buyNowQueueItem({ queueItemId })`:
+  - locks row, verifies not sold
+  - creates `orders` row (reuse existing orders table) with seller=host, buyer=user, amount=buy_now_price
+  - sets `auction_queue.sold_to`, `sold_at`, `order_id`
+  - returns order id → client redirects to checkout (existing Stripe flow) OR adds to cart
+- Item disappears from viewer Pre-B (realtime)
+- Appears in seller's existing "Items to Ship" / orders dashboard automatically (no new UI)
 
-## 5. Realtime
+## 7. Scheduled Shows: editable + visible
+- Profile tab "Scheduled Shows" — lists shows (host's own at top if they host any, then bookmarked)
+- New route `shows.$id.edit.tsx` (host only) — opens `ScheduledShowEditor` with:
+  - show form fields (existing `ScheduledShowForm`)
+  - embedded `PreBHostManager` scoped to `scheduled_show_id`
+- Public `shows.$id.tsx` — viewer view with bookmarks + viewer Pre-B preview
 
-Subscribe in `PreBidPanel`, `ScheduledShowCard`, and `live.$id` to:
-- `auction_queue` changes (item add/remove/reorder/start)
-- `prebids` inserts (live leader update)
-- `show_bookmarks` (live bookmark counts for host)
-
-## 6. Files touched
+## 8. Files
 
 Created:
-- `src/components/PreBidPanel.tsx`
-- `src/components/PreBidHostPanel.tsx` (or extend AuctionQueuePanel)
-- `src/components/ScheduledShowForm.tsx`
-- `src/components/ScheduledShowCard.tsx`
-- `src/routes/shows.tsx`
-- `src/routes/shows.$id.tsx`
+- `src/components/PreBHostManager.tsx` (unified host editor — replaces inline AuctionQueuePanel host blocks)
+- `src/components/SellMenu.tsx` (3-option popover)
+- `src/components/ScheduledShowEditor.tsx` (combines form + PreBHostManager)
+- `src/routes/shows.$id.edit.tsx`
+- `src/lib/queueActions.functions.ts` (`buyNowQueueItem`, `makeOffer`, `acceptOffer`)
 - migration SQL
 
 Edited:
-- `src/routes/live.$id.tsx` (button rename, badge, swap panel)
-- `src/routes/profile.tsx` (bookmarked shows section)
-- `src/routes/seller-hub.tsx` (scheduled shows manager)
-- `src/components/AuctionQueuePanel.tsx` (image upload, prebid toggle, reorder, vault import)
+- `src/components/AppShell.tsx` (Sell → SellMenu)
+- `src/components/AuctionQueuePanel.tsx` (add sale_type / trigger_word / buy_now_price fields, or delegate to PreBHostManager)
+- `src/components/PreBidPanel.tsx` (per-item action by sale_type, hide sold)
+- `src/routes/live.$id.tsx` (trigger-word input, Pre-B button opens host manager when host)
+- `src/routes/profile.tsx` (Scheduled Shows tab)
+- `src/routes/shows.$id.tsx` (already exists per plan? will create if missing)
 
 ## Open questions before I start
 
-1. **Image upload storage**: reuse the existing `listings` storage bucket for queue item photos and show banners, or create new `prebid-images` / `show-banners` buckets?
-2. **Notifications**: is there an existing `notifications` table I should write into, or should I create one as part of this migration?
-3. **Where do hosts manage scheduled shows today?** I'll add a "Scheduled Shows" section to `seller-hub.tsx` unless you point me elsewhere.
-4. **Pre-bids on live items**: should pre-bids automatically convert to opening bids when the item starts (highest pre-bid becomes the first bid), or just be informational for the host?
+1. **Buy Now flow**: instant Stripe checkout redirect, or add to cart so they can checkout multiple items together? (Cart matches your existing single-checkout flow — leaning cart.)
+2. **Make Offer**: should accepted offers auto-charge the buyer (saved card required), or just notify buyer to confirm and pay? (Notify+confirm is safer; auto-charge needs saved payment method on file.)
+3. **Trigger word voice match**: ship keyboard-only now (host types it), add voice match later via existing transcript stream — OK?
+4. **Where is the "Sell" button today?** I'll grep `AppShell.tsx` and bottom nav. Confirm the FAB / bottom-nav "Sell" entry is the right one to convert.
+
+No files changed yet — awaiting your green light + answers to the 4 questions (defaults in parens are fine if you just say "go").
