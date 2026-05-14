@@ -76,5 +76,5 @@ export async function sendPushToUsers(
       }
     }
   }));
-  return { sent, cleaned };
+  return { sent, cleaned, skipped };
 }
