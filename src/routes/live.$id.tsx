@@ -92,6 +92,8 @@ import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
 import { useStudio, type StudioScene } from "@/hooks/useStudio";
 import { takeStudioCameraStreams } from "@/lib/studioCameraHandoff";
+import { useIntlAck, IntlWarningBanner } from "@/components/InternationalShippingWarning";
+import { InternationalBadge } from "@/components/InternationalBadge";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
