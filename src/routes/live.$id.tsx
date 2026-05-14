@@ -142,6 +142,17 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
+  // Resizable bottom panel — host drags the top edge to set max height (px). null = auto.
+  const [bottomPanelMaxH, setBottomPanelMaxH] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = window.localStorage.getItem("pbl:bottom-panel-h");
+    return v ? Number(v) || null : null;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (bottomPanelMaxH == null) window.localStorage.removeItem("pbl:bottom-panel-h");
+    else window.localStorage.setItem("pbl:bottom-panel-h", String(bottomPanelMaxH));
+  }, [bottomPanelMaxH]);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [liveScanBusy, setLiveScanBusy] = useState(false);
