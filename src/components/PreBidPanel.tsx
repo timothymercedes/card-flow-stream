@@ -19,7 +19,7 @@ import { buyNowQueueItem, makeQueueOffer } from "@/lib/queueActions.functions";
 import { toast } from "sonner";
 import { X, Bookmark, Gavel, ListOrdered, Trophy, ShoppingCart, HandCoins } from "lucide-react";
 
-type SaleType = "prebid" | "buynow" | "offer";
+type SaleType = "prebid" | "buynow" | "either" | "offer";
 
 type QueueItem = {
   id: string;
@@ -204,9 +204,10 @@ export function PreBidPanel({
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
                       {st === "prebid" && (<>Start ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s{it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}</>)}
                       {st === "buynow" && (<>Buy Now ${bnPrice.toFixed(0)}</>)}
+                      {st === "either" && (<>Pre-Bid from ${Number(it.starting_bid).toFixed(0)} · or Buy Now ${bnPrice.toFixed(0)}</>)}
                       {st === "offer" && (<>Make Offer{it.min_offer ? ` · min $${Number(it.min_offer).toFixed(0)}` : ""}</>)}
                     </p>
-                    {st === "prebid" && top && (
+                    {(st === "prebid" || st === "either") && top && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
                         <Trophy className="h-3 w-3" />
                         Top pre-bid ${top.amount} · {top.bidder_username || "anon"}
@@ -217,11 +218,11 @@ export function PreBidPanel({
                 </div>
 
                 {/* Action by sale type */}
-                {st === "prebid" && (it.prebid_enabled ? (
+                {(st === "prebid" || st === "either") && (it.prebid_enabled ? (
                   <div className="mt-2 flex items-center gap-1.5">
                     <input
                       type="number" inputMode="decimal" min={min}
-                      placeholder={`Min $${min}`}
+                      placeholder={`Pre-bid · min $${min}`}
                       value={drafts[it.id] || ""}
                       onChange={(e) => setDrafts((d) => ({ ...d, [it.id]: e.target.value }))}
                       className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50"
@@ -239,9 +240,9 @@ export function PreBidPanel({
                   </p>
                 ))}
 
-                {st === "buynow" && (
+                {(st === "buynow" || st === "either") && bnPrice > 0 && (
                   <button
-                    onClick={() => buyNow(it)} disabled={busy === it.id || !bnPrice}
+                    onClick={() => buyNow(it)} disabled={busy === it.id}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
                   >
                     <ShoppingCart className="h-4 w-4" />
