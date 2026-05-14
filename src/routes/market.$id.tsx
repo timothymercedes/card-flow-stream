@@ -87,18 +87,22 @@ function ListingDetail() {
     return true;
   }
 
+  const [sellerCountry, setSellerCountry] = useState<string>("US");
+
   async function load() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
     setListing(l);
     if (l) {
-      const [{ data: sRows }, { data: bs }, { data: os }] = await Promise.all([
+      const [{ data: sRows }, { data: bs }, { data: os }, { data: sc }] = await Promise.all([
         (supabase.rpc as any)("public_profiles_by_ids", { _ids: [l.seller_id] }),
         supabase.from("listing_bids").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
         supabase.from("offers").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
+        (supabase.rpc as any)("seller_country", { _seller_id: l.seller_id }),
       ]);
       setSeller((sRows && sRows[0]) || null);
       setBids(bs || []);
       setOffers(os || []);
+      setSellerCountry(((sc as any) || "US").toString().toUpperCase());
     }
   }
   useEffect(() => { load(); }, [id]);
