@@ -4921,10 +4921,37 @@ function LiveDetail() {
                                       .update({ voice_trigger_phrase: v })
                                       .eq("id", id);
                                   }}
-                                  placeholder="Type your active Triggers"
-                                  className="w-16 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
+                                  placeholder="🪄 your magic word…"
+                                  className="w-24 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
                                 />
                               )}
+                              <span className="ml-1 text-[9px] font-bold uppercase tracking-wide text-white/60">🐢 Slow</span>
+                              <select
+                                value={String((stream as any)?.chat_slow_mode_sec ?? 0)}
+                                onChange={async (e) => {
+                                  const s = Number(e.target.value);
+                                  setEditSlowMode(String(s));
+                                  await supabase
+                                    .from("live_streams")
+                                    .update({ chat_slow_mode_sec: s })
+                                    .eq("id", id);
+                                  sendMsg(
+                                    s === 0
+                                      ? "🐢 Slow chat is OFF"
+                                      : `🐢 Slow chat is ON — chat is slowed by ${s} second${s === 1 ? "" : "s"}`,
+                                    true,
+                                    { isAnnouncement: true },
+                                  );
+                                }}
+                                className="rounded-md bg-background/60 px-1 py-0.5 text-[9px] font-bold text-white/90 outline-none"
+                                title="Slow chat — limit how often each viewer can chat"
+                              >
+                                <option value="0">Off</option>
+                                <option value="3">3s</option>
+                                <option value="5">5s</option>
+                                <option value="10">10s</option>
+                                <option value="30">30s</option>
+                              </select>
                               <span className="ml-1 text-[9px] font-bold uppercase tracking-wide text-white/60">Pkg</span>
                               <select
                                 value={pkgKey}
