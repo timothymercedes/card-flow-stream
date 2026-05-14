@@ -198,8 +198,7 @@ function ListingDetail() {
     if (!requireAuth("add to cart")) return;
     if (!profile) return;
     if (!ensureBuyerAddress()) return;
-    setCartMode("cart");
-    setShowShip(true);
+    gateIntl(() => { setCartMode("cart"); setShowShip(true); });
   }
 
   async function placeOrder(amount: number) {
