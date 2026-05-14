@@ -5008,7 +5008,7 @@ function LiveDetail() {
                                       .update({ voice_trigger_phrase: v })
                                       .eq("id", id);
                                   }}
-                                  placeholder="🪄 your magic word…"
+                                  placeholder="Type your custom trigger word ✨"
                                   className="w-24 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
                                 />
                               )}
@@ -5024,8 +5024,8 @@ function LiveDetail() {
                                     .eq("id", id);
                                   sendMsg(
                                     s === 0
-                                      ? "🐢 Slow chat is OFF"
-                                      : `🐢 Slow chat is ON — chat is slowed by ${s} second${s === 1 ? "" : "s"}`,
+                                      ? "📌 Slow chat is off."
+                                      : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
                                     true,
                                     { isAnnouncement: true },
                                   );
