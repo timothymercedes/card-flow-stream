@@ -92,6 +92,8 @@ import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
 import { useStudio, type StudioScene } from "@/hooks/useStudio";
 import { takeStudioCameraStreams } from "@/lib/studioCameraHandoff";
+import { useIntlAck, IntlWarningBanner } from "@/components/InternationalShippingWarning";
+import { InternationalBadge } from "@/components/InternationalBadge";
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -1509,6 +1511,8 @@ function LiveDetail() {
 
   // 🆕 Buyer readiness — must have completed shipping profile to bid/buy
   const [buyerReady, setBuyerReady] = useState(false);
+  const [buyerCountry, setBuyerCountry] = useState<string>("US");
+  const [sellerCountry, setSellerCountry] = useState<string>("US");
   useEffect(() => {
     if (!user) {
       setBuyerReady(false);
@@ -1517,7 +1521,7 @@ function LiveDetail() {
     let cancelled = false;
     supabase
       .from("profiles")
-      .select("full_name,address_line1,address_city,address_zip,buyer_verified")
+      .select("full_name,address_line1,address_city,address_zip,address_country,buyer_verified")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -1529,11 +1533,26 @@ function LiveDetail() {
           data.address_zip
         );
         setBuyerReady(ok || !!data.buyer_verified);
+        setBuyerCountry(((data.address_country as string) || "US").toUpperCase());
       });
     return () => {
       cancelled = true;
     };
   }, [user?.id]);
+
+  // Fetch seller country once stream loads
+  useEffect(() => {
+    if (!stream?.seller_id) return;
+    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id })
+      .then(({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()));
+  }, [stream?.seller_id]);
+
+  // International acknowledgement gate (per-stream)
+  const intlAck = useIntlAck(`live-${id}`, buyerCountry, sellerCountry);
+  const intlBlocked = intlAck.isIntl && (
+    (Array.isArray((stream as any)?.blocked_countries) && (stream as any).blocked_countries.map((c: string) => c.toUpperCase()).includes(buyerCountry))
+    || (stream && (stream as any).ships_internationally === false)
+  );
 
   const { requireAuth } = useAuthGate();
   function requireBuyerReady(action = "continue"): boolean {
@@ -1546,6 +1565,10 @@ function LiveDetail() {
     if (!buyerReady) {
       toast.error("Complete your shipping profile first");
       nav({ to: "/profile" });
+      return false;
+    }
+    if (intlBlocked) {
+      toast.error(`Seller doesn't ship internationally to ${buyerCountry}`);
       return false;
     }
     return true;
@@ -1569,58 +1592,60 @@ function LiveDetail() {
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
     const prevBidder = stream.current_bidder_id;
 
-    // Atomic server-side bid: locks the row, enforces min increment, applies
-    // anti-snipe / sudden-death, writes bid history + audit log.
-    const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
-      _stream_id: id,
-      _amount: amount,
-    });
-    if (error) return toast.error(error.message);
-    playSfx("bid");
-    const extended = !!(bidRes as any)?.extended;
-    const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
-    const exts = Number(stream.snipe_extends || 0);
-    safety.touch("auction_bid");
+    intlAck.gate(async () => {
+      // Atomic server-side bid: locks the row, enforces min increment, applies
+      // anti-snipe / sudden-death, writes bid history + audit log.
+      const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
+        _stream_id: id,
+        _amount: amount,
+      });
+      if (error) return toast.error(error.message);
+      playSfx("bid");
+      const extended = !!(bidRes as any)?.extended;
+      const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
+      const exts = Number(stream.snipe_extends || 0);
+      safety.touch("auction_bid");
 
-    if (extended) {
-      endedRef.current = false;
-      snapshotRef.current = false;
-      const willArm = exts + 1 >= 3;
-      await sendMsg(
-        willArm
-          ? `💀 SUDDEN DEATH ARMED — next bid INSTANTLY wins! (@${profile.username} forced it)`
-          : `⚡ OVERTIME +3s — @${profile.username} struck in the final 3s! (${exts + 1}/3)`,
-        true,
-      );
-    }
-    if (suddenDeathWin) {
-      endedRef.current = false;
-      snapshotRef.current = false;
-      await sendMsg(`💥 SUDDEN-DEATH WIN — @${profile.username} took it for $${amount}!`, true);
-    }
-    await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
-    if (stream.seller_id !== user.id) {
+      if (extended) {
+        endedRef.current = false;
+        snapshotRef.current = false;
+        const willArm = exts + 1 >= 3;
+        await sendMsg(
+          willArm
+            ? `💀 SUDDEN DEATH ARMED — next bid INSTANTLY wins! (@${profile.username} forced it)`
+            : `⚡ OVERTIME +3s — @${profile.username} struck in the final 3s! (${exts + 1}/3)`,
+          true,
+        );
+      }
+      if (suddenDeathWin) {
+        endedRef.current = false;
+        snapshotRef.current = false;
+        await sendMsg(`💥 SUDDEN-DEATH WIN — @${profile.username} took it for $${amount}!`, true);
+      }
+      await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
+      if (stream.seller_id !== user.id) {
+        await supabase.from("notifications").insert({
+          user_id: stream.seller_id,
+          type: "bid",
+          body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
+          link: `/live/${id}`,
+        });
+      }
+      if (prevBidder && prevBidder !== user.id) {
+        await supabase.from("notifications").insert({
+          user_id: prevBidder,
+          type: "outbid",
+          body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
+          link: `/live/${id}`,
+        });
+      }
+      // Notify the new top bidder they're winning
       await supabase.from("notifications").insert({
-        user_id: stream.seller_id,
-        type: "bid",
-        body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
+        user_id: user.id,
+        type: "winning",
+        body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
         link: `/live/${id}`,
       });
-    }
-    if (prevBidder && prevBidder !== user.id) {
-      await supabase.from("notifications").insert({
-        user_id: prevBidder,
-        type: "outbid",
-        body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
-        link: `/live/${id}`,
-      });
-    }
-    // Notify the new top bidder they're winning
-    await supabase.from("notifications").insert({
-      user_id: user.id,
-      type: "winning",
-      body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
-      link: `/live/${id}`,
     });
   }
 
@@ -2947,6 +2972,12 @@ function LiveDetail() {
       onTouchStart={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchStart}
       onTouchEnd={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchEnd}
     >
+      {intlAck.modal}
+      {!isSeller && intlAck.isIntl && (
+        <div className="absolute left-2 right-2 top-14 z-40">
+          <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountry} variant="compact" />
+        </div>
+      )}
       {/* Full-screen video */}
       <div
         className="absolute inset-0"

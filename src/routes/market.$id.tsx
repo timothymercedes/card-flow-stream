@@ -11,6 +11,9 @@ import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { IntlWarningBanner, useIntlAck } from "@/components/InternationalShippingWarning";
+import { InternationalBadge } from "@/components/InternationalBadge";
+import { getIntlContext } from "@/lib/internationalShipping";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -41,6 +44,8 @@ function ListingDetail() {
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   const [qty, setQty] = useState(1);
   const [cartMode, setCartMode] = useState<"buy" | "cart">("buy");
+  const [sellerCountry, setSellerCountry] = useState<string>("US");
+
 
   useEffect(() => {
     if (!user) { setUnpaidOrders(0); return; }
@@ -84,18 +89,31 @@ function ListingDetail() {
     return true;
   }
 
+  // Intl ack hook — depends on ship/seller country state.
+  const ackHook = useIntlAck(`listing-${id}`, ship.country, sellerCountry);
+  const intlBlocked = ackHook.isIntl && (
+    (Array.isArray(listing?.blocked_countries) && listing.blocked_countries.map((c: string) => c.toUpperCase()).includes((ship.country || "US").toUpperCase()))
+    || (listing && listing.ships_internationally === false)
+  );
+  function gateIntl(action: () => void) {
+    if (intlBlocked) { toast.error("Seller does not ship internationally to your country"); return; }
+    ackHook.gate(action);
+  }
+
   async function load() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
     setListing(l);
     if (l) {
-      const [{ data: sRows }, { data: bs }, { data: os }] = await Promise.all([
+      const [{ data: sRows }, { data: bs }, { data: os }, { data: sc }] = await Promise.all([
         (supabase.rpc as any)("public_profiles_by_ids", { _ids: [l.seller_id] }),
         supabase.from("listing_bids").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
         supabase.from("offers").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
+        (supabase.rpc as any)("seller_country", { _seller_id: l.seller_id }),
       ]);
       setSeller((sRows && sRows[0]) || null);
       setBids(bs || []);
       setOffers(os || []);
+      setSellerCountry(((sc as any) || "US").toString().toUpperCase());
     }
   }
   useEffect(() => { load(); }, [id]);
@@ -138,10 +156,12 @@ function ListingDetail() {
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
     if (listing.auction_ends_at && new Date(listing.auction_ends_at).getTime() <= Date.now()) return toast.error("Auction ended");
-    const { error } = await (supabase.rpc as any)("place_listing_bid", { _listing_id: id, _amount: amt });
-    if (error) return toast.error(error.message || "Could not place bid");
-    await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "bid", body: `@${profile.username} bid $${amt} on "${listing.title}"`, link: `/market/${id}` });
-    setBidAmt(""); load(); toast.success("Bid placed");
+    gateIntl(async () => {
+      const { error } = await (supabase.rpc as any)("place_listing_bid", { _listing_id: id, _amount: amt });
+      if (error) return toast.error(error.message || "Could not place bid");
+      await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "bid", body: `@${profile.username} bid $${amt} on "${listing.title}"`, link: `/market/${id}` });
+      setBidAmt(""); load(); toast.success("Bid placed");
+    });
   }
 
   async function makeOffer() {
@@ -152,16 +172,18 @@ function ListingDetail() {
     // Dedupe: same buyer can't repeat the same exact amount that's still pending
     const dup = offers.find((o) => o.buyer_id === profile.id && Number(o.amount) === amt && o.status === "pending");
     if (dup) return toast.error("You already offered that amount");
-    const { error } = await supabase.from("offers").insert({
-      listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
+    gateIntl(async () => {
+      const { error } = await supabase.from("offers").insert({
+        listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
+      });
+      if (error) {
+        if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
+        if (error.code === "23505") return toast.error("You already offered that amount");
+        return toast.error(error.message);
+      }
+      await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "offer", body: `@${profile.username} offered $${amt} on "${listing.title}"`, link: `/market/${id}` });
+      setOfferAmt(""); load(); toast.success("Offer sent");
     });
-    if (error) {
-      if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
-      if (error.code === "23505") return toast.error("You already offered that amount");
-      return toast.error(error.message);
-    }
-    await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "offer", body: `@${profile.username} offered $${amt} on "${listing.title}"`, link: `/market/${id}` });
-    setOfferAmt(""); load(); toast.success("Offer sent");
   }
 
   async function buyNow() {
@@ -169,16 +191,14 @@ function ListingDetail() {
     if (!profile) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!ensureBuyerAddress()) return;
-    setCartMode("buy");
-    setShowShip(true);
+    gateIntl(() => { setCartMode("buy"); setShowShip(true); });
   }
 
   async function addToCart() {
     if (!requireAuth("add to cart")) return;
     if (!profile) return;
     if (!ensureBuyerAddress()) return;
-    setCartMode("cart");
-    setShowShip(true);
+    gateIntl(() => { setCartMode("cart"); setShowShip(true); });
   }
 
   async function placeOrder(amount: number) {
@@ -251,13 +271,17 @@ function ListingDetail() {
 
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
+      {ackHook.modal}
       <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><div className="flex items-center gap-2"><BackButton to="/market" /><HeaderSearch className="flex-1" /></div></div>
       <div className="relative aspect-square bg-muted">
         {listing.image_url ? <img src={listing.image_url} loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
         <Link to="/market" className="absolute left-3 top-3 rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4 text-white" /></Link>
       </div>
       <div className="px-4 py-4">
-        <h1 className="text-xl font-bold">{listing.title}</h1>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <span className="flex-1">{listing.title}</span>
+          <InternationalBadge enabled={listing.ships_internationally} />
+        </h1>
         <div className="mt-1 flex items-center justify-between gap-2">
           <SellerBadge sellerId={listing.seller_id} username={seller?.username} avatarUrl={seller?.avatar_url} />
           {!isSeller && seller && (
@@ -273,6 +297,19 @@ function ListingDetail() {
           )}
         </div>
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
+
+        {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
+
+        {!isSeller && ackHook.isIntl && (
+          <div className="mt-3">
+            <IntlWarningBanner buyerCountry={ship.country} sellerCountry={sellerCountry} variant="full" />
+            {intlBlocked && (
+              <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-[11px] font-semibold text-destructive">
+                This seller does not ship internationally to {(ship.country || "US").toUpperCase()}.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 space-y-3 rounded-xl bg-card p-4">
           {type === "auction" ? (

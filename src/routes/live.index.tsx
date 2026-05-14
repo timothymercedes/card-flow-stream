@@ -13,10 +13,11 @@ import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { CardQuickActions } from "@/components/CardQuickActions";
+import { InternationalBadge } from "@/components/InternationalBadge";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
-type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null };
+type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null; ships_internationally?: boolean | null };
 type Show = {
   id: string; seller_id: string; seller_username: string; title: string;
   description: string | null; thumbnail_url: string | null; category: string | null;
@@ -277,7 +278,10 @@ function LiveList() {
                     )}
                   </div>
                   <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
-                  <div className="mt-0.5"><SellerBadge sellerId={s.seller_id} linkable={false} /></div>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <SellerBadge sellerId={s.seller_id} linkable={false} />
+                    <InternationalBadge enabled={s.ships_internationally} />
+                  </div>
                   {Number(s.current_bid) > 0 && <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>}
                   {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
                     <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
