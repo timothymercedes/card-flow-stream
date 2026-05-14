@@ -2233,10 +2233,9 @@ function LiveDetail() {
     buyNow?: string;
   }) {
     if (!isSeller || !stream) return;
-    const item = (opts?.item ?? quickItem).trim();
-    if (!item) return toast.error("Add the item name");
     const sec = Math.max(5, Math.min(600, Number(opts?.timer ?? editTimerSec) || 30));
     const start = Math.max(1, Number(opts?.start ?? editStartPrice) || 1);
+    const item = (opts?.item ?? quickItem).trim() || `Item $${start}`;
     const buyNowRaw = Number(opts?.buyNow ?? quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
