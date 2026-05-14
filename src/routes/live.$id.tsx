@@ -2257,6 +2257,8 @@ function LiveDetail() {
       snipe_extends: 0,
       snipe_price: buyNow,
       sudden_death_active: false,
+      voice_trigger_enabled: editVoiceEnabled,
+      voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
     };
     setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
     endedRef.current = false;
