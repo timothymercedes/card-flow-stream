@@ -3906,9 +3906,16 @@ function LiveDetail() {
                           setEditShipPreset(key);
                           const p = SHIPPING_PRESETS[key];
                           setEditShipMethod(p.label);
-                          if (p.flatRate && p.flatPriceUsd != null) {
-                            setEditShipPrice(String(p.flatPriceUsd));
-                          }
+                          const auto = p.flatRate && p.flatPriceUsd != null
+                            ? p.flatPriceUsd
+                            : Number(
+                                estimateShippingAndImportFees({
+                                  subtotal: startVal,
+                                  weightOz: p.weightOz,
+                                  quantity: Number(editQuantity) || 1,
+                                }).shipping.toFixed(2),
+                              );
+                          setEditShipPrice(String(auto));
                         }}
                         className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-xs text-foreground outline-none"
                       >
