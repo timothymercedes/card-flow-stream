@@ -2319,6 +2319,8 @@ export type Database = {
           late_shipment_count: number
           live_verified: boolean
           longest_streak: number
+          notify_quiet_end: number | null
+          notify_quiet_start: number | null
           onboarding_completed: boolean
           payout_hold: boolean
           phone: string | null
@@ -2345,6 +2347,7 @@ export type Database = {
           stripe_charges_enabled: boolean
           stripe_onboarding_status: string
           stripe_payouts_enabled: boolean
+          timezone: string | null
           tos_accepted: boolean
           tos_accepted_at: string | null
           total_stream_minutes: number
@@ -2390,6 +2393,8 @@ export type Database = {
           late_shipment_count?: number
           live_verified?: boolean
           longest_streak?: number
+          notify_quiet_end?: number | null
+          notify_quiet_start?: number | null
           onboarding_completed?: boolean
           payout_hold?: boolean
           phone?: string | null
@@ -2416,6 +2421,7 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
+          timezone?: string | null
           tos_accepted?: boolean
           tos_accepted_at?: string | null
           total_stream_minutes?: number
@@ -2461,6 +2467,8 @@ export type Database = {
           late_shipment_count?: number
           live_verified?: boolean
           longest_streak?: number
+          notify_quiet_end?: number | null
+          notify_quiet_start?: number | null
           onboarding_completed?: boolean
           payout_hold?: boolean
           phone?: string | null
@@ -2487,6 +2495,7 @@ export type Database = {
           stripe_charges_enabled?: boolean
           stripe_onboarding_status?: string
           stripe_payouts_enabled?: boolean
+          timezone?: string | null
           tos_accepted?: boolean
           tos_accepted_at?: string | null
           total_stream_minutes?: number
@@ -2835,6 +2844,9 @@ export type Database = {
           notify_email: boolean
           notify_inapp: boolean
           notify_push: boolean
+          reminder_1h_sent_at: string | null
+          reminder_24h_sent_at: string | null
+          reminder_live_sent_at: string | null
           show_id: string
           user_id: string
         }
@@ -2844,6 +2856,9 @@ export type Database = {
           notify_email?: boolean
           notify_inapp?: boolean
           notify_push?: boolean
+          reminder_1h_sent_at?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_live_sent_at?: string | null
           show_id: string
           user_id: string
         }
@@ -2853,6 +2868,9 @@ export type Database = {
           notify_email?: boolean
           notify_inapp?: boolean
           notify_push?: boolean
+          reminder_1h_sent_at?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_live_sent_at?: string | null
           show_id?: string
           user_id?: string
         }
@@ -4484,6 +4502,7 @@ export type Database = {
         Returns: boolean
       }
       is_bid_restricted: { Args: { _user: string }; Returns: boolean }
+      is_in_quiet_hours: { Args: { _user_id: string }; Returns: boolean }
       is_stream_staff: {
         Args: { _stream_id: string; _user: string }
         Returns: boolean
