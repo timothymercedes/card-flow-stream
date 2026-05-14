@@ -37,12 +37,19 @@ export const BUYER_SERVICE_FEE_FIXED_CENTS = 15;
  *  - Returns `buyerServiceFee` (alias of platformFee) for backwards compat
  *    with existing UI rendering.
  */
-export function calculateFees(subtotalCents: number) {
+export function calculateFees(subtotalCents: number, opts?: { isInternational?: boolean }) {
   const platformFee = BUYER_PLATFORM_FEE_CENTS;
-  const buyerTotal = subtotalCents + platformFee;
+  const intlFee = opts?.isInternational
+    ? Math.round(subtotalCents * INTL_PROCESSING_FEE_RATE)
+    : 0;
+  const buyerTotal = subtotalCents + platformFee + intlFee;
   return {
     subtotalCents,
     platformFee,
+    intlFee,
+    isInternational: Boolean(opts?.isInternational),
+    // Application fee = platform's $1.23 + the intl 4% (both stay on the platform).
+    applicationFee: platformFee + intlFee,
     buyerServiceFee: platformFee, // legacy alias
     buyerTotal,
   };
