@@ -339,6 +339,45 @@ function LiveDetail() {
       .subscribe();
     return () => { alive = false; supabase.removeChannel(ch); };
   }, [id]);
+
+  // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
+  // now, or makes an offer on any of this stream's queued items.
+  useEffect(() => {
+    const sellerId = stream?.seller_id;
+    if (!id || !user || !sellerId || user.id !== sellerId) return;
+    const mountedAt = Date.now();
+    const ch = supabase
+      .channel(`host-prebid-notify-${id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "prebids" }, async (payload: any) => {
+        const row = payload.new;
+        const { data: q } = await supabase.from("auction_queue" as any)
+          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
+        if (!q || (q as any).stream_id !== id) return;
+        if (Date.now() - mountedAt < 1500) return;
+        toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
+          description: `from @${row.bidder_username || "anon"}`,
+        });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "queue_offers" }, async (payload: any) => {
+        const row = payload.new;
+        const { data: q } = await supabase.from("auction_queue" as any)
+          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
+        if (!q || (q as any).stream_id !== id) return;
+        if (Date.now() - mountedAt < 1500) return;
+        toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
+          description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, (payload: any) => {
+        const before = payload.old, after = payload.new;
+        if (!before?.sold_to && after?.sold_to) {
+          toast.success(`🛒 Buy Now: "${after.title}" sold!`);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id, user?.id, stream?.seller_id]);
+
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
@@ -3341,23 +3380,33 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined) && (
+          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined || isSeller) && (
             <button
-              onClick={() => {
-                // Close other panels so the camera UI is always visible.
+              onClick={async () => {
                 if (showSettings) setShowSettings(false);
                 setHostCameraPanelCollapsed(false);
-                if (usingCompositor && isSeller) {
+                if (isSeller) {
+                  // If compositor not yet provisioned, set it up first so the
+                  // editor panel actually has somewhere to render.
+                  if (!usingCompositor) {
+                    if (switchingToBrowserCam) return;
+                    await enableFlexCameraStudio();
+                  }
                   openHostCameraControls();
                 } else {
                   setCallJoined(true);
                   setShowHostCameraEditor(true);
                 }
               }}
-              className="rounded-full bg-emerald-600/80 p-2 backdrop-blur"
+              disabled={isSeller && !usingCompositor && switchingToBrowserCam}
+              className="rounded-full bg-emerald-600/80 p-2 backdrop-blur disabled:opacity-60"
               title={usingCompositor ? "Open camera panel" : "Go on camera"}
             >
-              <Camera className="h-4 w-4" />
+              {isSeller && !usingCompositor && switchingToBrowserCam ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
             </button>
           )}
           {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
@@ -6307,29 +6356,22 @@ function LiveDetail() {
         />
       )}
 
-      {/* 🆕 Auction queue — viewers see a small "Up next" strip + Pre-B FAB; host gets full CRUD drawer */}
+      {/* 🆕 Pre-B — small floating bubble (viewer + host). Tap to open the panel. */}
       {stream && !isSeller && stream.mode !== "show_off" && !ended && (
         <>
-          <div className="pointer-events-auto fixed left-2 right-2 top-28 z-40 mx-auto max-w-md">
-            <AuctionQueuePanel streamId={id} hostId={stream.seller_id} isHost={false} auctionLive={auctionLive} />
-          </div>
           <button
             onClick={() => setPrebidOpen(true)}
-            className="fixed bottom-44 right-2 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 px-3 py-2 text-[11px] font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
-            title="Open Pre-Bid panel"
+            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-600 text-base font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
+            title="Open Pre-B panel"
+            aria-label="Open Pre-B panel"
           >
-            🔖 Pre-B
+            🔖
             {prebidCount > 0 && (
-              <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[9px] font-extrabold tabular-nums">
+              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
                 {prebidCount}
               </span>
             )}
           </button>
-          {prebidCount > 0 && (
-            <div className="pointer-events-none fixed left-2 top-20 z-40 animate-pulse rounded-full bg-fuchsia-500/95 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-lg ring-2 ring-white/30">
-              ✨ Pre-B Available · {prebidCount} upcoming
-            </div>
-          )}
           {prebidOpen && <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />}
         </>
       )}
@@ -6337,10 +6379,16 @@ function LiveDetail() {
         <>
           <button
             onClick={() => setQueueOpen((v) => !v)}
-            className="fixed bottom-44 right-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600/95 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95 md:bottom-48"
-            title="Auction queue"
+            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-fuchsia-600/95 text-base font-extrabold text-white shadow-xl ring-2 ring-white/20 active:scale-95 md:bottom-48"
+            title="Pre-B (manage queue)"
+            aria-label="Pre-B host panel"
           >
-            🔖 Pre-B
+            🔖
+            {prebidCount > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
+                {prebidCount}
+              </span>
+            )}
           </button>
           {queueOpen && (
             <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">
