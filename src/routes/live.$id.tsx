@@ -2156,7 +2156,8 @@ function LiveDetail() {
     if (!isSeller) return;
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
-    const item = quickItem.trim() || `Item $${start}`;
+    const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
+    const item = quickItem.trim() || `Bid #${nextBidNum}`;
     const buyNowRaw = Number(quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
