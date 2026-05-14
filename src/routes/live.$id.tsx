@@ -4654,9 +4654,29 @@ function LiveDetail() {
               </button>
               <button
                 type="button"
-                onClick={() => setBottomPanelMaxH(null)}
+                onClick={() => setQuickControlsScale((s) => Math.max(0.72, Number((s - 0.08).toFixed(2))))}
+                className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
+                title="Shrink controls"
+              >
+                UI−
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickControlsScale((s) => Math.min(1.3, Number((s + 0.08).toFixed(2))))}
+                className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
+                title="Grow controls"
+              >
+                UI+
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setBottomPanelMaxH(null);
+                  setQuickControlsScale(1);
+                  setQuickControlsBox({ x: 0, y: 0, w: 0, h: 0 });
+                }}
                 className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
-                title="Reset panel size"
+                title="Reset panel and controls"
               >
                 Reset
               </button>
