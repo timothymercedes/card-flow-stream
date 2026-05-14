@@ -3355,6 +3355,32 @@ function LiveDetail() {
     { id: "grid", label: "Grid", Icon: Grid2X2 },
     { id: "freeform", label: "Move", Icon: Move },
   ];
+  const renderQuickControlBox = (key: QuickControlBoxKey, children: React.ReactNode) => {
+    const box = quickControlBoxes[key];
+    return (
+      <div
+        key={key}
+        className="absolute rounded-lg ring-1 ring-white/15"
+        style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
+      >
+        <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
+        <button
+          type="button"
+          onPointerDown={(e) => startQuickControlBoxDrag(e, key, "move")}
+          className="absolute -top-2 left-1 z-20 flex h-4 cursor-move touch-none select-none items-center gap-0.5 rounded-full bg-white/25 px-1.5 text-[7px] font-black uppercase text-white ring-1 ring-white/25 active:scale-95"
+          title={`Move ${QUICK_CONTROL_LABELS[key]}`}
+        >
+          <Move className="h-2 w-2" /> {QUICK_CONTROL_LABELS[key]}
+        </button>
+        <div
+          onPointerDown={(e) => startQuickControlBoxDrag(e, key, "resize")}
+          className="absolute -bottom-1 -right-1 z-20 h-4 w-4 cursor-nwse-resize touch-none bg-primary/90"
+          style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
+          title={`Resize ${QUICK_CONTROL_LABELS[key]}`}
+        />
+      </div>
+    );
+  };
 
   async function scanHostStudioCameras() {
     const devices = hostStudioCameraAccessNeeded
