@@ -1618,6 +1618,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          cat_bids: boolean
+          cat_live: boolean
+          cat_orders: boolean
+          cat_seller: boolean
+          cat_social: boolean
+          cat_system: boolean
+          created_at: string
+          email_enabled: boolean
+          inapp_enabled: boolean
+          push_enabled: boolean
+          quiet_end: string | null
+          quiet_start: string | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cat_bids?: boolean
+          cat_live?: boolean
+          cat_orders?: boolean
+          cat_seller?: boolean
+          cat_social?: boolean
+          cat_system?: boolean
+          created_at?: string
+          email_enabled?: boolean
+          inapp_enabled?: boolean
+          push_enabled?: boolean
+          quiet_end?: string | null
+          quiet_start?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cat_bids?: boolean
+          cat_live?: boolean
+          cat_orders?: boolean
+          cat_seller?: boolean
+          cat_social?: boolean
+          cat_system?: boolean
+          created_at?: string
+          email_enabled?: boolean
+          inapp_enabled?: boolean
+          push_enabled?: boolean
+          quiet_end?: string | null
+          quiet_start?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
@@ -4421,6 +4475,13 @@ export type Database = {
           unresolved_payments: number
         }[]
       }
+      get_notify_targets: {
+        Args: { _category: string; _user_ids: string[] }
+        Returns: {
+          allow_push: boolean
+          user_id: string
+        }[]
+      }
       get_seller_badges: {
         Args: { _seller_id: string }
         Returns: {
@@ -4534,6 +4595,16 @@ export type Database = {
           _target_id?: string
           _target_type?: string
           _user_agent?: string
+        }
+        Returns: string
+      }
+      notify_user: {
+        Args: {
+          _body: string
+          _category: string
+          _link: string
+          _type: string
+          _user_id: string
         }
         Returns: string
       }

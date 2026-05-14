@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { writeA11yLocal, readA11yLocal } from "@/components/A11yClassSync";
 import { toast } from "sonner";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — PullBid Live" }] }),
@@ -63,7 +64,7 @@ function SettingsPage() {
         {section === "accessibility" && <AccessibilitySection />}
         {section === "seller" && profile?.is_seller && <SellerSection />}
         {section === "account" && <AccountSection />}
-        {section === "notifications" && <ComingSoon label={t("settings.notifications")} />}
+        {section === "notifications" && <NotificationSettings />}
         {section === "privacy" && <ComingSoon label={t("settings.privacy")} />}
         {section === "payment" && <PaymentSection />}
       </div>

@@ -85,7 +85,7 @@ async function dispatchReminders(window: "24h" | "1h") {
     // Push (skip in quiet hours)
     const pushIds = targets.filter((t) => t.notify_push && !quiet.get(t.user_id)).map((t) => t.user_id);
     if (pushIds.length) {
-      const r = await sendPushToUsers(pushIds, { title, body, url, tag: `show-${window}-${show.id}` });
+      const r = await sendPushToUsers(pushIds, { title, body, url, tag: `show-${window}-${show.id}` }, "live");
       pushCount += r.sent || 0;
     }
 

@@ -60,11 +60,11 @@ export const notifyGoingLive = createServerFn({ method: "POST" })
       // ---- Push: union of followers + bookmarkers (push pref true) ----
       const pushUserIds = new Set<string>(followerIds);
       bookmarkers.filter((b) => b.notify_push).forEach((b) => pushUserIds.add(b.user_id));
-      let pushResult = { sent: 0, cleaned: 0 };
+      let pushResult: { sent: number; cleaned: number; skipped?: number } = { sent: 0, cleaned: 0 };
       if (pushUserIds.size > 0) {
         pushResult = await sendPushToUsers(Array.from(pushUserIds), {
           title, body, url, tag: `live-${stream.id}`,
-        });
+        }, "live");
       }
 
       // ---- In-app notification rows for bookmarkers who opted in ----
