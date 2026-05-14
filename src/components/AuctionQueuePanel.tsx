@@ -213,7 +213,10 @@ export function AuctionQueuePanel({
         <div key={it.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-2">
           <span className="font-extrabold text-amber-300 text-[11px] tabular-nums w-5">#{i + 1}</span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold">{it.title}</p>
+            <p className="truncate text-xs font-bold">
+              {it.title}
+              {Number(it.quantity || 1) > 1 && <span className="ml-1 rounded bg-fuchsia-500/30 px-1 text-[9px] font-extrabold text-fuchsia-100">×{it.quantity}</span>}
+            </p>
             <p className="text-[10px] text-white/60">
               ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s
               {it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}
