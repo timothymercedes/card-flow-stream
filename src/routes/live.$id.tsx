@@ -3356,7 +3356,7 @@ function LiveDetail() {
     { id: "grid", label: "Grid", Icon: Grid2X2 },
     { id: "freeform", label: "Move", Icon: Move },
   ];
-  const renderQuickControlBox = (key: QuickControlBoxKey, children: React.ReactNode) => {
+  const renderQuickControlBox = (key: QuickControlBoxKey, children: ReactNode) => {
     const box = quickControlBoxes[key];
     return (
       <div
