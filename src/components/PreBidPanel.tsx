@@ -218,11 +218,11 @@ export function PreBidPanel({
                 </div>
 
                 {/* Action by sale type */}
-                {st === "prebid" && (it.prebid_enabled ? (
+                {(st === "prebid" || st === "either") && (it.prebid_enabled ? (
                   <div className="mt-2 flex items-center gap-1.5">
                     <input
                       type="number" inputMode="decimal" min={min}
-                      placeholder={`Min $${min}`}
+                      placeholder={`Pre-bid · min $${min}`}
                       value={drafts[it.id] || ""}
                       onChange={(e) => setDrafts((d) => ({ ...d, [it.id]: e.target.value }))}
                       className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50"
@@ -240,9 +240,9 @@ export function PreBidPanel({
                   </p>
                 ))}
 
-                {st === "buynow" && (
+                {(st === "buynow" || st === "either") && bnPrice > 0 && (
                   <button
-                    onClick={() => buyNow(it)} disabled={busy === it.id || !bnPrice}
+                    onClick={() => buyNow(it)} disabled={busy === it.id}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
                   >
                     <ShoppingCart className="h-4 w-4" />
