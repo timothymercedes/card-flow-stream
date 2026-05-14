@@ -139,6 +139,7 @@ export function AuctionQueuePanel({
             <div key={it.id} className="shrink-0 rounded-lg bg-white/10 px-2 py-1 text-[11px]">
               <span className="mr-1 font-extrabold text-amber-300">#{i + 1}</span>
               <span className="font-semibold">{it.title}</span>
+              {Number(it.quantity || 1) > 1 && <span className="ml-1 text-fuchsia-300">×{it.quantity}</span>}
               <span className="ml-1 opacity-70">· ${Number(it.starting_bid).toFixed(0)}</span>
             </div>
           ))}
