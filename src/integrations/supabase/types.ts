@@ -1932,8 +1932,10 @@ export type Database = {
           description: string | null
           id: string
           idempotency_key: string | null
+          is_giveaway: boolean
           is_late_shipment: boolean
           item_image_url: string | null
+          label_url: string | null
           last_ship_reminder_at: string | null
           listing_id: string | null
           order_group_id: string | null
@@ -1981,8 +1983,10 @@ export type Database = {
           description?: string | null
           id?: string
           idempotency_key?: string | null
+          is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
+          label_url?: string | null
           last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
@@ -2030,8 +2034,10 @@ export type Database = {
           description?: string | null
           id?: string
           idempotency_key?: string | null
+          is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
+          label_url?: string | null
           last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null

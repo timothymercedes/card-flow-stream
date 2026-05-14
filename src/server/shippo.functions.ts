@@ -295,9 +295,10 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
         tracking_number: tx.tracking_number,
         tracking_url: tx.tracking_url_provider,
         carrier: tx.rate?.provider || null,
+        label_url: tx.label_url || null,
         status: "shipped",
         shipped_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", order.id);
 
     // Notify buyer in-app
