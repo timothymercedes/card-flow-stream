@@ -27,7 +27,7 @@ export function StripeCheckout(props: Props) {
   const getKey = useServerFn(getStripePublishableKey);
   const createIntent = useServerFn(createMarketplacePaymentIntent);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number } | null>(null);
+  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; isInternational?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const stripePromise = useMemo(() => getStripeJs(() => getKey()), []);
