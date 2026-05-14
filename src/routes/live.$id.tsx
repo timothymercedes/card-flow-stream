@@ -4753,11 +4753,13 @@ function LiveDetail() {
                     {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
                     {!auctionLive && (
                       <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
-                        <div className="flex items-center gap-1">
+                        <label className="flex items-center gap-1">
+                          <span className="w-12 shrink-0 text-[9px] font-bold uppercase tracking-wide text-white/60">Item<span className="text-rose-400">*</span></span>
                           <input
                             value={quickItem}
                             onChange={(e) => setQuickItem(e.target.value)}
-                            placeholder="Item (e.g. Charizard PSA 9)"
+                            placeholder="Type Item (required)"
+                            required
                             maxLength={60}
                             className="flex-1 rounded-md bg-background/70 px-1.5 py-1 text-[11px] text-foreground outline-none placeholder:text-muted-foreground"
                           />
@@ -4769,13 +4771,14 @@ function LiveDetail() {
                           >
                             ↻
                           </button>
-                        </div>
+                        </label>
                         <div className="flex items-stretch gap-1">
                           {/* Left column: price/buy/timer pickers */}
                           <div className="flex min-w-0 flex-1 flex-col gap-1">
                             <div className="flex flex-wrap items-center gap-1">
                               <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                $
+                                <span className="font-bold uppercase tracking-wide text-white/70">Bid Start</span>
+                                <span className="ml-1">$</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -4786,7 +4789,8 @@ function LiveDetail() {
                                 />
                               </label>
                               <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
-                                Buy
+                                <span className="font-bold uppercase tracking-wide text-white/70">Buy Now</span>
+                                <span className="ml-1">$</span>
                                 <input
                                   type="number"
                                   min="1"
@@ -4806,6 +4810,7 @@ function LiveDetail() {
                               </button>
                             </div>
                             <div className="flex flex-wrap items-center gap-0.5">
+                              <span className="mr-1 text-[9px] font-bold uppercase tracking-wide text-white/60">Timer</span>
                               {([5, 10, 15, 20, 30, 60] as const).map((s) => (
                                 <button
                                   key={s}
@@ -4875,6 +4880,7 @@ function LiveDetail() {
                           }
                           return (
                             <div className="flex flex-wrap items-center gap-1 border-t border-white/10 pt-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-white/60">Extras</span>
                               <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/60 px-1.5 py-0.5 text-[9px] font-bold text-white/80">
                                 <input
                                   type="checkbox"
@@ -4915,10 +4921,11 @@ function LiveDetail() {
                                       .update({ voice_trigger_phrase: v })
                                       .eq("id", id);
                                   }}
-                                  placeholder="cmd word"
+                                  placeholder="Type your active Triggers"
                                   className="w-16 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
                                 />
                               )}
+                              <span className="ml-1 text-[9px] font-bold uppercase tracking-wide text-white/60">Pkg</span>
                               <select
                                 value={pkgKey}
                                 onChange={(e) => applyPackaging(e.target.value as ShippingPresetKey)}
