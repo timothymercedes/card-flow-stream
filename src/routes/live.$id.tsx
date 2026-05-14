@@ -6267,8 +6267,7 @@ function LiveDetail() {
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
               <span className="text-base leading-none">📦</span>
               <span>
-                <span className="font-bold">Host reminder:</span> any item won on the wheel{" "}
-                <span className="font-bold">must ship out to the buyer</span>. The win auto-creates an order in your Seller Hub → Orders/Shipping.
+                <span className="font-bold">Host only:</span> an item must ship out to the buyer when it is won on the wheel. The win auto-creates an order in your Seller Hub → Orders/Shipping.
               </span>
             </div>
 
