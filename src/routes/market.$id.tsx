@@ -172,16 +172,18 @@ function ListingDetail() {
     // Dedupe: same buyer can't repeat the same exact amount that's still pending
     const dup = offers.find((o) => o.buyer_id === profile.id && Number(o.amount) === amt && o.status === "pending");
     if (dup) return toast.error("You already offered that amount");
-    const { error } = await supabase.from("offers").insert({
-      listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
+    gateIntl(async () => {
+      const { error } = await supabase.from("offers").insert({
+        listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
+      });
+      if (error) {
+        if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
+        if (error.code === "23505") return toast.error("You already offered that amount");
+        return toast.error(error.message);
+      }
+      await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "offer", body: `@${profile.username} offered $${amt} on "${listing.title}"`, link: `/market/${id}` });
+      setOfferAmt(""); load(); toast.success("Offer sent");
     });
-    if (error) {
-      if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
-      if (error.code === "23505") return toast.error("You already offered that amount");
-      return toast.error(error.message);
-    }
-    await supabase.from("notifications").insert({ user_id: listing.seller_id, type: "offer", body: `@${profile.username} offered $${amt} on "${listing.title}"`, link: `/market/${id}` });
-    setOfferAmt(""); load(); toast.success("Offer sent");
   }
 
   async function buyNow() {
@@ -189,8 +191,7 @@ function ListingDetail() {
     if (!profile) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!ensureBuyerAddress()) return;
-    setCartMode("buy");
-    setShowShip(true);
+    gateIntl(() => { setCartMode("buy"); setShowShip(true); });
   }
 
   async function addToCart() {
