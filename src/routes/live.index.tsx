@@ -12,6 +12,7 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import { CardQuickActions } from "@/components/CardQuickActions";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
