@@ -4925,6 +4925,7 @@ function LiveDetail() {
                                   className="w-16 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
                                 />
                               )}
+                              <span className="ml-1 text-[9px] font-bold uppercase tracking-wide text-white/60">Pkg</span>
                               <select
                                 value={pkgKey}
                                 onChange={(e) => applyPackaging(e.target.value as ShippingPresetKey)}
