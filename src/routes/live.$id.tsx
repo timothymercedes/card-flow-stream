@@ -142,6 +142,17 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
+  // Resizable bottom panel — host drags the top edge to set max height (px). null = auto.
+  const [bottomPanelMaxH, setBottomPanelMaxH] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = window.localStorage.getItem("pbl:bottom-panel-h");
+    return v ? Number(v) || null : null;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (bottomPanelMaxH == null) window.localStorage.removeItem("pbl:bottom-panel-h");
+    else window.localStorage.setItem("pbl:bottom-panel-h", String(bottomPanelMaxH));
+  }, [bottomPanelMaxH]);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [liveScanBusy, setLiveScanBusy] = useState(false);
@@ -4479,8 +4490,36 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""}`}
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
+        style={bottomPanelMaxH ? { maxHeight: `${bottomPanelMaxH}px` } : undefined}
       >
+        {/* 🆕 Drag handle — host can resize the panel by dragging this top edge */}
+        {isSeller && !ended && (
+          <div
+            onPointerDown={(e) => {
+              e.preventDefault();
+              const startY = e.clientY;
+              const containerEl = (e.currentTarget as HTMLElement).parentElement as HTMLElement | null;
+              const startH = bottomPanelMaxH ?? containerEl?.offsetHeight ?? 240;
+              const onMove = (ev: PointerEvent) => {
+                const dy = startY - ev.clientY; // drag up = bigger
+                const next = Math.max(80, Math.min(window.innerHeight - 100, startH + dy));
+                setBottomPanelMaxH(next);
+              };
+              const onUp = () => {
+                window.removeEventListener("pointermove", onMove);
+                window.removeEventListener("pointerup", onUp);
+              };
+              window.addEventListener("pointermove", onMove);
+              window.addEventListener("pointerup", onUp);
+            }}
+            onDoubleClick={() => setBottomPanelMaxH(null)}
+            title="Drag to resize · double-click to reset"
+            className="absolute left-1/2 top-1.5 z-30 flex h-4 w-16 -translate-x-1/2 cursor-ns-resize touch-none items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 backdrop-blur hover:bg-white/25"
+          >
+            <div className="h-0.5 w-8 rounded-full bg-white/70" />
+          </div>
+        )}
         {stream.mode === "show_off" && (
           <>
             {/* Collapse / full-screen toggle for Flex Live */}
