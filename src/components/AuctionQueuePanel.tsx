@@ -106,7 +106,7 @@ export function AuctionQueuePanel({
 
   async function loadListings() {
     const { data } = await supabase.from("listings").select("id, title, price, image_url")
-      .eq("seller_id", hostId).eq("status", "active" as any).order("created_at", { ascending: false }).limit(40);
+      .eq("seller_id", hostId).order("created_at", { ascending: false }).limit(40);
     setListings((data as any[] as Listing[]) || []);
     setImporting(true);
   }
