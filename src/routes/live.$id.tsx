@@ -4521,18 +4521,6 @@ function LiveDetail() {
           </div>
         )}
         {stream.mode === "show_off" && (
-          <>
-            {/* Collapse / full-screen toggle for Flex Live */}
-            <div className="flex justify-center">
-              <button
-                onClick={() => setFlexImmersive((v) => !v)}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/80 ring-1 ring-white/15 backdrop-blur active:scale-[0.98]"
-                title={flexImmersive ? "Show panels" : "Hide everything for full screen"}
-              >
-                {flexImmersive ? "▣ Show panels" : "⛶ Full-screen vibe"}
-              </button>
-            </div>
-          <>
             {/* Collapse / full-screen toggle for Flex Live */}
             <div className="flex justify-center">
               <button
