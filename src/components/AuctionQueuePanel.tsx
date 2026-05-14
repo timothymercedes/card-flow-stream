@@ -509,12 +509,15 @@ export function AuctionQueuePanel({
               <p className="text-[10px] text-white/60">
                 {st === "prebid" && (<>${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s{it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}</>)}
                 {st === "buynow" && (<>Buy Now ${Number(it.buy_now_price ?? it.starting_bid).toFixed(0)}</>)}
+                {st === "either" && (<>Pre-Bid ${Number(it.starting_bid).toFixed(0)} · Buy Now ${Number(it.buy_now_price ?? 0).toFixed(0)} · {it.duration_seconds}s</>)}
                 {st === "offer" && (<>Make Offer{it.min_offer ? ` · min $${Number(it.min_offer).toFixed(0)}` : ""}</>)}
                 {it.trigger_word && <span className="ml-1 rounded bg-amber-500/20 px-1 text-amber-200">⚡ {it.trigger_word}</span>}
               </p>
             </div>
             <div className="flex items-center gap-0.5">
-              {st === "prebid" && (
+              <button onClick={() => setEditing(it)} title="Edit item"
+                className="rounded p-1 text-white/80 hover:bg-white/10"><Pencil className="h-3 w-3" /></button>
+              {(st === "prebid" || st === "either") && (
                 <button onClick={() => togglePrebid(it)}
                   title={prebidOn ? "Pre-bidding ON · tap to disable" : "Pre-bidding OFF · tap to enable"}
                   className={`rounded p-1 ${prebidOn ? "text-fuchsia-300 hover:bg-white/10" : "text-white/40 hover:bg-white/10"}`}>
@@ -525,7 +528,7 @@ export function AuctionQueuePanel({
                 className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronUp className="h-3 w-3" /></button>
               <button onClick={() => move(it.id, 1)} disabled={i === queued.length - 1}
                 className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronDown className="h-3 w-3" /></button>
-              {st === "prebid" && (
+              {(st === "prebid" || st === "either") && (
                 <button onClick={() => startItem(it)} disabled={auctionLive}
                   title={auctionLive ? "Finish current round first" : "Start this item"}
                   className="rounded-md bg-emerald-500 p-1.5 text-white disabled:opacity-40"><Play className="h-3 w-3" /></button>
