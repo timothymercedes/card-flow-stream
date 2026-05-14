@@ -178,7 +178,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("id, amount, buyer_id, seller_id, payment_status")
+      .select("id, amount, buyer_id, seller_id, payment_status, listing_id")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
@@ -195,7 +195,43 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     );
     if (subtotalCents < 50) throw new Error("Amount too low");
 
-    const fees = calculateFees(subtotalCents);
+    // International detection: compare buyer's profile country with the
+    // seller's Stripe Connect account country. If either is outside the
+    // USA, apply the 4% international processing fee.
+    const { data: buyerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("address_country")
+      .eq("id", userId)
+      .maybeSingle();
+    const buyerCountry = ((buyerProfile as any)?.address_country || "US")
+      .toString().toUpperCase().trim();
+    const sellerCountry = ((sellerAcct as any).country || "US")
+      .toString().toUpperCase().trim();
+    const isInternational = buyerCountry !== sellerCountry &&
+      (buyerCountry !== "US" || sellerCountry !== "US");
+
+    // Enforce per-listing blocked_countries against the buyer's country.
+    if (isInternational) {
+      const orderListingIds = (orderRows as any[])
+        .map((o) => o.listing_id).filter(Boolean);
+      if (orderListingIds.length > 0) {
+        const { data: listings } = await supabaseAdmin
+          .from("listings")
+          .select("id, blocked_countries, ships_internationally")
+          .in("id", orderListingIds);
+        for (const l of (listings as any[]) || []) {
+          if (l.ships_internationally === false) {
+            throw new Error("Seller does not ship this item internationally");
+          }
+          const blocked = (l.blocked_countries as string[] | null) || [];
+          if (blocked.map((c) => c.toUpperCase()).includes(buyerCountry)) {
+            throw new Error(`Seller does not ship to ${buyerCountry}`);
+          }
+        }
+      }
+    }
+
+    const fees = calculateFees(subtotalCents, { isInternational });
 
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${fees.buyerTotal}`;
@@ -204,7 +240,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       amount: fees.buyerTotal,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      application_fee_amount: fees.platformFee,
+      application_fee_amount: fees.applicationFee,
       transfer_data: { destination: (sellerAcct as any).stripe_account_id },
       metadata: {
         buyer_id: userId,
@@ -213,6 +249,10 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         order_ids: orderIds.join(","),
         subtotal_cents: String(fees.subtotalCents),
         platform_fee_cents: String(fees.platformFee),
+        intl_fee_cents: String(fees.intlFee),
+        is_international: String(isInternational),
+        buyer_country: buyerCountry,
+        seller_country: sellerCountry,
         buyer_service_fee_cents: String(fees.buyerServiceFee),
       },
     }, { idempotencyKey: idemKey });

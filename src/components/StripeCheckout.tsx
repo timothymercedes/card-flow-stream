@@ -27,7 +27,7 @@ export function StripeCheckout(props: Props) {
   const getKey = useServerFn(getStripePublishableKey);
   const createIntent = useServerFn(createMarketplacePaymentIntent);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number } | null>(null);
+  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; isInternational?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const stripePromise = useMemo(() => getStripeJs(() => getKey()), []);
@@ -41,7 +41,7 @@ export function StripeCheckout(props: Props) {
         });
         if (cancelled) return;
         setClientSecret(res.clientSecret!);
-        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee });
+        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, isInternational: (res as any).isInternational });
       } catch (e: any) {
         setError(e.message ?? "Failed to start payment");
       }
@@ -61,7 +61,7 @@ export function StripeCheckout(props: Props) {
   );
 }
 
-function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number } }) {
+function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; isInternational?: boolean } }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -89,11 +89,21 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
     setSubmitting(false);
   }
 
+  const intlFee = fees.intlFee ?? 0;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
         <Row label="Subtotal" cents={subtotalCents} />
         <Row label="Platform Fee" cents={fees.platformFee} />
+        {intlFee > 0 && (
+          <>
+            <Row label="International Processing Fee (4%)" cents={intlFee} />
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug">
+              Applied because this is a cross-border transaction (buyer or seller outside the USA). Helps cover international card processing & FX. Customs duties/VAT may also apply on delivery and are not included.
+            </p>
+          </>
+        )}
         <p className="text-[10px] text-muted-foreground leading-snug">
           Platform Fee — helps cover payment processing and marketplace operations.
         </p>
