@@ -4823,13 +4823,12 @@ function LiveDetail() {
                         {/* Item row — bigger, full width */}
                         <div className="flex items-center gap-1.5">
                           <span className="shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-white/80">
-                            Item<span className="text-rose-400">*</span>
+                            Item
                           </span>
                           <input
                             value={quickItem}
                             onChange={(e) => setQuickItem(e.target.value)}
-                            placeholder="Type Item (required)"
-                            required
+                            placeholder="Optional — auto-names by bid price"
                             maxLength={60}
                             className="flex-1 rounded-md bg-background/80 px-2 py-1.5 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500/50"
                           />
