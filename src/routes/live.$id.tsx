@@ -2223,6 +2223,33 @@ function LiveDetail() {
     toast.success("Settings saved");
   }
 
+  // 🎤 Toggle voice trigger inline from the quick bar
+  async function toggleVoiceTrigger() {
+    if (!isSeller) return;
+    const next = !editVoiceEnabled;
+    setEditVoiceEnabled(next);
+    setStream((prev: any) => (prev ? { ...prev, voice_trigger_enabled: next } : prev));
+    await supabase
+      .from("live_streams")
+      .update({ voice_trigger_enabled: next } as any)
+      .eq("id", id);
+    toast.success(next ? `🎤 Voice ON — say "${voicePhrase}" to start` : "🎤 Voice OFF");
+  }
+
+  // 📦 Inline shipping preset change from the quick bar
+  async function setQuickShipPreset(key: ShippingPresetKey) {
+    setEditShipPreset(key);
+    const p = SHIPPING_PRESETS[key];
+    setEditShipMethod(p.label);
+    if (p.flatRate && p.flatPriceUsd != null) {
+      setEditShipPrice(String(p.flatPriceUsd));
+    }
+    if (!isSeller) return;
+    const patch: any = { shipping_method: p.label };
+    if (p.flatRate && p.flatPriceUsd != null) patch.shipping_price = p.flatPriceUsd;
+    await supabase.from("live_streams").update(patch).eq("id", id);
+  }
+
   // 🆕 One-tap quick auction start — uses inline mini-bar values, no Settings panel
   async function quickStartAuction(opts?: {
     item?: string;
