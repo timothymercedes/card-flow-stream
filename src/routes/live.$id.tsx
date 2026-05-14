@@ -3341,23 +3341,33 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined) && (
+          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined || isSeller) && (
             <button
-              onClick={() => {
-                // Close other panels so the camera UI is always visible.
+              onClick={async () => {
                 if (showSettings) setShowSettings(false);
                 setHostCameraPanelCollapsed(false);
-                if (usingCompositor && isSeller) {
+                if (isSeller) {
+                  // If compositor not yet provisioned, set it up first so the
+                  // editor panel actually has somewhere to render.
+                  if (!usingCompositor) {
+                    if (switchingToBrowserCam) return;
+                    await enableFlexCameraStudio();
+                  }
                   openHostCameraControls();
                 } else {
                   setCallJoined(true);
                   setShowHostCameraEditor(true);
                 }
               }}
-              className="rounded-full bg-emerald-600/80 p-2 backdrop-blur"
+              disabled={isSeller && !usingCompositor && switchingToBrowserCam}
+              className="rounded-full bg-emerald-600/80 p-2 backdrop-blur disabled:opacity-60"
               title={usingCompositor ? "Open camera panel" : "Go on camera"}
             >
-              <Camera className="h-4 w-4" />
+              {isSeller && !usingCompositor && switchingToBrowserCam ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
             </button>
           )}
           {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
