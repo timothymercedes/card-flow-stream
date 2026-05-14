@@ -4880,6 +4880,7 @@ function LiveDetail() {
                           }
                           return (
                             <div className="flex flex-wrap items-center gap-1 border-t border-white/10 pt-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-white/60">Extras</span>
                               <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/60 px-1.5 py-0.5 text-[9px] font-bold text-white/80">
                                 <input
                                   type="checkbox"
