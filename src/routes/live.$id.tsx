@@ -4502,6 +4502,7 @@ function LiveDetail() {
       >
         {/* 🆕 Drag handle — host can resize the panel by dragging this top edge */}
         {isSeller && !ended && (
+          <>
           <div
             onPointerDown={(e) => {
               e.preventDefault();
@@ -4534,6 +4535,7 @@ function LiveDetail() {
             <button type="button" onClick={() => resizeBottomPanel(56)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95" title="Make panel bigger">+</button>
             <button type="button" onClick={() => setBottomPanelMaxH(null)} className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95" title="Reset panel size">Reset</button>
           </div>
+          </>
         )}
         {stream.mode === "show_off" && (
           <>
