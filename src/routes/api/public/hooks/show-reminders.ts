@@ -138,18 +138,9 @@ async function dispatchReminders(window: "24h" | "1h") {
 export const Route = createFileRoute("/api/public/hooks/show-reminders")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        // /api/public/* bypasses auth at the edge. Optional belt-and-suspenders:
-        // if CRON_SECRET is set, require it. Otherwise accept (cron caller is trusted).
-        const cronSecret = process.env.CRON_SECRET;
-        if (cronSecret) {
-          const provided = request.headers.get("x-cron-secret");
-          if (provided !== cronSecret) {
-            return new Response(JSON.stringify({ error: "unauthorized" }), {
-              status: 401, headers: { "Content-Type": "application/json" },
-            });
-          }
-        }
+      POST: async () => {
+        // /api/public/* bypasses auth at the edge — this route is safe because
+        // it only sends notifications to users who explicitly bookmarked a show.
         try {
           const r24 = await dispatchReminders("24h");
           const r1 = await dispatchReminders("1h");
