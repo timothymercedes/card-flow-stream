@@ -263,6 +263,47 @@ function LiveDetail() {
     const raw = window.localStorage.getItem("live.quickControlsScale");
     return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
   });
+  const startQuickControlsDrag = useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const handle = e.currentTarget;
+      const panel = handle.closest("[data-bottom-panel]") as HTMLElement | null;
+      const controls = handle.closest("[data-quick-controls]") as HTMLElement | null;
+      const panelRect = panel?.getBoundingClientRect();
+      const controlsRect = controls?.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startBox = quickControlsBox;
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      handle.setPointerCapture?.(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        ev.preventDefault();
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        const maxX = panelRect && controlsRect ? Math.max(0, panelRect.width - controlsRect.width - 8) : 260;
+        const maxY = panelRect && controlsRect ? Math.max(0, panelRect.height - controlsRect.height - 8) : 260;
+        setQuickControlsBox((cur) => ({
+          ...cur,
+          x: Math.min(Math.max(startBox.x + dx, -8), maxX),
+          y: Math.min(Math.max(startBox.y + dy, -8), maxY),
+        }));
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        document.body.style.userSelect = previousUserSelect;
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [quickControlsBox],
+  );
   useEffect(() => {
     try {
       window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
