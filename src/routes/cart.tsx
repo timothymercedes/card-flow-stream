@@ -136,6 +136,15 @@ function Cart() {
                     </div>
                   ))}
                 </div>
+                <div className="mt-2">
+                  <ShippingEstimator
+                    sellerId={sellerId}
+                    presetKey={items.length > 3 ? "small_box" : "bubble"}
+                    buyerCountry={buyerCountry}
+                    subtotalUsd={total}
+                    compact
+                  />
+                </div>
                 <button
                   onClick={() => setCheckoutSeller(sellerId)}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
