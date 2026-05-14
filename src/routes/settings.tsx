@@ -64,7 +64,7 @@ function SettingsPage() {
         {section === "accessibility" && <AccessibilitySection />}
         {section === "seller" && profile?.is_seller && <SellerSection />}
         {section === "account" && <AccountSection />}
-        {section === "notifications" && <ComingSoon label={t("settings.notifications")} />}
+        {section === "notifications" && <NotificationSettings />}
         {section === "privacy" && <ComingSoon label={t("settings.privacy")} />}
         {section === "payment" && <PaymentSection />}
       </div>
