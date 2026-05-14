@@ -4091,13 +4091,12 @@ function LiveDetail() {
                 />
               </label>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                Hands-free auction control. Commands: <b>{voicePhrase || "next"}</b>, "start",
-                "sold", "extend", "end live".
+                Hands-free auction control. Active trigger: <b>{voicePhrase || "your custom word"}</b>, plus "start", "sold", "extend", "end live".
               </p>
               <input
                 value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
-                placeholder='Custom "next round" phrase (e.g. "next" or "go go go")'
+                placeholder="Type your custom trigger word ✨"
                 className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
               />
               {!voice.supported && editVoiceEnabled && (
@@ -4141,8 +4140,11 @@ function LiveDetail() {
                         .update({ chat_slow_mode_sec: s })
                         .eq("id", id);
                       sendMsg(
-                        s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s between messages`,
+                        s === 0
+                          ? "📌 Slow chat is off."
+                          : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
                         true,
+                        { isAnnouncement: true },
                       );
                     }}
                     className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}
