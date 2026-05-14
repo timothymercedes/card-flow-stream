@@ -30,12 +30,36 @@ async function configure(): Promise<boolean> {
 }
 
 type Payload = { title: string; body: string; url?: string; tag?: string };
+export type NotifyCategory = "live" | "bids" | "orders" | "social" | "seller" | "system";
 
-export async function sendPushToUsers(userIds: string[], payload: Payload): Promise<{ sent: number; cleaned: number }> {
-  if (userIds.length === 0) return { sent: 0, cleaned: 0 };
-  if (!(await configure())) return { sent: 0, cleaned: 0 };
-  const { data: subs } = await supabaseAdmin.from("push_subscriptions").select("*").in("user_id", userIds);
-  if (!subs?.length) return { sent: 0, cleaned: 0 };
+/**
+ * Sends a Web Push to the given users, optionally filtered by their
+ * notification_preferences (category opt-out + quiet hours).
+ * Pass a category to enforce per-user preferences; omit only for legacy callers.
+ */
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: Payload,
+  category?: NotifyCategory,
+): Promise<{ sent: number; cleaned: number; skipped: number }> {
+  if (userIds.length === 0) return { sent: 0, cleaned: 0, skipped: 0 };
+  if (!(await configure())) return { sent: 0, cleaned: 0, skipped: 0 };
+
+  let allowedIds = userIds;
+  let skipped = 0;
+  if (category) {
+    const { data: targets } = await (supabaseAdmin as any)
+      .rpc("get_notify_targets", { _user_ids: userIds, _category: category });
+    const allowed = new Set(
+      (targets || []).filter((t: any) => t.allow_push).map((t: any) => t.user_id as string),
+    );
+    skipped = userIds.length - allowed.size;
+    allowedIds = Array.from(allowed);
+    if (allowedIds.length === 0) return { sent: 0, cleaned: 0, skipped };
+  }
+
+  const { data: subs } = await supabaseAdmin.from("push_subscriptions").select("*").in("user_id", allowedIds);
+  if (!subs?.length) return { sent: 0, cleaned: 0, skipped };
 
   let sent = 0, cleaned = 0;
   await Promise.all(subs.map(async (s) => {
