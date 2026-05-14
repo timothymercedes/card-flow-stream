@@ -4859,6 +4859,7 @@ function LiveDetail() {
                   setBottomPanelMaxH(null);
                   setQuickControlsScale(1);
                   setQuickControlsBox({ x: 0, y: 0, w: 0, h: 0 });
+                  setQuickControlBoxes(defaultQuickControlBoxes());
                 }}
                 className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
                 title="Reset panel and controls"
