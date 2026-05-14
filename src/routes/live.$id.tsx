@@ -4119,7 +4119,7 @@ function LiveDetail() {
               <input
                 value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
-                placeholder="🪄 your magic word…"
+                placeholder="Type your magic word…"
                 className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
               />
               {!voice.supported && editVoiceEnabled && (
