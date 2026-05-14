@@ -298,6 +298,19 @@ function ListingDetail() {
         </div>
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
 
+        {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
+
+        {!isSeller && ackHook.isIntl && (
+          <div className="mt-3">
+            <IntlWarningBanner buyerCountry={ship.country} sellerCountry={sellerCountry} variant="full" />
+            {intlBlocked && (
+              <p className="mt-2 rounded-lg bg-destructive/10 p-2 text-[11px] font-semibold text-destructive">
+                This seller does not ship internationally to {(ship.country || "US").toUpperCase()}.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mt-4 space-y-3 rounded-xl bg-card p-4">
           {type === "auction" ? (
             <>
