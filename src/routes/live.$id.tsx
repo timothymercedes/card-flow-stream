@@ -304,6 +304,36 @@ function LiveDetail() {
     },
     [quickControlsBox],
   );
+  const startQuickControlsResize = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const handle = e.currentTarget;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startScale = quickControlsScale;
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      handle.setPointerCapture?.(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        ev.preventDefault();
+        const delta = (ev.clientX - startX + ev.clientY - startY) / 260;
+        setQuickControlsScale(Math.min(1.3, Math.max(0.72, Number((startScale + delta).toFixed(2)))));
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        document.body.style.userSelect = previousUserSelect;
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [quickControlsScale],
+  );
   useEffect(() => {
     try {
       window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
