@@ -285,6 +285,82 @@ function LiveDetail() {
     const raw = window.localStorage.getItem("live.quickControlsScale");
     return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
   });
+  const defaultQuickControlBoxes = (): Record<QuickControlBoxKey, FloatingBoxRect> => ({
+    item: { x: 4, y: 28, w: 212, h: 32 },
+    price: { x: 4, y: 64, w: 212, h: 30 },
+    shipping: { x: 4, y: 98, w: 212, h: 30 },
+    voice: { x: 4, y: 132, w: 36, h: 30 },
+    go: { x: 44, y: 132, w: 70, h: 34 },
+    end: { x: 118, y: 132, w: 54, h: 34 },
+  });
+  const [quickControlBoxes, setQuickControlBoxes] = useState<
+    Record<QuickControlBoxKey, FloatingBoxRect>
+  >(() => {
+    if (typeof window === "undefined") return defaultQuickControlBoxes();
+    try {
+      const raw = window.localStorage.getItem("live.quickControlBoxes");
+      if (raw) return { ...defaultQuickControlBoxes(), ...JSON.parse(raw) };
+    } catch {
+      /* ignore */
+    }
+    return defaultQuickControlBoxes();
+  });
+  const startQuickControlBoxDrag = useCallback(
+    (e: ReactPointerEvent<HTMLElement>, key: QuickControlBoxKey, mode: "move" | "resize") => {
+      e.preventDefault();
+      e.stopPropagation();
+      const handle = e.currentTarget;
+      const panel = handle.closest("[data-quick-controls]") as HTMLElement | null;
+      const panelRect = panel?.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startBox = quickControlBoxes[key];
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.userSelect = "none";
+      handle.setPointerCapture?.(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        ev.preventDefault();
+        const dx = (ev.clientX - startX) / quickControlsScale;
+        const dy = (ev.clientY - startY) / quickControlsScale;
+        const maxW = panelRect ? panelRect.width / quickControlsScale - 8 : 260;
+        const maxH = panelRect ? panelRect.height / quickControlsScale - 8 : 210;
+
+        setQuickControlBoxes((cur) => {
+          const current = cur[key];
+          if (mode === "move") {
+            return {
+              ...cur,
+              [key]: {
+                ...current,
+                x: clampPanelValue(startBox.x + dx, 4, maxW - startBox.w),
+                y: clampPanelValue(startBox.y + dy, 24, maxH - startBox.h),
+              },
+            };
+          }
+          return {
+            ...cur,
+            [key]: {
+              ...current,
+              w: clampPanelValue(startBox.w + dx, 34, maxW - startBox.x),
+              h: clampPanelValue(startBox.h + dy, 26, maxH - startBox.y),
+            },
+          };
+        });
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        document.body.style.userSelect = previousUserSelect;
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [quickControlBoxes, quickControlsScale],
+  );
   const startQuickControlsDrag = useCallback(
     (e: ReactPointerEvent<HTMLElement>) => {
       e.preventDefault();
