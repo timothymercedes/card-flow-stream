@@ -419,11 +419,14 @@ function LiveDetail() {
   // 🆕 Host quick-bar state — start a round in one tap without opening Settings
   const [quickItem, setQuickItem] = useState("");
   const [quickBuyNow, setQuickBuyNow] = useState("");
+  const [quickQty, setQuickQty] = useState("1");
+  const [quickRemaining, setQuickRemaining] = useState(0);
   const [lastQuick, setLastQuick] = useState<{
     item: string;
     start: string;
     timer: string;
     buyNow: string;
+    qty: string;
   } | null>(null);
   const lastChatTsRef = useRef<number>(0);
 
