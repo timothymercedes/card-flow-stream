@@ -19,7 +19,7 @@ import { buyNowQueueItem, makeQueueOffer } from "@/lib/queueActions.functions";
 import { toast } from "sonner";
 import { X, Bookmark, Gavel, ListOrdered, Trophy, ShoppingCart, HandCoins } from "lucide-react";
 
-type SaleType = "prebid" | "buynow" | "offer";
+type SaleType = "prebid" | "buynow" | "either" | "offer";
 
 type QueueItem = {
   id: string;
