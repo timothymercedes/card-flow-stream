@@ -12,6 +12,7 @@ import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
+import { SellMenu } from "@/components/SellMenu";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
