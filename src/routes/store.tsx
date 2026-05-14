@@ -125,7 +125,15 @@ function SellerHub() {
       supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", user.id),
       supabase.from("live_streams").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }).limit(50),
     ]);
-    setOrders(ord.data || []);
+    const ordersData = ord.data || [];
+    // Resolve buyer usernames in one batch so we can show them on each order card
+    const buyerIds = Array.from(new Set(ordersData.map((o: any) => o.buyer_id).filter(Boolean)));
+    let buyerMap: Record<string, string> = {};
+    if (buyerIds.length) {
+      const { data: bp } = await supabase.from("profiles").select("id, username").in("id", buyerIds);
+      buyerMap = Object.fromEntries((bp || []).map((p: any) => [p.id, p.username || ""]));
+    }
+    setOrders(ordersData.map((o: any) => ({ ...o, buyer_username: buyerMap[o.buyer_id] || o.buyer_username || "" })));
     setListings(list.data || []);
     setReviews(revs.data || []);
     const pp = prof.data as any;
