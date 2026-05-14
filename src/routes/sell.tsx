@@ -449,6 +449,8 @@ function Sell() {
       price: enableBuyNow ? Number(buyNowPrice) : null,
       buy_now_price: enableBuyNow ? Number(buyNowPrice) : null,
       shipping_price: Number(shippingPrice) || 0,
+      shipping_preset: shippingPreset,
+      weight_oz: Number(weightOz) || null,
       auction_ends_at: auctionEnds,
     });
     if (error) return toast.error(error.message);
