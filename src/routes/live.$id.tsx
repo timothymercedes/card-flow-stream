@@ -4497,20 +4497,22 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
-        style={bottomPanelMaxH ? { maxHeight: `${bottomPanelMaxH}px` } : undefined}
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-10 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
+        style={bottomPanelMaxH ? { height: `${bottomPanelMaxH}px`, maxHeight: "calc(100dvh - 6rem)" } : undefined}
       >
         {/* 🆕 Drag handle — host can resize the panel by dragging this top edge */}
         {isSeller && !ended && (
           <div
             onPointerDown={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+              e.currentTarget.setPointerCapture(e.pointerId);
               const startY = e.clientY;
               const containerEl = (e.currentTarget as HTMLElement).parentElement as HTMLElement | null;
-              const startH = bottomPanelMaxH ?? containerEl?.offsetHeight ?? 240;
+              const startH = bottomPanelMaxH ?? containerEl?.getBoundingClientRect().height ?? 240;
               const onMove = (ev: PointerEvent) => {
                 const dy = startY - ev.clientY; // drag up = bigger
-                const next = Math.max(80, Math.min(window.innerHeight - 100, startH + dy));
+                const next = Math.max(120, Math.min(window.innerHeight - 96, startH + dy));
                 setBottomPanelMaxH(next);
               };
               const onUp = () => {
@@ -4522,10 +4524,15 @@ function LiveDetail() {
             }}
             onDoubleClick={() => setBottomPanelMaxH(null)}
             title="Drag to resize · double-click to reset"
-            className="absolute left-1/2 -top-3 z-30 flex h-7 w-24 -translate-x-1/2 cursor-ns-resize touch-none items-center justify-center gap-1 rounded-full bg-white/25 ring-1 ring-white/50 shadow-lg backdrop-blur hover:bg-white/40"
+            className="absolute left-1/2 -top-1 z-50 flex h-11 w-32 -translate-x-1/2 cursor-ns-resize touch-none select-none flex-col items-center justify-center gap-1 rounded-full bg-white/35 ring-2 ring-white/70 shadow-xl backdrop-blur hover:bg-white/50 active:scale-[0.98]"
           >
-            <div className="h-1 w-10 rounded-full bg-white/90" />
-            <div className="h-1 w-10 rounded-full bg-white/90" />
+            <Move className="h-3.5 w-3.5 text-white" />
+            <div className="h-1 w-16 rounded-full bg-white/95" />
+          </div>
+          <div className="absolute right-3 top-2 z-50 flex items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/20 backdrop-blur">
+            <button type="button" onClick={() => resizeBottomPanel(-56)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95" title="Make panel smaller">−</button>
+            <button type="button" onClick={() => resizeBottomPanel(56)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95" title="Make panel bigger">+</button>
+            <button type="button" onClick={() => setBottomPanelMaxH(null)} className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95" title="Reset panel size">Reset</button>
           </div>
         )}
         {stream.mode === "show_off" && (
