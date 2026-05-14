@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
+import { ShippingEstimator } from "@/components/ShippingEstimator";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
