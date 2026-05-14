@@ -322,6 +322,23 @@ function LiveDetail() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
   const [prebidCount, setPrebidCount] = useState(0);
+
+  // 🆕 Pre-B count: tracks queued items so viewers see a "Pre-B Available" badge
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    async function refresh() {
+      const { count } = await supabase.from("auction_queue" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("stream_id", id).eq("status", "queued");
+      if (alive) setPrebidCount(count || 0);
+    }
+    refresh();
+    const ch = supabase.channel(`prebid-count-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, refresh)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+  }, [id]);
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
