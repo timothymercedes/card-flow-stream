@@ -91,7 +91,6 @@ function ListingDetail() {
     return true;
   }
 
-  const [sellerCountry, setSellerCountry] = useState<string>("US");
 
   async function load() {
     const { data: l } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
