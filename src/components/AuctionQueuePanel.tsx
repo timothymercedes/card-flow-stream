@@ -557,6 +557,152 @@ export function AuctionQueuePanel({
           ))}
         </div>
       )}
+      {editing && (
+        <EditItemModal
+          item={editing}
+          onClose={() => setEditing(null)}
+          onSave={saveEdit}
+          uploadImage={uploadEditImage}
+          uploading={editUploading}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditItemModal({
+  item,
+  onClose,
+  onSave,
+  uploadImage,
+  uploading,
+}: {
+  item: QueueItem;
+  onClose: () => void;
+  onSave: (patch: Partial<QueueItem> & { id: string }) => Promise<void>;
+  uploadImage: (file: File) => Promise<string | null>;
+  uploading: boolean;
+}) {
+  const [title, setTitle] = useState(item.title);
+  const [imageUrl, setImageUrl] = useState(item.image_url || "");
+  const [saleType, setSaleType] = useState<SaleType>((item.sale_type as SaleType) || "prebid");
+  const [startingBid, setStartingBid] = useState(String(item.starting_bid ?? 1));
+  const [buyNow, setBuyNow] = useState(String(item.buy_now_price ?? item.snipe_price ?? ""));
+  const [duration, setDuration] = useState(String(item.duration_seconds ?? 30));
+  const [trigger, setTrigger] = useState(item.trigger_word || "");
+  const [quantity, setQuantity] = useState(String(item.quantity ?? 1));
+
+  async function handleSave() {
+    if (!title.trim()) return toast.error("Title required");
+    const patch: any = {
+      id: item.id,
+      title: title.trim(),
+      image_url: imageUrl || null,
+      sale_type: saleType,
+      trigger_word: trigger.trim().toLowerCase() || null,
+      quantity: Math.max(1, Math.min(999, Number(quantity) || 1)),
+      starting_bid: Math.max(1, Number(startingBid) || 1),
+      duration_seconds: Math.max(10, Math.min(600, Number(duration) || 30)),
+    };
+    if (saleType === "buynow" || saleType === "either") {
+      const bn = Number(buyNow);
+      if (!bn || bn <= 0) return toast.error("Buy Now price required");
+      patch.buy_now_price = bn;
+      patch.snipe_price = bn;
+      if (saleType === "buynow") patch.starting_bid = bn;
+    } else {
+      patch.buy_now_price = null;
+      patch.snipe_price = null;
+    }
+    await onSave(patch);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md space-y-3 rounded-2xl bg-card p-4 text-card-foreground shadow-2xl ring-1 ring-border">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-extrabold uppercase tracking-wider">Edit Pre-B Item</h3>
+          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-muted"><X className="h-4 w-4" /></button>
+        </div>
+
+        {/* Sale type */}
+        <div className="grid grid-cols-3 gap-1">
+          {(["prebid", "buynow", "either"] as SaleType[]).map((s) => (
+            <button key={s} onClick={() => setSaleType(s)}
+              className={`rounded-md px-2 py-2 text-[11px] font-extrabold ${saleType === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+              {s === "prebid" ? "Pre-Bid" : s === "buynow" ? "Buy Now" : "Either / Both"}
+            </button>
+          ))}
+        </div>
+
+        <label className="block">
+          <span className="text-[10px] font-bold uppercase text-muted-foreground">Item title</span>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60}
+            className="mt-1 w-full rounded-md border border-border bg-background px-2 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40" />
+        </label>
+
+        <div>
+          <span className="text-[10px] font-bold uppercase text-muted-foreground">Image</span>
+          <div className="mt-1 flex items-center gap-2">
+            {imageUrl
+              ? <img src={imageUrl} alt="" className="h-14 w-14 rounded-md object-cover ring-1 ring-border" />
+              : <div className="grid h-14 w-14 place-items-center rounded-md bg-muted text-[10px] font-bold text-muted-foreground">No image</div>}
+            <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-md bg-muted px-2 py-2 text-xs font-bold hover:bg-muted/70">
+              <ImagePlus className="h-3 w-3" />
+              {uploading ? "Uploading…" : imageUrl ? "Replace photo" : "Upload photo"}
+              <input type="file" accept="image/*" hidden onChange={async (e) => {
+                const f = e.target.files?.[0]; if (!f) return;
+                const url = await uploadImage(f);
+                if (url) setImageUrl(url);
+              }} />
+            </label>
+            {imageUrl && (
+              <button onClick={() => setImageUrl("")}
+                className="rounded-md bg-rose-500/15 px-2 py-2 text-[10px] font-bold text-rose-400">Remove</button>
+            )}
+          </div>
+        </div>
+
+        {(saleType === "prebid" || saleType === "either") && (
+          <div className="grid grid-cols-3 gap-2">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Start $
+              <input type="number" min={1} value={startingBid} onChange={(e) => setStartingBid(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm font-bold focus:outline-none" />
+            </label>
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Timer s
+              <input type="number" min={10} value={duration} onChange={(e) => setDuration(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm font-bold focus:outline-none" />
+            </label>
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Qty
+              <input type="number" min={1} max={999} value={quantity} onChange={(e) => setQuantity(e.target.value)}
+                className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm font-bold focus:outline-none" />
+            </label>
+          </div>
+        )}
+
+        {(saleType === "buynow" || saleType === "either") && (
+          <label className="block">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground">Buy Now $</span>
+            <input type="number" min={1} value={buyNow} onChange={(e) => setBuyNow(e.target.value)}
+              className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm font-bold focus:outline-none" />
+          </label>
+        )}
+
+        <label className="block">
+          <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-muted-foreground">
+            <Zap className="h-3 w-3 text-amber-400" /> Voice trigger word (optional)
+          </span>
+          <input value={trigger} onChange={(e) => setTrigger(e.target.value)} maxLength={32}
+            placeholder='e.g. "charizard" — say or type to start this item live'
+            className="mt-1 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm font-semibold focus:outline-none" />
+        </label>
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onClose} className="flex-1 rounded-md bg-muted px-3 py-2 text-sm font-bold">Cancel</button>
+          <button onClick={handleSave} className="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-extrabold text-primary-foreground">Save</button>
+        </div>
+      </div>
     </div>
   );
 }
