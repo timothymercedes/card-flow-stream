@@ -50,8 +50,8 @@ export async function sendPushToUsers(
   if (category) {
     const { data: targets } = await (supabaseAdmin as any)
       .rpc("get_notify_targets", { _user_ids: userIds, _category: category });
-    const allowed = new Set(
-      (targets || []).filter((t: any) => t.allow_push).map((t: any) => t.user_id as string),
+    const allowed = new Set<string>(
+      (targets || []).filter((t: any) => t.allow_push).map((t: any) => String(t.user_id)),
     );
     skipped = userIds.length - allowed.size;
     allowedIds = Array.from(allowed);
