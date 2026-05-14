@@ -207,7 +207,7 @@ export function PreBidPanel({
                       {st === "either" && (<>Pre-Bid from ${Number(it.starting_bid).toFixed(0)} · or Buy Now ${bnPrice.toFixed(0)}</>)}
                       {st === "offer" && (<>Make Offer{it.min_offer ? ` · min $${Number(it.min_offer).toFixed(0)}` : ""}</>)}
                     </p>
-                    {st === "prebid" && top && (
+                    {(st === "prebid" || st === "either") && top && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
                         <Trophy className="h-3 w-3" />
                         Top pre-bid ${top.amount} · {top.bidder_username || "anon"}
