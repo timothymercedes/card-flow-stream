@@ -68,6 +68,7 @@ import { SoldBanner } from "@/components/SoldBanner";
 import { HypeBurst } from "@/components/HypeBurst";
 import { TopSupporterBadge } from "@/components/TopSupporterBadge";
 import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
+import { PreBidPanel } from "@/components/PreBidPanel";
 import { playSfx } from "@/lib/sfx";
 
 import { Confetti } from "@/components/Confetti";
