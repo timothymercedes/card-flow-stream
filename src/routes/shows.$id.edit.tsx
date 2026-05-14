@@ -39,7 +39,7 @@ function EditShow() {
       if (error || !data) { toast.error("Show not found"); nav({ to: "/profile" }); return; }
       if ((data as any).seller_id !== user.id) { toast.error("Not your show"); nav({ to: "/profile" }); return; }
       setShow({
-        ...data,
+        ...(data as any),
         scheduled_for: new Date((data as any).scheduled_for).toISOString().slice(0, 16),
       });
       setLoading(false);
