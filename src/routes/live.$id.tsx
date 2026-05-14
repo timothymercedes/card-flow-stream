@@ -3752,7 +3752,7 @@ function LiveDetail() {
             <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
               <p className="flex items-center justify-between text-xs font-bold">
                 <span>
-                  🐢 Slow chat
+                  Slow chat
                   {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
                     <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
                       {(stream as any).chat_slow_mode_sec}s
