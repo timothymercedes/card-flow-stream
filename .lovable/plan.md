@@ -1,60 +1,68 @@
-# Profile, Reviews & Buyer/Seller Trust Overhaul
+# Three-part fix: live cockpit polish + shipping auto-rates
 
-A large, multi-area upgrade. I'll deliver it in 4 phased migrations + UI so each piece ships safely.
+## 1. Camera button on live auction opens the panel
 
-## Phase 1 — Reviews schema + responses + reports
+In `src/routes/live.$id.tsx`:
 
-DB migration:
-- `reviews` table additions (if missing): `shipping_rating`, `communication_rating`, `accuracy_rating` (1-5), `verified_purchase bool`, `verified_live_auction bool`, `order_id`, `stream_id`. Backfill `verified_purchase` from existing order link.
-- `review_responses` table — `review_id`, `author_id` (buyer or seller), `body`, timestamps. RLS: anyone can read, only review's seller OR review's author can insert their own response (one per author per review). Edit/delete own.
-- `review_reports` table — `review_id`, `reporter_id`, `reason`, `status` (open/dismissed/actioned). RLS: insert by auth, sellers can report reviews about them, admins read all.
-- `get_seller_stats` RPC: extend to return `avg_shipping`, `avg_communication`, `avg_accuracy`, `response_rate`, `avg_response_hours`, `recent_reviews` count, plus existing fields. (Backwards compatible.)
-- `get_seller_recent_reviews(_seller_id, _limit)` RPC returning latest reviews with response and reporter-eligibility flag.
+- The compositor-seller path already calls `openHostCameraControls()` but it can be hidden behind `showSettings`. Update the camera button handler to also call `setShowSettings(false)` and force `setHostCameraPanelCollapsed(false)` so the editor always becomes visible.
+- For non-compositor sellers (WebRTC mode), make the same camera button additionally open the host studio drawer (`setShowHostCameraEditor(true)`) after `setCallJoined(true)`, so a single tap reliably reveals the camera UI in both modes.
+- Verify the icon button at line ~3324 is rendered for Flex sellers too (currently gated by `usingCompositor ? isSeller : !callJoined`).
 
-## Phase 2 — Seller response badges + buyer reputation
+## 2. Queue button — fix overlay + add quantity
 
-DB migration:
-- `buyer_reputation` view/function `get_buyer_reputation(_user_id)` returning:
-  - completed_purchases, payment_success_rate, avg_payment_minutes, cancellation_rate, chargeback_count, unpaid_wins, unresolved_payments, account_age_days, last_active_at.
-- `buyer_trust_badges(_user_id)` returns array of earned positive badges (`trusted_buyer`, `fast_payer`, `verified_buyer`, `repeat_customer`, `auction_veteran`, `supportive_buyer`).
-- `seller_response_badges(_seller_id)` returns `responds_fast`, `active_seller`, `top_rated`.
-- Indexes for fast lookup.
+In `src/routes/live.$id.tsx`:
+- The "📋 Queue" FAB at `bottom-32 left-2` collides with bid controls and the rail. Move it to a non-conflicting slot: anchor it to the right side, above the bottom action bar (`bottom-44 right-2`, slightly smaller chip), and make the open drawer slide from that corner so it doesn't cover the live video.
 
-## Phase 3 — Failed payment enforcement
+In `src/components/AuctionQueuePanel.tsx`:
+- Add a `quantity` field (default 1) to `draft` state and the add-form grid (4 columns: Start $, Sec, Buy-now, Qty).
+- Persist as `quantity` column on `auction_queue` row insert; render `· x{qty}` in both host list rows and the viewer "Up next" strip when `qty > 1`.
+- Migration: `ALTER TABLE public.auction_queue ADD COLUMN IF NOT EXISTS quantity int NOT NULL DEFAULT 1 CHECK (quantity BETWEEN 1 AND 999);`
 
-DB migration:
-- `profiles.bid_restricted_until timestamptz`, `profiles.bid_restricted_reason text`, `profiles.unpaid_strikes int default 0`.
-- `record_unpaid_auction_win(_order_id)` — called by `reconcile_stale_payments`, increments strikes. At 10 across 10 distinct streams with no resolved payment, sets `bid_restricted_until = now() + 30 days`, inserts row in admin review queue (`buyer_review_queue` table), notifies buyer + admins.
-- Update `place_live_bid` + `place_listing_bid` to reject if `bid_restricted_until > now()`.
-- Admin RPCs: `admin_waive_buyer_restriction`, `admin_extend_buyer_restriction`, `admin_ban_buyer`.
+## 3. Auto shipping rates from Shippo across the platform
 
-## Phase 4 — UI
+### New estimate server fn (no order required)
 
-New components:
-- `SellerReviewsPanel.tsx` — full reviews list with star breakdown, filter, response thread, report button (sellers), reply (sellers/buyers). Used in `/seller/$username?tab=reviews` and `/profile`.
-- `ReviewCard.tsx` — single review with timestamp, verified-purchase / live-auction badge, response thread, report.
-- `BuyerTrustBadges.tsx` — public positive badges only.
-- `BuyerInsightsPanel.tsx` — private metrics (visible only to the seller of an active order, mods, admins).
-- `ProfileActionBar.tsx` — refactor existing action area: View Reviews · Join Live (if live) · Message · Follow · Share · Report. Cleaner mobile spacing.
-- `SellerStatsQuickView.tsx` — popover triggered from "View Reviews" in store/seller pages.
+Add `estimateShippoRates` in `src/server/shippo.functions.ts`:
+- Inputs: `sellerId`, `buyerCountry` (default from auth profile), optional `buyerZip`, `presetKey` (`stamp | pwe | bubble | small_box`), optional weight/dimension overrides.
+- Resolves seller address from `profiles`, expands preset → parcel via `SHIPPING_PRESETS`.
+- For untracked flat-rate presets (`stamp`, `pwe`) returns the flat USD price directly without calling Shippo.
+- Otherwise calls Shippo `/shipments/` with `async: false`, returns the cheapest domestic rate + cheapest international rate (separated), plus `recommendedRateId`. International detection = `buyerCountry !== sellerCountry`.
+- Validates with Zod, requires auth, but does NOT require seller ownership (any signed-in buyer can quote a rate).
 
-Edits:
-- `src/routes/seller.$username.tsx` — wire new ProfileActionBar, embed SellerReviewsPanel under reviews tab, surface response badges next to seller name, show shipping/comm/accuracy averages, embed live ring/banner (already present), order metrics row.
-- `src/routes/profile.tsx` — "My Reviews" section using SellerReviewsPanel for self; "My Buyer Trust" panel using BuyerTrustBadges + private breakdown; quick links to followers/live history/listings/shipping perf.
-- `src/components/SellerTrustBadges.tsx` — extend with response badges.
-- `src/components/UsernamePopover.tsx` — show buyer trust badges when target isn't a seller; show response badges when seller.
-- New admin tab in `src/routes/admin.tsx`: "Buyer Review Queue" — waive/extend/ban actions.
+### New `<ShippingEstimator>` component
 
-Realtime:
-- `useRealtimeTable` on `reviews`, `review_responses` for live updates on the active profile.
-- `useRealtimeTable` on `buyer_review_queue` for admins.
+`src/components/ShippingEstimator.tsx`:
+- Props: `sellerId`, `presetKey`, optional weight/dimensions, optional buyer country override.
+- Calls `estimateShippoRates` via `useServerFn` + react-query, debounced.
+- Renders: live "$X.XX via USPS Ground Advantage" with international/domestic badge and a small "Updated from carrier rates" note. Shows skeleton while fetching, friendly error if seller address missing.
+- Used by sell preview, marketplace listing, cart per-seller group, and live auction info card.
 
-## Out of scope for this pass
-- Redesigning review submission flow (already exists).
-- Moderating responses with AI — manual report flow only for now.
+### Seller-facing change in `src/routes/sell.tsx`
+
+- Replace the manual `shipping_price` numeric input with:
+  1. Package preset dropdown (already-defined `SHIPPING_PRESETS`).
+  2. Estimated weight (oz) — auto-filled from preset, editable.
+  3. Optional dimensions (collapsed under "Advanced override").
+  4. Auto-quoted rate preview using `<ShippingEstimator>` with the seller's own country as the buyer (gives a sample US rate) plus a sample international (CA) rate side-by-side.
+- `shipping_price` stored on the listing becomes the *flat-rate fallback* used only for untracked presets; tracked presets save `shipping_preset` + `weight_oz` + `dimensions` and resolve real rates at quote time.
+- Migration: add `shipping_preset text`, `weight_oz numeric`, `length_in numeric`, `width_in numeric`, `height_in numeric` to `listings` (nullable, no default break).
+
+### Buyer-facing wiring
+
+- `src/routes/market.$id.tsx`: replace static "Shipping $X" line with `<ShippingEstimator sellerId={...} presetKey={listing.shipping_preset ?? 'bubble'} weightOz={listing.weight_oz} />`.
+- `src/routes/cart.tsx`: per seller group, sum item weights and pick the largest preset, render `<ShippingEstimator>` and feed the cents into the existing total.
+- `src/routes/live.$id.tsx`: in the live auction info / pinned card area, surface `<ShippingEstimator>` for the current item using the same lookup.
+- `src/routes/store.tsx` and `vault` flows: same treatment where a seller-level shipping line currently shows.
+
+### Backwards compatibility
+
+- `estimateShippingAndImportFees` in `src/lib/shippingEstimate.ts` stays as the offline fallback when Shippo is unreachable or seller address is missing — `<ShippingEstimator>` falls back to it on error and labels the result "Estimated".
+
+---
 
 ## Technical notes
-- All new RPCs `SECURITY DEFINER` with `REVOKE EXECUTE FROM anon`.
-- Public profile visibility: only positive badges exposed via `get_buyer_public_badges`. Private metrics behind `get_buyer_private_insights` gated by has_role(admin/owner/moderator) OR existence of an order between caller and target.
-- All mutations validated with zod on client AND DB triggers.
-- Mobile-first: action bar uses flex-wrap with min-w-0, tap targets ≥40px.
+- Shippo key already wired (`SHIPPO_API_KEY` used by `getShippoRates`). No new secrets.
+- New server fn is read-only; reuses existing `requireSupabaseAuth` middleware.
+- All buyer flows already detect international via `getIntlContext`; we re-use that and pass through to the estimator badge.
+- No changes to checkout fee math — `calculateFees` and the 4% intl fee logic remain untouched.
+

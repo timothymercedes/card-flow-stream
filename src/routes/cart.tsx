@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
+import { ShippingEstimator } from "@/components/ShippingEstimator";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -134,6 +135,15 @@ function Cart() {
                       </button>
                     </div>
                   ))}
+                </div>
+                <div className="mt-2">
+                  <ShippingEstimator
+                    sellerId={sellerId}
+                    presetKey={items.length > 3 ? "small_box" : "bubble"}
+                    buyerCountry={buyerCountry}
+                    subtotalUsd={total}
+                    compact
+                  />
                 </div>
                 <button
                   onClick={() => setCheckoutSeller(sellerId)}

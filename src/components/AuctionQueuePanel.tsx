@@ -14,6 +14,7 @@ type QueueItem = {
   duration_seconds: number;
   snipe_price: number | null;
   status: "queued" | "running" | "sold" | "unsold" | "skipped";
+  quantity?: number | null;
 };
 
 /**
@@ -40,7 +41,7 @@ export function AuctionQueuePanel({
 }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "" });
+  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1 });
 
   useEffect(() => {
     if (!streamId) return;
@@ -70,6 +71,7 @@ export function AuctionQueuePanel({
     const start = Number(draft.starting_bid) || 1;
     const dur = Math.max(10, Math.min(600, Number(draft.duration_seconds) || 30));
     const snipe = draft.snipe_price ? Number(draft.snipe_price) : null;
+    const qty = Math.max(1, Math.min(999, Number(draft.quantity) || 1));
     const nextPos = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 0;
     const { error } = await supabase.from("auction_queue" as any).insert({
       stream_id: streamId,
@@ -79,9 +81,10 @@ export function AuctionQueuePanel({
       starting_bid: start,
       duration_seconds: dur,
       snipe_price: snipe,
+      quantity: qty,
     } as any);
     if (error) return toast.error(error.message);
-    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "" });
+    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1 });
     setAdding(false);
   }
 
@@ -136,6 +139,7 @@ export function AuctionQueuePanel({
             <div key={it.id} className="shrink-0 rounded-lg bg-white/10 px-2 py-1 text-[11px]">
               <span className="mr-1 font-extrabold text-amber-300">#{i + 1}</span>
               <span className="font-semibold">{it.title}</span>
+              {Number(it.quantity || 1) > 1 && <span className="ml-1 text-fuchsia-300">×{it.quantity}</span>}
               <span className="ml-1 opacity-70">· ${Number(it.starting_bid).toFixed(0)}</span>
             </div>
           ))}
@@ -166,7 +170,7 @@ export function AuctionQueuePanel({
             placeholder="Card / item title"
             className="w-full rounded-md bg-white/10 px-2 py-1.5 text-xs placeholder:text-white/40 focus:outline-none"
           />
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             <label className="text-[9px] uppercase text-white/60">Start $
               <input type="number" min={1} value={draft.starting_bid}
                 onChange={(e) => setDraft((d) => ({ ...d, starting_bid: Number(e.target.value) }))}
@@ -180,6 +184,11 @@ export function AuctionQueuePanel({
             <label className="text-[9px] uppercase text-white/60">Buy-now
               <input type="number" placeholder="—" value={draft.snipe_price}
                 onChange={(e) => setDraft((d) => ({ ...d, snipe_price: e.target.value }))}
+                className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+            </label>
+            <label className="text-[9px] uppercase text-white/60">Qty
+              <input type="number" min={1} max={999} value={draft.quantity}
+                onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
                 className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
             </label>
           </div>
@@ -204,7 +213,10 @@ export function AuctionQueuePanel({
         <div key={it.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-2">
           <span className="font-extrabold text-amber-300 text-[11px] tabular-nums w-5">#{i + 1}</span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold">{it.title}</p>
+            <p className="truncate text-xs font-bold">
+              {it.title}
+              {Number(it.quantity || 1) > 1 && <span className="ml-1 rounded bg-fuchsia-500/30 px-1 text-[9px] font-extrabold text-fuchsia-100">×{it.quantity}</span>}
+            </p>
             <p className="text-[10px] text-white/60">
               ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s
               {it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}

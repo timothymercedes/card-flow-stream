@@ -56,6 +56,7 @@ export type Database = {
           id: string
           image_url: string | null
           position: number
+          quantity: number
           reveal_mode: string | null
           snipe_price: number | null
           started_at: string | null
@@ -74,6 +75,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           position?: number
+          quantity?: number
           reveal_mode?: string | null
           snipe_price?: number | null
           started_at?: string | null
@@ -92,6 +94,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           position?: number
+          quantity?: number
           reveal_mode?: string | null
           snipe_price?: number | null
           started_at?: string | null
@@ -1010,11 +1013,13 @@ export type Database = {
           custom_price_source: string | null
           description: string | null
           expires_at: string
+          height_in: number | null
           id: string
           image_url: string | null
           is_auction: boolean
           is_demo: boolean
           last_sold_price: number | null
+          length_in: number | null
           listing_type: string
           market_price: number | null
           price: number | null
@@ -1029,6 +1034,7 @@ export type Database = {
           recent_sales_avg: number | null
           reserve_price: number | null
           seller_id: string
+          shipping_preset: string | null
           shipping_price: number | null
           ships_internationally: boolean
           sold_count: number
@@ -1038,6 +1044,8 @@ export type Database = {
           tcg_year: string | null
           title: string
           top_bidder_id: string | null
+          weight_oz: number | null
+          width_in: number | null
         }
         Insert: {
           accepts_offers?: boolean
@@ -1054,11 +1062,13 @@ export type Database = {
           custom_price_source?: string | null
           description?: string | null
           expires_at?: string
+          height_in?: number | null
           id?: string
           image_url?: string | null
           is_auction?: boolean
           is_demo?: boolean
           last_sold_price?: number | null
+          length_in?: number | null
           listing_type?: string
           market_price?: number | null
           price?: number | null
@@ -1073,6 +1083,7 @@ export type Database = {
           recent_sales_avg?: number | null
           reserve_price?: number | null
           seller_id: string
+          shipping_preset?: string | null
           shipping_price?: number | null
           ships_internationally?: boolean
           sold_count?: number
@@ -1082,6 +1093,8 @@ export type Database = {
           tcg_year?: string | null
           title: string
           top_bidder_id?: string | null
+          weight_oz?: number | null
+          width_in?: number | null
         }
         Update: {
           accepts_offers?: boolean
@@ -1098,11 +1111,13 @@ export type Database = {
           custom_price_source?: string | null
           description?: string | null
           expires_at?: string
+          height_in?: number | null
           id?: string
           image_url?: string | null
           is_auction?: boolean
           is_demo?: boolean
           last_sold_price?: number | null
+          length_in?: number | null
           listing_type?: string
           market_price?: number | null
           price?: number | null
@@ -1117,6 +1132,7 @@ export type Database = {
           recent_sales_avg?: number | null
           reserve_price?: number | null
           seller_id?: string
+          shipping_preset?: string | null
           shipping_price?: number | null
           ships_internationally?: boolean
           sold_count?: number
@@ -1126,6 +1142,8 @@ export type Database = {
           tcg_year?: string | null
           title?: string
           top_bidder_id?: string | null
+          weight_oz?: number | null
+          width_in?: number | null
         }
         Relationships: [
           {

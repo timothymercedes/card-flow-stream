@@ -3324,16 +3324,18 @@ function LiveDetail() {
           {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined) && (
             <button
               onClick={() => {
+                // Close other panels so the camera UI is always visible.
+                if (showSettings) setShowSettings(false);
+                setHostCameraPanelCollapsed(false);
                 if (usingCompositor && isSeller) {
-                  // Compositor sellers don't use the WebRTC call — reopen the
-                  // multi-cam studio panel and restart cameras if they were stopped.
                   openHostCameraControls();
                 } else {
                   setCallJoined(true);
+                  setShowHostCameraEditor(true);
                 }
               }}
               className="rounded-full bg-emerald-600/80 p-2 backdrop-blur"
-              title={usingCompositor ? "Reopen camera panel" : "Go on camera"}
+              title={usingCompositor ? "Open camera panel" : "Go on camera"}
             >
               <Camera className="h-4 w-4" />
             </button>
@@ -6295,13 +6297,13 @@ function LiveDetail() {
         <>
           <button
             onClick={() => setQueueOpen((v) => !v)}
-            className="fixed bottom-32 left-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600 px-3 py-2 text-[11px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95"
+            className="fixed bottom-44 right-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600/95 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95 md:bottom-48"
             title="Auction queue"
           >
             📋 Queue
           </button>
           {queueOpen && (
-            <div className="fixed bottom-44 left-2 z-40 w-[min(92vw,360px)]">
+            <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">
               <AuctionQueuePanel
                 streamId={id}
                 hostId={stream.seller_id}

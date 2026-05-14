@@ -7,6 +7,7 @@ const CardScanner = lazy(() =>
   import("@/components/CardScanner").then((m) => ({ default: m.CardScanner })),
 );
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
+import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { toast } from "sonner";
 import {
@@ -114,6 +115,9 @@ function Sell() {
   const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
   const [shippingPrice, setShippingPrice] = useState("0");
+  const [shippingPreset, setShippingPreset] = useState<"stamp" | "pwe" | "bubble" | "small_box">("bubble");
+  const [weightOz, setWeightOz] = useState<string>("4");
+  const [showShipAdvanced, setShowShipAdvanced] = useState(false);
   const [category, setCategory] = useState<string>("pokemon");
 
   // Load seller status
@@ -446,6 +450,8 @@ function Sell() {
       price: enableBuyNow ? Number(buyNowPrice) : null,
       buy_now_price: enableBuyNow ? Number(buyNowPrice) : null,
       shipping_price: Number(shippingPrice) || 0,
+      shipping_preset: shippingPreset,
+      weight_oz: Number(weightOz) || null,
       auction_ends_at: auctionEnds,
     });
     if (error) return toast.error(error.message);
@@ -795,15 +801,62 @@ function Sell() {
                 </div>
               </div>
 
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
-                placeholder="Shipping price ($) — 0 for free"
-                value={shippingPrice}
-                onChange={(e) => setShippingPrice(e.target.value)}
-              />
+              <div className="space-y-2 rounded-xl bg-muted/30 p-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Shipping (auto-quoted from carriers)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-[10px] uppercase text-muted-foreground">
+                    Package
+                    <select
+                      value={shippingPreset}
+                      onChange={(e) => {
+                        const v = e.target.value as typeof shippingPreset;
+                        setShippingPreset(v);
+                        const w = ({ stamp: "1", pwe: "1", bubble: "4", small_box: "10" })[v];
+                        setWeightOz(w);
+                      }}
+                      className="mt-0.5 w-full rounded-lg bg-input px-2 py-2 text-sm outline-none"
+                    >
+                      <option value="stamp">Stamp (single card)</option>
+                      <option value="pwe">PWE (1–3 cards)</option>
+                      <option value="bubble">Bubble Mailer</option>
+                      <option value="small_box">Small Box</option>
+                    </select>
+                  </label>
+                  <label className="text-[10px] uppercase text-muted-foreground">
+                    Weight (oz)
+                    <input
+                      type="number" min="0.1" step="0.1"
+                      value={weightOz}
+                      onChange={(e) => setWeightOz(e.target.value)}
+                      className="mt-0.5 w-full rounded-lg bg-input px-2 py-2 text-sm outline-none"
+                    />
+                  </label>
+                </div>
+                {user && (
+                  <ShippingEstimator
+                    sellerId={user.id}
+                    presetKey={shippingPreset}
+                    weightOz={Number(weightOz) || undefined}
+                    buyerCountry="US"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowShipAdvanced((v) => !v)}
+                  className="text-[10px] font-semibold text-primary"
+                >
+                  {showShipAdvanced ? "Hide" : "Advanced"} — manual flat-rate override
+                </button>
+                {showShipAdvanced && (
+                  <input
+                    type="number" min="0" step="0.01"
+                    className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
+                    placeholder="Manual flat shipping ($) — leave 0 to use carrier rates"
+                    value={shippingPrice}
+                    onChange={(e) => setShippingPrice(e.target.value)}
+                  />
+                )}
+              </div>
               <button
                 onClick={createListing}
                 className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
