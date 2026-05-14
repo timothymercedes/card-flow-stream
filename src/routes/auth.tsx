@@ -13,12 +13,32 @@ import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
 
-export const Route = createFileRoute("/auth")({ component: Auth });
+export const Route = createFileRoute("/auth")({
+  component: Auth,
+  validateSearch: (s: Record<string, unknown>) => ({
+    returnTo: typeof s.returnTo === "string" ? s.returnTo : undefined,
+    mode: s.mode === "signup" || s.mode === "signin" || s.mode === "forgot" ? s.mode : undefined,
+  }),
+});
+
+/** Returns a same-origin path from a returnTo search param, or "/" if invalid. */
+function safeReturnTo(raw?: string): string {
+  if (!raw) return "/";
+  try {
+    const u = new URL(raw, window.location.origin);
+    if (u.origin !== window.location.origin) return "/";
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return raw.startsWith("/") ? raw : "/";
+  }
+}
 
 function Auth() {
   const nav = useNavigate();
+  const search = Route.useSearch();
+  const returnTo = safeReturnTo(search.returnTo);
   const { user } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(search.mode ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
