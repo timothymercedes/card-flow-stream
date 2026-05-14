@@ -1000,6 +1000,7 @@ export type Database = {
           auction_ends_at: string | null
           auction_status: string
           back_image_url: string | null
+          blocked_countries: string[]
           buy_now_price: number | null
           category: string | null
           condition: Database["public"]["Enums"]["card_condition"] | null
@@ -1029,6 +1030,7 @@ export type Database = {
           reserve_price: number | null
           seller_id: string
           shipping_price: number | null
+          ships_internationally: boolean
           sold_count: number
           starting_bid: number | null
           tcg_number: string | null
@@ -1042,6 +1044,7 @@ export type Database = {
           auction_ends_at?: string | null
           auction_status?: string
           back_image_url?: string | null
+          blocked_countries?: string[]
           buy_now_price?: number | null
           category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
@@ -1071,6 +1074,7 @@ export type Database = {
           reserve_price?: number | null
           seller_id: string
           shipping_price?: number | null
+          ships_internationally?: boolean
           sold_count?: number
           starting_bid?: number | null
           tcg_number?: string | null
@@ -1084,6 +1088,7 @@ export type Database = {
           auction_ends_at?: string | null
           auction_status?: string
           back_image_url?: string | null
+          blocked_countries?: string[]
           buy_now_price?: number | null
           category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
@@ -1113,6 +1118,7 @@ export type Database = {
           reserve_price?: number | null
           seller_id?: string
           shipping_price?: number | null
+          ships_internationally?: boolean
           sold_count?: number
           starting_bid?: number | null
           tcg_number?: string | null
@@ -1269,6 +1275,7 @@ export type Database = {
           allow_collab_requests: boolean
           auction_reveal_mode: string
           auto_end_reason: string | null
+          blocked_countries: string[]
           break_characters: Json | null
           break_force_visible: boolean
           break_mode: string | null
@@ -1343,6 +1350,7 @@ export type Database = {
           seller_id: string
           shipping_method: string | null
           shipping_price: number | null
+          ships_internationally: boolean
           snipe_extends: number
           snipe_price: number | null
           started_at: string | null
@@ -1370,6 +1378,7 @@ export type Database = {
           allow_collab_requests?: boolean
           auction_reveal_mode?: string
           auto_end_reason?: string | null
+          blocked_countries?: string[]
           break_characters?: Json | null
           break_force_visible?: boolean
           break_mode?: string | null
@@ -1444,6 +1453,7 @@ export type Database = {
           seller_id: string
           shipping_method?: string | null
           shipping_price?: number | null
+          ships_internationally?: boolean
           snipe_extends?: number
           snipe_price?: number | null
           started_at?: string | null
@@ -1471,6 +1481,7 @@ export type Database = {
           allow_collab_requests?: boolean
           auction_reveal_mode?: string
           auto_end_reason?: string | null
+          blocked_countries?: string[]
           break_characters?: Json | null
           break_force_visible?: boolean
           break_mode?: string | null
@@ -1545,6 +1556,7 @@ export type Database = {
           seller_id?: string
           shipping_method?: string | null
           shipping_price?: number | null
+          ships_internationally?: boolean
           snipe_extends?: number
           snipe_price?: number | null
           started_at?: string | null
