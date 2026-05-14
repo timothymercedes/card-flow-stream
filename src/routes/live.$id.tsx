@@ -1567,6 +1567,10 @@ function LiveDetail() {
       nav({ to: "/profile" });
       return false;
     }
+    if (intlBlocked) {
+      toast.error(`Seller doesn't ship internationally to ${buyerCountry}`);
+      return false;
+    }
     return true;
   }
 
