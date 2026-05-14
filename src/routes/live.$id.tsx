@@ -5039,7 +5039,21 @@ function LiveDetail() {
                   <>
                     {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
                     {!auctionLive && (
-                      <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
+                      <div
+                        data-quick-controls
+                        className="relative space-y-1 rounded-xl bg-card/60 p-1.5 pt-6 ring-1 ring-white/10 backdrop-blur"
+                        style={{
+                          transform: `translate3d(${quickControlsBox.x}px, ${quickControlsBox.y}px, 0) scale(${quickControlsScale})`,
+                          transformOrigin: "top left",
+                        }}
+                      >
+                        <div
+                          onPointerDown={startQuickControlsDrag}
+                          className="absolute left-1.5 top-1 flex h-4 cursor-move touch-none select-none items-center gap-1 rounded-full bg-white/15 px-2 text-[8px] font-black uppercase tracking-wide text-white ring-1 ring-white/20 active:scale-95"
+                          title="Drag to move these controls"
+                        >
+                          <Move className="h-2.5 w-2.5" /> Move
+                        </div>
                         <div className="flex items-center gap-1">
                           <input
                             value={quickItem}
