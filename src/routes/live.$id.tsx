@@ -4865,53 +4865,36 @@ function LiveDetail() {
                             ))}
                           </div>
                         </div>
-                        {/* 📦 Shipping + 🎤 Voice — inline, no Settings round-trip */}
-                        <div className="flex items-center gap-1">
-                          <Package className="h-3 w-3 shrink-0 text-muted-foreground" />
-                          <select
-                            value={editShipPreset}
-                            onChange={(e) => setQuickShipPreset(e.target.value as ShippingPresetKey)}
-                            title="Shipping packaging"
-                            className="flex-1 min-w-0 rounded-md bg-background/70 px-1 py-0.5 text-[10px] text-foreground outline-none"
-                          >
-                            <option value="stamp">Stamp · $0.78</option>
-                            <option value="pwe">PWE · $0.99</option>
-                            <option value="bubble">Bubble · tracked</option>
-                            <option value="small_box">Box · tracked</option>
+                        {/* 📦 Shipping + 🎤 Voice — inline */}
+                        <div className="flex items-center gap-0.5">
+                          <Package className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
+                          <select value={editShipPreset} onChange={(e) => setQuickShipPreset(e.target.value as ShippingPresetKey)} title="Packaging" className="flex-1 min-w-0 rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-foreground outline-none">
+                            <option value="stamp">Stamp $.78</option>
+                            <option value="pwe">PWE $.99</option>
+                            <option value="bubble">Bubble</option>
+                            <option value="small_box">Box</option>
                           </select>
-                          <label title="Item weight (oz)" className="flex items-center gap-0.5 rounded-md bg-background/70 px-1 py-0.5 text-[9px] text-muted-foreground">
-                            <input type="number" min="0.1" step="0.1" value={editWeight} onChange={(e) => setEditWeight(e.target.value)} className="w-7 bg-transparent text-[10px] font-bold text-foreground outline-none" />
-                            oz
+                          <label title="oz" className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground">
+                            <input type="number" min="0.1" step="0.1" value={editWeight} onChange={(e) => setEditWeight(e.target.value)} className="w-6 bg-transparent text-[9px] font-bold text-foreground outline-none" />oz
                           </label>
-                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1 py-0.5 text-[9px] text-muted-foreground">
-                            $
-                            <input type="number" min="0" step="0.01" value={editShipPrice} onChange={(e) => setEditShipPrice(e.target.value)} disabled={SHIPPING_PRESETS[editShipPreset].flatRate} className="w-9 bg-transparent text-[10px] font-bold text-foreground outline-none disabled:opacity-60" />
+                          <label className="flex items-center rounded-md bg-background/70 px-1 py-0.5 text-[8px] text-muted-foreground">$
+                            <input type="number" min="0" step="0.01" value={editShipPrice} onChange={(e) => setEditShipPrice(e.target.value)} disabled={SHIPPING_PRESETS[editShipPreset].flatRate} className="w-7 bg-transparent text-[9px] font-bold text-foreground outline-none disabled:opacity-60" />
                           </label>
                         </div>
                         <div className="flex items-stretch gap-1">
                           <button
                             onClick={toggleVoiceTrigger}
-                            title={!voice.supported ? "Voice not supported in this browser" : editVoiceEnabled ? `Voice ON — say "${voicePhrase}"` : "Tap to enable voice trigger"}
+                            title={!voice.supported ? "Voice unsupported" : editVoiceEnabled ? `Voice ON — say "${voicePhrase}"` : "Enable voice"}
                             disabled={!voice.supported}
-                            className={`flex shrink-0 items-center justify-center rounded-lg px-2 py-1 active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
+                            className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-0.5 active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
                           >
-                            {editVoiceEnabled ? <Mic className="h-3 w-3" /> : <MicOff className="h-3 w-3" />}
+                            {editVoiceEnabled ? <Mic className="h-2.5 w-2.5" /> : <MicOff className="h-2.5 w-2.5" />}
                           </button>
-                          <button
-                            onClick={() => quickStartAuction()}
-                            disabled={!quickItem.trim()}
-                            title="Start round"
-                            className="flex flex-1 items-center justify-center gap-0.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-1 text-[10px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
-                          >
-                            <Play className="h-2.5 w-2.5" />
-                            GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
+                          <button onClick={() => quickStartAuction()} disabled={!quickItem.trim()} title="Start round" className="flex flex-1 items-center justify-center gap-0.5 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50">
+                            <Play className="h-2 w-2" />GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
                           </button>
-                          <button
-                            onClick={endLive}
-                            title="End live"
-                            className="flex shrink-0 items-center justify-center gap-0.5 rounded-lg bg-live px-2 py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]"
-                          >
-                            <Square className="h-2.5 w-2.5" /> End
+                          <button onClick={endLive} title="End live" className="flex shrink-0 items-center justify-center gap-0.5 rounded-md bg-live px-1.5 py-0.5 text-[9px] font-bold text-live-foreground active:scale-[0.98]">
+                            <Square className="h-2 w-2" />End
                           </button>
                         </div>
                       </div>
