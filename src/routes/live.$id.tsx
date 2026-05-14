@@ -339,6 +339,45 @@ function LiveDetail() {
       .subscribe();
     return () => { alive = false; supabase.removeChannel(ch); };
   }, [id]);
+
+  // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
+  // now, or makes an offer on any of this stream's queued items.
+  useEffect(() => {
+    if (!id || !isSeller) return;
+    const mountedAt = Date.now();
+    const ch = supabase
+      .channel(`host-prebid-notify-${id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "prebids" }, async (payload: any) => {
+        const row = payload.new;
+        // Verify this prebid belongs to one of MY queued items
+        const { data: q } = await supabase.from("auction_queue" as any)
+          .select("title, stream_id, host_id").eq("id", row.queue_item_id).maybeSingle();
+        if (!q || (q as any).stream_id !== id) return;
+        if (Date.now() - mountedAt < 1500) return; // skip backlog flush
+        toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
+          description: `from @${row.bidder_username || "anon"}`,
+        });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "queue_offers" }, async (payload: any) => {
+        const row = payload.new;
+        const { data: q } = await supabase.from("auction_queue" as any)
+          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
+        if (!q || (q as any).stream_id !== id) return;
+        if (Date.now() - mountedAt < 1500) return;
+        toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
+          description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, (payload: any) => {
+        const before = payload.old, after = payload.new;
+        if (!before?.sold_to && after?.sold_to) {
+          toast.success(`🛒 Buy Now: "${after.title}" sold!`);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id, isSeller]);
+
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
