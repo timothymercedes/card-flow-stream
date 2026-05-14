@@ -14,6 +14,7 @@ import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
 import { SellerTrustBadges } from "@/components/SellerTrustBadges";
 import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
+import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -329,7 +330,11 @@ function Profile() {
           </div>
         )}
 
-        {/* Inline reviews panel — manage/respond from own profile */}
+        {/* Scheduled Shows */}
+        <section className="rounded-xl bg-card p-3 ring-1 ring-border">
+          <ScheduledShowsPanel compact />
+        </section>
+
         {showMyReviews && (
           <section className="rounded-xl bg-card p-3">
             <div className="mb-2 flex items-center justify-between">

@@ -49,6 +49,7 @@ export type Database = {
       }
       auction_queue: {
         Row: {
+          buy_now_price: number | null
           created_at: string
           description: string | null
           duration_seconds: number
@@ -56,21 +57,28 @@ export type Database = {
           host_id: string
           id: string
           image_url: string | null
+          min_offer: number | null
+          order_id: string | null
           position: number
           prebid_enabled: boolean
           quantity: number
           reveal_mode: string | null
+          sale_type: string
           scheduled_show_id: string | null
           snipe_price: number | null
+          sold_at: string | null
+          sold_to: string | null
           started_at: string | null
           starting_bid: number
           status: string
           stream_id: string
           title: string
+          trigger_word: string | null
           winner_id: string | null
           winning_bid: number | null
         }
         Insert: {
+          buy_now_price?: number | null
           created_at?: string
           description?: string | null
           duration_seconds?: number
@@ -78,21 +86,28 @@ export type Database = {
           host_id: string
           id?: string
           image_url?: string | null
+          min_offer?: number | null
+          order_id?: string | null
           position?: number
           prebid_enabled?: boolean
           quantity?: number
           reveal_mode?: string | null
+          sale_type?: string
           scheduled_show_id?: string | null
           snipe_price?: number | null
+          sold_at?: string | null
+          sold_to?: string | null
           started_at?: string | null
           starting_bid?: number
           status?: string
           stream_id: string
           title: string
+          trigger_word?: string | null
           winner_id?: string | null
           winning_bid?: number | null
         }
         Update: {
+          buy_now_price?: number | null
           created_at?: string
           description?: string | null
           duration_seconds?: number
@@ -100,17 +115,23 @@ export type Database = {
           host_id?: string
           id?: string
           image_url?: string | null
+          min_offer?: number | null
+          order_id?: string | null
           position?: number
           prebid_enabled?: boolean
           quantity?: number
           reveal_mode?: string | null
+          sale_type?: string
           scheduled_show_id?: string | null
           snipe_price?: number | null
+          sold_at?: string | null
+          sold_to?: string | null
           started_at?: string | null
           starting_bid?: number
           status?: string
           stream_id?: string
           title?: string
+          trigger_word?: string | null
           winner_id?: string | null
           winning_bid?: number | null
         }
@@ -2671,6 +2692,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      queue_offers: {
+        Row: {
+          amount: number
+          buyer_id: string
+          buyer_username: string | null
+          created_at: string
+          id: string
+          queue_item_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          buyer_username?: string | null
+          created_at?: string
+          id?: string
+          queue_item_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          buyer_username?: string | null
+          created_at?: string
+          id?: string
+          queue_item_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_offers_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "auction_queue"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       receipts: {
         Row: {

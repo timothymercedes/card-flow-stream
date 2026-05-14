@@ -36,6 +36,7 @@ import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
+import { Route as ShowsIdRouteImport } from './routes/shows.$id'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
@@ -48,6 +49,7 @@ import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.com
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
+import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
@@ -190,6 +192,11 @@ const StudioIdRoute = StudioIdRouteImport.update({
   path: '/studio/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShowsIdRoute = ShowsIdRouteImport.update({
+  id: '/shows/$id',
+  path: '/shows/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerUsernameRoute = SellerUsernameRouteImport.update({
   id: '/seller/$username',
   path: '/seller/$username',
@@ -251,6 +258,11 @@ const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
   id: '/recovery',
   path: '/recovery',
   getParentRoute: () => AdminRoute,
+} as any)
+const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => ShowsIdRoute,
 } as any)
 const JoinCamStreamIdTokenRoute = JoinCamStreamIdTokenRouteImport.update({
   id: '/join-cam/$streamId/$token',
@@ -322,12 +334,14 @@ export interface FileRoutesByFullPath {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/shows/$id': typeof ShowsIdRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
+  '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -369,12 +383,14 @@ export interface FileRoutesByTo {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/shows/$id': typeof ShowsIdRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
+  '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -417,12 +433,14 @@ export interface FileRoutesById {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/shows/$id': typeof ShowsIdRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
+  '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -466,12 +484,14 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/shows/$id'
     | '/studio/$id'
     | '/live/'
     | '/market/'
     | '/messages/'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
+    | '/shows/$id/edit'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
@@ -513,12 +533,14 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/shows/$id'
     | '/studio/$id'
     | '/live'
     | '/market'
     | '/messages'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
+    | '/shows/$id/edit'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
@@ -560,12 +582,14 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/shows/$id'
     | '/studio/$id'
     | '/live/'
     | '/market/'
     | '/messages/'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
+    | '/shows/$id/edit'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
@@ -607,6 +631,7 @@ export interface RootRouteChildren {
   MarketIdRoute: typeof MarketIdRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
+  ShowsIdRoute: typeof ShowsIdRouteWithChildren
   StudioIdRoute: typeof StudioIdRoute
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
@@ -810,6 +835,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shows/$id': {
+      id: '/shows/$id'
+      path: '/shows/$id'
+      fullPath: '/shows/$id'
+      preLoaderRoute: typeof ShowsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/$username': {
       id: '/seller/$username'
       path: '/seller/$username'
@@ -894,6 +926,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecoveryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/shows/$id/edit': {
+      id: '/shows/$id/edit'
+      path: '/edit'
+      fullPath: '/shows/$id/edit'
+      preLoaderRoute: typeof ShowsIdEditRouteImport
+      parentRoute: typeof ShowsIdRoute
+    }
     '/join-cam/$streamId/$token': {
       id: '/join-cam/$streamId/$token'
       path: '/join-cam/$streamId/$token'
@@ -949,6 +988,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ShowsIdRouteChildren {
+  ShowsIdEditRoute: typeof ShowsIdEditRoute
+}
+
+const ShowsIdRouteChildren: ShowsIdRouteChildren = {
+  ShowsIdEditRoute: ShowsIdEditRoute,
+}
+
+const ShowsIdRouteWithChildren =
+  ShowsIdRoute._addFileChildren(ShowsIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -984,6 +1034,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIdRoute: MarketIdRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
   SellerUsernameRoute: SellerUsernameRoute,
+  ShowsIdRoute: ShowsIdRouteWithChildren,
   StudioIdRoute: StudioIdRoute,
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
@@ -998,12 +1049,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

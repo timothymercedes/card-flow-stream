@@ -12,6 +12,7 @@ import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { HelpBubble } from "@/components/HelpBubble";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
+import { SellMenu } from "@/components/SellMenu";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
@@ -77,9 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/showoff" aria-label={t("nav.flexLive")} className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> {t("nav.flexLive")}
           </Link>
-          <Link to="/sell" aria-label={t("nav.sell")} className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" /> {t("nav.sell")}
-          </Link>
+          <SellMenu />
           <LanguageToggle />
           {!tutorial && <AdminAlertBadge />}
           {!tutorial && <NotificationBell />}

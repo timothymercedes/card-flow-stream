@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package } from "lucide-react";
+import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap } from "lucide-react";
+
+type SaleType = "prebid" | "buynow" | "offer";
 
 type QueueItem = {
   id: string;
@@ -16,15 +18,20 @@ type QueueItem = {
   status: "queued" | "running" | "sold" | "unsold" | "skipped";
   quantity?: number | null;
   prebid_enabled?: boolean;
+  sale_type?: SaleType;
+  buy_now_price?: number | null;
+  min_offer?: number | null;
+  trigger_word?: string | null;
+  sold_to?: string | null;
 };
 
 type Listing = { id: string; title: string; price: number | null; image_url: string | null };
 
 /**
  * AuctionQueuePanel — host preloads items before going live; viewers see "up next".
- * Host UI now includes: per-item image upload, pre-bid enable/disable toggle,
- * and vault/marketplace import picker. Viewer mode still renders the small
- * "Up next" strip used elsewhere on the live page.
+ * Host UI supports sale type (Pre-Bid / Buy Now / Make Offer), trigger words,
+ * image upload, vault import. Trigger-word quick-start lets the host start the
+ * matching item by typing its trigger phrase.
  */
 export function AuctionQueuePanel({
   streamId,
@@ -32,19 +39,34 @@ export function AuctionQueuePanel({
   isHost,
   auctionLive,
   onStart,
+  scheduledShowId,
 }: {
   streamId: string;
   hostId: string;
   isHost: boolean;
   auctionLive: boolean;
   onStart?: (item: QueueItem) => Promise<void> | void;
+  /** When set, items are scoped to a scheduled show (pre-stream editing). */
+  scheduledShowId?: string | null;
 }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1, image_url: "" });
+  const [draft, setDraft] = useState({
+    title: "",
+    sale_type: "prebid" as SaleType,
+    starting_bid: 1,
+    duration_seconds: 30,
+    snipe_price: "",
+    buy_now_price: "",
+    min_offer: "",
+    quantity: 1,
+    image_url: "",
+    trigger_word: "",
+  });
   const [uploading, setUploading] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [triggerInput, setTriggerInput] = useState("");
 
   useEffect(() => {
     if (!streamId) return;
@@ -83,24 +105,40 @@ export function AuctionQueuePanel({
     if (!isHost) return;
     const title = draft.title.trim();
     if (!title) return toast.error("Add a title");
-    const start = Number(draft.starting_bid) || 1;
-    const dur = Math.max(10, Math.min(600, Number(draft.duration_seconds) || 30));
-    const snipe = draft.snipe_price ? Number(draft.snipe_price) : null;
     const qty = Math.max(1, Math.min(999, Number(draft.quantity) || 1));
     const nextPos = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 0;
-    const { error } = await supabase.from("auction_queue" as any).insert({
+
+    const base: any = {
       stream_id: streamId,
       host_id: hostId,
       position: nextPos,
       title,
-      starting_bid: start,
-      duration_seconds: dur,
-      snipe_price: snipe,
       quantity: qty,
       image_url: draft.image_url || null,
-    } as any);
+      sale_type: draft.sale_type,
+      trigger_word: draft.trigger_word.trim().toLowerCase() || null,
+      scheduled_show_id: scheduledShowId || null,
+    };
+
+    if (draft.sale_type === "prebid") {
+      base.starting_bid = Number(draft.starting_bid) || 1;
+      base.duration_seconds = Math.max(10, Math.min(600, Number(draft.duration_seconds) || 30));
+      base.snipe_price = draft.snipe_price ? Number(draft.snipe_price) : null;
+    } else if (draft.sale_type === "buynow") {
+      const bn = Number(draft.buy_now_price);
+      if (!bn || bn <= 0) return toast.error("Set a Buy Now price");
+      base.starting_bid = bn;
+      base.buy_now_price = bn;
+      base.duration_seconds = 30;
+    } else {
+      base.starting_bid = 1;
+      base.duration_seconds = 30;
+      base.min_offer = draft.min_offer ? Number(draft.min_offer) : null;
+    }
+
+    const { error } = await supabase.from("auction_queue" as any).insert(base);
     if (error) return toast.error(error.message);
-    setDraft({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1, image_url: "" });
+    setDraft({ title: "", sale_type: "prebid", starting_bid: 1, duration_seconds: 30, snipe_price: "", buy_now_price: "", min_offer: "", quantity: 1, image_url: "", trigger_word: "" });
     setAdding(false);
   }
 
@@ -123,6 +161,7 @@ export function AuctionQueuePanel({
       snipe_price: l.price,
       quantity: 1,
       image_url: l.image_url,
+      scheduled_show_id: scheduledShowId || null,
     } as any);
     if (error) return toast.error(error.message);
     toast.success(`Added "${l.title}" from your listings`);
@@ -157,6 +196,15 @@ export function AuctionQueuePanel({
     await onStart?.(item);
   }
 
+  async function startByTrigger() {
+    const word = triggerInput.trim().toLowerCase();
+    if (!word) return;
+    const match = items.find((i) => (i.trigger_word || "").toLowerCase() === word && i.status === "queued");
+    if (!match) return toast.error(`No queued item with trigger "${word}"`);
+    await startItem(match);
+    setTriggerInput("");
+  }
+
   async function relist(item: QueueItem) {
     if (!isHost) return;
     const minPos = items.length > 0 ? Math.min(...items.map((i) => i.position)) - 1 : 0;
@@ -167,7 +215,7 @@ export function AuctionQueuePanel({
     toast.success("Relisted to top of queue");
   }
 
-  const queued = items.filter((i) => i.status === "queued");
+  const queued = items.filter((i) => i.status === "queued" && !i.sold_to);
   const unsold = items.filter((i) => i.status === "unsold");
 
   // Viewer mode: tiny "Up next" strip
@@ -192,6 +240,13 @@ export function AuctionQueuePanel({
     );
   }
 
+  const saleTypeLabel: Record<SaleType, string> = { prebid: "Pre-Bid", buynow: "Buy Now", offer: "Make Offer" };
+  const saleTypeChip: Record<SaleType, string> = {
+    prebid: "bg-fuchsia-500/30 text-fuchsia-100",
+    buynow: "bg-emerald-500/30 text-emerald-100",
+    offer: "bg-amber-500/30 text-amber-100",
+  };
+
   return (
     <div className="space-y-2 rounded-xl bg-black/70 p-3 text-white ring-1 ring-white/10 backdrop-blur">
       <div className="flex items-center justify-between gap-2">
@@ -209,6 +264,21 @@ export function AuctionQueuePanel({
           </button>
         </div>
       </div>
+
+      {/* Trigger-word quick start */}
+      {queued.some((i) => i.trigger_word) && (
+        <div className="flex items-center gap-1.5 rounded-lg bg-white/5 p-1.5">
+          <Zap className="h-3 w-3 text-amber-300" />
+          <input
+            value={triggerInput}
+            onChange={(e) => setTriggerInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") startByTrigger(); }}
+            placeholder="Type trigger word to start matching item"
+            className="flex-1 rounded-md bg-white/10 px-2 py-1 text-[11px] placeholder:text-white/40 focus:outline-none"
+          />
+          <button onClick={startByTrigger} className="rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-black">Go</button>
+        </div>
+      )}
 
       {importing && (
         <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg bg-white/5 p-2">
@@ -235,6 +305,19 @@ export function AuctionQueuePanel({
 
       {adding && (
         <div className="space-y-1.5 rounded-lg bg-white/5 p-2">
+          {/* Sale type selector */}
+          <div className="flex gap-1">
+            {(["prebid", "buynow", "offer"] as SaleType[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setDraft((d) => ({ ...d, sale_type: s }))}
+                className={`flex-1 rounded-md px-2 py-1 text-[10px] font-bold ${draft.sale_type === s ? saleTypeChip[s] + " ring-1 ring-white/30" : "bg-white/5 text-white/60"}`}
+              >
+                {saleTypeLabel[s]}
+              </button>
+            ))}
+          </div>
+
           <input
             value={draft.title}
             onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
@@ -253,28 +336,74 @@ export function AuctionQueuePanel({
               }} />
             </label>
           </div>
-          <div className="grid grid-cols-4 gap-1.5">
-            <label className="text-[9px] uppercase text-white/60">Start $
-              <input type="number" min={1} value={draft.starting_bid}
-                onChange={(e) => setDraft((d) => ({ ...d, starting_bid: Number(e.target.value) }))}
-                className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
-            </label>
-            <label className="text-[9px] uppercase text-white/60">Sec
-              <input type="number" min={10} value={draft.duration_seconds}
-                onChange={(e) => setDraft((d) => ({ ...d, duration_seconds: Number(e.target.value) }))}
-                className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
-            </label>
-            <label className="text-[9px] uppercase text-white/60">Buy-now
-              <input type="number" placeholder="—" value={draft.snipe_price}
-                onChange={(e) => setDraft((d) => ({ ...d, snipe_price: e.target.value }))}
-                className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
-            </label>
-            <label className="text-[9px] uppercase text-white/60">Qty
-              <input type="number" min={1} max={999} value={draft.quantity}
-                onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
-                className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
-            </label>
-          </div>
+
+          {/* Conditional price fields by sale type */}
+          {draft.sale_type === "prebid" && (
+            <div className="grid grid-cols-4 gap-1.5">
+              <label className="text-[9px] uppercase text-white/60">Start $
+                <input type="number" min={1} value={draft.starting_bid}
+                  onChange={(e) => setDraft((d) => ({ ...d, starting_bid: Number(e.target.value) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Sec
+                <input type="number" min={10} value={draft.duration_seconds}
+                  onChange={(e) => setDraft((d) => ({ ...d, duration_seconds: Number(e.target.value) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Buy-now
+                <input type="number" placeholder="—" value={draft.snipe_price}
+                  onChange={(e) => setDraft((d) => ({ ...d, snipe_price: e.target.value }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Qty
+                <input type="number" min={1} max={999} value={draft.quantity}
+                  onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+            </div>
+          )}
+
+          {draft.sale_type === "buynow" && (
+            <div className="grid grid-cols-2 gap-1.5">
+              <label className="text-[9px] uppercase text-white/60">Buy Now $
+                <input type="number" min={1} value={draft.buy_now_price}
+                  onChange={(e) => setDraft((d) => ({ ...d, buy_now_price: e.target.value }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Qty
+                <input type="number" min={1} max={999} value={draft.quantity}
+                  onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+            </div>
+          )}
+
+          {draft.sale_type === "offer" && (
+            <div className="grid grid-cols-2 gap-1.5">
+              <label className="text-[9px] uppercase text-white/60">Min Offer $
+                <input type="number" min={1} placeholder="optional" value={draft.min_offer}
+                  onChange={(e) => setDraft((d) => ({ ...d, min_offer: e.target.value }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Qty
+                <input type="number" min={1} max={999} value={draft.quantity}
+                  onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+            </div>
+          )}
+
+          {/* Trigger word */}
+          <label className="block text-[9px] uppercase text-white/60">
+            <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-amber-300" /> Trigger word (optional)</span>
+            <input
+              value={draft.trigger_word}
+              onChange={(e) => setDraft((d) => ({ ...d, trigger_word: e.target.value }))}
+              placeholder='e.g. "charizard" — say or type to auto-start'
+              className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs placeholder:text-white/40 focus:outline-none"
+            />
+          </label>
+
           <div className="flex gap-1.5">
             <button onClick={addItem} className="flex-1 rounded-md bg-emerald-500 px-2 py-1.5 text-[11px] font-bold">
               Save to queue
@@ -294,6 +423,7 @@ export function AuctionQueuePanel({
 
       {queued.map((it, i) => {
         const prebidOn = it.prebid_enabled ?? true;
+        const st = (it.sale_type || "prebid") as SaleType;
         return (
           <div key={it.id} className="flex items-center gap-2 rounded-lg bg-white/5 p-2">
             {it.image_url
@@ -301,27 +431,34 @@ export function AuctionQueuePanel({
               : <span className="grid h-10 w-10 shrink-0 place-items-center rounded bg-white/10 text-[11px] font-extrabold text-amber-300">#{i + 1}</span>}
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-bold">
+                <span className={`mr-1 rounded px-1 text-[8px] font-extrabold uppercase ${saleTypeChip[st]}`}>{saleTypeLabel[st]}</span>
                 {it.title}
                 {Number(it.quantity || 1) > 1 && <span className="ml-1 rounded bg-fuchsia-500/30 px-1 text-[9px] font-extrabold text-fuchsia-100">×{it.quantity}</span>}
               </p>
               <p className="text-[10px] text-white/60">
-                ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s
-                {it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}
+                {st === "prebid" && (<>${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s{it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}</>)}
+                {st === "buynow" && (<>Buy Now ${Number(it.buy_now_price ?? it.starting_bid).toFixed(0)}</>)}
+                {st === "offer" && (<>Make Offer{it.min_offer ? ` · min $${Number(it.min_offer).toFixed(0)}` : ""}</>)}
+                {it.trigger_word && <span className="ml-1 rounded bg-amber-500/20 px-1 text-amber-200">⚡ {it.trigger_word}</span>}
               </p>
             </div>
             <div className="flex items-center gap-0.5">
-              <button onClick={() => togglePrebid(it)}
-                title={prebidOn ? "Pre-bidding ON · tap to disable" : "Pre-bidding OFF · tap to enable"}
-                className={`rounded p-1 ${prebidOn ? "text-fuchsia-300 hover:bg-white/10" : "text-white/40 hover:bg-white/10"}`}>
-                {prebidOn ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-              </button>
+              {st === "prebid" && (
+                <button onClick={() => togglePrebid(it)}
+                  title={prebidOn ? "Pre-bidding ON · tap to disable" : "Pre-bidding OFF · tap to enable"}
+                  className={`rounded p-1 ${prebidOn ? "text-fuchsia-300 hover:bg-white/10" : "text-white/40 hover:bg-white/10"}`}>
+                  {prebidOn ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                </button>
+              )}
               <button onClick={() => move(it.id, -1)} disabled={i === 0}
                 className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronUp className="h-3 w-3" /></button>
               <button onClick={() => move(it.id, 1)} disabled={i === queued.length - 1}
                 className="rounded p-1 text-white/70 hover:bg-white/10 disabled:opacity-30"><ChevronDown className="h-3 w-3" /></button>
-              <button onClick={() => startItem(it)} disabled={auctionLive}
-                title={auctionLive ? "Finish current round first" : "Start this item"}
-                className="rounded-md bg-emerald-500 p-1.5 text-white disabled:opacity-40"><Play className="h-3 w-3" /></button>
+              {st === "prebid" && (
+                <button onClick={() => startItem(it)} disabled={auctionLive}
+                  title={auctionLive ? "Finish current round first" : "Start this item"}
+                  className="rounded-md bg-emerald-500 p-1.5 text-white disabled:opacity-40"><Play className="h-3 w-3" /></button>
+              )}
               <button onClick={() => remove(it.id)} className="rounded p-1 text-white/60 hover:bg-rose-500/30 hover:text-rose-200">
                 <Trash2 className="h-3 w-3" />
               </button>
