@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { UserPlus, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ interface Props {
 
 export function FollowButton({ userId, size = "sm", className = "", onChange }: Props) {
   const { user } = useAuth();
+  const { requireAuth } = useAuthGate();
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -22,12 +24,15 @@ export function FollowButton({ userId, size = "sm", className = "", onChange }: 
       .then(({ data }) => setFollowing(!!data));
   }, [user?.id, userId]);
 
-  if (!user || user.id === userId) return null;
+  // Hide only on your own profile. Guests still see the button so we can prompt signup.
+  if (user && user.id === userId) return null;
 
   const toggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (loading) return;
+    if (!requireAuth("follow")) return;
+    if (!user) return;
     setLoading(true);
     if (following) {
       const { error } = await supabase.from("follows").delete().eq("follower_id", user.id).eq("followee_id", userId);
