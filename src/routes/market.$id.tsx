@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ function ListingDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
   const { user, profile } = useAuth();
+  const { requireAuth } = useAuthGate();
   const [listing, setListing] = useState<any>(null);
   const [seller, setSeller] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
@@ -130,7 +132,8 @@ function ListingDetail() {
   }, [listing, user]);
 
   async function placeBid() {
-    if (!profile) return toast.error("Sign in first");
+    if (!requireAuth("place a bid")) return;
+    if (!profile) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before bidding"); nav({ to: "/orders" }); return; }
     const amt = Number(bidAmt);
     if (!amt || amt <= Number(listing.current_bid || 0)) return toast.error("Bid must be higher");
@@ -142,7 +145,8 @@ function ListingDetail() {
   }
 
   async function makeOffer() {
-    if (!profile) return toast.error("Sign in first");
+    if (!requireAuth("send an offer")) return;
+    if (!profile) return;
     const amt = Number(offerAmt);
     if (!amt || amt <= 1) return toast.error("Offer must be more than $1");
     // Dedupe: same buyer can't repeat the same exact amount that's still pending
@@ -161,7 +165,8 @@ function ListingDetail() {
   }
 
   async function buyNow() {
-    if (!profile) return toast.error("Sign in first");
+    if (!requireAuth("buy this item")) return;
+    if (!profile) return;
     if (unpaidOrders > 0) { toast.error("Pay your pending order before buying"); nav({ to: "/orders" }); return; }
     if (!ensureBuyerAddress()) return;
     setCartMode("buy");
@@ -169,7 +174,8 @@ function ListingDetail() {
   }
 
   async function addToCart() {
-    if (!profile) return toast.error("Sign in first");
+    if (!requireAuth("add to cart")) return;
+    if (!profile) return;
     if (!ensureBuyerAddress()) return;
     setCartMode("cart");
     setShowShip(true);

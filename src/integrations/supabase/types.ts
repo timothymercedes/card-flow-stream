@@ -2828,6 +2828,44 @@ export type Database = {
         }
         Relationships: []
       }
+      show_bookmarks: {
+        Row: {
+          created_at: string
+          id: string
+          notify_email: boolean
+          notify_inapp: boolean
+          notify_push: boolean
+          show_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notify_email?: boolean
+          notify_inapp?: boolean
+          notify_push?: boolean
+          show_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notify_email?: boolean
+          notify_inapp?: boolean
+          notify_push?: boolean
+          show_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "show_bookmarks_show_id_fkey"
+            columns: ["show_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spin_wheels: {
         Row: {
           created_at: string

@@ -11,6 +11,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
@@ -306,6 +307,7 @@ function LiveList() {
                       {new Date(sh.scheduled_for).toLocaleString()}
                       <span className="ml-2 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">in {fmtCountdown(sh.scheduled_for)}</span>
                     </p>
+                    <div className="mt-2"><BookmarkButton showId={sh.id} /></div>
                   </div>
                 </div>
               ))}
