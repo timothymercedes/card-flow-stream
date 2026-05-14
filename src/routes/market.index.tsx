@@ -9,6 +9,7 @@ import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDis
 import { useShuffleBucket, seededHash } from "@/lib/shuffle";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { CardQuickActions } from "@/components/CardQuickActions";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
@@ -192,11 +193,16 @@ function Market() {
             const endingSoon = l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000;
             const soldOut = !l.is_auction && Number(l.sold_count ?? 0) >= Number(l.quantity ?? 1);
             return (
-              <Link
+              <CardQuickActions
                 key={l.id}
+                sellerId={l.seller_id}
+                previewHref={`/market/${l.id}`}
+                className="overflow-hidden rounded-xl"
+              >
+              <Link
                 to="/market/$id"
                 params={{ id: l.id }}
-                className="group overflow-hidden rounded-xl bg-card transition hover:scale-[1.02] hover:shadow-lg"
+                className="group block overflow-hidden rounded-xl bg-card transition hover:scale-[1.02] hover:shadow-lg"
               >
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {l.image_url ? (
@@ -263,6 +269,7 @@ function Market() {
                   )}
                 </div>
               </Link>
+              </CardQuickActions>
             );
           })}
         </div>
