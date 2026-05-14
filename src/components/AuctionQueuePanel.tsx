@@ -67,6 +67,8 @@ export function AuctionQueuePanel({
   const [uploading, setUploading] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [triggerInput, setTriggerInput] = useState("");
+  const [editing, setEditing] = useState<QueueItem | null>(null);
+  const [editUploading, setEditUploading] = useState(false);
 
   useEffect(() => {
     if (!streamId) return;
