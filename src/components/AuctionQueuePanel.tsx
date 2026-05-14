@@ -221,10 +221,10 @@ export function AuctionQueuePanel({
     await onStart?.(effective);
   }
 
-  async function saveEdit(patch: Partial<QueueItem> & { id: string }) {
+  async function saveEdit(patch: Partial<QueueItem> & { id: string }): Promise<void> {
     const { id: itemId, ...rest } = patch;
     const { error } = await supabase.from("auction_queue" as any).update(rest as any).eq("id", itemId);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success("Item updated");
     setEditing(null);
   }
