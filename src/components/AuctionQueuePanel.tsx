@@ -424,7 +424,30 @@ export function AuctionQueuePanel({
             </div>
           )}
 
-          {draft.sale_type === "offer" && (
+          {draft.sale_type === "either" && (
+            <div className="grid grid-cols-4 gap-1.5">
+              <label className="text-[9px] uppercase text-white/60">Start $
+                <input type="number" min={1} value={draft.starting_bid}
+                  onChange={(e) => setDraft((d) => ({ ...d, starting_bid: Number(e.target.value) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Sec
+                <input type="number" min={10} value={draft.duration_seconds}
+                  onChange={(e) => setDraft((d) => ({ ...d, duration_seconds: Number(e.target.value) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Buy Now $
+                <input type="number" min={1} value={draft.buy_now_price}
+                  onChange={(e) => setDraft((d) => ({ ...d, buy_now_price: e.target.value }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+              <label className="text-[9px] uppercase text-white/60">Qty
+                <input type="number" min={1} max={999} value={draft.quantity}
+                  onChange={(e) => setDraft((d) => ({ ...d, quantity: Math.max(1, Math.min(999, Number(e.target.value) || 1)) }))}
+                  className="mt-0.5 w-full rounded-md bg-white/10 px-2 py-1 text-xs focus:outline-none" />
+              </label>
+            </div>
+          )}
             <div className="grid grid-cols-2 gap-1.5">
               <label className="text-[9px] uppercase text-white/60">Min Offer $
                 <input type="number" min={1} placeholder="optional" value={draft.min_offer}
