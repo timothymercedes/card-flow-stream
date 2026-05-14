@@ -4753,11 +4753,13 @@ function LiveDetail() {
                     {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
                     {!auctionLive && (
                       <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
-                        <div className="flex items-center gap-1">
+                        <label className="flex items-center gap-1">
+                          <span className="w-12 shrink-0 text-[9px] font-bold uppercase tracking-wide text-white/60">Item<span className="text-rose-400">*</span></span>
                           <input
                             value={quickItem}
                             onChange={(e) => setQuickItem(e.target.value)}
-                            placeholder="Item (e.g. Charizard PSA 9)"
+                            placeholder="Type Item (required)"
+                            required
                             maxLength={60}
                             className="flex-1 rounded-md bg-background/70 px-1.5 py-1 text-[11px] text-foreground outline-none placeholder:text-muted-foreground"
                           />
