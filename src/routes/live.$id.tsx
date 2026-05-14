@@ -3752,7 +3752,7 @@ function LiveDetail() {
             <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
               <p className="flex items-center justify-between text-xs font-bold">
                 <span>
-                  🐢 Slow chat
+                  Slow chat
                   {Number((stream as any).chat_slow_mode_sec || 0) > 0 && (
                     <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
                       {(stream as any).chat_slow_mode_sec}s
@@ -3774,7 +3774,7 @@ function LiveDetail() {
                         .from("live_streams")
                         .update({ chat_slow_mode_sec: s })
                         .eq("id", id);
-                      sendMsg(s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s`, true);
+                      sendMsg(s === 0 ? "Slow chat OFF" : `Slow chat ON — ${s}s`, true);
                     }}
                     className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}
                   >
@@ -4009,6 +4009,29 @@ function LiveDetail() {
                           <option value="bubble">📦 Bubble</option>
                           <option value="small_box">📫 Box</option>
                         </select>
+                        <span className="text-[10px] font-bold text-muted-foreground ml-1">Slow chat</span>
+                        <select
+                          value={editSlowMode}
+                          onChange={async (e) => {
+                            const s = Number(e.target.value);
+                            setEditSlowMode(String(s));
+                            await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                            await sendMsg(
+                              s === 0
+                                ? "📌 Slow chat is off."
+                                : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
+                              true,
+                              { isAnnouncement: true },
+                            );
+                          }}
+                          className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none w-16"
+                        >
+                          <option value="0">Off</option>
+                          <option value="3">3s</option>
+                          <option value="5">5s</option>
+                          <option value="10">10s</option>
+                          <option value="30">30s</option>
+                        </select>
                         <span className="ml-auto rounded-md bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300">
                           Ship ${Number(editShipPrice || 0).toFixed(2)} auto
                         </span>
@@ -4096,7 +4119,7 @@ function LiveDetail() {
               <input
                 value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
-                placeholder="Type your custom trigger word ✨"
+                placeholder="🪄 your magic word…"
                 className="mt-2 w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
               />
               {!voice.supported && editVoiceEnabled && (
@@ -4865,6 +4888,84 @@ function LiveDetail() {
                                   {s}s
                                 </button>
                               ))}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-white/60">Extras</span>
+                              <label className="flex cursor-pointer items-center gap-0.5 rounded-md bg-background/70 px-1 py-0.5 text-[9px] font-bold text-white/90">
+                                <input
+                                  type="checkbox"
+                                  checked={!!stream?.sudden_death_enabled}
+                                  onChange={async (e) => {
+                                    await supabase
+                                      .from("live_streams")
+                                      .update({ sudden_death_enabled: e.target.checked })
+                                      .eq("id", id);
+                                  }}
+                                  className="h-2.5 w-2.5 accent-rose-500"
+                                />
+                                SD
+                              </label>
+                              <label className="flex cursor-pointer items-center gap-0.5 rounded-md bg-background/70 px-1 py-0.5 text-[9px] font-bold text-white/90">
+                                <input
+                                  type="checkbox"
+                                  checked={editVoiceEnabled}
+                                  onChange={(e) => setEditVoiceEnabled(e.target.checked)}
+                                  className="h-2.5 w-2.5 accent-emerald-500"
+                                />
+                                Voice
+                              </label>
+                              <span className="text-[9px] font-bold text-white/60">Pkg</span>
+                              <select
+                                value={editShipPreset}
+                                onChange={(e) => {
+                                  const key = e.target.value as ShippingPresetKey;
+                                  setEditShipPreset(key);
+                                  const p = SHIPPING_PRESETS[key];
+                                  setEditShipMethod(p.label);
+                                  const auto = p.flatRate && p.flatPriceUsd != null
+                                    ? p.flatPriceUsd
+                                    : Number(
+                                        estimateShippingAndImportFees({
+                                          subtotal: Number(editStartPrice) || 0,
+                                          weightOz: p.weightOz,
+                                          quantity: Number(editQuantity) || 1,
+                                        }).shipping.toFixed(2),
+                                      );
+                                  setEditShipPrice(String(auto));
+                                }}
+                                className="rounded-md bg-background/70 px-1 py-0.5 text-[9px] font-bold text-white outline-none"
+                              >
+                                <option value="stamp" className="bg-card">Stamp</option>
+                                <option value="pwe" className="bg-card">PWE</option>
+                                <option value="bubble" className="bg-card">Bubble</option>
+                                <option value="small_box" className="bg-card">Box</option>
+                              </select>
+                              <span className="text-[9px] font-bold text-white/60">Slow chat</span>
+                              <select
+                                value={editSlowMode}
+                                onChange={async (e) => {
+                                  const s = Number(e.target.value);
+                                  setEditSlowMode(String(s));
+                                  await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                                  await sendMsg(
+                                    s === 0
+                                      ? "📌 Slow chat is off."
+                                      : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
+                                    true,
+                                    { isAnnouncement: true },
+                                  );
+                                }}
+                                className="rounded-md bg-background/70 px-1 py-0.5 text-[9px] font-bold text-white outline-none w-10"
+                              >
+                                <option value="0" className="bg-card">Off</option>
+                                <option value="3" className="bg-card">3s</option>
+                                <option value="5" className="bg-card">5s</option>
+                                <option value="10" className="bg-card">10s</option>
+                                <option value="30" className="bg-card">30s</option>
+                              </select>
+                              <span className="ml-auto rounded-md bg-emerald-500/20 px-1 py-0.5 text-[9px] font-bold text-emerald-300">
+                                ${Number(editShipPrice || 0).toFixed(2)}
+                              </span>
                             </div>
                           </div>
                           {/* Right column: START stacked above End */}
