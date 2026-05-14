@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as TutorialsRouteImport } from './routes/tutorials'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as ShowoffRouteImport } from './routes/showoff'
@@ -62,6 +63,11 @@ const VaultRoute = VaultRouteImport.update({
 const TutorialsRoute = TutorialsRouteImport.update({
   id: '/tutorials',
   path: '/tutorials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesRoute = StoriesRouteImport.update({
@@ -301,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
+  '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -347,6 +354,7 @@ export interface FileRoutesByTo {
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
+  '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -394,6 +402,7 @@ export interface FileRoutesById {
   '/showoff': typeof ShowoffRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
+  '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -442,6 +451,7 @@ export interface FileRouteTypes {
     | '/showoff'
     | '/store'
     | '/stories'
+    | '/support'
     | '/tutorials'
     | '/vault'
     | '/admin/recovery'
@@ -488,6 +498,7 @@ export interface FileRouteTypes {
     | '/showoff'
     | '/store'
     | '/stories'
+    | '/support'
     | '/tutorials'
     | '/vault'
     | '/admin/recovery'
@@ -534,6 +545,7 @@ export interface FileRouteTypes {
     | '/showoff'
     | '/store'
     | '/stories'
+    | '/support'
     | '/tutorials'
     | '/vault'
     | '/admin/recovery'
@@ -581,6 +593,7 @@ export interface RootRouteChildren {
   ShowoffRoute: typeof ShowoffRoute
   StoreRoute: typeof StoreRoute
   StoriesRoute: typeof StoriesRoute
+  SupportRoute: typeof SupportRoute
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
@@ -620,6 +633,13 @@ declare module '@tanstack/react-router' {
       path: '/tutorials'
       fullPath: '/tutorials'
       preLoaderRoute: typeof TutorialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories': {
@@ -950,6 +970,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShowoffRoute: ShowoffRoute,
   StoreRoute: StoreRoute,
   StoriesRoute: StoriesRoute,
+  SupportRoute: SupportRoute,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,

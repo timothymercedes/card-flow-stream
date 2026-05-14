@@ -78,7 +78,7 @@ function Support() {
       .channel(`support-${active.id}`)
       .on("postgres_changes" as any,
         { event: "INSERT", schema: "public", table: "support_ticket_messages", filter: `ticket_id=eq.${active.id}` } as any,
-        (p) => setMsgs((prev) => [...prev, p.new as Msg]))
+        (p: any) => setMsgs((prev) => [...prev, p.new as Msg]))
       .subscribe();
     return () => { cancel = true; supabase.removeChannel(ch); };
   }, [active]);
