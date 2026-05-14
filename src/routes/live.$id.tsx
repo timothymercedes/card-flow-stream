@@ -4819,10 +4819,10 @@ function LiveDetail() {
                   <>
                     {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
                     {!auctionLive && (
-                      <div className="space-y-2 rounded-xl bg-card/70 p-2.5 ring-1 ring-white/10 backdrop-blur">
-                        {/* Item row — bigger, full width */}
-                        <div className="flex items-center gap-1.5">
-                          <span className="shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-white/80">
+                      <div className="space-y-1.5 rounded-lg bg-card/70 p-2 ring-1 ring-white/10 backdrop-blur">
+                        {/* Item row */}
+                        <div className="flex items-center gap-1">
+                          <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-wide text-white/70">
                             Item
                           </span>
                           <input
@@ -4830,58 +4830,58 @@ function LiveDetail() {
                             onChange={(e) => setQuickItem(e.target.value)}
                             placeholder="Optional — auto-names by bid price"
                             maxLength={60}
-                            className="flex-1 rounded-md bg-background/80 px-2 py-1.5 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-emerald-500/50"
+                            className="flex-1 rounded bg-background/80 px-2 py-1 text-[11px] font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-emerald-500/50"
                           />
                           <button
                             onClick={() => repeatLastQuick()}
                             disabled={!lastQuick}
                             title={lastQuick ? `Repeat: ${lastQuick.item}` : "No previous round"}
-                            className="rounded-md bg-white/10 px-2 py-1.5 text-sm font-bold text-white disabled:opacity-40"
+                            className="rounded bg-white/10 px-1.5 py-1 text-[11px] font-bold text-white disabled:opacity-40"
                           >
                             ↻
                           </button>
                           <button
                             onClick={() => setShowSettings((v) => !v)}
                             title="Advanced settings"
-                            className="rounded-md bg-white/10 px-2 py-1.5 text-white"
+                            className="rounded bg-white/10 px-1.5 py-1 text-white"
                           >
-                            <Settings className="h-3.5 w-3.5" />
+                            <Settings className="h-3 w-3" />
                           </button>
                         </div>
 
                         {/* Price row — Bid Start | Buy Now */}
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <label className="flex items-center gap-1 rounded-md bg-background/80 px-2 py-1.5">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-white/70">Bid Start</span>
-                            <span className="text-sm font-bold text-foreground">$</span>
+                        <div className="grid grid-cols-2 gap-1">
+                          <label className="flex items-center gap-1 rounded bg-background/80 px-2 py-1">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">Bid Start</span>
+                            <span className="text-[11px] font-bold text-foreground">$</span>
                             <input
                               type="number" min="1" inputMode="decimal"
                               value={editStartPrice}
                               onChange={(e) => setEditStartPrice(e.target.value)}
-                              className="w-full bg-transparent text-sm font-extrabold text-foreground outline-none"
+                              className="w-full bg-transparent text-[11px] font-extrabold text-foreground outline-none"
                             />
                           </label>
-                          <label className="flex items-center gap-1 rounded-md bg-background/80 px-2 py-1.5">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wide text-white/70">Buy Now</span>
-                            <span className="text-sm font-bold text-foreground">$</span>
+                          <label className="flex items-center gap-1 rounded bg-background/80 px-2 py-1">
+                            <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">Buy Now</span>
+                            <span className="text-[11px] font-bold text-foreground">$</span>
                             <input
                               type="number" min="1" inputMode="decimal"
                               value={quickBuyNow}
                               onChange={(e) => setQuickBuyNow(e.target.value)}
                               placeholder="—"
-                              className="w-full bg-transparent text-sm font-extrabold text-foreground outline-none placeholder:text-muted-foreground"
+                              className="w-full bg-transparent text-[11px] font-extrabold text-foreground outline-none placeholder:text-muted-foreground"
                             />
                           </label>
                         </div>
 
                         {/* Timer pills */}
                         <div className="flex flex-wrap items-center gap-1">
-                          <span className="mr-1 text-[10px] font-extrabold uppercase tracking-wide text-white/70">Timer</span>
+                          <span className="mr-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white/70">Timer</span>
                           {([5, 10, 15, 20, 30, 60] as const).map((s) => (
                             <button
                               key={s}
                               onClick={() => setEditTimerSec(String(s))}
-                              className={`rounded-md px-2 py-1 text-[11px] font-extrabold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-extrabold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
                             >
                               {s}s
                             </button>
@@ -4889,9 +4889,9 @@ function LiveDetail() {
                         </div>
 
                         {/* Extras row */}
-                        <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-background/40 p-1.5">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wide text-white/70">Extras</span>
-                          <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-bold text-white/90">
+                        <div className="flex flex-wrap items-center gap-1 rounded bg-background/40 p-1">
+                          <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">Extras</span>
+                          <label className="flex cursor-pointer items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
                             <input
                               type="checkbox"
                               checked={!!stream?.sudden_death_enabled}
@@ -4905,7 +4905,7 @@ function LiveDetail() {
                             />
                             💀 SD
                           </label>
-                          <label className="flex cursor-pointer items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-bold text-white/90">
+                          <label className="flex cursor-pointer items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
                             <input
                               type="checkbox"
                               checked={editVoiceEnabled}
@@ -4914,8 +4914,8 @@ function LiveDetail() {
                             />
                             🎙️ Voice
                           </label>
-                          <label className="flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-bold text-white/90">
-                            <span>📦 Pkg</span>
+                          <label className="flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
+                            <span>📦 Shipping</span>
                             <select
                               value={editShipPreset}
                               onChange={(e) => {
@@ -4934,7 +4934,7 @@ function LiveDetail() {
                                     );
                                 setEditShipPrice(String(auto));
                               }}
-                              className="rounded-md bg-background/80 px-1 py-0.5 text-[11px] font-bold text-white outline-none"
+                              className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
                               <option value="stamp" className="bg-card">Stamp</option>
                               <option value="pwe" className="bg-card">PWE</option>
@@ -4942,7 +4942,7 @@ function LiveDetail() {
                               <option value="small_box" className="bg-card">Box</option>
                             </select>
                           </label>
-                          <label className="flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-[11px] font-bold text-white/90">
+                          <label className="flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
                             <span>Slow chat</span>
                             <select
                               value={editSlowMode}
@@ -4958,7 +4958,7 @@ function LiveDetail() {
                                   { isAnnouncement: true },
                                 );
                               }}
-                              className="rounded-md bg-background/80 px-1 py-0.5 text-[11px] font-bold text-white outline-none"
+                              className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
                               <option value="0" className="bg-card">Off</option>
                               <option value="3" className="bg-card">3s</option>
@@ -4967,44 +4967,40 @@ function LiveDetail() {
                               <option value="30" className="bg-card">30s</option>
                             </select>
                           </label>
-                          <span className="ml-auto rounded-md bg-emerald-500/20 px-2 py-1 text-[11px] font-extrabold text-emerald-300">
-                            Ship ${Number(editShipPrice || 0).toFixed(2)} auto
+                          <span className="ml-auto rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-300">
+                            Ship ${Number(editShipPrice || 0).toFixed(2)}
                           </span>
                         </div>
 
                         {/* Voice trigger custom word — only when Voice is enabled */}
                         {editVoiceEnabled && (
-                          <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 p-1.5 ring-1 ring-emerald-400/30">
-                            <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wide text-emerald-200">
-                              🎙️ Trigger word
+                          <div className="flex items-center gap-1 rounded bg-emerald-500/10 p-1 ring-1 ring-emerald-400/30">
+                            <span className="shrink-0 text-[9px] font-extrabold uppercase tracking-wide text-emerald-200">
+                              🎙️ Trigger
                             </span>
                             <input
                               value={editVoicePhrase}
                               onChange={(e) => setEditVoicePhrase(e.target.value)}
                               placeholder="Type your magic word…"
                               maxLength={32}
-                              className="flex-1 rounded-md bg-background/80 px-2 py-1 text-sm font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                              className="flex-1 rounded bg-background/80 px-2 py-0.5 text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
                             />
-                            <span className="text-[10px] font-bold text-emerald-200">
-                              Active: <b>{(editVoicePhrase || "next").toLowerCase()}</b>
-                            </span>
                           </div>
                         )}
 
                         {/* Action row — full-width START + End */}
-                        <div className="flex items-stretch gap-1.5">
+                        <div className="flex items-stretch gap-1">
                           <button
                             onClick={() => quickStartAuction()}
-                            disabled={!quickItem.trim()}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-base font-extrabold text-white shadow-lg active:scale-[0.98] disabled:opacity-50"
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98]"
                           >
-                            <Play className="h-5 w-5" /> START AUCTION
+                            <Play className="h-4 w-4" /> START AUCTION
                           </button>
                           <button
                             onClick={endLive}
-                            className="flex items-center justify-center gap-1 rounded-xl bg-live px-4 py-3 text-sm font-bold text-live-foreground active:scale-[0.98]"
+                            className="flex items-center justify-center gap-1 rounded-lg bg-live px-3 py-2 text-xs font-bold text-live-foreground active:scale-[0.98]"
                           >
-                            <Square className="h-4 w-4" /> End
+                            <Square className="h-3.5 w-3.5" /> End
                           </button>
                         </div>
                       </div>

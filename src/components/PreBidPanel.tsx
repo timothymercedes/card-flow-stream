@@ -205,7 +205,7 @@ export function PreBidPanel({
                       {st === "prebid" && (<>Start ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s{it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}</>)}
                       {st === "buynow" && (<>Buy Now ${bnPrice.toFixed(0)}</>)}
                       {st === "either" && (<>Pre-Bid from ${Number(it.starting_bid).toFixed(0)} · or Buy Now ${bnPrice.toFixed(0)}</>)}
-                      {st === "offer" && (<>Make Offer{it.min_offer ? ` · min $${Number(it.min_offer).toFixed(0)}` : ""}</>)}
+                      
                     </p>
                     {(st === "prebid" || st === "either") && top && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
@@ -250,23 +250,6 @@ export function PreBidPanel({
                   </button>
                 )}
 
-                {st === "offer" && (
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <input
-                      type="number" inputMode="decimal" min={Number(it.min_offer) || 1}
-                      placeholder={it.min_offer ? `Min $${Number(it.min_offer).toFixed(0)}` : "Your offer"}
-                      value={drafts[it.id] || ""}
-                      onChange={(e) => setDrafts((d) => ({ ...d, [it.id]: e.target.value }))}
-                      className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                    />
-                    <button
-                      onClick={() => submitOffer(it)} disabled={busy === it.id}
-                      className="flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-bold text-black shadow active:scale-95 disabled:opacity-50"
-                    >
-                      <HandCoins className="h-3 w-3" /> Offer
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })}
