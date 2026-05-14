@@ -204,6 +204,7 @@ export function PreBidPanel({
                     <p className="mt-0.5 text-[11px] text-muted-foreground">
                       {st === "prebid" && (<>Start ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s{it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}</>)}
                       {st === "buynow" && (<>Buy Now ${bnPrice.toFixed(0)}</>)}
+                      {st === "either" && (<>Pre-Bid from ${Number(it.starting_bid).toFixed(0)} · or Buy Now ${bnPrice.toFixed(0)}</>)}
                       {st === "offer" && (<>Make Offer{it.min_offer ? ` · min $${Number(it.min_offer).toFixed(0)}` : ""}</>)}
                     </p>
                     {st === "prebid" && top && (
