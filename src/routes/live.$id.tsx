@@ -3774,7 +3774,7 @@ function LiveDetail() {
                         .from("live_streams")
                         .update({ chat_slow_mode_sec: s })
                         .eq("id", id);
-                      sendMsg(s === 0 ? "🐢 Slow chat OFF" : `🐢 Slow chat ON — ${s}s`, true);
+                      sendMsg(s === 0 ? "Slow chat OFF" : `Slow chat ON — ${s}s`, true);
                     }}
                     className={`rounded-md py-1.5 text-[11px] font-bold ${Number(editSlowMode) === s ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"}`}
                   >
