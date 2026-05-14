@@ -51,7 +51,7 @@ export function ScheduledShowsPanel({ compact }: { compact?: boolean }) {
           <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
             <Calendar className="h-3.5 w-3.5" /> My Scheduled Shows
           </h3>
-          <Link to="/shows/new" className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-1 text-[10px] font-bold text-white">
+          <Link to="/shows/$id/edit" params={{ id: "new" }} className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-1 text-[10px] font-bold text-white">
             <Plus className="h-3 w-3" /> New
           </Link>
         </div>
