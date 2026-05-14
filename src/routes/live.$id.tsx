@@ -3732,7 +3732,7 @@ function LiveDetail() {
 
       {/* Flex Live settings panel — host controls chat + co-hosts (no auction stuff) */}
       {isSeller && showSettings && !ended && stream.mode === "show_off" && (
-        <div className="absolute inset-x-3 top-24 z-30 max-h-[60vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl backdrop-blur">
+        <div className="absolute inset-x-2 bottom-24 z-30 max-h-[55vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl ring-1 ring-white/10 backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-bold">✨ Flex settings</p>
             <button onClick={() => setShowSettings(false)}>
