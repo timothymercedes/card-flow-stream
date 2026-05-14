@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
 import { toast } from "sonner";
