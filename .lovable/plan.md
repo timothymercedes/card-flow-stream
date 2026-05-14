@@ -1,68 +1,92 @@
-# Three-part fix: live cockpit polish + shipping auto-rates
+# Pre-B (Pre-Bid) System & Scheduled Shows
 
-## 1. Camera button on live auction opens the panel
+Replaces the viewer-facing "Queue" button with a full Pre-Bid experience and adds scheduled show support with viewer bookmarks. Internal seller queue logic stays intact behind the scenes.
 
-In `src/routes/live.$id.tsx`:
+## 1. Database changes (migration)
 
-- The compositor-seller path already calls `openHostCameraControls()` but it can be hidden behind `showSettings`. Update the camera button handler to also call `setShowSettings(false)` and force `setHostCameraPanelCollapsed(false)` so the editor always becomes visible.
-- For non-compositor sellers (WebRTC mode), make the same camera button additionally open the host studio drawer (`setShowHostCameraEditor(true)`) after `setCallJoined(true)`, so a single tap reliably reveals the camera UI in both modes.
-- Verify the icon button at line ~3324 is rendered for Flex sellers too (currently gated by `usingCompositor ? isSeller : !callJoined`).
+Extend `auction_queue` (already used as the internal queue) and add new tables:
 
-## 2. Queue button — fix overlay + add quantity
+- `auction_queue` — add columns:
+  - `image_url text` (host-uploaded item photo)
+  - `prebid_enabled boolean default true`
+  - `position int` (manual ordering; falls back to created_at)
+- `prebids` — viewer pre-bids placed before item goes live
+  - `id, queue_item_id (fk), bidder_id, amount numeric, created_at`
+  - RLS: viewers insert their own; everyone reads for the item; host can see all
+- `scheduled_shows` — future live shows
+  - `id, host_id, title, description, banner_url, categories text[], scheduled_at timestamptz, stream_id (nullable, links once live), created_at, updated_at`
+  - RLS: public read; host manages own
+- `show_bookmarks` — viewer bookmarks + reminder opt-in
+  - `id, show_id (fk), user_id, remind boolean default true, created_at`
+  - Unique (show_id, user_id). RLS: user manages own; host can count via view
+- `show_bookmark_counts` view — aggregate count per show (public read)
+- Realtime: enable on `auction_queue`, `prebids`, `scheduled_shows`, `show_bookmarks`
 
-In `src/routes/live.$id.tsx`:
-- The "📋 Queue" FAB at `bottom-32 left-2` collides with bid controls and the rail. Move it to a non-conflicting slot: anchor it to the right side, above the bottom action bar (`bottom-44 right-2`, slightly smaller chip), and make the open drawer slide from that corner so it doesn't cover the live video.
+## 2. Components
 
-In `src/components/AuctionQueuePanel.tsx`:
-- Add a `quantity` field (default 1) to `draft` state and the add-form grid (4 columns: Start $, Sec, Buy-now, Qty).
-- Persist as `quantity` column on `auction_queue` row insert; render `· x{qty}` in both host list rows and the viewer "Up next" strip when `qty > 1`.
-- Migration: `ALTER TABLE public.auction_queue ADD COLUMN IF NOT EXISTS quantity int NOT NULL DEFAULT 1 CHECK (quantity BETWEEN 1 AND 999);`
+- `src/components/PreBidPanel.tsx` — viewer-facing panel
+  - List of upcoming items (image, title, starting bid, buy-now, timer, current pre-bid leader)
+  - "Place Pre-Bid" input per item (when `prebid_enabled`)
+  - Bookmark/watch icon per item
+  - Realtime subscription so bids/items update live
+- `src/components/PreBidHostPanel.tsx` — host management (extends existing AuctionQueuePanel logic)
+  - Add/remove/reorder (drag handles up/down)
+  - Edit start price, sec, buy-now, quantity, image upload
+  - Toggle `prebid_enabled` per item
+  - "Import from Vault/Marketplace" picker (lists host's listings)
+  - View pre-bids placed on each item
+- `src/components/ScheduledShowForm.tsx` — host create/edit show
+  - Title, description, banner upload, categories, datetime
+- `src/components/ScheduledShowCard.tsx` — viewer card with bookmark button + bookmark count
 
-## 3. Auto shipping rates from Shippo across the platform
+## 3. Routes
 
-### New estimate server fn (no order required)
+- `src/routes/shows.tsx` — public list of upcoming scheduled shows
+- `src/routes/shows.$id.tsx` — show detail: banner, info, pre-bid items, bookmark button
+- `src/routes/profile.tsx` — add "My Bookmarked Shows" section (or new tab)
+- `src/routes/seller-hub.tsx` (or equivalent) — add "Scheduled Shows" management section
+- `src/routes/live.$id.tsx`:
+  - Rename viewer button "📋 Queue" → "🔖 Pre-B"
+  - Show "Pre-B Available" badge in header when `auction_queue` has upcoming items with `prebid_enabled`
+  - Replace viewer `AuctionQueuePanel` mount with `PreBidPanel`
+  - Host keeps `AuctionQueuePanel` (rebranded internally as PreBidHostPanel) with new fields
 
-Add `estimateShippoRates` in `src/server/shippo.functions.ts`:
-- Inputs: `sellerId`, `buyerCountry` (default from auth profile), optional `buyerZip`, `presetKey` (`stamp | pwe | bubble | small_box`), optional weight/dimension overrides.
-- Resolves seller address from `profiles`, expands preset → parcel via `SHIPPING_PRESETS`.
-- For untracked flat-rate presets (`stamp`, `pwe`) returns the flat USD price directly without calling Shippo.
-- Otherwise calls Shippo `/shipments/` with `async: false`, returns the cheapest domestic rate + cheapest international rate (separated), plus `recommendedRateId`. International detection = `buyerCountry !== sellerCountry`.
-- Validates with Zod, requires auth, but does NOT require seller ownership (any signed-in buyer can quote a rate).
+## 4. Notifications
 
-### New `<ShippingEstimator>` component
+When a bookmarked item/show goes live:
+- Server fn `notifyBookmarkers` triggered when:
+  - host starts a queue item (called from existing `start` flow)
+  - scheduled show's stream_id is set / show goes live
+- Inserts into existing `notifications` table (if present) for users who bookmarked with `remind=true`
+- If no notifications table, create minimal one in same migration
 
-`src/components/ShippingEstimator.tsx`:
-- Props: `sellerId`, `presetKey`, optional weight/dimensions, optional buyer country override.
-- Calls `estimateShippoRates` via `useServerFn` + react-query, debounced.
-- Renders: live "$X.XX via USPS Ground Advantage" with international/domestic badge and a small "Updated from carrier rates" note. Shows skeleton while fetching, friendly error if seller address missing.
-- Used by sell preview, marketplace listing, cart per-seller group, and live auction info card.
+## 5. Realtime
 
-### Seller-facing change in `src/routes/sell.tsx`
+Subscribe in `PreBidPanel`, `ScheduledShowCard`, and `live.$id` to:
+- `auction_queue` changes (item add/remove/reorder/start)
+- `prebids` inserts (live leader update)
+- `show_bookmarks` (live bookmark counts for host)
 
-- Replace the manual `shipping_price` numeric input with:
-  1. Package preset dropdown (already-defined `SHIPPING_PRESETS`).
-  2. Estimated weight (oz) — auto-filled from preset, editable.
-  3. Optional dimensions (collapsed under "Advanced override").
-  4. Auto-quoted rate preview using `<ShippingEstimator>` with the seller's own country as the buyer (gives a sample US rate) plus a sample international (CA) rate side-by-side.
-- `shipping_price` stored on the listing becomes the *flat-rate fallback* used only for untracked presets; tracked presets save `shipping_preset` + `weight_oz` + `dimensions` and resolve real rates at quote time.
-- Migration: add `shipping_preset text`, `weight_oz numeric`, `length_in numeric`, `width_in numeric`, `height_in numeric` to `listings` (nullable, no default break).
+## 6. Files touched
 
-### Buyer-facing wiring
+Created:
+- `src/components/PreBidPanel.tsx`
+- `src/components/PreBidHostPanel.tsx` (or extend AuctionQueuePanel)
+- `src/components/ScheduledShowForm.tsx`
+- `src/components/ScheduledShowCard.tsx`
+- `src/routes/shows.tsx`
+- `src/routes/shows.$id.tsx`
+- migration SQL
 
-- `src/routes/market.$id.tsx`: replace static "Shipping $X" line with `<ShippingEstimator sellerId={...} presetKey={listing.shipping_preset ?? 'bubble'} weightOz={listing.weight_oz} />`.
-- `src/routes/cart.tsx`: per seller group, sum item weights and pick the largest preset, render `<ShippingEstimator>` and feed the cents into the existing total.
-- `src/routes/live.$id.tsx`: in the live auction info / pinned card area, surface `<ShippingEstimator>` for the current item using the same lookup.
-- `src/routes/store.tsx` and `vault` flows: same treatment where a seller-level shipping line currently shows.
+Edited:
+- `src/routes/live.$id.tsx` (button rename, badge, swap panel)
+- `src/routes/profile.tsx` (bookmarked shows section)
+- `src/routes/seller-hub.tsx` (scheduled shows manager)
+- `src/components/AuctionQueuePanel.tsx` (image upload, prebid toggle, reorder, vault import)
 
-### Backwards compatibility
+## Open questions before I start
 
-- `estimateShippingAndImportFees` in `src/lib/shippingEstimate.ts` stays as the offline fallback when Shippo is unreachable or seller address is missing — `<ShippingEstimator>` falls back to it on error and labels the result "Estimated".
-
----
-
-## Technical notes
-- Shippo key already wired (`SHIPPO_API_KEY` used by `getShippoRates`). No new secrets.
-- New server fn is read-only; reuses existing `requireSupabaseAuth` middleware.
-- All buyer flows already detect international via `getIntlContext`; we re-use that and pass through to the estimator badge.
-- No changes to checkout fee math — `calculateFees` and the 4% intl fee logic remain untouched.
-
+1. **Image upload storage**: reuse the existing `listings` storage bucket for queue item photos and show banners, or create new `prebid-images` / `show-banners` buckets?
+2. **Notifications**: is there an existing `notifications` table I should write into, or should I create one as part of this migration?
+3. **Where do hosts manage scheduled shows today?** I'll add a "Scheduled Shows" section to `seller-hub.tsx` unless you point me elsewhere.
+4. **Pre-bids on live items**: should pre-bids automatically convert to opening bids when the item starts (highest pre-bid becomes the first bid), or just be informational for the host?

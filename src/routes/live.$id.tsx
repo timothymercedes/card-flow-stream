@@ -68,6 +68,7 @@ import { SoldBanner } from "@/components/SoldBanner";
 import { HypeBurst } from "@/components/HypeBurst";
 import { TopSupporterBadge } from "@/components/TopSupporterBadge";
 import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
+import { PreBidPanel } from "@/components/PreBidPanel";
 import { playSfx } from "@/lib/sfx";
 
 import { Confetti } from "@/components/Confetti";
@@ -319,6 +320,25 @@ function LiveDetail() {
   const [hypeTick, setHypeTick] = useState<number>(0);
   const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [prebidOpen, setPrebidOpen] = useState(false);
+  const [prebidCount, setPrebidCount] = useState(0);
+
+  // 🆕 Pre-B count: tracks queued items so viewers see a "Pre-B Available" badge
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    async function refresh() {
+      const { count } = await supabase.from("auction_queue" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("stream_id", id).eq("status", "queued");
+      if (alive) setPrebidCount(count || 0);
+    }
+    refresh();
+    const ch = supabase.channel(`prebid-count-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, refresh)
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+  }, [id]);
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
 
   // 🆕 Spin Wheel state
@@ -6287,11 +6307,31 @@ function LiveDetail() {
         />
       )}
 
-      {/* 🆕 Auction queue — viewers see a small "Up next" strip; host gets full CRUD drawer */}
+      {/* 🆕 Auction queue — viewers see a small "Up next" strip + Pre-B FAB; host gets full CRUD drawer */}
       {stream && !isSeller && stream.mode !== "show_off" && !ended && (
-        <div className="pointer-events-auto fixed left-2 right-2 top-28 z-40 mx-auto max-w-md">
-          <AuctionQueuePanel streamId={id} hostId={stream.seller_id} isHost={false} auctionLive={auctionLive} />
-        </div>
+        <>
+          <div className="pointer-events-auto fixed left-2 right-2 top-28 z-40 mx-auto max-w-md">
+            <AuctionQueuePanel streamId={id} hostId={stream.seller_id} isHost={false} auctionLive={auctionLive} />
+          </div>
+          <button
+            onClick={() => setPrebidOpen(true)}
+            className="fixed bottom-44 right-2 z-40 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-600 to-purple-600 px-3 py-2 text-[11px] font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
+            title="Open Pre-Bid panel"
+          >
+            🔖 Pre-B
+            {prebidCount > 0 && (
+              <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[9px] font-extrabold tabular-nums">
+                {prebidCount}
+              </span>
+            )}
+          </button>
+          {prebidCount > 0 && (
+            <div className="pointer-events-none fixed left-2 top-20 z-40 animate-pulse rounded-full bg-fuchsia-500/95 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-lg ring-2 ring-white/30">
+              ✨ Pre-B Available · {prebidCount} upcoming
+            </div>
+          )}
+          {prebidOpen && <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />}
+        </>
       )}
       {stream && isSeller && stream.mode !== "show_off" && !ended && (
         <>
@@ -6300,7 +6340,7 @@ function LiveDetail() {
             className="fixed bottom-44 right-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600/95 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95 md:bottom-48"
             title="Auction queue"
           >
-            📋 Queue
+            🔖 Pre-B
           </button>
           {queueOpen && (
             <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">

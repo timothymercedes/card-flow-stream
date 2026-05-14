@@ -50,14 +50,17 @@ export type Database = {
       auction_queue: {
         Row: {
           created_at: string
+          description: string | null
           duration_seconds: number
           finished_at: string | null
           host_id: string
           id: string
           image_url: string | null
           position: number
+          prebid_enabled: boolean
           quantity: number
           reveal_mode: string | null
+          scheduled_show_id: string | null
           snipe_price: number | null
           started_at: string | null
           starting_bid: number
@@ -69,14 +72,17 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           duration_seconds?: number
           finished_at?: string | null
           host_id: string
           id?: string
           image_url?: string | null
           position?: number
+          prebid_enabled?: boolean
           quantity?: number
           reveal_mode?: string | null
+          scheduled_show_id?: string | null
           snipe_price?: number | null
           started_at?: string | null
           starting_bid?: number
@@ -88,14 +94,17 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           duration_seconds?: number
           finished_at?: string | null
           host_id?: string
           id?: string
           image_url?: string | null
           position?: number
+          prebid_enabled?: boolean
           quantity?: number
           reveal_mode?: string | null
+          scheduled_show_id?: string | null
           snipe_price?: number | null
           started_at?: string | null
           starting_bid?: number
@@ -106,6 +115,13 @@ export type Database = {
           winning_bid?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "auction_queue_scheduled_show_id_fkey"
+            columns: ["scheduled_show_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_shows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "auction_queue_stream_id_fkey"
             columns: ["stream_id"]
@@ -2369,6 +2385,41 @@ export type Database = {
           },
         ]
       }
+      prebids: {
+        Row: {
+          amount: number
+          bidder_id: string
+          bidder_username: string | null
+          created_at: string
+          id: string
+          queue_item_id: string
+        }
+        Insert: {
+          amount: number
+          bidder_id: string
+          bidder_username?: string | null
+          created_at?: string
+          id?: string
+          queue_item_id: string
+        }
+        Update: {
+          amount?: number
+          bidder_id?: string
+          bidder_username?: string | null
+          created_at?: string
+          id?: string
+          queue_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prebids_queue_item_id_fkey"
+            columns: ["queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "auction_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           a11y_settings: Json
@@ -2809,6 +2860,8 @@ export type Database = {
       }
       scheduled_shows: {
         Row: {
+          banner_url: string | null
+          categories: string[]
           category: string | null
           created_at: string
           description: string | null
@@ -2816,10 +2869,14 @@ export type Database = {
           scheduled_for: string
           seller_id: string
           seller_username: string
+          stream_id: string | null
           thumbnail_url: string | null
           title: string
+          updated_at: string
         }
         Insert: {
+          banner_url?: string | null
+          categories?: string[]
           category?: string | null
           created_at?: string
           description?: string | null
@@ -2827,10 +2884,14 @@ export type Database = {
           scheduled_for: string
           seller_id: string
           seller_username: string
+          stream_id?: string | null
           thumbnail_url?: string | null
           title: string
+          updated_at?: string
         }
         Update: {
+          banner_url?: string | null
+          categories?: string[]
           category?: string | null
           created_at?: string
           description?: string | null
@@ -2838,10 +2899,20 @@ export type Database = {
           scheduled_for?: string
           seller_id?: string
           seller_username?: string
+          stream_id?: string | null
           thumbnail_url?: string | null
           title?: string
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_shows_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seller_reviews: {
         Row: {
