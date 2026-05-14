@@ -11,6 +11,7 @@ import { SellerBadge } from "@/components/SellerBadge";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
 
