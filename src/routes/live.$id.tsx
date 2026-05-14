@@ -4521,6 +4521,7 @@ function LiveDetail() {
           </div>
         )}
         {stream.mode === "show_off" && (
+          <>
             {/* Collapse / full-screen toggle for Flex Live */}
             <div className="flex justify-center">
               <button
