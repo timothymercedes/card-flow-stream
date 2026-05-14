@@ -6340,7 +6340,7 @@ function LiveDetail() {
             className="fixed bottom-44 right-2 z-40 flex items-center gap-1 rounded-full bg-fuchsia-600/95 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg ring-2 ring-white/20 active:scale-95 md:bottom-48"
             title="Auction queue"
           >
-            📋 Queue
+            🔖 Pre-B
           </button>
           {queueOpen && (
             <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">
