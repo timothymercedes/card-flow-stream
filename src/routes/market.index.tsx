@@ -268,6 +268,7 @@ function Market() {
                   )}
                 </div>
               </Link>
+              </CardQuickActions>
             );
           })}
         </div>
