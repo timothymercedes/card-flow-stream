@@ -4920,7 +4920,7 @@ function LiveDetail() {
                                       .update({ voice_trigger_phrase: v })
                                       .eq("id", id);
                                   }}
-                                  placeholder="cmd word"
+                                  placeholder="Type your active Triggers"
                                   className="w-16 rounded-md bg-background/60 px-1.5 py-0.5 text-[10px] outline-none placeholder:text-white/40"
                                 />
                               )}
