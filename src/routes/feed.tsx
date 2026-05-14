@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { AppShell } from "@/components/AppShell";
 import { Pencil, Trash2, History, X, Check, Sparkles, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ type HypePost = { id: string; title: string; body: string; category: string | nu
 
 function Feed() {
   const { user, profile } = useAuth();
+  const { requireAuth } = useAuthGate();
   const nav = useNavigate();
   const [posts, setPosts] = useState<Post[]>([]);
   const [hype, setHype] = useState<HypePost[]>([]);
@@ -67,7 +69,8 @@ function Feed() {
   }, [user]);
 
   async function post() {
-    if (!profile) return nav({ to: "/auth" });
+    if (!requireAuth("post to the feed")) return;
+    if (!profile) return;
     if (!caption.trim()) return;
     await supabase.from("posts").insert({ user_id: profile.id, username: profile.username, caption });
     setCaption("");
@@ -76,7 +79,8 @@ function Feed() {
   }
 
   async function react(p: Post, type: string) {
-    if (!user) return nav({ to: "/auth" });
+    if (!requireAuth("react")) return;
+    if (!user) return;
     setPickerFor(null);
     const mine = reactions.find((r) => r.post_id === p.id && r.user_id === user.id);
     if (mine?.reaction === type) {

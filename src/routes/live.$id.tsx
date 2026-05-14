@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import {
   Radio,
   Send,
@@ -1534,12 +1535,10 @@ function LiveDetail() {
     };
   }, [user?.id]);
 
+  const { requireAuth } = useAuthGate();
   function requireBuyerReady(action = "continue"): boolean {
-    if (!user || !profile) {
-      toast.error(`Sign in to ${action}`);
-      nav({ to: "/auth" });
-      return false;
-    }
+    if (!requireAuth(action)) return false;
+    if (!user || !profile) return false;
     if (needsAcceptance) {
       toast.error("Accept the required agreements before interacting");
       return false;
