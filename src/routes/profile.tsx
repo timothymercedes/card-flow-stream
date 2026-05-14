@@ -538,6 +538,10 @@ function Profile() {
             <Package className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">My Orders</p><p className="text-xs text-muted-foreground">Items you've purchased</p></div>
           </Link>
+          <Link to="/bookmarks" className="flex items-center gap-3 rounded-xl bg-card p-4">
+            <Bell className="h-5 w-5 text-primary" />
+            <div className="flex-1"><p className="text-sm font-semibold">My Bookmarks</p><p className="text-xs text-muted-foreground">Saved shows & reminder settings</p></div>
+          </Link>
           <PushToggle userId={user!.id} />
           <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
             <ShieldCheck className="h-5 w-5 text-primary" />
