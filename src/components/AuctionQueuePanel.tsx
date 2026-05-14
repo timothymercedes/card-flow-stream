@@ -353,7 +353,7 @@ export function AuctionQueuePanel({
         <div className="space-y-1.5 rounded-lg bg-white/5 p-2">
           {/* Sale type selector */}
           <div className="flex gap-1">
-            {(["prebid", "buynow", "offer"] as SaleType[]).map((s) => (
+            {(["prebid", "buynow", "either", "offer"] as SaleType[]).map((s) => (
               <button
                 key={s}
                 onClick={() => setDraft((d) => ({ ...d, sale_type: s }))}
