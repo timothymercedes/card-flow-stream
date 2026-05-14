@@ -105,6 +105,163 @@ export const getShippoRates = createServerFn({ method: "POST" })
     return { shipmentId: shipment.object_id, rates, recommendedRateId: recommended?.objectId ?? null };
   });
 
+// =====================================================================
+// Pre-purchase rate estimate — quotes carrier rates without an order row.
+// Used by listing pages, cart, live auction, and seller preview to auto-
+// populate the shipping line instead of asking sellers to type it in.
+// =====================================================================
+
+const PRESET_PARCEL: Record<string, { weightOz: number; lengthIn: number; widthIn: number; heightIn: number; flatPriceUsd?: number; flatRate?: boolean }> = {
+  stamp: { weightOz: 1, lengthIn: 6, widthIn: 4, heightIn: 0.05, flatPriceUsd: 0.78, flatRate: true },
+  pwe: { weightOz: 1, lengthIn: 6, widthIn: 4, heightIn: 0.1, flatPriceUsd: 0.99, flatRate: true },
+  bubble: { weightOz: 4, lengthIn: 7, widthIn: 5, heightIn: 1 },
+  small_box: { weightOz: 10, lengthIn: 8, widthIn: 6, heightIn: 4 },
+};
+
+const EstimateInput = z.object({
+  sellerId: z.string().uuid(),
+  presetKey: z.enum(["stamp", "pwe", "bubble", "small_box"]).optional(),
+  weightOz: z.number().min(0.1).max(1500).optional(),
+  lengthIn: z.number().min(1).max(108).optional(),
+  widthIn: z.number().min(1).max(108).optional(),
+  heightIn: z.number().min(0.1).max(108).optional(),
+  buyerCountry: z.string().length(2).optional(),
+  buyerZip: z.string().min(2).max(16).optional(),
+});
+
+export const estimateShippoRates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => EstimateInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const preset = data.presetKey ? PRESET_PARCEL[data.presetKey] : PRESET_PARCEL.bubble;
+    const weightOz = data.weightOz ?? preset.weightOz;
+    const lengthIn = data.lengthIn ?? preset.lengthIn;
+    const widthIn = data.widthIn ?? preset.widthIn;
+    const heightIn = data.heightIn ?? preset.heightIn;
+
+    // Resolve seller address
+    const { data: seller } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, address_line1, address_city, address_state, address_zip, address_country")
+      .eq("id", data.sellerId)
+      .single();
+
+    const sellerCountry = (seller?.address_country || "US").toUpperCase();
+
+    // Resolve buyer destination — explicit override > buyer profile > seller country (domestic estimate)
+    let buyerCountry = (data.buyerCountry || "").toUpperCase();
+    let buyerZip = data.buyerZip || "";
+    if (!buyerCountry) {
+      const { data: buyer } = await supabaseAdmin
+        .from("profiles")
+        .select("address_country, address_zip")
+        .eq("id", userId)
+        .single();
+      buyerCountry = (buyer?.address_country || sellerCountry).toUpperCase();
+      if (!buyerZip) buyerZip = buyer?.address_zip || "";
+    }
+    const isInternational = buyerCountry !== sellerCountry;
+
+    // Flat-rate untracked presets — don't hit Shippo at all
+    if (preset.flatRate && !isInternational) {
+      return {
+        amountUsd: preset.flatPriceUsd ?? 0.99,
+        currency: "USD",
+        carrier: "USPS",
+        service: data.presetKey === "stamp" ? "Letter (stamp)" : "PWE",
+        isInternational: false,
+        source: "flat" as const,
+        message: "Flat-rate untracked",
+      };
+    }
+
+    // Fallback when seller hasn't set their address — use offline estimate
+    if (!seller?.address_zip || !seller.address_line1) {
+      const oz = weightOz;
+      const shipping = isInternational
+        ? 15.5 + Math.max(0, oz - 4) * 0.85
+        : oz <= 2 ? 0.99 : 4.75 + Math.max(0, oz - 4) * 0.35;
+      return {
+        amountUsd: shipping,
+        currency: "USD",
+        isInternational,
+        source: "fallback" as const,
+        message: "Seller hasn't set a return address yet",
+      };
+    }
+
+    try {
+      const shipment = await shippo<any>("/shipments/", {
+        method: "POST",
+        body: JSON.stringify({
+          address_from: {
+            name: seller.full_name || "Seller",
+            street1: seller.address_line1,
+            city: seller.address_city,
+            state: seller.address_state,
+            zip: seller.address_zip,
+            country: sellerCountry,
+          },
+          address_to: {
+            name: "Buyer",
+            street1: "—",
+            city: buyerCountry === "US" ? "New York" : "London",
+            state: buyerCountry === "US" ? "NY" : "",
+            zip: buyerZip || (buyerCountry === "US" ? "10001" : "SW1A1AA"),
+            country: buyerCountry,
+          },
+          parcels: [{
+            length: String(lengthIn),
+            width: String(widthIn),
+            height: String(heightIn),
+            distance_unit: "in",
+            weight: String(weightOz),
+            mass_unit: "oz",
+          }],
+          async: false,
+        }),
+      });
+
+      const rates = (shipment.rates || []).map((r: any) => ({
+        provider: r.provider,
+        service: r.servicelevel?.name,
+        amount: Number(r.amount),
+      })).filter((r: any) => r.amount > 0).sort((a: any, b: any) => a.amount - b.amount);
+
+      if (rates.length === 0) {
+        // No carrier rates returned — fall back
+        const oz = weightOz;
+        const shipping = isInternational
+          ? 15.5 + Math.max(0, oz - 4) * 0.85
+          : oz <= 2 ? 0.99 : 4.75 + Math.max(0, oz - 4) * 0.35;
+        return { amountUsd: shipping, currency: "USD", isInternational, source: "fallback" as const, message: "No carrier rates returned" };
+      }
+
+      const cheapest = rates[0];
+      return {
+        amountUsd: cheapest.amount,
+        currency: "USD",
+        carrier: cheapest.provider,
+        service: cheapest.service,
+        isInternational,
+        source: "shippo" as const,
+      };
+    } catch (e: any) {
+      const oz = weightOz;
+      const shipping = isInternational
+        ? 15.5 + Math.max(0, oz - 4) * 0.85
+        : oz <= 2 ? 0.99 : 4.75 + Math.max(0, oz - 4) * 0.35;
+      return {
+        amountUsd: shipping,
+        currency: "USD",
+        isInternational,
+        source: "fallback" as const,
+        message: e?.message?.slice(0, 200) || "Carrier API unavailable",
+      };
+    }
+  });
+
 const BuyInput = z.object({
   orderId: z.string().uuid(),
   rateId: z.string().min(1),
