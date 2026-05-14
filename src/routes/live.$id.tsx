@@ -2156,7 +2156,8 @@ function LiveDetail() {
     if (!isSeller) return;
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
-    const item = quickItem.trim() || `Item $${start}`;
+    const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
+    const item = quickItem.trim() || `Bid #${nextBidNum}`;
     const buyNowRaw = Number(quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const qty = Math.max(1, Math.min(99, Number(editQuantity) || 1));
@@ -2235,7 +2236,8 @@ function LiveDetail() {
     if (!isSeller || !stream) return;
     const sec = Math.max(5, Math.min(600, Number(opts?.timer ?? editTimerSec) || 30));
     const start = Math.max(1, Number(opts?.start ?? editStartPrice) || 1);
-    const item = (opts?.item ?? quickItem).trim() || `Item $${start}`;
+    const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
+    const item = (opts?.item ?? quickItem).trim() || `Bid #${nextBidNum}`;
     const buyNowRaw = Number(opts?.buyNow ?? quickBuyNow);
     const buyNow = buyNowRaw > start ? buyNowRaw : null;
     const ends_at = new Date(Date.now() + sec * 1000).toISOString();
