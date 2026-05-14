@@ -9,6 +9,7 @@ import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDis
 import { useShuffleBucket, seededHash } from "@/lib/shuffle";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { CardQuickActions } from "@/components/CardQuickActions";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
