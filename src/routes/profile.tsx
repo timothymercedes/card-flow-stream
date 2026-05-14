@@ -330,7 +330,11 @@ function Profile() {
           </div>
         )}
 
-        {/* Inline reviews panel — manage/respond from own profile */}
+        {/* Scheduled Shows */}
+        <section className="rounded-xl bg-card p-3 ring-1 ring-border">
+          <ScheduledShowsPanel compact />
+        </section>
+
         {showMyReviews && (
           <section className="rounded-xl bg-card p-3">
             <div className="mb-2 flex items-center justify-between">
