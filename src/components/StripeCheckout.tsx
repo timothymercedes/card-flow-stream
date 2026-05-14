@@ -41,7 +41,7 @@ export function StripeCheckout(props: Props) {
         });
         if (cancelled) return;
         setClientSecret(res.clientSecret!);
-        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee });
+        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, isInternational: (res as any).isInternational });
       } catch (e: any) {
         setError(e.message ?? "Failed to start payment");
       }
