@@ -4771,7 +4771,7 @@ function LiveDetail() {
                           >
                             ↻
                           </button>
-                        </div>
+                        </label>
                         <div className="flex items-stretch gap-1">
                           {/* Left column: price/buy/timer pickers */}
                           <div className="flex min-w-0 flex-1 flex-col gap-1">
