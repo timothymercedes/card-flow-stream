@@ -41,7 +41,7 @@ export function AuctionQueuePanel({
 }) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "" });
+  const [draft, setDraft] = useState({ title: "", starting_bid: 1, duration_seconds: 30, snipe_price: "", quantity: 1 });
 
   useEffect(() => {
     if (!streamId) return;
