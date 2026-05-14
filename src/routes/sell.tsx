@@ -114,6 +114,9 @@ function Sell() {
   const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
   const [shippingPrice, setShippingPrice] = useState("0");
+  const [shippingPreset, setShippingPreset] = useState<"stamp" | "pwe" | "bubble" | "small_box">("bubble");
+  const [weightOz, setWeightOz] = useState<string>("4");
+  const [showShipAdvanced, setShowShipAdvanced] = useState(false);
   const [category, setCategory] = useState<string>("pokemon");
 
   // Load seller status
