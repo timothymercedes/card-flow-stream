@@ -1,13 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
@@ -56,9 +48,6 @@ import {
   Layout,
   Move,
   PanelRightClose,
-  Mic,
-  MicOff,
-  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
@@ -122,21 +111,6 @@ function fmtRemaining(ms: number) {
   return `${m.toString().padStart(2, "0")}:${ss}`;
 }
 
-type QuickControlBoxKey = "item" | "price" | "shipping" | "voice" | "go" | "end";
-
-const QUICK_CONTROL_LABELS: Record<QuickControlBoxKey, string> = {
-  item: "Item",
-  price: "Price",
-  shipping: "Ship",
-  voice: "Mic",
-  go: "GO",
-  end: "End",
-};
-
-function clampPanelValue(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), Math.max(min, max));
-}
-
 function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
@@ -165,24 +139,6 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
-  // Resizable bottom panel — host drags the top edge or taps +/- to set height (px). null = auto.
-  const [bottomPanelMaxH, setBottomPanelMaxH] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
-    const v = window.localStorage.getItem("pbl:bottom-panel-h");
-    return v ? Number(v) || null : null;
-  });
-  const resizeBottomPanel = useCallback((delta: number) => {
-    if (typeof window === "undefined") return;
-    setBottomPanelMaxH((current) => {
-      const base = current ?? Math.min(320, Math.max(180, Math.round(window.innerHeight * 0.36)));
-      return Math.max(120, Math.min(window.innerHeight - 96, base + delta));
-    });
-  }, []);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (bottomPanelMaxH == null) window.localStorage.removeItem("pbl:bottom-panel-h");
-    else window.localStorage.setItem("pbl:bottom-panel-h", String(bottomPanelMaxH));
-  }, [bottomPanelMaxH]);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [liveScanBusy, setLiveScanBusy] = useState(false);
@@ -257,9 +213,7 @@ function LiveDetail() {
           return { x: p.x, y: p.y, w: p.w ?? fallback.w, h: p.h ?? fallback.h };
         }
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
     return fallback;
   };
   const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() =>
@@ -278,194 +232,12 @@ function LiveDetail() {
       h: 28,
     }),
   );
-  const [quickControlsBox, setQuickControlsBox] = useState<FloatingBoxRect>(() =>
-    loadBox("live.quickControlsBox", { x: 0, y: 0, w: 0, h: 0 }),
-  );
-  const [quickControlsScale, setQuickControlsScale] = useState(() => {
-    if (typeof window === "undefined") return 1;
-    const raw = window.localStorage.getItem("live.quickControlsScale");
-    return raw ? Math.min(1.3, Math.max(0.72, Number(raw) || 1)) : 1;
-  });
-  const defaultQuickControlBoxes = (): Record<QuickControlBoxKey, FloatingBoxRect> => ({
-    item: { x: 4, y: 28, w: 212, h: 32 },
-    price: { x: 4, y: 64, w: 212, h: 30 },
-    shipping: { x: 4, y: 98, w: 212, h: 30 },
-    voice: { x: 4, y: 132, w: 36, h: 30 },
-    go: { x: 44, y: 132, w: 70, h: 34 },
-    end: { x: 118, y: 132, w: 54, h: 34 },
-  });
-  const [quickControlBoxes, setQuickControlBoxes] = useState<
-    Record<QuickControlBoxKey, FloatingBoxRect>
-  >(() => {
-    if (typeof window === "undefined") return defaultQuickControlBoxes();
-    try {
-      const raw = window.localStorage.getItem("live.quickControlBoxes");
-      if (raw) return { ...defaultQuickControlBoxes(), ...JSON.parse(raw) };
-    } catch {
-      /* ignore */
-    }
-    return defaultQuickControlBoxes();
-  });
-  const startQuickControlBoxDrag = useCallback(
-    (e: ReactPointerEvent<HTMLElement>, key: QuickControlBoxKey, mode: "move" | "resize") => {
-      e.preventDefault();
-      e.stopPropagation();
-      const handle = e.currentTarget;
-      const panel = handle.closest("[data-quick-controls]") as HTMLElement | null;
-      const panelRect = panel?.getBoundingClientRect();
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const startBox = quickControlBoxes[key];
-      const previousUserSelect = document.body.style.userSelect;
-      document.body.style.userSelect = "none";
-      handle.setPointerCapture?.(e.pointerId);
-
-      const onMove = (ev: PointerEvent) => {
-        ev.preventDefault();
-        const dx = (ev.clientX - startX) / quickControlsScale;
-        const dy = (ev.clientY - startY) / quickControlsScale;
-        const maxW = panelRect ? panelRect.width / quickControlsScale - 8 : 260;
-        const maxH = panelRect ? panelRect.height / quickControlsScale - 8 : 210;
-
-        setQuickControlBoxes((cur) => {
-          const current = cur[key];
-          if (mode === "move") {
-            return {
-              ...cur,
-              [key]: {
-                ...current,
-                x: clampPanelValue(startBox.x + dx, 4, maxW - startBox.w),
-                y: clampPanelValue(startBox.y + dy, 24, maxH - startBox.h),
-              },
-            };
-          }
-          return {
-            ...cur,
-            [key]: {
-              ...current,
-              w: clampPanelValue(startBox.w + dx, 34, maxW - startBox.x),
-              h: clampPanelValue(startBox.h + dy, 26, maxH - startBox.y),
-            },
-          };
-        });
-      };
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
-        document.body.style.userSelect = previousUserSelect;
-      };
-
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
-    },
-    [quickControlBoxes, quickControlsScale],
-  );
-  const startQuickControlsDrag = useCallback(
-    (e: ReactPointerEvent<HTMLElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const handle = e.currentTarget;
-      const panel = handle.closest("[data-bottom-panel]") as HTMLElement | null;
-      const controls = handle.closest("[data-quick-controls]") as HTMLElement | null;
-      const panelRect = panel?.getBoundingClientRect();
-      const controlsRect = controls?.getBoundingClientRect();
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const startBox = quickControlsBox;
-      const previousUserSelect = document.body.style.userSelect;
-      document.body.style.userSelect = "none";
-      handle.setPointerCapture?.(e.pointerId);
-
-      const onMove = (ev: PointerEvent) => {
-        ev.preventDefault();
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        const maxX =
-          panelRect && controlsRect ? Math.max(0, panelRect.width - controlsRect.width - 8) : 260;
-        const maxY =
-          panelRect && controlsRect ? Math.max(0, panelRect.height - controlsRect.height - 8) : 260;
-        setQuickControlsBox((cur) => ({
-          ...cur,
-          x: Math.min(Math.max(startBox.x + dx, -8), maxX),
-          y: Math.min(Math.max(startBox.y + dy, -8), maxY),
-        }));
-      };
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
-        document.body.style.userSelect = previousUserSelect;
-      };
-
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
-    },
-    [quickControlsBox],
-  );
-  const startQuickControlsResize = useCallback(
-    (e: ReactPointerEvent<HTMLElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const handle = e.currentTarget;
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const startScale = quickControlsScale;
-      const previousUserSelect = document.body.style.userSelect;
-      document.body.style.userSelect = "none";
-      handle.setPointerCapture?.(e.pointerId);
-
-      const onMove = (ev: PointerEvent) => {
-        ev.preventDefault();
-        const delta = (ev.clientX - startX + ev.clientY - startY) / 260;
-        setQuickControlsScale(
-          Math.min(1.3, Math.max(0.72, Number((startScale + delta).toFixed(2)))),
-        );
-      };
-      const onUp = () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        window.removeEventListener("pointercancel", onUp);
-        document.body.style.userSelect = previousUserSelect;
-      };
-
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      window.addEventListener("pointercancel", onUp);
-    },
-    [quickControlsScale],
-  );
   useEffect(() => {
-    try {
-      window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
-    } catch {
-      /* ignore */
-    }
+    try { window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox)); } catch { /* ignore */ }
   }, [paymentButtonBox]);
   useEffect(() => {
-    try {
-      window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox));
-    } catch {
-      /* ignore */
-    }
+    try { window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox)); } catch { /* ignore */ }
   }, [quickModBox]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("live.quickControlsBox", JSON.stringify(quickControlsBox));
-      window.localStorage.setItem("live.quickControlsScale", String(quickControlsScale));
-    } catch {
-      /* ignore */
-    }
-  }, [quickControlsBox, quickControlsScale]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("live.quickControlBoxes", JSON.stringify(quickControlBoxes));
-    } catch {
-      /* ignore */
-    }
-  }, [quickControlBoxes]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
     y: 64,
@@ -546,12 +318,7 @@ function LiveDetail() {
   const announcedJoinsRef = useRef<Set<string>>(new Set());
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
-  const [soldBanner, setSoldBanner] = useState<{
-    key: number;
-    item: string;
-    user: string;
-    amount: number;
-  } | null>(null);
+  const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
   const [prebidCount, setPrebidCount] = useState(0);
@@ -561,26 +328,16 @@ function LiveDetail() {
     if (!id) return;
     let alive = true;
     async function refresh() {
-      const { count } = await supabase
-        .from("auction_queue" as any)
+      const { count } = await supabase.from("auction_queue" as any)
         .select("id", { count: "exact", head: true })
-        .eq("stream_id", id)
-        .eq("status", "queued");
+        .eq("stream_id", id).eq("status", "queued");
       if (alive) setPrebidCount(count || 0);
     }
     refresh();
-    const ch = supabase
-      .channel(`prebid-count-${id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
-        refresh,
-      )
+    const ch = supabase.channel(`prebid-count-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, refresh)
       .subscribe();
-    return () => {
-      alive = false;
-      supabase.removeChannel(ch);
-    };
+    return () => { alive = false; supabase.removeChannel(ch); };
   }, [id]);
 
   // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
@@ -591,55 +348,34 @@ function LiveDetail() {
     const mountedAt = Date.now();
     const ch = supabase
       .channel(`host-prebid-notify-${id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "prebids" },
-        async (payload: any) => {
-          const row = payload.new;
-          const { data: q } = await supabase
-            .from("auction_queue" as any)
-            .select("title, stream_id")
-            .eq("id", row.queue_item_id)
-            .maybeSingle();
-          if (!q || (q as any).stream_id !== id) return;
-          if (Date.now() - mountedAt < 1500) return;
-          toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
-            description: `from @${row.bidder_username || "anon"}`,
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "queue_offers" },
-        async (payload: any) => {
-          const row = payload.new;
-          const { data: q } = await supabase
-            .from("auction_queue" as any)
-            .select("title, stream_id")
-            .eq("id", row.queue_item_id)
-            .maybeSingle();
-          if (!q || (q as any).stream_id !== id) return;
-          if (Date.now() - mountedAt < 1500) return;
-          toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
-            description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
-        (payload: any) => {
-          const before = payload.old,
-            after = payload.new;
-          if (!before?.sold_to && after?.sold_to) {
-            toast.success(`🛒 Buy Now: "${after.title}" sold!`);
-          }
-        },
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "prebids" }, async (payload: any) => {
+        const row = payload.new;
+        const { data: q } = await supabase.from("auction_queue" as any)
+          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
+        if (!q || (q as any).stream_id !== id) return;
+        if (Date.now() - mountedAt < 1500) return;
+        toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
+          description: `from @${row.bidder_username || "anon"}`,
+        });
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "queue_offers" }, async (payload: any) => {
+        const row = payload.new;
+        const { data: q } = await supabase.from("auction_queue" as any)
+          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
+        if (!q || (q as any).stream_id !== id) return;
+        if (Date.now() - mountedAt < 1500) return;
+        toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
+          description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, (payload: any) => {
+        const before = payload.old, after = payload.new;
+        if (!before?.sold_to && after?.sold_to) {
+          toast.success(`🛒 Buy Now: "${after.title}" sold!`);
+        }
+      })
       .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    return () => { supabase.removeChannel(ch); };
   }, [id, user?.id, stream?.seller_id]);
 
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
@@ -683,14 +419,11 @@ function LiveDetail() {
   // 🆕 Host quick-bar state — start a round in one tap without opening Settings
   const [quickItem, setQuickItem] = useState("");
   const [quickBuyNow, setQuickBuyNow] = useState("");
-  const [quickQty, setQuickQty] = useState("1");
-  const [quickRemaining, setQuickRemaining] = useState(0);
   const [lastQuick, setLastQuick] = useState<{
     item: string;
     start: string;
     timer: string;
     buyNow: string;
-    qty: string;
   } | null>(null);
   const lastChatTsRef = useRef<number>(0);
 
@@ -786,12 +519,7 @@ function LiveDetail() {
           if (msg?.is_system && typeof msg.body === "string" && msg.body.startsWith("🏆")) {
             const match = msg.body.match(/"(.+?)" sold to @(\S+) for \$([\d.]+)/);
             if (match) {
-              setSoldBanner({
-                key: Date.now(),
-                item: match[1],
-                user: match[2],
-                amount: Number(match[3]),
-              });
+              setSoldBanner({ key: Date.now(), item: match[1], user: match[2], amount: Number(match[3]) });
               playSfx("sold");
             }
           }
@@ -814,11 +542,7 @@ function LiveDetail() {
               setTimeout(() => setSnipeFlash(false), 1500);
             }
             // 🆕 Bid increase → SFX (for viewers) + hype tick
-            if (
-              prev &&
-              Number(next.current_bid || 0) > Number(prev.current_bid || 0) &&
-              next.current_bidder_id
-            ) {
+            if (prev && Number(next.current_bid || 0) > Number(prev.current_bid || 0) && next.current_bidder_id) {
               playSfx("bid", 0.4);
               setHypeTick(Date.now());
             }
@@ -1214,8 +938,7 @@ function LiveDetail() {
   //   - else:            legacy in-app camera preview only
   const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
   const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
-  const flexNeedsCameraSetup =
-    stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
+  const flexNeedsCameraSetup = stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
   const hostStudio = useStudio({
     whipUrl: stream?.cf_whip_url ?? null,
     autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
@@ -1389,10 +1112,7 @@ function LiveDetail() {
       else if (reused > 0) toast.success("That camera is already ready in cockpit");
       else if (lastErr) toast.error(lastErr);
       else if (hostStudio.error) toast.error(hostStudio.error);
-      else
-        toast.error(
-          "Camera didn't start. Check browser permission, close other apps using the cam, and try again.",
-        );
+      else toast.error("Camera didn't start. Check browser permission, close other apps using the cam, and try again.");
     } finally {
       setStartingHostCameras(false);
     }
@@ -1882,20 +1602,16 @@ function LiveDetail() {
   // Fetch seller country once stream loads
   useEffect(() => {
     if (!stream?.seller_id) return;
-    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id }).then(
-      ({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()),
-    );
+    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id })
+      .then(({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()));
   }, [stream?.seller_id]);
 
   // International acknowledgement gate (per-stream)
   const intlAck = useIntlAck(`live-${id}`, buyerCountry, sellerCountry);
-  const intlBlocked =
-    intlAck.isIntl &&
-    ((Array.isArray((stream as any)?.blocked_countries) &&
-      (stream as any).blocked_countries
-        .map((c: string) => c.toUpperCase())
-        .includes(buyerCountry)) ||
-      (stream && (stream as any).ships_internationally === false));
+  const intlBlocked = intlAck.isIntl && (
+    (Array.isArray((stream as any)?.blocked_countries) && (stream as any).blocked_countries.map((c: string) => c.toUpperCase()).includes(buyerCountry))
+    || (stream && (stream as any).ships_internationally === false)
+  );
 
   const { requireAuth } = useAuthGate();
   function requireBuyerReady(action = "continue"): boolean {
@@ -2501,33 +2217,6 @@ function LiveDetail() {
     toast.success("Settings saved");
   }
 
-  // 🎤 Toggle voice trigger inline from the quick bar
-  async function toggleVoiceTrigger() {
-    if (!isSeller) return;
-    const next = !editVoiceEnabled;
-    setEditVoiceEnabled(next);
-    setStream((prev: any) => (prev ? { ...prev, voice_trigger_enabled: next } : prev));
-    await supabase
-      .from("live_streams")
-      .update({ voice_trigger_enabled: next } as any)
-      .eq("id", id);
-    toast.success(next ? `🎤 Voice ON — say "${voicePhrase}" to start` : "🎤 Voice OFF");
-  }
-
-  // 📦 Inline shipping preset change from the quick bar
-  async function setQuickShipPreset(key: ShippingPresetKey) {
-    setEditShipPreset(key);
-    const p = SHIPPING_PRESETS[key];
-    setEditShipMethod(p.label);
-    if (p.flatRate && p.flatPriceUsd != null) {
-      setEditShipPrice(String(p.flatPriceUsd));
-    }
-    if (!isSeller) return;
-    const patch: any = { shipping_method: p.label };
-    if (p.flatRate && p.flatPriceUsd != null) patch.shipping_price = p.flatPriceUsd;
-    await supabase.from("live_streams").update(patch).eq("id", id);
-  }
-
   // 🆕 One-tap quick auction start — uses inline mini-bar values, no Settings panel
   async function quickStartAuction(opts?: {
     item?: string;
@@ -2569,33 +2258,16 @@ function LiveDetail() {
       `▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`,
       true,
     );
-    const qtyNum = Math.max(1, Math.min(99, Number(quickQty) || 1));
     setLastQuick({
       item,
       start: String(start),
       timer: String(sec),
       buyNow: buyNow ? String(buyNow) : "",
-      qty: String(qtyNum),
     });
-    // remaining = qty - 1 (this round counts as one). Auto-refill on round end.
-    setQuickRemaining((prev) => (opts ? Math.max(0, prev - 1) : Math.max(0, qtyNum - 1)));
     setQuickItem("");
     setQuickBuyNow("");
-    toast.success(qtyNum > 1 ? `Round started · ${qtyNum - 1} more queued` : "Round started");
+    toast.success("Round started");
   }
-
-  // Auto-refill the quick bar when a round ends and quantity remains
-  useEffect(() => {
-    if (auctionLive) return;
-    if (quickRemaining <= 0 || !lastQuick) return;
-    if (quickItem) return;
-    setQuickItem(lastQuick.item);
-    setQuickBuyNow(lastQuick.buyNow);
-    setEditStartPrice(lastQuick.start);
-    setEditTimerSec(lastQuick.timer);
-    setQuickQty(String(quickRemaining));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auctionLive]);
 
   async function repeatLastQuick() {
     if (!lastQuick) return;
@@ -2700,9 +2372,10 @@ function LiveDetail() {
 
     // 🔒 Server-authoritative finalize: locks winner, creates order, receipt,
     // notifications, audit log, listing/vault sync — all atomically.
-    const { data: finRes, error: finErr } = await (supabase.rpc as any)("finalize_auction_round", {
-      _stream_id: id,
-    });
+    const { data: finRes, error: finErr } = await (supabase.rpc as any)(
+      "finalize_auction_round",
+      { _stream_id: id },
+    );
     if (finErr) {
       console.error("[live] finalize_auction_round failed", finErr);
       // Soft-fail: clear the timer locally so the UI recovers
@@ -2853,15 +2526,12 @@ function LiveDetail() {
       const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
       const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
       if (updateErr) throw updateErr;
-      await supabase.from("live_stream_credentials" as any).upsert(
-        {
-          stream_id: id,
-          cf_live_input_id: d.live_input_id ?? null,
-          cf_rtmps_url: d.rtmps_url ?? null,
-          cf_stream_key: d.stream_key ?? null,
-        },
-        { onConflict: "stream_id" },
-      );
+      await supabase.from("live_stream_credentials" as any).upsert({
+        stream_id: id,
+        cf_live_input_id: d.live_input_id ?? null,
+        cf_rtmps_url: d.rtmps_url ?? null,
+        cf_stream_key: d.stream_key ?? null,
+      }, { onConflict: "stream_id" });
       setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
       setShowHostCameraEditor(true);
       setHostCameraPanelCollapsed(false);
@@ -3085,10 +2755,7 @@ function LiveDetail() {
         const cy = Math.max(0, Math.min(1, ny - pad));
         const cw = Math.max(0.05, Math.min(1 - cx, nw + pad * 2));
         const ch = Math.max(0.05, Math.min(1 - cy, nh + pad * 2));
-        const x = cx * fw,
-          y = cy * fh,
-          w = cw * fw,
-          h = ch * fh;
+        const x = cx * fw, y = cy * fh, w = cw * fw, h = ch * fh;
         const c = document.createElement("canvas");
         c.width = Math.max(64, Math.round(w));
         c.height = Math.max(64, Math.round(h));
@@ -3115,18 +2782,14 @@ function LiveDetail() {
           r?.tcg_number ? `#${r.tcg_number}` : "",
           r?.set ? `set: ${r.set}` : "",
           r?.year ? `year: ${r.year}` : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
+        ].filter(Boolean).join(" ");
         if (q.trim()) {
           const { data: idData } = await supabase.functions.invoke("identify-card", {
             body: { query: q, language: (r as any)?.language },
           });
           if (idData && (idData as any).name) authoritative = idData;
         }
-      } catch {
-        /* non-fatal */
-      }
+      } catch { /* non-fatal */ }
 
       // Hand off to the existing spotlight + auction pipeline.
       await onScanResult({
@@ -3216,9 +2879,7 @@ function LiveDetail() {
         condition: "NM",
         status: "available",
       });
-    } catch {
-      /* non-fatal */
-    }
+    } catch { /* non-fatal */ }
 
     // Pin the card to the stream so the finalize RPC can match it to vault/market.
     try {
@@ -3238,9 +2899,8 @@ function LiveDetail() {
           },
         } as any)
         .eq("id", stream.id);
-    } catch {
-      /* non-fatal */
-    }
+    } catch { /* non-fatal */ }
+
 
     const update: any = {
       current_item: hypeName,
@@ -3356,32 +3016,6 @@ function LiveDetail() {
     { id: "grid", label: "Grid", Icon: Grid2X2 },
     { id: "freeform", label: "Move", Icon: Move },
   ];
-  const renderQuickControlBox = (key: QuickControlBoxKey, children: ReactNode) => {
-    const box = quickControlBoxes[key];
-    return (
-      <div
-        key={key}
-        className="absolute rounded-lg ring-1 ring-white/15"
-        style={{ left: box.x, top: box.y, width: box.w, height: box.h }}
-      >
-        <div className="h-full w-full overflow-hidden rounded-lg">{children}</div>
-        <button
-          type="button"
-          onPointerDown={(e) => startQuickControlBoxDrag(e, key, "move")}
-          className="absolute -top-2 left-1 z-20 flex h-4 cursor-move touch-none select-none items-center gap-0.5 rounded-full bg-white/25 px-1.5 text-[7px] font-black uppercase text-white ring-1 ring-white/25 active:scale-95"
-          title={`Move ${QUICK_CONTROL_LABELS[key]}`}
-        >
-          <Move className="h-2 w-2" /> {QUICK_CONTROL_LABELS[key]}
-        </button>
-        <div
-          onPointerDown={(e) => startQuickControlBoxDrag(e, key, "resize")}
-          className="absolute -bottom-1 -right-1 z-20 h-4 w-4 cursor-nwse-resize touch-none bg-primary/90"
-          style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
-          title={`Resize ${QUICK_CONTROL_LABELS[key]}`}
-        />
-      </div>
-    );
-  };
 
   async function scanHostStudioCameras() {
     const devices = hostStudioCameraAccessNeeded
@@ -3400,11 +3034,7 @@ function LiveDetail() {
       {intlAck.modal}
       {!isSeller && intlAck.isIntl && (
         <div className="absolute left-2 right-2 top-14 z-40">
-          <IntlWarningBanner
-            buyerCountry={buyerCountry}
-            sellerCountry={sellerCountry}
-            variant="compact"
-          />
+          <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountry} variant="compact" />
         </div>
       )}
       {/* Full-screen video */}
@@ -3750,37 +3380,35 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended &&
-            (isSeller || isCohostParticipant) &&
-            (usingCompositor ? isSeller : !callJoined || isSeller) && (
-              <button
-                onClick={async () => {
-                  if (showSettings) setShowSettings(false);
-                  setHostCameraPanelCollapsed(false);
-                  if (isSeller) {
-                    // If compositor not yet provisioned, set it up first so the
-                    // editor panel actually has somewhere to render.
-                    if (!usingCompositor) {
-                      if (switchingToBrowserCam) return;
-                      await enableFlexCameraStudio();
-                    }
-                    openHostCameraControls();
-                  } else {
-                    setCallJoined(true);
-                    setShowHostCameraEditor(true);
+          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined || isSeller) && (
+            <button
+              onClick={async () => {
+                if (showSettings) setShowSettings(false);
+                setHostCameraPanelCollapsed(false);
+                if (isSeller) {
+                  // If compositor not yet provisioned, set it up first so the
+                  // editor panel actually has somewhere to render.
+                  if (!usingCompositor) {
+                    if (switchingToBrowserCam) return;
+                    await enableFlexCameraStudio();
                   }
-                }}
-                disabled={isSeller && !usingCompositor && switchingToBrowserCam}
-                className="rounded-full bg-emerald-600/80 p-2 backdrop-blur disabled:opacity-60"
-                title={usingCompositor ? "Open camera panel" : "Go on camera"}
-              >
-                {isSeller && !usingCompositor && switchingToBrowserCam ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
-              </button>
-            )}
+                  openHostCameraControls();
+                } else {
+                  setCallJoined(true);
+                  setShowHostCameraEditor(true);
+                }
+              }}
+              disabled={isSeller && !usingCompositor && switchingToBrowserCam}
+              className="rounded-full bg-emerald-600/80 p-2 backdrop-blur disabled:opacity-60"
+              title={usingCompositor ? "Open camera panel" : "Go on camera"}
+            >
+              {isSeller && !usingCompositor && switchingToBrowserCam ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+            </button>
+          )}
           {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
             <button
               onClick={flexNeedsCameraSetup ? enableFlexCameraStudio : openHostCameraControls}
@@ -3805,11 +3433,11 @@ function LiveDetail() {
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
             </button>
           )}
-          {isSeller && !ended && stream.mode === "show_off" && (
+          {isSeller && !ended && (
             <button
               onClick={() => setShowSettings((v) => !v)}
               className="rounded-full bg-black/50 p-2 backdrop-blur"
-              title="Flex settings"
+              title={stream.mode === "show_off" ? "Flex settings" : "Settings"}
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -4295,8 +3923,7 @@ function LiveDetail() {
                     </label>
                     {forceBubble && (
                       <p className="text-[10px] text-amber-300">
-                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive
-                        policy).
+                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive policy).
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-2">
@@ -4324,8 +3951,7 @@ function LiveDetail() {
                       </label>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at
-                      checkout for tracked options.
+                      Weight: {weightOz.toFixed(1)} oz · Real carrier rate is quoted via Shippo at checkout for tracked options.
                     </p>
                   </>
                 );
@@ -4803,99 +4429,8 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
-        data-bottom-panel
-        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-10 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "opacity-80" : ""} ${bottomPanelMaxH ? "overflow-y-auto" : ""}`}
-        style={
-          bottomPanelMaxH
-            ? { height: `${bottomPanelMaxH}px`, maxHeight: "calc(100dvh - 6rem)" }
-            : undefined
-        }
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""}`}
       >
-        {/* 🆕 Drag handle — host can resize the panel by dragging this top edge */}
-        {isSeller && !ended && (
-          <>
-            <div
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.setPointerCapture(e.pointerId);
-                const startY = e.clientY;
-                const containerEl = (e.currentTarget as HTMLElement)
-                  .parentElement as HTMLElement | null;
-                const startH =
-                  bottomPanelMaxH ?? containerEl?.getBoundingClientRect().height ?? 240;
-                const onMove = (ev: PointerEvent) => {
-                  const dy = startY - ev.clientY; // drag up = bigger
-                  const next = Math.max(120, Math.min(window.innerHeight - 96, startH + dy));
-                  setBottomPanelMaxH(next);
-                };
-                const onUp = () => {
-                  window.removeEventListener("pointermove", onMove);
-                  window.removeEventListener("pointerup", onUp);
-                };
-                window.addEventListener("pointermove", onMove);
-                window.addEventListener("pointerup", onUp);
-              }}
-              onDoubleClick={() => setBottomPanelMaxH(null)}
-              title="Drag to resize · double-click to reset"
-              className="absolute left-1/2 -top-1 z-50 flex h-11 w-32 -translate-x-1/2 cursor-ns-resize touch-none select-none flex-col items-center justify-center gap-1 rounded-full bg-white/35 ring-2 ring-white/70 shadow-xl backdrop-blur hover:bg-white/50 active:scale-[0.98]"
-            >
-              <Move className="h-3.5 w-3.5 text-white" />
-              <div className="h-1 w-16 rounded-full bg-white/95" />
-            </div>
-            <div className="absolute right-3 top-2 z-50 flex items-center gap-1 rounded-full bg-black/45 p-1 ring-1 ring-white/20 backdrop-blur">
-              <button
-                type="button"
-                onClick={() => resizeBottomPanel(-56)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95"
-                title="Make panel smaller"
-              >
-                −
-              </button>
-              <button
-                type="button"
-                onClick={() => resizeBottomPanel(56)}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-sm font-black text-white active:scale-95"
-                title="Make panel bigger"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setQuickControlsScale((s) => Math.max(0.72, Number((s - 0.08).toFixed(2))))
-                }
-                className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
-                title="Shrink controls"
-              >
-                UI−
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setQuickControlsScale((s) => Math.min(1.3, Number((s + 0.08).toFixed(2))))
-                }
-                className="rounded-full bg-primary/35 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
-                title="Grow controls"
-              >
-                UI+
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setBottomPanelMaxH(null);
-                  setQuickControlsScale(1);
-                  setQuickControlsBox({ x: 0, y: 0, w: 0, h: 0 });
-                  setQuickControlBoxes(defaultQuickControlBoxes());
-                }}
-                className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-black uppercase text-white active:scale-95"
-                title="Reset panel and controls"
-              >
-                Reset
-              </button>
-            </div>
-          </>
-        )}
         {stream.mode === "show_off" && (
           <>
             {/* Collapse / full-screen toggle for Flex Live */}
@@ -5211,192 +4746,82 @@ function LiveDetail() {
                   <>
                     {/* 🆕 Quick-Bar — start a round in one tap, no Settings round-trip */}
                     {!auctionLive && (
-                      <div
-                        data-quick-controls
-                        className="relative min-h-[180px] rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur"
-                        style={{
-                          transform: `translate3d(${quickControlsBox.x}px, ${quickControlsBox.y}px, 0) scale(${quickControlsScale})`,
-                          transformOrigin: "top left",
-                        }}
-                      >
-                        <div
-                          onPointerDown={startQuickControlsDrag}
-                          className="absolute left-1.5 top-1 flex h-4 cursor-move touch-none select-none items-center gap-1 rounded-full bg-white/15 px-2 text-[8px] font-black uppercase tracking-wide text-white ring-1 ring-white/20 active:scale-95"
-                          title="Drag to move these controls"
-                        >
-                          <Move className="h-2.5 w-2.5" /> Move
-                        </div>
-                        <div
-                          onPointerDown={startQuickControlsResize}
-                          className="absolute right-1 bottom-1 z-10 h-5 w-5 cursor-nwse-resize touch-none bg-primary/80"
-                          style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
-                          title="Drag to resize these controls"
-                        />
-                        {renderQuickControlBox(
-                          "item",
-                          <div className="flex h-full items-center gap-1 p-1">
-                            <input
-                              value={quickItem}
-                              onChange={(e) => setQuickItem(e.target.value)}
-                              placeholder="Item (e.g. Charizard PSA 9)"
-                              maxLength={60}
-                              className="h-full min-w-0 flex-1 rounded-md bg-background/70 px-1.5 text-[11px] text-foreground outline-none placeholder:text-muted-foreground"
-                            />
-                            <button
-                              onClick={() => repeatLastQuick()}
-                              disabled={!lastQuick}
-                              title={lastQuick ? `Repeat: ${lastQuick.item}` : "No previous round"}
-                              className="h-full rounded-md bg-white/10 px-1.5 text-[9px] font-bold text-white disabled:opacity-40"
-                            >
-                              ↻
-                            </button>
-                          </div>,
-                        )}
-                        {renderQuickControlBox(
-                          "price",
-                          <div className="flex h-full items-center gap-1 overflow-x-auto p-1">
-                            <label className="flex h-full items-center gap-0.5 rounded-md bg-background/70 px-1.5 text-[9px] text-muted-foreground">
-                              $
-                              <input
-                                type="number"
-                                min="1"
-                                inputMode="decimal"
-                                value={editStartPrice}
-                                onChange={(e) => setEditStartPrice(e.target.value)}
-                                className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none"
-                              />
-                            </label>
-                            <label className="flex h-full items-center gap-0.5 rounded-md bg-background/70 px-1.5 text-[9px] text-muted-foreground">
-                              Buy
-                              <input
-                                type="number"
-                                min="1"
-                                inputMode="decimal"
-                                value={quickBuyNow}
-                                onChange={(e) => setQuickBuyNow(e.target.value)}
-                                placeholder="—"
-                                className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
-                              />
-                            </label>
-                            <label
-                              title="Quantity — same item auto-refills after each sale"
-                              className="flex h-full items-center gap-0.5 rounded-md bg-background/70 px-1.5 text-[9px] text-muted-foreground"
-                            >
-                              ×
-                              <input
-                                type="number"
-                                min="1"
-                                max="99"
-                                inputMode="numeric"
-                                value={quickQty}
-                                onChange={(e) => setQuickQty(e.target.value)}
-                                className="w-7 bg-transparent text-[11px] font-bold text-foreground outline-none"
-                              />
-                            </label>
-                            <div className="flex h-full items-center gap-0.5">
-                              {([15, 30, 60, 120] as const).map((s) => (
-                                <button
-                                  key={s}
-                                  onClick={() => setEditTimerSec(String(s))}
-                                  className={`h-full rounded-md px-1 text-[9px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
-                                >
-                                  {s < 60 ? `${s}s` : `${s / 60}m`}
-                                </button>
-                              ))}
-                            </div>
-                          </div>,
-                        )}
-                        {renderQuickControlBox(
-                          "shipping",
-                          <div className="flex h-full items-center gap-0.5 overflow-x-auto p-1">
-                            <Package className="h-2.5 w-2.5 shrink-0 text-muted-foreground" />
-                            <select
-                              value={editShipPreset}
-                              onChange={(e) =>
-                                setQuickShipPreset(e.target.value as ShippingPresetKey)
-                              }
-                              title="Packaging"
-                              className="h-full min-w-[70px] flex-1 rounded-md bg-background/70 px-1 text-[8px] text-foreground outline-none"
-                            >
-                              <option value="stamp">Stamp $.78</option>
-                              <option value="pwe">PWE $.99</option>
-                              <option value="bubble">Bubble</option>
-                              <option value="small_box">Box</option>
-                            </select>
-                            <label
-                              title="oz"
-                              className="flex h-full items-center rounded-md bg-background/70 px-1 text-[8px] text-muted-foreground"
-                            >
-                              <input
-                                type="number"
-                                min="0.1"
-                                step="0.1"
-                                value={editWeight}
-                                onChange={(e) => setEditWeight(e.target.value)}
-                                className="w-6 bg-transparent text-[9px] font-bold text-foreground outline-none"
-                              />
-                              oz
-                            </label>
-                            <label className="flex h-full items-center rounded-md bg-background/70 px-1 text-[8px] text-muted-foreground">
-                              $
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={editShipPrice}
-                                onChange={(e) => setEditShipPrice(e.target.value)}
-                                disabled={SHIPPING_PRESETS[editShipPreset].flatRate}
-                                className="w-7 bg-transparent text-[9px] font-bold text-foreground outline-none disabled:opacity-60"
-                              />
-                            </label>
-                          </div>,
-                        )}
-                        {renderQuickControlBox(
-                          "voice",
+                      <div className="space-y-1 rounded-xl bg-card/60 p-1.5 ring-1 ring-white/10 backdrop-blur">
+                        <div className="flex items-center gap-1">
+                          <input
+                            value={quickItem}
+                            onChange={(e) => setQuickItem(e.target.value)}
+                            placeholder="Item (e.g. Charizard PSA 9)"
+                            maxLength={60}
+                            className="flex-1 rounded-md bg-background/70 px-1.5 py-1 text-[11px] text-foreground outline-none placeholder:text-muted-foreground"
+                          />
                           <button
-                            onClick={toggleVoiceTrigger}
-                            title={
-                              !voice.supported
-                                ? "Voice unsupported"
-                                : editVoiceEnabled
-                                  ? `Voice ON — say "${voicePhrase}"`
-                                  : "Enable voice"
-                            }
-                            disabled={!voice.supported}
-                            className={`flex h-full w-full items-center justify-center rounded-lg active:scale-[0.98] disabled:opacity-40 ${editVoiceEnabled ? "bg-emerald-500 text-white animate-pulse" : "bg-white/10 text-white"}`}
+                            onClick={() => repeatLastQuick()}
+                            disabled={!lastQuick}
+                            title={lastQuick ? `Repeat: ${lastQuick.item}` : "No previous round"}
+                            className="rounded-md bg-white/10 px-1.5 py-1 text-[9px] font-bold text-white disabled:opacity-40"
                           >
-                            {editVoiceEnabled ? (
-                              <Mic className="h-3.5 w-3.5" />
-                            ) : (
-                              <MicOff className="h-3.5 w-3.5" />
-                            )}
-                          </button>,
-                        )}
-                        {renderQuickControlBox(
-                          "go",
+                            ↻
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                            $
+                            <input
+                              type="number"
+                              min="1"
+                              inputMode="decimal"
+                              value={editStartPrice}
+                              onChange={(e) => setEditStartPrice(e.target.value)}
+                              className="w-9 bg-transparent text-[11px] font-bold text-foreground outline-none"
+                            />
+                          </label>
+                          <label className="flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                            Buy
+                            <input
+                              type="number"
+                              min="1"
+                              inputMode="decimal"
+                              value={quickBuyNow}
+                              onChange={(e) => setQuickBuyNow(e.target.value)}
+                              placeholder="—"
+                              className="w-10 bg-transparent text-[11px] font-bold text-foreground outline-none placeholder:text-muted-foreground"
+                            />
+                          </label>
+                          <div className="flex items-center gap-0.5">
+                            {([15, 30, 60, 120] as const).map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => setEditTimerSec(String(s))}
+                                className={`rounded-md px-1 py-0.5 text-[9px] font-bold ${Number(editTimerSec) === s ? "bg-primary text-primary-foreground" : "bg-background/70 text-muted-foreground"}`}
+                              >
+                                {s < 60 ? `${s}s` : `${s / 60}m`}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-stretch gap-1">
                           <button
                             onClick={() => quickStartAuction()}
                             disabled={!quickItem.trim()}
-                            title="Start round"
-                            className="flex h-full w-full items-center justify-center gap-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-1 text-[9px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-1 text-[11px] font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
                           >
-                            <Play className="h-2.5 w-2.5 shrink-0" />
-                            <span className="truncate">
-                              GO{quickRemaining > 0 ? `·${quickRemaining + 1}` : ""}
-                            </span>
-                          </button>,
-                        )}
-                        {renderQuickControlBox(
-                          "end",
+                            <Play className="h-3 w-3" /> START
+                          </button>
+                          <button
+                            onClick={() => setShowSettings(true)}
+                            title="Advanced settings"
+                            className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-bold text-white"
+                          >
+                            <Settings className="h-3 w-3" />
+                          </button>
                           <button
                             onClick={endLive}
-                            title="End live"
-                            className="flex h-full w-full items-center justify-center gap-0.5 rounded-md bg-live px-1 text-[9px] font-bold text-live-foreground active:scale-[0.98]"
+                            className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2 py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]"
                           >
-                            <Square className="h-2.5 w-2.5 shrink-0" />
-                            <span className="truncate">End</span>
-                          </button>,
-                        )}
+                            <Square className="h-2.5 w-2.5" /> End
+                          </button>
+                        </div>
                       </div>
                     )}
                     {auctionLive && (
