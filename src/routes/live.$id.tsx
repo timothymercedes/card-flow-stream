@@ -142,12 +142,19 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
-  // Resizable bottom panel — host drags the top edge to set max height (px). null = auto.
+  // Resizable bottom panel — host drags the top edge or taps +/- to set height (px). null = auto.
   const [bottomPanelMaxH, setBottomPanelMaxH] = useState<number | null>(() => {
     if (typeof window === "undefined") return null;
     const v = window.localStorage.getItem("pbl:bottom-panel-h");
     return v ? Number(v) || null : null;
   });
+  const resizeBottomPanel = useCallback((delta: number) => {
+    if (typeof window === "undefined") return;
+    setBottomPanelMaxH((current) => {
+      const base = current ?? Math.min(320, Math.max(180, Math.round(window.innerHeight * 0.36)));
+      return Math.max(120, Math.min(window.innerHeight - 96, base + delta));
+    });
+  }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (bottomPanelMaxH == null) window.localStorage.removeItem("pbl:bottom-panel-h");
