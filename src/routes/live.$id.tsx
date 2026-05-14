@@ -2261,16 +2261,33 @@ function LiveDetail() {
       `▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`,
       true,
     );
+    const qtyNum = Math.max(1, Math.min(99, Number(quickQty) || 1));
     setLastQuick({
       item,
       start: String(start),
       timer: String(sec),
       buyNow: buyNow ? String(buyNow) : "",
+      qty: String(qtyNum),
     });
+    // remaining = qty - 1 (this round counts as one). Auto-refill on round end.
+    setQuickRemaining((prev) => (opts ? Math.max(0, prev - 1) : Math.max(0, qtyNum - 1)));
     setQuickItem("");
     setQuickBuyNow("");
-    toast.success("Round started");
+    toast.success(qtyNum > 1 ? `Round started · ${qtyNum - 1} more queued` : "Round started");
   }
+
+  // Auto-refill the quick bar when a round ends and quantity remains
+  useEffect(() => {
+    if (auctionLive) return;
+    if (quickRemaining <= 0 || !lastQuick) return;
+    if (quickItem) return;
+    setQuickItem(lastQuick.item);
+    setQuickBuyNow(lastQuick.buyNow);
+    setEditStartPrice(lastQuick.start);
+    setEditTimerSec(lastQuick.timer);
+    setQuickQty(String(quickRemaining));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auctionLive]);
 
   async function repeatLastQuick() {
     if (!lastQuick) return;
