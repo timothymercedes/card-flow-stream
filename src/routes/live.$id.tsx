@@ -5085,6 +5085,12 @@ function LiveDetail() {
                         >
                           <Move className="h-2.5 w-2.5" /> Move
                         </div>
+                        <div
+                          onPointerDown={startQuickControlsResize}
+                          className="absolute right-1 bottom-1 z-10 h-5 w-5 cursor-nwse-resize touch-none bg-primary/80"
+                          style={{ clipPath: "polygon(100% 100%, 0 100%, 100% 0)" }}
+                          title="Drag to resize these controls"
+                        />
                         <div className="flex items-center gap-1">
                           <input
                             value={quickItem}
