@@ -2789,6 +2789,27 @@ export type Database = {
           },
         ]
       }
+      processed_webhook_events: {
+        Row: {
+          event_id: string
+          event_type: string | null
+          processed_at: string
+          provider: string
+        }
+        Insert: {
+          event_id: string
+          event_type?: string | null
+          processed_at?: string
+          provider: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string | null
+          processed_at?: string
+          provider?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           a11y_settings: Json

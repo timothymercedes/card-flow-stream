@@ -24,6 +24,24 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
           return new Response("Invalid signature", { status: 400 });
         }
 
+        // Idempotency guard: if we've already handled this Stripe event, ack and skip.
+        // PK conflict on (provider, event_id) means this is a Stripe retry.
+        {
+          const { error: dupErr } = await supabaseAdmin
+            .from("processed_webhook_events")
+            .insert({ provider: "stripe", event_id: event.id, event_type: event.type });
+          if (dupErr) {
+            // Code 23505 = unique_violation — already processed.
+            if ((dupErr as any).code === "23505") {
+              return new Response(JSON.stringify({ received: true, duplicate: true }), {
+                status: 200, headers: { "Content-Type": "application/json" },
+              });
+            }
+            console.error("processed_webhook_events insert failed:", dupErr);
+            // Fall through — better to risk a duplicate than drop the event entirely.
+          }
+        }
+
         try {
           switch (event.type) {
             case "account.updated": {
