@@ -393,12 +393,12 @@ function SellerHub() {
           <Link to="/sell" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">+ New Listing</Link>
         </div>
 
-        {/* Top KPIs */}
-        <div className="mb-4 grid grid-cols-4 gap-2 rounded-xl bg-card p-3 text-center">
-          <div><p className="text-[10px] text-muted-foreground">Gross</p><p className="text-sm font-bold">${totals.gross.toFixed(0)}</p></div>
-          <div><p className="text-[10px] text-muted-foreground">Fees</p><p className="text-sm font-bold text-destructive">-${totals.commission.toFixed(0)}</p></div>
-          <div><p className="text-[10px] text-muted-foreground">Net</p><p className="text-sm font-bold text-primary">${totals.net.toFixed(0)}</p></div>
-          <div><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-sm font-bold">${totals.pending.toFixed(0)}</p></div>
+        {/* Top KPIs — 2x2 on phones for readability, 4 across on sm+ */}
+        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-card p-3 sm:grid-cols-4">
+          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gross</p><p className="text-base font-black tabular-nums">${totals.gross.toFixed(0)}</p></div>
+          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Fees</p><p className="text-base font-black tabular-nums text-destructive">-${totals.commission.toFixed(0)}</p></div>
+          <div className="rounded-lg bg-primary/10 p-2 text-center ring-1 ring-primary/30"><p className="text-[10px] uppercase tracking-wider text-primary/80">Net</p><p className="text-base font-black tabular-nums text-primary">${totals.net.toFixed(0)}</p></div>
+          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending</p><p className="text-base font-black tabular-nums">${totals.pending.toFixed(0)}</p></div>
         </div>
 
         {!tutorial && payoutStatus !== "complete" && (
@@ -425,17 +425,18 @@ function SellerHub() {
           </div>
         )}
 
-        {/* Section nav */}
-        <div className="mb-4 grid grid-cols-6 gap-1 rounded-xl bg-muted p-1">
+        {/* Section nav — horizontal scroll pills, easier to read on phones */}
+        <div className="mb-4 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
           {SECTIONS.map((s) => {
             const Icon = s.icon;
+            const active = section === s.k;
             return (
               <button
                 key={s.k}
                 onClick={() => setSection(s.k)}
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-semibold ${section === s.k ? "bg-background shadow" : "text-muted-foreground"}`}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-colors ${active ? "bg-primary text-primary-foreground shadow" : "bg-card text-muted-foreground ring-1 ring-border"}`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 {s.label}
               </button>
             );
