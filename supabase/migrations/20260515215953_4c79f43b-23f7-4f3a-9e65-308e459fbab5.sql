@@ -1,0 +1,1 @@
+ALTER VIEW public.v_user_hold_status SET (security_invoker = on);
