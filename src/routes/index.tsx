@@ -13,6 +13,7 @@ import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDis
 import PublicLanding from "@/components/PublicLanding";
 import { isTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { StoryRail } from "@/components/StoryRail";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -178,6 +179,18 @@ function Home() {
         <Stat value={stats.collectors} label={t("home.stats_collectors")} />
         <Stat value={stats.listings} label={t("home.stats_listings")} />
       </div>
+
+      <section className="mb-6">
+        <div className="mb-2 flex items-center justify-between px-4">
+          <h2 className="text-base font-bold tracking-tight">Stories</h2>
+          <Link to="/stories" className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
+            {t("common.viewMore")} <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="px-4">
+          <StoryRail />
+        </div>
+      </section>
 
       <Section title={t("home.section_live")} to="/live">
         <div className="flex gap-3 overflow-x-auto px-4 pb-1">
