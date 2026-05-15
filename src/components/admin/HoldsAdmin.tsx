@@ -44,8 +44,10 @@ type Hold = {
 export function HoldsAdmin() {
   const [holds, setHolds] = useState<Hold[]>([]);
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
-  const [view, setView] = useState<"active" | "all" | "recoveries">("active");
+  const [trusts, setTrusts] = useState<Trust[]>([]);
+  const [view, setView] = useState<"active" | "all" | "recoveries" | "trust">("active");
   const [loading, setLoading] = useState(true);
+  const overrideTrust = useServerFn(adminOverrideTrustFn);
 
   async function load() {
     setLoading(true);
