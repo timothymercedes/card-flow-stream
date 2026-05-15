@@ -20,6 +20,8 @@ function Cart() {
   const [checkoutSeller, setCheckoutSeller] = useState<string | null>(null);
   const [buyerCountry, setBuyerCountry] = useState<string>("US");
   const [sellerCountries, setSellerCountries] = useState<Record<string, string>>({});
+  const [buyerAddress, setBuyerAddress] = useState<ShippingAddress | null>(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
 
   async function load() {
     if (!user) return;
@@ -34,8 +36,15 @@ function Cart() {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("address_country").eq("id", user.id).maybeSingle()
-      .then(({ data }) => { if (data?.address_country) setBuyerCountry(String(data.address_country).toUpperCase()); });
+    supabase.from("profiles")
+      .select("full_name,address_line1,address_city,address_state,address_zip,address_country,phone")
+      .eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setBuyerAddress(data as ShippingAddress);
+          if (data.address_country) setBuyerCountry(String(data.address_country).toUpperCase());
+        }
+      });
   }, [user]);
 
   useEffect(() => {
