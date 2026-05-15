@@ -6548,6 +6548,12 @@ function LiveDetail() {
 
       {/* 🆕 Live polish overlays */}
       <HypeBurst lastBidAt={hypeTick} />
+      <ComboBadge combo={comboCount} />
+      {stream && (
+        <div className="pointer-events-auto fixed left-3 top-20 z-30 hidden w-56 sm:block">
+          <SupporterLeaderboard streamId={stream.id} />
+        </div>
+      )}
       {soldBanner && (
         <SoldBanner
           triggerKey={soldBanner.key}
