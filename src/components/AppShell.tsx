@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Bookmark } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/HeaderSearch";
@@ -82,6 +82,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <LanguageToggle />
           {!tutorial && <AdminAlertBadge />}
           {!tutorial && <NotificationBell />}
+          <Link to="/bookmarks" aria-label={t("nav.bookmarks", "Bookmarked shows")} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <Bookmark className="h-4 w-4" aria-hidden="true" />
+          </Link>
           <Link to="/cart" aria-label={cartCount > 0 ? `${t("nav.cart", "Cart")} (${cartCount})` : t("nav.cart", "Cart")} className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             {cartCount > 0 && (
