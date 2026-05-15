@@ -121,6 +121,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <NotifyPrompt />}
       {!tutorial && <ReturnToLiveBadge />}
       {!tutorial && <FeedbackWidget />}
+      {!tutorial && <DailyLoginRewardModal />}
+      {!tutorial && <AchievementToastListener />}
+      {!tutorial && <LevelUpListener />}
       <nav aria-label={t("nav.primary", "Primary")} className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((tab) => {
