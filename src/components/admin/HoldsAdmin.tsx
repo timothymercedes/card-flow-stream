@@ -1,7 +1,21 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldOff, Check, AlertTriangle, Receipt } from "lucide-react";
+import { ShieldOff, Check, AlertTriangle, Receipt, Shield, Lock } from "lucide-react";
+import { adminOverrideTrustFn } from "@/lib/payouts.functions";
+
+type Trust = {
+  user_id: string;
+  completed_deliveries: number;
+  tier: string;
+  instant_release_pct: number;
+  manual_override_pct: number | null;
+  frozen: boolean;
+  dispute_rate_30d: number;
+  chargeback_rate_30d: number;
+  updated_at: string;
+};
 
 type Recovery = {
   id: string;
