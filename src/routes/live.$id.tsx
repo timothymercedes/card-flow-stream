@@ -67,6 +67,10 @@ import { PromotionCountdown } from "@/components/PromotionCountdown";
 import { AnimatedViewerCount } from "@/components/AnimatedViewerCount";
 import { SoldBanner } from "@/components/SoldBanner";
 import { HypeBurst } from "@/components/HypeBurst";
+import { ComboBadge } from "@/components/ComboBadge";
+import { SupporterLeaderboard } from "@/components/SupporterLeaderboard";
+import { bumpCombo } from "@/lib/combo";
+import { awardXp, bumpQuest } from "@/lib/progression";
 import { TopSupporterBadge } from "@/components/TopSupporterBadge";
 import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
 import { PreBidPanel } from "@/components/PreBidPanel";
@@ -319,6 +323,7 @@ function LiveDetail() {
   const announcedJoinsRef = useRef<Set<string>>(new Set());
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
+  const [comboCount, setComboCount] = useState<number | null>(null);
   const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
@@ -1661,6 +1666,11 @@ function LiveDetail() {
       });
       if (error) return toast.error(error.message);
       playSfx("bid");
+      // 🆕 Gamification: combo streak + XP + daily quest. Server-validated;
+      // RPCs throttle/reset, so spam-clicking can't farm progression.
+      bumpCombo(id).then((r) => { if (r) setComboCount(r.combo_count); }).catch(() => {});
+      awardXp(2, "bid", id).catch(() => {});
+      bumpQuest("daily_bid", 1).catch(() => {});
       const extended = !!(bidRes as any)?.extended;
       const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
       const exts = Number(stream.snipe_extends || 0);
@@ -6538,6 +6548,12 @@ function LiveDetail() {
 
       {/* 🆕 Live polish overlays */}
       <HypeBurst lastBidAt={hypeTick} />
+      <ComboBadge combo={comboCount} />
+      {stream && (
+        <div className="pointer-events-auto fixed left-3 top-20 z-30 hidden w-56 sm:block">
+          <SupporterLeaderboard streamId={stream.id} />
+        </div>
+      )}
       {soldBanner && (
         <SoldBanner
           triggerKey={soldBanner.key}
