@@ -1666,6 +1666,11 @@ function LiveDetail() {
       });
       if (error) return toast.error(error.message);
       playSfx("bid");
+      // 🆕 Gamification: combo streak + XP + daily quest. Server-validated;
+      // RPCs throttle/reset, so spam-clicking can't farm progression.
+      bumpCombo(id).then((r) => { if (r) setComboCount(r.combo_count); }).catch(() => {});
+      awardXp(2, "bid", id).catch(() => {});
+      bumpQuest("daily_bid", 1).catch(() => {});
       const extended = !!(bidRes as any)?.extended;
       const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
       const exts = Number(stream.snipe_extends || 0);
