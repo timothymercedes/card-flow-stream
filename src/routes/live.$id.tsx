@@ -323,6 +323,7 @@ function LiveDetail() {
   const announcedJoinsRef = useRef<Set<string>>(new Set());
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
+  const [comboCount, setComboCount] = useState<number | null>(null);
   const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
