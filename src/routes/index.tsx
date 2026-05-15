@@ -13,6 +13,7 @@ import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDis
 import PublicLanding from "@/components/PublicLanding";
 import { isTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { StoryRail } from "@/components/StoryRail";
 
 export const Route = createFileRoute("/")({
   component: Home,
