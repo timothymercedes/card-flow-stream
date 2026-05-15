@@ -12,7 +12,7 @@ import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { AdminAlertBanner } from "@/components/AdminAlertBanner";
 import { AccountHoldBanner } from "@/components/AccountHoldBanner";
 import { HelpBubble } from "@/components/HelpBubble";
-import { LanguageToggle } from "@/components/LanguageToggle";
+import { UtilityFooter } from "@/components/UtilityFooter";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SellMenu } from "@/components/SellMenu";
