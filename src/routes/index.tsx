@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Radio, ChevronRight, Heart, Sparkles, Flame, ShieldCheck, Zap, Trophy, Users } from "lucide-react";
+import { Radio, ChevronRight, Heart, Sparkles, Flame, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link as RLink } from "@tanstack/react-router";
 import heroCards from "@/assets/hero-cards.jpg";
@@ -32,8 +32,8 @@ function Section({ title, to, children, viewLabel }: any) {
   const { t } = useTranslation();
   const label = viewLabel ?? t("common.viewMore");
   return (
-    <section className="mb-7">
-      <div className="mb-3 flex items-center justify-between px-4">
+    <section className="mb-5">
+      <div className="mb-2 flex items-center justify-between px-4">
         <h2 className="text-base font-bold tracking-tight">{title}</h2>
         <Link to={to} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
           {label} <ChevronRight className="h-3 w-3" />
@@ -47,7 +47,7 @@ function Section({ title, to, children, viewLabel }: any) {
 function Home() {
   const { profile, user } = useAuth();
   const { t } = useTranslation();
-  // Visitors (not signed in) can browse the home feed. Interactions like bidding,
+  const [liveTab, setLiveTab] = useState<"auctions" | "flex">("auctions");
   // messaging, follow/like, and selling are still gated server-side and redirect
   // to /auth from their respective handlers.
   const interests = (profile?.interests as string[] | undefined) || [];
@@ -158,29 +158,24 @@ function Home() {
             )}
           </div>
 
-          {/* Trust strip */}
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <TrustBadge icon={<ShieldCheck className="h-3.5 w-3.5" />} label={t("home.trust_verified")} />
-            <TrustBadge icon={<Zap className="h-3.5 w-3.5" />} label={t("home.trust_instant")} />
-            <TrustBadge icon={<Trophy className="h-3.5 w-3.5" />} label={t("home.trust_authenticated")} />
+          {/* Inline stats — replaces both trust strip + stat ribbon */}
+          <div className="mt-4 flex items-center gap-4 rounded-xl border border-border/60 bg-card/40 px-3 py-2 text-[11px] backdrop-blur">
+            <InlineStat value={stats.live} label={t("home.stats_live")} accent />
+            <span className="h-6 w-px bg-border/60" />
+            <InlineStat value={stats.collectors} label={t("home.stats_collectors")} />
+            <span className="h-6 w-px bg-border/60" />
+            <InlineStat value={stats.listings} label={t("home.stats_listings")} />
           </div>
 
           {profile && interests.length === 0 && (
-            <RLink to="/onboarding" className="mt-4 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary">
+            <RLink to="/onboarding" className="mt-3 flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-2.5 text-xs font-semibold text-primary">
               <Sparkles className="h-4 w-4" /> {t("home.personalize_cta")}
             </RLink>
           )}
         </div>
       </header>
 
-      {/* Stat ribbon */}
-      <div className="mx-4 -mt-2 mb-6 grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/60 p-3 backdrop-blur">
-        <Stat value={stats.live} label={t("home.stats_live")} accent />
-        <Stat value={stats.collectors} label={t("home.stats_collectors")} />
-        <Stat value={stats.listings} label={t("home.stats_listings")} />
-      </div>
-
-      <section className="mb-6">
+      <section className="mb-5 mt-4">
         <div className="mb-2 flex items-center justify-between px-4">
           <h2 className="text-base font-bold tracking-tight">Stories</h2>
           <Link to="/stories" className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
@@ -192,51 +187,72 @@ function Home() {
         </div>
       </section>
 
-      <Section title={t("home.section_live")} to="/live">
-        <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
-          {streams.map((s) => (
-            <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
-              <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
-                {s.thumbnail_url
-                  ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
-                  : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-8 w-8" /></div>}
-                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
-                  <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
-                </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                  <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                  {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
-                </div>
-              </div>
-            </Link>
-          ))}
+      {/* Combined Live + Flex tabbed rail */}
+      <section className="mb-5">
+        <div className="mb-2 flex items-center justify-between gap-3 px-4">
+          <div className="flex gap-1 rounded-full bg-card p-0.5 ring-1 ring-border">
+            <button
+              onClick={() => setLiveTab("auctions")}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${liveTab === "auctions" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              <span className="inline-flex items-center gap-1"><Radio className="h-3 w-3" /> Live</span>
+            </button>
+            <button
+              onClick={() => setLiveTab("flex")}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${liveTab === "flex" ? "bg-fuchsia-500 text-white" : "text-muted-foreground"}`}
+            >
+              <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> Flex</span>
+            </button>
+          </div>
+          <Link to={liveTab === "auctions" ? "/live" : "/showoff"} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
+            {t("common.viewMore")} <ChevronRight className="h-3 w-3" />
+          </Link>
         </div>
-      </Section>
 
-      <Section title={t("home.section_flex")} to="/showoff" viewLabel={t("home.section_flex_view")}>
-        <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
-          {showOffStreams.map((s) => (
-            <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
-                {s.thumbnail_url
-                  ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
-                  : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
-                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                  <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+        {liveTab === "auctions" ? (
+          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+            {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
+            {streams.map((s) => (
+              <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
+                <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
+                  {s.thumbnail_url
+                    ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
+                    : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-8 w-8" /></div>}
+                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
+                    <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                    <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
+                    {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
+                  </div>
                 </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                  <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                  {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
-                    <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
-                  )}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+            {showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
+            {showOffStreams.map((s) => (
+              <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
+                  {s.thumbnail_url
+                    ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
+                    : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
+                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                    <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
+                    {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
+                      <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Section>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       <Section title={t("home.section_market")} to="/market">
         <div className="grid grid-cols-2 gap-3 px-4">
@@ -311,20 +327,11 @@ function Home() {
   );
 }
 
-function TrustBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
+function InlineStat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
   return (
-    <div className="flex items-center justify-center gap-1 rounded-lg border border-border bg-card/60 px-1.5 py-1.5 text-[10px] font-semibold text-muted-foreground backdrop-blur">
-      <span className="text-primary">{icon}</span>
-      <span className="truncate">{label}</span>
-    </div>
-  );
-}
-
-function Stat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
-  return (
-    <div className="text-center">
-      <div className={`text-lg font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value.toLocaleString()}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    <div className="flex flex-1 items-baseline justify-center gap-1.5">
+      <span className={`text-sm font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value.toLocaleString()}</span>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
     </div>
   );
 }
