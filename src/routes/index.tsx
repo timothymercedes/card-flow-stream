@@ -180,6 +180,18 @@ function Home() {
         <Stat value={stats.listings} label={t("home.stats_listings")} />
       </div>
 
+      <section className="mb-6">
+        <div className="mb-2 flex items-center justify-between px-4">
+          <h2 className="text-base font-bold tracking-tight">Stories</h2>
+          <Link to="/stories" className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
+            {t("common.viewMore")} <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="px-4">
+          <StoryRail />
+        </div>
+      </section>
+
       <Section title={t("home.section_live")} to="/live">
         <div className="flex gap-3 overflow-x-auto px-4 pb-1">
           {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
