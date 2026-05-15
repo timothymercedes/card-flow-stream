@@ -978,6 +978,63 @@ export type Database = {
           },
         ]
       }
+      hold_recoveries: {
+        Row: {
+          created_at: string
+          deducted_cents: number
+          gross_cents: number
+          hold_id: string | null
+          id: string
+          net_released_cents: number
+          notes: string | null
+          reference_id: string | null
+          remaining_owed_cents: number
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deducted_cents: number
+          gross_cents: number
+          hold_id?: string | null
+          id?: string
+          net_released_cents: number
+          notes?: string | null
+          reference_id?: string | null
+          remaining_owed_cents: number
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deducted_cents?: number
+          gross_cents?: number
+          hold_id?: string | null
+          id?: string
+          net_released_cents?: number
+          notes?: string | null
+          reference_id?: string | null
+          remaining_owed_cents?: number
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hold_recoveries_hold_id_fkey"
+            columns: ["hold_id"]
+            isOneToOne: false
+            referencedRelation: "account_holds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hold_recoveries_hold_id_fkey"
+            columns: ["hold_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["hold_id"]
+          },
+        ]
+      }
       ko_requests: {
         Row: {
           created_at: string
@@ -4681,6 +4738,33 @@ export type Database = {
       admin_waive_buyer_restriction: {
         Args: { _buyer: string; _notes?: string }
         Returns: undefined
+      }
+      apply_hold_recovery: {
+        Args: {
+          _gross_cents: number
+          _reference_id?: string
+          _source?: string
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          deducted_cents: number
+          gross_cents: number
+          hold_id: string | null
+          id: string
+          net_released_cents: number
+          notes: string | null
+          reference_id: string | null
+          remaining_owed_cents: number
+          source: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hold_recoveries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       apply_live_stream_safety: {
         Args: { _stream_id?: string }
