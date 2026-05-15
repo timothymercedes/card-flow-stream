@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
        </div>
       </header>
       <main id="main-content" tabIndex={-1} className="flex-1 pb-[7.5rem]">{children}</main>
-      {!tutorial && <AdminAlertBadge />}
+      {!tutorial && <UtilityFooter cartCount={cartCount} />}
       {!tutorial && <HelpBubble />}
       {!tutorial && <NotifyPrompt />}
       {!tutorial && <ReturnToLiveBadge />}
