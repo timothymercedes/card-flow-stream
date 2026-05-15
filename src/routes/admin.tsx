@@ -10,6 +10,7 @@ import { VerificationInbox } from "@/components/admin/VerificationInbox";
 import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
+import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
