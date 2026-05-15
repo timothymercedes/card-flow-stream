@@ -138,6 +138,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
       .on("postgres_changes",
         { event: "*", schema: "public", table: "hold_recoveries", filter: `user_id=eq.${user.id}` },
         () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "seller_trust", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "payout_locks", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "orders", filter: `seller_id=eq.${user.id}` },
+        () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, load]);
