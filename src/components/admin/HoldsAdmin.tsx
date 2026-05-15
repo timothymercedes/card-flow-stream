@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldOff, Check, AlertTriangle } from "lucide-react";
+import { ShieldOff, Check, AlertTriangle, Receipt } from "lucide-react";
+
+type Recovery = {
+  id: string;
+  user_id: string;
+  source: string;
+  reference_id: string | null;
+  gross_cents: number;
+  deducted_cents: number;
+  net_released_cents: number;
+  remaining_owed_cents: number;
+  created_at: string;
+};
 
 type Hold = {
   id: string;
