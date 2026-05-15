@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Globe, Accessibility as A11yIcon, Store, Bell, ShieldCheck, CreditCard, User as UserIcon } from "lucide-react";
+import { ChevronLeft, Globe, Accessibility as A11yIcon, Store, Bell, ShieldCheck, CreditCard, User as UserIcon, MapPin } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,13 +9,14 @@ import { SUPPORTED_LANGUAGES } from "@/i18n";
 import { writeA11yLocal, readA11yLocal } from "@/components/A11yClassSync";
 import { toast } from "sonner";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — PullBid Live" }] }),
   component: SettingsPage,
 });
 
-type Section = "account" | "notifications" | "language" | "privacy" | "payment" | "accessibility" | "seller";
+type Section = "account" | "shipping" | "notifications" | "language" | "privacy" | "payment" | "accessibility" | "seller";
 
 function SettingsPage() {
   const { user, profile } = useAuth();
@@ -35,6 +36,7 @@ function SettingsPage() {
 
   const sections: { key: Section; label: string; icon: any }[] = [
     { key: "account", label: t("settings.account"), icon: UserIcon },
+    { key: "shipping", label: t("settings.shipping", "Shipping"), icon: MapPin },
     { key: "language", label: t("settings.language"), icon: Globe },
     { key: "accessibility", label: t("settings.accessibility"), icon: A11yIcon },
     { key: "notifications", label: t("settings.notifications"), icon: Bell },
@@ -64,6 +66,7 @@ function SettingsPage() {
         {section === "accessibility" && <AccessibilitySection />}
         {section === "seller" && profile?.is_seller && <SellerSection />}
         {section === "account" && <AccountSection />}
+        {section === "shipping" && <ShippingAddressForm />}
         {section === "notifications" && <NotificationSettings />}
         {section === "privacy" && <ComingSoon label={t("settings.privacy")} />}
         {section === "payment" && <PaymentSection />}
