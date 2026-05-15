@@ -173,6 +173,7 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     variant: parsed?.variant || "Standard",
     rarity: parsed?.rarity || "",
     language: parsed?.language || (fallbackLang ? fallbackLang.toUpperCase() : "EN"),
+    game_specific: parsed?.game_specific && typeof parsed.game_specific === "object" ? parsed.game_specific : {},
     bbox,
     confidence: perField,
     overall_confidence: overall,
