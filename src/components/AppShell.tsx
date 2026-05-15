@@ -14,6 +14,7 @@ import { AccountHoldBanner } from "@/components/AccountHoldBanner";
 import { HelpBubble } from "@/components/HelpBubble";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SellMenu } from "@/components/SellMenu";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
