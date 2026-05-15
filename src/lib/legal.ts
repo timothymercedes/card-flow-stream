@@ -1,9 +1,9 @@
 import type { User } from "@supabase/supabase-js";
 
-export const REQUIRED_LEGAL_VERSION = "1.1";
+export const REQUIRED_LEGAL_VERSION = "1.2";
 export const SELLER_AGREEMENT_VERSION = "1.0";
 
-export const REQUIRED_LEGAL_DOCS = ["tos", "community_guidelines", "age_18_plus"] as const;
+export const REQUIRED_LEGAL_DOCS = ["tos", "community_guidelines", "age_18_plus", "important_notice"] as const;
 
 export function hasCompletedRequiredAgreementsFromMetadata(user: User | null | undefined) {
   const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
@@ -25,6 +25,8 @@ export function legalAcceptanceMetadata() {
     tos_accepted_at: acceptedAt,
     guidelines_accepted: true,
     guidelines_accepted_at: acceptedAt,
+    important_notice_accepted: true,
+    important_notice_accepted_at: acceptedAt,
     agreements_version: REQUIRED_LEGAL_VERSION,
     agreements_completed_at: acceptedAt,
     agreements_review_required: false,
