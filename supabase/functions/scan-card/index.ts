@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
         ],
         response_format: { type: "json_object" },
         temperature: 0,
-        max_tokens: multi ? 2048 : 512,
+        max_tokens: multi ? 2560 : 768,
       }),
     });
 
