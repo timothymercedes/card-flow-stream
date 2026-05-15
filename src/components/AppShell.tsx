@@ -77,73 +77,37 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <AccountHoldBanner />}
       {!tutorial && <AdminAlertBanner />}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur">
-       {/* Row 1: Logo · Flex Live · Sell · Notifications · Profile */}
+       {/* Row 1: Logo · Sell · Notifications · XP · Profile */}
        <div className="flex items-center gap-2">
         <Link to="/" className="flex min-w-0 flex-1 items-center gap-2" aria-label="PullBid Live home">
           <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 object-contain" />
           <div className="whitespace-nowrap text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
         <div className="flex shrink-0 items-center gap-1">
-          <Link to="/showoff" aria-label={t("nav.flexLive")} title={t("nav.flexLive")} className="flex h-8 items-center justify-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2 text-white sm:px-2.5">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="hidden text-xs font-semibold sm:inline">{t("nav.flexLive")}</span>
-          </Link>
           <SellMenu />
-          {!tutorial && <XPBadge />}
           {!tutorial && <NotificationBell />}
+          {!tutorial && <XPBadge />}
+          <Link
+            to="/profile"
+            aria-label={t("nav.profile", "Profile")}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-muted ring-1 ring-border hover:bg-accent"
+          >
+            <User className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
        </div>
-       {/* Row 2: Search · Cart · More menu */}
+       {/* Row 2: Back · Search */}
        <div className="mt-2.5 flex items-center gap-2">
          <BackButton />
          <HeaderSearch className="min-w-0 flex-1" />
-         <Link to="/cart" aria-label={cartCount > 0 ? `${t("nav.cart", "Cart")} (${cartCount})` : t("nav.cart", "Cart")} className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-           <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-           {cartCount > 0 && (
-             <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-live px-1 text-[9px] font-bold text-live-foreground">
-               {cartCount}
-             </span>
-           )}
+         <Link to="/showoff" aria-label={t("nav.flexLive")} title={t("nav.flexLive")} className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 text-white">
+           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+           <span className="text-xs font-semibold">{t("nav.flexLive")}</span>
          </Link>
-         <DropdownMenu>
-           <DropdownMenuTrigger
-             aria-label={t("nav.moreMenu", "More")}
-             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted hover:bg-accent"
-           >
-             <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-           </DropdownMenuTrigger>
-           <DropdownMenuContent align="end" className="w-52">
-             <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Menu</DropdownMenuLabel>
-             <DropdownMenuItem asChild>
-               <Link to="/bookmarks" className="flex w-full items-center gap-2">
-                 <Bookmark className="h-4 w-4" /> {t("nav.bookmarks", "Bookmarked shows")}
-               </Link>
-             </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-               <Link to="/quests" className="flex w-full items-center gap-2">
-                 <Sparkles className="h-4 w-4" /> {t("nav.quests", "Quests & Achievements")}
-               </Link>
-             </DropdownMenuItem>
-             <DropdownMenuItem asChild>
-               <Link to="/orders" className="flex w-full items-center gap-2">
-                 <Package className="h-4 w-4" /> {t("nav.orders", "Orders")}
-               </Link>
-             </DropdownMenuItem>
-             <DropdownMenuSeparator />
-             <div className="flex items-center justify-between px-2 py-1.5">
-               <span className="text-xs text-muted-foreground">Language</span>
-               <LanguageToggle />
-             </div>
-             {!tutorial && (
-               <div className="px-2 py-1">
-                 <AdminAlertBadge />
-               </div>
-             )}
-           </DropdownMenuContent>
-         </DropdownMenu>
        </div>
       </header>
-      <main id="main-content" tabIndex={-1} className="flex-1 pb-20">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-[7.5rem]">{children}</main>
+      {!tutorial && <AdminAlertBadge />}
       {!tutorial && <HelpBubble />}
       {!tutorial && <NotifyPrompt />}
       {!tutorial && <ReturnToLiveBadge />}
