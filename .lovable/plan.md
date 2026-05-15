@@ -1,74 +1,69 @@
-## Phase 11 — Refinements + Account Hold System
+## Seller Trust-Based Payout Release System
 
-Rolling out in the priority order you set. All UI stays consistent with PullBid Live tokens (`bg-card`, `border-border`, `text-primary`, rounded-2xl, amber/red/blue semantic colors already in `styles.css`). Mobile-first; tested at 360 / 768 / 1280.
+Adds tiered instant-release based on completed deliveries, hardens all payout/balance logic server-side, and surfaces trust progress in the Seller Hub. The combined earnings total is already shipped — this builds on top.
 
----
+### 1. Database (single migration)
 
-### 1. Story Preview — upgrades to existing `StoryRail.tsx`
-- **File-size validation** before preview opens: images ≤ 8 MB, video ≤ 50 MB. Toast on reject.
-- **Drag-to-reposition** for image stories: wrap preview `<img>` in a 9:16 frame with `object-cover`, track `translate` via pointer events, clamp to bounds. Persist crop offset alongside upload.
-- **Retry on upload failure**: catch upload error, keep modal open, show inline "Upload failed — Retry" button (re-runs `confirmAndUpload` without re-picking file). Up to 3 attempts then surface support link.
-- **Stub for future overlays**: leave a `<StoryOverlayLayer />` placeholder slot in the preview (no-op now) so text/sticker work plugs in later without refactor.
+**`seller_trust` table** (1 row per user)
+- `user_id` (PK, FK profiles)
+- `completed_deliveries` int
+- `tier` enum: `new`, `bronze`(25), `silver`(50), `gold`(75), `platinum`(100)
+- `instant_release_pct` int (0/10/30/70/95)
+- `pending_release_pct` int (100/90/70/30/5)
+- `manual_override_pct` int nullable (admin can force lower)
+- `risk_flags` jsonb (refund_rate, chargeback_rate, payout_failures, sales_spike)
+- `dispute_rate_30d`, `chargeback_rate_30d` numeric
+- `frozen` bool (admin kill-switch)
 
-### 2. Admin Alert Banner — `AdminAlertBanner.tsx`
-- **Priority colors** driven by highest-severity open count:
-  - Red (`bg-destructive/15 border-destructive/40`) — fraud flags or payment failures > 0
-  - Yellow (current amber) — disputes or open reports
-  - Blue (`bg-blue-500/15 border-blue-500/40`) — only verifications pending
-- **Click-through routing**: replace single "Review →" with per-segment chips. Each chip links to the filtered admin tab:
-  - Reports → `/admin?tab=reports&status=open`
-  - Disputes → `/admin?tab=disputes&status=open`
-  - Verifications → `/admin?tab=verifications&status=pending`
-  - Payment/shipping → `/admin?tab=orders&filter=issues`
-- **Sound toggle**: small bell icon in banner; persists `admin-alert-sound` in `localStorage`. When new alert arrives via realtime AND sound enabled, play short `/sfx/alert.mp3` (reuse `src/lib/sfx.ts`).
-- **Mobile**: stack chips vertically below the message at `< sm`, keep dismiss + sound toggle in a top row. Truncate parts list to "+N more" when > 2 segments on narrow viewports.
+**`payout_locks` table** — tracks order-level fund locks
+- `order_id`, `user_id`, `amount_cents`, `reason` (dispute|refund_pending|fraud_review|delivery_unconfirmed|chargeback)
+- `released_at` nullable
 
-### 3. Legal / Important Notice v1.2
-- **Bump** `REQUIRED_LEGAL_VERSION` → `"1.2"` (re-prompts everyone).
-- **New sections** in `legal.important-notice.tsx`:
-  - §13 Host responsibility for giveaways/givys
-  - §14 International customs/import taxes (expand existing §1)
-  - §15 Carrier-caused shipping delays disclaimer
-  - §16 Payout holds during fraud/dispute investigations
-  - §17 Digital goods & mystery products — final sale rules
-- **Scroll-to-bottom gate** in `LegalGate.tsx`: the Important Notice checkbox stays disabled until user scrolls the embedded notice preview to the bottom (IntersectionObserver on a sentinel div). Visual hint: "Scroll to enable ↓".
-- **Audit logging**: `accept_required_legal_documents` RPC already records timestamp + version. Add admin view at `/admin?tab=legal-acceptances` reading `legal_acceptances` table (no DB change — already populated).
+**`balance_audit_log` table** — immutable, append-only
+- `user_id`, `event_type`, `delta_cents`, `balance_before`, `balance_after`, `reference_table`, `reference_id`, `metadata` jsonb, `created_at`
+- Trigger: block UPDATE/DELETE
 
-### 4. AI Scanner Expansion — `scan-card/index.ts` + `CardScanner.tsx`
-- **Multi-signal vision prompt**: instruct model to use border style, frame layout, art style, set symbol, holo pattern, and OCR text together — not OCR alone. Extract: `detected_game`, `confidence` (0–1), `name`, `set`, `number`, `rarity`, `condition_hints` (sleeved/damaged/holo/full-art/slab), `game_specific`.
-- **Sports cards**: when `detected_game === "sports"`, additionally extract `player`, `team`, `year`, `manufacturer`, `card_number`.
-- **Slabs / sealed products**: detect grading slab (PSA/BGS/CGC/SGC) → return `graded: { company, grade, cert_number }`. Sealed products (booster boxes, ETBs) → `product_type: "sealed"` with set/edition.
-- **Confidence display**: show colored badge in `CardScanner.tsx` (green ≥0.8, yellow 0.5–0.8, red <0.5).
-- **Manual correction**: "Not the right card?" button under result opens an inline edit form (game dropdown, name, set, number) → re-runs catalog/pricing lookup with corrected fields. Reuses `ManualCardFinder.tsx`.
-- **Beta gate**: keep behind existing scanner UI; no auto-listing without user confirm.
+**`fraud_flags` table** — `user_id`, `flag_type`, `severity`, `auto_action`, `resolved_at`
 
-### 5. Negative Balance / Account Hold System (NEW)
-**DB migration:**
-- New table `account_holds` (user_id, status enum `active|cleared|admin_override`, balance_owed_cents int, reason text, source enum `refund|chargeback|failed_label|fee|manual`, opened_at, cleared_at, opened_by, cleared_by). RLS: users see own row; admins see all.
-- Trigger: when `profiles.balance_cents < -2000`, auto-insert active hold (one per user max via unique partial index on `status='active'`).
-- View `v_user_hold_status` joining `profiles` + active hold for fast checks.
+**RPCs (SECURITY DEFINER, server-side only):**
+- `recalc_seller_trust(_user_id)` — recounts delivered orders excluding refunded/disputed/cancelled, updates tier
+- `compute_available_balance(_user_id)` — single source of truth: sum of (delivered_net × instant_pct) + (pending_net for matured orders) − active locks − hold_owed − in-flight payouts
+- `lock_order_funds(_order_id, _reason)` / `release_order_funds(_order_id)`
+- `request_payout(_amount_cents)` — REPLACES existing: re-validates server-side via `compute_available_balance`, advisory lock per user to prevent races, idempotency key
+- `apply_balance_change(_user_id, _delta, _event_type, _ref)` — only path that mutates `profiles.balance_cents`, writes audit log
 
-**Server-side enforcement** (server functions):
-- `requireNoActiveHold` middleware reused in: `start-live-show`, `create-listing`, `request-payout`. Returns 423 with `hold_id` + `balance_owed_cents`.
-- Payout flow: when active hold exists, automatically deduct up to `balance_owed_cents` from pending payout, mark hold cleared if balance ≥ 0.
-- Repeat-offender flag: if user has ≥3 cleared holds in 90 days → set `profiles.risk_flag = true` (admins notified via existing AdminAlertBanner).
+**Triggers:**
+- `orders` AFTER UPDATE on `status`/`payment_status`/`refunded_amount` → calls `recalc_seller_trust` + lock/release
+- `disputes` INSERT → `lock_order_funds(... 'dispute')`
+- `disputes` resolved → `release_order_funds`
 
-**UI:**
-- New `AccountHoldBanner.tsx` mounted in `AppShell.tsx` (above admin banner). Red, sticky, dismissible only by paying. Shows owed amount, reason, "Pay Balance →" button → opens Stripe Embedded Checkout (one-time `price_data` for exact owed amount, success webhook clears hold).
-- Hold-aware blocks in: `SellMenu`, `sell.tsx`, `payouts.tsx`, `studio.$id.tsx` start-show button — show inline "Account on hold" with link to balance banner.
-- Buy / login / support routes remain fully accessible.
+### 2. Server Functions (`src/lib/payouts.functions.ts`)
+- Update `requestPayoutFn` to surface server-validated payable
+- Add `getSellerTrustFn` — returns tier, pct, progress to next tier, risk flags
+- Add `adminOverrideTrustFn` (admin-gated) — logs every override
 
-**Admin:**
-- `/admin?tab=holds` — list of active holds with override button (`clear_hold_admin` RPC, audit-logged), reason history, linked source events (refund/chargeback/label IDs).
+### 3. Admin (`src/components/admin/HoldsAdmin.tsx`)
+- New "Trust & Risk" tab: list sellers with tier, dispute rate, manual override slider, freeze toggle
+- All actions write to `audit_logs` with `actor_id`
 
----
+### 4. Seller Hub UI (`src/components/SellerEarningsHub.tsx`)
+- New `TrustTierCard` at top: tier badge, "Instant release: X% · Pending: Y%", progress bar to next tier ("17 / 25 deliveries to Bronze"), risk warnings
+- Per-order breakdown shows split: "$X instant · $Y pending until delivery"
+- Locked orders show 🔒 with reason
+- Available balance pulls from `compute_available_balance` RPC (not client math)
+
+### 5. Realtime
+- Subscribe to `seller_trust`, `payout_locks`, `balance_audit_log` on the user's row → re-fetch via RPC
+
+### Technical notes
+- Frontend computes display totals only; the **payout button amount comes from `compute_available_balance` RPC** at click time — client-side math is decorative
+- Advisory lock `pg_advisory_xact_lock(hashtext('payout:'||user_id))` inside `request_payout` prevents double-withdrawal across tabs
+- All percentage thresholds stored in a `trust_tiers` config table so they can be tuned without code changes
+- `balance_audit_log` REVOKE update/delete from authenticated; trigger raises exception on tamper attempt
 
 ### Files
-- **edit**: `src/components/StoryRail.tsx`, `src/components/AdminAlertBanner.tsx`, `src/components/LegalGate.tsx`, `src/lib/legal.ts`, `src/routes/legal.important-notice.tsx`, `src/components/CardScanner.tsx`, `supabase/functions/scan-card/index.ts`, `src/components/AppShell.tsx`, `src/components/SellMenu.tsx`, `src/routes/sell.tsx`, `src/routes/payouts.tsx`, `src/routes/admin.tsx`, `src/lib/sfx.ts`
-- **new**: `src/components/AccountHoldBanner.tsx`, `src/components/admin/HoldsAdmin.tsx`, `src/components/admin/LegalAcceptancesAdmin.tsx`, `src/lib/holds.functions.ts`, `public/sfx/alert.mp3` (placeholder)
-- **migration**: `account_holds` table + trigger + view + RLS + `clear_hold_admin` RPC
+- New migration: trust tables, locks, audit log, RPCs, triggers
+- New: `src/components/TrustTierCard.tsx`
+- Edit: `src/components/SellerEarningsHub.tsx`, `src/lib/payouts.functions.ts`, `src/components/admin/HoldsAdmin.tsx`
 
-### Notes
-- This is a large scope. I'll execute in the priority order you specified (Story → Banner → Legal → Scanner → Holds), pausing only if a DB migration needs your approval (the holds migration will).
-- Stripe payment for clearing holds reuses the existing embedded checkout pattern — no new keys needed.
-- All new banners stack: AccountHoldBanner (red, blocks) → AdminAlertBanner (staff only) → header. Mobile keeps each ≤ 2 lines.
+Approve to proceed.
