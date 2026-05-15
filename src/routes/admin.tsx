@@ -10,6 +10,7 @@ import { VerificationInbox } from "@/components/admin/VerificationInbox";
 import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
+import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
@@ -39,7 +40,7 @@ function Admin() {
   const { user } = useAuth();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta">("reports");
+  const [tab, setTab] = useState<"reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue">("reports");
   const [openSupport, setOpenSupport] = useState(0);
   const [pendingVerifications, setPendingVerifications] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
@@ -288,6 +289,7 @@ function Admin() {
           {isAdmin && <button onClick={() => setTab("tutorials")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "tutorials" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><Video className="h-3.5 w-3.5" /> Tutorials</button>}
           {isAdmin && <button onClick={() => setTab("audit")} className={`pb-2 text-xs font-bold ${tab === "audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Audit Log</button>}
           {isAdmin && <button onClick={() => setTab("beta")} className={`pb-2 text-xs font-bold ${tab === "beta" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Beta Invites</button>}
+          {isAdmin && <button onClick={() => setTab("revenue")} className={`pb-2 text-xs font-bold ${tab === "revenue" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Revenue</button>}
         </div>
 
         {tab === "reports" && (() => {
@@ -565,6 +567,7 @@ function Admin() {
         {tab === "tutorials" && isAdmin && <TutorialsAdmin />}
         {tab === "audit" && isAdmin && <AuditLogsAdmin />}
         {tab === "beta" && isAdmin && <BetaInvitesAdmin />}
+        {tab === "revenue" && isAdmin && <PlatformRevenueAdmin />}
       </div>
     </AppShell>
   );

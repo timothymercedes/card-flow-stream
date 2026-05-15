@@ -140,6 +140,48 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   }
                 }
               }
+              // Platform revenue ledger (idempotent on event.id)
+              try {
+                const md = pi.metadata || {};
+                const platformFeeCents = Number(md.platform_fee_cents || 0);
+                const intlFeeCents = Number(md.intl_fee_cents || 0);
+                const tipFeeCents = Number(md.platform_fee_cents && md.kind === "stream_tip" ? md.platform_fee_cents : 0);
+                if (md.kind === "stream_tip" && tipFeeCents > 0) {
+                  await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                    _kind: "tip_fee", _amount_cents: tipFeeCents,
+                    _seller_id: md.seller_id || null, _buyer_id: md.buyer_id || null,
+                    _stripe_pi: pi.id, _stripe_charge: chargeId || null,
+                    _stripe_event: event.id, _meta: { tip_id: md.tip_id || null },
+                  });
+                } else if (promotionId) {
+                  await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                    _kind: "promotion", _amount_cents: pi.amount,
+                    _buyer_id: md.promoter_id || null,
+                    _stripe_pi: pi.id, _stripe_charge: chargeId || null,
+                    _stripe_event: event.id, _meta: { promotion_id: promotionId },
+                  });
+                } else if (ids.length > 0) {
+                  if (platformFeeCents > 0) {
+                    await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                      _kind: "marketplace_commission", _amount_cents: platformFeeCents,
+                      _seller_id: md.seller_id || null, _buyer_id: md.buyer_id || null,
+                      _order_id: ids[0] || null, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
+                      _stripe_event: `${event.id}:fee`, _meta: { order_ids: ids },
+                    });
+                  }
+                  if (intlFeeCents > 0) {
+                    await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                      _kind: "intl_processing_fee", _amount_cents: intlFeeCents,
+                      _seller_id: md.seller_id || null, _buyer_id: md.buyer_id || null,
+                      _order_id: ids[0] || null, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
+                      _stripe_event: `${event.id}:intl`,
+                      _meta: { buyer_country: md.buyer_country, seller_country: md.seller_country },
+                    });
+                  }
+                }
+              } catch (e) {
+                console.error("platform_revenue log failed", e);
+              }
               break;
             }
             case "payment_intent.payment_failed": {
@@ -199,6 +241,17 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   }
                 }
               }
+              // Log refund as negative revenue (loss to platform side of fee book)
+              try {
+                await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                  _kind: "refund_loss",
+                  _amount_cents: -Math.round(refundedAmt * 100),
+                  _stripe_pi: piId || null,
+                  _stripe_charge: charge.id || null,
+                  _stripe_event: event.id,
+                  _meta: { fully_refunded: fullyRefunded },
+                });
+              } catch (e) { console.error("refund revenue log failed", e); }
               break;
             }
             default:
