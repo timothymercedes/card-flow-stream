@@ -125,10 +125,55 @@ export function HoldsAdmin() {
         {tabBtn("active", `Active (${holds.filter(h => h.status === "active").length})`)}
         {tabBtn("all", "All holds")}
         {tabBtn("recoveries", "Auto-recoveries")}
+        {tabBtn("trust", "Trust & risk")}
       </div>
 
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
+      ) : view === "trust" ? (
+        trusts.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No seller trust rows yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {trusts.map((t) => {
+              const effectivePct = t.manual_override_pct ?? t.instant_release_pct;
+              return (
+                <div key={t.user_id} className="rounded-xl border border-border bg-card p-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {t.frozen ? <Lock className="h-3.5 w-3.5 text-destructive" /> : <Shield className="h-3.5 w-3.5 text-primary" />}
+                        <code className="truncate text-[11px]">{t.user_id}</code>
+                      </div>
+                      <p className="mt-0.5 text-sm font-bold capitalize">
+                        {t.tier} · {effectivePct}% instant
+                        {t.manual_override_pct != null && <span className="ml-1 text-[10px] text-amber-500">(override)</span>}
+                        {t.frozen && <span className="ml-1 text-[10px] text-destructive">(frozen)</span>}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t.completed_deliveries} delivered · disputes {(t.dispute_rate_30d * 100).toFixed(1)}% · chargebacks {(t.chargeback_rate_30d * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <button
+                        onClick={() => setOverride(t.user_id)}
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-1 text-[11px] font-bold text-amber-500 hover:bg-amber-500/25"
+                      >
+                        Set %
+                      </button>
+                      <button
+                        onClick={() => toggleFreeze(t.user_id, !t.frozen)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold ${t.frozen ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25" : "bg-destructive/15 text-destructive hover:bg-destructive/25"}`}
+                      >
+                        {t.frozen ? "Unfreeze" : "Freeze"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : view === "recoveries" ? (
         recoveries.length === 0 ? (
           <p className="text-xs text-muted-foreground">No automatic deductions yet.</p>
