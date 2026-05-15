@@ -32,8 +32,8 @@ function Section({ title, to, children, viewLabel }: any) {
   const { t } = useTranslation();
   const label = viewLabel ?? t("common.viewMore");
   return (
-    <section className="mb-7">
-      <div className="mb-3 flex items-center justify-between px-4">
+    <section className="mb-5">
+      <div className="mb-2 flex items-center justify-between px-4">
         <h2 className="text-base font-bold tracking-tight">{title}</h2>
         <Link to={to} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
           {label} <ChevronRight className="h-3 w-3" />
