@@ -37,7 +37,7 @@ export function UtilityFooter({ cartCount }: { cartCount: number }) {
         <div className="flex h-9 w-9 shrink-0 items-center justify-center" aria-label={t("nav.language", "Language")}>
           <LanguageToggle />
         </div>
-        <Link to="/settings" aria-label={t("nav.security", "Security")} search={{ section: "security" } as any} className={itemCls}>
+        <Link to="/settings" aria-label={t("nav.security", "Security")} className={itemCls}>
           <Shield className="h-4 w-4" aria-hidden="true" />
         </Link>
         <button onClick={openFeedback} aria-label={t("nav.feedback", "Send feedback")} className={itemCls}>
