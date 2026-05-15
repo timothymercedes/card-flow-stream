@@ -88,6 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> {t("nav.flexLive")}
           </Link>
           <SellMenu />
+          {!tutorial && <XPBadge />}
           {!tutorial && <NotificationBell />}
           <Link to="/profile" aria-label={t("nav.profile", "Profile")} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <User className="h-4 w-4" aria-hidden="true" />
