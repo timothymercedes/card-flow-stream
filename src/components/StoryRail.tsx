@@ -86,9 +86,24 @@ export function StoryRail() {
     }, {})
   );
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  function clearPending() {
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(null);
+    setPendingPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !user || !profile) return;
+    if (!file) return;
+    if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    setPendingFile(file);
+    setPendingPreview(URL.createObjectURL(file));
+  }
+
+  async function confirmAndUpload() {
+    if (!pendingFile || !user || !profile) return;
+    const file = pendingFile;
     setUploading(true);
     try {
       const path = `${user.id}/${Date.now()}-${file.name}`;
@@ -118,12 +133,12 @@ export function StoryRail() {
       toast.success("Story posted");
       setCaption("");
       setComposeOpen(false);
+      clearPending();
       load();
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
