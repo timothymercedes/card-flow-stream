@@ -1,7 +1,21 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldOff, Check, AlertTriangle, Receipt } from "lucide-react";
+import { ShieldOff, Check, AlertTriangle, Receipt, Shield, Lock } from "lucide-react";
+import { adminOverrideTrustFn } from "@/lib/payouts.functions";
+
+type Trust = {
+  user_id: string;
+  completed_deliveries: number;
+  tier: string;
+  instant_release_pct: number;
+  manual_override_pct: number | null;
+  frozen: boolean;
+  dispute_rate_30d: number;
+  chargeback_rate_30d: number;
+  updated_at: string;
+};
 
 type Recovery = {
   id: string;
@@ -30,8 +44,10 @@ type Hold = {
 export function HoldsAdmin() {
   const [holds, setHolds] = useState<Hold[]>([]);
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
-  const [view, setView] = useState<"active" | "all" | "recoveries">("active");
+  const [trusts, setTrusts] = useState<Trust[]>([]);
+  const [view, setView] = useState<"active" | "all" | "recoveries" | "trust">("active");
   const [loading, setLoading] = useState(true);
+  const overrideTrust = useServerFn(adminOverrideTrustFn);
 
   async function load() {
     setLoading(true);
@@ -42,6 +58,13 @@ export function HoldsAdmin() {
         .order("created_at", { ascending: false })
         .limit(200);
       setRecoveries((data as any) || []);
+    } else if (view === "trust") {
+      const { data } = await supabase
+        .from("seller_trust" as any)
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(200);
+      setTrusts((data as any) || []);
     } else {
       let q = supabase.from("account_holds" as any).select("*").order("opened_at", { ascending: false }).limit(200);
       if (view === "active") q = q.eq("status", "active");
@@ -49,6 +72,28 @@ export function HoldsAdmin() {
       setHolds((data as any) || []);
     }
     setLoading(false);
+  }
+
+  async function setOverride(userId: string) {
+    const raw = prompt("Instant payout %% (0-100, blank to clear override):");
+    if (raw === null) return;
+    const pct = raw.trim() === "" ? null : Math.max(0, Math.min(100, Number(raw)));
+    if (pct !== null && Number.isNaN(pct)) return toast.error("Invalid number");
+    const reason = prompt("Audit reason:") || "manual override";
+    try {
+      await overrideTrust({ data: { userId, instantPct: pct, reason } });
+      toast.success("Override applied");
+      load();
+    } catch (e: any) { toast.error(e?.message || "Failed"); }
+  }
+
+  async function toggleFreeze(userId: string, freeze: boolean) {
+    const reason = prompt(`${freeze ? "Freeze" : "Unfreeze"} reason:`) || (freeze ? "freeze" : "unfreeze");
+    try {
+      await overrideTrust({ data: { userId, instantPct: null, frozen: freeze, reason } });
+      toast.success(freeze ? "Account frozen" : "Account unfrozen");
+      load();
+    } catch (e: any) { toast.error(e?.message || "Failed"); }
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [view]);
@@ -80,10 +125,55 @@ export function HoldsAdmin() {
         {tabBtn("active", `Active (${holds.filter(h => h.status === "active").length})`)}
         {tabBtn("all", "All holds")}
         {tabBtn("recoveries", "Auto-recoveries")}
+        {tabBtn("trust", "Trust & risk")}
       </div>
 
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
+      ) : view === "trust" ? (
+        trusts.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No seller trust rows yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {trusts.map((t) => {
+              const effectivePct = t.manual_override_pct ?? t.instant_release_pct;
+              return (
+                <div key={t.user_id} className="rounded-xl border border-border bg-card p-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        {t.frozen ? <Lock className="h-3.5 w-3.5 text-destructive" /> : <Shield className="h-3.5 w-3.5 text-primary" />}
+                        <code className="truncate text-[11px]">{t.user_id}</code>
+                      </div>
+                      <p className="mt-0.5 text-sm font-bold capitalize">
+                        {t.tier} · {effectivePct}% instant
+                        {t.manual_override_pct != null && <span className="ml-1 text-[10px] text-amber-500">(override)</span>}
+                        {t.frozen && <span className="ml-1 text-[10px] text-destructive">(frozen)</span>}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t.completed_deliveries} delivered · disputes {(t.dispute_rate_30d * 100).toFixed(1)}% · chargebacks {(t.chargeback_rate_30d * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <button
+                        onClick={() => setOverride(t.user_id)}
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-1 text-[11px] font-bold text-amber-500 hover:bg-amber-500/25"
+                      >
+                        Set %
+                      </button>
+                      <button
+                        onClick={() => toggleFreeze(t.user_id, !t.frozen)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold ${t.frozen ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25" : "bg-destructive/15 text-destructive hover:bg-destructive/25"}`}
+                      >
+                        {t.frozen ? "Unfreeze" : "Freeze"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : view === "recoveries" ? (
         recoveries.length === 0 ? (
           <p className="text-xs text-muted-foreground">No automatic deductions yet.</p>

@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Download, ChevronRight, AlertTriangle, Wallet, Clock, CheckCircle2, ArrowDownToLine, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { requestPayoutFn } from "@/lib/payouts.functions";
+import { requestPayoutFn, getSellerPayableFn, getSellerTrustFn } from "@/lib/payouts.functions";
+import { TrustTierCard, type TrustTier } from "@/components/TrustTierCard";
 
 const PLATFORM_FEE = 0.05;            // 5%
 const PROCESSING_RATE = 0.029;        // 2.9%
@@ -79,7 +80,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const [tab, setTab] = useState<"summary" | "orders" | "history">("summary");
   const [open, setOpen] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [serverPayable, setServerPayable] = useState<{
+    available_cents: number; pending_cents: number; locked_cents: number;
+    in_flight_cents: number; owed_cents: number; payable_cents: number;
+    instant_pct: number; tier: TrustTier; frozen: boolean;
+  } | null>(null);
+  const [trust, setTrust] = useState<{ completed_deliveries: number; manual_override_pct: number | null } | null>(null);
   const requestPayoutCall = useServerFn(requestPayoutFn);
+  const getPayable = useServerFn(getSellerPayableFn);
+  const getTrust = useServerFn(getSellerTrustFn);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -106,7 +115,12 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     setRecoveries((recs as any) ?? []);
     setHold((h as any) ?? null);
     setPayouts((po as any) ?? []);
-  }, [user]);
+    try {
+      const [p, t] = await Promise.all([getPayable({}), getTrust({})]);
+      setServerPayable(p as any);
+      setTrust(t as any);
+    } catch { /* non-fatal — fall back to client math */ }
+  }, [user, getPayable, getTrust]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -123,6 +137,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         () => load())
       .on("postgres_changes",
         { event: "*", schema: "public", table: "hold_recoveries", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "seller_trust", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "payout_locks", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "orders", filter: `seller_id=eq.${user.id}` },
         () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -204,13 +227,21 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   }
 
   const hasInflightPayout = totals.processingPayout > 0;
+  // Server-validated payable wins over client math when available
+  const displayPayable = serverPayable ? serverPayable.payable_cents / 100 : totals.payable;
+  const lockedAmount = serverPayable ? serverPayable.locked_cents / 100 : 0;
+  const isFrozen = !!serverPayable?.frozen;
 
   async function requestPayout() {
     if (hasInflightPayout) {
       toast.error("A payout is already in progress. Please wait for it to complete.");
       return;
     }
-    if (totals.payable < MIN_PAYOUT) {
+    if (isFrozen) {
+      toast.error("Account is frozen by platform review. Contact support.");
+      return;
+    }
+    if (displayPayable < MIN_PAYOUT) {
       toast.error(`Minimum payout is ${fmt(MIN_PAYOUT)}.`);
       return;
     }
@@ -219,9 +250,16 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     }
     setSubmitting(true);
     try {
-      const cents = Math.round(totals.payable * 100);
+      // Re-fetch server payable to avoid stale client state
+      const fresh = await getPayable({});
+      setServerPayable(fresh as any);
+      const cents = (fresh as any).payable_cents as number;
+      if (cents < MIN_PAYOUT * 100) {
+        toast.error(`Available balance changed. Minimum payout is ${fmt(MIN_PAYOUT)}.`);
+        return;
+      }
       await requestPayoutCall({ data: { amountCents: cents } });
-      toast.success(`Payout of ${fmt(totals.payable)} is now processing — ETA ${PAYOUT_ETA_BIZ_DAYS}.`);
+      toast.success(`Payout of ${fmt(cents/100)} is now processing — ETA ${PAYOUT_ETA_BIZ_DAYS}.`);
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Could not start payout");
@@ -235,16 +273,31 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
       {/* Combined total — front and center */}
       <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-4">
         <p className="text-[11px] uppercase text-muted-foreground">Total earnings</p>
-        <p className="text-3xl font-bold text-primary">{fmt(totals.totalEarnings)}</p>
+        <p className="text-3xl font-bold text-primary">
+          {fmt(serverPayable
+            ? (serverPayable.available_cents + serverPayable.pending_cents + serverPayable.in_flight_cents) / 100
+            : totals.totalEarnings)}
+        </p>
         <p className="mt-1 text-[11px] text-muted-foreground">
           Available + pending + processing payout
         </p>
       </div>
 
+      {/* Trust tier card */}
+      {serverPayable && (
+        <TrustTierCard
+          tier={serverPayable.tier}
+          deliveries={trust?.completed_deliveries ?? 0}
+          instantPct={serverPayable.instant_pct}
+          frozen={serverPayable.frozen}
+          manualOverride={trust?.manual_override_pct != null}
+        />
+      )}
+
       {/* Top balance cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <BalanceCard icon={<Wallet className="h-4 w-4" />} label="Available" value={fmt(totals.available)} accent="primary" />
-        <BalanceCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(totals.pending)} />
+        <BalanceCard icon={<Wallet className="h-4 w-4" />} label="Available" value={fmt(serverPayable ? serverPayable.available_cents/100 : totals.available)} accent="primary" />
+        <BalanceCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(serverPayable ? serverPayable.pending_cents/100 : totals.pending)} />
         <BalanceCard icon={<ArrowDownToLine className="h-4 w-4" />} label="Processing payout" value={fmt(totals.processingPayout)} />
         <BalanceCard icon={<CheckCircle2 className="h-4 w-4" />} label="Completed" value={fmt(totals.completed)} />
       </div>
@@ -255,6 +308,16 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <div className="flex-1">
             <strong>{fmt(totals.processingPayout)} processing.</strong> ETA {PAYOUT_ETA_BIZ_DAYS}. Funds will return to Available if the transfer fails.
+          </div>
+        </div>
+      )}
+
+      {/* Locked funds banner */}
+      {lockedAmount > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="flex-1">
+            <strong>{fmt(lockedAmount)} on hold</strong> for orders with disputes, refunds, or unconfirmed delivery. These funds are released once each issue is resolved.
           </div>
         </div>
       )}
@@ -277,18 +340,18 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase text-muted-foreground">Available to withdraw</p>
-            <p className="text-2xl font-bold text-primary">{fmt(totals.payable)}</p>
+            <p className="text-2xl font-bold text-primary">{fmt(displayPayable)}</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               ETA {PAYOUT_ETA_BIZ_DAYS} · min {fmt(MIN_PAYOUT)} {hold ? `· ${fmt(totals.owed)} will be deducted` : ""}
             </p>
           </div>
           <button
             onClick={requestPayout}
-            disabled={submitting || hasInflightPayout || totals.payable < MIN_PAYOUT}
+            disabled={submitting || hasInflightPayout || isFrozen || displayPayable < MIN_PAYOUT}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {hasInflightPayout ? "Payout in progress" : "Request payout"}
+            {isFrozen ? "Account frozen" : hasInflightPayout ? "Payout in progress" : "Request payout"}
           </button>
         </div>
       </div>

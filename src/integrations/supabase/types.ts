@@ -272,6 +272,48 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_audit_log: {
+        Row: {
+          actor_id: string | null
+          balance_after: number | null
+          balance_before: number | null
+          created_at: string
+          delta_cents: number
+          event_type: string
+          id: number
+          metadata: Json
+          reference_id: string | null
+          reference_table: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          delta_cents: number
+          event_type: string
+          id?: number
+          metadata?: Json
+          reference_id?: string | null
+          reference_table?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          delta_cents?: number
+          event_type?: string
+          id?: number
+          metadata?: Json
+          reference_id?: string | null
+          reference_table?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       beta_access_requests: {
         Row: {
           created_at: string
@@ -821,6 +863,39 @@ export type Database = {
           followee_id?: string
           follower_id?: string
           notify_on_live?: boolean
+        }
+        Relationships: []
+      }
+      fraud_flags: {
+        Row: {
+          auto_action: string | null
+          created_at: string
+          details: Json
+          flag_type: string
+          id: string
+          resolved_at: string | null
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          auto_action?: string | null
+          created_at?: string
+          details?: Json
+          flag_type: string
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          auto_action?: string | null
+          created_at?: string
+          details?: Json
+          flag_type?: string
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2222,6 +2297,39 @@ export type Database = {
           },
         ]
       }
+      payout_locks: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          reason: string
+          released_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          reason: string
+          released_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          reason?: string
+          released_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payout_requests: {
         Row: {
           amount_cents: number
@@ -3225,6 +3333,48 @@ export type Database = {
           stream_id?: string | null
           verified_live_auction?: boolean
           verified_purchase?: boolean
+        }
+        Relationships: []
+      }
+      seller_trust: {
+        Row: {
+          chargeback_rate_30d: number
+          completed_deliveries: number
+          dispute_rate_30d: number
+          frozen: boolean
+          instant_release_pct: number
+          manual_override_pct: number | null
+          pending_release_pct: number
+          risk_flags: Json
+          tier: Database["public"]["Enums"]["seller_trust_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chargeback_rate_30d?: number
+          completed_deliveries?: number
+          dispute_rate_30d?: number
+          frozen?: boolean
+          instant_release_pct?: number
+          manual_override_pct?: number | null
+          pending_release_pct?: number
+          risk_flags?: Json
+          tier?: Database["public"]["Enums"]["seller_trust_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chargeback_rate_30d?: number
+          completed_deliveries?: number
+          dispute_rate_30d?: number
+          frozen?: boolean
+          instant_release_pct?: number
+          manual_override_pct?: number | null
+          pending_release_pct?: number
+          risk_flags?: Json
+          tier?: Database["public"]["Enums"]["seller_trust_tier"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -4795,6 +4945,33 @@ export type Database = {
           verified_at: string
         }[]
       }
+      admin_override_trust: {
+        Args: {
+          _frozen: boolean
+          _instant_pct: number
+          _reason: string
+          _user_id: string
+        }
+        Returns: {
+          chargeback_rate_30d: number
+          completed_deliveries: number
+          dispute_rate_30d: number
+          frozen: boolean
+          instant_release_pct: number
+          manual_override_pct: number | null
+          pending_release_pct: number
+          risk_flags: Json
+          tier: Database["public"]["Enums"]["seller_trust_tier"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_trust"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_remove_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4919,6 +5096,20 @@ export type Database = {
       compute_card_key: {
         Args: { _name: string; _number: string; _set: string }
         Returns: string
+      }
+      compute_seller_payable: {
+        Args: { _user_id: string }
+        Returns: {
+          available_cents: number
+          frozen: boolean
+          in_flight_cents: number
+          instant_pct: number
+          locked_cents: number
+          owed_cents: number
+          payable_cents: number
+          pending_cents: number
+          tier: Database["public"]["Enums"]["seller_trust_tier"]
+        }[]
       }
       confirm_live_stream_active: {
         Args: { _stream_id: string }
@@ -5094,6 +5285,25 @@ export type Database = {
           username: string
         }[]
       }
+      lock_order_funds: {
+        Args: { _notes?: string; _order_id: string; _reason: string }
+        Returns: {
+          amount_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string
+          reason: string
+          released_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_locks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       log_audit_event: {
         Args: {
           _action: string
@@ -5178,6 +5388,28 @@ export type Database = {
       purge_old_perf_data: { Args: never; Returns: number }
       rate_limit_card_scan: { Args: { _user_id: string }; Returns: Json }
       rearm_next_round: { Args: { _stream_id: string }; Returns: Json }
+      recalc_seller_trust: {
+        Args: { _user_id: string }
+        Returns: {
+          chargeback_rate_30d: number
+          completed_deliveries: number
+          dispute_rate_30d: number
+          frozen: boolean
+          instant_release_pct: number
+          manual_override_pct: number | null
+          pending_release_pct: number
+          risk_flags: Json
+          tier: Database["public"]["Enums"]["seller_trust_tier"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_trust"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       reconcile_auction_states: { Args: never; Returns: number }
       reconcile_sold_items: { Args: never; Returns: number }
       reconcile_stale_payments: { Args: never; Returns: number }
@@ -5206,6 +5438,10 @@ export type Database = {
         }
       }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
+      release_order_funds: {
+        Args: { _order_id: string; _reason?: string }
+        Returns: number
+      }
       request_payout: {
         Args: { _amount_cents: number }
         Returns: {
@@ -5335,6 +5571,7 @@ export type Database = {
         | "completed"
         | "failed"
         | "canceled"
+      seller_trust_tier: "new" | "bronze" | "silver" | "gold" | "platinum"
       tutorial_audience:
         | "buyer"
         | "seller"
@@ -5487,6 +5724,7 @@ export const Constants = {
         "failed",
         "canceled",
       ],
+      seller_trust_tier: ["new", "bronze", "silver", "gold", "platinum"],
       tutorial_audience: [
         "buyer",
         "seller",
