@@ -134,6 +134,13 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     [orders, recoveryByRef],
   );
 
+  const processingPayoutCents = useMemo(
+    () => payouts
+      .filter((p) => p.status === "requested" || p.status === "processing")
+      .reduce((s, p) => s + p.amount_cents, 0),
+    [payouts],
+  );
+
   const totals = useMemo(() => {
     let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, net = 0;
     let available = 0, pending = 0, processing = 0, completed = 0;
@@ -147,9 +154,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
       if (order.status === "delivered") completed += b.net;
     });
     const owed = (hold?.balance_owed_cents ?? 0) / 100;
-    const payable = Math.max(0, available - owed);
-    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net, available, pending, processing, completed, owed, payable };
-  }, [breakdowns, hold]);
+    const processingPayout = processingPayoutCents / 100;
+    // Subtract amounts already locked in an in-flight payout
+    const available_after = Math.max(0, available - processingPayout);
+    const payable = Math.max(0, available_after - owed);
+    const totalEarnings = available_after + pending + processingPayout;
+    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net,
+             available: available_after, pending, processing, completed, owed, payable,
+             processingPayout, totalEarnings };
+  }, [breakdowns, hold, processingPayoutCents]);
 
   function downloadCsv() {
     const rows = [
