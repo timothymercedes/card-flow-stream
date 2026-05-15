@@ -1,6 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Bookmark, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
+import { Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/HeaderSearch";
