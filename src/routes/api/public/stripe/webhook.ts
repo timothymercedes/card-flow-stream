@@ -241,6 +241,17 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   }
                 }
               }
+              // Log refund as negative revenue (loss to platform side of fee book)
+              try {
+                await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                  _kind: "refund_loss",
+                  _amount_cents: -Math.round(refundedAmt * 100),
+                  _stripe_pi: piId || null,
+                  _stripe_charge: charge.id || null,
+                  _stripe_event: event.id,
+                  _meta: { fully_refunded: fullyRefunded },
+                });
+              } catch (e) { console.error("refund revenue log failed", e); }
               break;
             }
             default:
