@@ -2259,6 +2259,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           description: string | null
+          dropoff_scanned_at: string | null
           id: string
           idempotency_key: string | null
           is_giveaway: boolean
@@ -2268,13 +2269,16 @@ export type Database = {
           last_ship_reminder_at: string | null
           listing_id: string | null
           order_group_id: string | null
+          packed_at: string | null
           paid_at: string | null
           payment_failed_at: string | null
           payment_failure_count: number
           payment_retry_deadline: string | null
           payment_status: string
           payout_held: boolean
+          prep_status: string
           quantity: number
+          ready_at: string | null
           refunded_amount: number | null
           refunded_at: string | null
           seller_id: string
@@ -2310,6 +2314,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           description?: string | null
+          dropoff_scanned_at?: string | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -2319,13 +2324,16 @@ export type Database = {
           last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
+          packed_at?: string | null
           paid_at?: string | null
           payment_failed_at?: string | null
           payment_failure_count?: number
           payment_retry_deadline?: string | null
           payment_status?: string
           payout_held?: boolean
+          prep_status?: string
           quantity?: number
+          ready_at?: string | null
           refunded_amount?: number | null
           refunded_at?: string | null
           seller_id: string
@@ -2361,6 +2369,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           description?: string | null
+          dropoff_scanned_at?: string | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -2370,13 +2379,16 @@ export type Database = {
           last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
+          packed_at?: string | null
           paid_at?: string | null
           payment_failed_at?: string | null
           payment_failure_count?: number
           payment_retry_deadline?: string | null
           payment_status?: string
           payout_held?: boolean
+          prep_status?: string
           quantity?: number
+          ready_at?: string | null
           refunded_amount?: number | null
           refunded_at?: string | null
           seller_id?: string
@@ -3594,6 +3606,53 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_scans: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          kind: string
+          metadata: Json | null
+          new_status: string | null
+          order_id: string | null
+          prev_status: string | null
+          result: string
+          scanned_by: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          kind?: string
+          metadata?: Json | null
+          new_status?: string | null
+          order_id?: string | null
+          prev_status?: string | null
+          result?: string
+          scanned_by: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          metadata?: Json | null
+          new_status?: string | null
+          order_id?: string | null
+          prev_status?: string | null
+          result?: string
+          scanned_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_scans_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_name_history: {
         Row: {
           changed_at: string
@@ -4654,6 +4713,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_combo_streaks: {
+        Row: {
+          best_combo: number
+          combo_count: number
+          last_bid_at: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          best_combo?: number
+          combo_count?: number
+          last_bid_at?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          best_combo?: number
+          combo_count?: number
+          last_bid_at?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_progression: {
         Row: {
           created_at: string
@@ -4840,6 +4923,30 @@ export type Database = {
           type?: string
           user_id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      user_ui_prefs: {
+        Row: {
+          haptics: boolean
+          reduce_motion: boolean
+          sfx_muted: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          haptics?: boolean
+          reduce_motion?: boolean
+          sfx_muted?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          haptics?: boolean
+          reduce_motion?: boolean
+          sfx_muted?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -5161,6 +5268,18 @@ export type Database = {
       }
     }
     Views: {
+      stream_supporters: {
+        Row: {
+          buyer_id: string | null
+          buyer_username: string | null
+          last_tip_at: string | null
+          seller_id: string | null
+          stream_id: string | null
+          tip_count: number | null
+          total_tipped: number | null
+        }
+        Relationships: []
+      }
       v_user_hold_status: {
         Row: {
           balance_cents: number | null
@@ -5384,6 +5503,13 @@ export type Database = {
           leveled_up: boolean
           new_level: number
           new_xp: number
+        }[]
+      }
+      bump_combo_streak: {
+        Args: { _stream_id: string }
+        Returns: {
+          best_combo: number
+          combo_count: number
         }[]
       }
       bump_login_streak: {
@@ -5714,6 +5840,20 @@ export type Database = {
         }
         Returns: string
       }
+      mark_order_packed: {
+        Args: { _order_id: string }
+        Returns: {
+          new_status: string
+          prev_status: string
+        }[]
+      }
+      mark_order_ready: {
+        Args: { _order_id: string }
+        Returns: {
+          new_status: string
+          prev_status: string
+        }[]
+      }
       notify_user: {
         Args: {
           _body: string
@@ -5837,6 +5977,15 @@ export type Database = {
         }
       }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
+      register_shipping_scan: {
+        Args: { _code: string; _kind?: string }
+        Returns: {
+          new_status: string
+          order_id: string
+          prev_status: string
+          result: string
+        }[]
+      }
       release_order_funds: {
         Args: { _order_id: string; _reason?: string }
         Returns: number
