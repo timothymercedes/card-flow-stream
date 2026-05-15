@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
-import { AdminAlertBadge } from "@/components/AdminAlertBadge";
+
 import { AdminAlertBanner } from "@/components/AdminAlertBanner";
 import { AccountHoldBanner } from "@/components/AccountHoldBanner";
 import { HelpBubble } from "@/components/HelpBubble";
