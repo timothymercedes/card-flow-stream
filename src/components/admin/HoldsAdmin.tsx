@@ -58,6 +58,13 @@ export function HoldsAdmin() {
         .order("created_at", { ascending: false })
         .limit(200);
       setRecoveries((data as any) || []);
+    } else if (view === "trust") {
+      const { data } = await supabase
+        .from("seller_trust" as any)
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(200);
+      setTrusts((data as any) || []);
     } else {
       let q = supabase.from("account_holds" as any).select("*").order("opened_at", { ascending: false }).limit(200);
       if (view === "active") q = q.eq("status", "active");
@@ -65,6 +72,28 @@ export function HoldsAdmin() {
       setHolds((data as any) || []);
     }
     setLoading(false);
+  }
+
+  async function setOverride(userId: string) {
+    const raw = prompt("Instant payout %% (0-100, blank to clear override):");
+    if (raw === null) return;
+    const pct = raw.trim() === "" ? null : Math.max(0, Math.min(100, Number(raw)));
+    if (pct !== null && Number.isNaN(pct)) return toast.error("Invalid number");
+    const reason = prompt("Audit reason:") || "manual override";
+    try {
+      await overrideTrust({ data: { userId, instantPct: pct, reason } });
+      toast.success("Override applied");
+      load();
+    } catch (e: any) { toast.error(e?.message || "Failed"); }
+  }
+
+  async function toggleFreeze(userId: string, freeze: boolean) {
+    const reason = prompt(`${freeze ? "Freeze" : "Unfreeze"} reason:`) || (freeze ? "freeze" : "unfreeze");
+    try {
+      await overrideTrust({ data: { userId, instantPct: null, frozen: freeze, reason } });
+      toast.success(freeze ? "Account frozen" : "Account unfrozen");
+      load();
+    } catch (e: any) { toast.error(e?.message || "Failed"); }
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [view]);
