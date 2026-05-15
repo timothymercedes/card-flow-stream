@@ -115,6 +115,39 @@ function Cart() {
           </div>
         )}
 
+        {Object.keys(groups).length > 0 && !addressOk && (
+          <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <div className="flex-1 text-xs">
+                <p className="font-bold text-amber-700 dark:text-amber-300">Add a shipping address to check out</p>
+                <p className="mt-0.5 text-amber-700/80 dark:text-amber-300/80">Sellers can't ship without {addressV.missing.slice(0, 3).join(", ")}{addressV.missing.length > 3 ? "…" : ""}.</p>
+              </div>
+              <button
+                onClick={() => setShowAddressForm((s) => !s)}
+                className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-[11px] font-bold text-black"
+              >
+                {showAddressForm ? "Hide" : "Add address"}
+              </button>
+            </div>
+            {showAddressForm && (
+              <div className="mt-3">
+                <ShippingAddressForm onSaved={(a) => { setBuyerAddress(a); setShowAddressForm(false); }} compact />
+              </div>
+            )}
+          </div>
+        )}
+
+        {Object.keys(groups).length > 0 && addressOk && buyerAddress && (
+          <div className="mb-3 flex items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-[11px]">
+            <div className="flex min-w-0 items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+              <span className="truncate"><span className="font-bold">Ship to:</span> {buyerAddress.full_name}, {buyerAddress.address_line1}, {buyerAddress.address_city} {buyerAddress.address_state} {buyerAddress.address_zip} {buyerAddress.address_country}</span>
+            </div>
+            <Link to="/settings" className="shrink-0 font-bold text-primary">Change</Link>
+          </div>
+        )}
+
         <div className="space-y-4">
           {Object.entries(groups).map(([sellerId, items]) => {
             const total = items.reduce((a, o) => a + Number(o.amount || 0), 0);
@@ -159,11 +192,11 @@ function Cart() {
                   />
                 </div>
                 <button
-                  onClick={() => setCheckoutSeller(sellerId)}
+                  onClick={() => addressOk ? setCheckoutSeller(sellerId) : setShowAddressForm(true)}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                 >
                   <CreditCard className="h-4 w-4" />
-                  {`Checkout $${total.toFixed(2)}`}
+                  {addressOk ? `Checkout $${total.toFixed(2)}` : "Add shipping address to check out"}
                 </button>
               </div>
             );
