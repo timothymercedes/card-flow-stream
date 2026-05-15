@@ -17,6 +17,7 @@ import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { demoListings, demoOrders, demoSellerAnalytics } from "@/lib/tutorialDemoData";
 import { LiveNowPill } from "@/components/ReturnToLiveBadge";
+import { SellerEarningsHub } from "@/components/SellerEarningsHub";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
