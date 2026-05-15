@@ -16,6 +16,9 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SellMenu } from "@/components/SellMenu";
+import { XPBadge } from "@/components/XPBadge";
+import { DailyLoginRewardModal } from "@/components/DailyLoginRewardModal";
+import { AchievementToastListener, LevelUpListener } from "@/components/AchievementToastListener";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import logo from "@/assets/logo.png";
@@ -85,6 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> {t("nav.flexLive")}
           </Link>
           <SellMenu />
+          {!tutorial && <XPBadge />}
           {!tutorial && <NotificationBell />}
           <Link to="/profile" aria-label={t("nav.profile", "Profile")} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
             <User className="h-4 w-4" aria-hidden="true" />
@@ -117,6 +121,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <NotifyPrompt />}
       {!tutorial && <ReturnToLiveBadge />}
       {!tutorial && <FeedbackWidget />}
+      {!tutorial && <DailyLoginRewardModal />}
+      {!tutorial && <AchievementToastListener />}
+      {!tutorial && <LevelUpListener />}
       <nav aria-label={t("nav.primary", "Primary")} className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((tab) => {
