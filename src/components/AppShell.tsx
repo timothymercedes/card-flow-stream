@@ -69,6 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
       <a href="#main-content" className="skip-link">{t("common.skipToContent", "Skip to content")}</a>
+      {!tutorial && <AdminAlertBanner />}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur">
        {/* Row 1: Logo · Flex Live · Sell · Notifications · Profile */}
        <div className="flex items-center justify-between gap-2">
