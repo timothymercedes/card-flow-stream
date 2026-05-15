@@ -62,6 +62,48 @@ export type Database = {
         }
         Relationships: []
       }
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_secret: boolean
+          slug: string
+          sort_order: number
+          threshold: number | null
+          title: string
+          xp_reward: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          is_secret?: boolean
+          slug: string
+          sort_order?: number
+          threshold?: number | null
+          title: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_secret?: boolean
+          slug?: string
+          sort_order?: number
+          threshold?: number | null
+          title?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       ai_hype_posts: {
         Row: {
           body: string
@@ -755,6 +797,45 @@ export type Database = {
           priority_stream_quality?: boolean
           tier?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_quests: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          kind: string
+          slug: string
+          sort_order: number
+          target: number
+          title: string
+          xp_reward: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          slug: string
+          sort_order?: number
+          target?: number
+          title: string
+          xp_reward?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          slug?: string
+          sort_order?: number
+          target?: number
+          title?: string
+          xp_reward?: number
         }
         Relationships: []
       }
@@ -4526,6 +4607,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_blocks: {
         Row: {
           blocked_id: string
@@ -4541,6 +4651,90 @@ export type Database = {
           blocked_id?: string
           blocker_id?: string
           created_at?: string
+        }
+        Relationships: []
+      }
+      user_progression: {
+        Row: {
+          created_at: string
+          last_login_date: string | null
+          last_watch_date: string | null
+          level: number
+          lifetime_xp: number
+          login_streak: number
+          longest_login_streak: number
+          total_bids: number
+          total_sales: number
+          total_wins: number
+          updated_at: string
+          user_id: string
+          watch_streak: number
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          last_login_date?: string | null
+          last_watch_date?: string | null
+          level?: number
+          lifetime_xp?: number
+          login_streak?: number
+          longest_login_streak?: number
+          total_bids?: number
+          total_sales?: number
+          total_wins?: number
+          updated_at?: string
+          user_id: string
+          watch_streak?: number
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          last_login_date?: string | null
+          last_watch_date?: string | null
+          level?: number
+          lifetime_xp?: number
+          login_streak?: number
+          longest_login_streak?: number
+          total_bids?: number
+          total_sales?: number
+          total_wins?: number
+          updated_at?: string
+          user_id?: string
+          watch_streak?: number
+          xp?: number
+        }
+        Relationships: []
+      }
+      user_quest_progress: {
+        Row: {
+          claimed_at: string | null
+          completed_at: string | null
+          id: string
+          period_key: string
+          progress: number
+          quest_slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          id?: string
+          period_key: string
+          progress?: number
+          quest_slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          id?: string
+          period_key?: string
+          progress?: number
+          quest_slug?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -4938,6 +5132,33 @@ export type Database = {
           },
         ]
       }
+      xp_events: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reason: string
+          ref_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reason: string
+          ref_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: string
+          ref_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_user_hold_status: {
@@ -5157,12 +5378,29 @@ export type Database = {
         Args: { _stream_id?: string }
         Returns: number
       }
+      award_xp: {
+        Args: { _amount: number; _reason: string; _ref_id?: string }
+        Returns: {
+          leveled_up: boolean
+          new_level: number
+          new_xp: number
+        }[]
+      }
       bump_login_streak: {
         Args: never
         Returns: {
           current_streak: number
           last_login_date: string
           longest_streak: number
+        }[]
+      }
+      bump_quest_progress: {
+        Args: { _delta?: number; _slug: string }
+        Returns: {
+          completed: boolean
+          progress: number
+          target: number
+          xp_awarded: number
         }[]
       }
       can_view_story: {
@@ -5184,6 +5422,14 @@ export type Database = {
           claimed_count: number
           order_id: string
           total_amount: number
+        }[]
+      }
+      claim_daily_login: {
+        Args: never
+        Returns: {
+          already_claimed: boolean
+          streak: number
+          xp_awarded: number
         }[]
       }
       clear_hold_admin: {
@@ -5706,6 +5952,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      xp_to_level: { Args: { _xp: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner" | "support"
