@@ -110,6 +110,24 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Realtime: refresh balances whenever a payout/hold/recovery row changes
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`earnings-${user.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "payout_requests", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "account_holds", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "hold_recoveries", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, load]);
+
   // Load buyer usernames
   useEffect(() => {
     const ids = Array.from(new Set(orders.map((o) => o.buyer_id))).filter(Boolean);
