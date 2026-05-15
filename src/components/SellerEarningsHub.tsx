@@ -227,13 +227,21 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   }
 
   const hasInflightPayout = totals.processingPayout > 0;
+  // Server-validated payable wins over client math when available
+  const displayPayable = serverPayable ? serverPayable.payable_cents / 100 : totals.payable;
+  const lockedAmount = serverPayable ? serverPayable.locked_cents / 100 : 0;
+  const isFrozen = !!serverPayable?.frozen;
 
   async function requestPayout() {
     if (hasInflightPayout) {
       toast.error("A payout is already in progress. Please wait for it to complete.");
       return;
     }
-    if (totals.payable < MIN_PAYOUT) {
+    if (isFrozen) {
+      toast.error("Account is frozen by platform review. Contact support.");
+      return;
+    }
+    if (displayPayable < MIN_PAYOUT) {
       toast.error(`Minimum payout is ${fmt(MIN_PAYOUT)}.`);
       return;
     }
@@ -242,9 +250,16 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     }
     setSubmitting(true);
     try {
-      const cents = Math.round(totals.payable * 100);
+      // Re-fetch server payable to avoid stale client state
+      const fresh = await getPayable({});
+      setServerPayable(fresh as any);
+      const cents = (fresh as any).payable_cents as number;
+      if (cents < MIN_PAYOUT * 100) {
+        toast.error(`Available balance changed. Minimum payout is ${fmt(MIN_PAYOUT)}.`);
+        return;
+      }
       await requestPayoutCall({ data: { amountCents: cents } });
-      toast.success(`Payout of ${fmt(totals.payable)} is now processing — ETA ${PAYOUT_ETA_BIZ_DAYS}.`);
+      toast.success(`Payout of ${fmt(cents/100)} is now processing — ETA ${PAYOUT_ETA_BIZ_DAYS}.`);
       await load();
     } catch (e: any) {
       toast.error(e?.message || "Could not start payout");
