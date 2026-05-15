@@ -1,0 +1,1 @@
+ALTER VIEW public.stream_supporters SET (security_invoker = on);
