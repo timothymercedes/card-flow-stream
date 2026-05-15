@@ -187,51 +187,72 @@ function Home() {
         </div>
       </section>
 
-      <Section title={t("home.section_live")} to="/live">
-        <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
-          {streams.map((s) => (
-            <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
-              <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
-                {s.thumbnail_url
-                  ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
-                  : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-8 w-8" /></div>}
-                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
-                  <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
-                </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                  <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                  {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
-                </div>
-              </div>
-            </Link>
-          ))}
+      {/* Combined Live + Flex tabbed rail */}
+      <section className="mb-5">
+        <div className="mb-2 flex items-center justify-between gap-3 px-4">
+          <div className="flex gap-1 rounded-full bg-card p-0.5 ring-1 ring-border">
+            <button
+              onClick={() => setLiveTab("auctions")}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${liveTab === "auctions" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              <span className="inline-flex items-center gap-1"><Radio className="h-3 w-3" /> Live</span>
+            </button>
+            <button
+              onClick={() => setLiveTab("flex")}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${liveTab === "flex" ? "bg-fuchsia-500 text-white" : "text-muted-foreground"}`}
+            >
+              <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> Flex</span>
+            </button>
+          </div>
+          <Link to={liveTab === "auctions" ? "/live" : "/showoff"} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
+            {t("common.viewMore")} <ChevronRight className="h-3 w-3" />
+          </Link>
         </div>
-      </Section>
 
-      <Section title={t("home.section_flex")} to="/showoff" viewLabel={t("home.section_flex_view")}>
-        <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-          {showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
-          {showOffStreams.map((s) => (
-            <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
-              <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
-                {s.thumbnail_url
-                  ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
-                  : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
-                <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                  <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+        {liveTab === "auctions" ? (
+          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+            {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
+            {streams.map((s) => (
+              <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
+                <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
+                  {s.thumbnail_url
+                    ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
+                    : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-8 w-8" /></div>}
+                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
+                    <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                    <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
+                    {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
+                  </div>
                 </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                  <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                  {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
-                    <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
-                  )}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
+            {showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
+            {showOffStreams.map((s) => (
+              <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
+                  {s.thumbnail_url
+                    ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
+                    : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
+                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                    <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
+                    {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
+                      <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </Section>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
       <Section title={t("home.section_market")} to="/market">
         <div className="grid grid-cols-2 gap-3 px-4">
