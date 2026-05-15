@@ -4,8 +4,8 @@ import { useProgression } from "@/hooks/useProgression";
 import { progressToNextLevel } from "@/lib/progression";
 
 /**
- * XPBadge — compact level chip + XP bar for the top header.
- * Hidden when signed out. Links to /profile so users can dig into stats.
+ * XPBadge — compact level chip in the top header.
+ * Click → /quests (progression dashboard with XP, achievements, quests, streaks).
  */
 export function XPBadge() {
   const { progression } = useProgression();
@@ -14,20 +14,16 @@ export function XPBadge() {
 
   return (
     <Link
-      to="/profile"
-      aria-label={`Level ${level}, ${pct}% to next`}
-      className="group relative flex h-8 items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500/90 via-orange-500/90 to-fuchsia-500/90 px-2 text-[10px] font-extrabold text-white shadow-sm ring-1 ring-white/20 transition hover:scale-105"
+      to="/quests"
+      aria-label={`Level ${level}, ${pct}% to next level. Open progression`}
+      title={`Lv ${level} · ${pct}% to next${progression.login_streak >= 2 ? ` · 🔥${progression.login_streak}d streak` : ""}`}
+      className="group relative flex h-8 items-center gap-1 rounded-full bg-muted px-2 text-[10px] font-bold text-foreground ring-1 ring-border transition hover:bg-accent"
     >
-      <Zap className="h-3 w-3" aria-hidden="true" />
+      <Zap className="h-3 w-3 text-amber-500" aria-hidden="true" />
       <span>Lv {level}</span>
-      <span className="ml-0.5 hidden h-1 w-10 overflow-hidden rounded-full bg-black/30 sm:block">
-        <span className="block h-full bg-white/90 transition-[width] duration-500" style={{ width: `${pct}%` }} />
+      <span className="ml-0.5 hidden h-1 w-8 overflow-hidden rounded-full bg-background sm:block">
+        <span className="block h-full bg-gradient-to-r from-amber-500 to-fuchsia-500 transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </span>
-      {progression.login_streak >= 2 && (
-        <span className="ml-0.5 rounded-full bg-black/30 px-1 text-[9px]" title={`${progression.login_streak}-day streak`}>
-          🔥{progression.login_streak}
-        </span>
-      )}
     </Link>
   );
 }
