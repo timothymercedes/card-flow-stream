@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Radio, ChevronRight, Heart, Sparkles, Flame, ShieldCheck, Zap, Trophy, Users } from "lucide-react";
+import { Radio, ChevronRight, Heart, Sparkles, Flame, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link as RLink } from "@tanstack/react-router";
 import heroCards from "@/assets/hero-cards.jpg";
