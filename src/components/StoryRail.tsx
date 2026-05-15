@@ -36,6 +36,8 @@ export function StoryRail() {
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const [reactions, setReactions] = useState<Record<string, { mine?: string; counts: Record<string, number> }>>({});
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
