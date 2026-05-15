@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { ShoppingBag, CreditCard, Package, X } from "lucide-react";
+import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
+import { ShippingAddressForm } from "@/components/ShippingAddressForm";
+import { isValidShippingAddress, validateAddress, type ShippingAddress } from "@/lib/address";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
