@@ -30,17 +30,18 @@ export function AdminAlertBanner() {
   });
 
   const refresh = useCallback(async () => {
-    const [reports, disputes, verifications, shipping] = await Promise.all([
+    const [reports, disputes, verifications, shipping, payments] = await Promise.all([
       supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
       supabase.from("disputes").select("id", { count: "exact", head: true }).in("status", ["open", "investigating"]),
       supabase.from("profiles").select("id", { count: "exact", head: true }).in("verification_status", ["pending", "reverify_required"]),
-      supabase.from("orders").select("id", { count: "exact", head: true }).in("delivery_status", ["lost", "damaged", "exception", "returned"]),
+      supabase.from("orders").select("id", { count: "exact", head: true }).eq("is_late_shipment", true),
+      supabase.from("orders").select("id", { count: "exact", head: true }).gt("payment_failure_count", 0),
     ]);
     setCounts({
       reports: reports.count || 0,
       disputes: disputes.count || 0,
       verifications: verifications.count || 0,
-      shipping: shipping.count || 0,
+      shipping: (shipping.count || 0) + (payments.count || 0),
     });
   }, []);
 
