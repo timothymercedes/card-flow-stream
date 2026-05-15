@@ -47,7 +47,7 @@ function Section({ title, to, children, viewLabel }: any) {
 function Home() {
   const { profile, user } = useAuth();
   const { t } = useTranslation();
-  // Visitors (not signed in) can browse the home feed. Interactions like bidding,
+  const [liveTab, setLiveTab] = useState<"auctions" | "flex">("auctions");
   // messaging, follow/like, and selling are still gated server-side and redirect
   // to /auth from their respective handlers.
   const interests = (profile?.interests as string[] | undefined) || [];
