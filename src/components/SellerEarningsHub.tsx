@@ -279,10 +279,21 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         </p>
       </div>
 
+      {/* Trust tier card */}
+      {serverPayable && (
+        <TrustTierCard
+          tier={serverPayable.tier}
+          deliveries={trust?.completed_deliveries ?? 0}
+          instantPct={serverPayable.instant_pct}
+          frozen={serverPayable.frozen}
+          manualOverride={trust?.manual_override_pct != null}
+        />
+      )}
+
       {/* Top balance cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <BalanceCard icon={<Wallet className="h-4 w-4" />} label="Available" value={fmt(totals.available)} accent="primary" />
-        <BalanceCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(totals.pending)} />
+        <BalanceCard icon={<Wallet className="h-4 w-4" />} label="Available" value={fmt(serverPayable ? serverPayable.available_cents/100 : totals.available)} accent="primary" />
+        <BalanceCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(serverPayable ? serverPayable.pending_cents/100 : totals.pending)} />
         <BalanceCard icon={<ArrowDownToLine className="h-4 w-4" />} label="Processing payout" value={fmt(totals.processingPayout)} />
         <BalanceCard icon={<CheckCircle2 className="h-4 w-4" />} label="Completed" value={fmt(totals.completed)} />
       </div>
@@ -293,6 +304,16 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <div className="flex-1">
             <strong>{fmt(totals.processingPayout)} processing.</strong> ETA {PAYOUT_ETA_BIZ_DAYS}. Funds will return to Available if the transfer fails.
+          </div>
+        </div>
+      )}
+
+      {/* Locked funds banner */}
+      {lockedAmount > 0 && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div className="flex-1">
+            <strong>{fmt(lockedAmount)} on hold</strong> for orders with disputes, refunds, or unconfirmed delivery. These funds are released once each issue is resolved.
           </div>
         </div>
       )}
@@ -315,18 +336,18 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase text-muted-foreground">Available to withdraw</p>
-            <p className="text-2xl font-bold text-primary">{fmt(totals.payable)}</p>
+            <p className="text-2xl font-bold text-primary">{fmt(displayPayable)}</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
               ETA {PAYOUT_ETA_BIZ_DAYS} · min {fmt(MIN_PAYOUT)} {hold ? `· ${fmt(totals.owed)} will be deducted` : ""}
             </p>
           </div>
           <button
             onClick={requestPayout}
-            disabled={submitting || hasInflightPayout || totals.payable < MIN_PAYOUT}
+            disabled={submitting || hasInflightPayout || isFrozen || displayPayable < MIN_PAYOUT}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            {hasInflightPayout ? "Payout in progress" : "Request payout"}
+            {isFrozen ? "Account frozen" : hasInflightPayout ? "Payout in progress" : "Request payout"}
           </button>
         </div>
       </div>
