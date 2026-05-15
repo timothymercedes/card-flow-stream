@@ -10,6 +10,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
 import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { AdminAlertBanner } from "@/components/AdminAlertBanner";
+import { AccountHoldBanner } from "@/components/AccountHoldBanner";
 import { HelpBubble } from "@/components/HelpBubble";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
@@ -69,6 +70,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background">
       <a href="#main-content" className="skip-link">{t("common.skipToContent", "Skip to content")}</a>
+      {!tutorial && <AccountHoldBanner />}
       {!tutorial && <AdminAlertBanner />}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur">
        {/* Row 1: Logo · Flex Live · Sell · Notifications · Profile */}
