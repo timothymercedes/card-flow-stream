@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_holds: {
+        Row: {
+          balance_owed_cents: number
+          cleared_at: string | null
+          cleared_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          reason: string | null
+          source: Database["public"]["Enums"]["hold_source"]
+          status: Database["public"]["Enums"]["hold_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance_owed_cents?: number
+          cleared_at?: string | null
+          cleared_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          reason?: string | null
+          source?: Database["public"]["Enums"]["hold_source"]
+          status?: Database["public"]["Enums"]["hold_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance_owed_cents?: number
+          cleared_at?: string | null
+          cleared_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          reason?: string | null
+          source?: Database["public"]["Enums"]["hold_source"]
+          status?: Database["public"]["Enums"]["hold_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_hype_posts: {
         Row: {
           body: string
@@ -584,6 +632,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       creator_stream_tiers: {
@@ -1032,6 +1087,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "listing_bids_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       listings: {
@@ -1189,6 +1251,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1644,11 +1713,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "live_streams_current_bidder_id_fkey"
+            columns: ["current_bidder_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "live_streams_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_streams_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2410,6 +2493,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       prebids: {
@@ -2462,6 +2552,7 @@ export type Database = {
           agreements_version: string
           avatar_url: string | null
           avg_response_minutes: number | null
+          balance_cents: number
           bid_restricted_reason: string | null
           bid_restricted_until: string | null
           buyer_verified: boolean
@@ -2496,6 +2587,7 @@ export type Database = {
           pwe_price_usd: number
           pwe_stamp_price_usd: number
           report_count: number
+          risk_flag: boolean
           seller_agreement_accepted_at: string | null
           seller_agreement_review_required: boolean
           seller_agreement_version: string | null
@@ -2536,6 +2628,7 @@ export type Database = {
           agreements_version?: string
           avatar_url?: string | null
           avg_response_minutes?: number | null
+          balance_cents?: number
           bid_restricted_reason?: string | null
           bid_restricted_until?: string | null
           buyer_verified?: boolean
@@ -2570,6 +2663,7 @@ export type Database = {
           pwe_price_usd?: number
           pwe_stamp_price_usd?: number
           report_count?: number
+          risk_flag?: boolean
           seller_agreement_accepted_at?: string | null
           seller_agreement_review_required?: boolean
           seller_agreement_version?: string | null
@@ -2610,6 +2704,7 @@ export type Database = {
           agreements_version?: string
           avatar_url?: string | null
           avg_response_minutes?: number | null
+          balance_cents?: number
           bid_restricted_reason?: string | null
           bid_restricted_until?: string | null
           buyer_verified?: boolean
@@ -2644,6 +2739,7 @@ export type Database = {
           pwe_price_usd?: number
           pwe_stamp_price_usd?: number
           report_count?: number
+          risk_flag?: boolean
           seller_agreement_accepted_at?: string | null
           seller_agreement_review_required?: boolean
           seller_agreement_version?: string | null
@@ -4304,6 +4400,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vault_cards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_user_hold_status"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       vault_settings: {
@@ -4456,7 +4559,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_user_hold_status: {
+        Row: {
+          balance_cents: number | null
+          balance_owed_cents: number | null
+          hold_id: string | null
+          opened_at: string | null
+          reason: string | null
+          risk_flag: boolean | null
+          source: Database["public"]["Enums"]["hold_source"] | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_legal_document: {
@@ -4600,6 +4715,30 @@ export type Database = {
           total_amount: number
         }[]
       }
+      clear_hold_admin: {
+        Args: { _hold_id: string; _notes?: string; _override?: boolean }
+        Returns: {
+          balance_owed_cents: number
+          cleared_at: string | null
+          cleared_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          reason: string | null
+          source: Database["public"]["Enums"]["hold_source"]
+          status: Database["public"]["Enums"]["hold_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "account_holds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       compute_card_key: {
         Args: { _name: string; _number: string; _set: string }
         Returns: string
@@ -4720,6 +4859,7 @@ export type Database = {
           phone: string
         }[]
       }
+      has_active_hold: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4938,6 +5078,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner" | "support"
       card_condition: "NM" | "LP" | "MP" | "Damaged"
+      hold_source:
+        | "refund"
+        | "chargeback"
+        | "failed_label"
+        | "fee"
+        | "manual"
+        | "other"
+      hold_status: "active" | "cleared" | "admin_override"
       tutorial_audience:
         | "buyer"
         | "seller"
@@ -5074,6 +5222,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user", "owner", "support"],
       card_condition: ["NM", "LP", "MP", "Damaged"],
+      hold_source: [
+        "refund",
+        "chargeback",
+        "failed_label",
+        "fee",
+        "manual",
+        "other",
+      ],
+      hold_status: ["active", "cleared", "admin_override"],
       tutorial_audience: [
         "buyer",
         "seller",
