@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Download, ChevronRight, AlertTriangle, Wallet, Clock, CheckCircle2, ArrowDownToLine, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { requestPayoutFn } from "@/lib/payouts.functions";
+import { requestPayoutFn, getSellerPayableFn, getSellerTrustFn } from "@/lib/payouts.functions";
+import { TrustTierCard, type TrustTier } from "@/components/TrustTierCard";
 
 const PLATFORM_FEE = 0.05;            // 5%
 const PROCESSING_RATE = 0.029;        // 2.9%
