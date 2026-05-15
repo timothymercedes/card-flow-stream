@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
+import { PayoutBreakdown } from "@/components/PayoutBreakdown";
 
 export const Route = createFileRoute("/payouts")({
   component: PayoutsPage,
