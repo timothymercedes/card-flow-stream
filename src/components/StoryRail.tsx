@@ -197,11 +197,11 @@ export function StoryRail() {
       </div>
 
       {composeOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setComposeOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => { if (!uploading) { setComposeOpen(false); clearPending(); } }}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold">New story</p>
-              <button onClick={() => setComposeOpen(false)}><X className="h-4 w-4" /></button>
+              <button disabled={uploading} onClick={() => { setComposeOpen(false); clearPending(); }}><X className="h-4 w-4" /></button>
             </div>
             <div className="mb-3 flex gap-2">
               {([
@@ -209,16 +209,46 @@ export function StoryRail() {
                 { v: "followers", icon: Users, label: "Followers" },
                 { v: "close_friends", icon: Lock, label: "Private" },
               ] as const).map(({ v, icon: Icon, label }) => (
-                <button key={v} onClick={() => setVisibility(v)} className={`flex flex-1 flex-col items-center gap-1 rounded-lg p-2 text-[11px] ${visibility === v ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <button key={v} disabled={uploading} onClick={() => setVisibility(v)} className={`flex flex-1 flex-col items-center gap-1 rounded-lg p-2 text-[11px] disabled:opacity-50 ${visibility === v ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                   <Icon className="h-3.5 w-3.5" /> {label}
                 </button>
               ))}
             </div>
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Caption (optional)" className="mb-3 w-full rounded-lg bg-input px-3 py-2 text-sm outline-none" />
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-            <button onClick={() => fileRef.current?.click()} disabled={uploading} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">
-              {uploading ? "Checking & uploading..." : "Choose photo & post"}
-            </button>
+            <input value={caption} onChange={(e) => setCaption(e.target.value)} disabled={uploading} placeholder="Caption (optional)" className="mb-3 w-full rounded-lg bg-input px-3 py-2 text-sm outline-none disabled:opacity-50" />
+            <input ref={fileRef} type="file" accept="image/*,video/*" onChange={handleFile} className="hidden" />
+
+            {pendingPreview ? (
+              <>
+                <div className="relative mb-3 mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl bg-black">
+                  {pendingFile?.type.startsWith("video/") ? (
+                    <video src={pendingPreview} controls className="h-full w-full object-contain" />
+                  ) : (
+                    <img src={pendingPreview} alt="Preview" className="h-full w-full object-contain" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-white">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <p className="text-xs">Checking & uploading…</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button disabled={uploading} onClick={clearPending} className="flex-1 rounded-lg bg-muted py-2 text-xs font-medium disabled:opacity-50">
+                    Remove
+                  </button>
+                  <button disabled={uploading} onClick={() => fileRef.current?.click()} className="flex-1 rounded-lg bg-muted py-2 text-xs font-medium disabled:opacity-50">
+                    Change
+                  </button>
+                  <button disabled={uploading} onClick={confirmAndUpload} className="flex-[2] rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">
+                    {uploading ? "Posting…" : "Post story"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button onClick={() => fileRef.current?.click()} className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">
+                Choose photo or video
+              </button>
+            )}
             <p className="mt-2 text-center text-[10px] text-muted-foreground">Story expires in 24 hours · AI-moderated</p>
           </div>
         </div>
