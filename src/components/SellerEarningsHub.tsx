@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Download, ChevronRight, AlertTriangle, Wallet, Clock, CheckCircle2, ArrowDownToLine } from "lucide-react";
+import { Download, ChevronRight, AlertTriangle, Wallet, Clock, CheckCircle2, ArrowDownToLine, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { requestPayoutFn } from "@/lib/payouts.functions";
 
 const PLATFORM_FEE = 0.05;            // 5%
 const PROCESSING_RATE = 0.029;        // 2.9%
