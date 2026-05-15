@@ -22,7 +22,8 @@ type Show = {
   categories: string[] | null;
 };
 
-export function ScheduledShowsPanel({ compact }: { compact?: boolean }) {
+export function ScheduledShowsPanel({ compact, section }: { compact?: boolean; section?: "hosting" | "bookmarked" | "all" }) {
+  const show = section ?? "all";
   const { user } = useAuth();
   const [hosting, setHosting] = useState<Show[]>([]);
   const [bookmarked, setBookmarked] = useState<Show[]>([]);
