@@ -20,15 +20,16 @@ export function LegalGate() {
   const [age, setAge] = useState(false);
   const [tos, setTos] = useState(false);
   const [guidelines, setGuidelines] = useState(false);
+  const [notice, setNotice] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!needsAcceptance) { setAge(false); setTos(false); setGuidelines(false); }
+    if (!needsAcceptance) { setAge(false); setTos(false); setGuidelines(false); setNotice(false); }
   }, [needsAcceptance]);
 
   if (loading || legalLoading || !user || !needsAcceptance) return null;
 
-  const canAccept = age && tos && guidelines && !saving;
+  const canAccept = age && tos && guidelines && notice && !saving;
 
   async function accept() {
     if (!user) return;
