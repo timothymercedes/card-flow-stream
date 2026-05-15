@@ -43,7 +43,7 @@ function StatusPage() {
         supabase.from("live_streams").select("status", { count: "exact", head: true }).gte("created_at", since),
         supabase.from("listings").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("payment_status", { count: "exact", head: true }).gte("created_at", since),
-        supabase.from("payouts").select("status", { count: "exact", head: true }).gte("created_at", since),
+        supabase.from("payout_requests").select("status", { count: "exact", head: true }).gte("created_at", since),
       ]);
 
       const next: SystemStatus[] = [
