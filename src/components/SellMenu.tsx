@@ -63,7 +63,7 @@ export function SellMenu() {
               </Link>
 
               <Link
-                to="/shows/$id/edit" params={{ id: "new" }}
+                to="/shows"
                 preload={false}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 p-3 text-left text-white shadow"

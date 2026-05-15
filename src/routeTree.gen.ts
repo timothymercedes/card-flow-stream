@@ -32,6 +32,7 @@ import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShowsIndexRouteImport } from './routes/shows.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
@@ -170,6 +171,11 @@ const AdminRoute = AdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShowsIndexRoute = ShowsIndexRouteImport.update({
+  id: '/shows/',
+  path: '/shows/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesIndexRoute = MessagesIndexRouteImport.update({
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/shows/': typeof ShowsIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
@@ -388,6 +395,7 @@ export interface FileRoutesByTo {
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
+  '/shows': typeof ShowsIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
@@ -438,6 +446,7 @@ export interface FileRoutesById {
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
+  '/shows/': typeof ShowsIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
@@ -489,6 +498,7 @@ export interface FileRouteTypes {
     | '/live/'
     | '/market/'
     | '/messages/'
+    | '/shows/'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/shows/$id/edit'
@@ -538,6 +548,7 @@ export interface FileRouteTypes {
     | '/live'
     | '/market'
     | '/messages'
+    | '/shows'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/shows/$id/edit'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/live/'
     | '/market/'
     | '/messages/'
+    | '/shows/'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/shows/$id/edit'
@@ -636,6 +648,7 @@ export interface RootRouteChildren {
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
+  ShowsIndexRoute: typeof ShowsIndexRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
@@ -805,6 +818,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shows/': {
+      id: '/shows/'
+      path: '/shows'
+      fullPath: '/shows/'
+      preLoaderRoute: typeof ShowsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages/': {
@@ -1039,6 +1059,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
+  ShowsIndexRoute: ShowsIndexRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
