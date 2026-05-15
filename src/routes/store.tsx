@@ -92,7 +92,7 @@ function SellerHub() {
   const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed" | "refunds" | "cancelled">("to_ship");
   const [liveTab, setLiveTab] = useState<"upcoming" | "history" | "tools">("upcoming");
   const [shippingTab, setShippingTab] = useState<"presets" | "auto" | "combined" | "caps" | "carriers">("presets");
-  const [payoutsTab, setPayoutsTab] = useState<"pending" | "completed" | "fees">("pending");
+  
 
   // Per-order shipping label state
   const [tracking, setTracking] = useState<Record<string, string>>({});
