@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Bookmark } from "lucide-react";
+import { Home, Radio, Store, Lock, MessageCircle, Plus, User, Package, ShoppingBag, Newspaper, Sparkles, Bookmark, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/HeaderSearch";
@@ -95,25 +96,54 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
        </div>
-       {/* Row 2: Search · utility icons (Language, Security/Shield, Bookmarks, Cart) */}
-       <div className="mt-2.5 flex flex-wrap items-center gap-2">
+       {/* Row 2: Search · Cart · More menu */}
+       <div className="mt-2.5 flex items-center gap-2">
          <BackButton />
-         <HeaderSearch className="min-w-0 flex-1 basis-full sm:basis-0" />
-         <div className="flex items-center gap-1.5">
-           <LanguageToggle />
-           {!tutorial && <AdminAlertBadge />}
-           <Link to="/bookmarks" aria-label={t("nav.bookmarks", "Bookmarked shows")} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-             <Bookmark className="h-4 w-4" aria-hidden="true" />
-           </Link>
-           <Link to="/cart" aria-label={cartCount > 0 ? `${t("nav.cart", "Cart")} (${cartCount})` : t("nav.cart", "Cart")} className="relative flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-             {cartCount > 0 && (
-               <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-live px-1 text-[9px] font-bold text-live-foreground">
-                 {cartCount}
-               </span>
+         <HeaderSearch className="min-w-0 flex-1" />
+         <Link to="/cart" aria-label={cartCount > 0 ? `${t("nav.cart", "Cart")} (${cartCount})` : t("nav.cart", "Cart")} className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+           <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+           {cartCount > 0 && (
+             <span aria-hidden="true" className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-live px-1 text-[9px] font-bold text-live-foreground">
+               {cartCount}
+             </span>
+           )}
+         </Link>
+         <DropdownMenu>
+           <DropdownMenuTrigger
+             aria-label={t("nav.moreMenu", "More")}
+             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted hover:bg-accent"
+           >
+             <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+           </DropdownMenuTrigger>
+           <DropdownMenuContent align="end" className="w-52">
+             <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Menu</DropdownMenuLabel>
+             <DropdownMenuItem asChild>
+               <Link to="/bookmarks" className="flex w-full items-center gap-2">
+                 <Bookmark className="h-4 w-4" /> {t("nav.bookmarks", "Bookmarked shows")}
+               </Link>
+             </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+               <Link to="/quests" className="flex w-full items-center gap-2">
+                 <Sparkles className="h-4 w-4" /> {t("nav.quests", "Quests & Achievements")}
+               </Link>
+             </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+               <Link to="/orders" className="flex w-full items-center gap-2">
+                 <Package className="h-4 w-4" /> {t("nav.orders", "Orders")}
+               </Link>
+             </DropdownMenuItem>
+             <DropdownMenuSeparator />
+             <div className="flex items-center justify-between px-2 py-1.5">
+               <span className="text-xs text-muted-foreground">Language</span>
+               <LanguageToggle />
+             </div>
+             {!tutorial && (
+               <div className="px-2 py-1">
+                 <AdminAlertBadge />
+               </div>
              )}
-           </Link>
-         </div>
+           </DropdownMenuContent>
+         </DropdownMenu>
        </div>
       </header>
       <main id="main-content" tabIndex={-1} className="flex-1 pb-20">{children}</main>

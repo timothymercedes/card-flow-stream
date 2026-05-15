@@ -53,7 +53,7 @@ export function FeedbackWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Send beta feedback"
-          className="fixed bottom-24 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-card text-primary shadow-lg ring-1 ring-border hover:bg-primary hover:text-primary-foreground transition-colors"
+          className="fixed bottom-[10.5rem] right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-card text-primary shadow-lg ring-1 ring-border hover:bg-primary hover:text-primary-foreground transition-colors"
         >
           <MessageCircleHeart className="h-5 w-5" />
         </button>
