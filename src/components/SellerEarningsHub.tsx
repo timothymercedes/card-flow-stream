@@ -61,17 +61,29 @@ function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   return { gross, platformFee, processingFee, shipping, promo, refund, recovery, totalDeductions, net };
 }
 
+type PayoutRequest = {
+  id: string;
+  amount_cents: number;
+  status: "requested" | "processing" | "completed" | "failed" | "canceled";
+  created_at: string;
+  completed_at: string | null;
+  failure_reason: string | null;
+};
+
 export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const { user } = useAuth();
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
   const [hold, setHold] = useState<Hold | null>(null);
+  const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"summary" | "orders" | "history">("summary");
   const [open, setOpen] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const requestPayoutCall = useServerFn(requestPayoutFn);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: recs }, { data: h }] = await Promise.all([
+    const [{ data: recs }, { data: h }, { data: po }] = await Promise.all([
       supabase
         .from("hold_recoveries" as any)
         .select("*")
@@ -84,9 +96,16 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         .eq("user_id", user.id)
         .eq("status", "active")
         .maybeSingle(),
+      supabase
+        .from("payout_requests" as any)
+        .select("id,amount_cents,status,created_at,completed_at,failure_reason")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     setRecoveries((recs as any) ?? []);
     setHold((h as any) ?? null);
+    setPayouts((po as any) ?? []);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
