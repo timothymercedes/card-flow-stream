@@ -80,7 +80,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const [tab, setTab] = useState<"summary" | "orders" | "history">("summary");
   const [open, setOpen] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [serverPayable, setServerPayable] = useState<{
+    available_cents: number; pending_cents: number; locked_cents: number;
+    in_flight_cents: number; owed_cents: number; payable_cents: number;
+    instant_pct: number; tier: TrustTier; frozen: boolean;
+  } | null>(null);
+  const [trust, setTrust] = useState<{ completed_deliveries: number; manual_override_pct: number | null } | null>(null);
   const requestPayoutCall = useServerFn(requestPayoutFn);
+  const getPayable = useServerFn(getSellerPayableFn);
+  const getTrust = useServerFn(getSellerTrustFn);
 
   const load = useCallback(async () => {
     if (!user) return;
