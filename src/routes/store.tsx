@@ -17,6 +17,7 @@ import { getListingPriceDisplay } from "@/lib/listingDisplay";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { demoListings, demoOrders, demoSellerAnalytics } from "@/lib/tutorialDemoData";
 import { LiveNowPill } from "@/components/ReturnToLiveBadge";
+import { SellerEarningsHub } from "@/components/SellerEarningsHub";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
@@ -91,7 +92,7 @@ function SellerHub() {
   const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed" | "refunds" | "cancelled">("to_ship");
   const [liveTab, setLiveTab] = useState<"upcoming" | "history" | "tools">("upcoming");
   const [shippingTab, setShippingTab] = useState<"presets" | "auto" | "combined" | "caps" | "carriers">("presets");
-  const [payoutsTab, setPayoutsTab] = useState<"pending" | "completed" | "fees">("pending");
+  
 
   // Per-order shipping label state
   const [tracking, setTracking] = useState<Record<string, string>>({});
@@ -846,42 +847,9 @@ function SellerHub() {
           </>
         )}
 
-        {/* PAYOUTS */}
+        {/* PAYOUTS / EARNINGS */}
         {section === "payouts" && (
-          <>
-            <SubTabs
-              value={payoutsTab}
-              onChange={setPayoutsTab}
-              tabs={[
-                { k: "pending", l: "Pending" },
-                { k: "completed", l: "Completed" },
-                { k: "fees", l: "Fees & Tax" },
-              ]}
-            />
-            {payoutsTab === "pending" && (
-              <div className="rounded-xl bg-card p-4 text-sm">
-                <p className="font-bold">Pending payout</p>
-                <p className="mt-1 text-2xl font-bold text-primary">${totals.pending.toFixed(2)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">From paid orders not yet delivered. Funds release after delivery confirmation.</p>
-                <Link to="/payouts" className="mt-3 inline-block rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Manage payouts</Link>
-              </div>
-            )}
-            {payoutsTab === "completed" && (
-              <div className="rounded-xl bg-card p-4 text-sm">
-                <p className="font-bold">Lifetime net</p>
-                <p className="mt-1 text-2xl font-bold text-primary">${totals.net.toFixed(2)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Across {orders.length} order{orders.length === 1 ? "" : "s"}.</p>
-              </div>
-            )}
-            {payoutsTab === "fees" && (
-              <div className="space-y-2">
-                <div className="rounded-xl bg-card p-3 text-sm flex justify-between"><span>Gross sales</span><span className="font-bold">${totals.gross.toFixed(2)}</span></div>
-                <div className="rounded-xl bg-card p-3 text-sm flex justify-between"><span>Platform commission (5%)</span><span className="font-bold text-destructive">-${totals.commission.toFixed(2)}</span></div>
-                <div className="rounded-xl bg-card p-3 text-sm flex justify-between"><span>Net to seller</span><span className="font-bold text-primary">${totals.net.toFixed(2)}</span></div>
-                <p className="px-1 text-[11px] text-muted-foreground">Tax forms (1099-K) issued at year end if you exceed reporting thresholds.</p>
-              </div>
-            )}
-          </>
+          <SellerEarningsHub orders={orders as any} />
         )}
 
         {/* REVIEWS */}
