@@ -27,6 +27,12 @@ export function FeedbackWidget() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener(FEEDBACK_OPEN_EVENT, handler);
+    return () => window.removeEventListener(FEEDBACK_OPEN_EVENT, handler);
+  }, []);
+
   if (!user) return null;
 
   async function submit() {
