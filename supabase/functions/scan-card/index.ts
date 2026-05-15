@@ -14,15 +14,41 @@ const LANG_MAP: Record<string, string> = {
   de: "German", fr: "French", es: "Spanish", it: "Italian", pt: "Portuguese", ru: "Russian",
 };
 
+const SUPPORTED_GAMES = [
+  "Pokémon",
+  "Magic: The Gathering",
+  "Yu-Gi-Oh!",
+  "One Piece TCG",
+  "Disney Lorcana",
+  "Dragon Ball Super Fusion",
+  "Star Wars Unlimited",
+  "Flesh and Blood",
+  "Sports card",
+  "Other collectible",
+] as const;
+
 const CARD_SCHEMA_TEXT = `{
   "name": string,
-  "category": string,
+  "category": string,  // one of: ${SUPPORTED_GAMES.join(", ")}
   "set": string,
   "year": string,
   "tcg_number": string,
   "variant": string,
   "rarity": string,
   "language": string,
+  "game_specific": {   // optional; only fill what is visible
+    "mana_cost": string,        // MTG
+    "type_line": string,        // MTG / YGO / Lorcana
+    "attribute": string,        // YGO
+    "level_or_rank": string,    // YGO
+    "atk_def": string,          // YGO
+    "color": string,            // One Piece / Lorcana / SWU
+    "cost": string,             // One Piece / Lorcana / SWU / FAB
+    "power": string,            // One Piece / SWU
+    "ink_cost": string,         // Lorcana
+    "player_or_team": string,   // Sports
+    "manufacturer": string      // Sports (Topps, Panini, etc.)
+  },
   "bbox": { "x": number, "y": number, "w": number, "h": number },
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
   "overall_confidence": number
