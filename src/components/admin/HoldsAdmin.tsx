@@ -65,24 +65,50 @@ export function HoldsAdmin() {
     load();
   }
 
+  const tabBtn = (key: typeof view, label: string) => (
+    <button
+      onClick={() => setView(key)}
+      className={`rounded-full px-3 py-1 text-xs font-bold ${view === key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div>
-      <div className="mb-3 flex items-center gap-2">
-        <button
-          onClick={() => setFilter("active")}
-          className={`rounded-full px-3 py-1 text-xs font-bold ${filter === "active" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-        >
-          Active ({holds.filter(h => h.status === "active").length})
-        </button>
-        <button
-          onClick={() => setFilter("all")}
-          className={`rounded-full px-3 py-1 text-xs font-bold ${filter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-        >
-          All
-        </button>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {tabBtn("active", `Active (${holds.filter(h => h.status === "active").length})`)}
+        {tabBtn("all", "All holds")}
+        {tabBtn("recoveries", "Auto-recoveries")}
       </div>
+
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
+      ) : view === "recoveries" ? (
+        recoveries.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No automatic deductions yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {recoveries.map((r) => (
+              <div key={r.id} className="rounded-xl border border-border bg-card p-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 font-bold capitalize">
+                    <Receipt className="h-3 w-3" /> {r.source}
+                  </span>
+                  <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
+                </div>
+                <code className="mt-1 block truncate text-[10px] text-muted-foreground">user: {r.user_id}</code>
+                <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] sm:grid-cols-4">
+                  <div><span className="text-muted-foreground">Earned</span><div className="font-bold">${(r.gross_cents / 100).toFixed(2)}</div></div>
+                  <div><span className="text-muted-foreground">Deducted</span><div className="font-bold text-destructive">−${(r.deducted_cents / 100).toFixed(2)}</div></div>
+                  <div><span className="text-muted-foreground">Released</span><div className="font-bold text-emerald-500">${(r.net_released_cents / 100).toFixed(2)}</div></div>
+                  <div><span className="text-muted-foreground">Still owed</span><div className="font-bold">${(r.remaining_owed_cents / 100).toFixed(2)}</div></div>
+                </div>
+                {r.reference_id ? <code className="mt-1 block truncate text-[10px] text-muted-foreground">ref: {r.reference_id}</code> : null}
+              </div>
+            ))}
+          </div>
+        )
       ) : holds.length === 0 ? (
         <p className="text-xs text-muted-foreground">No holds.</p>
       ) : (
