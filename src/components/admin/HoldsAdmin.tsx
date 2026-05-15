@@ -29,19 +29,29 @@ type Hold = {
 
 export function HoldsAdmin() {
   const [holds, setHolds] = useState<Hold[]>([]);
-  const [filter, setFilter] = useState<"active" | "all">("active");
+  const [recoveries, setRecoveries] = useState<Recovery[]>([]);
+  const [view, setView] = useState<"active" | "all" | "recoveries">("active");
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    let q = supabase.from("account_holds" as any).select("*").order("opened_at", { ascending: false }).limit(200);
-    if (filter === "active") q = q.eq("status", "active");
-    const { data } = await q;
-    setHolds((data as any) || []);
+    if (view === "recoveries") {
+      const { data } = await supabase
+        .from("hold_recoveries" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      setRecoveries((data as any) || []);
+    } else {
+      let q = supabase.from("account_holds" as any).select("*").order("opened_at", { ascending: false }).limit(200);
+      if (view === "active") q = q.eq("status", "active");
+      const { data } = await q;
+      setHolds((data as any) || []);
+    }
     setLoading(false);
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [view]);
 
   async function clearHold(id: string, override: boolean) {
     const note = override
