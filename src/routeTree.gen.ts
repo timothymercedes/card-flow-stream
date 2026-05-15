@@ -14,6 +14,7 @@ import { Route as TutorialsRouteImport } from './routes/tutorials'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
+import { Route as StatusRouteImport } from './routes/status'
 import { Route as ShowoffRouteImport } from './routes/showoff'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SellRouteImport } from './routes/sell'
@@ -82,6 +83,11 @@ const StoriesRoute = StoriesRouteImport.update({
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShowoffRoute = ShowoffRouteImport.update({
@@ -329,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/showoff': typeof ShowoffRoute
+  '/status': typeof StatusRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
@@ -380,6 +387,7 @@ export interface FileRoutesByTo {
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/showoff': typeof ShowoffRoute
+  '/status': typeof StatusRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
@@ -432,6 +440,7 @@ export interface FileRoutesById {
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/showoff': typeof ShowoffRoute
+  '/status': typeof StatusRoute
   '/store': typeof StoreRoute
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
@@ -485,6 +494,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/settings'
     | '/showoff'
+    | '/status'
     | '/store'
     | '/stories'
     | '/support'
@@ -536,6 +546,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/settings'
     | '/showoff'
+    | '/status'
     | '/store'
     | '/stories'
     | '/support'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/settings'
     | '/showoff'
+    | '/status'
     | '/store'
     | '/stories'
     | '/support'
@@ -639,6 +651,7 @@ export interface RootRouteChildren {
   SellRoute: typeof SellRoute
   SettingsRoute: typeof SettingsRoute
   ShowoffRoute: typeof ShowoffRoute
+  StatusRoute: typeof StatusRoute
   StoreRoute: typeof StoreRoute
   StoriesRoute: typeof StoriesRoute
   SupportRoute: typeof SupportRoute
@@ -705,6 +718,13 @@ declare module '@tanstack/react-router' {
       path: '/store'
       fullPath: '/store'
       preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/showoff': {
@@ -1058,6 +1078,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellRoute: SellRoute,
   SettingsRoute: SettingsRoute,
   ShowoffRoute: ShowoffRoute,
+  StatusRoute: StatusRoute,
   StoreRoute: StoreRoute,
   StoriesRoute: StoriesRoute,
   SupportRoute: SupportRoute,

@@ -14,6 +14,7 @@ import { AccountHoldBanner } from "@/components/AccountHoldBanner";
 import { HelpBubble } from "@/components/HelpBubble";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { ReturnToLiveBadge } from "@/components/ReturnToLiveBadge";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SellMenu } from "@/components/SellMenu";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
@@ -115,6 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <HelpBubble />}
       {!tutorial && <NotifyPrompt />}
       {!tutorial && <ReturnToLiveBadge />}
+      {!tutorial && <FeedbackWidget />}
       <nav aria-label={t("nav.primary", "Primary")} className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
         <div className={`grid`} style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((tab) => {
