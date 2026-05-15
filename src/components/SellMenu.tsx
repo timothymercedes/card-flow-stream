@@ -37,7 +37,7 @@ export function SellMenu() {
 
             <div className="grid gap-2">
               <Link
-                to="/live"
+                to="/sell"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 p-3 text-left text-white shadow"
               >
