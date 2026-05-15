@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { MessageCircleHeart, X, Bug, Lightbulb, Sparkles, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Bug, Lightbulb, Sparkles, MessageSquare } from "lucide-react";
+
+export const FEEDBACK_OPEN_EVENT = "pullbid:open-feedback";
+export function openFeedback() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(FEEDBACK_OPEN_EVENT));
+}
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "@tanstack/react-router";
