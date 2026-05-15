@@ -79,21 +79,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <AdminAlertBanner />}
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur">
        {/* Row 1: Logo · Flex Live · Sell · Notifications · Profile */}
-       <div className="flex items-center justify-between gap-2">
-        <Link to="/" className="flex min-w-0 items-center gap-2" aria-label="PullBid Live home">
+       <div className="flex items-center gap-2">
+        <Link to="/" className="flex min-w-0 flex-1 items-center gap-2" aria-label="PullBid Live home">
           <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 object-contain" />
-          <div className="truncate text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
+          <div className="whitespace-nowrap text-sm font-bold tracking-wide">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></div>
         </Link>
-        <div className="flex items-center gap-1.5">
-          <Link to="/showoff" aria-label={t("nav.flexLive")} className="flex items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 py-1.5 text-xs font-semibold text-white">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> {t("nav.flexLive")}
+        <div className="flex shrink-0 items-center gap-1">
+          <Link to="/showoff" aria-label={t("nav.flexLive")} title={t("nav.flexLive")} className="flex h-8 items-center justify-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2 text-white sm:px-2.5">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden text-xs font-semibold sm:inline">{t("nav.flexLive")}</span>
           </Link>
           <SellMenu />
           {!tutorial && <XPBadge />}
           {!tutorial && <NotificationBell />}
-          <Link to="/profile" aria-label={t("nav.profile", "Profile")} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-            <User className="h-4 w-4" aria-hidden="true" />
-          </Link>
         </div>
        </div>
        {/* Row 2: Search · Cart · More menu */}
