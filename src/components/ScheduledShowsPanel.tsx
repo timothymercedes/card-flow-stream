@@ -22,7 +22,8 @@ type Show = {
   categories: string[] | null;
 };
 
-export function ScheduledShowsPanel({ compact }: { compact?: boolean }) {
+export function ScheduledShowsPanel({ compact, section }: { compact?: boolean; section?: "hosting" | "bookmarked" | "all" }) {
+  const show = section ?? "all";
   const { user } = useAuth();
   const [hosting, setHosting] = useState<Show[]>([]);
   const [bookmarked, setBookmarked] = useState<Show[]>([]);
@@ -71,6 +72,7 @@ export function ScheduledShowsPanel({ compact }: { compact?: boolean }) {
 
   return (
     <div className="space-y-3">
+      {show !== "bookmarked" && (
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h3 className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
@@ -139,7 +141,9 @@ export function ScheduledShowsPanel({ compact }: { compact?: boolean }) {
           </ul>
         )}
       </div>
+      )}
 
+      {show !== "hosting" && (
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
           <Bookmark className="h-3.5 w-3.5" /> Bookmarked Shows
@@ -166,6 +170,7 @@ export function ScheduledShowsPanel({ compact }: { compact?: boolean }) {
           </ul>
         )}
       </div>
+      )}
     </div>
   );
 }
