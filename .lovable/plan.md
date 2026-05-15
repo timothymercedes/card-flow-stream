@@ -1,42 +1,74 @@
-## Plan: 4 Platform Updates
+## Phase 11 — Refinements + Account Hold System
 
-### 1. Global Admin Alert Banner
-- Create `src/components/AdminAlertBanner.tsx` — a sticky top-of-page banner (separate from the existing small `AdminAlertBadge` icon) that:
-  - Polls/realtime-subscribes to: `user_reports` (status=open), `disputes` (open/investigating), `profiles` (verification pending/reverify), `orders` (shipping issues — `delivery_status` problem states), and any payment-failure flags already on `orders`/`payouts`.
-  - Shows breakdown counts ("3 reports • 2 disputes • 1 verification") with a "Review now →" CTA linking to `/admin`.
-  - Only renders for staff (admin/owner/moderator/support roles, reusing the role check in `AdminAlertBadge`).
-  - Dismissible per-session but reappears on new alerts; stays sticky on `/admin*` routes until count = 0.
-- Mount in `AppShell.tsx` above the header (below any existing banners).
+Rolling out in the priority order you set. All UI stays consistent with PullBid Live tokens (`bg-card`, `border-border`, `text-primary`, rounded-2xl, amber/red/blue semantic colors already in `styles.css`). Mobile-first; tested at 360 / 768 / 1280.
 
-### 2. Story Upload Preview
-- Update `src/routes/stories.tsx` upload flow to add a preview step:
-  - After file select → show full-size preview (`<img>` for images, `<video controls>` for video) in a modal.
-  - Buttons: **Remove**, **Change media** (re-opens picker), **Post**.
-  - Object-fit preview matching the story aspect ratio (9:16) with letterboxing.
-  - Upload progress spinner overlay during the actual upload, with disabled buttons.
-  - Locate current upload handler and split into `selectMedia` → `confirmAndUpload`.
+---
 
-### 3. AI Scanner Multi-TCG Expansion
-- The catalog/pricing registry already supports MTG, Yu-Gi-Oh, One Piece, Lorcana, DBS, SWU, FAB, Sports (`supabase/functions/_shared/cards/games.ts`). The gap is in the **scanner** edge function (`supabase/functions/scan-card/index.ts`) and `identify-card`, which hard-code Pokémon.
-- Update `scan-card/index.ts`:
-  - Add a game-detection step: ask the vision model to first classify the card's game from a fixed list (Pokémon, MTG, Yu-Gi-Oh, One Piece, Lorcana, DBS Fusion, SWU, Flesh and Blood, Sports card, Other).
-  - Pass the detected game into `resolveGame()` and route catalog/pricing through the existing adapter chain.
-  - Improved OCR prompt: extract `name`, `set_code`, `collector_number`, `rarity`, plus game-specific fields (mana cost for MTG, attribute/level for YGO, etc.) — kept optional.
-  - Return `detected_game` in the response so the UI can show it.
-- Update `src/components/CardScanner.tsx` to display the detected game badge and pass it through to downstream pricing/listing flows.
+### 1. Story Preview — upgrades to existing `StoryRail.tsx`
+- **File-size validation** before preview opens: images ≤ 8 MB, video ≤ 50 MB. Toast on reject.
+- **Drag-to-reposition** for image stories: wrap preview `<img>` in a 9:16 frame with `object-cover`, track `translate` via pointer events, clamp to bounds. Persist crop offset alongside upload.
+- **Retry on upload failure**: catch upload error, keep modal open, show inline "Upload failed — Retry" button (re-runs `confirmAndUpload` without re-picking file). Up to 3 attempts then surface support link.
+- **Stub for future overlays**: leave a `<StoryOverlayLayer />` placeholder slot in the preview (no-op now) so text/sticker work plugs in later without refactor.
 
-### 4. Platform Agreement / Important Notice (v1.1)
-- Bump `REQUIRED_LEGAL_VERSION` in `src/lib/legal.ts` from `"1.0"` → `"1.1"` so every existing user is re-prompted via the existing `LegalGate` flow.
-- Expand `LegalGate.tsx` content to a scrollable "Important Notice" section listing the requested topics (intl shipping & customs, platform/processing fees, seller responsibilities, buyer protection, refund/dispute, prohibited items, chargeback abuse, shipping deadlines, auction rules, digital-item disclaimer, suspension reasons), with the existing 3 checkboxes (age/ToS+Privacy/Guidelines) plus a new **"I've read the Important Notice"** checkbox.
-- Add a corresponding bullet block to `src/routes/legal.tos.tsx` (or a new `/legal/important-notice` route) so the linked detail page exists.
-- Signup flow already routes through `LegalGate` for new accounts → no separate signup change needed; just version bump triggers re-acceptance for everyone.
+### 2. Admin Alert Banner — `AdminAlertBanner.tsx`
+- **Priority colors** driven by highest-severity open count:
+  - Red (`bg-destructive/15 border-destructive/40`) — fraud flags or payment failures > 0
+  - Yellow (current amber) — disputes or open reports
+  - Blue (`bg-blue-500/15 border-blue-500/40`) — only verifications pending
+- **Click-through routing**: replace single "Review →" with per-segment chips. Each chip links to the filtered admin tab:
+  - Reports → `/admin?tab=reports&status=open`
+  - Disputes → `/admin?tab=disputes&status=open`
+  - Verifications → `/admin?tab=verifications&status=pending`
+  - Payment/shipping → `/admin?tab=orders&filter=issues`
+- **Sound toggle**: small bell icon in banner; persists `admin-alert-sound` in `localStorage`. When new alert arrives via realtime AND sound enabled, play short `/sfx/alert.mp3` (reuse `src/lib/sfx.ts`).
+- **Mobile**: stack chips vertically below the message at `< sm`, keep dismiss + sound toggle in a top row. Truncate parts list to "+N more" when > 2 segments on narrow viewports.
 
-### Technical notes
-- No new DB tables needed — all four features reuse existing tables (`user_reports`, `disputes`, `profiles`, `orders`, `legal_acceptances` via `accept_required_legal_documents` RPC).
-- Realtime: AdminAlertBanner reuses `useRealtimeChannel` like the existing badge.
-- Scanner: keep the Pokémon-specific logic as the default fallback so existing behavior is preserved if game detection is uncertain.
-- Legal version bump will force every active user to see the new modal once on next page load — no migration needed.
+### 3. Legal / Important Notice v1.2
+- **Bump** `REQUIRED_LEGAL_VERSION` → `"1.2"` (re-prompts everyone).
+- **New sections** in `legal.important-notice.tsx`:
+  - §13 Host responsibility for giveaways/givys
+  - §14 International customs/import taxes (expand existing §1)
+  - §15 Carrier-caused shipping delays disclaimer
+  - §16 Payout holds during fraud/dispute investigations
+  - §17 Digital goods & mystery products — final sale rules
+- **Scroll-to-bottom gate** in `LegalGate.tsx`: the Important Notice checkbox stays disabled until user scrolls the embedded notice preview to the bottom (IntersectionObserver on a sentinel div). Visual hint: "Scroll to enable ↓".
+- **Audit logging**: `accept_required_legal_documents` RPC already records timestamp + version. Add admin view at `/admin?tab=legal-acceptances` reading `legal_acceptances` table (no DB change — already populated).
 
-### Files touched
-- new: `src/components/AdminAlertBanner.tsx`, `src/routes/legal.important-notice.tsx`
-- edit: `src/components/AppShell.tsx`, `src/routes/stories.tsx`, `src/components/LegalGate.tsx`, `src/lib/legal.ts`, `src/routes/legal.tos.tsx`, `src/components/CardScanner.tsx`, `supabase/functions/scan-card/index.ts`
+### 4. AI Scanner Expansion — `scan-card/index.ts` + `CardScanner.tsx`
+- **Multi-signal vision prompt**: instruct model to use border style, frame layout, art style, set symbol, holo pattern, and OCR text together — not OCR alone. Extract: `detected_game`, `confidence` (0–1), `name`, `set`, `number`, `rarity`, `condition_hints` (sleeved/damaged/holo/full-art/slab), `game_specific`.
+- **Sports cards**: when `detected_game === "sports"`, additionally extract `player`, `team`, `year`, `manufacturer`, `card_number`.
+- **Slabs / sealed products**: detect grading slab (PSA/BGS/CGC/SGC) → return `graded: { company, grade, cert_number }`. Sealed products (booster boxes, ETBs) → `product_type: "sealed"` with set/edition.
+- **Confidence display**: show colored badge in `CardScanner.tsx` (green ≥0.8, yellow 0.5–0.8, red <0.5).
+- **Manual correction**: "Not the right card?" button under result opens an inline edit form (game dropdown, name, set, number) → re-runs catalog/pricing lookup with corrected fields. Reuses `ManualCardFinder.tsx`.
+- **Beta gate**: keep behind existing scanner UI; no auto-listing without user confirm.
+
+### 5. Negative Balance / Account Hold System (NEW)
+**DB migration:**
+- New table `account_holds` (user_id, status enum `active|cleared|admin_override`, balance_owed_cents int, reason text, source enum `refund|chargeback|failed_label|fee|manual`, opened_at, cleared_at, opened_by, cleared_by). RLS: users see own row; admins see all.
+- Trigger: when `profiles.balance_cents < -2000`, auto-insert active hold (one per user max via unique partial index on `status='active'`).
+- View `v_user_hold_status` joining `profiles` + active hold for fast checks.
+
+**Server-side enforcement** (server functions):
+- `requireNoActiveHold` middleware reused in: `start-live-show`, `create-listing`, `request-payout`. Returns 423 with `hold_id` + `balance_owed_cents`.
+- Payout flow: when active hold exists, automatically deduct up to `balance_owed_cents` from pending payout, mark hold cleared if balance ≥ 0.
+- Repeat-offender flag: if user has ≥3 cleared holds in 90 days → set `profiles.risk_flag = true` (admins notified via existing AdminAlertBanner).
+
+**UI:**
+- New `AccountHoldBanner.tsx` mounted in `AppShell.tsx` (above admin banner). Red, sticky, dismissible only by paying. Shows owed amount, reason, "Pay Balance →" button → opens Stripe Embedded Checkout (one-time `price_data` for exact owed amount, success webhook clears hold).
+- Hold-aware blocks in: `SellMenu`, `sell.tsx`, `payouts.tsx`, `studio.$id.tsx` start-show button — show inline "Account on hold" with link to balance banner.
+- Buy / login / support routes remain fully accessible.
+
+**Admin:**
+- `/admin?tab=holds` — list of active holds with override button (`clear_hold_admin` RPC, audit-logged), reason history, linked source events (refund/chargeback/label IDs).
+
+---
+
+### Files
+- **edit**: `src/components/StoryRail.tsx`, `src/components/AdminAlertBanner.tsx`, `src/components/LegalGate.tsx`, `src/lib/legal.ts`, `src/routes/legal.important-notice.tsx`, `src/components/CardScanner.tsx`, `supabase/functions/scan-card/index.ts`, `src/components/AppShell.tsx`, `src/components/SellMenu.tsx`, `src/routes/sell.tsx`, `src/routes/payouts.tsx`, `src/routes/admin.tsx`, `src/lib/sfx.ts`
+- **new**: `src/components/AccountHoldBanner.tsx`, `src/components/admin/HoldsAdmin.tsx`, `src/components/admin/LegalAcceptancesAdmin.tsx`, `src/lib/holds.functions.ts`, `public/sfx/alert.mp3` (placeholder)
+- **migration**: `account_holds` table + trigger + view + RLS + `clear_hold_admin` RPC
+
+### Notes
+- This is a large scope. I'll execute in the priority order you specified (Story → Banner → Legal → Scanner → Holds), pausing only if a DB migration needs your approval (the holds migration will).
+- Stripe payment for clearing holds reuses the existing embedded checkout pattern — no new keys needed.
+- All new banners stack: AccountHoldBanner (red, blocks) → AdminAlertBanner (staff only) → header. Mobile keeps each ≤ 2 lines.

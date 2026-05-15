@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
-import { ShieldAlert, X } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { ShieldAlert, X, Bell, BellOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeChannel } from "@/lib/realtime";
@@ -10,24 +10,35 @@ type Counts = {
   disputes: number;
   verifications: number;
   shipping: number;
+  payments: number;
 };
 
 const STORAGE_KEY = "admin-alert-banner-dismissed-total";
+const SOUND_KEY = "admin-alert-sound";
 
 /**
  * Sticky top banner shown to staff users (admin/owner/moderator/support)
  * whenever there are open reports, disputes, pending verifications, or
- * shipping issues. Dismissible, but reappears whenever the total count
- * grows beyond the last-dismissed snapshot.
+ * shipping/payment issues. Priority colors:
+ *  - red: payment failures or shipping issues
+ *  - amber: disputes or open reports
+ *  - blue: verifications only
+ * Click-through chips link to the matching admin tab.
+ * Optional sound on new alerts (per-staff localStorage toggle).
  */
 export function AdminAlertBanner() {
   const { user } = useAuth();
   const [isStaff, setIsStaff] = useState(false);
-  const [counts, setCounts] = useState<Counts>({ reports: 0, disputes: 0, verifications: 0, shipping: 0 });
+  const [counts, setCounts] = useState<Counts>({ reports: 0, disputes: 0, verifications: 0, shipping: 0, payments: 0 });
   const [dismissedAt, setDismissedAt] = useState<number>(() => {
     if (typeof window === "undefined") return 0;
     return Number(sessionStorage.getItem(STORAGE_KEY) || 0);
   });
+  const [soundOn, setSoundOn] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(SOUND_KEY) === "1";
+  });
+  const lastTotalRef = useRef(0);
 
   const refresh = useCallback(async () => {
     const [reports, disputes, verifications, shipping, payments] = await Promise.all([
@@ -37,13 +48,20 @@ export function AdminAlertBanner() {
       supabase.from("orders").select("id", { count: "exact", head: true }).eq("is_late_shipment", true),
       supabase.from("orders").select("id", { count: "exact", head: true }).gt("payment_failure_count", 0),
     ]);
-    setCounts({
+    const next: Counts = {
       reports: reports.count || 0,
       disputes: disputes.count || 0,
       verifications: verifications.count || 0,
-      shipping: (shipping.count || 0) + (payments.count || 0),
-    });
-  }, []);
+      shipping: shipping.count || 0,
+      payments: payments.count || 0,
+    };
+    const total = next.reports + next.disputes + next.verifications + next.shipping + next.payments;
+    if (soundOn && total > lastTotalRef.current && lastTotalRef.current > 0) {
+      try { new Audio("/sounds/admin-alert.mp3").play().catch(() => {}); } catch {}
+    }
+    lastTotalRef.current = total;
+    setCounts(next);
+  }, [soundOn]);
 
   useEffect(() => {
     if (!user) { setIsStaff(false); return; }
@@ -66,32 +84,68 @@ export function AdminAlertBanner() {
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "orders" } as any, () => refresh()),
   );
 
-  const total = counts.reports + counts.disputes + counts.verifications + counts.shipping;
+  const total = counts.reports + counts.disputes + counts.verifications + counts.shipping + counts.payments;
   if (!isStaff || total === 0 || total <= dismissedAt) return null;
 
-  const parts: string[] = [];
-  if (counts.reports) parts.push(`${counts.reports} report${counts.reports === 1 ? "" : "s"}`);
-  if (counts.disputes) parts.push(`${counts.disputes} dispute${counts.disputes === 1 ? "" : "s"}`);
-  if (counts.verifications) parts.push(`${counts.verifications} verification${counts.verifications === 1 ? "" : "s"}`);
-  if (counts.shipping) parts.push(`${counts.shipping} shipping/payment issue${counts.shipping === 1 ? "" : "s"}`);
+  // Priority color
+  const isRed = counts.payments > 0 || counts.shipping > 0;
+  const isAmber = !isRed && (counts.disputes > 0 || counts.reports > 0);
+  const tone = isRed
+    ? "border-destructive/50 bg-destructive/15 text-destructive"
+    : isAmber
+    ? "border-amber-500/50 bg-amber-500/15 text-amber-100"
+    : "border-blue-500/50 bg-blue-500/15 text-blue-100";
+  const dotTone = isRed ? "text-destructive" : isAmber ? "text-amber-400" : "text-blue-400";
+  const cta = isRed ? "bg-destructive text-destructive-foreground" : isAmber ? "bg-amber-500 text-amber-950" : "bg-blue-500 text-white";
+
+  const chips: { label: string; n: number; href: string }[] = [];
+  if (counts.reports) chips.push({ label: `${counts.reports} report${counts.reports === 1 ? "" : "s"}`, n: counts.reports, href: "/admin?tab=reports" });
+  if (counts.disputes) chips.push({ label: `${counts.disputes} dispute${counts.disputes === 1 ? "" : "s"}`, n: counts.disputes, href: "/admin?tab=disputes" });
+  if (counts.verifications) chips.push({ label: `${counts.verifications} verification${counts.verifications === 1 ? "" : "s"}`, n: counts.verifications, href: "/admin?tab=verifications" });
+  if (counts.shipping) chips.push({ label: `${counts.shipping} shipping`, n: counts.shipping, href: "/admin?tab=orders&filter=issues" });
+  if (counts.payments) chips.push({ label: `${counts.payments} payment`, n: counts.payments, href: "/admin?tab=orders&filter=issues" });
 
   function dismiss() {
     setDismissedAt(total);
     try { sessionStorage.setItem(STORAGE_KEY, String(total)); } catch {}
   }
 
+  function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    try { localStorage.setItem(SOUND_KEY, next ? "1" : "0"); } catch {}
+  }
+
   return (
-    <div className="sticky top-0 z-40 flex items-center gap-2 border-b border-amber-500/40 bg-amber-500/15 px-3 py-2 text-xs text-amber-100 backdrop-blur">
-      <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400" />
-      <span className="min-w-0 flex-1 truncate">
-        <strong>Admin alerts:</strong> {parts.join(" • ")}
-      </span>
-      <Link to="/admin" className="shrink-0 rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold text-amber-950 hover:bg-amber-400">
-        Review →
-      </Link>
-      <button onClick={dismiss} aria-label="Dismiss" className="shrink-0 rounded-full p-1 text-amber-200 hover:bg-amber-500/20">
-        <X className="h-3.5 w-3.5" />
-      </button>
+    <div className={`sticky top-0 z-40 border-b px-3 py-2 text-xs backdrop-blur ${tone}`}>
+      <div className="flex items-center gap-2">
+        <ShieldAlert className={`h-4 w-4 shrink-0 ${dotTone}`} />
+        <strong className="shrink-0">Admin alerts</strong>
+        <span className="ml-1 hidden truncate sm:inline">· {total} open</span>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <button
+            onClick={toggleSound}
+            aria-label={soundOn ? "Mute alerts" : "Unmute alerts"}
+            className="rounded-full p-1 hover:bg-black/10"
+          >
+            {soundOn ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5 opacity-60" />}
+          </button>
+          <button onClick={dismiss} aria-label="Dismiss" className="rounded-full p-1 hover:bg-black/10">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        {chips.map((c) => (
+          <Link
+            key={c.label}
+            to={c.href as any}
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${cta} hover:opacity-90`}
+          >
+            {c.label} →
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
