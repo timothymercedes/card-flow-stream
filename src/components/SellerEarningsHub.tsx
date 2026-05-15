@@ -185,27 +185,61 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     a.click(); URL.revokeObjectURL(url);
   }
 
-  function requestPayout() {
+  const hasInflightPayout = totals.processingPayout > 0;
+
+  async function requestPayout() {
+    if (hasInflightPayout) {
+      toast.error("A payout is already in progress. Please wait for it to complete.");
+      return;
+    }
     if (totals.payable < MIN_PAYOUT) {
       toast.error(`Minimum payout is ${fmt(MIN_PAYOUT)}.`);
       return;
     }
-    if (hold) {
-      toast.message(`${fmt(totals.owed)} owed will be deducted automatically before release.`);
+    if (hold && !confirm(`${fmt(totals.owed)} owed will be deducted automatically before release. Continue?`)) {
+      return;
     }
-    // Routes to the existing payouts page (Stripe Connect manages actual transfer)
-    window.location.href = "/payouts?action=request";
+    setSubmitting(true);
+    try {
+      const cents = Math.round(totals.payable * 100);
+      await requestPayoutCall({ data: { amountCents: cents } });
+      toast.success(`Payout of ${fmt(totals.payable)} is now processing — ETA ${PAYOUT_ETA_BIZ_DAYS}.`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Could not start payout");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="space-y-3">
+      {/* Combined total — front and center */}
+      <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-4">
+        <p className="text-[11px] uppercase text-muted-foreground">Total earnings</p>
+        <p className="text-3xl font-bold text-primary">{fmt(totals.totalEarnings)}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Available + pending + processing payout
+        </p>
+      </div>
+
       {/* Top balance cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <BalanceCard icon={<Wallet className="h-4 w-4" />} label="Available" value={fmt(totals.available)} accent="primary" />
         <BalanceCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(totals.pending)} />
-        <BalanceCard icon={<ArrowDownToLine className="h-4 w-4" />} label="Processing" value={fmt(totals.processing)} />
+        <BalanceCard icon={<ArrowDownToLine className="h-4 w-4" />} label="Processing payout" value={fmt(totals.processingPayout)} />
         <BalanceCard icon={<CheckCircle2 className="h-4 w-4" />} label="Completed" value={fmt(totals.completed)} />
       </div>
+
+      {/* In-flight payout banner */}
+      {hasInflightPayout && (
+        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <div className="flex-1">
+            <strong>{fmt(totals.processingPayout)} processing.</strong> ETA {PAYOUT_ETA_BIZ_DAYS}. Funds will return to Available if the transfer fails.
+          </div>
+        </div>
+      )}
 
       {/* Negative balance warning */}
       {hold && (
@@ -232,10 +266,11 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           </div>
           <button
             onClick={requestPayout}
-            disabled={totals.payable < MIN_PAYOUT}
-            className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            disabled={submitting || hasInflightPayout || totals.payable < MIN_PAYOUT}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
-            Request payout
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {hasInflightPayout ? "Payout in progress" : "Request payout"}
           </button>
         </div>
       </div>
