@@ -6101,6 +6101,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      unlock_achievement: {
+        Args: { _slug: string; _user_id: string }
+        Returns: undefined
+      }
       xp_to_level: { Args: { _xp: number }; Returns: number }
     }
     Enums: {
