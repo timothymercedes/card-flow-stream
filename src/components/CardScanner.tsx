@@ -43,6 +43,7 @@ export type ScanResult = {
   variant?: string;
   rarity?: string;
   language?: string;
+  game_specific?: Record<string, string>;
   estimated_value?: number;
   condition_prices?: { NM?: number; LP?: number; MP?: number; Damaged?: number };
   price_source?: string;

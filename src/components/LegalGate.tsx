@@ -20,15 +20,16 @@ export function LegalGate() {
   const [age, setAge] = useState(false);
   const [tos, setTos] = useState(false);
   const [guidelines, setGuidelines] = useState(false);
+  const [notice, setNotice] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!needsAcceptance) { setAge(false); setTos(false); setGuidelines(false); }
+    if (!needsAcceptance) { setAge(false); setTos(false); setGuidelines(false); setNotice(false); }
   }, [needsAcceptance]);
 
   if (loading || legalLoading || !user || !needsAcceptance) return null;
 
-  const canAccept = age && tos && guidelines && !saving;
+  const canAccept = age && tos && guidelines && notice && !saving;
 
   async function accept() {
     if (!user) return;
@@ -89,9 +90,21 @@ export function LegalGate() {
                 <Link to="/legal/community-guidelines" target="_blank" className="text-primary underline">Community Guidelines</Link>.
               </span>
             </label>
+
+            <label className="flex items-start gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={notice} onChange={(e) => setNotice(e.target.checked)} />
+              <span className="text-sm">
+                I have read the{" "}
+                <Link to="/legal/important-notice" target="_blank" className="text-primary underline font-semibold">Important Notice</Link>{" "}
+                covering international shipping &amp; customs, platform &amp; processing fees, seller responsibilities,
+                buyer protection, refund/dispute rules, prohibited items, chargeback policy, shipping deadlines,
+                auction rules, and account suspension reasons.
+              </span>
+            </label>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2 text-[11px]">
+            <Link to="/legal/important-notice" target="_blank" className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-primary hover:bg-primary/20">View Important Notice</Link>
             <Link to="/legal/tos" target="_blank" className="rounded-full border border-border px-3 py-1 text-muted-foreground hover:bg-muted">View Terms</Link>
             <Link to="/legal/community-guidelines" target="_blank" className="rounded-full border border-border px-3 py-1 text-muted-foreground hover:bg-muted">View Guidelines</Link>
             <Link to="/legal/privacy" target="_blank" className="rounded-full border border-border px-3 py-1 text-muted-foreground hover:bg-muted">View Privacy</Link>

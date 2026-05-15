@@ -46,6 +46,7 @@ import { Route as LegalTosRouteImport } from './routes/legal.tos'
 import { Route as LegalSellerHostAgreementRouteImport } from './routes/legal.seller-host-agreement'
 import { Route as LegalSellerAgreementRouteImport } from './routes/legal.seller-agreement'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
+import { Route as LegalImportantNoticeRouteImport } from './routes/legal.important-notice'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
@@ -244,6 +245,11 @@ const LegalPrivacyRoute = LegalPrivacyRouteImport.update({
   path: '/legal/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalImportantNoticeRoute = LegalImportantNoticeRouteImport.update({
+  id: '/legal/important-notice',
+  path: '/legal/important-notice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalCommunityGuidelinesRoute =
   LegalCommunityGuidelinesRouteImport.update({
     id: '/legal/community-guidelines',
@@ -332,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
+  '/legal/important-notice': typeof LegalImportantNoticeRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
   '/legal/seller-host-agreement': typeof LegalSellerHostAgreementRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
+  '/legal/important-notice': typeof LegalImportantNoticeRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
   '/legal/seller-host-agreement': typeof LegalSellerHostAgreementRoute
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/admin_/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
+  '/legal/important-notice': typeof LegalImportantNoticeRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/seller-agreement': typeof LegalSellerAgreementRoute
   '/legal/seller-host-agreement': typeof LegalSellerHostAgreementRoute
@@ -485,6 +494,7 @@ export interface FileRouteTypes {
     | '/admin/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
+    | '/legal/important-notice'
     | '/legal/privacy'
     | '/legal/seller-agreement'
     | '/legal/seller-host-agreement'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/admin/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
+    | '/legal/important-notice'
     | '/legal/privacy'
     | '/legal/seller-agreement'
     | '/legal/seller-host-agreement'
@@ -585,6 +596,7 @@ export interface FileRouteTypes {
     | '/admin_/performance'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
+    | '/legal/important-notice'
     | '/legal/privacy'
     | '/legal/seller-agreement'
     | '/legal/seller-host-agreement'
@@ -635,6 +647,7 @@ export interface RootRouteChildren {
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
   LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
+  LegalImportantNoticeRoute: typeof LegalImportantNoticeRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalSellerAgreementRoute: typeof LegalSellerAgreementRoute
   LegalSellerHostAgreementRoute: typeof LegalSellerHostAgreementRoute
@@ -918,6 +931,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/important-notice': {
+      id: '/legal/important-notice'
+      path: '/legal/important-notice'
+      fullPath: '/legal/important-notice'
+      preLoaderRoute: typeof LegalImportantNoticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/community-guidelines': {
       id: '/legal/community-guidelines'
       path: '/legal/community-guidelines'
@@ -1046,6 +1066,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPerformanceRoute: AdminPerformanceRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
   LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
+  LegalImportantNoticeRoute: LegalImportantNoticeRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalSellerAgreementRoute: LegalSellerAgreementRoute,
   LegalSellerHostAgreementRoute: LegalSellerHostAgreementRoute,

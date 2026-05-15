@@ -14,15 +14,41 @@ const LANG_MAP: Record<string, string> = {
   de: "German", fr: "French", es: "Spanish", it: "Italian", pt: "Portuguese", ru: "Russian",
 };
 
+const SUPPORTED_GAMES = [
+  "Pokémon",
+  "Magic: The Gathering",
+  "Yu-Gi-Oh!",
+  "One Piece TCG",
+  "Disney Lorcana",
+  "Dragon Ball Super Fusion",
+  "Star Wars Unlimited",
+  "Flesh and Blood",
+  "Sports card",
+  "Other collectible",
+] as const;
+
 const CARD_SCHEMA_TEXT = `{
   "name": string,
-  "category": string,
+  "category": string,  // one of: ${SUPPORTED_GAMES.join(", ")}
   "set": string,
   "year": string,
   "tcg_number": string,
   "variant": string,
   "rarity": string,
   "language": string,
+  "game_specific": {   // optional; only fill what is visible
+    "mana_cost": string,        // MTG
+    "type_line": string,        // MTG / YGO / Lorcana
+    "attribute": string,        // YGO
+    "level_or_rank": string,    // YGO
+    "atk_def": string,          // YGO
+    "color": string,            // One Piece / Lorcana / SWU
+    "cost": string,             // One Piece / Lorcana / SWU / FAB
+    "power": string,            // One Piece / SWU
+    "ink_cost": string,         // Lorcana
+    "player_or_team": string,   // Sports
+    "manufacturer": string      // Sports (Topps, Panini, etc.)
+  },
   "bbox": { "x": number, "y": number, "w": number, "h": number },
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
   "overall_confidence": number
@@ -30,9 +56,23 @@ const CARD_SCHEMA_TEXT = `{
 
 const BBOX_INSTRUCTION = `\n\nALSO RETURN A TIGHT BOUNDING BOX around the card in the image as "bbox" with NORMALIZED coordinates (0..1) where x,y is the top-left corner and w,h are the width/height. The box must hug the 4 corners of the card tightly (no background, no hand, no table). If multiple cards, return the bbox for the most prominent one (single mode) or one per card (multi mode). If you cannot see the card edges clearly, return your best estimate covering the visible card.`;
 
-const SYSTEM_SINGLE = `You read trading card photos for a marketplace scanner. Be FAST and literal.
+const SYSTEM_SINGLE = `You read trading card and collectible photos for a marketplace scanner. Be FAST and literal.
 
-Your only job is OCR + visible identification. Do NOT appraise, price, invent rarity, or force a set name.
+STEP 1 — DETECT THE GAME / CATEGORY first. Set "category" to EXACTLY ONE of:
+  ${SUPPORTED_GAMES.join(", ")}
+Use visual cues:
+- Pokémon: HP top-right, energy symbols, "Pokémon" or Poké-Ball logo, attacks list
+- Magic: The Gathering (MTG): mana symbols (W/U/B/R/G), oval card, type line "Creature/Instant/...", set symbol bottom-center, "©Wizards"
+- Yu-Gi-Oh!: ATK/DEF bottom-right, attribute icon top-right, level/rank stars, "©Konami"
+- One Piece TCG: hexagonal cost top-left, power bottom-left, color band, "©BANDAI"
+- Disney Lorcana: ink cost top-left in hexagon, lore value, "Disney/Ravensburger"
+- Dragon Ball Super Fusion World: vertical "FB" code, energy cost top-left
+- Star Wars Unlimited: cost top-left, aspect icons, "©SWU/Lucasfilm"
+- Flesh and Blood: pitch value top-left (1/2/3 colored gem), "LSS"
+- Sports card: photo of an athlete, manufacturer logo (Topps, Panini, Upper Deck, Bowman, Donruss, Fleer, Score), team logo, year often as "2023-24" or "'23"
+- Other collectible: anything else (TCG you can't identify, gaming cards, etc.)
+
+Your job is OCR + visible identification. Do NOT appraise, price, invent rarity, or force a set name.
 
 MULTILINGUAL — IMPORTANT:
 - Cards may be printed in ANY language: English, Japanese (日本語/カタカナ/ひらがな/漢字), Chinese (中文 simplified or traditional), Korean (한국어/한글), German, French, Spanish, Italian, Portuguese, Russian, Thai, Indonesian, etc.
@@ -43,27 +83,30 @@ MULTILINGUAL — IMPORTANT:
 
 Return ONLY what is visible on the card:
 - printed card name (translated to English for "name")
-- printed card number, exactly as shown (examples: "4/102", "TG05/TG30", "SV03-EN045", "070/SM-P")
+- printed card number/collector number, exactly as shown (examples: "4/102", "TG05/TG30", "SV03-EN045", "070/SM-P", "DMR-001", MTG style "215/280")
 - copyright/release year if visible
 - set name or set code ONLY if you can read it; otherwise empty string
 - detected language and obvious finish/variant if visible
-- For "variant" field, ALWAYS combine edition + finish as: "<Edition> · <Finish>" where Edition is "1st Edition" (only if the "1st Edition" / "Edition 1" / "第1版" / "1版" stamp is clearly visible) or "Unlimited" otherwise; and Finish is "Holo" (foil artwork/character), "Reverse Holo" (foil background/non-artwork), or "Non-Holo" (no foil). Example: "Unlimited · Holo" or "1st Edition · Non-Holo".
+- For "variant" field, ALWAYS combine edition + finish as: "<Edition> · <Finish>" where Edition is "1st Edition" (only if the "1st Edition" / "Edition 1" / "第1版" / "1版" stamp is clearly visible) or "Unlimited" otherwise; and Finish is "Holo" / "Foil" (foil artwork/character or full foil treatment), "Reverse Holo" / "Etched" (foil background/non-artwork), or "Non-Holo" / "Non-Foil" (no foil). Sports examples: "Refractor", "Prizm", "Auto", "Patch". Example: "Unlimited · Holo" or "1st Edition · Non-Holo".
+- For "game_specific", fill ONLY the fields relevant to the detected category and visible on the card. Leave others as empty string.
 
 If a field is unreadable, return "" and set that field confidence under 0.4. Never guess a specific printing from memory. The database will do the exact match after this.
 
 Return STRICT JSON matching this schema:
 ${CARD_SCHEMA_TEXT}`;
 
-const SYSTEM_MULTI = `You are an EXPERT trading card identifier and appraiser. The image may contain MULTIPLE trading cards laid out together. DETECT EACH CARD SEPARATELY and identify every one of them with the same accuracy as a single-card scan.
+const SYSTEM_MULTI = `You are an EXPERT trading card and collectible identifier. The image may contain MULTIPLE cards laid out together — they may be from DIFFERENT games (mixed Pokémon + MTG + Yu-Gi-Oh + One Piece + Lorcana + Sports etc.). DETECT EACH CARD SEPARATELY, identify its game, and read it with the same accuracy as a single-card scan.
 
-For each card, follow these steps:
-1. Read the SET SYMBOL.
-2. Read the CARD NUMBER.
-3. Read the COPYRIGHT YEAR.
-4. Read the SET CODE.
-5. Identify the VARIANT (Holo, Reverse Holo, Full Art, Alt Art, Promo, 1st Edition, Refractor, Prizm, Auto, etc.).
-6. Identify the RARITY.
-7. DETECT the LANGUAGE from printed text. Cards may be in English, Japanese (日本語), Chinese (中文 simplified/traditional), Korean (한국어), German, French, Spanish, Italian, Portuguese, Russian, Thai, etc. ALWAYS translate/transliterate the card name to canonical English (e.g. リザードン → "Charizard"). NEVER skip a card because it is not in English — non-Latin scripts are expected.
+For each card:
+1. DETECT the game/category — set "category" to EXACTLY ONE of: ${SUPPORTED_GAMES.join(", ")}.
+2. Read the SET SYMBOL.
+3. Read the CARD NUMBER.
+4. Read the COPYRIGHT YEAR.
+5. Read the SET CODE.
+6. Identify the VARIANT (Holo, Reverse Holo, Full Art, Alt Art, Promo, 1st Edition, Refractor, Prizm, Auto, Foil, Etched, etc.).
+7. Identify the RARITY.
+8. DETECT the LANGUAGE from printed text. Cards may be in English, Japanese (日本語), Chinese (中文 simplified/traditional), Korean (한국어), German, French, Spanish, Italian, Portuguese, Russian, Thai, etc. ALWAYS translate/transliterate the card name to canonical English (e.g. リザードン → "Charizard"). NEVER skip a card because it is not in English — non-Latin scripts are expected.
+9. Fill "game_specific" only with fields relevant to the detected category.
 
 Skip any obvious non-cards (hands, backgrounds, sleeves). Do NOT duplicate the same card twice. If a card is mostly occluded or unreadable, omit it.
 
@@ -130,6 +173,7 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     variant: parsed?.variant || "Standard",
     rarity: parsed?.rarity || "",
     language: parsed?.language || (fallbackLang ? fallbackLang.toUpperCase() : "EN"),
+    game_specific: parsed?.game_specific && typeof parsed.game_specific === "object" ? parsed.game_specific : {},
     bbox,
     confidence: perField,
     overall_confidence: overall,
@@ -251,7 +295,7 @@ Deno.serve(async (req) => {
         ],
         response_format: { type: "json_object" },
         temperature: 0,
-        max_tokens: multi ? 2048 : 512,
+        max_tokens: multi ? 2560 : 768,
       }),
     });
 

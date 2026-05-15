@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 
-export const REQUIRED_LEGAL_VERSION = "1.0";
+export const REQUIRED_LEGAL_VERSION = "1.1";
 export const SELLER_AGREEMENT_VERSION = "1.0";
 
 export const REQUIRED_LEGAL_DOCS = ["tos", "community_guidelines", "age_18_plus"] as const;
