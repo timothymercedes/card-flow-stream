@@ -38,6 +38,7 @@ export function SellMenu() {
             <div className="grid gap-2">
               <Link
                 to="/sell"
+                preload={false}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 p-3 text-left text-white shadow"
               >
@@ -49,7 +50,8 @@ export function SellMenu() {
               </Link>
 
               <Link
-                to="/sell"
+                to="/my-listings"
+                preload={false}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl bg-primary p-3 text-left text-primary-foreground shadow"
               >
@@ -62,6 +64,7 @@ export function SellMenu() {
 
               <Link
                 to="/shows/$id/edit" params={{ id: "new" }}
+                preload={false}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 p-3 text-left text-white shadow"
               >
