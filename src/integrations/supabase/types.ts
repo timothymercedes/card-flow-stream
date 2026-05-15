@@ -2488,6 +2488,54 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_revenue: {
+        Row: {
+          amount_cents: number
+          buyer_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          kind: Database["public"]["Enums"]["platform_revenue_kind"]
+          meta: Json
+          notes: string | null
+          order_id: string | null
+          seller_id: string | null
+          stripe_charge_id: string | null
+          stripe_event_id: string | null
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          buyer_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          kind: Database["public"]["Enums"]["platform_revenue_kind"]
+          meta?: Json
+          notes?: string | null
+          order_id?: string | null
+          seller_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_event_id?: string | null
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          buyer_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["platform_revenue_kind"]
+          meta?: Json
+          notes?: string | null
+          order_id?: string | null
+          seller_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_event_id?: string | null
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: []
+      }
       pokemon_cards: {
         Row: {
           created_at: string
@@ -4918,6 +4966,34 @@ export type Database = {
           target_type: string
         }[]
       }
+      admin_list_platform_revenue: {
+        Args: {
+          _kind?: Database["public"]["Enums"]["platform_revenue_kind"]
+          _limit?: number
+          _offset?: number
+        }
+        Returns: {
+          amount_cents: number
+          buyer_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          kind: Database["public"]["Enums"]["platform_revenue_kind"]
+          meta: Json
+          notes: string | null
+          order_id: string | null
+          seller_id: string | null
+          stripe_charge_id: string | null
+          stripe_event_id: string | null
+          stripe_payment_intent_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "platform_revenue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_list_recent_signups: {
         Args: { _limit?: number }
         Returns: {
@@ -4980,6 +5056,14 @@ export type Database = {
         Returns: undefined
       }
       admin_replay_finalize: { Args: { _stream_id: string }; Returns: Json }
+      admin_revenue_summary: {
+        Args: { _since?: string }
+        Returns: {
+          count: number
+          kind: Database["public"]["Enums"]["platform_revenue_kind"]
+          total_cents: number
+        }[]
+      }
       admin_set_verification_status: {
         Args: { _reason?: string; _status: string; _target_user: string }
         Returns: undefined
@@ -5315,6 +5399,21 @@ export type Database = {
         }
         Returns: string
       }
+      log_platform_revenue: {
+        Args: {
+          _amount_cents: number
+          _buyer_id?: string
+          _kind: Database["public"]["Enums"]["platform_revenue_kind"]
+          _meta?: Json
+          _notes?: string
+          _order_id?: string
+          _seller_id?: string
+          _stripe_charge?: string
+          _stripe_event?: string
+          _stripe_pi?: string
+        }
+        Returns: string
+      }
       notify_user: {
         Args: {
           _body: string
@@ -5571,6 +5670,16 @@ export type Database = {
         | "completed"
         | "failed"
         | "canceled"
+      platform_revenue_kind:
+        | "marketplace_commission"
+        | "intl_processing_fee"
+        | "tip_fee"
+        | "promotion"
+        | "shipping_adjustment_fee"
+        | "refund_loss"
+        | "dispute_loss"
+        | "stripe_processing_fee"
+        | "adjustment"
       seller_trust_tier: "new" | "bronze" | "silver" | "gold" | "platinum"
       tutorial_audience:
         | "buyer"
@@ -5723,6 +5832,17 @@ export const Constants = {
         "completed",
         "failed",
         "canceled",
+      ],
+      platform_revenue_kind: [
+        "marketplace_commission",
+        "intl_processing_fee",
+        "tip_fee",
+        "promotion",
+        "shipping_adjustment_fee",
+        "refund_loss",
+        "dispute_loss",
+        "stripe_processing_fee",
+        "adjustment",
       ],
       seller_trust_tier: ["new", "bronze", "silver", "gold", "platinum"],
       tutorial_audience: [
