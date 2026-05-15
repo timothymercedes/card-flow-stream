@@ -289,6 +289,7 @@ function Admin() {
           {isAdmin && <button onClick={() => setTab("tutorials")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "tutorials" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><Video className="h-3.5 w-3.5" /> Tutorials</button>}
           {isAdmin && <button onClick={() => setTab("audit")} className={`pb-2 text-xs font-bold ${tab === "audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Audit Log</button>}
           {isAdmin && <button onClick={() => setTab("beta")} className={`pb-2 text-xs font-bold ${tab === "beta" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Beta Invites</button>}
+          {isAdmin && <button onClick={() => setTab("revenue")} className={`pb-2 text-xs font-bold ${tab === "revenue" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Revenue</button>}
         </div>
 
         {tab === "reports" && (() => {
