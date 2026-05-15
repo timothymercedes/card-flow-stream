@@ -73,7 +73,7 @@ export function AdminAlertBanner() {
   if (counts.reports) parts.push(`${counts.reports} report${counts.reports === 1 ? "" : "s"}`);
   if (counts.disputes) parts.push(`${counts.disputes} dispute${counts.disputes === 1 ? "" : "s"}`);
   if (counts.verifications) parts.push(`${counts.verifications} verification${counts.verifications === 1 ? "" : "s"}`);
-  if (counts.shipping) parts.push(`${counts.shipping} shipping issue${counts.shipping === 1 ? "" : "s"}`);
+  if (counts.shipping) parts.push(`${counts.shipping} shipping/payment issue${counts.shipping === 1 ? "" : "s"}`);
 
   function dismiss() {
     setDismissedAt(total);
