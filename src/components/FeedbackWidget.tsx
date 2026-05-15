@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { MessageCircleHeart, X, Bug, Lightbulb, Sparkles, MessageSquare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Bug, Lightbulb, Sparkles, MessageSquare } from "lucide-react";
+
+export const FEEDBACK_OPEN_EVENT = "pullbid:open-feedback";
+export function openFeedback() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(FEEDBACK_OPEN_EVENT));
+}
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "@tanstack/react-router";
@@ -21,6 +26,12 @@ export function FeedbackWidget() {
   const [category, setCategory] = useState<Category>("bug");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener(FEEDBACK_OPEN_EVENT, handler);
+    return () => window.removeEventListener(FEEDBACK_OPEN_EVENT, handler);
+  }, []);
 
   if (!user) return null;
 
@@ -49,15 +60,6 @@ export function FeedbackWidget() {
 
   return (
     <>
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Send beta feedback"
-          className="fixed bottom-[10.5rem] right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-card text-primary shadow-lg ring-1 ring-border hover:bg-primary hover:text-primary-foreground transition-colors"
-        >
-          <MessageCircleHeart className="h-5 w-5" />
-        </button>
-      )}
 
       {open && (
         <div
