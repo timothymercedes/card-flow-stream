@@ -2222,6 +2222,45 @@ export type Database = {
           },
         ]
       }
+      payout_requests: {
+        Row: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          requested_at: string
+          status: Database["public"]["Enums"]["payout_status"]
+          stripe_transfer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          requested_at?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          stripe_transfer_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          completed_at?: string | null
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          requested_at?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          stripe_transfer_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       perf_alert_events: {
         Row: {
           alert_id: string | null
@@ -3186,6 +3225,39 @@ export type Database = {
           stream_id?: string | null
           verified_live_auction?: boolean
           verified_purchase?: boolean
+        }
+        Relationships: []
+      }
+      shipping_adjustments: {
+        Row: {
+          adjustment_type: string
+          cost_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          user_id: string
+          was_charged: boolean
+        }
+        Insert: {
+          adjustment_type: string
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          user_id: string
+          was_charged?: boolean
+        }
+        Update: {
+          adjustment_type?: string
+          cost_cents?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          user_id?: string
+          was_charged?: boolean
         }
         Relationships: []
       }
@@ -4823,6 +4895,27 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      complete_payout: {
+        Args: { _id: string; _transfer_id: string }
+        Returns: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          requested_at: string
+          status: Database["public"]["Enums"]["payout_status"]
+          stripe_transfer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       compute_card_key: {
         Args: { _name: string; _number: string; _set: string }
         Returns: string
@@ -4836,6 +4929,27 @@ export type Database = {
       extend_flex_live_session: {
         Args: { _stream_id: string }
         Returns: string
+      }
+      fail_payout: {
+        Args: { _id: string; _reason: string }
+        Returns: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          requested_at: string
+          status: Database["public"]["Enums"]["payout_status"]
+          stripe_transfer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       finalize_auction_round: { Args: { _stream_id: string }; Returns: Json }
       generate_public_id: { Args: never; Returns: string }
@@ -5067,7 +5181,52 @@ export type Database = {
       reconcile_auction_states: { Args: never; Returns: number }
       reconcile_sold_items: { Args: never; Returns: number }
       reconcile_stale_payments: { Args: never; Returns: number }
+      record_shipping_adjustment: {
+        Args: {
+          _cost_cents: number
+          _notes?: string
+          _order_id: string
+          _type: string
+        }
+        Returns: {
+          adjustment_type: string
+          cost_cents: number
+          created_at: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          user_id: string
+          was_charged: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "shipping_adjustments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
+      request_payout: {
+        Args: { _amount_cents: number }
+        Returns: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          failure_reason: string | null
+          id: string
+          requested_at: string
+          status: Database["public"]["Enums"]["payout_status"]
+          stripe_transfer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
@@ -5170,6 +5329,12 @@ export type Database = {
         | "manual"
         | "other"
       hold_status: "active" | "cleared" | "admin_override"
+      payout_status:
+        | "requested"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "canceled"
       tutorial_audience:
         | "buyer"
         | "seller"
@@ -5315,6 +5480,13 @@ export const Constants = {
         "other",
       ],
       hold_status: ["active", "cleared", "admin_override"],
+      payout_status: [
+        "requested",
+        "processing",
+        "completed",
+        "failed",
+        "canceled",
+      ],
       tutorial_audience: [
         "buyer",
         "seller",

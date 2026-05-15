@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Download, ChevronRight, AlertTriangle, Wallet, Clock, CheckCircle2, ArrowDownToLine } from "lucide-react";
+import { Download, ChevronRight, AlertTriangle, Wallet, Clock, CheckCircle2, ArrowDownToLine, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { requestPayoutFn } from "@/lib/payouts.functions";
 
 const PLATFORM_FEE = 0.05;            // 5%
 const PROCESSING_RATE = 0.029;        // 2.9%
@@ -59,17 +61,29 @@ function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   return { gross, platformFee, processingFee, shipping, promo, refund, recovery, totalDeductions, net };
 }
 
+type PayoutRequest = {
+  id: string;
+  amount_cents: number;
+  status: "requested" | "processing" | "completed" | "failed" | "canceled";
+  created_at: string;
+  completed_at: string | null;
+  failure_reason: string | null;
+};
+
 export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const { user } = useAuth();
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
   const [hold, setHold] = useState<Hold | null>(null);
+  const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"summary" | "orders" | "history">("summary");
   const [open, setOpen] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const requestPayoutCall = useServerFn(requestPayoutFn);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [{ data: recs }, { data: h }] = await Promise.all([
+    const [{ data: recs }, { data: h }, { data: po }] = await Promise.all([
       supabase
         .from("hold_recoveries" as any)
         .select("*")
@@ -82,12 +96,37 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         .eq("user_id", user.id)
         .eq("status", "active")
         .maybeSingle(),
+      supabase
+        .from("payout_requests" as any)
+        .select("id,amount_cents,status,created_at,completed_at,failure_reason")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
     setRecoveries((recs as any) ?? []);
     setHold((h as any) ?? null);
+    setPayouts((po as any) ?? []);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Realtime: refresh balances whenever a payout/hold/recovery row changes
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`earnings-${user.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "payout_requests", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "account_holds", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "hold_recoveries", filter: `user_id=eq.${user.id}` },
+        () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, load]);
 
   // Load buyer usernames
   useEffect(() => {
@@ -113,6 +152,13 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     [orders, recoveryByRef],
   );
 
+  const processingPayoutCents = useMemo(
+    () => payouts
+      .filter((p) => p.status === "requested" || p.status === "processing")
+      .reduce((s, p) => s + p.amount_cents, 0),
+    [payouts],
+  );
+
   const totals = useMemo(() => {
     let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, net = 0;
     let available = 0, pending = 0, processing = 0, completed = 0;
@@ -126,9 +172,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
       if (order.status === "delivered") completed += b.net;
     });
     const owed = (hold?.balance_owed_cents ?? 0) / 100;
-    const payable = Math.max(0, available - owed);
-    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net, available, pending, processing, completed, owed, payable };
-  }, [breakdowns, hold]);
+    const processingPayout = processingPayoutCents / 100;
+    // Subtract amounts already locked in an in-flight payout
+    const available_after = Math.max(0, available - processingPayout);
+    const payable = Math.max(0, available_after - owed);
+    const totalEarnings = available_after + pending + processingPayout;
+    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net,
+             available: available_after, pending, processing, completed, owed, payable,
+             processingPayout, totalEarnings };
+  }, [breakdowns, hold, processingPayoutCents]);
 
   function downloadCsv() {
     const rows = [
@@ -151,27 +203,61 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     a.click(); URL.revokeObjectURL(url);
   }
 
-  function requestPayout() {
+  const hasInflightPayout = totals.processingPayout > 0;
+
+  async function requestPayout() {
+    if (hasInflightPayout) {
+      toast.error("A payout is already in progress. Please wait for it to complete.");
+      return;
+    }
     if (totals.payable < MIN_PAYOUT) {
       toast.error(`Minimum payout is ${fmt(MIN_PAYOUT)}.`);
       return;
     }
-    if (hold) {
-      toast.message(`${fmt(totals.owed)} owed will be deducted automatically before release.`);
+    if (hold && !confirm(`${fmt(totals.owed)} owed will be deducted automatically before release. Continue?`)) {
+      return;
     }
-    // Routes to the existing payouts page (Stripe Connect manages actual transfer)
-    window.location.href = "/payouts?action=request";
+    setSubmitting(true);
+    try {
+      const cents = Math.round(totals.payable * 100);
+      await requestPayoutCall({ data: { amountCents: cents } });
+      toast.success(`Payout of ${fmt(totals.payable)} is now processing — ETA ${PAYOUT_ETA_BIZ_DAYS}.`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Could not start payout");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="space-y-3">
+      {/* Combined total — front and center */}
+      <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-4">
+        <p className="text-[11px] uppercase text-muted-foreground">Total earnings</p>
+        <p className="text-3xl font-bold text-primary">{fmt(totals.totalEarnings)}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Available + pending + processing payout
+        </p>
+      </div>
+
       {/* Top balance cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <BalanceCard icon={<Wallet className="h-4 w-4" />} label="Available" value={fmt(totals.available)} accent="primary" />
         <BalanceCard icon={<Clock className="h-4 w-4" />} label="Pending" value={fmt(totals.pending)} />
-        <BalanceCard icon={<ArrowDownToLine className="h-4 w-4" />} label="Processing" value={fmt(totals.processing)} />
+        <BalanceCard icon={<ArrowDownToLine className="h-4 w-4" />} label="Processing payout" value={fmt(totals.processingPayout)} />
         <BalanceCard icon={<CheckCircle2 className="h-4 w-4" />} label="Completed" value={fmt(totals.completed)} />
       </div>
+
+      {/* In-flight payout banner */}
+      {hasInflightPayout && (
+        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <div className="flex-1">
+            <strong>{fmt(totals.processingPayout)} processing.</strong> ETA {PAYOUT_ETA_BIZ_DAYS}. Funds will return to Available if the transfer fails.
+          </div>
+        </div>
+      )}
 
       {/* Negative balance warning */}
       {hold && (
@@ -198,10 +284,11 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           </div>
           <button
             onClick={requestPayout}
-            disabled={totals.payable < MIN_PAYOUT}
-            className="rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            disabled={submitting || hasInflightPayout || totals.payable < MIN_PAYOUT}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
-            Request payout
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {hasInflightPayout ? "Payout in progress" : "Request payout"}
           </button>
         </div>
       </div>

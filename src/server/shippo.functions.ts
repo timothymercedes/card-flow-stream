@@ -274,11 +274,13 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     const { userId } = context;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id, buyer_id, title")
+      .select("id, seller_id, buyer_id, title, tracking_number")
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("Order not found");
     if (order.seller_id !== userId) throw new Error("Only the seller can buy a label");
+
+    const isReissue = !!(order as any).tracking_number;
 
     const tx = await shippo<any>("/transactions/", {
       method: "POST",
@@ -287,6 +289,18 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
 
     if (tx.status !== "SUCCESS") {
       throw new Error(`Label purchase failed: ${(tx.messages || []).map((m: any) => m.text).join(", ") || "unknown"}`);
+    }
+
+    // If this is a reissue, log a manual shipping adjustment.
+    // After 3 free adjustments, the label cost is auto-deducted from the seller's balance.
+    if (isReissue) {
+      const costCents = Math.round(Number(tx.rate?.amount ?? 0) * 100);
+      await supabaseAdmin.rpc("record_shipping_adjustment" as any, {
+        _order_id: order.id,
+        _type: "reissue_label",
+        _cost_cents: costCents,
+        _notes: `Re-issued label via ${tx.rate?.provider ?? "carrier"}`,
+      });
     }
 
     await supabaseAdmin
