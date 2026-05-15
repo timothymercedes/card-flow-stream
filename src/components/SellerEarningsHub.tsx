@@ -273,7 +273,11 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
       {/* Combined total — front and center */}
       <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-4">
         <p className="text-[11px] uppercase text-muted-foreground">Total earnings</p>
-        <p className="text-3xl font-bold text-primary">{fmt(totals.totalEarnings)}</p>
+        <p className="text-3xl font-bold text-primary">
+          {fmt(serverPayable
+            ? (serverPayable.available_cents + serverPayable.pending_cents + serverPayable.in_flight_cents) / 100
+            : totals.totalEarnings)}
+        </p>
         <p className="mt-1 text-[11px] text-muted-foreground">
           Available + pending + processing payout
         </p>
