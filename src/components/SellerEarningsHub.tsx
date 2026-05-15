@@ -115,7 +115,12 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     setRecoveries((recs as any) ?? []);
     setHold((h as any) ?? null);
     setPayouts((po as any) ?? []);
-  }, [user]);
+    try {
+      const [p, t] = await Promise.all([getPayable({}), getTrust({})]);
+      setServerPayable(p as any);
+      setTrust(t as any);
+    } catch { /* non-fatal — fall back to client math */ }
+  }, [user, getPayable, getTrust]);
 
   useEffect(() => { load(); }, [load]);
 
