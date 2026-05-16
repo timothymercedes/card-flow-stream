@@ -126,7 +126,7 @@ export function PinnedAuctionCard({
             <img src={currentImage} alt={currentItem || "Current item"} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-white/40">
-              <Package className="h-6 w-6" />
+              <Package className="h-4 w-4" />
             </div>
           )}
           {phase === "sold" && (
