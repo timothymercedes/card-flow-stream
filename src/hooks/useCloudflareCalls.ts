@@ -217,7 +217,7 @@ export function useCloudflareCalls(opts: {
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
-    if (!enabled || !streamId || !ready) return;
+    if (!enabled || !streamId || !ready || publishOnly) return;
     let cancelled = false;
 
     async function pullRemote(row: any) {
@@ -256,29 +256,35 @@ export function useCloudflareCalls(opts: {
         const ms = new MediaStream();
         remoteStreamsByUserRef.current.set(row.user_id, ms);
 
-        const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
-          method: "POST",
-          body: JSON.stringify({ tracks: wantTracks }),
-        });
+        await (negotiationRef.current = negotiationRef.current.then(async () => {
+          if (cancelled || pc.signalingState === "closed") return;
+          const stable = await waitForSignalingStable(pc);
+          if (!stable || cancelled || pc.signalingState === "closed") return;
 
-        // Map mids returned by Cloudflare to this user so ontrack can route
-        (pc as any).__midToUser = (pc as any).__midToUser || {};
-        for (const t of resp.tracks || []) {
-          if (t.mid != null) (pc as any).__midToUser[t.mid] = row.user_id;
-        }
-
-        if (resp.sessionDescription) {
-          await pc.setRemoteDescription(resp.sessionDescription);
-        }
-
-        if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          await sfu(`/sessions/${mySession}/renegotiate`, {
-            method: "PUT",
-            body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } }),
+          const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
+            method: "POST",
+            body: JSON.stringify({ tracks: wantTracks }),
           });
-        }
+
+          // Map mids returned by Cloudflare to this user so ontrack can route
+          (pc as any).__midToUser = (pc as any).__midToUser || {};
+          for (const t of resp.tracks || []) {
+            if (t.mid != null) (pc as any).__midToUser[t.mid] = row.user_id;
+          }
+
+          if (resp.sessionDescription) {
+            await pc.setRemoteDescription(resp.sessionDescription);
+          }
+
+          if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await sfu(`/sessions/${mySession}/renegotiate`, {
+              method: "PUT",
+              body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } }),
+            });
+          }
+        }));
 
         if (!cancelled) {
           setRemotes((prev) => ({
@@ -327,7 +333,7 @@ export function useCloudflareCalls(opts: {
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [enabled, streamId, userId, ready, viewerMode]);
+  }, [enabled, streamId, userId, ready, viewerMode, publishOnly, waitForSignalingStable]);
 
   // ─── Toggle local mic/cam ──────────────────────────────────────────────
   const toggleAudio = useCallback(async () => {
