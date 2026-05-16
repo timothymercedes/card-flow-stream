@@ -1761,7 +1761,7 @@ function LiveDetail() {
         return toast.error(`Slow mode: wait ${wait}s before chatting again`);
       }
     }
-    await sendMsg(input);
+    await sendMsg(input, false, { audience: chatAudience });
     lastChatTsRef.current = Date.now();
     setInput("");
   }
