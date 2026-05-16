@@ -240,8 +240,8 @@ export function useCloudflareCalls(opts: {
     async function pullRemote(row: any) {
       if (cancelled) return;
       if (row.user_id === userId) return;
-      const pc = pcRef.current; const mySession = sessionIdRef.current;
-      if (!pc || !mySession) return;
+      const pc = pcRef.current;
+      if (!pc || !sessionIdRef.current) return;
       // Publishers must reach "connected" before pulling (otherwise CF 410s
       // on a dead session). Viewer-mode peers have no transceivers yet and
       // do their FIRST SDP exchange inside this very call via
@@ -275,10 +275,16 @@ export function useCloudflareCalls(opts: {
 
         const negotiation = negotiationRef.current.catch(() => {}).then(async () => {
           if (cancelled || pcRef.current !== pc) return;
+          if (pc.connectionState === "closed" || pc.connectionState === "failed") {
+            throw new Error("Calls session is no longer usable");
+          }
           const stable = await waitForSignalingStable(pc);
           if (!stable || cancelled || pcRef.current !== pc) return;
 
-          const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
+          const activeSession = viewerMode ? await refreshEmptySession(pc) : sessionIdRef.current;
+          if (!activeSession || cancelled || pcRef.current !== pc) return;
+
+          const resp = await sfu(`/sessions/${activeSession}/tracks/new`, {
             method: "POST",
             body: JSON.stringify({ tracks: wantTracks }),
           });
@@ -296,7 +302,7 @@ export function useCloudflareCalls(opts: {
           if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            await sfu(`/sessions/${mySession}/renegotiate`, {
+            await sfu(`/sessions/${activeSession}/renegotiate`, {
               method: "PUT",
               body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } }),
             });
@@ -321,7 +327,7 @@ export function useCloudflareCalls(opts: {
         // never did an SDP exchange because no cohorts had joined yet).
         // Bump sessionGen so the setup effect tears down the dead PC and
         // creates a fresh session — then the next pullRemote will succeed.
-        if (/\b410\b|invalid_session_description|Mismatched number of transceivers/i.test(String(e?.message))) {
+        if (isRecoverableCallsSessionError(e)) {
           if (!cancelled) setSessionGen((n) => n + 1);
         }
       }
@@ -352,7 +358,7 @@ export function useCloudflareCalls(opts: {
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [enabled, streamId, userId, ready, viewerMode, publishOnly, waitForSignalingStable]);
+  }, [enabled, streamId, userId, ready, viewerMode, publishOnly, waitForSignalingStable, refreshEmptySession]);
 
   // ─── Toggle local mic/cam ──────────────────────────────────────────────
   const toggleAudio = useCallback(async () => {
