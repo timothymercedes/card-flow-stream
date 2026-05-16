@@ -84,6 +84,11 @@ Deno.serve(async (req) => {
     // configuration if exposed, so it must be gated behind authentication
     // AND an elevated role.
     const { userHasAdminRole } = await import("../_shared/auth.ts");
+    if (!auth) {
+      return new Response(JSON.stringify({ error: "Missing Authorization bearer token" }), {
+        status: 401, headers: { ...CORS, "content-type": "application/json" },
+      });
+    }
     const isAdmin = await userHasAdminRole(auth.userId);
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
