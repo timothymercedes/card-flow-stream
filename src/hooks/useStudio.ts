@@ -331,6 +331,15 @@ export function useStudio(opts: {
           );
         }
         openingCameraKeysRef.current.add(requestKey);
+        // Ask any other camera holders in this page (legacy previews, scanner,
+        // etc.) to release their tracks first, then give the OS a moment to
+        // free the device before we open it. This avoids NotReadableError when
+        // the user switches into the studio while the legacy preview is still
+        // holding the camera.
+        try {
+          window.dispatchEvent(new CustomEvent("pb:release-cameras", { detail: { deviceId } }));
+        } catch { /* ignore */ }
+        await wait(250);
         const baseVideoConstraints: MediaTrackConstraints = {
           width: { ideal: 1280 },
           height: { ideal: 720 },
