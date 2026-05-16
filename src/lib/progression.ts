@@ -47,3 +47,24 @@ export function progressToNextLevel(xp: number): { level: number; pct: number; c
   const pct = Math.min(100, Math.round(((xp - cur) / (next - cur)) * 100));
   return { level, pct, current: xp - cur, needed: next - cur };
 }
+
+/**
+ * levelTheme — fun color per level. Cycles through a vibrant palette so every
+ * level-up visibly changes the XP chip color in the header.
+ */
+const LEVEL_GRADIENTS = [
+  "from-sky-500 to-cyan-500",        // Lv 1
+  "from-emerald-500 to-teal-500",    // Lv 2
+  "from-amber-500 to-orange-500",    // Lv 3
+  "from-fuchsia-500 to-pink-500",    // Lv 4
+  "from-violet-500 to-indigo-500",   // Lv 5
+  "from-rose-500 to-red-500",        // Lv 6
+  "from-lime-500 to-emerald-500",    // Lv 7
+  "from-yellow-400 to-amber-500",    // Lv 8
+  "from-blue-500 to-violet-600",     // Lv 9
+  "from-amber-400 via-fuchsia-500 to-violet-600", // Lv 10+ (rainbow / prestige)
+];
+export function levelTheme(level: number): { gradient: string } {
+  const idx = Math.min(LEVEL_GRADIENTS.length - 1, Math.max(0, level - 1));
+  return { gradient: LEVEL_GRADIENTS[idx] };
+}
