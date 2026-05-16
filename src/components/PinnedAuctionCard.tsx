@@ -119,14 +119,14 @@ export function PinnedAuctionCard({
   } as const;
 
   return (
-    <div className="pointer-events-auto w-full max-w-md rounded-2xl bg-black/70 p-2 ring-1 ring-white/10 shadow-2xl backdrop-blur">
-      <div className="flex items-center gap-2">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/5 ring-1 ring-white/10">
+    <div className="pointer-events-auto w-full max-w-xs rounded-xl bg-black/70 p-1.5 ring-1 ring-white/10 shadow-xl backdrop-blur">
+      <div className="flex items-center gap-1.5">
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white/5 ring-1 ring-white/10">
           {currentImage ? (
             <img src={currentImage} alt={currentItem || "Current item"} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-white/40">
-              <Package className="h-6 w-6" />
+              <Package className="h-4 w-4" />
             </div>
           )}
           {phase === "sold" && (
@@ -136,35 +136,35 @@ export function PinnedAuctionCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-1 text-[12px] font-bold text-white">
+          <p className="line-clamp-1 text-[11px] font-bold text-white">
             {currentItem || "Awaiting next item…"}
           </p>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${phaseStyles[phase]}`}>
-              {suddenDeath ? <Zap className="h-2.5 w-2.5" /> : phase === "sold" ? <Trophy className="h-2.5 w-2.5" /> : <Timer className="h-2.5 w-2.5" />}
+          <div className="mt-0.5 flex items-center gap-1">
+            <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${phaseStyles[phase]}`}>
+              {suddenDeath ? <Zap className="h-2 w-2" /> : phase === "sold" ? <Trophy className="h-2 w-2" /> : <Timer className="h-2 w-2" />}
               {suddenDeath ? "SUDDEN DEATH" : phaseLabel[phase]}
             </span>
             {auctionLive && (
-              <span className="rounded-md bg-black/50 px-1.5 py-0.5 text-[11px] font-extrabold tabular-nums text-white">
+              <span className="rounded bg-black/50 px-1 py-0.5 text-[10px] font-extrabold tabular-nums text-white">
                 {fmtRemaining(remaining)}
               </span>
             )}
             {prebidCount > 0 && !auctionLive && (
-              <span className="rounded-full bg-purple-500/30 px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-purple-100 ring-1 ring-purple-300/30">
+              <span className="rounded-full bg-purple-500/30 px-1 py-0.5 text-[8px] font-extrabold uppercase text-purple-100 ring-1 ring-purple-300/30">
                 Pre-B {prebidCount}
               </span>
             )}
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-[9px] uppercase tracking-wider text-white/50">
+          <p className="text-[8px] uppercase tracking-wider text-white/50">
             {phase === "sold" ? "Final" : "High bid"}
           </p>
-          <p className="text-base font-extrabold tabular-nums text-emerald-300">
+          <p className="text-sm font-extrabold tabular-nums text-emerald-300">
             {fmtMoney(phase === "sold" ? winningBid : currentBid)}
           </p>
           {phase === "sold" && winnerUsername && (
-            <p className="text-[10px] font-bold text-white/80">@{winnerUsername}</p>
+            <p className="text-[9px] font-bold text-white/80">@{winnerUsername}</p>
           )}
         </div>
       </div>
