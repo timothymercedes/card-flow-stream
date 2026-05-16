@@ -67,14 +67,15 @@ Deno.serve(async (req) => {
   const body = req.method === "GET" ? undefined : await req.text();
   const publicViewerRequest =
     !requestHasBearer(req) &&
-    (req.method === "POST" && path === "/sessions/new" ||
-      req.method === "PUT" && /\/sessions\/[^/]+\/renegotiate$/.test(path) ||
+    ((req.method === "POST" && path === "/sessions/new") ||
+      (req.method === "PUT" && /\/sessions\/[^/]+\/renegotiate$/.test(path)) ||
       isReceiveOnlyTracksRequest(path, req.method, body));
 
   const auth = publicViewerRequest ? null : await verifyUser(req);
   if (auth && !auth.ok) {
     return new Response(JSON.stringify({ error: auth.error }), {
-      status: auth.status, headers: { ...CORS, "content-type": "application/json" },
+      status: auth.status,
+      headers: { ...CORS, "content-type": "application/json" },
     });
   }
 
@@ -86,51 +87,63 @@ Deno.serve(async (req) => {
     const { userHasAdminRole } = await import("../_shared/auth.ts");
     if (!auth) {
       return new Response(JSON.stringify({ error: "Missing Authorization bearer token" }), {
-        status: 401, headers: { ...CORS, "content-type": "application/json" },
+        status: 401,
+        headers: { ...CORS, "content-type": "application/json" },
       });
     }
     const isAdmin = await userHasAdminRole(auth.userId);
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...CORS, "content-type": "application/json" },
+        status: 403,
+        headers: { ...CORS, "content-type": "application/json" },
       });
     }
     const config = getCallsConfig();
     const r = await fetch(`${config.base}/sessions/new`, {
       method: "POST",
-      headers: { "Authorization": `Bearer ${config.appToken}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${config.appToken}`, "Content-Type": "application/json" },
     });
     const text = await r.text();
-    return new Response(JSON.stringify({
-      rawAppIdLen: config.rawAppId?.length,
-      appIdLen: config.appId?.length,
-      appIdPrefix: config.appId?.slice(0, 8),
-      tokenLen: config.appToken?.length,
-      tokenLooksLikeJwt: (config.appToken?.split(".").length ?? 0) === 3,
-      tokenClaimKeys: jwtClaimKeys(config.appToken),
-      status: r.status,
-      ok: r.ok,
-      bodyPreview: text.slice(0, 80),
-    }), { headers: { ...CORS, "content-type": "application/json" } });
+    return new Response(
+      JSON.stringify({
+        rawAppIdLen: config.rawAppId?.length,
+        appIdLen: config.appId?.length,
+        appIdPrefix: config.appId?.slice(0, 8),
+        tokenLen: config.appToken?.length,
+        tokenLooksLikeJwt: (config.appToken?.split(".").length ?? 0) === 3,
+        tokenClaimKeys: jwtClaimKeys(config.appToken),
+        status: r.status,
+        ok: r.ok,
+        bodyPreview: text.slice(0, 80),
+      }),
+      { headers: { ...CORS, "content-type": "application/json" } },
+    );
   }
-
 
   const config = getCallsConfig();
   if (!config.appId || !config.appToken) {
     return new Response(JSON.stringify({ error: "Cloudflare Calls not configured" }), {
-      status: 500, headers: { ...CORS, "content-type": "application/json" },
+      status: 500,
+      headers: { ...CORS, "content-type": "application/json" },
     });
   }
   if (isRealtimeKitMeetingToken(config.appToken)) {
-    return new Response(JSON.stringify({ error: "Cloudflare token is a Realtime meeting participant token, but this live video feature needs the SFU App Secret." }), {
-      status: 500, headers: { ...CORS, "content-type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error:
+          "Cloudflare token is a Realtime meeting participant token, but this live video feature needs the SFU App Secret.",
+      }),
+      {
+        status: 500,
+        headers: { ...CORS, "content-type": "application/json" },
+      },
+    );
   }
   try {
     const upstream = await fetch(`${config.base}${path}`, {
       method: req.method,
       headers: {
-        "Authorization": `Bearer ${config.appToken}`,
+        Authorization: `Bearer ${config.appToken}`,
         "Content-Type": "application/json",
       },
       body: body && body.length > 0 ? body : undefined,
@@ -138,11 +151,15 @@ Deno.serve(async (req) => {
     const text = await upstream.text();
     return new Response(text, {
       status: upstream.status,
-      headers: { ...CORS, "content-type": upstream.headers.get("content-type") || "application/json" },
+      headers: {
+        ...CORS,
+        "content-type": upstream.headers.get("content-type") || "application/json",
+      },
     });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...CORS, "content-type": "application/json" },
+      status: 500,
+      headers: { ...CORS, "content-type": "application/json" },
     });
   }
 });

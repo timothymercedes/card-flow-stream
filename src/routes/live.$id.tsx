@@ -123,7 +123,15 @@ function fmtRemaining(ms: number) {
   return `${m.toString().padStart(2, "0")}:${ss}`;
 }
 
-function RemoteStreamVideo({ stream, muted, className = "h-full w-full object-contain" }: { stream: MediaStream; muted: boolean; className?: string }) {
+function RemoteStreamVideo({
+  stream,
+  muted,
+  className = "h-full w-full object-contain",
+}: {
+  stream: MediaStream;
+  muted: boolean;
+  className?: string;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const video = ref.current;
@@ -1433,7 +1441,8 @@ function LiveDetail() {
       : cohostPreStream,
   });
   const cohostHostPreview = useMemo(
-    () => (isCohostParticipant ? cfCall.remotes.find((r) => r.userId === stream?.seller_id) : undefined),
+    () =>
+      isCohostParticipant ? cfCall.remotes.find((r) => r.userId === stream?.seller_id) : undefined,
     [cfCall.remotes, isCohostParticipant, stream?.seller_id],
   );
   const [audioOn, setAudioOn] = useState(true);
@@ -1490,10 +1499,7 @@ function LiveDetail() {
   // viewers must not open invisible Calls sessions or they can hit stale 410s.
   const viewerCall = useCloudflareCalls({
     enabled:
-      !!stream &&
-      stream.status !== "ended" &&
-      !isSeller &&
-      (!isCohostParticipant || !callJoined),
+      !!stream && stream.status !== "ended" && !isSeller && (!isCohostParticipant || !callJoined),
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
@@ -1505,7 +1511,7 @@ function LiveDetail() {
     [viewerCall.remotes, stream?.seller_id],
   );
   const hostRealtimeStagePreview = isCohostParticipant
-    ? cohostHostPreview ?? viewerHostPreview
+    ? (cohostHostPreview ?? viewerHostPreview)
     : viewerHostPreview;
   const shouldUseRealtimeStagePreview =
     !isSeller &&
@@ -1588,7 +1594,13 @@ function LiveDetail() {
           stream_id: id,
           source_key: source.deviceId || source.id,
           tile_user_id: cohostId || user.id,
-          source_type: cohostId ? "cohost" : source.kind === "screen" ? "screen" : source.kind === "phone" ? "phone" : "camera",
+          source_type: cohostId
+            ? "cohost"
+            : source.kind === "screen"
+              ? "screen"
+              : source.kind === "phone"
+                ? "phone"
+                : "camera",
           label: source.label,
           x: layout.x,
           y: layout.y,
@@ -1659,7 +1671,12 @@ function LiveDetail() {
   async function sendMsg(
     content: string,
     isSystem = false,
-    opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string; audience?: "public" | "mods_only" | "host_mods" } = {},
+    opts: {
+      isAnnouncement?: boolean;
+      isHype?: boolean;
+      usernameOverride?: string;
+      audience?: "public" | "mods_only" | "host_mods";
+    } = {},
   ) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
     if (!isSystem && needsAcceptance)
@@ -3402,7 +3419,20 @@ function LiveDetail() {
           aria-label="Tap to unmute"
         >
           <span className="flex items-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-bold text-white ring-1 ring-white/20">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </svg>
             Tap to unmute
           </span>
         </button>
@@ -3694,23 +3724,78 @@ function LiveDetail() {
       {isCohostParticipant && callJoined && showCohostCameraPanel && !ended && (
         <div className="absolute inset-x-3 top-16 z-50 max-h-[38vh] overflow-y-auto rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl ring-1 ring-border/70 backdrop-blur sm:left-auto sm:w-80">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="flex items-center gap-1.5 text-xs font-extrabold"><Camera className="h-3.5 w-3.5" /> Co-host camera</p>
-            <button onClick={() => setShowCohostCameraPanel(false)} className="rounded-md p-1 hover:bg-muted" title="Close camera panel"><X className="h-4 w-4" /></button>
+            <p className="flex items-center gap-1.5 text-xs font-extrabold">
+              <Camera className="h-3.5 w-3.5" /> Co-host camera
+            </p>
+            <button
+              onClick={() => setShowCohostCameraPanel(false)}
+              className="rounded-md p-1 hover:bg-muted"
+              title="Close camera panel"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
           <div className="mb-2 grid grid-cols-3 gap-1.5">
-            <button onClick={() => cfCall.switchCamera(undefined, "user").then((ok) => ok ? toast.success("Front camera active") : toast.error("Could not switch camera"))} className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold">Front</button>
-            <button onClick={() => cfCall.switchCamera(undefined, "environment").then((ok) => ok ? toast.success("Back camera active") : toast.error("Could not switch camera"))} className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold">Back</button>
-            <button onClick={() => cfCall.refreshCameraDevices()} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RefreshCw className="h-3 w-3" /> Scan</button>
+            <button
+              onClick={() =>
+                cfCall
+                  .switchCamera(undefined, "user")
+                  .then((ok) =>
+                    ok
+                      ? toast.success("Front camera active")
+                      : toast.error("Could not switch camera"),
+                  )
+              }
+              className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
+            >
+              Front
+            </button>
+            <button
+              onClick={() =>
+                cfCall
+                  .switchCamera(undefined, "environment")
+                  .then((ok) =>
+                    ok
+                      ? toast.success("Back camera active")
+                      : toast.error("Could not switch camera"),
+                  )
+              }
+              className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => cfCall.refreshCameraDevices()}
+              className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"
+            >
+              <RefreshCw className="h-3 w-3" /> Scan
+            </button>
           </div>
           <div className="space-y-1 rounded-xl bg-muted/35 p-1">
             {cfCall.cameraDevices.length === 0 ? (
-              <p className="px-2 py-2 text-[10px] font-semibold text-muted-foreground">Allow camera access, then scan to list available cameras.</p>
-            ) : cfCall.cameraDevices.map((d, i) => (
-              <button key={d.deviceId || d.groupId || i} onClick={() => cfCall.switchCamera(d.deviceId).then((ok) => ok ? toast.success(`${d.label || `Camera ${i + 1}`} active`) : toast.error("Could not switch camera"))} className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[10px] font-semibold hover:bg-background/70">
-                <Camera className="h-3 w-3 shrink-0" />
-                <span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>
-              </button>
-            ))}
+              <p className="px-2 py-2 text-[10px] font-semibold text-muted-foreground">
+                Allow camera access, then scan to list available cameras.
+              </p>
+            ) : (
+              cfCall.cameraDevices.map((d, i) => (
+                <button
+                  key={d.deviceId || d.groupId || i}
+                  onClick={() =>
+                    cfCall
+                      .switchCamera(d.deviceId)
+                      .then((ok) =>
+                        ok
+                          ? toast.success(`${d.label || `Camera ${i + 1}`} active`)
+                          : toast.error("Could not switch camera"),
+                      )
+                  }
+                  className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[10px] font-semibold hover:bg-background/70"
+                >
+                  <Camera className="h-3 w-3 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>
+                </button>
+              ))
+            )}
           </div>
           {cfCall.cameraZoomRange && (
             <div className="mt-2 rounded-xl bg-muted/35 p-2">
@@ -3729,8 +3814,14 @@ function LiveDetail() {
               />
             </div>
           )}
-          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Your camera tile is local-only. Viewers always see the host stage output.</p>
-          {cfCall.error && <p className="mt-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">{cfCall.error}</p>}
+          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">
+            Your camera tile is local-only. Viewers always see the host stage output.
+          </p>
+          {cfCall.error && (
+            <p className="mt-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">
+              {cfCall.error}
+            </p>
+          )}
         </div>
       )}
 
@@ -5047,10 +5138,10 @@ function LiveDetail() {
                       isBlocked
                         ? "bg-red-500/30 line-through opacity-60"
                         : isHostMods
-                        ? "bg-fuchsia-600/40 ring-1 ring-fuchsia-300/40"
-                        : isModOnly
-                        ? "bg-amber-500/30 ring-1 ring-amber-300/40"
-                        : "bg-black/45 ring-1 ring-white/5"
+                          ? "bg-fuchsia-600/40 ring-1 ring-fuchsia-300/40"
+                          : isModOnly
+                            ? "bg-amber-500/30 ring-1 ring-amber-300/40"
+                            : "bg-black/45 ring-1 ring-white/5"
                     }`}
                   >
                     {(isModOnly || isHostMods) && (
@@ -5805,59 +5896,59 @@ function LiveDetail() {
                 ))}
               </div>
             )}
-          <form onSubmit={handleSend} className="relative flex gap-2">
-            {tagOpen && tagResults.length > 0 && (
-              <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
-                {tagResults.map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => {
-                      const next = input.replace(/@([A-Za-z0-9_]*)$/, `@${u.username} `);
-                      setInput(next);
-                      setTagOpen(false);
-                      setTagResults([]);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
-                  >
-                    @{u.username}
-                  </button>
-                ))}
-              </div>
-            )}
-            <input
-              value={input}
-              data-tour="chat"
-              onChange={(e) => {
-                const v = e.target.value;
-                setInput(v);
-                const m = v.match(/@([A-Za-z0-9_]*)$/);
-                if (m) {
-                  setTagOpen(true);
-                  searchUsers(m[1], setTagResults);
-                } else {
-                  setTagOpen(false);
-                  setTagResults([]);
+            <form onSubmit={handleSend} className="relative flex gap-2">
+              {tagOpen && tagResults.length > 0 && (
+                <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
+                  {tagResults.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => {
+                        const next = input.replace(/@([A-Za-z0-9_]*)$/, `@${u.username} `);
+                        setInput(next);
+                        setTagOpen(false);
+                        setTagResults([]);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+                    >
+                      @{u.username}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <input
+                value={input}
+                data-tour="chat"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setInput(v);
+                  const m = v.match(/@([A-Za-z0-9_]*)$/);
+                  if (m) {
+                    setTagOpen(true);
+                    searchUsers(m[1], setTagResults);
+                  } else {
+                    setTagOpen(false);
+                    setTagResults([]);
+                  }
+                }}
+                placeholder={
+                  !user
+                    ? "Sign in to chat"
+                    : meBlockedOrBanned
+                      ? "🚫 You're muted in this stream"
+                      : "Say something... use @ to tag"
                 }
-              }}
-              placeholder={
-                !user
-                  ? "Sign in to chat"
-                  : meBlockedOrBanned
-                    ? "🚫 You're muted in this stream"
-                    : "Say something... use @ to tag"
-              }
-              disabled={!user || meBlockedOrBanned}
-              className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={meBlockedOrBanned}
-              className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
+                disabled={!user || meBlockedOrBanned}
+                className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={meBlockedOrBanned}
+                className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
           </>
         )}
       </div>
