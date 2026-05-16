@@ -87,7 +87,7 @@ export function useCloudflareCalls(opts: {
     if (pc.signalingState === "stable") return true;
     return new Promise<boolean>((resolve) => {
       const handler = () => {
-        if (pc.signalingState === "stable" || pc.connectionState === "closed") {
+        if (pc.signalingState === "stable") {
           pc.removeEventListener("signalingstatechange", handler);
           resolve(pc.signalingState === "stable");
         }
@@ -257,9 +257,9 @@ export function useCloudflareCalls(opts: {
         remoteStreamsByUserRef.current.set(row.user_id, ms);
 
         await (negotiationRef.current = negotiationRef.current.then(async () => {
-          if (cancelled || pc.connectionState === "closed") return;
+          if (cancelled || pcRef.current !== pc) return;
           const stable = await waitForSignalingStable(pc);
-          if (!stable || cancelled || pc.connectionState === "closed") return;
+          if (!stable || cancelled || pcRef.current !== pc) return;
 
           const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
             method: "POST",
