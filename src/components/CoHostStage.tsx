@@ -103,7 +103,7 @@ export function CoHostStage({
       >
         <DragHandle onPointerDown={(e) => onPointerDown(e, "move")} onPointerMove={onPointerMove} onPointerUp={onPointerUp} />
         <StageContent
-          localStream={localStream} localUsername={localUsername} remotes={remotes}
+          localStream={localStream} localUsername={localUsername} remotes={uniqueRemotes}
           audioOn={audioOn} videoOn={videoOn} onToggleAudio={onToggleAudio} onToggleVideo={onToggleVideo}
           onLeave={onLeave} readOnly={readOnly} onKickRemote={onKickRemote} cols={cols}
           fillHeight
@@ -123,7 +123,7 @@ export function CoHostStage({
       <div className="pointer-events-auto relative w-full max-w-md rounded-2xl bg-black/60 p-2 backdrop-blur-md ring-1 ring-white/10">
         {isHost && <DragHandle onPointerDown={(e) => onPointerDown(e, "move")} onPointerMove={onPointerMove} onPointerUp={onPointerUp} />}
         <StageContent
-          localStream={localStream} localUsername={localUsername} remotes={remotes}
+          localStream={localStream} localUsername={localUsername} remotes={uniqueRemotes}
           audioOn={audioOn} videoOn={videoOn} onToggleAudio={onToggleAudio} onToggleVideo={onToggleVideo}
           onLeave={onLeave} readOnly={readOnly} onKickRemote={onKickRemote} cols={cols}
         />
