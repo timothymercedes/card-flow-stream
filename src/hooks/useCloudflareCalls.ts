@@ -158,7 +158,7 @@ export function useCloudflareCalls(opts: {
           await supabase.from("stream_cohost_tracks").upsert({
             stream_id: streamId!, user_id: userId!, username: username!, avatar_url: avatarUrl,
             session_id: session.sessionId, audio_track_name: audioName, video_track_name: videoName,
-            is_audio_enabled: true, is_video_enabled: true,
+            is_audio_enabled: audioTracks.length > 0, is_video_enabled: videoTracks.length > 0,
           }, { onConflict: "stream_id,user_id" });
         }
         // Viewer-mode session is created empty; pullRemote() in next effect adds recvonly tracks
