@@ -3355,6 +3355,23 @@ function LiveDetail() {
           readOnly
         />
       )}
+
+      {/* Host-side overlay: when compositor/OBS owns local capture, the host's
+          publishing cfCall is disabled. This receive-only stage lets the host
+          see and hear cohosts on a single shared video element. */}
+      {isSeller && (usingCompositor || usingObs) && hostViewerCall.remotes.length > 0 && (
+        <CoHostStage
+          localStream={null}
+          localUsername=""
+          remotes={hostViewerCall.remotes}
+          audioOn={true}
+          videoOn={true}
+          onToggleAudio={() => {}}
+          onToggleVideo={() => {}}
+          onLeave={() => {}}
+          readOnly
+        />
+      )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <div className="flex items-center gap-1.5">
           <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur">
