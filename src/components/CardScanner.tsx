@@ -763,6 +763,8 @@ export function CardScanner({
         overall_confidence: 0.95,
         match_label: label,
         confidence: { name: 0.98, set: 0.98, year: 0.95, tcg_number: 0.98, variant: 0.9 },
+        confirmed_by: "manual",
+        image_source: a.image_url ? (p.image_source || "manual_pick") : p.image_source,
         ...(market ? { price_source: "TCGPlayer (Pokémon TCG API)" } : {}),
       };
     });
