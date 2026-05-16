@@ -91,7 +91,11 @@ export function useCloudflareCalls(opts: {
 
         // Viewers skip mic/cam capture entirely — they only consume.
         if (!viewerMode) {
-          local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
+          if (preStream && preStream.getTracks().length > 0) {
+            local = preStream;
+          } else {
+            local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
+          }
           if (cancelled) { local.getTracks().forEach((t) => t.stop()); return; }
           setLocalStream(local);
         }
