@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, Search, UserPlus, Check, Trash2, Mic, MicOff, BadgeCheck, Users2 } from "lucide-react";
+import { X, Search, UserPlus, Check, Trash2, Mic, MicOff, BadgeCheck, Users2, RotateCcw, XCircle } from "lucide-react";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Profile = { id: string; username: string; avatar_url: string | null; age_verified?: boolean };
