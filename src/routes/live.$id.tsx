@@ -3343,7 +3343,13 @@ function LiveDetail() {
             cfCall.toggleVideo();
             setVideoOn((v) => !v);
           }}
-          onLeave={() => setCallJoined(false)}
+          onLeave={() => {
+            setCallJoined(false);
+            if (cohostPreStream) {
+              cohostPreStream.getTracks().forEach((t) => t.stop());
+              setCohostPreStream(null);
+            }
+          }}
         />
       )}
 
