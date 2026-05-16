@@ -4082,6 +4082,30 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
+          {/* Mic toggle — host (compositor mode) mutes/unmutes all camera
+              source audio; co-host (already on call) toggles their published
+              mic. */}
+          {!ended && isSeller && usingCompositor && hostStudioCameras.length > 0 && (
+            <button
+              onClick={toggleHostMic}
+              className={`rounded-full p-2 backdrop-blur ${hostMicMuted ? "bg-destructive" : "bg-emerald-600/80"}`}
+              title={hostMicMuted ? "Unmute host mic" : "Mute host mic"}
+            >
+              {hostMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
+          {!ended && !isSeller && isCohostParticipant && callJoined && (
+            <button
+              onClick={() => {
+                cfCall.toggleAudio();
+                setAudioOn((v) => !v);
+              }}
+              className={`rounded-full p-2 backdrop-blur ${audioOn ? "bg-emerald-600/80" : "bg-destructive"}`}
+              title={audioOn ? "Mute mic" : "Unmute mic"}
+            >
+              {audioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+            </button>
+          )}
           {!ended && (isSeller || isCohostParticipant) && (
             <button
               onClick={async () => {
