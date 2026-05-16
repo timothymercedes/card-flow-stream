@@ -3427,6 +3427,8 @@ function LiveDetail() {
             <Radio className="h-24 w-24 opacity-40" />
           </div>
         )}
+      </div>
+
       {/* Tap to unmute — required because browsers block autoplay with sound */}
       {!isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview) && !audioUnmuted && (
         <button
