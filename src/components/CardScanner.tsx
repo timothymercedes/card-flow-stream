@@ -68,6 +68,10 @@ export type ScanResult = {
   image_source?: string;
   match_score?: number;
   confirmed_by?: "auto" | "manual";
+  pricing_tier?: "verified" | "estimated" | "unavailable";
+  price_range_low?: number;
+  price_range_high?: number;
+  tier_reason?: string;
   scan_debug?: {
     ocr_raw?: any;
     price_debug?: any;
@@ -257,19 +261,26 @@ export function CardScanner({
             image_url: cand?.image_url || undefined,
           })).filter((a: ScanAlternative) => !!a.name)
         : [];
-      // Vault autosave blocked unless identity is trusted AND we have an
-      // official reference image to bind to the saved card.
+      const tier: "verified" | "estimated" | "unavailable" =
+        (j?.pricing_tier as any) || (market > 0 ? "estimated" : "unavailable");
+      const rangeLow = j?.price_range?.low ?? undefined;
+      const rangeHigh = j?.price_range?.high ?? undefined;
+      // Autosave only on a verified tier with an official reference image.
       const trustedDatabaseIdentity =
-        !!c && matchScore >= 80 && market > 0 && setReliable && numberReliable && !!officialImage;
+        !!c && tier === "verified" && setReliable && numberReliable && !!officialImage;
       const next: ScanResult = {
         ...result,
-        estimated_value: trustedDatabaseIdentity ? market : 0,
-        condition_prices: trustedDatabaseIdentity
-          ? conditionPricesForMarket(market)
-          : undefined,
-        price_source: trustedDatabaseIdentity ? (j?.primary_source || gameId) : undefined,
-        price_low: trustedDatabaseIdentity ? j?.price?.low : undefined,
-        price_high: trustedDatabaseIdentity ? j?.price?.high : undefined,
+        // Only assign an exact estimated_value on verified tier. Estimated tier
+        // surfaces a range instead of a fake exact number; unavailable shows nothing.
+        estimated_value: tier === "verified" ? market : 0,
+        condition_prices: tier === "verified" ? conditionPricesForMarket(market) : undefined,
+        price_source: tier === "verified" ? (j?.primary_source || gameId) : undefined,
+        price_low: j?.price?.low,
+        price_high: j?.price?.high,
+        pricing_tier: tier,
+        price_range_low: rangeLow,
+        price_range_high: rangeHigh,
+        tier_reason: j?.tier_reason,
         alternatives: candidates.length ? candidates : result.alternatives,
         scan_debug: {
           ...(result.scan_debug || {}),
@@ -283,18 +294,18 @@ export function CardScanner({
             confidence,
             stale: !!j?.stale,
             image_source: j?.image_source,
+            pricing_tier: tier,
+            price_range: j?.price_range,
           },
           enrichment: {
             trustedDatabaseIdentity,
             setReliable,
             numberReliable,
-            reason: trustedDatabaseIdentity
+            reason: j?.tier_reason || (trustedDatabaseIdentity
               ? `${gameId} match accepted (score=${matchScore}, conf=${confidence}, $${market}).`
-              : !officialImage
-                ? `No official reference image for ${gameId} match — tap the correct picture before saving to avoid image mismatch.`
-                : market > 0
-                  ? `${gameId} found a price ($${market}) but identity is not trusted (score=${matchScore}). Confirm manually before saving.`
-                  : `No ${gameId} price source returned a market value. Manual confirmation required.`,
+              : tier === "estimated"
+                ? `Estimated only — pick the correct card to lock in a verified price.`
+                : `No reliable market data for this ${gameId} card yet.`),
             params: { game: gameId },
           },
         },
@@ -1133,26 +1144,60 @@ export function CardScanner({
                   onChange={(v) => patch("rarity", v)}
                 />
               </div>
-              <p className="text-[11px] text-white/70">
-                {(pending as any).price_source ? "Market" : "Est."} value:{" "}
-                <b className="text-emerald-300">
-                  ${Number(pending.estimated_value || 0).toFixed(2)}
-                </b>
-                {(pending as any).price_low != null && (pending as any).price_high != null && (
-                  <span className="text-white/50">
-                    {" "}
-                    · L ${Number((pending as any).price_low).toFixed(2)} / H $
-                    {Number((pending as any).price_high).toFixed(2)}
-                  </span>
-                )}
-                {" · "}
-                {pending.trend}
-              </p>
-              {(pending as any).price_source && (
-                <p className="text-[9px] uppercase tracking-wider text-emerald-400/80">
-                  ✓ Verified price · {(pending as any).price_source}
-                </p>
-              )}
+              {(() => {
+                const tier = (pending as any).pricing_tier as
+                  | "verified" | "estimated" | "unavailable" | undefined;
+                const rLow = (pending as any).price_range_low;
+                const rHigh = (pending as any).price_range_high;
+                const reason = (pending as any).tier_reason as string | undefined;
+                if (tier === "verified" || (!tier && (pending as any).price_source)) {
+                  return (
+                    <>
+                      <p className="text-[11px] text-white/70">
+                        Market value:{" "}
+                        <b className="text-emerald-300">
+                          ${Number(pending.estimated_value || 0).toFixed(2)}
+                        </b>
+                        {(pending as any).price_low != null && (pending as any).price_high != null && (
+                          <span className="text-white/50">
+                            {" "}· L ${Number((pending as any).price_low).toFixed(2)} / H ${Number((pending as any).price_high).toFixed(2)}
+                          </span>
+                        )}
+                        {" · "}{pending.trend}
+                      </p>
+                      <p className="text-[9px] uppercase tracking-wider text-emerald-400/80">
+                        ✓ Verified price · {(pending as any).price_source}
+                      </p>
+                    </>
+                  );
+                }
+                if (tier === "estimated" && (rLow != null || rHigh != null)) {
+                  return (
+                    <>
+                      <p className="text-[11px] text-white/70">
+                        Estimated range:{" "}
+                        <b className="text-amber-300">
+                          ${Number(rLow || 0).toFixed(2)}–${Number(rHigh || 0).toFixed(2)}
+                        </b>
+                      </p>
+                      <p className="text-[9px] uppercase tracking-wider text-amber-400/80">
+                        ◐ AI estimate · lower confidence
+                      </p>
+                      {reason && <p className="text-[10px] text-white/50">{reason}</p>}
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <p className="text-[11px] font-semibold text-white/80">
+                      No reliable market data
+                    </p>
+                    <p className="text-[10px] text-white/50">
+                      {reason || "Set a price manually or check recent sold listings before saving."}
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
