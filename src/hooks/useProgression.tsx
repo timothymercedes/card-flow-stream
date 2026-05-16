@@ -37,13 +37,12 @@ export function useProgression() {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel(`progression-${user.id}`)
-      .on("postgres_changes",
-        { event: "*", schema: "public", table: "user_progression", filter: `user_id=eq.${user.id}` },
-        () => refresh(),
-      )
-      .subscribe();
+    const ch = supabase.channel(`progression-${user.id}-${Math.random().toString(36).slice(2, 8)}`);
+    ch.on(
+      "postgres_changes" as any,
+      { event: "*", schema: "public", table: "user_progression", filter: `user_id=eq.${user.id}` },
+      () => refresh(),
+    ).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, refresh]);
 
