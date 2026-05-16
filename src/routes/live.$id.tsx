@@ -3358,6 +3358,12 @@ function LiveDetail() {
             autoPlay
             muted={!audioUnmuted}
           />
+        ) : isCohostParticipant && cohostHostPreview ? (
+          <RemoteStreamVideo
+            stream={cohostHostPreview.stream}
+            muted={!audioUnmuted}
+            className="h-full w-full object-contain bg-black"
+          />
         ) : stream.cf_playback_hls ? (
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
           // Start muted so autoplay isn't blocked; user taps to enable sound.
