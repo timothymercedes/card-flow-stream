@@ -3556,6 +3556,9 @@ function LiveDetail() {
           the host-positioned HLS/canvas view. */}
       {callShouldRun && !(isSeller && usingCompositor) && (
         <CoHostStage
+          streamId={id}
+          userId={user?.id}
+          mode={isSeller ? "host-broadcast" : "local-only"}
           localStream={cfCall.localStream}
           localUsername={profile?.username || "you"}
           remotes={usingCompositor && !isSeller ? [] : cfCall.remotes}
