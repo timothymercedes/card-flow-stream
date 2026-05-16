@@ -1300,7 +1300,8 @@ function LiveDetail() {
     };
   }, [user?.id, stream?.id, id, isSeller]);
 
-  // Host auto-joins only for legacy single-camera mode; multi-cam studio owns camera capture.
+  // Host publishes a lightweight studio preview to the co-host call so co-hosts
+  // can see the host while the main studio canvas still drives the HLS feed.
   const hostCallsPreviewStream = useMemo(() => {
     if (!isSeller || !usingCompositor || !hostStudio.canvas) return null;
     return hostStudio.canvas.captureStream(15);
