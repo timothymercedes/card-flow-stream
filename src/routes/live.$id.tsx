@@ -3466,7 +3466,7 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined || isSeller) && (
+          {!ended && (isSeller || isCohostParticipant) && (isSeller ? true : !callJoined) && (
             <button
               onClick={async () => {
                 if (showSettings) setShowSettings(false);
