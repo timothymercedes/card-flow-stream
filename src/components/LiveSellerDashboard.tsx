@@ -279,7 +279,7 @@ export function LiveSellerDashboard({
 
       {!collapsed && (
         <>
-          <div className="mt-2 flex gap-1 border-b border-white/10">
+          <div className="mt-1.5 flex gap-0.5 border-b border-white/10">
             {([
               { v: "chat", label: "Chat", icon: MessageCircle },
               { v: "watching", label: `Watching ${viewerCount}`, icon: Users },
@@ -288,25 +288,25 @@ export function LiveSellerDashboard({
               <button
                 key={t.v}
                 onClick={() => setTab(t.v)}
-                className={`flex items-center gap-1 border-b-2 px-2 py-1 text-[11px] font-bold ${
+                className={`flex items-center gap-0.5 border-b-2 px-1.5 py-0.5 text-[10px] font-bold ${
                   tab === t.v ? "border-primary text-primary" : "border-transparent text-white/60"
                 }`}
               >
-                <t.icon className="h-3 w-3" /> {t.label}
+                <t.icon className="h-2.5 w-2.5" /> {t.label}
               </button>
             ))}
           </div>
 
-          <div className="mt-1.5 flex gap-1 overflow-x-auto pb-1">
-            <FilterChip id="questions" icon={HelpCircle} label="Questions" count={questionMessages.length} />
+          <div className="mt-1 flex gap-0.5 overflow-x-auto pb-0.5">
+            <FilterChip id="questions" icon={HelpCircle} label="Q" count={questionMessages.length} />
             <FilterChip id="buyers" icon={ShoppingBag} label="Buyers" count={watchers.filter((w) => w.role === "buyer").length} />
             <FilterChip id="mods" icon={Shield} label="Mods" count={watchers.filter((w) => w.role === "mod").length} />
             <FilterChip id="muted" icon={VolumeX} label="Muted" count={watchers.filter((w) => w.role === "muted").length} />
-            <FilterChip id="winners" icon={Trophy} label="Givey winners" />
-            <FilterChip id="pending" icon={CreditCard} label="Pending pay" count={stats.pendingPayments} />
+            <FilterChip id="winners" icon={Trophy} label="Winners" />
+            <FilterChip id="pending" icon={CreditCard} label="Pending" count={stats.pendingPayments} />
           </div>
 
-          <div className="mt-1 max-h-44 overflow-y-auto rounded-lg bg-black/40 p-1.5 ring-1 ring-white/5">
+          <div className="mt-0.5 max-h-36 overflow-y-auto rounded-lg bg-black/40 p-1 ring-1 ring-white/5">
             {tab === "chat" && (
               <>
                 {(filter === "questions" ? questionMessages : chatMessages.slice(-30).reverse()).map((m) => (
