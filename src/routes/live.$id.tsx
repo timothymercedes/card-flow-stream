@@ -207,6 +207,9 @@ function LiveDetail() {
     }
   }, []);
 
+  // Tap-to-unmute for viewers (browsers block autoplay with sound)
+  const [audioUnmuted, setAudioUnmuted] = useState(false);
+
   // Mods, mod-chat, announcements, AI hype overlay
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
