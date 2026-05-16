@@ -193,7 +193,7 @@ export function useCloudflareCalls(opts: {
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState, sessionGen]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
