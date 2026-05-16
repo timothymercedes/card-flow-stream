@@ -84,6 +84,11 @@ Deno.serve(async (req) => {
     const set = String(body?.set || "").trim();
     const number = String(body?.number || "").trim();
     const skipCache = !!body?.skip_cache;
+    // game routing: accept either an explicit `game` id or a scanner `category`
+    // string. When provided and non-Pokémon, we route through the matching
+    // catalog adapters instead of defaulting to PokémonTCG.
+    const gameId: Game = (body?.game ? body.game : categoryToGameId(body?.category)) || "pokemon";
+    const game = resolveGame(gameId);
     if (!card_id && !name) {
       return new Response(JSON.stringify({ error: "card_id or name required" }), {
         status: 400, headers: { ...corsHeaders, "content-type": "application/json" },
@@ -96,7 +101,7 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const key = cacheKey(card_id, name, set, number);
+    const key = `${game.id}|${cacheKey(card_id, name, set, number)}`;
 
     // 1) Cache lookup
     if (!skipCache) {
@@ -109,10 +114,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2) Resolve a card object (for TCGplayer prices)
+    // 2) Resolve a card. Pokémon keeps the local `pokemon_cards` cache;
+    //    every other game routes through its declared catalog adapter chain.
     let card: NormalizedCard | null = null;
-    if (card_id) {
-      // try local first
+    const catalogTried: string[] = [];
+    let bestScore = 0;
+    if (card_id && game.id === "pokemon") {
       const { data: row } = await admin.from("pokemon_cards")
         .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
         .eq("id", card_id).maybeSingle();
@@ -128,8 +135,29 @@ Deno.serve(async (req) => {
       }
     }
     if (!card && name) {
-      const list = await searchPokemonTcg({ name, number, set }, 1);
-      card = list[0] ?? null;
+      const candidates: NormalizedCard[] = [];
+      for (const adapter of game.catalog) {
+        catalogTried.push(adapter.id);
+        try {
+          const rows = await adapter.search({ name, number, set, limit: 6 });
+          candidates.push(...rows);
+        } catch (e) {
+          console.warn(`[card-price] adapter ${adapter.id} failed:`, (e as Error)?.message);
+        }
+        if (candidates.length) {
+          const best = candidates
+            .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
+            .sort((a, b) => b.s - a.s)[0];
+          if (best.s >= 70) { card = best.c; bestScore = best.s; break; }
+        }
+      }
+      if (!card && candidates.length) {
+        const best = candidates
+          .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
+          .sort((a, b) => b.s - a.s)[0];
+        card = best.c;
+        bestScore = best.s;
+      }
     }
 
     // 3) Gather quotes from every ENABLED provider in parallel.
