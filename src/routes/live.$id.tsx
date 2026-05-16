@@ -1586,7 +1586,7 @@ function LiveDetail() {
   async function sendMsg(
     content: string,
     isSystem = false,
-    opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string } = {},
+    opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string; audience?: "public" | "mods_only" | "host_mods" } = {},
   ) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
     if (!isSystem && needsAcceptance)
@@ -1600,7 +1600,8 @@ function LiveDetail() {
       is_system: isSystem,
       is_announcement: !!opts.isAnnouncement,
       is_hype: !!opts.isHype,
-    });
+      audience: opts.audience || "public",
+    } as any);
     if (!isSystem) safety.touch("chat");
   }
 
