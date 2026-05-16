@@ -1325,6 +1325,7 @@ function LiveDetail() {
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
+    publishOnly: isSeller && usingCompositor,
     preStream: isSeller && usingCompositor ? hostCallsPreviewStream : cohostPreStream,
   });
   const [audioOn, setAudioOn] = useState(true);
