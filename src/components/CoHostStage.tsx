@@ -24,7 +24,8 @@ export function CoHostStage({
   /** When provided (host only), shows a kick button on each remote tile and enables drag/resize. */
   onKickRemote?: (userId: string, username: string) => void;
 }) {
-  const total = (localStream ? 1 : 0) + remotes.length;
+  const uniqueRemotes = Array.from(new Map(remotes.map((remote) => [remote.userId, remote])).values());
+  const total = (localStream ? 1 : 0) + uniqueRemotes.length;
   const isHost = !!onKickRemote;
 
   // Persisted position + size for host
