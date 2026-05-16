@@ -3434,7 +3434,7 @@ function LiveDetail() {
       {/* Host-side overlay: when compositor/OBS owns local capture, the host's
           publishing cfCall is disabled. This receive-only stage lets the host
           see and hear cohosts on a single shared video element. */}
-      {isSeller && (usingCompositor || usingObs) && hostViewerCall.remotes.length > 0 && (
+      {isSeller && (usingCompositor || usingObs) && !callShouldRun && hostViewerCall.remotes.length > 0 && (
         <CoHostStage
           localStream={null}
           localUsername=""
