@@ -38,25 +38,61 @@ function quoteFromCardForSource(card: NormalizedCard): PriceQuote | null {
   }
 }
 
-function scoreCard(c: NormalizedCard, q: { name?: string; number?: string; set?: string }) {
+// Tokens that change a card's identity / price (parallels, variants, rookies).
+const VARIANT_TOKENS = [
+  "holo","reverse","reverse holo","1st edition","first edition","unlimited","shadowless",
+  "foil","etched","extended","borderless","showcase","retro","promo","alt art","alternate art",
+  "full art","secret","rainbow","gold","silver","prizm","refractor","mosaic","optic","select",
+  "donruss","rookie","rc","auto","autograph","relic","patch","numbered","ssp","sp",
+  "parallel","variant","stamped","staff","prerelease",
+];
+function tokensOf(s: string | null | undefined): Set<string> {
+  const t = String(s || "").toLowerCase();
+  const out = new Set<string>();
+  for (const tok of VARIANT_TOKENS) if (t.includes(tok)) out.add(tok);
+  return out;
+}
+
+function scoreCard(
+  c: NormalizedCard,
+  q: { name?: string; number?: string; set?: string; year?: string; variant?: string },
+) {
   const norm = (s: string | null | undefined) =>
     String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   let s = 0;
+  // Name (40)
   if (q.name) {
     const a = norm(c.name), b = norm(q.name);
-    if (a === b) s += 50;
-    else if (a.startsWith(b) || b.startsWith(a)) s += 35;
-    else if (a.includes(b) || b.includes(a)) s += 20;
+    if (a === b) s += 40;
+    else if (a.startsWith(b) || b.startsWith(a)) s += 28;
+    else if (a.includes(b) || b.includes(a)) s += 16;
   }
+  // Collector number (20)
   if (q.number) {
     const cn = String(c.number || "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
     const qn = String(q.number).split("/")[0].trim().replace(/^0+(\d)/, "$1");
-    if (cn && cn === qn) s += 30;
+    if (cn && cn === qn) s += 20;
+    else if (cn && qn && (cn.startsWith(qn) || qn.startsWith(cn))) s += 8;
   }
+  // Set (20)
   if (q.set) {
     const a = norm(c.set_name), b = norm(q.set);
     if (a === b) s += 20;
     else if (a.includes(b) || b.includes(a)) s += 10;
+  }
+  // Year (10)
+  if (q.year && c.year) {
+    if (String(c.year) === String(q.year)) s += 10;
+    else if (Math.abs(Number(c.year) - Number(q.year)) <= 1) s += 4;
+  }
+  // Variant / parallel tokens (10, with penalty for mismatch)
+  const ocrTokens = tokensOf(`${q.variant || ""} ${q.name || ""}`);
+  const cardTokens = tokensOf(`${c.name} ${c.rarity || ""} ${(c.variants || []).join(" ")}`);
+  if (ocrTokens.size) {
+    let matched = 0;
+    for (const t of ocrTokens) if (cardTokens.has(t)) matched++;
+    if (matched) s += Math.min(10, matched * 4);
+    else s -= 8; // OCR saw "holo/rookie/refractor" but candidate has none → penalize
   }
   if (c.image_small || c.image_large) s += 2;
   return s;
