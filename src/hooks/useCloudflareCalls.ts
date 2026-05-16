@@ -34,18 +34,22 @@ type CohostTrackRow = {
 };
 type PeerConnectionWithRouteMap = RTCPeerConnection & { __midToUser?: Record<string, string> };
 
-async function sfu<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+async function sfu<T = unknown>(
+  path: string,
+  init?: RequestInit,
+  authMode: "required" | "optional" = "required",
+): Promise<T> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
   const token = session?.access_token;
-  if (!token) throw new Error("Not signed in");
+  if (!token && authMode === "required") throw new Error("Not signed in");
   const r = await fetch(`${SFU_FN_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       apikey: ANON_KEY,
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {}),
     },
   });
@@ -91,7 +95,11 @@ export function useCloudflareCalls(opts: {
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
   const [sessionGen, setSessionGen] = useState(0);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
-  const [cameraZoomRange, setCameraZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
+  const [cameraZoomRange, setCameraZoomRange] = useState<{
+    min: number;
+    max: number;
+    step: number;
+  } | null>(null);
   const [cameraZoom, setCameraZoomState] = useState(1);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -132,17 +140,25 @@ export function useCloudflareCalls(opts: {
   useEffect(() => {
     refreshCameraDevices();
     navigator.mediaDevices?.addEventListener?.("devicechange", refreshCameraDevices);
-    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshCameraDevices);
+    return () =>
+      navigator.mediaDevices?.removeEventListener?.("devicechange", refreshCameraDevices);
   }, [refreshCameraDevices]);
 
-  const refreshEmptySession = useCallback(async (pc: RTCPeerConnection) => {
-    if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription)
-      return sessionIdRef.current;
-    const session = await sfu<CallsSessionResponse>("/sessions/new", { method: "POST" });
-    sessionIdRef.current = session.sessionId;
-    sessionCreatedAtRef.current = Date.now();
-    return session.sessionId as string;
-  }, []);
+  const refreshEmptySession = useCallback(
+    async (pc: RTCPeerConnection) => {
+      if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription)
+        return sessionIdRef.current;
+      const session = await sfu<CallsSessionResponse>(
+        "/sessions/new",
+        { method: "POST" },
+        viewerMode ? "optional" : "required",
+      );
+      sessionIdRef.current = session.sessionId;
+      sessionCreatedAtRef.current = Date.now();
+      return session.sessionId as string;
+    },
+    [viewerMode],
+  );
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(
@@ -420,10 +436,14 @@ export function useCloudflareCalls(opts: {
             const activeSession = viewerMode ? await refreshEmptySession(pc) : sessionIdRef.current;
             if (!activeSession || cancelled || pcRef.current !== pc) return;
 
-            const resp = await sfu<CallsTracksResponse>(`/sessions/${activeSession}/tracks/new`, {
-              method: "POST",
-              body: JSON.stringify({ tracks: wantTracks }),
-            });
+            const resp = await sfu<CallsTracksResponse>(
+              `/sessions/${activeSession}/tracks/new`,
+              {
+                method: "POST",
+                body: JSON.stringify({ tracks: wantTracks }),
+              },
+              viewerMode ? "optional" : "required",
+            );
 
             // Map mids returned by Cloudflare to this user so ontrack can route
             routedPc.__midToUser = routedPc.__midToUser || {};
@@ -438,12 +458,16 @@ export function useCloudflareCalls(opts: {
             if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
-              await sfu(`/sessions/${activeSession}/renegotiate`, {
-                method: "PUT",
-                body: JSON.stringify({
-                  sessionDescription: { type: answer.type, sdp: answer.sdp },
-                }),
-              });
+              await sfu(
+                `/sessions/${activeSession}/renegotiate`,
+                {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    sessionDescription: { type: answer.type, sdp: answer.sdp },
+                  }),
+                },
+                viewerMode ? "optional" : "required",
+              );
             }
           });
         negotiationRef.current = negotiation.catch(() => {});
@@ -592,54 +616,60 @@ export function useCloudflareCalls(opts: {
       .eq("user_id", userId);
   }, [localStream, streamId, userId]);
 
-  const switchCamera = useCallback(async (deviceId?: string, facingMode: "user" | "environment" = "environment") => {
-    if (!localStream || !streamId || !userId) return false;
-    try {
-      const next = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: deviceId
-          ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
-          : { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } },
-      });
-      const nextTrack = next.getVideoTracks()[0];
-      if (!nextTrack) return false;
-      const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
-      if (sender) await sender.replaceTrack(nextTrack);
-      const oldVideoTracks = localStream.getVideoTracks();
-      oldVideoTracks.forEach((track) => {
-        localStream.removeTrack(track);
-        track.stop();
-      });
-      localStream.addTrack(nextTrack);
-      const refreshedLocal = new MediaStream(localStream.getTracks());
-      setLocalStream(refreshedLocal);
-      syncCameraCapabilities(refreshedLocal);
-      await supabase
-        .from("stream_cohost_tracks")
-        .update({ is_video_enabled: true })
-        .eq("stream_id", streamId)
-        .eq("user_id", userId);
-      await refreshCameraDevices();
-      return true;
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-      return false;
-    }
-  }, [localStream, streamId, userId, refreshCameraDevices, syncCameraCapabilities]);
+  const switchCamera = useCallback(
+    async (deviceId?: string, facingMode: "user" | "environment" = "environment") => {
+      if (!localStream || !streamId || !userId) return false;
+      try {
+        const next = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: deviceId
+            ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+            : { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } },
+        });
+        const nextTrack = next.getVideoTracks()[0];
+        if (!nextTrack) return false;
+        const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
+        if (sender) await sender.replaceTrack(nextTrack);
+        const oldVideoTracks = localStream.getVideoTracks();
+        oldVideoTracks.forEach((track) => {
+          localStream.removeTrack(track);
+          track.stop();
+        });
+        localStream.addTrack(nextTrack);
+        const refreshedLocal = new MediaStream(localStream.getTracks());
+        setLocalStream(refreshedLocal);
+        syncCameraCapabilities(refreshedLocal);
+        await supabase
+          .from("stream_cohost_tracks")
+          .update({ is_video_enabled: true })
+          .eq("stream_id", streamId)
+          .eq("user_id", userId);
+        await refreshCameraDevices();
+        return true;
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : String(e));
+        return false;
+      }
+    },
+    [localStream, streamId, userId, refreshCameraDevices, syncCameraCapabilities],
+  );
 
-  const setCameraZoom = useCallback(async (zoom: number) => {
-    const track = localStream?.getVideoTracks()[0];
-    if (!track || !cameraZoomRange) return false;
-    const next = Math.max(cameraZoomRange.min, Math.min(cameraZoomRange.max, zoom));
-    try {
-      await track.applyConstraints({ advanced: [{ zoom: next }] } as any);
-      setCameraZoomState(next);
-      return true;
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-      return false;
-    }
-  }, [localStream, cameraZoomRange]);
+  const setCameraZoom = useCallback(
+    async (zoom: number) => {
+      const track = localStream?.getVideoTracks()[0];
+      if (!track || !cameraZoomRange) return false;
+      const next = Math.max(cameraZoomRange.min, Math.min(cameraZoomRange.max, zoom));
+      try {
+        await track.applyConstraints({ advanced: [{ zoom: next }] } as any);
+        setCameraZoomState(next);
+        return true;
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : String(e));
+        return false;
+      }
+    },
+    [localStream, cameraZoomRange],
+  );
 
   return {
     localStream,
