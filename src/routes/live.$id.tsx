@@ -3382,6 +3382,13 @@ function LiveDetail() {
           onToggleVideo={() => {}}
           onLeave={() => {}}
           readOnly
+          onKickRemote={async (uid, uname) => {
+            if (!confirm(`Remove @${uname} from collab?`)) return;
+            await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", uid);
+            await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", uid);
+            await supabase.from("stream_moderators").delete().eq("stream_id", id).eq("mod_user_id", uid);
+            toast.success(`Removed @${uname}`);
+          }}
         />
       )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
