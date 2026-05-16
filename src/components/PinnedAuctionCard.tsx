@@ -157,14 +157,14 @@ export function PinnedAuctionCard({
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-[9px] uppercase tracking-wider text-white/50">
+          <p className="text-[8px] uppercase tracking-wider text-white/50">
             {phase === "sold" ? "Final" : "High bid"}
           </p>
-          <p className="text-base font-extrabold tabular-nums text-emerald-300">
+          <p className="text-sm font-extrabold tabular-nums text-emerald-300">
             {fmtMoney(phase === "sold" ? winningBid : currentBid)}
           </p>
           {phase === "sold" && winnerUsername && (
-            <p className="text-[10px] font-bold text-white/80">@{winnerUsername}</p>
+            <p className="text-[9px] font-bold text-white/80">@{winnerUsername}</p>
           )}
         </div>
       </div>
