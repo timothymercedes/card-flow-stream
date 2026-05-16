@@ -50,8 +50,10 @@ export function useCloudflareCalls(opts: {
   avatarUrl: string | null;
   /** When true: don't publish local cam/mic — only pull remote cohost tracks (for normal viewers). */
   viewerMode?: boolean;
+  /** Pre-acquired MediaStream (captured in a user-gesture handler to satisfy mobile autoplay/permission rules). */
+  preStream?: MediaStream | null;
 }) {
-  const { enabled, streamId, userId, username, avatarUrl, viewerMode } = opts;
+  const { enabled, streamId, userId, username, avatarUrl, viewerMode, preStream } = opts;
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +91,11 @@ export function useCloudflareCalls(opts: {
 
         // Viewers skip mic/cam capture entirely — they only consume.
         if (!viewerMode) {
-          local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
+          if (preStream && preStream.getTracks().length > 0) {
+            local = preStream;
+          } else {
+            local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
+          }
           if (cancelled) { local.getTracks().forEach((t) => t.stop()); return; }
           setLocalStream(local);
         }

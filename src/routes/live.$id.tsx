@@ -1306,18 +1306,28 @@ function LiveDetail() {
     ((isSeller && !usingObs && !usingCompositor) || isCohostParticipant) &&
     callJoined;
 
+  // Pre-acquired media stream from the user-gesture "Join" click. Required so
+  // mobile Safari/Chrome don't block getUserMedia inside the hook's useEffect.
+  const [cohostPreStream, setCohostPreStream] = useState<MediaStream | null>(null);
   const cfCall = useCloudflareCalls({
     enabled: callShouldRun,
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
+    preStream: cohostPreStream,
   });
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  // Auto-join prompt for cohosts on acceptance
+  // Notify cohort on accept — they MUST tap the camera button to publish so
+  // getUserMedia runs inside a user gesture (required by mobile Safari/Chrome).
+  const cohostNotifiedRef = useRef(false);
   useEffect(() => {
-    if (isCohostParticipant && !callJoined) setCallJoined(true);
+    if (isCohostParticipant && !callJoined && !cohostNotifiedRef.current) {
+      cohostNotifiedRef.current = true;
+      toast.message("You're on as co-host — tap the camera button to go live", { duration: 8000 });
+    }
+    if (!isCohostParticipant) cohostNotifiedRef.current = false;
   }, [isCohostParticipant, callJoined]);
   const safety = useLivestreamSafety({
     stream,
@@ -1365,6 +1375,19 @@ function LiveDetail() {
     avatarUrl: profile?.avatar_url ?? null,
     viewerMode: true,
   });
+
+  // Host-side receive-only subscription so the host can SEE and HEAR cohosts
+  // even when the multi-cam compositor owns local camera capture (which
+  // disables the host's publishing cfCall above).
+  const hostViewerCall = useCloudflareCalls({
+    enabled: !!stream && stream.status !== "ended" && !!isSeller && (usingCompositor || usingObs),
+    streamId: stream?.id ?? null,
+    userId: user?.id ?? null,
+    username: profile?.username ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+    viewerMode: true,
+  });
+
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
@@ -3320,7 +3343,13 @@ function LiveDetail() {
             cfCall.toggleVideo();
             setVideoOn((v) => !v);
           }}
-          onLeave={() => setCallJoined(false)}
+          onLeave={() => {
+            setCallJoined(false);
+            if (cohostPreStream) {
+              cohostPreStream.getTracks().forEach((t) => t.stop());
+              setCohostPreStream(null);
+            }
+          }}
         />
       )}
 
@@ -3330,6 +3359,23 @@ function LiveDetail() {
           localStream={null}
           localUsername=""
           remotes={viewerCall.remotes}
+          audioOn={true}
+          videoOn={true}
+          onToggleAudio={() => {}}
+          onToggleVideo={() => {}}
+          onLeave={() => {}}
+          readOnly
+        />
+      )}
+
+      {/* Host-side overlay: when compositor/OBS owns local capture, the host's
+          publishing cfCall is disabled. This receive-only stage lets the host
+          see and hear cohosts on a single shared video element. */}
+      {isSeller && (usingCompositor || usingObs) && hostViewerCall.remotes.length > 0 && (
+        <CoHostStage
+          localStream={null}
+          localUsername=""
+          remotes={hostViewerCall.remotes}
           audioOn={true}
           videoOn={true}
           onToggleAudio={() => {}}
@@ -3420,7 +3466,7 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && (usingCompositor ? isSeller : !callJoined || isSeller) && (
+          {!ended && (isSeller || isCohostParticipant) && (isSeller ? true : !callJoined) && (
             <button
               onClick={async () => {
                 if (showSettings) setShowSettings(false);
@@ -3434,8 +3480,32 @@ function LiveDetail() {
                   }
                   openHostCameraControls();
                 } else {
+                  // Cohost: capture camera+mic INSIDE the user-gesture handler so
+                  // mobile Safari/Chrome don't reject getUserMedia. The hook then
+                  // uses this pre-acquired stream instead of calling getUserMedia
+                  // from a non-gesture useEffect.
+                  if (!cohostPreStream) {
+                    try {
+                      const s = await navigator.mediaDevices.getUserMedia({
+                        audio: true,
+                        video: { width: 640, height: 480 },
+                      });
+                      setCohostPreStream(s);
+                    } catch (e: any) {
+                      const name = e?.name || "";
+                      if (name === "NotAllowedError" || name === "SecurityError") {
+                        toast.error("Camera/mic permission denied. Allow access in your browser settings and try again.");
+                      } else if (name === "NotFoundError") {
+                        toast.error("No camera or microphone found on this device.");
+                      } else if (name === "NotReadableError") {
+                        toast.error("Camera/mic is in use by another app. Close it and try again.");
+                      } else {
+                        toast.error(`Could not access camera/mic: ${e?.message || name || "unknown error"}`);
+                      }
+                      return;
+                    }
+                  }
                   setCallJoined(true);
-                  setShowHostCameraEditor(true);
                 }
               }}
               disabled={isSeller && !usingCompositor && switchingToBrowserCam}
