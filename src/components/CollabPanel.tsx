@@ -95,11 +95,21 @@ export function CollabPanel({
   }
 
   async function cancelInvite(inv: Invite) {
-    const { error } = await supabase
+    // Optimistically remove from UI — realtime DELETE events are not always
+    // delivered for the deleter's own row, so we don't want a stale "pending".
+    setInvites((list) => list.filter((x) => x.id !== inv.id));
+    const { error, count } = await supabase
       .from("stream_collab_invites")
-      .delete()
+      .delete({ count: "exact" })
       .eq("id", inv.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setReloadTick((n) => n + 1); // rollback by reloading
+      return toast.error(error.message);
+    }
+    if (!count) {
+      setReloadTick((n) => n + 1);
+      return toast.error("Couldn't cancel that invite (permission denied)");
+    }
     toast.success(`Invite to @${inv.invitee_username} cancelled`);
   }
 
