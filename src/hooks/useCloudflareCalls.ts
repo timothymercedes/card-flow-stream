@@ -33,6 +33,11 @@ async function sfu(path: string, init?: RequestInit) {
   return r.json();
 }
 
+function isRecoverableCallsSessionError(error: unknown) {
+  const message = String((error as any)?.message ?? error);
+  return /\b410\b|session_error|invalid_session_description|Mismatched number of transceivers/i.test(message);
+}
+
 export type RemoteCohost = {
   userId: string;
   username: string;
@@ -65,9 +70,18 @@ export function useCloudflareCalls(opts: {
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const sessionCreatedAtRef = useRef(0);
   const pulledRef = useRef<Set<string>>(new Set()); // remote sessionIds already pulled
   const remoteStreamsByUserRef = useRef<Map<string, MediaStream>>(new Map());
   const negotiationRef = useRef<Promise<void>>(Promise.resolve());
+
+  const refreshEmptySession = useCallback(async (pc: RTCPeerConnection) => {
+    if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription) return sessionIdRef.current;
+    const session = await sfu("/sessions/new", { method: "POST" });
+    sessionIdRef.current = session.sessionId;
+    sessionCreatedAtRef.current = Date.now();
+    return session.sessionId as string;
+  }, []);
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(async (pc: RTCPeerConnection, target: RTCPeerConnectionState) => {
@@ -154,6 +168,7 @@ export function useCloudflareCalls(opts: {
         // Create session
         const session = await sfu("/sessions/new", { method: "POST" });
         sessionIdRef.current = session.sessionId;
+        sessionCreatedAtRef.current = Date.now();
 
         if (local) {
           // Publishing path (host / cohost)
@@ -208,12 +223,14 @@ export function useCloudflareCalls(opts: {
         supabase.from("stream_cohost_tracks").delete().eq("stream_id", streamId).eq("user_id", userId);
       }
       sessionIdRef.current = null;
+      sessionCreatedAtRef.current = 0;
       pulledRef.current.clear();
       remoteStreamsByUserRef.current.clear();
+      negotiationRef.current = Promise.resolve();
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState, sessionGen]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState, refreshEmptySession, sessionGen]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
