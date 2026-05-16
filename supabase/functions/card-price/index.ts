@@ -38,25 +38,61 @@ function quoteFromCardForSource(card: NormalizedCard): PriceQuote | null {
   }
 }
 
-function scoreCard(c: NormalizedCard, q: { name?: string; number?: string; set?: string }) {
+// Tokens that change a card's identity / price (parallels, variants, rookies).
+const VARIANT_TOKENS = [
+  "holo","reverse","reverse holo","1st edition","first edition","unlimited","shadowless",
+  "foil","etched","extended","borderless","showcase","retro","promo","alt art","alternate art",
+  "full art","secret","rainbow","gold","silver","prizm","refractor","mosaic","optic","select",
+  "donruss","rookie","rc","auto","autograph","relic","patch","numbered","ssp","sp",
+  "parallel","variant","stamped","staff","prerelease",
+];
+function tokensOf(s: string | null | undefined): Set<string> {
+  const t = String(s || "").toLowerCase();
+  const out = new Set<string>();
+  for (const tok of VARIANT_TOKENS) if (t.includes(tok)) out.add(tok);
+  return out;
+}
+
+function scoreCard(
+  c: NormalizedCard,
+  q: { name?: string; number?: string; set?: string; year?: string; variant?: string },
+) {
   const norm = (s: string | null | undefined) =>
     String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   let s = 0;
+  // Name (40)
   if (q.name) {
     const a = norm(c.name), b = norm(q.name);
-    if (a === b) s += 50;
-    else if (a.startsWith(b) || b.startsWith(a)) s += 35;
-    else if (a.includes(b) || b.includes(a)) s += 20;
+    if (a === b) s += 40;
+    else if (a.startsWith(b) || b.startsWith(a)) s += 28;
+    else if (a.includes(b) || b.includes(a)) s += 16;
   }
+  // Collector number (20)
   if (q.number) {
     const cn = String(c.number || "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
     const qn = String(q.number).split("/")[0].trim().replace(/^0+(\d)/, "$1");
-    if (cn && cn === qn) s += 30;
+    if (cn && cn === qn) s += 20;
+    else if (cn && qn && (cn.startsWith(qn) || qn.startsWith(cn))) s += 8;
   }
+  // Set (20)
   if (q.set) {
     const a = norm(c.set_name), b = norm(q.set);
     if (a === b) s += 20;
     else if (a.includes(b) || b.includes(a)) s += 10;
+  }
+  // Year (10)
+  if (q.year && c.year) {
+    if (String(c.year) === String(q.year)) s += 10;
+    else if (Math.abs(Number(c.year) - Number(q.year)) <= 1) s += 4;
+  }
+  // Variant / parallel tokens (10, with penalty for mismatch)
+  const ocrTokens = tokensOf(`${q.variant || ""} ${q.name || ""}`);
+  const cardTokens = tokensOf(`${c.name} ${c.rarity || ""} ${(c.variants || []).join(" ")}`);
+  if (ocrTokens.size) {
+    let matched = 0;
+    for (const t of ocrTokens) if (cardTokens.has(t)) matched++;
+    if (matched) s += Math.min(10, matched * 4);
+    else s -= 8; // OCR saw "holo/rookie/refractor" but candidate has none → penalize
   }
   if (c.image_small || c.image_large) s += 2;
   return s;
@@ -103,22 +139,29 @@ Deno.serve(async (req) => {
 
     const key = `${game.id}|${cacheKey(card_id, name, set, number)}`;
 
-    // 1) Cache lookup
+    // 1) Cache lookup — keep stale row around to use as fallback if all live providers fail.
+    let staleCachePayload: any = null;
     if (!skipCache) {
       const { data: cached } = await admin.from("card_price_cache")
         .select("payload,expires_at").eq("card_key", key).maybeSingle();
-      if (cached && new Date(cached.expires_at).getTime() > Date.now()) {
-        return new Response(JSON.stringify({ ...(cached.payload as object), cached: true }), {
-          headers: { ...corsHeaders, "content-type": "application/json" },
-        });
+      if (cached) {
+        if (new Date(cached.expires_at).getTime() > Date.now()) {
+          return new Response(JSON.stringify({ ...(cached.payload as object), cached: true }), {
+            headers: { ...corsHeaders, "content-type": "application/json" },
+          });
+        }
+        staleCachePayload = cached.payload;
       }
     }
 
     // 2) Resolve a card. Pokémon keeps the local `pokemon_cards` cache;
     //    every other game routes through its declared catalog adapter chain.
+    const variant = String(body?.variant || "").trim();
+    const year = String(body?.year || "").trim();
     let card: NormalizedCard | null = null;
     const catalogTried: string[] = [];
     let bestScore = 0;
+    let topCandidates: NormalizedCard[] = [];
     if (card_id && game.id === "pokemon") {
       const { data: row } = await admin.from("pokemon_cards")
         .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
@@ -145,18 +188,20 @@ Deno.serve(async (req) => {
           console.warn(`[card-price] adapter ${adapter.id} failed:`, (e as Error)?.message);
         }
         if (candidates.length) {
-          const best = candidates
-            .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
-            .sort((a, b) => b.s - a.s)[0];
-          if (best.s >= 70) { card = best.c; bestScore = best.s; break; }
+          const ranked = candidates
+            .map((c) => ({ c, s: scoreCard(c, { name, number, set, variant, year }) }))
+            .sort((a, b) => b.s - a.s);
+          topCandidates = ranked.slice(0, 3).map((r) => r.c);
+          if (ranked[0].s >= 70) { card = ranked[0].c; bestScore = ranked[0].s; break; }
         }
       }
       if (!card && candidates.length) {
-        const best = candidates
-          .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
-          .sort((a, b) => b.s - a.s)[0];
-        card = best.c;
-        bestScore = best.s;
+        const ranked = candidates
+          .map((c) => ({ c, s: scoreCard(c, { name, number, set, variant, year }) }))
+          .sort((a, b) => b.s - a.s);
+        card = ranked[0].c;
+        bestScore = ranked[0].s;
+        topCandidates = ranked.slice(0, 3).map((r) => r.c);
       }
     }
 
@@ -205,7 +250,22 @@ Deno.serve(async (req) => {
 
     const aggregated = aggregatePrices(quotes);
 
-    const payload = {
+    // Confidence = identity match × pricing coverage × source agreement.
+    const matchFactor = Math.min(1, bestScore / 100);
+    const coverage = quotes.length ? Math.min(1, quotes.length / 2) : 0;
+    const marketVals = quotes.map((qq) => qq.market).filter((n): n is number => typeof n === "number" && n > 0);
+    let agreement = 1;
+    if (marketVals.length >= 2) {
+      const mean = marketVals.reduce((a, b) => a + b, 0) / marketVals.length;
+      const spread = (Math.max(...marketVals) - Math.min(...marketVals)) / Math.max(1, mean);
+      agreement = Math.max(0.3, 1 - Math.min(1, spread));
+    }
+    const confidence = Math.round(matchFactor * (0.6 + 0.4 * coverage * agreement) * 100) / 100;
+
+    const officialImage = card?.image_large || card?.image_small || null;
+    const imageSource: string | null = card?.source ?? null;
+
+    let payload: any = {
       game: game.id,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
@@ -214,6 +274,20 @@ Deno.serve(async (req) => {
         source_ids: card.source_ids,
         match_score: bestScore,
       } : null,
+      candidates: topCandidates.map((c) => ({
+        id: c.id,
+        name: c.name,
+        set_name: c.set_name,
+        number: c.number,
+        rarity: c.rarity,
+        year: c.year,
+        variant: (c.variants || [])[0] || null,
+        image_url: c.image_large || c.image_small || null,
+        image_source: c.source,
+        match_score: scoreCard(c, { name, number, set, variant, year }),
+      })),
+      official_image_url: officialImage,
+      image_source: imageSource,
       price: {
         market: aggregated.market,
         low: aggregated.low,
@@ -221,14 +295,23 @@ Deno.serve(async (req) => {
         high: aggregated.high,
         currency: aggregated.currency,
       },
+      confidence,
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
       sources_skipped: sourcesSkipped,
       primary_source: aggregated.primary_source,
       cached: false,
+      stale: false,
       duration_ms: Date.now() - t0,
     };
+
+    // Cached-pricing protection: if no live provider returned a price, fall
+    // back to the most recent stale cache so the UI shows the last known
+    // value with a stale flag instead of $0.
+    if ((aggregated.market == null) && staleCachePayload?.price?.market) {
+      payload = { ...staleCachePayload, ...payload, price: staleCachePayload.price, stale: true, confidence: Math.min(confidence, 0.5) };
+    }
 
     // 4) Cache and history (fire-and-forget)
     if (card?.id || name) {

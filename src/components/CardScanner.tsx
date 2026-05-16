@@ -238,11 +238,25 @@ export function CardScanner({
       const market = Number(j?.price?.market) || 0;
       const c = j?.card;
       const matchScore = Number(c?.match_score || 0);
-      // Vault autosave stays blocked unless we trust the identity. Sports /
-      // "other" almost never reach this bar without manual confirmation, which
-      // is the intended behavior.
+      const confidence = Number(j?.confidence || 0);
+      const officialImage: string | undefined =
+        j?.official_image_url || c?.image_large || c?.image_small || undefined;
+      const candidates: ScanAlternative[] = Array.isArray(j?.candidates)
+        ? j.candidates.map((cand: any) => ({
+            name: String(cand?.name || ""),
+            set: cand?.set_name || undefined,
+            year: cand?.year || undefined,
+            tcg_number: cand?.number || undefined,
+            variant: cand?.variant || undefined,
+            rarity: cand?.rarity || undefined,
+            estimated_value: undefined,
+            image_url: cand?.image_url || undefined,
+          })).filter((a: ScanAlternative) => !!a.name)
+        : [];
+      // Vault autosave blocked unless identity is trusted AND we have an
+      // official reference image to bind to the saved card.
       const trustedDatabaseIdentity =
-        !!c && matchScore >= 70 && market > 0 && setReliable && numberReliable;
+        !!c && matchScore >= 80 && market > 0 && setReliable && numberReliable && !!officialImage;
       const next: ScanResult = {
         ...result,
         estimated_value: trustedDatabaseIdentity ? market : 0,
@@ -252,6 +266,7 @@ export function CardScanner({
         price_source: trustedDatabaseIdentity ? (j?.primary_source || gameId) : undefined,
         price_low: trustedDatabaseIdentity ? j?.price?.low : undefined,
         price_high: trustedDatabaseIdentity ? j?.price?.high : undefined,
+        alternatives: candidates.length ? candidates : result.alternatives,
         scan_debug: {
           ...(result.scan_debug || {}),
           price_debug: {
@@ -261,16 +276,21 @@ export function CardScanner({
             sources_skipped: j?.sources_skipped,
             primary_source: j?.primary_source,
             match_score: matchScore,
+            confidence,
+            stale: !!j?.stale,
+            image_source: j?.image_source,
           },
           enrichment: {
             trustedDatabaseIdentity,
             setReliable,
             numberReliable,
             reason: trustedDatabaseIdentity
-              ? `${gameId} match accepted (score=${matchScore}, $${market}).`
-              : market > 0
-                ? `${gameId} found a price ($${market}) but identity is not trusted (score=${matchScore}). Confirm manually before saving.`
-                : `No ${gameId} price source returned a market value. Manual confirmation required.`,
+              ? `${gameId} match accepted (score=${matchScore}, conf=${confidence}, $${market}).`
+              : !officialImage
+                ? `No official reference image for ${gameId} match — tap the correct picture before saving to avoid image mismatch.`
+                : market > 0
+                  ? `${gameId} found a price ($${market}) but identity is not trusted (score=${matchScore}). Confirm manually before saving.`
+                  : `No ${gameId} price source returned a market value. Manual confirmation required.`,
             params: { game: gameId },
           },
         },
@@ -281,13 +301,20 @@ export function CardScanner({
         if (c.number) next.tcg_number = c.number;
         if (c.rarity) next.rarity = c.rarity;
         if (c.year) next.year = c.year;
-        if (c.image_large || c.image_small) next.reference_image = c.image_large || c.image_small;
+        // Bind the OFFICIAL reference image to the saved card. Never use the
+        // raw camera frame for vault when we have a database image.
+        next.reference_image = officialImage;
+        next.image = officialImage || next.image;
         next.overall_confidence = Math.max(next.overall_confidence ?? 0, 0.95);
         next.match_label = "Database Match";
       } else {
-        next.reference_image = undefined;
+        // Show the official image as a preview when we have it, but don't
+        // bind it for save until the user confirms.
+        next.reference_image = officialImage;
         next.overall_confidence = Math.min(next.overall_confidence ?? 0.6, 0.69);
-        next.match_label = "Needs confirmation — tap the correct picture before saving";
+        next.match_label = candidates.length
+          ? "Multiple matches — tap the correct picture before saving"
+          : "Needs confirmation — tap the correct picture before saving";
       }
       return next;
     } catch (e: any) {

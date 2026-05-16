@@ -1,69 +1,73 @@
-## Seller Trust-Based Payout Release System
+# Scanner v2 — Accuracy, Confirmation UX, Pricing Reliability, Vault Image Integrity
 
-Adds tiered instant-release based on completed deliveries, hardens all payout/balance logic server-side, and surfaces trust progress in the Seller Hub. The combined earnings total is already shipped — this builds on top.
+Focused, incremental improvements on top of the dynamic game-routing pipeline already shipped. No rewrite of the core scanner workflow — these slot into the existing `enrichNonPokemon` + `card-price` flow.
 
-### 1. Database (single migration)
+## 1. Identity matching (backend: `_shared/cards/sources.ts`, `card-price/index.ts`)
 
-**`seller_trust` table** (1 row per user)
-- `user_id` (PK, FK profiles)
-- `completed_deliveries` int
-- `tier` enum: `new`, `bronze`(25), `silver`(50), `gold`(75), `platinum`(100)
-- `instant_release_pct` int (0/10/30/70/95)
-- `pending_release_pct` int (100/90/70/30/5)
-- `manual_override_pct` int nullable (admin can force lower)
-- `risk_flags` jsonb (refund_rate, chargeback_rate, payout_failures, sales_spike)
-- `dispute_rate_30d`, `chargeback_rate_30d` numeric
-- `frozen` bool (admin kill-switch)
+- Extend `scoreCard` with weighted signals:
+  - normalized name (40), set code/name (20), collector number (20), year (10), variant/parallel keywords (10)
+  - penalty when OCR detected "holo/reverse/1st ed/refractor/prizm/rookie" but candidate lacks the matching tag
+- Return top 3 candidates (not just best) with per-field score breakdown.
+- New `variantTokens()` helper: extracts parallel/variant/rookie/1st-ed tokens from OCR + candidate names.
+- Sports: add player/manufacturer/year/set/parallel signals to the score.
 
-**`payout_locks` table** — tracks order-level fund locks
-- `order_id`, `user_id`, `amount_cents`, `reason` (dispute|refund_pending|fraud_review|delivery_unconfirmed|chargeback)
-- `released_at` nullable
+## 2. Pricing aggregation (backend: `card-price/index.ts`, `_shared/cards/providers.ts`)
 
-**`balance_audit_log` table** — immutable, append-only
-- `user_id`, `event_type`, `delta_cents`, `balance_before`, `balance_after`, `reference_table`, `reference_id`, `metadata` jsonb, `created_at`
-- Trigger: block UPDATE/DELETE
+- Provider registry per game with `{ id, weight, ttlSec, fetch() }`.
+- Run providers in parallel with `Promise.allSettled`, then:
+  - weighted median across successful results
+  - drop outliers > 2× median
+  - confidence = coverage × agreement × freshness
+- Cached pricing protection: serve cache if all live providers fail; mark `stale: true` when `age > ttl`.
+- Retry: 1 retry with 250ms backoff for transient (5xx / network) failures only.
 
-**`fraud_flags` table** — `user_id`, `flag_type`, `severity`, `auto_action`, `resolved_at`
+## 3. Manual confirmation UX (frontend: new `ScanConfirmDialog.tsx`, edit `CardScanner.tsx`)
 
-**RPCs (SECURITY DEFINER, server-side only):**
-- `recalc_seller_trust(_user_id)` — recounts delivered orders excluding refunded/disputed/cancelled, updates tier
-- `compute_available_balance(_user_id)` — single source of truth: sum of (delivered_net × instant_pct) + (pending_net for matured orders) − active locks − hold_owed − in-flight payouts
-- `lock_order_funds(_order_id, _reason)` / `release_order_funds(_order_id)`
-- `request_payout(_amount_cents)` — REPLACES existing: re-validates server-side via `compute_available_balance`, advisory lock per user to prevent races, idempotency key
-- `apply_balance_change(_user_id, _delta, _event_type, _ref)` — only path that mutates `profiles.balance_cents`, writes audit log
+When `matchScore < 70` OR `candidates.length > 1` OR `market === 0`:
+- Open a confirm dialog instead of silently failing.
+- Show top 3 candidates as image cards (official art, set, number, variant, price).
+- Quick refinement: inline search box (name/set/number) re-queries `card-price` with hints.
+- "None of these" → manual entry (name, set, number, variant) → re-score.
+- User picks → that candidate's identity + official image are bound to the save.
 
-**Triggers:**
-- `orders` AFTER UPDATE on `status`/`payment_status`/`refunded_amount` → calls `recalc_seller_trust` + lock/release
-- `disputes` INSERT → `lock_order_funds(... 'dispute')`
-- `disputes` resolved → `release_order_funds`
+## 4. Vault image integrity (frontend: `CardScanner.tsx` save path; backend: `card-price` response)
 
-### 2. Server Functions (`src/lib/payouts.functions.ts`)
-- Update `requestPayoutFn` to surface server-validated payable
-- Add `getSellerTrustFn` — returns tier, pct, progress to next tier, risk flags
-- Add `adminOverrideTrustFn` (admin-gated) — logs every override
+- `card-price` response always includes `official_image_url` and `image_source` (e.g. scryfall, ygoprodeck, tcg_prices, pricecharting).
+- Vault save uses `confirmed.official_image_url` — never the raw camera frame or any AI-generated thumbnail when an official image exists.
+- Fallback rules:
+  1. Official provider image (matched identity)
+  2. Cached reference image from `tcg_prices` row
+  3. Camera frame **only if** the user explicitly chose "save without official image" (warning shown)
+- Autosave blocked unless: `matchScore ≥ 80` AND `market > 0` AND `official_image_url` present.
+- Vault row stores `card_identity_id`, `image_source`, `match_score`, `confirmed_by` (`auto` | `manual`) for audit + future re-matching.
 
-### 3. Admin (`src/components/admin/HoldsAdmin.tsx`)
-- New "Trust & Risk" tab: list sellers with tier, dispute rate, manual override slider, freeze toggle
-- All actions write to `audit_logs` with `actor_id`
+## 5. Performance
 
-### 4. Seller Hub UI (`src/components/SellerEarningsHub.tsx`)
-- New `TrustTierCard` at top: tier badge, "Instant release: X% · Pending: Y%", progress bar to next tier ("17 / 25 deliveries to Bronze"), risk warnings
-- Per-order breakdown shows split: "$X instant · $Y pending until delivery"
-- Locked orders show 🔒 with reason
-- Available balance pulls from `compute_available_balance` RPC (not client math)
+- OCR + provider fetch run in parallel (currently sequential after OCR).
+- Cache identity lookups for 60s in-memory per session to avoid duplicate calls on retake.
+- Downscale capture to max 1024px on the long edge before OCR (mobile speedup).
 
-### 5. Realtime
-- Subscribe to `seller_trust`, `payout_locks`, `balance_audit_log` on the user's row → re-fetch via RPC
+## 6. Future-proofing
 
-### Technical notes
-- Frontend computes display totals only; the **payout button amount comes from `compute_available_balance` RPC** at click time — client-side math is decorative
-- Advisory lock `pg_advisory_xact_lock(hashtext('payout:'||user_id))` inside `request_payout` prevents double-withdrawal across tabs
-- All percentage thresholds stored in a `trust_tiers` config table so they can be tuned without code changes
-- `balance_audit_log` REVOKE update/delete from authenticated; trigger raises exception on tamper attempt
+- New `GameAdapter` interface in `_shared/cards/games.ts`:
+  ```
+  { id, detect(ocr), search(query), score(candidate, ocr), priceProviders }
+  ```
+- Adding a new ecosystem = register one adapter; no changes to `CardScanner.tsx` or `card-price` core.
 
-### Files
-- New migration: trust tables, locks, audit log, RPCs, triggers
-- New: `src/components/TrustTierCard.tsx`
-- Edit: `src/components/SellerEarningsHub.tsx`, `src/lib/payouts.functions.ts`, `src/components/admin/HoldsAdmin.tsx`
+## Files
 
-Approve to proceed.
+- edit `supabase/functions/_shared/cards/sources.ts` — scoring + variant tokens + top-N
+- edit `supabase/functions/_shared/cards/providers.ts` — registry + weighted aggregation + retry/cache
+- edit `supabase/functions/card-price/index.ts` — return candidates + official_image_url + confidence + stale flag
+- edit `supabase/functions/_shared/cards/games.ts` — `GameAdapter` interface
+- new `src/components/ScanConfirmDialog.tsx`
+- edit `src/components/CardScanner.tsx` — open dialog on low confidence, bind official image to vault save, parallelize OCR/pricing
+- migration: add `card_identity_id`, `image_source`, `match_score`, `confirmed_by` to vault table
+
+## Out of scope (call out separately)
+
+- Glare/low-light: requires a dedicated image-preprocessing pass (CLAHE/white-balance) — recommend a follow-up after this lands, since it touches the capture pipeline.
+- New OCR model swap — keeping current OCR; accuracy gains here come from scoring + UX.
+
+Approve and I'll ship steps 1–6 in this order.
