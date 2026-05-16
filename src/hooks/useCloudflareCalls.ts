@@ -247,9 +247,14 @@ export function useCloudflareCalls(opts: {
             },
           }));
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("[cf-calls] pull failed", e);
         pulledRef.current.delete(row.session_id);
+        // 410 = our session no longer exists on CF's side (PC never connected
+        // or was torn down). Surface a clear error instead of looping.
+        if (/\b410\b/.test(String(e?.message))) {
+          setError("Live video connection lost — please refresh to rejoin");
+        }
       }
     }
 
