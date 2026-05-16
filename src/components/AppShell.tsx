@@ -18,6 +18,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { SellMenu } from "@/components/SellMenu";
 import { XPBadge } from "@/components/XPBadge";
 import { DailyLoginRewardModal } from "@/components/DailyLoginRewardModal";
+import { CollabInviteBanner } from "@/components/CollabInviteBanner";
 import { AchievementToastListener, LevelUpListener } from "@/components/AchievementToastListener";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
