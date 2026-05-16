@@ -119,9 +119,9 @@ export function PinnedAuctionCard({
   } as const;
 
   return (
-    <div className="pointer-events-auto w-full max-w-md rounded-2xl bg-black/70 p-2 ring-1 ring-white/10 shadow-2xl backdrop-blur">
-      <div className="flex items-center gap-2">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/5 ring-1 ring-white/10">
+    <div className="pointer-events-auto w-full max-w-xs rounded-xl bg-black/70 p-1.5 ring-1 ring-white/10 shadow-xl backdrop-blur">
+      <div className="flex items-center gap-1.5">
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white/5 ring-1 ring-white/10">
           {currentImage ? (
             <img src={currentImage} alt={currentItem || "Current item"} className="h-full w-full object-cover" />
           ) : (
