@@ -123,6 +123,20 @@ function fmtRemaining(ms: number) {
   return `${m.toString().padStart(2, "0")}:${ss}`;
 }
 
+function RemoteStreamVideo({ stream, muted, className = "h-full w-full object-contain" }: { stream: MediaStream; muted: boolean; className?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+    return () => {
+      if (video.srcObject === stream) video.srcObject = null;
+    };
+  }, [stream]);
+  return <video ref={ref} playsInline autoPlay muted={muted} className={className} />;
+}
+
 function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
