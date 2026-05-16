@@ -3343,11 +3343,18 @@ function LiveDetail() {
             cfCall.toggleVideo();
             setVideoOn((v) => !v);
           }}
-          onLeave={() => {
+          onLeave={async () => {
             setCallJoined(false);
             if (cohostPreStream) {
               cohostPreStream.getTracks().forEach((t) => t.stop());
               setCohostPreStream(null);
+            }
+            // If this user is a co-host (not the seller), leaving the room
+            // also removes them from the collab so the host's UI updates.
+            if (!isSeller && isCohostParticipant && user) {
+              await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", user.id);
+              await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", user.id);
+              toast.success("You left the collab");
             }
           }}
           onKickRemote={isSeller ? async (uid, uname) => {
