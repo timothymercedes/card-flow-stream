@@ -268,12 +268,45 @@ export interface AggregatedPrice {
   primary_source: Source | null;
 }
 
-function dropOutliers(values: number[]): number[] {
+// Source weights — higher = more trusted in the weighted median.
+const SOURCE_WEIGHTS: Record<string, number> = {
+  tcg_api: 3,
+  scryfall: 3,
+  ygoprodeck: 2,
+  tcg_prices: 2,
+  tcgdex: 2,
+  pricecharting: 3,
+  ebay_sold: 3,
+  psa: 4,
+};
+const weightFor = (s: string) => SOURCE_WEIGHTS[s] ?? 1;
+
+function median(xs: number[]): number | null {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+function weightedMedian(pairs: Array<{ v: number; w: number }>): number | null {
+  if (!pairs.length) return null;
+  const sorted = [...pairs].sort((a, b) => a.v - b.v);
+  const total = sorted.reduce((s, p) => s + p.w, 0);
+  let acc = 0;
+  for (const p of sorted) {
+    acc += p.w;
+    if (acc >= total / 2) return p.v;
+  }
+  return sorted[sorted.length - 1].v;
+}
+
+// Drop outliers > 2x the (plain) median — more robust than mean+sd when
+// one provider returns a wildly stale or wrong number.
+function dropOutliersByMedian(values: number[]): number[] {
   if (values.length < 3) return values;
-  const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const sd = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length);
-  if (sd === 0) return values;
-  return values.filter((v) => Math.abs(v - mean) <= 2 * sd);
+  const m = median(values);
+  if (!m || m <= 0) return values;
+  return values.filter((v) => v <= m * 2 && v >= m / 2);
 }
 
 export function aggregatePrices(quotes: PriceQuote[]): AggregatedPrice {
@@ -281,19 +314,26 @@ export function aggregatePrices(quotes: PriceQuote[]): AggregatedPrice {
   if (!valid.length) {
     return { market: null, low: null, mid: null, high: null, currency: "USD", sources: quotes, primary_source: null };
   }
-  const markets = dropOutliers(valid.map((q) => q.market).filter((n): n is number => typeof n === "number" && n > 0));
+  const marketPairs = valid
+    .map((q) => (typeof q.market === "number" && q.market > 0 ? { v: q.market, w: weightFor(q.source) } : null))
+    .filter((p): p is { v: number; w: number } => !!p);
+  const filteredMarkets = dropOutliersByMedian(marketPairs.map((p) => p.v));
+  const filteredPairs = marketPairs.filter((p) => filteredMarkets.includes(p.v));
   const lows = valid.map((q) => q.low).filter((n): n is number => typeof n === "number" && n > 0);
   const highs = valid.map((q) => q.high).filter((n): n is number => typeof n === "number" && n > 0);
   const mids = valid.map((q) => q.mid).filter((n): n is number => typeof n === "number" && n > 0);
-  const avg = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
   return {
-    market: avg(markets),
+    market: weightedMedian(filteredPairs),
     low: lows.length ? Math.min(...lows) : null,
-    mid: avg(mids),
+    mid: median(mids),
     high: highs.length ? Math.max(...highs) : null,
     currency: valid[0].currency || "USD",
     sources: valid,
-    primary_source: valid[0].source,
+    // Primary = highest-weight contributing source after outlier removal.
+    primary_source:
+      [...filteredPairs].sort((a, b) => b.w - a.w)[0]
+        ? valid.find((q) => q.market === [...filteredPairs].sort((a, b) => b.w - a.w)[0].v)?.source ?? valid[0].source
+        : valid[0].source,
   };
 }
 
