@@ -3391,6 +3391,7 @@ function LiveDetail() {
           localStream={cfCall.localStream}
           localUsername={profile?.username || "you"}
           remotes={cfCall.remotes}
+          showLocal={!isSeller}
           audioOn={audioOn}
           videoOn={videoOn}
           onToggleAudio={() => {
