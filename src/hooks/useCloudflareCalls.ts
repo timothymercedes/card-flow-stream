@@ -312,11 +312,12 @@ export function useCloudflareCalls(opts: {
     if (!enabled || !streamId || !ready || publishOnly) return;
     let cancelled = false;
 
-    async function pullRemote(row: any) {
+    async function pullRemote(row: CohostTrackRow) {
       if (cancelled) return;
       if (row.user_id === userId) return;
       const pc = pcRef.current;
       if (!pc || (!viewerMode && !sessionIdRef.current)) return;
+      const routedPc = pc as PeerConnectionWithRouteMap;
       // Publishers must reach "connected" before pulling (otherwise CF 410s
       // on a dead session). Viewer-mode peers have no transceivers yet and
       // do their FIRST SDP exchange inside this very call via
@@ -385,9 +386,9 @@ export function useCloudflareCalls(opts: {
             });
 
             // Map mids returned by Cloudflare to this user so ontrack can route
-            (pc as any).__midToUser = (pc as any).__midToUser || {};
+            routedPc.__midToUser = routedPc.__midToUser || {};
             for (const t of resp.tracks || []) {
-              if (t.mid != null) (pc as any).__midToUser[t.mid] = row.user_id;
+              if (t.mid != null) routedPc.__midToUser[t.mid] = row.user_id;
             }
 
             if (resp.sessionDescription) {
@@ -421,7 +422,7 @@ export function useCloudflareCalls(opts: {
             },
           }));
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("[cf-calls] pull failed", e);
         pulledRef.current.delete(row.session_id);
         // 410 = our CF session was GC'd (common in viewer mode where we
@@ -439,7 +440,7 @@ export function useCloudflareCalls(opts: {
         .from("stream_cohost_tracks")
         .select("*")
         .eq("stream_id", streamId!);
-      for (const row of data || []) await pullRemote(row);
+      for (const row of (data || []) as CohostTrackRow[]) await pullRemote(row);
     }
     load();
 
@@ -453,7 +454,7 @@ export function useCloudflareCalls(opts: {
           table: "stream_cohost_tracks",
           filter: `stream_id=eq.${streamId}`,
         },
-        (p) => pullRemote(p.new),
+        (p) => pullRemote(p.new as CohostTrackRow),
       )
       .on(
         "postgres_changes",
@@ -464,7 +465,7 @@ export function useCloudflareCalls(opts: {
           filter: `stream_id=eq.${streamId}`,
         },
         (p) => {
-          const row: any = p.new;
+          const row = p.new as CohostTrackRow;
           setRemotes((prev) =>
             prev[row.user_id]
               ? {
@@ -488,7 +489,7 @@ export function useCloudflareCalls(opts: {
           filter: `stream_id=eq.${streamId}`,
         },
         (p) => {
-          const row: any = p.old;
+          const row = p.old as CohostTrackRow;
           setRemotes((prev) => {
             const n = { ...prev };
             delete n[row.user_id];
