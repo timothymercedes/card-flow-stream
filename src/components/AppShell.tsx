@@ -114,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <ReturnToLiveBadge />}
       {!tutorial && <FeedbackWidget />}
       {!tutorial && <DailyLoginRewardModal />}
+      {!tutorial && <CollabInviteBanner />}
       {!tutorial && <AchievementToastListener />}
       {!tutorial && <LevelUpListener />}
       <nav aria-label={t("nav.primary", "Primary")} className="fixed bottom-0 left-1/2 z-30 w-full max-w-md -translate-x-1/2 border-t border-border bg-background/95 backdrop-blur">
