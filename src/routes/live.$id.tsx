@@ -1319,9 +1319,15 @@ function LiveDetail() {
   });
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
-  // Auto-join prompt for cohosts on acceptance
+  // Notify cohort on accept — they MUST tap the camera button to publish so
+  // getUserMedia runs inside a user gesture (required by mobile Safari/Chrome).
+  const cohostNotifiedRef = useRef(false);
   useEffect(() => {
-    if (isCohostParticipant && !callJoined) setCallJoined(true);
+    if (isCohostParticipant && !callJoined && !cohostNotifiedRef.current) {
+      cohostNotifiedRef.current = true;
+      toast.message("You're on as co-host — tap the camera button to go live", { duration: 8000 });
+    }
+    if (!isCohostParticipant) cohostNotifiedRef.current = false;
   }, [isCohostParticipant, callJoined]);
   const safety = useLivestreamSafety({
     stream,
