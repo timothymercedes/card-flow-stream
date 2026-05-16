@@ -201,10 +201,6 @@ function Profile() {
   async function applyToSell() {
     if (!user) return;
     if (!p?.address_line1) return toast.error("Add your mailing address first");
-    const confirmed = window.confirm(
-      "Seller Agreement\n\nBefore applying, you must accept the Seller Agreement. Open it now to read?\n\nClick OK to view it, or Cancel to accept and continue."
-    );
-    if (confirmed) { window.open("/legal/seller-agreement", "_blank"); return; }
     const { error: agreementError } = await (supabase.rpc as any)("accept_legal_document", {
       _document_type: "seller_agreement",
       _version: "1.0",
