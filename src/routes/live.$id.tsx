@@ -194,7 +194,7 @@ function LiveDetail() {
     const legacyStream = camStream.current;
     legacyStream?.getTracks().forEach((t) => t.stop());
     camStream.current = null;
-    if (videoRef.current && (!legacyStream || videoRef.current.srcObject === legacyStream)) {
+    if (legacyStream && videoRef.current && videoRef.current.srcObject === legacyStream) {
       videoRef.current.pause();
       videoRef.current.srcObject = null;
       videoRef.current.removeAttribute("src");
