@@ -224,10 +224,13 @@ export function useCloudflareCalls(opts: {
               trackName: `${userId}-${tr.sender.track?.kind}`,
             })),
           };
-          const pubResp = await sfu<CallsTracksResponse>(`/sessions/${session.sessionId}/tracks/new`, {
-            method: "POST",
-            body: JSON.stringify(pubBody),
-          });
+          const pubResp = await sfu<CallsTracksResponse>(
+            `/sessions/${session.sessionId}/tracks/new`,
+            {
+              method: "POST",
+              body: JSON.stringify(pubBody),
+            },
+          );
           if (!pubResp.sessionDescription) throw new Error("Calls publish did not return SDP");
           await pc.setRemoteDescription(pubResp.sessionDescription);
           const connected = await waitForConnState(pc, "connected");
