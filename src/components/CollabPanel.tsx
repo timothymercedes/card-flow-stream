@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, Search, UserPlus, Check, Trash2, Mic, MicOff, BadgeCheck, Users2 } from "lucide-react";
+import { X, Search, UserPlus, Check, Trash2, Mic, MicOff, BadgeCheck, Users2, RotateCcw, XCircle } from "lucide-react";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Profile = { id: string; username: string; avatar_url: string | null; age_verified?: boolean };
@@ -92,6 +92,34 @@ export function CollabPanel({
     });
     toast.success(`Invite sent to @${u.username}`);
     setQ(""); setResults([]);
+  }
+
+  async function cancelInvite(inv: Invite) {
+    const { error } = await supabase
+      .from("stream_collab_invites")
+      .delete()
+      .eq("id", inv.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Invite to @${inv.invitee_username} cancelled`);
+  }
+
+  async function reinvite(inv: Invite) {
+    // Clear old row first so the unique constraint doesn't block re-sending.
+    await supabase.from("stream_collab_invites").delete().eq("id", inv.id);
+    const { error } = await supabase.from("stream_collab_invites").insert({
+      stream_id: streamId, host_id: hostId, host_username: hostUsername,
+      invitee_id: inv.invitee_id, invitee_username: inv.invitee_username,
+    });
+    if (error) {
+      if (/verified/i.test(error.message)) return toast.error("Only age-verified (18+) users can collab");
+      return toast.error(error.message);
+    }
+    await supabase.from("notifications").insert({
+      user_id: inv.invitee_id, type: "collab_invite",
+      body: `🤝 @${hostUsername} invited you to collab on their live`,
+      link: `/live/${streamId}`,
+    });
+    toast.success(`Re-invited @${inv.invitee_username}`);
   }
 
   async function respondJoin(r: JoinReq, status: "accepted" | "declined") {
@@ -225,16 +253,58 @@ export function CollabPanel({
                 </div>
               )}
 
-              {invites.filter((i) => i.status === "pending").length > 0 && (
+              {invites.length > 0 && (
                 <div>
-                  <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Pending invites</p>
+                  <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Invites</p>
                   <div className="space-y-1">
-                    {invites.filter((i) => i.status === "pending").map((i) => (
-                      <div key={i.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-2 py-1 text-xs">
-                        <span>@{i.invitee_username}</span>
-                        <span className="text-[10px] text-muted-foreground">pending…</span>
-                      </div>
-                    ))}
+                    {invites.map((i) => {
+                      const isPending = i.status === "pending";
+                      const isAccepted = i.status === "accepted";
+                      // If already in participants table, the participant row owns "End collab".
+                      const alreadyInCall = participants.some((p) => p.user_id === i.invitee_id);
+                      return (
+                        <div key={i.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2 py-1.5 text-xs">
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate font-semibold">@{i.invitee_username}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {isPending ? "Pending…" : isAccepted ? (alreadyInCall ? "In call" : "Accepted") : i.status}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            {isPending && (
+                              <button
+                                onClick={() => cancelInvite(i)}
+                                className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-bold"
+                                title="Cancel invite"
+                              >
+                                <XCircle className="h-3 w-3" /> End invite
+                              </button>
+                            )}
+                            {!isPending && !alreadyInCall && (
+                              <button
+                                onClick={() => reinvite(i)}
+                                className="flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground"
+                                title="Send a new invite"
+                              >
+                                <RotateCcw className="h-3 w-3" /> Reinvite
+                              </button>
+                            )}
+                            {alreadyInCall && (
+                              <button
+                                onClick={() => {
+                                  const p = participants.find((pp) => pp.user_id === i.invitee_id);
+                                  if (p) removeParticipant(p);
+                                }}
+                                className="flex items-center gap-1 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground"
+                                title="End collab"
+                              >
+                                <Trash2 className="h-3 w-3" /> End collab
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -280,7 +350,7 @@ export function CollabPanel({
                       <button onClick={() => toggleMute(p)} className="rounded-full bg-muted p-1.5" title={p.is_muted ? "Unmute" : "Mute"}>
                         {p.is_muted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                       </button>
-                      <button onClick={() => removeParticipant(p)} className="rounded-full bg-destructive/80 p-1.5 text-destructive-foreground" title="Remove">
+                      <button onClick={() => removeParticipant(p)} className="rounded-full bg-destructive/80 p-1.5 text-destructive-foreground" title="End collab">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>

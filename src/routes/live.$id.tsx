@@ -54,7 +54,7 @@ import { CardScanner } from "@/components/CardScanner";
 import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
-import { SHIPPING_PRESETS, type ShippingPresetKey } from "@/lib/shippingPresets";
+import { SHIPPING_PRESETS, presetCapacityLabel, presetEstimatedPriceUsd, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { estimateShippingAndImportFees } from "@/lib/shippingEstimate";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
@@ -3350,6 +3350,13 @@ function LiveDetail() {
               setCohostPreStream(null);
             }
           }}
+          onKickRemote={isSeller ? async (uid, uname) => {
+            if (!confirm(`Remove @${uname} from collab?`)) return;
+            await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", uid);
+            await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", uid);
+            await supabase.from("stream_moderators").delete().eq("stream_id", id).eq("mod_user_id", uid);
+            toast.success(`Removed @${uname}`);
+          } : undefined}
         />
       )}
 
@@ -3382,6 +3389,13 @@ function LiveDetail() {
           onToggleVideo={() => {}}
           onLeave={() => {}}
           readOnly
+          onKickRemote={async (uid, uname) => {
+            if (!confirm(`Remove @${uname} from collab?`)) return;
+            await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", uid);
+            await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", uid);
+            await supabase.from("stream_moderators").delete().eq("stream_id", id).eq("mod_user_id", uid);
+            toast.success(`Removed @${uname}`);
+          }}
         />
       )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
@@ -4104,10 +4118,16 @@ function LiveDetail() {
                           }}
                           className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none"
                         >
-                          <option value="stamp" disabled={forceBubble}>📮 Stamp</option>
-                          <option value="pwe" disabled={forceBubble}>✉️ PWE</option>
-                          <option value="bubble">📦 Bubble</option>
-                          <option value="small_box">📫 Box</option>
+                          {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map((k) => {
+                            const icon = k === "stamp" ? "📮" : k === "pwe" ? "✉️" : k === "bubble" ? "📦" : "📫";
+                            const short = k === "stamp" ? "Stamp" : k === "pwe" ? "PWE" : k === "bubble" ? "Bubble" : "Box";
+                            const price = presetEstimatedPriceUsd(k, { subtotal: startVal, quantity: Number(editQuantity) || 1 });
+                            return (
+                              <option key={k} value={k} disabled={(k === "stamp" || k === "pwe") && forceBubble}>
+                                {`${icon} ${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
+                              </option>
+                            );
+                          })}
                         </select>
                         <span className="text-[10px] font-bold text-muted-foreground ml-1">Slow chat</span>
                         <select
@@ -5075,10 +5095,15 @@ function LiveDetail() {
                               }}
                               className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
-                              <option value="stamp" className="bg-card">Stamp</option>
-                              <option value="pwe" className="bg-card">PWE</option>
-                              <option value="bubble" className="bg-card">Bubble</option>
-                              <option value="small_box" className="bg-card">Box</option>
+                              {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map((k) => {
+                                const short = k === "stamp" ? "Stamp" : k === "pwe" ? "PWE" : k === "bubble" ? "Bubble" : "Box";
+                                const price = presetEstimatedPriceUsd(k, { subtotal: Number(editStartPrice) || 0, quantity: Number(editQuantity) || 1 });
+                                return (
+                                  <option key={k} value={k} className="bg-card">
+                                    {`${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
+                                  </option>
+                                );
+                              })}
                             </select>
                           </label>
                           <label className="flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
