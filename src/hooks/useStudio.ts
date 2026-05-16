@@ -22,6 +22,7 @@ export type StudioSource = {
   kind: "camera" | "screen" | "phone";
   label: string;
   stream: MediaStream;
+  ownsStream?: boolean;
   deviceId?: string;
   groupId?: string;
   visible: boolean;
@@ -386,6 +387,7 @@ export function useStudio(opts: {
           kind: "camera",
           label,
           stream,
+          ownsStream: true,
           deviceId: settings?.deviceId ?? deviceId,
           groupId,
           visible: true,
@@ -428,6 +430,7 @@ export function useStudio(opts: {
         kind: "screen",
         label: "Screen share",
         stream,
+        ownsStream: true,
         visible: true,
         muted: false,
         locked: false,
@@ -461,7 +464,7 @@ export function useStudio(opts: {
       stream: MediaStream,
       label: string,
       kind: "phone" | "camera" = "phone",
-      metadata?: { deviceId?: string; groupId?: string },
+      metadata?: { deviceId?: string; groupId?: string; ownsStream?: boolean },
     ) => {
       const id = `ext-${crypto.randomUUID()}`;
       const src: StudioSource = {
@@ -469,6 +472,7 @@ export function useStudio(opts: {
         kind,
         label,
         stream,
+        ownsStream: metadata?.ownsStream ?? true,
         deviceId: metadata?.deviceId,
         groupId: metadata?.groupId,
         visible: true,
@@ -491,7 +495,7 @@ export function useStudio(opts: {
   const removeSource = useCallback((id: string) => {
     setSources((prev) => {
       const target = prev.find((s) => s.id === id);
-      target?.stream.getTracks().forEach((t) => t.stop());
+      if (target?.ownsStream !== false) target?.stream.getTracks().forEach((t) => t.stop());
       const video = videoElsRef.current.get(id);
       if (video) detachVideoElement(video);
       video?.remove();
@@ -820,7 +824,9 @@ export function useStudio(opts: {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      sourcesRef.current.forEach((s) => s.stream.getTracks().forEach((t) => t.stop()));
+      sourcesRef.current.forEach((s) => {
+        if (s.ownsStream !== false) s.stream.getTracks().forEach((t) => t.stop());
+      });
       videoElsRef.current.forEach((v) => {
         detachVideoElement(v);
         v.remove();

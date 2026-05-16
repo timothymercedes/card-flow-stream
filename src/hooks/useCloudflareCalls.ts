@@ -67,15 +67,15 @@ export function useCloudflareCalls(opts: {
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(async (pc: RTCPeerConnection, target: RTCPeerConnectionState) => {
-    if (pc.connectionState === target) return;
-    await new Promise<void>((resolve) => {
+    if (pc.connectionState === target) return true;
+    return new Promise<boolean>((resolve) => {
       const handler = () => {
         if (pc.connectionState === target || pc.connectionState === "failed") {
-          pc.removeEventListener("connectionstatechange", handler); resolve();
+          pc.removeEventListener("connectionstatechange", handler); resolve(pc.connectionState === target);
         }
       };
       pc.addEventListener("connectionstatechange", handler);
-      setTimeout(() => { pc.removeEventListener("connectionstatechange", handler); resolve(); }, 5000);
+      setTimeout(() => { pc.removeEventListener("connectionstatechange", handler); resolve(pc.connectionState === target); }, 10_000);
     });
   }, []);
 
@@ -96,7 +96,10 @@ export function useCloudflareCalls(opts: {
           } else {
             local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
           }
-          if (cancelled) { local.getTracks().forEach((t) => t.stop()); return; }
+          if (cancelled) {
+            if (local !== preStream) local.getTracks().forEach((t) => t.stop());
+            return;
+          }
           setLocalStream(local);
         }
 
@@ -120,6 +123,10 @@ export function useCloudflareCalls(opts: {
           const ms = remoteStreamsByUserRef.current.get(targetUserId);
           if (ms) {
             if (!ms.getTracks().some((t) => t.id === ev.track.id)) ms.addTrack(ev.track);
+            setRemotes((prev) => {
+              const remote = prev[targetUserId];
+              return remote ? { ...prev, [targetUserId]: { ...remote, stream: ms } } : prev;
+            });
           }
         };
 
@@ -129,7 +136,10 @@ export function useCloudflareCalls(opts: {
 
         if (local) {
           // Publishing path (host / cohost)
-          const transceivers = local.getTracks().map((t) => pc.addTransceiver(t, { direction: "sendonly" }));
+          const audioTracks = local.getAudioTracks();
+          const videoTracks = local.getVideoTracks();
+          const publishTracks = [...audioTracks, ...videoTracks];
+          const transceivers = publishTracks.map((t) => pc.addTransceiver(t, { direction: "sendonly" }));
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           const pubBody = {
@@ -144,14 +154,15 @@ export function useCloudflareCalls(opts: {
             method: "POST", body: JSON.stringify(pubBody),
           });
           await pc.setRemoteDescription(pubResp.sessionDescription);
-          await waitForConnState(pc, "connected");
+          const connected = await waitForConnState(pc, "connected");
+          if (!connected) throw new Error("Live video connection did not finish connecting. Please try again.");
 
-          const audioName = `${userId}-audio`;
-          const videoName = `${userId}-video`;
+          const audioName = audioTracks.length > 0 ? `${userId}-audio` : null;
+          const videoName = videoTracks.length > 0 ? `${userId}-video` : null;
           await supabase.from("stream_cohost_tracks").upsert({
             stream_id: streamId!, user_id: userId!, username: username!, avatar_url: avatarUrl,
             session_id: session.sessionId, audio_track_name: audioName, video_track_name: videoName,
-            is_audio_enabled: true, is_video_enabled: true,
+            is_audio_enabled: audioTracks.length > 0, is_video_enabled: videoTracks.length > 0,
           }, { onConflict: "stream_id,user_id" });
         }
         // Viewer-mode session is created empty; pullRemote() in next effect adds recvonly tracks
@@ -168,7 +179,10 @@ export function useCloudflareCalls(opts: {
       cancelled = true;
       try { pcRef.current?.close(); } catch {}
       pcRef.current = null;
-      setLocalStream((s) => { s?.getTracks().forEach((t) => t.stop()); return null; });
+      setLocalStream((s) => {
+        if (s && s !== preStream) s.getTracks().forEach((t) => t.stop());
+        return null;
+      });
       if (streamId && userId && !viewerMode) {
         supabase.from("stream_cohost_tracks").delete().eq("stream_id", streamId).eq("user_id", userId);
       }
@@ -178,7 +192,7 @@ export function useCloudflareCalls(opts: {
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, waitForConnState]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
@@ -286,7 +300,7 @@ export function useCloudflareCalls(opts: {
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [enabled, streamId, userId, ready]);
+  }, [enabled, streamId, userId, ready, viewerMode]);
 
   // ─── Toggle local mic/cam ──────────────────────────────────────────────
   const toggleAudio = useCallback(async () => {

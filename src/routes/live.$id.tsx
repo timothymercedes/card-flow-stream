@@ -1300,12 +1300,21 @@ function LiveDetail() {
     };
   }, [user?.id, stream?.id, id, isSeller]);
 
-  // Host auto-joins only for legacy single-camera mode; multi-cam studio owns camera capture.
+  // Host publishes a lightweight studio preview to the co-host call so co-hosts
+  // can see the host while the main studio canvas still drives the HLS feed.
+  const hostCallsPreviewStream = useMemo(() => {
+    if (!isSeller || !usingCompositor || !hostStudio.canvas) return null;
+    return hostStudio.canvas.captureStream(15);
+  }, [isSeller, usingCompositor, hostStudio.canvas]);
+  useEffect(() => {
+    return () => hostCallsPreviewStream?.getTracks().forEach((track) => track.stop());
+  }, [hostCallsPreviewStream]);
+
   const callShouldRun =
     !!stream &&
     stream.status !== "ended" &&
-    ((isSeller && !usingObs && !usingCompositor) || isCohostParticipant) &&
-    callJoined;
+    ((isSeller && !usingObs && (!usingCompositor || !!hostCallsPreviewStream) && (callJoined || usingCompositor)) ||
+      (isCohostParticipant && callJoined));
 
   // Pre-acquired media stream from the user-gesture "Join" click. Required so
   // mobile Safari/Chrome don't block getUserMedia inside the hook's useEffect.
@@ -1316,7 +1325,7 @@ function LiveDetail() {
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
-    preStream: cohostPreStream,
+    preStream: isSeller && usingCompositor ? hostCallsPreviewStream : cohostPreStream,
   });
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
@@ -1402,7 +1411,9 @@ function LiveDetail() {
       if (map.has(r.userId)) continue;
       if (!r.stream.getVideoTracks().length) continue;
       try {
-        const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera");
+        const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera", {
+          ownsStream: false,
+        });
         map.set(r.userId, sid);
       } catch (e) {
         console.error("[live] failed to add cohost to canvas", e);
@@ -1415,9 +1426,10 @@ function LiveDetail() {
         map.delete(uid);
       }
     }
-  }, [isSeller, usingCompositor, hostViewerCall.remotes, hostStudio]);
+  }, [isSeller, usingCompositor, hostViewerCall.remotes, hostStudio.addExternalStream, hostStudio.removeSource]);
 
   useEffect(() => {
+    if (usingCompositor) return;
     return () => {
       const map = cohostStudioIdsRef.current;
       for (const sid of map.values()) {
@@ -1425,7 +1437,7 @@ function LiveDetail() {
       }
       map.clear();
     };
-  }, [usingCompositor, hostStudio]);
+  }, [usingCompositor, hostStudio.removeSource]);
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
@@ -3423,7 +3435,7 @@ function LiveDetail() {
       {/* Host-side overlay: when compositor/OBS owns local capture, the host's
           publishing cfCall is disabled. This receive-only stage lets the host
           see and hear cohosts on a single shared video element. */}
-      {isSeller && (usingCompositor || usingObs) && hostViewerCall.remotes.length > 0 && (
+      {isSeller && (usingCompositor || usingObs) && !callShouldRun && hostViewerCall.remotes.length > 0 && (
         <CoHostStage
           localStream={null}
           localUsername=""
