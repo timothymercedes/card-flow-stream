@@ -250,7 +250,22 @@ Deno.serve(async (req) => {
 
     const aggregated = aggregatePrices(quotes);
 
-    const payload = {
+    // Confidence = identity match × pricing coverage × source agreement.
+    const matchFactor = Math.min(1, bestScore / 100);
+    const coverage = quotes.length ? Math.min(1, quotes.length / 2) : 0;
+    const marketVals = quotes.map((qq) => qq.market).filter((n): n is number => typeof n === "number" && n > 0);
+    let agreement = 1;
+    if (marketVals.length >= 2) {
+      const mean = marketVals.reduce((a, b) => a + b, 0) / marketVals.length;
+      const spread = (Math.max(...marketVals) - Math.min(...marketVals)) / Math.max(1, mean);
+      agreement = Math.max(0.3, 1 - Math.min(1, spread));
+    }
+    const confidence = Math.round(matchFactor * (0.6 + 0.4 * coverage * agreement) * 100) / 100;
+
+    const officialImage = card?.image_large || card?.image_small || null;
+    const imageSource: string | null = card?.source ?? null;
+
+    let payload: any = {
       game: game.id,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
@@ -259,6 +274,20 @@ Deno.serve(async (req) => {
         source_ids: card.source_ids,
         match_score: bestScore,
       } : null,
+      candidates: topCandidates.map((c) => ({
+        id: c.id,
+        name: c.name,
+        set_name: c.set_name,
+        number: c.number,
+        rarity: c.rarity,
+        year: c.year,
+        variant: (c.variants || [])[0] || null,
+        image_url: c.image_large || c.image_small || null,
+        image_source: c.source,
+        match_score: scoreCard(c, { name, number, set, variant, year }),
+      })),
+      official_image_url: officialImage,
+      image_source: imageSource,
       price: {
         market: aggregated.market,
         low: aggregated.low,
@@ -266,17 +295,23 @@ Deno.serve(async (req) => {
         high: aggregated.high,
         currency: aggregated.currency,
       },
+      confidence,
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
       sources_skipped: sourcesSkipped,
       primary_source: aggregated.primary_source,
       cached: false,
+      stale: false,
       duration_ms: Date.now() - t0,
     };
 
-    // 4) Cache and history (fire-and-forget)
-    if (card?.id || name) {
+    // Cached-pricing protection: if no live provider returned a price, fall
+    // back to the most recent stale cache so the UI shows the last known
+    // value with a stale flag instead of $0.
+    if ((aggregated.market == null) && staleCachePayload?.price?.market) {
+      payload = { ...staleCachePayload, ...payload, price: staleCachePayload.price, stale: true, confidence: Math.min(confidence, 0.5) };
+    }
       admin.from("card_price_cache").upsert({
         card_key: key,
         payload,
