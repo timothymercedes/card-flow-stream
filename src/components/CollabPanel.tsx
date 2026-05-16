@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { X, Search, UserPlus, Check, Trash2, Mic, MicOff, BadgeCheck, Users2 } from "lucide-react";
 import { useRealtimeChannel } from "@/lib/realtime";
 
-type Profile = { id: string; username: string; avatar_url: string | null; live_verified?: boolean };
+type Profile = { id: string; username: string; avatar_url: string | null; age_verified?: boolean };
 type Participant = { id: string; user_id: string; username: string; avatar_url: string | null; is_muted: boolean };
 type Invite = { id: string; invitee_id: string; invitee_username: string; status: string; created_at: string };
 type JoinReq = { id: string; requester_id: string; requester_username: string; requester_avatar_url: string | null; status: string; created_at: string };
@@ -39,9 +39,9 @@ export function CollabPanel({
       if (cancelled) return;
       const ids = (data || []).map((r: any) => r.id);
       if (ids.length === 0) { setResults([]); return; }
-      const { data: verif } = await supabase.from("profiles").select("id, live_verified").in("id", ids);
-      const map = new Map((verif || []).map((v: any) => [v.id, v.live_verified]));
-      setResults((data || []).map((r: any) => ({ ...r, live_verified: !!map.get(r.id) })));
+      const { data: verif } = await supabase.from("profiles").select("id, age_verified").in("id", ids);
+      const map = new Map((verif || []).map((v: any) => [v.id, v.age_verified]));
+      setResults((data || []).map((r: any) => ({ ...r, age_verified: !!map.get(r.id) })));
     }, 200);
     return () => { cancelled = true; clearTimeout(t); };
   }, [q]);
@@ -74,7 +74,7 @@ export function CollabPanel({
     .on("postgres_changes" as any, { event: "*", schema: "public", table: "stream_collab_join_requests", filter: `stream_id=eq.${streamId}` } as any, () => setReloadTick((n) => n + 1)));
 
   async function invite(u: Profile) {
-    if (!u.live_verified) return toast.error(`@${u.username} isn't verified — only verified users can collab`);
+    if (!u.age_verified) return toast.error(`@${u.username} isn't age-verified (18+) yet`);
     if (u.id === hostId) return toast.error("That's you");
     const { error } = await supabase.from("stream_collab_invites").insert({
       stream_id: streamId, host_id: hostId, host_username: hostUsername,
@@ -82,7 +82,7 @@ export function CollabPanel({
     });
     if (error) {
       if (/duplicate|unique/i.test(error.message)) return toast.error(`@${u.username} already has a pending invite`);
-      if (/verified/i.test(error.message)) return toast.error("Only verified users can collab");
+      if (/verified/i.test(error.message)) return toast.error("Only age-verified (18+) users can collab");
       return toast.error(error.message);
     }
     await supabase.from("notifications").insert({
@@ -117,7 +117,7 @@ export function CollabPanel({
     });
     if (error) {
       if (/duplicate|unique/i.test(error.message)) return toast.error("You already have a request pending");
-      if (/verified/i.test(error.message)) return toast.error("Only verified users can collab — verify your account first");
+      if (/verified/i.test(error.message)) return toast.error("Only age-verified (18+) users can collab — verify your account first");
       return toast.error(error.message);
     }
     await supabase.from("notifications").insert({
@@ -209,13 +209,13 @@ export function CollabPanel({
                         <div className="flex min-w-0 items-center gap-2">
                           {u.avatar_url ? <img src={u.avatar_url} className="h-6 w-6 rounded-full object-cover" alt="" /> : <div className="h-6 w-6 rounded-full bg-muted-foreground/30" />}
                           <span className="truncate">@{u.username}</span>
-                          {u.live_verified && <BadgeCheck className="h-3 w-3 text-primary" />}
+                          {u.age_verified && <BadgeCheck className="h-3 w-3 text-primary" />}
                         </div>
                         <button
-                          disabled={already || invited || atMax || !u.live_verified}
+                          disabled={already || invited || atMax || !u.age_verified}
                           onClick={() => invite(u)}
                           className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground disabled:opacity-50"
-                          title={!u.live_verified ? "Not verified" : ""}
+                          title={!u.age_verified ? "Not verified" : ""}
                         >
                           <UserPlus className="h-3 w-3" /> {already ? "In" : invited ? "Sent" : "Invite"}
                         </button>
