@@ -160,10 +160,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3) Gather quotes from every ENABLED provider in parallel.
-    //    Disabled providers (e.g. PriceCharting until paid key + flag) are skipped.
+    // 3) Gather quotes.
+    //    For non-Pokémon games, the per-source extractor on the resolved card
+    //    is the primary signal (Scryfall for MTG, YGOPRODeck for YGO, local
+    //    tcg_prices cache for One Piece / Lorcana / DBSFW / SWU / FaB). We
+    //    still run the cross-cutting provider list (PriceCharting, eBay sold,
+    //    PSA, …) when those are enabled — they apply to every game.
     const providers = enabledProviders();
-    const sourcesTried: string[] = [];
+    const sourcesTried: string[] = [...catalogTried];
     const sourcesFailed: string[] = [];
     const sourcesSkipped = pricingProvidersSkipped(providers);
 
@@ -172,7 +176,20 @@ Deno.serve(async (req) => {
       set: card?.set_name || set || null,
       number: card?.number || number || null,
     };
-    const settled = await Promise.all(providers.map(async (p) => {
+
+    const quotes: PriceQuote[] = [];
+    // Game-specific quote from the resolved card.
+    if (card) {
+      const direct = quoteFromCardForSource(card);
+      if (direct) quotes.push(direct);
+    }
+    // Cross-cutting providers — skip the Pokémon-only tcgplayerProvider for
+    // non-Pokémon games (it would just return null but spends a round-trip).
+    const applicable = providers.filter((p) => {
+      if (p.id === "tcg_api") return game.id === "pokemon";
+      return true;
+    });
+    const settled = await Promise.all(applicable.map(async (p) => {
       sourcesTried.push(p.id);
       try {
         const quote = await p.quote(card, q);
@@ -184,16 +201,18 @@ Deno.serve(async (req) => {
         return null;
       }
     }));
-    const quotes: PriceQuote[] = settled.filter((q): q is PriceQuote => !!q);
+    for (const s of settled) if (s) quotes.push(s);
 
     const aggregated = aggregatePrices(quotes);
 
     const payload = {
+      game: game.id,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
         rarity: card.rarity, year: card.year,
         image_small: card.image_small, image_large: card.image_large,
         source_ids: card.source_ids,
+        match_score: bestScore,
       } : null,
       price: {
         market: aggregated.market,
@@ -205,7 +224,7 @@ Deno.serve(async (req) => {
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
-      sources_skipped: sourcesSkipped, // disabled providers (e.g. paid APIs without flag/key)
+      sources_skipped: sourcesSkipped,
       primary_source: aggregated.primary_source,
       cached: false,
       duration_ms: Date.now() - t0,
