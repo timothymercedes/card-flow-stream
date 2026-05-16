@@ -50,10 +50,12 @@ export function useCloudflareCalls(opts: {
   avatarUrl: string | null;
   /** When true: don't publish local cam/mic — only pull remote cohost tracks (for normal viewers). */
   viewerMode?: boolean;
+  /** When true: publish local tracks but do not also pull co-host tracks on this same SFU session. */
+  publishOnly?: boolean;
   /** Pre-acquired MediaStream (captured in a user-gesture handler to satisfy mobile autoplay/permission rules). */
   preStream?: MediaStream | null;
 }) {
-  const { enabled, streamId, userId, username, avatarUrl, viewerMode, preStream } = opts;
+  const { enabled, streamId, userId, username, avatarUrl, viewerMode, publishOnly, preStream } = opts;
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export function useCloudflareCalls(opts: {
   const sessionIdRef = useRef<string | null>(null);
   const pulledRef = useRef<Set<string>>(new Set()); // remote sessionIds already pulled
   const remoteStreamsByUserRef = useRef<Map<string, MediaStream>>(new Map());
+  const negotiationRef = useRef<Promise<void>>(Promise.resolve());
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(async (pc: RTCPeerConnection, target: RTCPeerConnectionState) => {
@@ -77,6 +80,23 @@ export function useCloudflareCalls(opts: {
       };
       pc.addEventListener("connectionstatechange", handler);
       setTimeout(() => { pc.removeEventListener("connectionstatechange", handler); resolve(pc.connectionState === target); }, 10_000);
+    });
+  }, []);
+
+  const waitForSignalingStable = useCallback(async (pc: RTCPeerConnection) => {
+    if (pc.signalingState === "stable") return true;
+    return new Promise<boolean>((resolve) => {
+      const handler = () => {
+        if (pc.signalingState === "stable") {
+          pc.removeEventListener("signalingstatechange", handler);
+          resolve(pc.signalingState === "stable");
+        }
+      };
+      pc.addEventListener("signalingstatechange", handler);
+      setTimeout(() => {
+        pc.removeEventListener("signalingstatechange", handler);
+        resolve(pc.signalingState === "stable");
+      }, 8000);
     });
   }, []);
 
@@ -197,7 +217,7 @@ export function useCloudflareCalls(opts: {
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
-    if (!enabled || !streamId || !ready) return;
+    if (!enabled || !streamId || !ready || publishOnly) return;
     let cancelled = false;
 
     async function pullRemote(row: any) {
@@ -236,29 +256,37 @@ export function useCloudflareCalls(opts: {
         const ms = new MediaStream();
         remoteStreamsByUserRef.current.set(row.user_id, ms);
 
-        const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
-          method: "POST",
-          body: JSON.stringify({ tracks: wantTracks }),
-        });
+        const negotiation = negotiationRef.current.catch(() => {}).then(async () => {
+          if (cancelled || pcRef.current !== pc) return;
+          const stable = await waitForSignalingStable(pc);
+          if (!stable || cancelled || pcRef.current !== pc) return;
 
-        // Map mids returned by Cloudflare to this user so ontrack can route
-        (pc as any).__midToUser = (pc as any).__midToUser || {};
-        for (const t of resp.tracks || []) {
-          if (t.mid != null) (pc as any).__midToUser[t.mid] = row.user_id;
-        }
-
-        if (resp.sessionDescription) {
-          await pc.setRemoteDescription(resp.sessionDescription);
-        }
-
-        if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          await sfu(`/sessions/${mySession}/renegotiate`, {
-            method: "PUT",
-            body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } }),
+          const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
+            method: "POST",
+            body: JSON.stringify({ tracks: wantTracks }),
           });
-        }
+
+          // Map mids returned by Cloudflare to this user so ontrack can route
+          (pc as any).__midToUser = (pc as any).__midToUser || {};
+          for (const t of resp.tracks || []) {
+            if (t.mid != null) (pc as any).__midToUser[t.mid] = row.user_id;
+          }
+
+          if (resp.sessionDescription) {
+            await pc.setRemoteDescription(resp.sessionDescription);
+          }
+
+          if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await sfu(`/sessions/${mySession}/renegotiate`, {
+              method: "PUT",
+              body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } }),
+            });
+          }
+        });
+        negotiationRef.current = negotiation.catch(() => {});
+        await negotiation;
 
         if (!cancelled) {
           setRemotes((prev) => ({
@@ -276,7 +304,7 @@ export function useCloudflareCalls(opts: {
         // never did an SDP exchange because no cohorts had joined yet).
         // Bump sessionGen so the setup effect tears down the dead PC and
         // creates a fresh session — then the next pullRemote will succeed.
-        if (/\b410\b/.test(String(e?.message))) {
+        if (/\b410\b|invalid_session_description|Mismatched number of transceivers/i.test(String(e?.message))) {
           if (!cancelled) setSessionGen((n) => n + 1);
         }
       }
@@ -307,7 +335,7 @@ export function useCloudflareCalls(opts: {
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [enabled, streamId, userId, ready, viewerMode]);
+  }, [enabled, streamId, userId, ready, viewerMode, publishOnly, waitForSignalingStable]);
 
   // ─── Toggle local mic/cam ──────────────────────────────────────────────
   const toggleAudio = useCallback(async () => {
