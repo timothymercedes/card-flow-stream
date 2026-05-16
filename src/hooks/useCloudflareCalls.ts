@@ -50,10 +50,12 @@ export function useCloudflareCalls(opts: {
   avatarUrl: string | null;
   /** When true: don't publish local cam/mic — only pull remote cohost tracks (for normal viewers). */
   viewerMode?: boolean;
+  /** When true: publish local tracks but do not also pull co-host tracks on this same SFU session. */
+  publishOnly?: boolean;
   /** Pre-acquired MediaStream (captured in a user-gesture handler to satisfy mobile autoplay/permission rules). */
   preStream?: MediaStream | null;
 }) {
-  const { enabled, streamId, userId, username, avatarUrl, viewerMode, preStream } = opts;
+  const { enabled, streamId, userId, username, avatarUrl, viewerMode, publishOnly, preStream } = opts;
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export function useCloudflareCalls(opts: {
   const sessionIdRef = useRef<string | null>(null);
   const pulledRef = useRef<Set<string>>(new Set()); // remote sessionIds already pulled
   const remoteStreamsByUserRef = useRef<Map<string, MediaStream>>(new Map());
+  const negotiationRef = useRef<Promise<void>>(Promise.resolve());
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(async (pc: RTCPeerConnection, target: RTCPeerConnectionState) => {
@@ -77,6 +80,23 @@ export function useCloudflareCalls(opts: {
       };
       pc.addEventListener("connectionstatechange", handler);
       setTimeout(() => { pc.removeEventListener("connectionstatechange", handler); resolve(pc.connectionState === target); }, 10_000);
+    });
+  }, []);
+
+  const waitForSignalingStable = useCallback(async (pc: RTCPeerConnection) => {
+    if (pc.signalingState === "stable") return true;
+    return new Promise<boolean>((resolve) => {
+      const handler = () => {
+        if (pc.signalingState === "stable" || pc.signalingState === "closed") {
+          pc.removeEventListener("signalingstatechange", handler);
+          resolve(pc.signalingState === "stable");
+        }
+      };
+      pc.addEventListener("signalingstatechange", handler);
+      setTimeout(() => {
+        pc.removeEventListener("signalingstatechange", handler);
+        resolve(pc.signalingState === "stable");
+      }, 8000);
     });
   }, []);
 
