@@ -1377,8 +1377,10 @@ function LiveDetail() {
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
+  // In compositor mode, cohosts are already baked into the HLS feed, so regular
+  // viewers must not open invisible Calls sessions or they can hit stale 410s.
   const viewerCall = useCloudflareCalls({
-    enabled: !!stream && stream.status !== "ended" && !isSeller && !isCohostParticipant,
+    enabled: !!stream && stream.status !== "ended" && !isSeller && !isCohostParticipant && !usingCompositor,
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
