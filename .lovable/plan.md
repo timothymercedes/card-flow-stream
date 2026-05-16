@@ -1,73 +1,127 @@
-# Scanner v2 — Accuracy, Confirmation UX, Pricing Reliability, Vault Image Integrity
+# PullBid Pricing Intelligence — Long-Term Roadmap
 
-Focused, incremental improvements on top of the dynamic game-routing pipeline already shipped. No rewrite of the core scanner workflow — these slot into the existing `enrichNonPokemon` + `card-price` flow.
+Goal: gradually evolve from external-provider-dependent pricing to a **hybrid
+intelligence layer** that aggregates external sources AND learns from PullBid's
+own marketplace/vault/live-sale data. Modular, multi-category from day one
+(sports cards = first-class, not a TCG add-on).
 
-## 1. Identity matching (backend: `_shared/cards/sources.ts`, `card-price/index.ts`)
+---
 
-- Extend `scoreCard` with weighted signals:
-  - normalized name (40), set code/name (20), collector number (20), year (10), variant/parallel keywords (10)
-  - penalty when OCR detected "holo/reverse/1st ed/refractor/prizm/rookie" but candidate lacks the matching tag
-- Return top 3 candidates (not just best) with per-field score breakdown.
-- New `variantTokens()` helper: extracts parallel/variant/rookie/1st-ed tokens from OCR + candidate names.
-- Sports: add player/manufacturer/year/set/parallel signals to the score.
+## Phase 1 — Aggregate + Canonicalize (NOW)
 
-## 2. Pricing aggregation (backend: `card-price/index.ts`, `_shared/cards/providers.ts`)
+External providers stay primary, but every result is **normalized into an
+internal canonical identity** and **cached locally** so we own the data.
 
-- Provider registry per game with `{ id, weight, ttlSec, fetch() }`.
-- Run providers in parallel with `Promise.allSettled`, then:
-  - weighted median across successful results
-  - drop outliers > 2× median
-  - confidence = coverage × agreement × freshness
-- Cached pricing protection: serve cache if all live providers fail; mark `stale: true` when `age > ttl`.
-- Retry: 1 retry with 250ms backoff for transient (5xx / network) failures only.
+**Canonical identity (`card_identities` table)** — one row per unique
+card/variant across ALL categories:
 
-## 3. Manual confirmation UX (frontend: new `ScanConfirmDialog.tsx`, edit `CardScanner.tsx`)
+| Field            | Notes                                                   |
+|------------------|----------------------------------------------------------|
+| `id`             | uuid                                                     |
+| `category`       | pokemon / mtg / yugioh / onepiece / lorcana / sports / … |
+| `name`           | normalized                                               |
+| `set_name`       | e.g. "Topps Chrome 2018" / "Base Set"                    |
+| `set_code`       | provider-agnostic                                        |
+| `number`         | collector number / card number                           |
+| `year`           | int (sports especially)                                  |
+| `manufacturer`   | Topps / Panini / WotC / Konami / Bandai                  |
+| `variant`        | holo / reverse / 1st ed / refractor / prizm / parallel   |
+| `is_rookie`      | bool (sports)                                            |
+| `player`         | sports only                                              |
+| `team`           | sports only                                              |
+| `grade`          | Raw / PSA 10 / BGS 9.5 / SGC 10 / …                      |
+| `grading_company`| PSA / BGS / SGC / CGC                                    |
+| `image_url`      | best official image                                      |
+| `image_source`   | scryfall / pokemontcg / pricecharting / user_upload      |
+| `external_ids`   | jsonb: `{ scryfall, tcgplayer, pricecharting, ebay_epid }` |
+| `fingerprint`    | deterministic hash of identity fields (dedup key)        |
 
-When `matchScore < 70` OR `candidates.length > 1` OR `market === 0`:
-- Open a confirm dialog instead of silently failing.
-- Show top 3 candidates as image cards (official art, set, number, variant, price).
-- Quick refinement: inline search box (name/set/number) re-queries `card-price` with hints.
-- "None of these" → manual entry (name, set, number, variant) → re-score.
-- User picks → that candidate's identity + official image are bound to the save.
+**Provider adapters** stay where they are (`_shared/cards/providers.ts`,
+`_shared/cards/sources/*`). Each adapter, on every successful lookup:
+1. Maps result → `card_identities` (insert-or-fetch by `fingerprint`)
+2. Writes its price into `price_observations` (history, not overwrite)
+3. Records its image into `card_images` (multi-source)
 
-## 4. Vault image integrity (frontend: `CardScanner.tsx` save path; backend: `card-price` response)
+## Phase 2 — Internal Observation Tables (NOW)
 
-- `card-price` response always includes `official_image_url` and `image_source` (e.g. scryfall, ygoprodeck, tcg_prices, pricecharting).
-- Vault save uses `confirmed.official_image_url` — never the raw camera frame or any AI-generated thumbnail when an official image exists.
-- Fallback rules:
-  1. Official provider image (matched identity)
-  2. Cached reference image from `tcg_prices` row
-  3. Camera frame **only if** the user explicitly chose "save without official image" (warning shown)
-- Autosave blocked unless: `matchScore ≥ 80` AND `market > 0` AND `official_image_url` present.
-- Vault row stores `card_identity_id`, `image_source`, `match_score`, `confirmed_by` (`auto` | `manual`) for audit + future re-matching.
+Start logging EVERY pricing signal we touch so the dataset compounds.
 
-## 5. Performance
+- `price_observations` — `(identity_id, source, price_cents, currency, observed_at, sample_size, notes)`
+- `sold_comps` — actual sales we observe (eBay sold scrape, PullBid marketplace sales, PullBid live-auction hammer prices, accepted offers)
+- `card_images` — `(identity_id, url, source, quality_score, uploaded_by)`
+- `vault_valuations` — snapshot of vault values over time, by user + total
+- `offer_history` — every offer made/accepted/rejected, joined to identity
+- `live_sale_events` — hammer price, viewer count, time of day, host, hype score
+- `scan_events` — every scan we run (match score, confirmed_by, time, OCR quality)
 
-- OCR + provider fetch run in parallel (currently sequential after OCR).
-- Cache identity lookups for 60s in-memory per session to avoid duplicate calls on retake.
-- Downscale capture to max 1024px on the long edge before OCR (mobile speedup).
+All keyed off `card_identities.id`. RLS: user-scoped reads where appropriate,
+admin-only on aggregate tables.
 
-## 6. Future-proofing
+## Phase 3 — PullBid Internal Pricing API (LATER)
 
-- New `GameAdapter` interface in `_shared/cards/games.ts`:
-  ```
-  { id, detect(ocr), search(query), score(candidate, ocr), priceProviders }
-  ```
-- Adding a new ecosystem = register one adapter; no changes to `CardScanner.tsx` or `card-price` core.
+Once Phase 2 has 60-90 days of data, layer our own intelligence ON TOP of
+external sources:
 
-## Files
+- `pullbid_market_price(identity_id, grade)` — weighted blend of:
+  - PullBid sold comps (highest weight: actual platform sales)
+  - PullBid accepted offers
+  - External sold comps (eBay)
+  - External provider listings (TCGplayer, PriceCharting, Scryfall)
+- Confidence per category:
+  - Sports: needs ≥5 sold comps in 90d to be "verified"
+  - TCG: external providers usually sufficient
+- Trending detection: hype score from live-sale spikes
+- Player/set valuation models (sports): roll-up of all cards for a player
+- Adversarial check: PullBid prices that deviate >30% from external get flagged
 
-- edit `supabase/functions/_shared/cards/sources.ts` — scoring + variant tokens + top-N
-- edit `supabase/functions/_shared/cards/providers.ts` — registry + weighted aggregation + retry/cache
-- edit `supabase/functions/card-price/index.ts` — return candidates + official_image_url + confidence + stale flag
-- edit `supabase/functions/_shared/cards/games.ts` — `GameAdapter` interface
-- new `src/components/ScanConfirmDialog.tsx`
-- edit `src/components/CardScanner.tsx` — open dialog on low confidence, bind official image to vault save, parallelize OCR/pricing
-- migration: add `card_identity_id`, `image_source`, `match_score`, `confirmed_by` to vault table
+Expose as internal serverFn `getPullBidPrice({identityId, grade})` consumed
+by scanner, vault, marketplace, offers.
 
-## Out of scope (call out separately)
+---
 
-- Glare/low-light: requires a dedicated image-preprocessing pass (CLAHE/white-balance) — recommend a follow-up after this lands, since it touches the capture pipeline.
-- New OCR model swap — keeping current OCR; accuracy gains here come from scoring + UX.
+## Architecture Principles
 
-Approve and I'll ship steps 1–6 in this order.
+1. **Modular per-category adapters.** Adding "Star Wars Unlimited" or
+   "Riftbound" = one adapter file + one entry in `GAMES` registry. Sports is
+   already first-class (not a TCG subtype).
+2. **Hybrid forever.** Internal data ENHANCES external; never the sole source
+   until coverage + confidence are proven per-category.
+3. **Provider-agnostic identity.** `card_identities.fingerprint` is the join
+   key — providers come and go, identity persists.
+4. **Audit trail.** Every observation timestamped + source-tagged so we can
+   rebuild aggregates if a provider's data is later proven bad.
+5. **Tiered pricing stays.** Verified / Estimated / Unavailable rules apply
+   to PullBid internal price the same way as external.
+
+---
+
+## Files & ownership
+
+- `supabase/functions/_shared/cards/identity.ts` (new) — fingerprint + upsert
+- `supabase/functions/_shared/cards/observations.ts` (new) — log helpers
+- `supabase/functions/_shared/cards/providers.ts` — existing; each provider
+  calls `recordObservation()` after a successful quote
+- `supabase/functions/card-price/index.ts` — after aggregation, write to
+  `price_observations` and update `card_identities`
+- `src/routes/vault.tsx` — on save, link to `card_identities.id` (already
+  partially in place via `card_identity_id` column)
+
+## Out of scope for this phase
+
+- Replacing any external provider
+- Building the internal pricing API itself (Phase 3)
+- ML/model training (after Phase 2 has data)
+
+---
+
+## Status
+
+- [x] Tiered pricing system (Verified / Estimated / Unavailable)
+- [x] Game-routing aggregator with weighted median + outlier drop
+- [x] Vault audit columns (`card_identity_id`, `image_source`, `match_score`, `confirmed_by`, `price_tier`)
+- [] **Phase 1 schema: `card_identities` table + fingerprint helpers** ← starting now
+- [ ] **Phase 2 schema: observation tables** ← starting now
+- [ ] Wire providers to write observations on every quote
+- [ ] Wire marketplace sales / live hammer / offers to `sold_comps`
+- [ ] Backfill from existing `tcg_prices` cache
+- [ ] (Future) Phase 3 internal pricing serverFn
