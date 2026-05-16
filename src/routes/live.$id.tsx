@@ -3649,6 +3649,9 @@ function LiveDetail() {
         !callShouldRun &&
         hostViewerCall.remotes.length > 0 && (
           <CoHostStage
+            streamId={id}
+            userId={user?.id}
+            mode="host-broadcast"
             localStream={null}
             localUsername=""
             remotes={hostViewerCall.remotes}
