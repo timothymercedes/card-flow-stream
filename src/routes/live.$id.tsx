@@ -1419,7 +1419,6 @@ function LiveDetail() {
 
     for (const r of hostViewerCall.remotes) {
       if (map.has(r.userId)) continue;
-      if (!r.stream.getVideoTracks().length) continue;
       try {
         const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera", {
           ownsStream: false,
@@ -3402,16 +3401,15 @@ function LiveDetail() {
       )}
 
       {/* Cloudflare Calls multi-guest stage.
-          When the host is running the studio compositor, every co-host tile is
-          already baked into the studio canvas (and broadcast via WHIP), so the
-          host UI must NOT also render this floating overlay — it covers the
-          drag/resize surface and makes viewers see duplicates. Co-host guests
-          (not the seller) still need this overlay to see themselves + the host. */}
+          In compositor mode, the host-positioned studio canvas is the single
+          truth for what co-hosts/viewers see. Co-host guests keep only their
+          own local control tile here so remote tiles don't duplicate or cover
+          the host-positioned HLS/canvas view. */}
       {callShouldRun && !(isSeller && usingCompositor) && (
         <CoHostStage
           localStream={cfCall.localStream}
           localUsername={profile?.username || "you"}
-          remotes={cfCall.remotes}
+          remotes={usingCompositor && !isSeller ? [] : cfCall.remotes}
           showLocal={!isSeller}
           audioOn={audioOn}
           videoOn={videoOn}
