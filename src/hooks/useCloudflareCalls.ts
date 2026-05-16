@@ -96,7 +96,10 @@ export function useCloudflareCalls(opts: {
           } else {
             local = await navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 640, height: 480 } });
           }
-          if (cancelled) { local.getTracks().forEach((t) => t.stop()); return; }
+          if (cancelled) {
+            if (local !== preStream) local.getTracks().forEach((t) => t.stop());
+            return;
+          }
           setLocalStream(local);
         }
 
@@ -176,7 +179,10 @@ export function useCloudflareCalls(opts: {
       cancelled = true;
       try { pcRef.current?.close(); } catch {}
       pcRef.current = null;
-      setLocalStream((s) => { s?.getTracks().forEach((t) => t.stop()); return null; });
+      setLocalStream((s) => {
+        if (s && s !== preStream) s.getTracks().forEach((t) => t.stop());
+        return null;
+      });
       if (streamId && userId && !viewerMode) {
         supabase.from("stream_cohost_tracks").delete().eq("stream_id", streamId).eq("user_id", userId);
       }
