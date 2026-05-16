@@ -3377,8 +3377,13 @@ function LiveDetail() {
         </>
       )}
 
-      {/* Cloudflare Calls multi-guest stage */}
-      {callShouldRun && (
+      {/* Cloudflare Calls multi-guest stage.
+          When the host is running the studio compositor, every co-host tile is
+          already baked into the studio canvas (and broadcast via WHIP), so the
+          host UI must NOT also render this floating overlay — it covers the
+          drag/resize surface and makes viewers see duplicates. Co-host guests
+          (not the seller) still need this overlay to see themselves + the host. */}
+      {callShouldRun && !(isSeller && usingCompositor) && (
         <CoHostStage
           localStream={cfCall.localStream}
           localUsername={profile?.username || "you"}
@@ -3399,8 +3404,6 @@ function LiveDetail() {
               cohostPreStream.getTracks().forEach((t) => t.stop());
               setCohostPreStream(null);
             }
-            // If this user is a co-host (not the seller), leaving the room
-            // also removes them from the collab so the host's UI updates.
             if (!isSeller && isCohostParticipant && user) {
               await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", user.id);
               await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", user.id);
@@ -3417,8 +3420,11 @@ function LiveDetail() {
         />
       )}
 
-      {/* Viewer-side overlay: shows cohost tiles to regular viewers (read-only). */}
-      {!isSeller && !isCohostParticipant && viewerCall.remotes.length > 0 && (
+      {/* Viewer-side overlay: only show when there is NO compositor stream.
+          When the host runs the studio compositor, the HLS feed already contains
+          every co-host tile baked-in at the host's chosen positions, so we must
+          not re-render them as a floating overlay on top. */}
+      {!isSeller && !isCohostParticipant && !usingCompositor && viewerCall.remotes.length > 0 && (
         <CoHostStage
           localStream={null}
           localUsername=""
@@ -3432,10 +3438,11 @@ function LiveDetail() {
         />
       )}
 
-      {/* Host-side overlay: when compositor/OBS owns local capture, the host's
-          publishing cfCall is disabled. This receive-only stage lets the host
-          see and hear cohosts on a single shared video element. */}
-      {isSeller && (usingCompositor || usingObs) && !callShouldRun && hostViewerCall.remotes.length > 0 && (
+      {/* Host-side receive-only overlay: only for OBS mode (where the host has
+          no studio canvas to fold cohosts into). With the in-app compositor the
+          cohosts are added as external sources via addExternalStream and shown
+          inside the studio preview, so this overlay would only get in the way. */}
+      {isSeller && usingObs && !usingCompositor && !callShouldRun && hostViewerCall.remotes.length > 0 && (
         <CoHostStage
           localStream={null}
           localUsername=""
