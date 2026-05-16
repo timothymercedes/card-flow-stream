@@ -31,6 +31,13 @@ export type StudioSource = {
   fit: "cover" | "contain";
 };
 
+type ExternalStreamMetadata = {
+  deviceId?: string;
+  groupId?: string;
+  ownsStream?: boolean;
+  stableKey?: string;
+};
+
 // Normalised 0..1 freeform layout (x,y top-left; w,h size; z stack order)
 export type FreeformLayout = { x: number; y: number; w: number; h: number; z: number };
 
@@ -93,7 +100,8 @@ function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], d
   if (!source.deviceId) {
     const device = devices.find((d) => d.deviceId === deviceId);
     const trackLabel = source.stream.getVideoTracks()[0]?.label;
-    if (!!device?.label && (source.label === device.label || trackLabel === device.label)) return true;
+    if (!!device?.label && (source.label === device.label || trackLabel === device.label))
+      return true;
   }
   return false;
 }
@@ -339,7 +347,9 @@ export function useStudio(opts: {
         // holding the camera.
         try {
           window.dispatchEvent(new CustomEvent("pb:release-cameras", { detail: { deviceId } }));
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         await wait(250);
         const baseVideoConstraints: MediaTrackConstraints = {
           width: { ideal: 1280 },
@@ -464,8 +474,35 @@ export function useStudio(opts: {
       stream: MediaStream,
       label: string,
       kind: "phone" | "camera" = "phone",
-      metadata?: { deviceId?: string; groupId?: string; ownsStream?: boolean },
+      metadata?: ExternalStreamMetadata,
     ) => {
+      if (metadata?.stableKey) {
+        const existing = sourcesRef.current.find((s) => s.deviceId === metadata.stableKey);
+        if (existing) {
+          const changedStream = existing.stream !== stream;
+          setSources((prev) => {
+            const next = prev.map((s) =>
+              s.id === existing.id
+                ? {
+                    ...s,
+                    label,
+                    stream,
+                    visible: true,
+                    ownsStream: metadata.ownsStream ?? s.ownsStream,
+                  }
+                : s,
+            );
+            sourcesRef.current = next;
+            return next;
+          });
+          const video = videoElsRef.current.get(existing.id);
+          if (video && changedStream) {
+            video.srcObject = stream;
+            video.play().catch(() => {});
+          }
+          return existing.id;
+        }
+      }
       const id = `ext-${crypto.randomUUID()}`;
       const src: StudioSource = {
         id,
@@ -473,7 +510,7 @@ export function useStudio(opts: {
         label,
         stream,
         ownsStream: metadata?.ownsStream ?? true,
-        deviceId: metadata?.deviceId,
+        deviceId: metadata?.stableKey ?? metadata?.deviceId,
         groupId: metadata?.groupId,
         visible: true,
         muted: false,
