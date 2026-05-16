@@ -4953,9 +4953,11 @@ export type Database = {
       vault_cards: {
         Row: {
           back_image_url: string | null
+          card_identity_id: string | null
           category: string | null
           condition: Database["public"]["Enums"]["card_condition"] | null
           condition_prices: Json | null
+          confirmed_by: string | null
           created_at: string
           custom_price: number | null
           custom_price_source: string | null
@@ -4966,6 +4968,7 @@ export type Database = {
           grader: string | null
           grading_cert: string | null
           id: string
+          image_source: string | null
           image_url: string | null
           is_demo: boolean
           is_graded: boolean
@@ -4973,6 +4976,7 @@ export type Database = {
           last_sold_price: number | null
           last_valued_at: string | null
           market_price: number | null
+          match_score: number | null
           name: string
           price: number | null
           price_high: number | null
@@ -4994,9 +4998,11 @@ export type Database = {
         }
         Insert: {
           back_image_url?: string | null
+          card_identity_id?: string | null
           category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
+          confirmed_by?: string | null
           created_at?: string
           custom_price?: number | null
           custom_price_source?: string | null
@@ -5007,6 +5013,7 @@ export type Database = {
           grader?: string | null
           grading_cert?: string | null
           id?: string
+          image_source?: string | null
           image_url?: string | null
           is_demo?: boolean
           is_graded?: boolean
@@ -5014,6 +5021,7 @@ export type Database = {
           last_sold_price?: number | null
           last_valued_at?: string | null
           market_price?: number | null
+          match_score?: number | null
           name: string
           price?: number | null
           price_high?: number | null
@@ -5035,9 +5043,11 @@ export type Database = {
         }
         Update: {
           back_image_url?: string | null
+          card_identity_id?: string | null
           category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
+          confirmed_by?: string | null
           created_at?: string
           custom_price?: number | null
           custom_price_source?: string | null
@@ -5048,6 +5058,7 @@ export type Database = {
           grader?: string | null
           grading_cert?: string | null
           id?: string
+          image_source?: string | null
           image_url?: string | null
           is_demo?: boolean
           is_graded?: boolean
@@ -5055,6 +5066,7 @@ export type Database = {
           last_sold_price?: number | null
           last_valued_at?: string | null
           market_price?: number | null
+          match_score?: number | null
           name?: string
           price?: number | null
           price_high?: number | null
