@@ -165,12 +165,14 @@ export function useCloudflareCalls(opts: {
           }
         };
 
-        // Create session
-        const session = await sfu("/sessions/new", { method: "POST" });
-        sessionIdRef.current = session.sessionId;
-        sessionCreatedAtRef.current = Date.now();
-
         if (local) {
+          // Create publish sessions only when we have local tracks to attach.
+          // Receive-only viewers create their session lazily right before the
+          // first pull, so Cloudflare does not disconnect an idle empty session.
+          const session = await sfu("/sessions/new", { method: "POST" });
+          sessionIdRef.current = session.sessionId;
+          sessionCreatedAtRef.current = Date.now();
+
           // Publishing path (host / cohost)
           const audioTracks = local.getAudioTracks();
           const videoTracks = local.getVideoTracks();
@@ -241,7 +243,7 @@ export function useCloudflareCalls(opts: {
       if (cancelled) return;
       if (row.user_id === userId) return;
       const pc = pcRef.current;
-      if (!pc || !sessionIdRef.current) return;
+      if (!pc || (!viewerMode && !sessionIdRef.current)) return;
       // Publishers must reach "connected" before pulling (otherwise CF 410s
       // on a dead session). Viewer-mode peers have no transceivers yet and
       // do their FIRST SDP exchange inside this very call via
