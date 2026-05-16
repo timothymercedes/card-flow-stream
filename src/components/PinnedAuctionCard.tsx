@@ -136,21 +136,21 @@ export function PinnedAuctionCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-1 text-[12px] font-bold text-white">
+          <p className="line-clamp-1 text-[11px] font-bold text-white">
             {currentItem || "Awaiting next item…"}
           </p>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${phaseStyles[phase]}`}>
-              {suddenDeath ? <Zap className="h-2.5 w-2.5" /> : phase === "sold" ? <Trophy className="h-2.5 w-2.5" /> : <Timer className="h-2.5 w-2.5" />}
+          <div className="mt-0.5 flex items-center gap-1">
+            <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${phaseStyles[phase]}`}>
+              {suddenDeath ? <Zap className="h-2 w-2" /> : phase === "sold" ? <Trophy className="h-2 w-2" /> : <Timer className="h-2 w-2" />}
               {suddenDeath ? "SUDDEN DEATH" : phaseLabel[phase]}
             </span>
             {auctionLive && (
-              <span className="rounded-md bg-black/50 px-1.5 py-0.5 text-[11px] font-extrabold tabular-nums text-white">
+              <span className="rounded bg-black/50 px-1 py-0.5 text-[10px] font-extrabold tabular-nums text-white">
                 {fmtRemaining(remaining)}
               </span>
             )}
             {prebidCount > 0 && !auctionLive && (
-              <span className="rounded-full bg-purple-500/30 px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-purple-100 ring-1 ring-purple-300/30">
+              <span className="rounded-full bg-purple-500/30 px-1 py-0.5 text-[8px] font-extrabold uppercase text-purple-100 ring-1 ring-purple-300/30">
                 Pre-B {prebidCount}
               </span>
             )}
