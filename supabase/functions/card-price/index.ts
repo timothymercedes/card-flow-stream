@@ -312,6 +312,9 @@ Deno.serve(async (req) => {
     if ((aggregated.market == null) && staleCachePayload?.price?.market) {
       payload = { ...staleCachePayload, ...payload, price: staleCachePayload.price, stale: true, confidence: Math.min(confidence, 0.5) };
     }
+
+    // 4) Cache and history (fire-and-forget)
+    if (card?.id || name) {
       admin.from("card_price_cache").upsert({
         card_key: key,
         payload,
