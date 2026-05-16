@@ -3302,17 +3302,18 @@ function LiveDetail() {
             style={obsVideoStyle}
             onVideoMetrics={setObsMetrics}
             autoPlay
-            muted={false}
+            muted={!audioUnmuted}
           />
         ) : stream.cf_playback_hls ? (
-          // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser
+          // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
+          // Start muted so autoplay isn't blocked; user taps to enable sound.
           <HlsPlayer
             src={stream.cf_playback_hls}
             className="h-full w-full"
             style={obsVideoStyle}
             onVideoMetrics={setObsMetrics}
             autoPlay
-            muted={isSeller}
+            muted={isSeller ? true : !audioUnmuted}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 via-black to-live/30">
@@ -3320,6 +3321,20 @@ function LiveDetail() {
           </div>
         )}
       </div>
+
+      {/* Tap to unmute — required because browsers block autoplay with sound */}
+      {!isSeller && stream.cf_playback_hls && !audioUnmuted && (
+        <button
+          onClick={() => setAudioUnmuted(true)}
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
+          aria-label="Tap to unmute"
+        >
+          <span className="flex items-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-bold text-white ring-1 ring-white/20">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            Tap to unmute
+          </span>
+        </button>
+      )}
 
       {/* Fit / Fill camera toggle */}
       <button
