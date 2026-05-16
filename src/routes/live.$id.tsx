@@ -3427,47 +3427,6 @@ function LiveDetail() {
             <Radio className="h-24 w-24 opacity-40" />
           </div>
         )}
-          {/* Quick controls — match the host cockpit: mic mute / cam toggle /
-              flip camera. These act on the co-host's published tracks only. */}
-          <div className="mb-2 grid grid-cols-3 gap-1.5">
-            <button
-              onClick={() => {
-                cfCall.toggleAudio();
-                setAudioOn((v) => !v);
-                toast.message(audioOn ? "Mic muted" : "Mic on");
-              }}
-              className={`flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] font-extrabold ${audioOn ? "bg-muted" : "bg-destructive text-destructive-foreground"}`}
-              title={audioOn ? "Mute mic" : "Unmute mic"}
-            >
-              {audioOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
-              {audioOn ? "Mute" : "Unmute"}
-            </button>
-            <button
-              onClick={() => {
-                cfCall.toggleVideo();
-                setVideoOn((v) => !v);
-              }}
-              className={`flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] font-extrabold ${videoOn ? "bg-muted" : "bg-destructive text-destructive-foreground"}`}
-              title={videoOn ? "Camera off" : "Camera on"}
-            >
-              {videoOn ? <Video className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />}
-              {videoOn ? "Cam off" : "Cam on"}
-            </button>
-            <button
-              onClick={() =>
-                cfCall
-                  .flipCamera()
-                  .then((ok) =>
-                    ok ? toast.success("Camera flipped") : toast.error("Could not flip camera"),
-                  )
-              }
-              className="flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-extrabold text-primary-foreground"
-              title="Flip front/back camera"
-            >
-              <SwitchCamera className="h-3.5 w-3.5" /> Flip
-            </button>
-          </div>
-
       {/* Tap to unmute — required because browsers block autoplay with sound */}
       {!isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview) && !audioUnmuted && (
         <button
