@@ -253,16 +253,58 @@ export function CollabPanel({
                 </div>
               )}
 
-              {invites.filter((i) => i.status === "pending").length > 0 && (
+              {invites.length > 0 && (
                 <div>
-                  <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Pending invites</p>
+                  <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">Invites</p>
                   <div className="space-y-1">
-                    {invites.filter((i) => i.status === "pending").map((i) => (
-                      <div key={i.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-2 py-1 text-xs">
-                        <span>@{i.invitee_username}</span>
-                        <span className="text-[10px] text-muted-foreground">pending…</span>
-                      </div>
-                    ))}
+                    {invites.map((i) => {
+                      const isPending = i.status === "pending";
+                      const isAccepted = i.status === "accepted";
+                      // If already in participants table, the participant row owns "End collab".
+                      const alreadyInCall = participants.some((p) => p.user_id === i.invitee_id);
+                      return (
+                        <div key={i.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2 py-1.5 text-xs">
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate font-semibold">@{i.invitee_username}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {isPending ? "Pending…" : isAccepted ? (alreadyInCall ? "In call" : "Accepted") : i.status}
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            {isPending && (
+                              <button
+                                onClick={() => cancelInvite(i)}
+                                className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] font-bold"
+                                title="Cancel invite"
+                              >
+                                <XCircle className="h-3 w-3" /> End invite
+                              </button>
+                            )}
+                            {!isPending && !alreadyInCall && (
+                              <button
+                                onClick={() => reinvite(i)}
+                                className="flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground"
+                                title="Send a new invite"
+                              >
+                                <RotateCcw className="h-3 w-3" /> Reinvite
+                              </button>
+                            )}
+                            {alreadyInCall && (
+                              <button
+                                onClick={() => {
+                                  const p = participants.find((pp) => pp.user_id === i.invitee_id);
+                                  if (p) removeParticipant(p);
+                                }}
+                                className="flex items-center gap-1 rounded-full bg-destructive px-2 py-1 text-[10px] font-bold text-destructive-foreground"
+                                title="End collab"
+                              >
+                                <Trash2 className="h-3 w-3" /> End collab
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
