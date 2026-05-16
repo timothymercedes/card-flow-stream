@@ -570,12 +570,48 @@ export function useCloudflareCalls(opts: {
       .eq("user_id", userId);
   }, [localStream, streamId, userId]);
 
+  const switchCamera = useCallback(async (deviceId?: string) => {
+    if (!localStream || !streamId || !userId) return false;
+    try {
+      const next = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: deviceId
+          ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+          : { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } },
+      });
+      const nextTrack = next.getVideoTracks()[0];
+      if (!nextTrack) return false;
+      const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(nextTrack);
+      const oldVideoTracks = localStream.getVideoTracks();
+      oldVideoTracks.forEach((track) => {
+        localStream.removeTrack(track);
+        track.stop();
+      });
+      localStream.addTrack(nextTrack);
+      setLocalStream(new MediaStream(localStream.getTracks()));
+      await supabase
+        .from("stream_cohost_tracks")
+        .update({ is_video_enabled: true })
+        .eq("stream_id", streamId)
+        .eq("user_id", userId);
+      await refreshCameraDevices();
+      return true;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+      return false;
+    }
+  }, [localStream, streamId, userId, refreshCameraDevices]);
+
   return {
     localStream,
     remotes: Object.values(remotes),
     ready,
     error,
     connectionState,
+    cameraDevices,
+    refreshCameraDevices,
+    switchCamera,
     toggleAudio,
     toggleVideo,
   };
