@@ -1,127 +1,54 @@
-# PullBid Pricing Intelligence — Long-Term Roadmap
+# Live Stage System Overhaul
 
-Goal: gradually evolve from external-provider-dependent pricing to a **hybrid
-intelligence layer** that aggregates external sources AND learns from PullBid's
-own marketplace/vault/live-sale data. Modular, multi-category from day one
-(sports cards = first-class, not a TCG add-on).
+This is a substantial change touching the live page, co-host stage, chat, and Flex Live. Breaking into 3 focused workstreams.
 
----
+## 1. Host-controlled stage layout (broadcast to viewers)
 
-## Phase 1 — Aggregate + Canonicalize (NOW)
+**Goal:** Host's drag/resize/zoom of camera tiles becomes the authoritative public layout that viewers + co-hosts see. Co-hosts can still rearrange tiles *locally* for their own viewing.
 
-External providers stay primary, but every result is **normalized into an
-internal canonical identity** and **cached locally** so we own the data.
+Changes:
+- New table `live_stage_layouts` storing per-stream tile rects: `{ stream_id, user_id (tile owner), x, y, w, h, z, object_fit, updated_at }` with RLS allowing the stream host to write and everyone to read.
+- Enable realtime on the table so viewers get instant updates.
+- `CoHostStage.tsx`:
+  - Add `mode: "host-broadcast" | "local-only" | "viewer"` prop.
+  - In `host-broadcast`: writes positions to `live_stage_layouts` (debounced) instead of localStorage.
+  - In `viewer`: subscribes to `live_stage_layouts`, renders read-only tiles in the broadcast positions. No drag handles. Layout is pinned to a normalized 16:9 stage container (percent-based coords) so it scales correctly on mobile.
+  - In `local-only` (co-host personal view): falls back to localStorage like today but layered above the broadcast layout so it doesn't pollute it.
+  - Add per-tile `objectFit` toggle (contain/cover) + simple zoom slider; host's choice serializes into the layout row.
+- `live.$id.tsx`:
+  - Host renders `<CoHostStage mode="host-broadcast" />`.
+  - Co-host renders both: a read-only viewer stage for "what viewers see" + a personal `<CoHostStage mode="local-only" />` toggle.
+  - Viewers render `<CoHostStage mode="viewer" />`.
+  - Position the stage container so it never covers the chat column (chat stays in its left strip; stage is constrained to the video area's safe rect).
 
-**Canonical identity (`card_identities` table)** — one row per unique
-card/variant across ALL categories:
+## 2. Private mod chat channel
 
-| Field            | Notes                                                   |
-|------------------|----------------------------------------------------------|
-| `id`             | uuid                                                     |
-| `category`       | pokemon / mtg / yugioh / onepiece / lorcana / sports / … |
-| `name`           | normalized                                               |
-| `set_name`       | e.g. "Topps Chrome 2018" / "Base Set"                    |
-| `set_code`       | provider-agnostic                                        |
-| `number`         | collector number / card number                           |
-| `year`           | int (sports especially)                                  |
-| `manufacturer`   | Topps / Panini / WotC / Konami / Bandai                  |
-| `variant`        | holo / reverse / 1st ed / refractor / prizm / parallel   |
-| `is_rookie`      | bool (sports)                                            |
-| `player`         | sports only                                              |
-| `team`           | sports only                                              |
-| `grade`          | Raw / PSA 10 / BGS 9.5 / SGC 10 / …                      |
-| `grading_company`| PSA / BGS / SGC / CGC                                    |
-| `image_url`      | best official image                                      |
-| `image_source`   | scryfall / pokemontcg / pricecharting / user_upload      |
-| `external_ids`   | jsonb: `{ scryfall, tcgplayer, pricecharting, ebay_epid }` |
-| `fingerprint`    | deterministic hash of identity fields (dedup key)        |
+Goal: host can post to `public`, `mods_only`, or `host_mods` (private).
 
-**Provider adapters** stay where they are (`_shared/cards/providers.ts`,
-`_shared/cards/sources/*`). Each adapter, on every successful lookup:
-1. Maps result → `card_identities` (insert-or-fetch by `fingerprint`)
-2. Writes its price into `price_observations` (history, not overwrite)
-3. Records its image into `card_images` (multi-source)
+Changes:
+- Add column `audience text not null default 'public'` to `chat_messages` with check in `('public','mods_only','host_mods')`.
+- RLS update: rows with non-`public` audience are only visible to the stream host or users with `moderator`/`mod` role for that stream (use existing roles table; if there's no per-stream mod role yet, gate on global `admin`/`moderator` from `user_roles`).
+- Chat composer (host UI): segmented control "Public · Mods · Host+Mods". Viewers always send `public`.
+- Chat renderer: mod-only messages render with a small badge + tinted bubble so mods can distinguish them. Filtered server-side via RLS so viewers literally don't receive them.
 
-## Phase 2 — Internal Observation Tables (NOW)
+## 3. Flex Live parity
 
-Start logging EVERY pricing signal we touch so the dataset compounds.
+- Reuse the same `CoHostStage` + `live_stage_layouts` plumbing on the Flex Live route. Today Flex Live uses `FlexLiveControls` at the bottom but the camera area is a single feed — wire in the stage container so hosts can drag/resize/zoom co-host tiles identically.
+- No behavioral change to filters / reactions / weekly vibe.
 
-- `price_observations` — `(identity_id, source, price_cents, currency, observed_at, sample_size, notes)`
-- `sold_comps` — actual sales we observe (eBay sold scrape, PullBid marketplace sales, PullBid live-auction hammer prices, accepted offers)
-- `card_images` — `(identity_id, url, source, quality_score, uploaded_by)`
-- `vault_valuations` — snapshot of vault values over time, by user + total
-- `offer_history` — every offer made/accepted/rejected, joined to identity
-- `live_sale_events` — hammer price, viewer count, time of day, host, hype score
-- `scan_events` — every scan we run (match score, confirmed_by, time, OCR quality)
+## Technical notes
 
-All keyed off `card_identities.id`. RLS: user-scoped reads where appropriate,
-admin-only on aggregate tables.
+- Coords stored as 0..1 percentages of stage width/height (not raw px) so mobile viewers see the same relative layout the host arranged.
+- Debounce writes during drag (commit on pointerup + every ~150ms while dragging) to keep realtime payload light.
+- Realtime channel: one channel per `stream_id` shared with existing presence to avoid extra socket cost.
+- No business-logic changes to bidding, auctions, or cloudflare calls.
 
-## Phase 3 — PullBid Internal Pricing API (LATER)
+## What I'll ship in order
 
-Once Phase 2 has 60-90 days of data, layer our own intelligence ON TOP of
-external sources:
+1. Migration: `live_stage_layouts` + `chat_messages.audience` + RLS + realtime publication.
+2. `CoHostStage` rewrite with the three modes + percent coords + object-fit/zoom.
+3. `live.$id.tsx` wiring (host / co-host / viewer branches) + ensure chat column isn't overlapped.
+4. Chat composer + renderer audience support.
+5. Flex Live: drop the stage container in.
 
-- `pullbid_market_price(identity_id, grade)` — weighted blend of:
-  - PullBid sold comps (highest weight: actual platform sales)
-  - PullBid accepted offers
-  - External sold comps (eBay)
-  - External provider listings (TCGplayer, PriceCharting, Scryfall)
-- Confidence per category:
-  - Sports: needs ≥5 sold comps in 90d to be "verified"
-  - TCG: external providers usually sufficient
-- Trending detection: hype score from live-sale spikes
-- Player/set valuation models (sports): roll-up of all cards for a player
-- Adversarial check: PullBid prices that deviate >30% from external get flagged
-
-Expose as internal serverFn `getPullBidPrice({identityId, grade})` consumed
-by scanner, vault, marketplace, offers.
-
----
-
-## Architecture Principles
-
-1. **Modular per-category adapters.** Adding "Star Wars Unlimited" or
-   "Riftbound" = one adapter file + one entry in `GAMES` registry. Sports is
-   already first-class (not a TCG subtype).
-2. **Hybrid forever.** Internal data ENHANCES external; never the sole source
-   until coverage + confidence are proven per-category.
-3. **Provider-agnostic identity.** `card_identities.fingerprint` is the join
-   key — providers come and go, identity persists.
-4. **Audit trail.** Every observation timestamped + source-tagged so we can
-   rebuild aggregates if a provider's data is later proven bad.
-5. **Tiered pricing stays.** Verified / Estimated / Unavailable rules apply
-   to PullBid internal price the same way as external.
-
----
-
-## Files & ownership
-
-- `supabase/functions/_shared/cards/identity.ts` (new) — fingerprint + upsert
-- `supabase/functions/_shared/cards/observations.ts` (new) — log helpers
-- `supabase/functions/_shared/cards/providers.ts` — existing; each provider
-  calls `recordObservation()` after a successful quote
-- `supabase/functions/card-price/index.ts` — after aggregation, write to
-  `price_observations` and update `card_identities`
-- `src/routes/vault.tsx` — on save, link to `card_identities.id` (already
-  partially in place via `card_identity_id` column)
-
-## Out of scope for this phase
-
-- Replacing any external provider
-- Building the internal pricing API itself (Phase 3)
-- ML/model training (after Phase 2 has data)
-
----
-
-## Status
-
-- [x] Tiered pricing system (Verified / Estimated / Unavailable)
-- [x] Game-routing aggregator with weighted median + outlier drop
-- [x] Vault audit columns (`card_identity_id`, `image_source`, `match_score`, `confirmed_by`, `price_tier`)
-- [] **Phase 1 schema: `card_identities` table + fingerprint helpers** ← starting now
-- [ ] **Phase 2 schema: observation tables** ← starting now
-- [ ] Wire providers to write observations on every quote
-- [ ] Wire marketplace sales / live hammer / offers to `sold_comps`
-- [ ] Backfill from existing `tcg_prices` cache
-- [ ] (Future) Phase 3 internal pricing serverFn
+After approval I'll start with the migration.
