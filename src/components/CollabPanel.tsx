@@ -94,6 +94,34 @@ export function CollabPanel({
     setQ(""); setResults([]);
   }
 
+  async function cancelInvite(inv: Invite) {
+    const { error } = await supabase
+      .from("stream_collab_invites")
+      .delete()
+      .eq("id", inv.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Invite to @${inv.invitee_username} cancelled`);
+  }
+
+  async function reinvite(inv: Invite) {
+    // Clear old row first so the unique constraint doesn't block re-sending.
+    await supabase.from("stream_collab_invites").delete().eq("id", inv.id);
+    const { error } = await supabase.from("stream_collab_invites").insert({
+      stream_id: streamId, host_id: hostId, host_username: hostUsername,
+      invitee_id: inv.invitee_id, invitee_username: inv.invitee_username,
+    });
+    if (error) {
+      if (/verified/i.test(error.message)) return toast.error("Only age-verified (18+) users can collab");
+      return toast.error(error.message);
+    }
+    await supabase.from("notifications").insert({
+      user_id: inv.invitee_id, type: "collab_invite",
+      body: `🤝 @${hostUsername} invited you to collab on their live`,
+      link: `/live/${streamId}`,
+    });
+    toast.success(`Re-invited @${inv.invitee_username}`);
+  }
+
   async function respondJoin(r: JoinReq, status: "accepted" | "declined") {
     const { error } = await supabase.from("stream_collab_join_requests")
       .update({ status }).eq("id", r.id);
