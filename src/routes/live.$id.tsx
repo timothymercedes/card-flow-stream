@@ -1422,6 +1422,7 @@ function LiveDetail() {
       try {
         const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera", {
           ownsStream: false,
+          stableKey: `cohost:${r.userId}`,
         });
         map.set(r.userId, sid);
       } catch (e) {
