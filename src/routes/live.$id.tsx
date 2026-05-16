@@ -4104,10 +4104,16 @@ function LiveDetail() {
                           }}
                           className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none"
                         >
-                          <option value="stamp" disabled={forceBubble}>📮 Stamp</option>
-                          <option value="pwe" disabled={forceBubble}>✉️ PWE</option>
-                          <option value="bubble">📦 Bubble</option>
-                          <option value="small_box">📫 Box</option>
+                          {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map((k) => {
+                            const icon = k === "stamp" ? "📮" : k === "pwe" ? "✉️" : k === "bubble" ? "📦" : "📫";
+                            const short = k === "stamp" ? "Stamp" : k === "pwe" ? "PWE" : k === "bubble" ? "Bubble" : "Box";
+                            const price = presetEstimatedPriceUsd(k, { subtotal: startVal, quantity: Number(editQuantity) || 1 });
+                            return (
+                              <option key={k} value={k} disabled={(k === "stamp" || k === "pwe") && forceBubble}>
+                                {`${icon} ${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
+                              </option>
+                            );
+                          })}
                         </select>
                         <span className="text-[10px] font-bold text-muted-foreground ml-1">Slow chat</span>
                         <select
