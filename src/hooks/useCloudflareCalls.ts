@@ -90,6 +90,7 @@ export function useCloudflareCalls(opts: {
   const [ready, setReady] = useState(false);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
   const [sessionGen, setSessionGen] = useState(0);
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -97,6 +98,23 @@ export function useCloudflareCalls(opts: {
   const pulledRef = useRef<Set<string>>(new Set()); // remote sessionIds already pulled
   const remoteStreamsByUserRef = useRef<Map<string, MediaStream>>(new Map());
   const negotiationRef = useRef<Promise<void>>(Promise.resolve());
+
+  const refreshCameraDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices?.enumerateDevices?.();
+      const cams = (devices || []).filter((d) => d.kind === "videoinput");
+      setCameraDevices(cams);
+      return cams;
+    } catch {
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCameraDevices();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshCameraDevices);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshCameraDevices);
+  }, [refreshCameraDevices]);
 
   const refreshEmptySession = useCallback(async (pc: RTCPeerConnection) => {
     if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription)
