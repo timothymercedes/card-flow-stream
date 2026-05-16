@@ -91,6 +91,8 @@ export function useCloudflareCalls(opts: {
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
   const [sessionGen, setSessionGen] = useState(0);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [cameraZoomRange, setCameraZoomRange] = useState<{ min: number; max: number; step: number } | null>(null);
+  const [cameraZoom, setCameraZoomState] = useState(1);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -107,6 +109,23 @@ export function useCloudflareCalls(opts: {
       return cams;
     } catch {
       return [];
+    }
+  }, []);
+
+  const syncCameraCapabilities = useCallback((stream: MediaStream | null) => {
+    const track = stream?.getVideoTracks()[0];
+    const capabilities = track?.getCapabilities?.() as any;
+    const settings = track?.getSettings?.() as any;
+    if (capabilities?.zoom && typeof capabilities.zoom.min === "number") {
+      setCameraZoomRange({
+        min: Number(capabilities.zoom.min),
+        max: Number(capabilities.zoom.max),
+        step: Number(capabilities.zoom.step) || 0.1,
+      });
+      setCameraZoomState(Number(settings?.zoom) || Number(capabilities.zoom.min) || 1);
+    } else {
+      setCameraZoomRange(null);
+      setCameraZoomState(1);
     }
   }, []);
 
@@ -190,6 +209,7 @@ export function useCloudflareCalls(opts: {
             return;
           }
           setLocalStream(local);
+          syncCameraCapabilities(local);
         }
 
         const pc = new RTCPeerConnection({
@@ -297,6 +317,7 @@ export function useCloudflareCalls(opts: {
         if (s && s !== preStream) s.getTracks().forEach((t) => t.stop());
         return null;
       });
+      syncCameraCapabilities(null);
       if (streamId && userId && !viewerMode) {
         supabase
           .from("stream_cohost_tracks")
@@ -322,6 +343,7 @@ export function useCloudflareCalls(opts: {
     preStream,
     waitForConnState,
     refreshEmptySession,
+    syncCameraCapabilities,
     sessionGen,
   ]);
 
@@ -589,7 +611,9 @@ export function useCloudflareCalls(opts: {
         track.stop();
       });
       localStream.addTrack(nextTrack);
-      setLocalStream(new MediaStream(localStream.getTracks()));
+      const refreshedLocal = new MediaStream(localStream.getTracks());
+      setLocalStream(refreshedLocal);
+      syncCameraCapabilities(refreshedLocal);
       await supabase
         .from("stream_cohost_tracks")
         .update({ is_video_enabled: true })
@@ -601,7 +625,21 @@ export function useCloudflareCalls(opts: {
       setError(e instanceof Error ? e.message : String(e));
       return false;
     }
-  }, [localStream, streamId, userId, refreshCameraDevices]);
+  }, [localStream, streamId, userId, refreshCameraDevices, syncCameraCapabilities]);
+
+  const setCameraZoom = useCallback(async (zoom: number) => {
+    const track = localStream?.getVideoTracks()[0];
+    if (!track || !cameraZoomRange) return false;
+    const next = Math.max(cameraZoomRange.min, Math.min(cameraZoomRange.max, zoom));
+    try {
+      await track.applyConstraints({ advanced: [{ zoom: next }] } as any);
+      setCameraZoomState(next);
+      return true;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+      return false;
+    }
+  }, [localStream, cameraZoomRange]);
 
   return {
     localStream,
@@ -610,8 +648,11 @@ export function useCloudflareCalls(opts: {
     error,
     connectionState,
     cameraDevices,
+    cameraZoom,
+    cameraZoomRange,
     refreshCameraDevices,
     switchCamera,
+    setCameraZoom,
     toggleAudio,
     toggleVideo,
   };

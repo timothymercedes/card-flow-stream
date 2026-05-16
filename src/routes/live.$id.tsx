@@ -1487,7 +1487,7 @@ function LiveDetail() {
       !!stream &&
       stream.status !== "ended" &&
       !isSeller &&
-      !isCohostParticipant,
+      (!isCohostParticipant || !callJoined),
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
@@ -1498,6 +1498,13 @@ function LiveDetail() {
     () => viewerCall.remotes.find((r) => r.userId === stream?.seller_id),
     [viewerCall.remotes, stream?.seller_id],
   );
+  const hostRealtimeStagePreview = isCohostParticipant
+    ? cohostHostPreview ?? viewerHostPreview
+    : viewerHostPreview;
+  const shouldUseRealtimeStagePreview =
+    !isSeller &&
+    usingCompositor &&
+    !!hostRealtimeStagePreview;
 
   // Host-side receive-only subscription so the host can SEE and HEAR cohosts
   // even when the multi-cam compositor owns local camera capture (which
@@ -3351,28 +3358,14 @@ function LiveDetail() {
             muted
             className={`h-full w-full ${cameraFit === "fit" ? "object-contain" : "object-cover"}`}
           />
-        ) : isCohostParticipant && usingCompositor && stream.cf_playback_hls ? (
-          // Co-hosts watch the host's composited HLS layout so they see the same
-          // positioned cameras as viewers, with their own local controls overlaid.
-          <HlsPlayer
-            src={stream.cf_playback_hls}
-            className="h-full w-full"
-            style={obsVideoStyle}
-            onVideoMetrics={setObsMetrics}
-            autoPlay
-            muted={!audioUnmuted}
-          />
-        ) : isCohostParticipant && cohostHostPreview ? (
+        ) : shouldUseRealtimeStagePreview && hostRealtimeStagePreview ? (
+          // Real-time host stage preview: this is the host's composited canvas
+          // published through Calls, so viewers/co-hosts see the same production
+          // layout immediately and never wait on a black/late HLS segment.
           <RemoteStreamVideo
-            stream={cohostHostPreview.stream}
+            stream={hostRealtimeStagePreview.stream}
             muted={!audioUnmuted}
-            className="h-full w-full object-contain bg-black"
-          />
-        ) : !isCohostParticipant && viewerHostPreview && hlsLooksBlank ? (
-          <RemoteStreamVideo
-            stream={viewerHostPreview.stream}
-            muted={!audioUnmuted}
-            className="h-full w-full object-contain bg-black"
+            className="h-full w-full bg-black object-contain"
           />
         ) : stream.cf_playback_hls ? (
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
@@ -3710,7 +3703,24 @@ function LiveDetail() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Drag/resize your local tile on screen for your view only. Host layout stays public.</p>
+          {cfCall.cameraZoomRange && (
+            <div className="mt-2 rounded-xl bg-muted/35 p-2">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-bold">
+                <span>Zoom / framing</span>
+                <span>{cfCall.cameraZoom.toFixed(1)}×</span>
+              </div>
+              <input
+                type="range"
+                min={cfCall.cameraZoomRange.min}
+                max={cfCall.cameraZoomRange.max}
+                step={cfCall.cameraZoomRange.step}
+                value={cfCall.cameraZoom}
+                onChange={(e) => cfCall.setCameraZoom(Number(e.currentTarget.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+          )}
+          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Your camera tile is local-only. Viewers always see the host stage output.</p>
           {cfCall.error && <p className="mt-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">{cfCall.error}</p>}
         </div>
       )}
