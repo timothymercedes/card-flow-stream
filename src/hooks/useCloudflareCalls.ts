@@ -185,7 +185,7 @@ export function useCloudflareCalls(opts: {
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, waitForConnState]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
@@ -293,7 +293,7 @@ export function useCloudflareCalls(opts: {
       .subscribe();
 
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [enabled, streamId, userId, ready]);
+  }, [enabled, streamId, userId, ready, viewerMode]);
 
   // ─── Toggle local mic/cam ──────────────────────────────────────────────
   const toggleAudio = useCallback(async () => {
