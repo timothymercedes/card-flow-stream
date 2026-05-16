@@ -3192,6 +3192,15 @@ function LiveDetail() {
         )}
       </div>
 
+      {/* Fit / Fill camera toggle */}
+      <button
+        onClick={() => setCameraFit((f) => (f === "fit" ? "fill" : "fit"))}
+        className="absolute bottom-24 left-2 z-40 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/80"
+        title={cameraFit === "fit" ? "Switch to fill (crop to fit screen)" : "Switch to fit (show full frame)"}
+      >
+        {cameraFit === "fit" ? "Fit" : "Fill"}
+      </button>
+
       {/* Pinned card overlay (host scan → broadcast) */}
       {/* Pinned-card overlay removed — the AI Spotlight is the single source of truth for the scanned card. */}
 
