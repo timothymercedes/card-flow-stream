@@ -265,6 +265,49 @@ Deno.serve(async (req) => {
     const officialImage = card?.image_large || card?.image_small || null;
     const imageSource: string | null = card?.source ?? null;
 
+    // ---- Tiered pricing ----------------------------------------------------
+    // verified   : exact match + real market data + at least one trusted source
+    // estimated  : we have *some* signal (stale cache, single source, or only
+    //              similar-card comps) but not enough to call it exact
+    // unavailable: no reliable data anywhere → never fabricate a number
+    const market = aggregated.market;
+    const candidateMarkets: number[] = topCandidates
+      .map((c) => quoteFromCardForSource(c)?.market)
+      .filter((n): n is number => typeof n === "number" && n > 0);
+
+    let pricingTier: "verified" | "estimated" | "unavailable" = "unavailable";
+    let priceRange: { low: number; high: number } | null = null;
+    let tierReason = "";
+
+    const trustedSources = quotes.filter((qq) =>
+      ["tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
+    ).length;
+
+    if (market && market > 0 && bestScore >= 80 && trustedSources >= 1 && !(staleCachePayload && (aggregated.market == null))) {
+      pricingTier = "verified";
+      tierReason = `Verified by ${aggregated.primary_source} (match ${bestScore}/100, ${quotes.length} source${quotes.length === 1 ? "" : "s"}).`;
+    } else if (market && market > 0) {
+      pricingTier = "estimated";
+      const lo = aggregated.low ?? Math.max(0.5, Math.round(market * 0.7 * 100) / 100);
+      const hi = aggregated.high ?? Math.round(market * 1.4 * 100) / 100;
+      priceRange = { low: lo, high: hi };
+      tierReason = bestScore < 80
+        ? `Estimated — identity match is only ${bestScore}/100. Confirm the card to lock in a verified price.`
+        : `Estimated — only one source returned a price.`;
+    } else if (candidateMarkets.length >= 1) {
+      pricingTier = "estimated";
+      const lo = Math.min(...candidateMarkets);
+      const hi = Math.max(...candidateMarkets);
+      priceRange = {
+        low: Math.round(lo * 100) / 100,
+        high: Math.round(Math.max(hi, lo * 1.1) * 100) / 100,
+      };
+      tierReason = `Estimated from ${candidateMarkets.length} similar card${candidateMarkets.length === 1 ? "" : "s"} — no exact match yet.`;
+    } else {
+      pricingTier = "unavailable";
+      tierReason = "No reliable market data. Set price manually or check recent sold listings.";
+    }
+
     let payload: any = {
       game: game.id,
       card: card ? {
@@ -285,6 +328,7 @@ Deno.serve(async (req) => {
         image_url: c.image_large || c.image_small || null,
         image_source: c.source,
         match_score: scoreCard(c, { name, number, set, variant, year }),
+        market: quoteFromCardForSource(c)?.market ?? null,
       })),
       official_image_url: officialImage,
       image_source: imageSource,
@@ -295,6 +339,9 @@ Deno.serve(async (req) => {
         high: aggregated.high,
         currency: aggregated.currency,
       },
+      pricing_tier: pricingTier,
+      price_range: priceRange,
+      tier_reason: tierReason,
       confidence,
       sources: aggregated.sources,
       sources_tried: sourcesTried,
@@ -308,9 +355,21 @@ Deno.serve(async (req) => {
 
     // Cached-pricing protection: if no live provider returned a price, fall
     // back to the most recent stale cache so the UI shows the last known
-    // value with a stale flag instead of $0.
+    // value with a stale flag instead of $0. Stale fallback never qualifies
+    // as `verified` — downgrade to `estimated`.
     if ((aggregated.market == null) && staleCachePayload?.price?.market) {
-      payload = { ...staleCachePayload, ...payload, price: staleCachePayload.price, stale: true, confidence: Math.min(confidence, 0.5) };
+      const stalePrice = staleCachePayload.price;
+      const lo = stalePrice.low ?? Math.round(stalePrice.market * 0.7 * 100) / 100;
+      const hi = stalePrice.high ?? Math.round(stalePrice.market * 1.4 * 100) / 100;
+      payload = {
+        ...staleCachePayload, ...payload,
+        price: stalePrice,
+        pricing_tier: "estimated",
+        price_range: { low: lo, high: hi },
+        tier_reason: "Estimated — using last known cached price. Live sources unavailable right now.",
+        stale: true,
+        confidence: Math.min(confidence, 0.5),
+      };
     }
 
     // 4) Cache and history (fire-and-forget)
