@@ -68,6 +68,10 @@ export type ScanResult = {
   image_source?: string;
   match_score?: number;
   confirmed_by?: "auto" | "manual";
+  pricing_tier?: "verified" | "estimated" | "unavailable";
+  price_range_low?: number;
+  price_range_high?: number;
+  tier_reason?: string;
   scan_debug?: {
     ocr_raw?: any;
     price_debug?: any;
