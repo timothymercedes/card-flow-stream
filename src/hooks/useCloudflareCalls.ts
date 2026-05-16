@@ -690,6 +690,7 @@ export function useCloudflareCalls(opts: {
     cameraZoomRange,
     refreshCameraDevices,
     switchCamera,
+    flipCamera,
     setCameraZoom,
     toggleAudio,
     toggleVideo,
