@@ -1060,6 +1060,7 @@ function LiveDetail() {
           : 1;
   const obsPositionX = obsMetrics?.activeCenterX ?? 50;
   const obsPositionY = obsMetrics?.activeCenterY ?? 50;
+  const hlsLooksBlank = !!obsMetrics?.canAnalyzeFrame && (obsMetrics.activeAreaRatio ?? 0) < 0.03;
   const obsVideoStyle = {
     objectFit: (cameraFit === "fit" ? "contain" : "cover") as "contain" | "cover",
     objectPosition: `${obsPositionX}% ${obsPositionY}%`,
@@ -3361,6 +3362,12 @@ function LiveDetail() {
         ) : isCohostParticipant && cohostHostPreview ? (
           <RemoteStreamVideo
             stream={cohostHostPreview.stream}
+            muted={!audioUnmuted}
+            className="h-full w-full object-contain bg-black"
+          />
+        ) : !isCohostParticipant && viewerHostPreview && hlsLooksBlank ? (
+          <RemoteStreamVideo
+            stream={viewerHostPreview.stream}
             muted={!audioUnmuted}
             className="h-full w-full object-contain bg-black"
           />
