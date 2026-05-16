@@ -256,6 +256,13 @@ function LiveDetail() {
     "auto",
   );
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
+  const [cameraFit, setCameraFit] = useState<"fit" | "fill">(() => {
+    if (typeof window === "undefined") return "fit";
+    return (localStorage.getItem("live-camera-fit") as "fit" | "fill") || "fit";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("live-camera-fit", cameraFit); } catch {}
+  }, [cameraFit]);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
   const [hostCameraPanelCollapsed, setHostCameraPanelCollapsed] = useState(false);
@@ -972,9 +979,9 @@ function LiveDetail() {
   const obsPositionX = obsMetrics?.activeCenterX ?? 50;
   const obsPositionY = obsMetrics?.activeCenterY ?? 50;
   const obsVideoStyle = {
-    objectFit: "cover" as const,
+    objectFit: (cameraFit === "fit" ? "contain" : "cover") as "contain" | "cover",
     objectPosition: `${obsPositionX}% ${obsPositionY}%`,
-    transform: `scale(${obsScale})`,
+    transform: `scale(${cameraFit === "fit" ? 1 : obsScale})`,
     transformOrigin: `${obsPositionX}% ${obsPositionY}%`,
     transition: "transform 220ms ease, object-position 220ms ease",
   };
@@ -3162,7 +3169,12 @@ function LiveDetail() {
       >
         {isSeller && !usingObs ? (
           // Host's own preview (WebRTC / compositor canvas) — keep raw video
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className={`h-full w-full ${cameraFit === "fit" ? "object-contain" : "object-cover"}`}
+          />
         ) : stream.cf_playback_hls ? (
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser
           <HlsPlayer
@@ -3179,6 +3191,15 @@ function LiveDetail() {
           </div>
         )}
       </div>
+
+      {/* Fit / Fill camera toggle */}
+      <button
+        onClick={() => setCameraFit((f) => (f === "fit" ? "fill" : "fit"))}
+        className="absolute bottom-24 left-2 z-40 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/80"
+        title={cameraFit === "fit" ? "Switch to fill (crop to fit screen)" : "Switch to fit (show full frame)"}
+      >
+        {cameraFit === "fit" ? "Fit" : "Fill"}
+      </button>
 
       {/* Pinned card overlay (host scan → broadcast) */}
       {/* Pinned-card overlay removed — the AI Spotlight is the single source of truth for the scanned card. */}

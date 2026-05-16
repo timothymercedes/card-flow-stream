@@ -179,7 +179,7 @@ function FloatingTile({
         autoPlay
         playsInline
         muted={muted}
-        className={`h-full w-full object-cover ${videoOn ? "" : "hidden"}`}
+        className={`h-full w-full bg-black object-contain ${videoOn ? "" : "hidden"}`}
       />
       {!videoOn && (
         <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
