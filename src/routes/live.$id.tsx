@@ -1312,8 +1312,8 @@ function LiveDetail() {
   const callShouldRun =
     !!stream &&
     stream.status !== "ended" &&
-    ((isSeller && !usingObs) || isCohostParticipant) &&
-    callJoined;
+    ((isSeller && !usingObs && (!usingCompositor || !!hostCallsPreviewStream) && (callJoined || usingCompositor)) ||
+      (isCohostParticipant && callJoined));
 
   // Pre-acquired media stream from the user-gesture "Join" click. Required so
   // mobile Safari/Chrome don't block getUserMedia inside the hook's useEffect.
@@ -1423,9 +1423,10 @@ function LiveDetail() {
         map.delete(uid);
       }
     }
-  }, [isSeller, usingCompositor, hostViewerCall.remotes, hostStudio]);
+  }, [isSeller, usingCompositor, hostViewerCall.remotes, hostStudio.addExternalStream, hostStudio.removeSource]);
 
   useEffect(() => {
+    if (usingCompositor) return;
     return () => {
       const map = cohostStudioIdsRef.current;
       for (const sid of map.values()) {
@@ -1433,7 +1434,7 @@ function LiveDetail() {
       }
       map.clear();
     };
-  }, [usingCompositor, hostStudio]);
+  }, [usingCompositor, hostStudio.removeSource]);
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
