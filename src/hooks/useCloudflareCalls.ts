@@ -67,15 +67,15 @@ export function useCloudflareCalls(opts: {
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(async (pc: RTCPeerConnection, target: RTCPeerConnectionState) => {
-    if (pc.connectionState === target) return;
-    await new Promise<void>((resolve) => {
+    if (pc.connectionState === target) return true;
+    return new Promise<boolean>((resolve) => {
       const handler = () => {
         if (pc.connectionState === target || pc.connectionState === "failed") {
-          pc.removeEventListener("connectionstatechange", handler); resolve();
+          pc.removeEventListener("connectionstatechange", handler); resolve(pc.connectionState === target);
         }
       };
       pc.addEventListener("connectionstatechange", handler);
-      setTimeout(() => { pc.removeEventListener("connectionstatechange", handler); resolve(); }, 5000);
+      setTimeout(() => { pc.removeEventListener("connectionstatechange", handler); resolve(pc.connectionState === target); }, 10_000);
     });
   }, []);
 
@@ -151,7 +151,8 @@ export function useCloudflareCalls(opts: {
             method: "POST", body: JSON.stringify(pubBody),
           });
           await pc.setRemoteDescription(pubResp.sessionDescription);
-          await waitForConnState(pc, "connected");
+          const connected = await waitForConnState(pc, "connected");
+          if (!connected) throw new Error("Live video connection did not finish connecting. Please try again.");
 
           const audioName = audioTracks.length > 0 ? `${userId}-audio` : null;
           const videoName = videoTracks.length > 0 ? `${userId}-video` : null;
