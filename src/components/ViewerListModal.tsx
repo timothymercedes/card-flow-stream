@@ -61,11 +61,11 @@ export function ViewerListModal({
 
       const ids = rows.map((r) => r.user_id).filter((id) => !(id in verifiedMap));
       if (ids.length) {
-        const { data: profs } = await supabase.from("profiles").select("id, live_verified").in("id", ids);
+        const { data: profs } = await supabase.from("profiles").select("id, age_verified").in("id", ids);
         if (cancelled || !profs) return;
         setVerifiedMap((m) => {
           const next = { ...m };
-          (profs as Enrich[]).forEach((p) => { next[p.id] = !!p.live_verified; });
+          (profs as Enrich[]).forEach((p) => { next[p.id] = !!p.age_verified; });
           return next;
         });
       }
@@ -89,14 +89,14 @@ export function ViewerListModal({
   async function inviteToCollab(v: PresenceUser) {
     if (!isHost || !currentUserId) return;
     if (v.user_id === hostId) return toast.error("That's you");
-    if (!verifiedMap[v.user_id]) return toast.error(`@${v.username} isn't verified`);
+    if (!verifiedMap[v.user_id]) return toast.error(`@${v.username} isn't age-verified (18+)`);
     const { error } = await supabase.from("stream_collab_invites").insert({
       stream_id: streamId, host_id: hostId, host_username: hostUsername,
       invitee_id: v.user_id, invitee_username: v.username,
     });
     if (error) {
       if (/duplicate|unique/i.test(error.message)) return toast.error(`Already invited @${v.username}`);
-      if (/verified/i.test(error.message)) return toast.error("Only verified users can collab");
+      if (/verified/i.test(error.message)) return toast.error("Only age-verified (18+) users can collab");
       return toast.error(error.message);
     }
     await supabase.from("notifications").insert({
@@ -163,7 +163,7 @@ export function ViewerListModal({
                       onClick={() => inviteToCollab(v)}
                       disabled={!verified}
                       className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground disabled:opacity-50"
-                      title={verified ? "Invite to collab" : "Not verified"}
+                      title={verified ? "Invite to collab" : "Not age-verified (18+)"}
                     >
                       <UserPlus className="h-3 w-3" /> Collab
                     </button>
