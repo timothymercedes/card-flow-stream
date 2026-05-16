@@ -3625,6 +3625,8 @@ function LiveDetail() {
           not re-render them as a floating overlay on top. */}
       {!isSeller && !isCohostParticipant && !usingCompositor && viewerCall.remotes.length > 0 && (
         <CoHostStage
+          streamId={id}
+          mode="viewer"
           localStream={null}
           localUsername=""
           remotes={viewerCall.remotes}
