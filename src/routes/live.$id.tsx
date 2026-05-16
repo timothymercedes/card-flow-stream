@@ -48,6 +48,11 @@ import {
   Layout,
   Move,
   PanelRightClose,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  SwitchCamera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
@@ -3338,6 +3343,19 @@ function LiveDetail() {
   const hostStudioCameras = hostStudio.sources.filter((s) => s.kind === "camera");
   const hostStudioCameraAccessNeeded =
     hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
+  // Host mic = all camera-source audio tracks combined. "Muted" when every
+  // camera source is muted (or there are none with audio).
+  const hostMicMuted =
+    hostStudioCameras.length === 0
+      ? false
+      : hostStudioCameras.every((s) => s.muted);
+  const toggleHostMic = useCallback(() => {
+    const nextMuted = !hostMicMuted;
+    for (const s of hostStudioCameras) {
+      if (!!s.muted !== nextMuted) hostStudio.toggleMute(s.id);
+    }
+    toast.message(nextMuted ? "Host mic muted" : "Host mic on");
+  }, [hostMicMuted, hostStudioCameras, hostStudio]);
   const hostStudioScenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
     { id: "solo", label: "Solo", Icon: Square },
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
@@ -3721,6 +3739,60 @@ function LiveDetail() {
         />
       )}
 
+      {/* Cohost "incoming-call → ready to go live" prompt. Shown when the
+          invitee accepted while watching this live (they don't have to leave
+          the page to flip their cockpit). Must be a real button so the
+          getUserMedia call stays inside the user gesture. */}
+      {isCohostParticipant && !callJoined && !ended && (
+        <div className="absolute inset-x-3 top-16 z-50 mx-auto max-w-sm rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-3 text-white shadow-2xl ring-2 ring-white/30 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 ring-2 ring-white/30">
+              <Camera className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/85">
+                You're on as co-host
+              </p>
+              <p className="text-xs font-extrabold">Tap to turn on your camera & mic</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!cohostPreStream) {
+                  try {
+                    const s = await navigator.mediaDevices.getUserMedia({
+                      audio: true,
+                      video: { width: 640, height: 480 },
+                    });
+                    setCohostPreStream(s);
+                  } catch (e: any) {
+                    const name = e?.name || "";
+                    if (name === "NotAllowedError" || name === "SecurityError") {
+                      toast.error(
+                        "Camera/mic permission denied. Allow access in your browser settings and try again.",
+                      );
+                    } else if (name === "NotFoundError") {
+                      toast.error("No camera or microphone found on this device.");
+                    } else if (name === "NotReadableError") {
+                      toast.error("Camera/mic is in use by another app. Close it and try again.");
+                    } else {
+                      toast.error(
+                        `Could not access camera/mic: ${e?.message || name || "unknown error"}`,
+                      );
+                    }
+                    return;
+                  }
+                }
+                setCallJoined(true);
+                setShowCohostCameraPanel(true);
+              }}
+              className="flex items-center gap-1 rounded-full bg-white px-3 py-2 text-xs font-extrabold text-emerald-700 shadow-lg hover:bg-white/90"
+            >
+              <Video className="h-3.5 w-3.5" /> Go live
+            </button>
+          </div>
+        </div>
+      )}
+
       {isCohostParticipant && callJoined && showCohostCameraPanel && !ended && (
         <div className="absolute inset-x-3 top-16 z-50 max-h-[38vh] overflow-y-auto rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl ring-1 ring-border/70 backdrop-blur sm:left-auto sm:w-80">
           <div className="mb-2 flex items-center justify-between gap-2">
@@ -3733,6 +3805,46 @@ function LiveDetail() {
               title="Close camera panel"
             >
               <X className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Quick controls — match the host cockpit: mic mute / cam toggle /
+              flip front-back camera. These act on the co-host's published tracks only. */}
+          <div className="mb-2 grid grid-cols-3 gap-1.5">
+            <button
+              onClick={() => {
+                cfCall.toggleAudio();
+                setAudioOn((v) => !v);
+                toast.message(audioOn ? "Mic muted" : "Mic on");
+              }}
+              className={`flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] font-extrabold ${audioOn ? "bg-muted" : "bg-destructive text-destructive-foreground"}`}
+              title={audioOn ? "Mute mic" : "Unmute mic"}
+            >
+              {audioOn ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+              {audioOn ? "Mute" : "Unmute"}
+            </button>
+            <button
+              onClick={() => {
+                cfCall.toggleVideo();
+                setVideoOn((v) => !v);
+              }}
+              className={`flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] font-extrabold ${videoOn ? "bg-muted" : "bg-destructive text-destructive-foreground"}`}
+              title={videoOn ? "Camera off" : "Camera on"}
+            >
+              {videoOn ? <Video className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />}
+              {videoOn ? "Cam off" : "Cam on"}
+            </button>
+            <button
+              onClick={() =>
+                cfCall
+                  .flipCamera()
+                  .then((ok) =>
+                    ok ? toast.success("Camera flipped") : toast.error("Could not flip camera"),
+                  )
+              }
+              className="flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-2 text-[10px] font-extrabold text-primary-foreground"
+              title="Flip front/back camera"
+            >
+              <SwitchCamera className="h-3.5 w-3.5" /> Flip
             </button>
           </div>
           <div className="mb-2 grid grid-cols-3 gap-1.5">
@@ -3968,6 +4080,30 @@ function LiveDetail() {
               title="Collab"
             >
               <Users2 className="h-4 w-4" />
+            </button>
+          )}
+          {/* Mic toggle — host (compositor mode) mutes/unmutes all camera
+              source audio; co-host (already on call) toggles their published
+              mic. */}
+          {!ended && isSeller && usingCompositor && hostStudioCameras.length > 0 && (
+            <button
+              onClick={toggleHostMic}
+              className={`rounded-full p-2 backdrop-blur ${hostMicMuted ? "bg-destructive" : "bg-emerald-600/80"}`}
+              title={hostMicMuted ? "Unmute host mic" : "Mute host mic"}
+            >
+              {hostMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
+          {!ended && !isSeller && isCohostParticipant && callJoined && (
+            <button
+              onClick={() => {
+                cfCall.toggleAudio();
+                setAudioOn((v) => !v);
+              }}
+              className={`rounded-full p-2 backdrop-blur ${audioOn ? "bg-emerald-600/80" : "bg-destructive"}`}
+              title={audioOn ? "Mute mic" : "Unmute mic"}
+            >
+              {audioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
             </button>
           )}
           {!ended && (isSeller || isCohostParticipant) && (

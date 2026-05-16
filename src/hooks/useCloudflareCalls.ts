@@ -654,6 +654,14 @@ export function useCloudflareCalls(opts: {
     [localStream, streamId, userId, refreshCameraDevices, syncCameraCapabilities],
   );
 
+  const flipCamera = useCallback(async () => {
+    const track = localStream?.getVideoTracks()[0];
+    const settings: any = track?.getSettings?.() || {};
+    const current = settings.facingMode === "user" ? "user" : "environment";
+    const next = current === "user" ? "environment" : "user";
+    return switchCamera(undefined, next);
+  }, [localStream, switchCamera]);
+
   const setCameraZoom = useCallback(
     async (zoom: number) => {
       const track = localStream?.getVideoTracks()[0];
@@ -682,6 +690,7 @@ export function useCloudflareCalls(opts: {
     cameraZoomRange,
     refreshCameraDevices,
     switchCamera,
+    flipCamera,
     setCameraZoom,
     toggleAudio,
     toggleVideo,
