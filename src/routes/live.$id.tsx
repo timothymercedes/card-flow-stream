@@ -191,9 +191,10 @@ function LiveDetail() {
   const camStream = useRef<MediaStream | null>(null);
 
   const stopLegacyCameraPreview = useCallback(() => {
-    camStream.current?.getTracks().forEach((t) => t.stop());
+    const legacyStream = camStream.current;
+    legacyStream?.getTracks().forEach((t) => t.stop());
     camStream.current = null;
-    if (videoRef.current) {
+    if (videoRef.current && (!legacyStream || videoRef.current.srcObject === legacyStream)) {
       videoRef.current.pause();
       videoRef.current.srcObject = null;
       videoRef.current.removeAttribute("src");
