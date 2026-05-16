@@ -1,51 +1,57 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Mic, MicOff, Video, VideoOff, X, UserX, Move } from "lucide-react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { Mic, MicOff, Video, VideoOff, X, UserX, Move, Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
 import type { RemoteCohost } from "@/hooks/useCloudflareCalls";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Floating multi-guest stage.
+ * Live stage with three operating modes:
  *
- * Layout philosophy:
- *  - Host camera is the main/featured feed elsewhere (studio canvas / main video).
- *    This overlay only renders the LOCAL preview when the host has no main feed
- *    representation (non-compositor mode) AND for cohost guests so they see
- *    themselves.
- *  - Each co-host appears as its OWN floating tile that the host can drag and
- *    resize independently. Positions persist per-userId in localStorage.
- *  - Read-only viewers see the same tiles but cannot move them.
+ *  - "host-broadcast": Host arranges tiles; positions persist to
+ *    `live_stage_layouts` and are broadcast in real time so viewers + co-hosts
+ *    see the exact framing the host picks.
+ *  - "viewer": Read-only. Subscribes to `live_stage_layouts` for this stream
+ *    and renders the host's authoritative layout. No drag handles.
+ *  - "local-only" (default): Local-only personal arrangement (localStorage).
+ *    Used by co-host guests so they can rearrange their personal view without
+ *    affecting what viewers see.
+ *
+ * Coords are stored as normalized 0..1 fractions of the stage container, so the
+ * layout scales correctly on mobile.
  */
-type Rect = { x: number; y: number; w: number; h: number };
+type RectN = { x: number; y: number; w: number; h: number; fit: "cover" | "contain"; zoom: number; hidden?: boolean };
 
-const TILE_STORAGE_PREFIX = "cohost-tile-rect:";
-const LOCAL_STORAGE_KEY = "cohost-local-rect";
+type StageMode = "host-broadcast" | "viewer" | "local-only";
 
-function loadRect(key: string): Rect | null {
+const LOCAL_PREFIX = "cohost-tile-rectN:";
+const LOCAL_SELF_KEY = "cohost-local-rectN-self";
+
+const DEFAULT_RECT: RectN = { x: 0.72, y: 0.05, w: 0.25, h: 0.22, fit: "cover", zoom: 1 };
+
+function loadLocal(key: string): RectN | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(key);
-    if (raw) return JSON.parse(raw);
+    if (raw) return { ...DEFAULT_RECT, ...JSON.parse(raw) };
   } catch {}
   return null;
 }
-function saveRect(key: string, r: Rect) {
+function saveLocal(key: string, r: RectN) {
   try { localStorage.setItem(key, JSON.stringify(r)); } catch {}
 }
 
-function defaultRectFor(index: number): Rect {
-  // Cascade tiles from top-right downward
-  const w = 180;
-  const h = 130;
-  const padding = 12;
-  const top = 80 + index * (h + padding);
-  const right = padding;
-  const x = typeof window !== "undefined" ? Math.max(0, window.innerWidth - w - right) : 16;
-  return { x, y: top, w, h };
+function defaultRectFor(i: number): RectN {
+  // Cascade tiles down the right edge by default
+  const w = 0.24;
+  const h = 0.2;
+  const y = 0.05 + i * (h + 0.02);
+  return { ...DEFAULT_RECT, x: 0.74, y: Math.min(0.78, y), w, h };
 }
 
 export function CoHostStage({
   localStream, localUsername, remotes, audioOn, videoOn,
   onToggleAudio, onToggleVideo, onLeave, readOnly = false,
   onKickRemote, showLocal = true,
+  streamId, mode = "local-only", userId,
 }: {
   localStream: MediaStream | null;
   localUsername: string;
@@ -57,44 +63,154 @@ export function CoHostStage({
   onLeave: () => void;
   readOnly?: boolean;
   onKickRemote?: (userId: string, username: string) => void;
-  /** Render the local preview tile. Set false when the host is the main feed elsewhere. */
+  /** Render the local preview tile. Set false when host is the main feed elsewhere. */
   showLocal?: boolean;
+  /** Stream id — required for host-broadcast / viewer modes. */
+  streamId?: string;
+  mode?: StageMode;
+  /** Local user id — required for host-broadcast (used as tile_user_id for the local tile). */
+  userId?: string;
 }) {
-  const uniqueRemotes = Array.from(new Map(remotes.map((r) => [r.userId, r])).values());
-  const isHost = !!onKickRemote;
-  const draggable = isHost && !readOnly;
+  const uniqueRemotes = useMemo(
+    () => Array.from(new Map(remotes.map((r) => [r.userId, r])).values()),
+    [remotes],
+  );
+
+  // ───── Stage container measurement ─────
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const e = entries[0];
+      setStageSize({ w: e.contentRect.width, h: e.contentRect.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // ───── Remote layout (host-broadcast → DB → viewer) ─────
+  const [remoteLayouts, setRemoteLayouts] = useState<Record<string, RectN>>({});
+  useEffect(() => {
+    if (!streamId || mode === "local-only") return;
+    let cancelled = false;
+    supabase
+      .from("live_stage_layouts")
+      .select("tile_user_id,x,y,w,h,object_fit,zoom,hidden")
+      .eq("stream_id", streamId)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const next: Record<string, RectN> = {};
+        for (const row of data as any[]) {
+          next[row.tile_user_id] = {
+            x: Number(row.x), y: Number(row.y), w: Number(row.w), h: Number(row.h),
+            fit: row.object_fit === "contain" ? "contain" : "cover",
+            zoom: Number(row.zoom) || 1,
+            hidden: !!row.hidden,
+          };
+        }
+        setRemoteLayouts(next);
+      });
+    const ch = supabase
+      .channel(`stage-layout-${streamId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "live_stage_layouts", filter: `stream_id=eq.${streamId}` },
+        (p: any) => {
+          const row = (p.new || p.old) as any;
+          if (!row?.tile_user_id) return;
+          if (p.eventType === "DELETE") {
+            setRemoteLayouts((m) => {
+              const { [row.tile_user_id]: _drop, ...rest } = m;
+              return rest;
+            });
+          } else {
+            setRemoteLayouts((m) => ({
+              ...m,
+              [row.tile_user_id]: {
+                x: Number(row.x), y: Number(row.y), w: Number(row.w), h: Number(row.h),
+                fit: row.object_fit === "contain" ? "contain" : "cover",
+                zoom: Number(row.zoom) || 1,
+                hidden: !!row.hidden,
+              },
+            }));
+          }
+        },
+      )
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [streamId, mode]);
+
+  // Persist layout — host-broadcast writes to DB, debounced.
+  const writeTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const persistRect = useCallback((tileUserId: string, r: RectN) => {
+    if (mode === "host-broadcast" && streamId) {
+      clearTimeout(writeTimers.current[tileUserId]);
+      writeTimers.current[tileUserId] = setTimeout(() => {
+        supabase.from("live_stage_layouts").upsert({
+          stream_id: streamId,
+          tile_user_id: tileUserId,
+          x: r.x, y: r.y, w: r.w, h: r.h,
+          object_fit: r.fit, zoom: r.zoom, hidden: !!r.hidden,
+          updated_at: new Date().toISOString(),
+          updated_by: userId ?? null,
+        }, { onConflict: "stream_id,tile_user_id" }).then(() => {});
+      }, 120);
+    } else if (mode === "local-only") {
+      saveLocal(`${LOCAL_PREFIX}${tileUserId}`, r);
+    }
+  }, [mode, streamId, userId]);
+
+  const isHostCtl = !!onKickRemote;
+  const draggable = mode === "host-broadcast" || (mode === "local-only" && !readOnly && isHostCtl);
+
+  const localKey = userId || "self";
   const total = (localStream && showLocal ? 1 : 0) + uniqueRemotes.length;
   if (total === 0) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-30">
-      {localStream && showLocal && (
+    <div ref={stageRef} className="pointer-events-none absolute inset-0 z-30">
+      {stageSize.w > 0 && localStream && showLocal && (
         <FloatingTile
-          storageKey={LOCAL_STORAGE_KEY}
-          defaultRect={defaultRectFor(0)}
+          stageW={stageSize.w}
+          stageH={stageSize.h}
+          tileUserId={localKey}
+          mode={mode}
+          remoteRect={remoteLayouts[localKey]}
+          localFallback={loadLocal(LOCAL_SELF_KEY) ?? defaultRectFor(0)}
           draggable={draggable}
           stream={localStream}
           label={`@${localUsername} (you)`}
           muted
           videoOn={videoOn}
           audioOn={audioOn}
+          onPersist={(r) => {
+            if (mode === "local-only") saveLocal(LOCAL_SELF_KEY, r);
+            else persistRect(localKey, r);
+          }}
           controls={!readOnly ? {
             audioOn, videoOn,
             onToggleAudio, onToggleVideo, onLeave,
           } : undefined}
         />
       )}
-      {uniqueRemotes.map((r, i) => (
+      {stageSize.w > 0 && uniqueRemotes.map((r, i) => (
         <FloatingTile
           key={r.userId}
-          storageKey={`${TILE_STORAGE_PREFIX}${r.userId}`}
-          defaultRect={defaultRectFor(i + (localStream && showLocal ? 1 : 0))}
+          stageW={stageSize.w}
+          stageH={stageSize.h}
+          tileUserId={r.userId}
+          mode={mode}
+          remoteRect={remoteLayouts[r.userId]}
+          localFallback={loadLocal(`${LOCAL_PREFIX}${r.userId}`) ?? defaultRectFor(i + (localStream && showLocal ? 1 : 0))}
           draggable={draggable}
           stream={r.stream}
           label={`@${r.username}`}
           muted={false}
           videoOn={r.videoEnabled}
           audioOn={r.audioEnabled}
+          onPersist={(rect) => persistRect(r.userId, rect)}
           onKick={onKickRemote ? () => onKickRemote(r.userId, r.username) : undefined}
         />
       ))}
@@ -103,10 +219,15 @@ export function CoHostStage({
 }
 
 function FloatingTile({
-  storageKey, defaultRect, draggable, stream, label, muted, videoOn, audioOn, onKick, controls,
+  stageW, stageH, tileUserId, mode, remoteRect, localFallback,
+  draggable, stream, label, muted, videoOn, audioOn, onKick, controls, onPersist,
 }: {
-  storageKey: string;
-  defaultRect: Rect;
+  stageW: number;
+  stageH: number;
+  tileUserId: string;
+  mode: StageMode;
+  remoteRect?: RectN;
+  localFallback: RectN;
   draggable: boolean;
   stream: MediaStream;
   label: string;
@@ -114,6 +235,7 @@ function FloatingTile({
   videoOn: boolean;
   audioOn: boolean;
   onKick?: () => void;
+  onPersist: (r: RectN) => void;
   controls?: {
     audioOn: boolean;
     videoOn: boolean;
@@ -125,69 +247,111 @@ function FloatingTile({
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => { if (videoRef.current) videoRef.current.srcObject = stream; }, [stream]);
 
-  const [rect, setRect] = useState<Rect>(() => loadRect(storageKey) ?? defaultRect);
-  useEffect(() => { saveRect(storageKey, rect); }, [storageKey, rect]);
+  // Source of truth: viewer + host-broadcast = remoteRect (fallback to local default);
+  // local-only = internal state seeded from localStorage.
+  const [localRect, setLocalRect] = useState<RectN>(() =>
+    mode === "viewer" ? (remoteRect ?? localFallback) :
+    mode === "host-broadcast" ? (remoteRect ?? localFallback) :
+    localFallback,
+  );
 
-  const dragRef = useRef<{ mode: "move" | "resize"; sx: number; sy: number; orig: Rect } | null>(null);
+  // For host-broadcast/viewer, when DB pushes an update we adopt it (unless host is mid-drag).
+  const draggingRef = useRef(false);
+  useEffect(() => {
+    if (mode === "local-only") return;
+    if (!remoteRect) return;
+    if (draggingRef.current) return;
+    setLocalRect(remoteRect);
+  }, [remoteRect, mode]);
 
-  const onPointerDown = useCallback((e: React.PointerEvent, mode: "move" | "resize") => {
+  if (remoteRect?.hidden && mode === "viewer") return null;
+
+  const rect = localRect;
+
+  // Convert normalized rect → pixel coordinates.
+  const px = {
+    left: rect.x * stageW,
+    top: rect.y * stageH,
+    width: Math.max(80, rect.w * stageW),
+    height: Math.max(60, rect.h * stageH),
+  };
+
+  const dragRef = useRef<{ mode: "move" | "resize"; sx: number; sy: number; orig: RectN } | null>(null);
+
+  const update = useCallback((next: RectN) => {
+    setLocalRect(next);
+    onPersist(next);
+  }, [onPersist]);
+
+  const onPointerDown = useCallback((e: React.PointerEvent, kind: "move" | "resize") => {
     if (!draggable) return;
     e.preventDefault();
     e.stopPropagation();
-    dragRef.current = { mode, sx: e.clientX, sy: e.clientY, orig: rect };
+    draggingRef.current = true;
+    dragRef.current = { mode: kind, sx: e.clientX, sy: e.clientY, orig: rect };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, [draggable, rect]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     const d = dragRef.current;
-    if (!d) return;
-    const dx = e.clientX - d.sx;
-    const dy = e.clientY - d.sy;
+    if (!d || stageW === 0) return;
+    const dxN = (e.clientX - d.sx) / stageW;
+    const dyN = (e.clientY - d.sy) / stageH;
     if (d.mode === "move") {
-      const maxX = window.innerWidth - 60;
-      const maxY = window.innerHeight - 60;
-      setRect({
-        x: Math.max(0, Math.min(maxX, d.orig.x + dx)),
-        y: Math.max(0, Math.min(maxY, d.orig.y + dy)),
-        w: d.orig.w,
-        h: d.orig.h,
-      });
+      const next: RectN = {
+        ...d.orig,
+        x: Math.max(0, Math.min(1 - d.orig.w, d.orig.x + dxN)),
+        y: Math.max(0, Math.min(1 - d.orig.h, d.orig.y + dyN)),
+      };
+      update(next);
     } else {
-      setRect({
-        x: d.orig.x,
-        y: d.orig.y,
-        w: Math.max(120, Math.min(window.innerWidth - d.orig.x, d.orig.w + dx)),
-        h: Math.max(90, Math.min(window.innerHeight - d.orig.y, d.orig.h + dy)),
-      });
+      const next: RectN = {
+        ...d.orig,
+        w: Math.max(0.08, Math.min(1 - d.orig.x, d.orig.w + dxN)),
+        h: Math.max(0.08, Math.min(1 - d.orig.y, d.orig.h + dyN)),
+      };
+      update(next);
     }
-  }, []);
+  }, [stageW, stageH, update]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (dragRef.current) {
       try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
       dragRef.current = null;
+      draggingRef.current = false;
     }
   }, []);
+
+  const toggleFit = () => update({ ...rect, fit: rect.fit === "cover" ? "contain" : "cover" });
+  const bumpZoom = (delta: number) =>
+    update({ ...rect, zoom: Math.max(0.5, Math.min(2.5, +(rect.zoom + delta).toFixed(2))) });
 
   return (
     <div
       className="pointer-events-auto absolute overflow-hidden rounded-xl bg-black shadow-lg ring-1 ring-white/15"
-      style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+      style={{ left: px.left, top: px.top, width: px.width, height: px.height }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted={muted}
-        className={`h-full w-full bg-black object-contain ${videoOn ? "" : "hidden"}`}
-      />
+      <div className="relative h-full w-full overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={muted}
+          className={`h-full w-full bg-black ${videoOn ? "" : "hidden"}`}
+          style={{
+            objectFit: rect.fit,
+            transform: rect.zoom !== 1 ? `scale(${rect.zoom})` : undefined,
+            transformOrigin: "center center",
+          }}
+        />
+      </div>
       {!videoOn && (
-        <div className="flex h-full w-full items-center justify-center text-xs text-white/60">
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-white/60">
           Camera off
         </div>
       )}
 
-      {/* Drag handle (host only) */}
+      {/* Drag handle */}
       {draggable && (
         <button
           onPointerDown={(e) => onPointerDown(e, "move")}
@@ -202,7 +366,7 @@ function FloatingTile({
         </button>
       )}
 
-      {/* Kick button (host only, remote tiles only) */}
+      {/* Kick (host only, remote tiles) */}
       {onKick && (
         <button
           onClick={onKick}
@@ -214,13 +378,28 @@ function FloatingTile({
         </button>
       )}
 
-      {/* Label + mic indicator */}
+      {/* Framing controls — only when draggable (host-broadcast or local host) */}
+      {draggable && (
+        <div className="absolute left-1 bottom-6 z-10 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 ring-1 ring-white/15">
+          <button onClick={toggleFit} title={rect.fit === "cover" ? "Switch to fit" : "Switch to fill"} className="text-white/85 hover:text-white">
+            {rect.fit === "cover" ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+          </button>
+          <button onClick={() => bumpZoom(-0.1)} title="Zoom out" className="text-white/85 hover:text-white">
+            <ZoomOut className="h-3 w-3" />
+          </button>
+          <button onClick={() => bumpZoom(0.1)} title="Zoom in" className="text-white/85 hover:text-white">
+            <ZoomIn className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Label + mic */}
       <div className="absolute bottom-1 left-1 right-1 z-10 flex items-center justify-between gap-1">
         <span className="truncate rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">{label}</span>
         {!audioOn && <MicOff className="h-3 w-3 rounded bg-black/60 p-0.5 text-white" />}
       </div>
 
-      {/* Local controls bar (cohost guest's own tile) */}
+      {/* Cohost local controls */}
       {controls && (
         <div className="absolute left-1/2 top-1 z-10 flex -translate-x-1/2 items-center gap-1">
           <button
@@ -247,7 +426,7 @@ function FloatingTile({
         </div>
       )}
 
-      {/* Resize handle (host only) */}
+      {/* Resize handle */}
       {draggable && (
         <div
           onPointerDown={(e) => onPointerDown(e, "resize")}

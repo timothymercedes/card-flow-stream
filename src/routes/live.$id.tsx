@@ -149,6 +149,7 @@ function LiveDetail() {
   const [allStreams, setAllStreams] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
+  const [chatAudience, setChatAudience] = useState<"public" | "mods_only" | "host_mods">("public");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
@@ -1586,7 +1587,7 @@ function LiveDetail() {
   async function sendMsg(
     content: string,
     isSystem = false,
-    opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string } = {},
+    opts: { isAnnouncement?: boolean; isHype?: boolean; usernameOverride?: string; audience?: "public" | "mods_only" | "host_mods" } = {},
   ) {
     if (!profile && !isSystem) return toast.error("Sign in to chat");
     if (!isSystem && needsAcceptance)
@@ -1600,7 +1601,8 @@ function LiveDetail() {
       is_system: isSystem,
       is_announcement: !!opts.isAnnouncement,
       is_hype: !!opts.isHype,
-    });
+      audience: opts.audience || "public",
+    } as any);
     if (!isSystem) safety.touch("chat");
   }
 
@@ -1760,7 +1762,7 @@ function LiveDetail() {
         return toast.error(`Slow mode: wait ${wait}s before chatting again`);
       }
     }
-    await sendMsg(input);
+    await sendMsg(input, false, { audience: chatAudience });
     lastChatTsRef.current = Date.now();
     setInput("");
   }
@@ -3556,6 +3558,9 @@ function LiveDetail() {
           the host-positioned HLS/canvas view. */}
       {callShouldRun && !(isSeller && usingCompositor) && (
         <CoHostStage
+          streamId={id}
+          userId={user?.id}
+          mode={isSeller ? "host-broadcast" : "local-only"}
           localStream={cfCall.localStream}
           localUsername={profile?.username || "you"}
           remotes={usingCompositor && !isSeller ? [] : cfCall.remotes}
@@ -3622,6 +3627,8 @@ function LiveDetail() {
           not re-render them as a floating overlay on top. */}
       {!isSeller && !isCohostParticipant && !usingCompositor && viewerCall.remotes.length > 0 && (
         <CoHostStage
+          streamId={id}
+          mode="viewer"
           localStream={null}
           localUsername=""
           remotes={viewerCall.remotes}
@@ -3644,6 +3651,9 @@ function LiveDetail() {
         !callShouldRun &&
         hostViewerCall.remotes.length > 0 && (
           <CoHostStage
+            streamId={id}
+            userId={user?.id}
+            mode="host-broadcast"
             localStream={null}
             localUsername=""
             remotes={hostViewerCall.remotes}
@@ -4908,15 +4918,27 @@ function LiveDetail() {
               .map((m) => {
                 const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
                 const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
+                const aud = (m as any).audience || "public";
+                const isModOnly = aud === "mods_only";
+                const isHostMods = aud === "host_mods";
                 return (
                   <div
                     key={m.id}
                     className={`max-w-[95%] rounded-2xl px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-sm backdrop-blur-md ${
                       isBlocked
                         ? "bg-red-500/30 line-through opacity-60"
+                        : isHostMods
+                        ? "bg-fuchsia-600/40 ring-1 ring-fuchsia-300/40"
+                        : isModOnly
+                        ? "bg-amber-500/30 ring-1 ring-amber-300/40"
                         : "bg-black/45 ring-1 ring-white/5"
                     }`}
                   >
+                    {(isModOnly || isHostMods) && (
+                      <span className="mr-1 rounded bg-black/40 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/90">
+                        {isHostMods ? "Host+Mods" : "Mods"}
+                      </span>
+                    )}
                     {isStaff &&
                     m.user_id &&
                     m.user_id !== user?.id &&
@@ -5634,6 +5656,36 @@ function LiveDetail() {
 
         {/* Chat input — hidden in Flex immersive mode */}
         {!(stream.mode === "show_off" && flexImmersive) && (
+          <>
+            {isStaff && (
+              <div className="flex items-center gap-1 text-[10px]">
+                {(["public", "mods_only", "host_mods"] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setChatAudience(a)}
+                    className={`rounded-full px-2 py-0.5 font-bold uppercase tracking-wider transition ${
+                      chatAudience === a
+                        ? a === "public"
+                          ? "bg-primary text-primary-foreground"
+                          : a === "mods_only"
+                            ? "bg-amber-500 text-black"
+                            : "bg-fuchsia-600 text-white"
+                        : "bg-white/10 text-white/60 hover:text-white"
+                    }`}
+                    title={
+                      a === "public"
+                        ? "Visible to everyone"
+                        : a === "mods_only"
+                          ? "Visible only to host + mods"
+                          : "Private host ↔ mods channel"
+                    }
+                  >
+                    {a === "public" ? "Public" : a === "mods_only" ? "Mods" : "Host+Mods"}
+                  </button>
+                ))}
+              </div>
+            )}
           <form onSubmit={handleSend} className="relative flex gap-2">
             {tagOpen && tagResults.length > 0 && (
               <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
@@ -5687,6 +5739,7 @@ function LiveDetail() {
               <Send className="h-4 w-4" />
             </button>
           </form>
+          </>
         )}
       </div>
 
