@@ -256,7 +256,7 @@ export function useCloudflareCalls(opts: {
         const ms = new MediaStream();
         remoteStreamsByUserRef.current.set(row.user_id, ms);
 
-        await (negotiationRef.current = negotiationRef.current.then(async () => {
+        const negotiation = negotiationRef.current.catch(() => {}).then(async () => {
           if (cancelled || pcRef.current !== pc) return;
           const stable = await waitForSignalingStable(pc);
           if (!stable || cancelled || pcRef.current !== pc) return;
@@ -284,7 +284,9 @@ export function useCloudflareCalls(opts: {
               body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } }),
             });
           }
-        }));
+        });
+        negotiationRef.current = negotiation.catch(() => {});
+        await negotiation;
 
         if (!cancelled) {
           setRemotes((prev) => ({
@@ -302,7 +304,7 @@ export function useCloudflareCalls(opts: {
         // never did an SDP exchange because no cohorts had joined yet).
         // Bump sessionGen so the setup effect tears down the dead PC and
         // creates a fresh session — then the next pullRemote will succeed.
-        if (/\b410\b/.test(String(e?.message))) {
+        if (/\b410\b|invalid_session_description|Mismatched number of transceivers/i.test(String(e?.message))) {
           if (!cancelled) setSessionGen((n) => n + 1);
         }
       }
