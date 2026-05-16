@@ -256,6 +256,13 @@ function LiveDetail() {
     "auto",
   );
   const [obsMetrics, setObsMetrics] = useState<HlsVideoMetrics | null>(null);
+  const [cameraFit, setCameraFit] = useState<"fit" | "fill">(() => {
+    if (typeof window === "undefined") return "fit";
+    return (localStorage.getItem("live-camera-fit") as "fit" | "fill") || "fit";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("live-camera-fit", cameraFit); } catch {}
+  }, [cameraFit]);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
   const [hostCameraPanelCollapsed, setHostCameraPanelCollapsed] = useState(false);
