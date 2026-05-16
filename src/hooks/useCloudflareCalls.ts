@@ -190,9 +190,12 @@ export function useCloudflareCalls(opts: {
       if (row.user_id === userId) return;
       const pc = pcRef.current; const mySession = sessionIdRef.current;
       if (!pc || !mySession) return;
-      // CF tears down the SFU session if our PC never reaches "connected".
-      // Wait for it (or bail) instead of hitting /tracks/new on a dead session.
-      if (pc.connectionState !== "connected") {
+      // Publishers must reach "connected" before pulling (otherwise CF 410s
+      // on a dead session). Viewer-mode peers have no transceivers yet and
+      // do their FIRST SDP exchange inside this very call via
+      // requiresImmediateRenegotiation — so we MUST NOT block on connected
+      // for viewer mode, or the PC stays at "new" forever.
+      if (!viewerMode && pc.connectionState !== "connected") {
         const ok = await new Promise<boolean>((resolve) => {
           const h = () => {
             if (pc.connectionState === "connected") { pc.removeEventListener("connectionstatechange", h); resolve(true); }
