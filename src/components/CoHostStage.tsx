@@ -122,14 +122,7 @@ export function CoHostStage({
         if (cancelled || !data) return;
         const next: Record<string, RectN> = {};
         for (const row of data as any[]) {
-          const key = row.source_key || row.tile_user_id;
-          next[key] = {
-            x: Number(row.x), y: Number(row.y), w: Number(row.w), h: Number(row.h),
-            z: Number(row.z) || 1,
-            fit: row.object_fit === "contain" ? "contain" : "cover",
-            zoom: Number(row.zoom) || 1,
-            hidden: !!row.hidden,
-          };
+          writeLayoutAliases(next, row, rectFromLayoutRow(row));
         }
         setRemoteLayouts(next);
       });
@@ -140,24 +133,20 @@ export function CoHostStage({
         { event: "*", schema: "public", table: "live_stage_layouts", filter: `stream_id=eq.${streamId}` },
         (p: any) => {
           const row = (p.new || p.old) as any;
-          if (!row?.tile_user_id) return;
-          const key = row.source_key || row.tile_user_id;
+          if (!row?.source_key && !row?.tile_user_id) return;
           if (p.eventType === "DELETE") {
             setRemoteLayouts((m) => {
-              const { [key]: _drop, ...rest } = m;
-              return rest;
+              const next = { ...m };
+              if (row.source_key) delete next[row.source_key];
+              if (row.tile_user_id) delete next[row.tile_user_id];
+              return next;
             });
           } else {
-            setRemoteLayouts((m) => ({
-              ...m,
-              [key]: {
-                x: Number(row.x), y: Number(row.y), w: Number(row.w), h: Number(row.h),
-                z: Number(row.z) || 1,
-                fit: row.object_fit === "contain" ? "contain" : "cover",
-                zoom: Number(row.zoom) || 1,
-                hidden: !!row.hidden,
-              },
-            }));
+            setRemoteLayouts((m) => {
+              const next = { ...m };
+              writeLayoutAliases(next, row, rectFromLayoutRow(row));
+              return next;
+            });
           }
         },
       )
