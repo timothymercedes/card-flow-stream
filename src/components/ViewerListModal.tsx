@@ -5,7 +5,7 @@ import { X, Search, Users, BadgeCheck, Shield, UserPlus } from "lucide-react";
 import type { PresenceUser } from "@/hooks/useStreamPresence";
 import { useRealtimeChannel } from "@/lib/realtime";
 
-type Enrich = { id: string; live_verified: boolean };
+type Enrich = { id: string; age_verified: boolean };
 
 function fmtWatching(joinedAtMs: number) {
   const s = Math.max(0, Math.floor((Date.now() - joinedAtMs) / 1000));
