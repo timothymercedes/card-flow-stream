@@ -287,6 +287,7 @@ function LiveDetail() {
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
   const [hostCameraPanelCollapsed, setHostCameraPanelCollapsed] = useState(false);
+  const [showCohostCameraPanel, setShowCohostCameraPanel] = useState(false);
   const [showPaymentLog, setShowPaymentLog] = useState(false);
   const [modSearchQ, setModSearchQ] = useState("");
   const [modSearchRes, setModSearchRes] = useState<any[]>([]);
