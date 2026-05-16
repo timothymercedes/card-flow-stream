@@ -4887,25 +4887,20 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
+      {/* Chat overlay — floating, immersive, no heavy container on mobile */}
       {showChat && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            pb-1
-            ${
-              isStaff
-                ? "right-2 bottom-64 max-h-[40vh] w-[62%] max-w-[17rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
-                : "left-2 bottom-32 max-h-[38vh] w-[70%] max-w-[19rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
-            }
-            md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
-            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
+            left-2 right-16 bottom-32 max-h-[42vh]
+            [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
+            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
+            md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
         >
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-1.5 pr-1">
             {messages
               .filter((m) => {
                 if (m.is_system || m.is_announcement) return false;
-                // Hide messages from users I personally blocked, or users banned from this stream (unless I'm staff — keep visibility for context)
                 if (m.user_id && myBlockedIds.has(m.user_id)) return false;
                 if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
                 return true;
@@ -4916,7 +4911,11 @@ function LiveDetail() {
                 return (
                   <div
                     key={m.id}
-                    className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50 md:bg-white/5"}`}
+                    className={`max-w-[95%] rounded-2xl px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-sm backdrop-blur-md ${
+                      isBlocked
+                        ? "bg-red-500/30 line-through opacity-60"
+                        : "bg-black/45 ring-1 ring-white/5"
+                    }`}
                   >
                     {isStaff &&
                     m.user_id &&
@@ -4926,14 +4925,14 @@ function LiveDetail() {
                         onClick={() =>
                           setChatActionMenu({ userId: m.user_id, username: m.username })
                         }
-                        className="mr-1 font-semibold text-live-foreground hover:underline"
+                        className="mr-1.5 font-semibold text-live-foreground hover:underline"
                         title="Mod actions"
                       >
-                        @{m.username}:
+                        @{m.username}
                       </button>
                     ) : (
-                      <span className="mr-1 font-semibold text-live-foreground">
-                        @{m.username}:
+                      <span className="mr-1.5 font-semibold text-live-foreground">
+                        @{m.username}
                       </span>
                     )}
                     <span className="break-words">
@@ -4959,7 +4958,7 @@ function LiveDetail() {
                         targetLabel={`@${m.username}: ${String(m.content).slice(0, 60)}`}
                         trigger={
                           <button
-                            className="ml-1 align-middle text-white/40 hover:text-white"
+                            className="ml-1.5 align-middle text-white/40 hover:text-white"
                             title="Report message"
                           >
                             <Flag className="inline h-2.5 w-2.5" />
