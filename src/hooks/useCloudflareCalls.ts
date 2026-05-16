@@ -59,6 +59,7 @@ export function useCloudflareCalls(opts: {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
+  const [sessionGen, setSessionGen] = useState(0);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
