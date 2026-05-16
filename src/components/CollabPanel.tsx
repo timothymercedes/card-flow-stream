@@ -350,7 +350,7 @@ export function CollabPanel({
                       <button onClick={() => toggleMute(p)} className="rounded-full bg-muted p-1.5" title={p.is_muted ? "Unmute" : "Mute"}>
                         {p.is_muted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                       </button>
-                      <button onClick={() => removeParticipant(p)} className="rounded-full bg-destructive/80 p-1.5 text-destructive-foreground" title="Remove">
+                      <button onClick={() => removeParticipant(p)} className="rounded-full bg-destructive/80 p-1.5 text-destructive-foreground" title="End collab">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
