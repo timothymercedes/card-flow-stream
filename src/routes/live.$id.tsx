@@ -1504,8 +1504,7 @@ function LiveDetail() {
   const shouldUseRealtimeStagePreview =
     !isSeller &&
     usingCompositor &&
-    !!hostRealtimeStagePreview &&
-    (isCohostParticipant || hlsLooksBlank || !stream?.cf_playback_hls);
+    !!hostRealtimeStagePreview;
 
   // Host-side receive-only subscription so the host can SEE and HEAR cohosts
   // even when the multi-cam compositor owns local camera capture (which
