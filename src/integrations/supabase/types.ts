@@ -812,6 +812,7 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          audience: string
           content: string
           created_at: string
           id: string
@@ -823,6 +824,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          audience?: string
           content: string
           created_at?: string
           id?: string
@@ -834,6 +836,7 @@ export type Database = {
           username: string
         }
         Update: {
+          audience?: string
           content?: string
           created_at?: string
           id?: string
@@ -1684,6 +1687,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "live_bids_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_stage_layouts: {
+        Row: {
+          h: number
+          hidden: boolean
+          object_fit: string
+          stream_id: string
+          tile_user_id: string
+          updated_at: string
+          updated_by: string | null
+          w: number
+          x: number
+          y: number
+          z: number
+          zoom: number
+        }
+        Insert: {
+          h?: number
+          hidden?: boolean
+          object_fit?: string
+          stream_id: string
+          tile_user_id: string
+          updated_at?: string
+          updated_by?: string | null
+          w?: number
+          x?: number
+          y?: number
+          z?: number
+          zoom?: number
+        }
+        Update: {
+          h?: number
+          hidden?: boolean
+          object_fit?: string
+          stream_id?: string
+          tile_user_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          w?: number
+          x?: number
+          y?: number
+          z?: number
+          zoom?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stage_layouts_stream_id_fkey"
             columns: ["stream_id"]
             isOneToOne: false
             referencedRelation: "live_streams"
@@ -5754,6 +5810,7 @@ export type Database = {
           xp_awarded: number
         }[]
       }
+      can_see_mod_chat: { Args: { _stream_id: string }; Returns: boolean }
       can_view_story: {
         Args: { _story_owner: string; _viewer: string; _visibility: string }
         Returns: boolean
