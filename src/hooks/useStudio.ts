@@ -824,7 +824,9 @@ export function useStudio(opts: {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      sourcesRef.current.forEach((s) => s.stream.getTracks().forEach((t) => t.stop()));
+      sourcesRef.current.forEach((s) => {
+        if (s.ownsStream !== false) s.stream.getTracks().forEach((t) => t.stop());
+      });
       videoElsRef.current.forEach((v) => {
         detachVideoElement(v);
         v.remove();
