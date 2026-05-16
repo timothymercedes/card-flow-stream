@@ -74,6 +74,8 @@ import { awardXp, bumpQuest } from "@/lib/progression";
 import { TopSupporterBadge } from "@/components/TopSupporterBadge";
 import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
 import { PreBidPanel } from "@/components/PreBidPanel";
+import { LiveSellerDashboard } from "@/components/LiveSellerDashboard";
+import { PinnedAuctionCard } from "@/components/PinnedAuctionCard";
 import { playSfx } from "@/lib/sfx";
 
 import { Confetti } from "@/components/Confetti";
