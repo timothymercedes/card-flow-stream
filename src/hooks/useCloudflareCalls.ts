@@ -428,10 +428,14 @@ export function useCloudflareCalls(opts: {
             const activeSession = viewerMode ? await refreshEmptySession(pc) : sessionIdRef.current;
             if (!activeSession || cancelled || pcRef.current !== pc) return;
 
-            const resp = await sfu<CallsTracksResponse>(`/sessions/${activeSession}/tracks/new`, {
-              method: "POST",
-              body: JSON.stringify({ tracks: wantTracks }),
-            });
+            const resp = await sfu<CallsTracksResponse>(
+              `/sessions/${activeSession}/tracks/new`,
+              {
+                method: "POST",
+                body: JSON.stringify({ tracks: wantTracks }),
+              },
+              viewerMode ? "optional" : "required",
+            );
 
             // Map mids returned by Cloudflare to this user so ontrack can route
             routedPc.__midToUser = routedPc.__midToUser || {};
@@ -446,12 +450,16 @@ export function useCloudflareCalls(opts: {
             if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
-              await sfu(`/sessions/${activeSession}/renegotiate`, {
-                method: "PUT",
-                body: JSON.stringify({
-                  sessionDescription: { type: answer.type, sdp: answer.sdp },
-                }),
-              });
+              await sfu(
+                `/sessions/${activeSession}/renegotiate`,
+                {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    sessionDescription: { type: answer.type, sdp: answer.sdp },
+                  }),
+                },
+                viewerMode ? "optional" : "required",
+              );
             }
           });
         negotiationRef.current = negotiation.catch(() => {});
