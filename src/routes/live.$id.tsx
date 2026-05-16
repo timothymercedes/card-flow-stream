@@ -4551,7 +4551,7 @@ function LiveDetail() {
             ${
               isStaff
                 ? "right-2 bottom-64 max-h-[40vh] w-[62%] max-w-[17rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
-                : "left-2 bottom-28 max-h-[20vh] w-[58%] max-w-[16rem] pr-1"
+                : "left-2 bottom-32 max-h-[38vh] w-[70%] max-w-[19rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
             }
             md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
             md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
