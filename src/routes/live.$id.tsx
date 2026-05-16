@@ -54,7 +54,7 @@ import { CardScanner } from "@/components/CardScanner";
 import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
-import { SHIPPING_PRESETS, type ShippingPresetKey } from "@/lib/shippingPresets";
+import { SHIPPING_PRESETS, presetCapacityLabel, presetEstimatedPriceUsd, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { estimateShippingAndImportFees } from "@/lib/shippingEstimate";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
