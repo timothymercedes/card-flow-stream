@@ -212,7 +212,14 @@ export function CardScanner({
   async function enrichWithMarketPrice(result: ScanResult): Promise<ScanResult> {
     const hasEnoughId = !!result.name && result.name !== "Unknown Card";
     if (!hasEnoughId) return result;
+    const gameId = categoryToGameId(result.category);
     try {
+      // Non-Pokémon cards: route directly through the game-aware card-price
+      // aggregator (Scryfall / YGOPRODeck / local tcg_prices / PriceCharting
+      // when enabled). The Pokémon-only refresh-prices path stays as-is below.
+      if (gameId !== "pokemon") {
+        return await enrichNonPokemon(result, gameId);
+      }
       const params = new URLSearchParams({ name: result.name });
       const overall = result.overall_confidence ?? 0;
       const setReliable = (result.confidence?.set ?? 0) >= 0.85 && overall >= 0.75;
