@@ -156,3 +156,34 @@ export function pickRecommendedRate<T extends { provider?: string; service?: str
   if (ga && Number(ga.amount ?? 0) - cheapestAmt <= 1) return ga;
   return cheapest;
 }
+
+/**
+ * Short, friendly capacity label for a shipping preset.
+ * Used in seller-facing dropdowns ("Stamp · 1 card", "PWE · 1–3 cards", etc.).
+ */
+export function presetCapacityLabel(key: ShippingPresetKey): string {
+  switch (key) {
+    case "stamp": return "1 card";
+    case "pwe": return "1–3 cards";
+    case "bubble": return "up to 4 cards / small slab";
+    case "small_box": return "5+ cards / box";
+  }
+}
+
+/**
+ * Estimated price for a preset given current order context.
+ * Returns the flat seller price for stamp/PWE; otherwise a domestic estimate
+ * matching estimateShippingAndImportFees() (kept in sync with that helper).
+ */
+export function presetEstimatedPriceUsd(
+  key: ShippingPresetKey,
+  opts: { subtotal?: number; quantity?: number } = {},
+): number {
+  const p = SHIPPING_PRESETS[key];
+  if (p.flatRate && p.flatPriceUsd != null) return p.flatPriceUsd;
+  const qty = Math.max(1, Number(opts.quantity || 1));
+  const subtotal = Number(opts.subtotal || 0);
+  const oz = Math.max(1, p.weightOz);
+  const lowValueCard = subtotal <= 20 && oz <= 2;
+  return lowValueCard ? 0.99 : 4.75 + Math.max(0, oz - 4) * 0.35;
+}
