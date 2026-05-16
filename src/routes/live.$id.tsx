@@ -3357,28 +3357,14 @@ function LiveDetail() {
             muted
             className={`h-full w-full ${cameraFit === "fit" ? "object-contain" : "object-cover"}`}
           />
-        ) : isCohostParticipant && usingCompositor && stream.cf_playback_hls ? (
-          // Co-hosts watch the host's composited HLS layout so they see the same
-          // positioned cameras as viewers, with their own local controls overlaid.
-          <HlsPlayer
-            src={stream.cf_playback_hls}
-            className="h-full w-full"
-            style={obsVideoStyle}
-            onVideoMetrics={setObsMetrics}
-            autoPlay
-            muted={!audioUnmuted}
-          />
-        ) : isCohostParticipant && cohostHostPreview ? (
+        ) : shouldUseRealtimeStagePreview && hostRealtimeStagePreview ? (
+          // Real-time host stage preview: this is the host's composited canvas
+          // published through Calls, so viewers/co-hosts see the same production
+          // layout immediately and never wait on a black/late HLS segment.
           <RemoteStreamVideo
-            stream={cohostHostPreview.stream}
+            stream={hostRealtimeStagePreview.stream}
             muted={!audioUnmuted}
-            className="h-full w-full object-contain bg-black"
-          />
-        ) : !isCohostParticipant && viewerHostPreview && hlsLooksBlank ? (
-          <RemoteStreamVideo
-            stream={viewerHostPreview.stream}
-            muted={!audioUnmuted}
-            className="h-full w-full object-contain bg-black"
+            className="h-full w-full bg-black object-contain"
           />
         ) : stream.cf_playback_hls ? (
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
