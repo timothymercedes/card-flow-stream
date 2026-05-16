@@ -9,14 +9,57 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   searchPokemonTcg,
   aggregatePrices,
+  tcgplayerQuoteFromCard,
+  ygoQuoteFromCard,
+  scryfallQuoteFromCard,
+  tcgPricesQuoteFromCard,
   type PriceQuote,
   type NormalizedCard,
+  type Source,
 } from "../_shared/cards/sources.ts";
 import { enabledProviders, pricingProviders } from "../_shared/cards/providers.ts";
+import { resolveGame, categoryToGameId, type Game } from "../_shared/cards/games.ts";
 
 function pricingProvidersSkipped(active: { id: string }[]) {
   const activeIds = new Set(active.map((p) => p.id));
   return pricingProviders.filter((p) => !activeIds.has(p.id)).map((p) => p.id);
+}
+
+// Per-source extractor used when we resolved a card via the game's catalog
+// adapter. Avoids defaulting to Pokémon/TCGplayer for non-Pokémon cards.
+function quoteFromCardForSource(card: NormalizedCard): PriceQuote | null {
+  switch (card.source) {
+    case "tcg_api": return tcgplayerQuoteFromCard(card);
+    case "tcgdex": return tcgplayerQuoteFromCard(card); // tcgdex returns pokemon shape
+    case "ygoprodeck": return ygoQuoteFromCard(card);
+    case "scryfall": return scryfallQuoteFromCard(card);
+    case "tcg_prices": return tcgPricesQuoteFromCard(card);
+    default: return null;
+  }
+}
+
+function scoreCard(c: NormalizedCard, q: { name?: string; number?: string; set?: string }) {
+  const norm = (s: string | null | undefined) =>
+    String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  let s = 0;
+  if (q.name) {
+    const a = norm(c.name), b = norm(q.name);
+    if (a === b) s += 50;
+    else if (a.startsWith(b) || b.startsWith(a)) s += 35;
+    else if (a.includes(b) || b.includes(a)) s += 20;
+  }
+  if (q.number) {
+    const cn = String(c.number || "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
+    const qn = String(q.number).split("/")[0].trim().replace(/^0+(\d)/, "$1");
+    if (cn && cn === qn) s += 30;
+  }
+  if (q.set) {
+    const a = norm(c.set_name), b = norm(q.set);
+    if (a === b) s += 20;
+    else if (a.includes(b) || b.includes(a)) s += 10;
+  }
+  if (c.image_small || c.image_large) s += 2;
+  return s;
 }
 
 const corsHeaders = {
