@@ -281,7 +281,7 @@ export function useCloudflareCalls(opts: {
     }
     load();
 
-    const ch = supabase.channel(`cohost-tracks-${streamId}`)
+    const ch = supabase.channel(`cohost-tracks-${streamId}-${Math.random().toString(36).slice(2, 10)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "stream_cohost_tracks", filter: `stream_id=eq.${streamId}` },
         (p) => pullRemote(p.new))
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "stream_cohost_tracks", filter: `stream_id=eq.${streamId}` },
