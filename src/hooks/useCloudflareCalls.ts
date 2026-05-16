@@ -150,6 +150,8 @@ export function useCloudflareCalls(opts: {
     if (!enabled || !streamId) return;
     if (!viewerMode && (!userId || !username)) return;
     let cancelled = false;
+    const pulledSessions = pulledRef.current;
+    const remoteStreamsByUser = remoteStreamsByUserRef.current;
 
     (async () => {
       try {
@@ -177,6 +179,7 @@ export function useCloudflareCalls(opts: {
           bundlePolicy: "max-bundle",
         });
         pcRef.current = pc;
+        const routedPc = pc as PeerConnectionWithRouteMap;
 
         pc.addEventListener("connectionstatechange", () => {
           if (cancelled) return;
@@ -187,7 +190,7 @@ export function useCloudflareCalls(opts: {
         });
         pc.ontrack = (ev) => {
           const mid = ev.transceiver.mid;
-          const targetUserId = (pc as any).__midToUser?.[mid as string];
+          const targetUserId = mid ? routedPc.__midToUser?.[mid] : undefined;
           if (!targetUserId) return;
           const ms = remoteStreamsByUserRef.current.get(targetUserId);
           if (ms) {
@@ -258,9 +261,9 @@ export function useCloudflareCalls(opts: {
         // and triggers the first SDP exchange via requiresImmediateRenegotiation.
 
         if (!cancelled) setReady(true);
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error("[cf-calls] setup failed", e);
-        if (!cancelled) setError(e.message || String(e));
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
     })();
 
@@ -268,7 +271,9 @@ export function useCloudflareCalls(opts: {
       cancelled = true;
       try {
         pcRef.current?.close();
-      } catch {}
+      } catch {
+        void 0;
+      }
       pcRef.current = null;
       setLocalStream((s) => {
         if (s && s !== preStream) s.getTracks().forEach((t) => t.stop());
@@ -283,8 +288,8 @@ export function useCloudflareCalls(opts: {
       }
       sessionIdRef.current = null;
       sessionCreatedAtRef.current = 0;
-      pulledRef.current.clear();
-      remoteStreamsByUserRef.current.clear();
+      pulledSessions.clear();
+      remoteStreamsByUser.clear();
       negotiationRef.current = Promise.resolve();
       setRemotes({});
       setReady(false);
