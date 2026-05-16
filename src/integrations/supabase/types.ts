@@ -4982,8 +4982,11 @@ export type Database = {
           price_high: number | null
           price_locked: boolean
           price_low: number | null
+          price_range_high: number | null
+          price_range_low: number | null
           price_source: string | null
           price_source_url: string | null
+          price_tier: string | null
           price_updated_at: string | null
           pricing_details: Json
           recent_sales_avg: number | null
@@ -5027,8 +5030,11 @@ export type Database = {
           price_high?: number | null
           price_locked?: boolean
           price_low?: number | null
+          price_range_high?: number | null
+          price_range_low?: number | null
           price_source?: string | null
           price_source_url?: string | null
+          price_tier?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
           recent_sales_avg?: number | null
@@ -5072,8 +5078,11 @@ export type Database = {
           price_high?: number | null
           price_locked?: boolean
           price_low?: number | null
+          price_range_high?: number | null
+          price_range_low?: number | null
           price_source?: string | null
           price_source_url?: string | null
+          price_tier?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
           recent_sales_avg?: number | null
