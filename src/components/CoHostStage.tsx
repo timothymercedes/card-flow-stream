@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Coords are stored as normalized 0..1 fractions of the stage container, so the
  * layout scales correctly on mobile.
  */
-type RectN = { x: number; y: number; w: number; h: number; fit: "cover" | "contain"; zoom: number; hidden?: boolean };
+type RectN = { x: number; y: number; w: number; h: number; z?: number; fit: "cover" | "contain"; zoom: number; hidden?: boolean };
 
 type StageMode = "host-broadcast" | "viewer" | "local-only";
 
@@ -97,14 +97,16 @@ export function CoHostStage({
     let cancelled = false;
     supabase
       .from("live_stage_layouts")
-      .select("tile_user_id,x,y,w,h,object_fit,zoom,hidden")
+      .select("source_key,tile_user_id,x,y,w,h,z,object_fit,zoom,hidden")
       .eq("stream_id", streamId)
       .then(({ data }) => {
         if (cancelled || !data) return;
         const next: Record<string, RectN> = {};
         for (const row of data as any[]) {
-          next[row.tile_user_id] = {
+          const key = row.source_key || row.tile_user_id;
+          next[key] = {
             x: Number(row.x), y: Number(row.y), w: Number(row.w), h: Number(row.h),
+            z: Number(row.z) || 1,
             fit: row.object_fit === "contain" ? "contain" : "cover",
             zoom: Number(row.zoom) || 1,
             hidden: !!row.hidden,
@@ -120,16 +122,18 @@ export function CoHostStage({
         (p: any) => {
           const row = (p.new || p.old) as any;
           if (!row?.tile_user_id) return;
+          const key = row.source_key || row.tile_user_id;
           if (p.eventType === "DELETE") {
             setRemoteLayouts((m) => {
-              const { [row.tile_user_id]: _drop, ...rest } = m;
+              const { [key]: _drop, ...rest } = m;
               return rest;
             });
           } else {
             setRemoteLayouts((m) => ({
               ...m,
-              [row.tile_user_id]: {
+              [key]: {
                 x: Number(row.x), y: Number(row.y), w: Number(row.w), h: Number(row.h),
+                z: Number(row.z) || 1,
                 fit: row.object_fit === "contain" ? "contain" : "cover",
                 zoom: Number(row.zoom) || 1,
                 hidden: !!row.hidden,
@@ -150,20 +154,22 @@ export function CoHostStage({
       writeTimers.current[tileUserId] = setTimeout(() => {
         supabase.from("live_stage_layouts").upsert({
           stream_id: streamId,
+          source_key: tileUserId,
           tile_user_id: tileUserId,
+          source_type: tileUserId === userId ? "host" : "cohost",
           x: r.x, y: r.y, w: r.w, h: r.h,
+          z: r.z ?? 1,
           object_fit: r.fit, zoom: r.zoom, hidden: !!r.hidden,
           updated_at: new Date().toISOString(),
           updated_by: userId ?? null,
-        }, { onConflict: "stream_id,tile_user_id" }).then(() => {});
+        } as any, { onConflict: "stream_id,source_key" }).then(() => {});
       }, 120);
     } else if (mode === "local-only") {
       saveLocal(`${LOCAL_PREFIX}${tileUserId}`, r);
     }
   }, [mode, streamId, userId]);
 
-  const isHostCtl = !!onKickRemote;
-  const draggable = mode === "host-broadcast" || (mode === "local-only" && !readOnly && isHostCtl);
+  const draggable = mode === "host-broadcast" || (mode === "local-only" && !readOnly);
 
   const localKey = userId || "self";
   const total = (localStream && showLocal ? 1 : 0) + uniqueRemotes.length;
