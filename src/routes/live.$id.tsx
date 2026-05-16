@@ -3395,7 +3395,7 @@ function LiveDetail() {
       </div>
 
       {/* Tap to unmute — required because browsers block autoplay with sound */}
-      {!isSeller && stream.cf_playback_hls && !audioUnmuted && (
+      {!isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview) && !audioUnmuted && (
         <button
           onClick={() => setAudioUnmuted(true)}
           className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
@@ -3738,13 +3738,13 @@ function LiveDetail() {
           When the host runs the studio compositor, the HLS feed already contains
           every co-host tile baked-in at the host's chosen positions, so we must
           not re-render them as a floating overlay on top. */}
-      {!isSeller && !isCohostParticipant && !usingCompositor && viewerCall.remotes.length > 0 && (
+      {!isSeller && !isCohostParticipant && !usingCompositor && viewerOverlayRemotes.length > 0 && (
         <CoHostStage
           streamId={id}
           mode="viewer"
           localStream={null}
           localUsername=""
-          remotes={viewerCall.remotes}
+          remotes={viewerOverlayRemotes}
           audioOn={true}
           videoOn={true}
           onToggleAudio={() => {}}
