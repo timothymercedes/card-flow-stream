@@ -190,6 +190,21 @@ export function useCloudflareCalls(opts: {
       if (row.user_id === userId) return;
       const pc = pcRef.current; const mySession = sessionIdRef.current;
       if (!pc || !mySession) return;
+      // CF tears down the SFU session if our PC never reaches "connected".
+      // Wait for it (or bail) instead of hitting /tracks/new on a dead session.
+      if (pc.connectionState !== "connected") {
+        const ok = await new Promise<boolean>((resolve) => {
+          const h = () => {
+            if (pc.connectionState === "connected") { pc.removeEventListener("connectionstatechange", h); resolve(true); }
+            else if (pc.connectionState === "failed" || pc.connectionState === "closed" || pc.connectionState === "disconnected") {
+              pc.removeEventListener("connectionstatechange", h); resolve(false);
+            }
+          };
+          pc.addEventListener("connectionstatechange", h);
+          setTimeout(() => { pc.removeEventListener("connectionstatechange", h); resolve(pc.connectionState === "connected"); }, 8000);
+        });
+        if (cancelled || !ok) return;
+      }
       if (pulledRef.current.has(row.session_id)) return;
       pulledRef.current.add(row.session_id);
 
@@ -232,9 +247,14 @@ export function useCloudflareCalls(opts: {
             },
           }));
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error("[cf-calls] pull failed", e);
         pulledRef.current.delete(row.session_id);
+        // 410 = our session no longer exists on CF's side (PC never connected
+        // or was torn down). Surface a clear error instead of looping.
+        if (/\b410\b/.test(String(e?.message))) {
+          setError("Live video connection lost — please refresh to rejoin");
+        }
       }
     }
 
