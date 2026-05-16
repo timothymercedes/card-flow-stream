@@ -1487,7 +1487,7 @@ function LiveDetail() {
       !!stream &&
       stream.status !== "ended" &&
       !isSeller &&
-      !isCohostParticipant,
+      (!isCohostParticipant || !callJoined),
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
@@ -1498,7 +1498,9 @@ function LiveDetail() {
     () => viewerCall.remotes.find((r) => r.userId === stream?.seller_id),
     [viewerCall.remotes, stream?.seller_id],
   );
-  const hostRealtimeStagePreview = isCohostParticipant ? cohostHostPreview : viewerHostPreview;
+  const hostRealtimeStagePreview = isCohostParticipant
+    ? cohostHostPreview ?? viewerHostPreview
+    : viewerHostPreview;
   const shouldUseRealtimeStagePreview =
     !isSeller &&
     usingCompositor &&
