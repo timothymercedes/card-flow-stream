@@ -1306,12 +1306,16 @@ function LiveDetail() {
     ((isSeller && !usingObs && !usingCompositor) || isCohostParticipant) &&
     callJoined;
 
+  // Pre-acquired media stream from the user-gesture "Join" click. Required so
+  // mobile Safari/Chrome don't block getUserMedia inside the hook's useEffect.
+  const [cohostPreStream, setCohostPreStream] = useState<MediaStream | null>(null);
   const cfCall = useCloudflareCalls({
     enabled: callShouldRun,
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
+    preStream: cohostPreStream,
   });
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
@@ -1365,6 +1369,19 @@ function LiveDetail() {
     avatarUrl: profile?.avatar_url ?? null,
     viewerMode: true,
   });
+
+  // Host-side receive-only subscription so the host can SEE and HEAR cohosts
+  // even when the multi-cam compositor owns local camera capture (which
+  // disables the host's publishing cfCall above).
+  const hostViewerCall = useCloudflareCalls({
+    enabled: !!stream && stream.status !== "ended" && !!isSeller && (usingCompositor || usingObs),
+    streamId: stream?.id ?? null,
+    userId: user?.id ?? null,
+    username: profile?.username ?? null,
+    avatarUrl: profile?.avatar_url ?? null,
+    viewerMode: true,
+  });
+
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
