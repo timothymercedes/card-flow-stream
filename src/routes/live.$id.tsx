@@ -1487,14 +1487,17 @@ function LiveDetail() {
       !!stream &&
       stream.status !== "ended" &&
       !isSeller &&
-      !isCohostParticipant &&
-      !usingCompositor,
+      !isCohostParticipant,
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
     viewerMode: true,
   });
+  const viewerHostPreview = useMemo(
+    () => viewerCall.remotes.find((r) => r.userId === stream?.seller_id),
+    [viewerCall.remotes, stream?.seller_id],
+  );
 
   // Host-side receive-only subscription so the host can SEE and HEAR cohosts
   // even when the multi-cam compositor owns local camera capture (which
