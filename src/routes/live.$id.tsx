@@ -1509,8 +1509,11 @@ function LiveDetail() {
     : viewerHostPreview;
   const shouldUseRealtimeStagePreview =
     !isSeller &&
-    usingCompositor &&
-    !!hostRealtimeStagePreview;
+    !!hostRealtimeStagePreview &&
+    (usingCompositor || !stream?.cf_playback_hls || hlsLooksBlank);
+  const viewerOverlayRemotes = shouldUseRealtimeStagePreview
+    ? viewerCall.remotes.filter((r) => r.userId !== stream?.seller_id)
+    : viewerCall.remotes;
 
   // Host-side receive-only subscription so the host can SEE and HEAR cohosts
   // even when the multi-cam compositor owns local camera capture (which
