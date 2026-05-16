@@ -1410,7 +1410,9 @@ function LiveDetail() {
       if (map.has(r.userId)) continue;
       if (!r.stream.getVideoTracks().length) continue;
       try {
-        const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera");
+        const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera", {
+          ownsStream: false,
+        });
         map.set(r.userId, sid);
       } catch (e) {
         console.error("[live] failed to add cohost to canvas", e);
