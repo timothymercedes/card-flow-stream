@@ -123,6 +123,20 @@ function fmtRemaining(ms: number) {
   return `${m.toString().padStart(2, "0")}:${ss}`;
 }
 
+function RemoteStreamVideo({ stream, muted, className = "h-full w-full object-contain" }: { stream: MediaStream; muted: boolean; className?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    video.srcObject = stream;
+    video.play().catch(() => {});
+    return () => {
+      if (video.srcObject === stream) video.srcObject = null;
+    };
+  }, [stream]);
+  return <video ref={ref} playsInline autoPlay muted={muted} className={className} />;
+}
+
 function LiveDetail() {
   const { id } = Route.useParams();
   const nav = useNavigate();
@@ -1046,6 +1060,7 @@ function LiveDetail() {
           : 1;
   const obsPositionX = obsMetrics?.activeCenterX ?? 50;
   const obsPositionY = obsMetrics?.activeCenterY ?? 50;
+  const hlsLooksBlank = !!obsMetrics?.canAnalyzeFrame && (obsMetrics.activeAreaRatio ?? 0) < 0.03;
   const obsVideoStyle = {
     objectFit: (cameraFit === "fit" ? "contain" : "cover") as "contain" | "cover",
     objectPosition: `${obsPositionX}% ${obsPositionY}%`,
@@ -1411,6 +1426,10 @@ function LiveDetail() {
     publishOnly: isSeller && usingCompositor,
     preStream: isSeller && usingCompositor ? hostCallsPreviewStream : cohostPreStream,
   });
+  const cohostHostPreview = useMemo(
+    () => (isCohostParticipant ? cfCall.remotes.find((r) => r.userId === stream?.seller_id) : undefined),
+    [cfCall.remotes, isCohostParticipant, stream?.seller_id],
+  );
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   // Notify cohort on accept — they MUST tap the camera button to publish so
@@ -1468,14 +1487,17 @@ function LiveDetail() {
       !!stream &&
       stream.status !== "ended" &&
       !isSeller &&
-      !isCohostParticipant &&
-      !usingCompositor,
+      !isCohostParticipant,
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
     viewerMode: true,
   });
+  const viewerHostPreview = useMemo(
+    () => viewerCall.remotes.find((r) => r.userId === stream?.seller_id),
+    [viewerCall.remotes, stream?.seller_id],
+  );
 
   // Host-side receive-only subscription so the host can SEE and HEAR cohosts
   // even when the multi-cam compositor owns local camera capture (which
@@ -3340,6 +3362,18 @@ function LiveDetail() {
             autoPlay
             muted={!audioUnmuted}
           />
+        ) : isCohostParticipant && cohostHostPreview ? (
+          <RemoteStreamVideo
+            stream={cohostHostPreview.stream}
+            muted={!audioUnmuted}
+            className="h-full w-full object-contain bg-black"
+          />
+        ) : !isCohostParticipant && viewerHostPreview && hlsLooksBlank ? (
+          <RemoteStreamVideo
+            stream={viewerHostPreview.stream}
+            muted={!audioUnmuted}
+            className="h-full w-full object-contain bg-black"
+          />
         ) : stream.cf_playback_hls ? (
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
           // Start muted so autoplay isn't blocked; user taps to enable sound.
@@ -3653,6 +3687,32 @@ function LiveDetail() {
               : undefined
           }
         />
+      )}
+
+      {isCohostParticipant && callJoined && showCohostCameraPanel && !ended && (
+        <div className="absolute inset-x-3 top-16 z-50 max-h-[38vh] overflow-y-auto rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl ring-1 ring-border/70 backdrop-blur sm:left-auto sm:w-80">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs font-extrabold"><Camera className="h-3.5 w-3.5" /> Co-host camera</p>
+            <button onClick={() => setShowCohostCameraPanel(false)} className="rounded-md p-1 hover:bg-muted" title="Close camera panel"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="mb-2 grid grid-cols-3 gap-1.5">
+            <button onClick={() => cfCall.switchCamera(undefined, "user").then((ok) => ok ? toast.success("Front camera active") : toast.error("Could not switch camera"))} className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold">Front</button>
+            <button onClick={() => cfCall.switchCamera(undefined, "environment").then((ok) => ok ? toast.success("Back camera active") : toast.error("Could not switch camera"))} className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold">Back</button>
+            <button onClick={() => cfCall.refreshCameraDevices()} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RefreshCw className="h-3 w-3" /> Scan</button>
+          </div>
+          <div className="space-y-1 rounded-xl bg-muted/35 p-1">
+            {cfCall.cameraDevices.length === 0 ? (
+              <p className="px-2 py-2 text-[10px] font-semibold text-muted-foreground">Allow camera access, then scan to list available cameras.</p>
+            ) : cfCall.cameraDevices.map((d, i) => (
+              <button key={d.deviceId || d.groupId || i} onClick={() => cfCall.switchCamera(d.deviceId).then((ok) => ok ? toast.success(`${d.label || `Camera ${i + 1}`} active`) : toast.error("Could not switch camera"))} className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[10px] font-semibold hover:bg-background/70">
+                <Camera className="h-3 w-3 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Drag/resize your local tile on screen for your view only. Host layout stays public.</p>
+          {cfCall.error && <p className="mt-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">{cfCall.error}</p>}
+        </div>
       )}
 
       {/* Viewer-side overlay: only show when there is NO compositor stream.

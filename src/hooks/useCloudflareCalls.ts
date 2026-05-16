@@ -570,14 +570,14 @@ export function useCloudflareCalls(opts: {
       .eq("user_id", userId);
   }, [localStream, streamId, userId]);
 
-  const switchCamera = useCallback(async (deviceId?: string) => {
+  const switchCamera = useCallback(async (deviceId?: string, facingMode: "user" | "environment" = "environment") => {
     if (!localStream || !streamId || !userId) return false;
     try {
       const next = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: deviceId
           ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
-          : { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } },
+          : { facingMode: { ideal: facingMode }, width: { ideal: 640 }, height: { ideal: 480 } },
       });
       const nextTrack = next.getVideoTracks()[0];
       if (!nextTrack) return false;
