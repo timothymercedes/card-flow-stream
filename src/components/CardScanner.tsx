@@ -64,6 +64,10 @@ export type ScanResult = {
   overall_confidence?: number;
   match_label?: string;
   alternatives?: ScanAlternative[];
+  card_identity_id?: string;
+  image_source?: string;
+  match_score?: number;
+  confirmed_by?: "auto" | "manual";
   scan_debug?: {
     ocr_raw?: any;
     price_debug?: any;
@@ -307,6 +311,10 @@ export function CardScanner({
         next.image = officialImage || next.image;
         next.overall_confidence = Math.max(next.overall_confidence ?? 0, 0.95);
         next.match_label = "Database Match";
+        next.card_identity_id = c.id;
+        next.image_source = j?.image_source || undefined;
+        next.match_score = matchScore;
+        next.confirmed_by = "auto";
       } else {
         // Show the official image as a preview when we have it, but don't
         // bind it for save until the user confirms.
@@ -315,6 +323,7 @@ export function CardScanner({
         next.match_label = candidates.length
           ? "Multiple matches — tap the correct picture before saving"
           : "Needs confirmation — tap the correct picture before saving";
+        next.match_score = matchScore;
       }
       return next;
     } catch (e: any) {

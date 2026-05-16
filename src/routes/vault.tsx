@@ -931,6 +931,8 @@ function Vault() {
     name: string; category: string; trend: string; image: string;
     set?: string; year?: string; tcg_number?: string; variant?: string; language?: string;
     estimated_value?: number; condition_prices?: ConditionPrices;
+    card_identity_id?: string; image_source?: string; match_score?: number;
+    confirmed_by?: "auto" | "manual";
   }) {
     if (!user) return;
     const cp: ConditionPrices | null = r.condition_prices || null;
@@ -954,6 +956,10 @@ function Vault() {
       condition: "NM" as Condition,
       language: lang,
       last_valued_at: new Date().toISOString(),
+      card_identity_id: r.card_identity_id || null,
+      image_source: r.image_source || null,
+      match_score: typeof r.match_score === "number" ? r.match_score : null,
+      confirmed_by: r.confirmed_by || null,
     };
 
     setScanning(false);
