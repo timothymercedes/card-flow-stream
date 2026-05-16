@@ -228,6 +228,7 @@ export function useCloudflareCalls(opts: {
             method: "POST",
             body: JSON.stringify(pubBody),
           });
+          if (!pubResp.sessionDescription) throw new Error("Calls publish did not return SDP");
           await pc.setRemoteDescription(pubResp.sessionDescription);
           const connected = await waitForConnState(pc, "connected");
           if (!connected)
@@ -370,7 +371,7 @@ export function useCloudflareCalls(opts: {
             const activeSession = viewerMode ? await refreshEmptySession(pc) : sessionIdRef.current;
             if (!activeSession || cancelled || pcRef.current !== pc) return;
 
-            const resp = await sfu(`/sessions/${activeSession}/tracks/new`, {
+            const resp = await sfu<CallsTracksResponse>(`/sessions/${activeSession}/tracks/new`, {
               method: "POST",
               body: JSON.stringify({ tracks: wantTracks }),
             });
