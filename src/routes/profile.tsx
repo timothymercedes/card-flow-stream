@@ -483,7 +483,13 @@ function Profile() {
           ) : p.seller_status === "pending" ? (
             <p className="rounded-lg bg-yellow-500/10 px-3 py-2 text-xs font-semibold text-yellow-600">Application pending review</p>
           ) : (
-            <button onClick={applyToSell} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Apply to Sell</button>
+            <div className="space-y-1.5">
+              <button onClick={applyToSell} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Apply to Sell</button>
+              <p className="text-center text-[10px] text-muted-foreground">
+                By applying you accept the{" "}
+                <a href="/legal/seller-agreement" target="_blank" rel="noreferrer" className="text-primary underline">Seller Agreement</a>.
+              </p>
+            </div>
           )}
           {p.seller_status === "approved" && (
             <div className="mt-2 rounded-lg border border-border p-3">
