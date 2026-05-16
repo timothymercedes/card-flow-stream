@@ -42,11 +42,37 @@ function isRealtimeKitMeetingToken(token?: string) {
   return keys.includes("meetingId") && keys.includes("participantId");
 }
 
+function requestHasBearer(req: Request) {
+  const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+  return !!authHeader?.toLowerCase().startsWith("bearer ");
+}
+
+function isReceiveOnlyTracksRequest(path: string, method: string, body: string | undefined) {
+  if (method !== "POST" || !/\/sessions\/[^/]+\/tracks\/new$/.test(path)) return false;
+  try {
+    const parsed = JSON.parse(body || "{}");
+    const tracks = Array.isArray(parsed?.tracks) ? parsed.tracks : [];
+    return tracks.length > 0 && tracks.every((track: any) => track?.location === "remote");
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
-  const auth = await verifyUser(req);
-  if (!auth.ok) {
+  const url = new URL(req.url);
+  // strip "/cf-calls" prefix from edge function routing
+  const path = url.pathname.replace(/^\/cf-calls/, "") || "/";
+  const body = req.method === "GET" ? undefined : await req.text();
+  const publicViewerRequest =
+    !requestHasBearer(req) &&
+    (req.method === "POST" && path === "/sessions/new" ||
+      req.method === "PUT" && /\/sessions\/[^/]+\/renegotiate$/.test(path) ||
+      isReceiveOnlyTracksRequest(path, req.method, body));
+
+  const auth = publicViewerRequest ? null : await verifyUser(req);
+  if (auth && !auth.ok) {
     return new Response(JSON.stringify({ error: auth.error }), {
       status: auth.status, headers: { ...CORS, "content-type": "application/json" },
     });
@@ -95,12 +121,7 @@ Deno.serve(async (req) => {
       status: 500, headers: { ...CORS, "content-type": "application/json" },
     });
   }
-  const url = new URL(req.url);
-  // strip "/cf-calls" prefix from edge function routing
-  const path = url.pathname.replace(/^\/cf-calls/, "") || "/";
-
   try {
-    const body = req.method === "GET" ? undefined : await req.text();
     const upstream = await fetch(`${config.base}${path}`, {
       method: req.method,
       headers: {
