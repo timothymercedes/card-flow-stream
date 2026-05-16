@@ -48,6 +48,11 @@ import {
   Layout,
   Move,
   PanelRightClose,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  SwitchCamera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CardScanner } from "@/components/CardScanner";
