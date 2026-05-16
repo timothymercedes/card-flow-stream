@@ -236,14 +236,9 @@ export function useCloudflareCalls(opts: {
         const ms = new MediaStream();
         remoteStreamsByUserRef.current.set(row.user_id, ms);
 
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
         const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
           method: "POST",
-          body: JSON.stringify({
-            sessionDescription: { type: offer.type, sdp: offer.sdp },
-            tracks: wantTracks,
-          }),
+          body: JSON.stringify({ tracks: wantTracks }),
         });
 
         // Map mids returned by Cloudflare to this user so ontrack can route
