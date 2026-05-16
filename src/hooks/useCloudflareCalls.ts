@@ -59,6 +59,7 @@ export function useCloudflareCalls(opts: {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
+  const [sessionGen, setSessionGen] = useState(0);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -192,7 +193,7 @@ export function useCloudflareCalls(opts: {
       setRemotes({});
       setReady(false);
     };
-  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState]);
+  }, [enabled, streamId, userId, username, avatarUrl, viewerMode, preStream, waitForConnState, sessionGen]);
 
   // ─── Discover peers and pull their tracks ───────────────────────────────
   useEffect(() => {
@@ -267,10 +268,12 @@ export function useCloudflareCalls(opts: {
       } catch (e: any) {
         console.error("[cf-calls] pull failed", e);
         pulledRef.current.delete(row.session_id);
-        // 410 = our session no longer exists on CF's side (PC never connected
-        // or was torn down). Surface a clear error instead of looping.
+        // 410 = our CF session was GC'd (common in viewer mode where we
+        // never did an SDP exchange because no cohorts had joined yet).
+        // Bump sessionGen so the setup effect tears down the dead PC and
+        // creates a fresh session — then the next pullRemote will succeed.
         if (/\b410\b/.test(String(e?.message))) {
-          setError("Live video connection lost — please refresh to rejoin");
+          if (!cancelled) setSessionGen((n) => n + 1);
         }
       }
     }
