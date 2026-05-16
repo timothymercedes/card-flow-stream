@@ -34,18 +34,22 @@ type CohostTrackRow = {
 };
 type PeerConnectionWithRouteMap = RTCPeerConnection & { __midToUser?: Record<string, string> };
 
-async function sfu<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+async function sfu<T = unknown>(
+  path: string,
+  init?: RequestInit,
+  authMode: "required" | "optional" = "required",
+): Promise<T> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
   const token = session?.access_token;
-  if (!token) throw new Error("Not signed in");
+  if (!token && authMode === "required") throw new Error("Not signed in");
   const r = await fetch(`${SFU_FN_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       apikey: ANON_KEY,
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {}),
     },
   });
@@ -138,11 +142,15 @@ export function useCloudflareCalls(opts: {
   const refreshEmptySession = useCallback(async (pc: RTCPeerConnection) => {
     if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription)
       return sessionIdRef.current;
-    const session = await sfu<CallsSessionResponse>("/sessions/new", { method: "POST" });
+    const session = await sfu<CallsSessionResponse>(
+      "/sessions/new",
+      { method: "POST" },
+      viewerMode ? "optional" : "required",
+    );
     sessionIdRef.current = session.sessionId;
     sessionCreatedAtRef.current = Date.now();
     return session.sessionId as string;
-  }, []);
+  }, [viewerMode]);
 
   // Wait for SDP state transition
   const waitForConnState = useCallback(
