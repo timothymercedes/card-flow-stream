@@ -1004,8 +1004,17 @@ function LiveDetail() {
         /* ignore */
       }
     })();
+    // If anyone else (the in-browser studio, the scanner) asks for a camera,
+    // release ours immediately so the OS can hand it over without a
+    // "device already in use" error.
+    const onRelease = () => stopLegacyCameraPreview();
+    const onPageHide = () => stopLegacyCameraPreview();
+    window.addEventListener("pb:release-cameras", onRelease);
+    window.addEventListener("pagehide", onPageHide);
     return () => {
       cancelled = true;
+      window.removeEventListener("pb:release-cameras", onRelease);
+      window.removeEventListener("pagehide", onPageHide);
       stopLegacyCameraPreview();
     };
   }, [isSeller, stream?.status, usingObs, usingCompositor, stopLegacyCameraPreview]);
