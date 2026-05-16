@@ -203,7 +203,7 @@ export function useCloudflareCalls(opts: {
           // Create publish sessions only when we have local tracks to attach.
           // Receive-only viewers create their session lazily right before the
           // first pull, so Cloudflare does not disconnect an idle empty session.
-          const session = await sfu("/sessions/new", { method: "POST" });
+          const session = await sfu<CallsSessionResponse>("/sessions/new", { method: "POST" });
           sessionIdRef.current = session.sessionId;
           sessionCreatedAtRef.current = Date.now();
 
@@ -224,7 +224,7 @@ export function useCloudflareCalls(opts: {
               trackName: `${userId}-${tr.sender.track?.kind}`,
             })),
           };
-          const pubResp = await sfu(`/sessions/${session.sessionId}/tracks/new`, {
+          const pubResp = await sfu<CallsTracksResponse>(`/sessions/${session.sessionId}/tracks/new`, {
             method: "POST",
             body: JSON.stringify(pubBody),
           });
