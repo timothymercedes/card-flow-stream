@@ -3689,6 +3689,32 @@ function LiveDetail() {
         />
       )}
 
+      {isCohostParticipant && callJoined && showCohostCameraPanel && !ended && (
+        <div className="absolute inset-x-3 top-16 z-50 max-h-[38vh] overflow-y-auto rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl ring-1 ring-border/70 backdrop-blur sm:left-auto sm:w-80">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-xs font-extrabold"><Camera className="h-3.5 w-3.5" /> Co-host camera</p>
+            <button onClick={() => setShowCohostCameraPanel(false)} className="rounded-md p-1 hover:bg-muted" title="Close camera panel"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="mb-2 grid grid-cols-3 gap-1.5">
+            <button onClick={() => cfCall.switchCamera(undefined, "user").then((ok) => ok ? toast.success("Front camera active") : toast.error("Could not switch camera"))} className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold">Front</button>
+            <button onClick={() => cfCall.switchCamera(undefined, "environment").then((ok) => ok ? toast.success("Back camera active") : toast.error("Could not switch camera"))} className="rounded-lg bg-muted px-2 py-2 text-[10px] font-bold">Back</button>
+            <button onClick={() => cfCall.refreshCameraDevices()} className="flex items-center justify-center gap-1 rounded-lg bg-muted px-2 py-2 text-[10px] font-bold"><RefreshCw className="h-3 w-3" /> Scan</button>
+          </div>
+          <div className="space-y-1 rounded-xl bg-muted/35 p-1">
+            {cfCall.cameraDevices.length === 0 ? (
+              <p className="px-2 py-2 text-[10px] font-semibold text-muted-foreground">Allow camera access, then scan to list available cameras.</p>
+            ) : cfCall.cameraDevices.map((d, i) => (
+              <button key={d.deviceId || d.groupId || i} onClick={() => cfCall.switchCamera(d.deviceId).then((ok) => ok ? toast.success(`${d.label || `Camera ${i + 1}`} active`) : toast.error("Could not switch camera"))} className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-[10px] font-semibold hover:bg-background/70">
+                <Camera className="h-3 w-3 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{d.label || `Camera ${i + 1}`}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Drag/resize your local tile on screen for your view only. Host layout stays public.</p>
+          {cfCall.error && <p className="mt-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">{cfCall.error}</p>}
+        </div>
+      )}
+
       {/* Viewer-side overlay: only show when there is NO compositor stream.
           When the host runs the studio compositor, the HLS feed already contains
           every co-host tile baked-in at the host's chosen positions, so we must
