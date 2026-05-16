@@ -979,9 +979,9 @@ function LiveDetail() {
   const obsPositionX = obsMetrics?.activeCenterX ?? 50;
   const obsPositionY = obsMetrics?.activeCenterY ?? 50;
   const obsVideoStyle = {
-    objectFit: "cover" as const,
+    objectFit: (cameraFit === "fit" ? "contain" : "cover") as "contain" | "cover",
     objectPosition: `${obsPositionX}% ${obsPositionY}%`,
-    transform: `scale(${obsScale})`,
+    transform: `scale(${cameraFit === "fit" ? 1 : obsScale})`,
     transformOrigin: `${obsPositionX}% ${obsPositionY}%`,
     transition: "transform 220ms ease, object-position 220ms ease",
   };
