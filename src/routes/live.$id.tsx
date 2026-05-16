@@ -5081,10 +5081,15 @@ function LiveDetail() {
                               }}
                               className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
-                              <option value="stamp" className="bg-card">Stamp</option>
-                              <option value="pwe" className="bg-card">PWE</option>
-                              <option value="bubble" className="bg-card">Bubble</option>
-                              <option value="small_box" className="bg-card">Box</option>
+                              {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map((k) => {
+                                const short = k === "stamp" ? "Stamp" : k === "pwe" ? "PWE" : k === "bubble" ? "Bubble" : "Box";
+                                const price = presetEstimatedPriceUsd(k, { subtotal: Number(editStartPrice) || 0, quantity: Number(editQuantity) || 1 });
+                                return (
+                                  <option key={k} value={k} className="bg-card">
+                                    {`${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
+                                  </option>
+                                );
+                              })}
                             </select>
                           </label>
                           <label className="flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
