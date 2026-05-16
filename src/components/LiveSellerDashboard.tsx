@@ -228,11 +228,11 @@ export function LiveSellerDashboard({
   }
 
   const StatTile = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) => (
-    <div className={`flex min-w-0 flex-1 flex-col rounded-lg bg-black/55 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
-      <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-white/60">
-        <Icon className="h-2.5 w-2.5" /> {label}
+    <div className={`flex min-w-0 flex-1 flex-col rounded-md bg-black/55 px-1.5 py-1 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
+      <div className="flex items-center gap-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/60">
+        <Icon className="h-2 w-2" /> {label}
       </div>
-      <div className="truncate text-sm font-extrabold tabular-nums text-white">{value}</div>
+      <div className="truncate text-xs font-extrabold tabular-nums text-white">{value}</div>
     </div>
   );
 
@@ -253,22 +253,22 @@ export function LiveSellerDashboard({
   );
 
   return (
-    <div className="pointer-events-auto w-full max-w-md rounded-2xl bg-black/70 p-2 ring-1 ring-white/10 shadow-2xl backdrop-blur">
-      <div className="mb-1.5 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-white">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-live" /> Seller dashboard
+    <div className="pointer-events-auto w-56 rounded-xl bg-black/70 p-1.5 ring-1 ring-white/10 shadow-xl backdrop-blur">
+      <div className="mb-1 flex items-center justify-between">
+        <p className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-white">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-live" /> Dashboard
         </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-1 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
-            {collapsed ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
+        <div className="flex items-center gap-0.5">
+          <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
+            {collapsed ? <Maximize2 className="h-2.5 w-2.5" /> : <Minimize2 className="h-2.5 w-2.5" />}
           </button>
-          <button onClick={() => setHidden(true)} className="rounded-full p-1 text-white/70 hover:bg-white/10" title="Hide">
-            <X className="h-3 w-3" />
+          <button onClick={() => setHidden(true)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title="Hide">
+            <X className="h-2.5 w-2.5" />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-3 gap-1">
         <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />
         <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} />
         <StatTile icon={Clock} label="Show time" value={fmtElapsed(showTime)} />
