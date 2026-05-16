@@ -4918,15 +4918,27 @@ function LiveDetail() {
               .map((m) => {
                 const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
                 const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
+                const aud = (m as any).audience || "public";
+                const isModOnly = aud === "mods_only";
+                const isHostMods = aud === "host_mods";
                 return (
                   <div
                     key={m.id}
                     className={`max-w-[95%] rounded-2xl px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-sm backdrop-blur-md ${
                       isBlocked
                         ? "bg-red-500/30 line-through opacity-60"
+                        : isHostMods
+                        ? "bg-fuchsia-600/40 ring-1 ring-fuchsia-300/40"
+                        : isModOnly
+                        ? "bg-amber-500/30 ring-1 ring-amber-300/40"
                         : "bg-black/45 ring-1 ring-white/5"
                     }`}
                   >
+                    {(isModOnly || isHostMods) && (
+                      <span className="mr-1 rounded bg-black/40 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/90">
+                        {isHostMods ? "Host+Mods" : "Mods"}
+                      </span>
+                    )}
                     {isStaff &&
                     m.user_id &&
                     m.user_id !== user?.id &&
