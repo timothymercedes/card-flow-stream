@@ -3343,6 +3343,19 @@ function LiveDetail() {
   const hostStudioCameras = hostStudio.sources.filter((s) => s.kind === "camera");
   const hostStudioCameraAccessNeeded =
     hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
+  // Host mic = all camera-source audio tracks combined. "Muted" when every
+  // camera source is muted (or there are none with audio).
+  const hostMicMuted =
+    hostStudioCameras.length === 0
+      ? false
+      : hostStudioCameras.every((s) => s.muted);
+  const toggleHostMic = useCallback(() => {
+    const nextMuted = !hostMicMuted;
+    for (const s of hostStudioCameras) {
+      if (!!s.muted !== nextMuted) hostStudio.toggleMute(s.id);
+    }
+    toast.message(nextMuted ? "Host mic muted" : "Host mic on");
+  }, [hostMicMuted, hostStudioCameras, hostStudio]);
   const hostStudioScenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
     { id: "solo", label: "Solo", Icon: Square },
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
