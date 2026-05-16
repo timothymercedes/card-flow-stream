@@ -54,7 +54,12 @@ import { CardScanner } from "@/components/CardScanner";
 import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
 import { useCurrency, SUPPORTED_CURRENCIES, type Currency } from "@/lib/currency";
-import { SHIPPING_PRESETS, presetCapacityLabel, presetEstimatedPriceUsd, type ShippingPresetKey } from "@/lib/shippingPresets";
+import {
+  SHIPPING_PRESETS,
+  presetCapacityLabel,
+  presetEstimatedPriceUsd,
+  type ShippingPresetKey,
+} from "@/lib/shippingPresets";
 import { estimateShippingAndImportFees } from "@/lib/shippingEstimate";
 import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel";
 import { LiveGiveaway } from "@/components/LiveGiveaway";
@@ -221,7 +226,9 @@ function LiveDetail() {
           return { x: p.x, y: p.y, w: p.w ?? fallback.w, h: p.h ?? fallback.h };
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return fallback;
   };
   const [paymentButtonBox, setPaymentButtonBox] = useState<FloatingBoxRect>(() =>
@@ -241,10 +248,18 @@ function LiveDetail() {
     }),
   );
   useEffect(() => {
-    try { window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox)); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem("live.paymentBtnBox", JSON.stringify(paymentButtonBox));
+    } catch {
+      /* ignore */
+    }
   }, [paymentButtonBox]);
   useEffect(() => {
-    try { window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox)); } catch { /* ignore */ }
+    try {
+      window.localStorage.setItem("live.quickModBox", JSON.stringify(quickModBox));
+    } catch {
+      /* ignore */
+    }
   }, [quickModBox]);
   const [viewerPreviewBox, setViewerPreviewBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 280 : Math.max(4, window.innerWidth - 236),
@@ -261,7 +276,9 @@ function LiveDetail() {
     return (localStorage.getItem("live-camera-fit") as "fit" | "fill") || "fit";
   });
   useEffect(() => {
-    try { localStorage.setItem("live-camera-fit", cameraFit); } catch {}
+    try {
+      localStorage.setItem("live-camera-fit", cameraFit);
+    } catch {}
   }, [cameraFit]);
   const [switchingToBrowserCam, setSwitchingToBrowserCam] = useState(false);
   const [showHostCameraEditor, setShowHostCameraEditor] = useState(false);
@@ -334,7 +351,12 @@ function LiveDetail() {
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
   const [comboCount, setComboCount] = useState<number | null>(null);
-  const [soldBanner, setSoldBanner] = useState<{ key: number; item: string; user: string; amount: number } | null>(null);
+  const [soldBanner, setSoldBanner] = useState<{
+    key: number;
+    item: string;
+    user: string;
+    amount: number;
+  } | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
   const [prebidCount, setPrebidCount] = useState(0);
@@ -344,16 +366,26 @@ function LiveDetail() {
     if (!id) return;
     let alive = true;
     async function refresh() {
-      const { count } = await supabase.from("auction_queue" as any)
+      const { count } = await supabase
+        .from("auction_queue" as any)
         .select("id", { count: "exact", head: true })
-        .eq("stream_id", id).eq("status", "queued");
+        .eq("stream_id", id)
+        .eq("status", "queued");
       if (alive) setPrebidCount(count || 0);
     }
     refresh();
-    const ch = supabase.channel(`prebid-count-${id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, refresh)
+    const ch = supabase
+      .channel(`prebid-count-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
+        refresh,
+      )
       .subscribe();
-    return () => { alive = false; supabase.removeChannel(ch); };
+    return () => {
+      alive = false;
+      supabase.removeChannel(ch);
+    };
   }, [id]);
 
   // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
@@ -364,34 +396,55 @@ function LiveDetail() {
     const mountedAt = Date.now();
     const ch = supabase
       .channel(`host-prebid-notify-${id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "prebids" }, async (payload: any) => {
-        const row = payload.new;
-        const { data: q } = await supabase.from("auction_queue" as any)
-          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
-        if (!q || (q as any).stream_id !== id) return;
-        if (Date.now() - mountedAt < 1500) return;
-        toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
-          description: `from @${row.bidder_username || "anon"}`,
-        });
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "queue_offers" }, async (payload: any) => {
-        const row = payload.new;
-        const { data: q } = await supabase.from("auction_queue" as any)
-          .select("title, stream_id").eq("id", row.queue_item_id).maybeSingle();
-        if (!q || (q as any).stream_id !== id) return;
-        if (Date.now() - mountedAt < 1500) return;
-        toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
-          description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
-        });
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` }, (payload: any) => {
-        const before = payload.old, after = payload.new;
-        if (!before?.sold_to && after?.sold_to) {
-          toast.success(`🛒 Buy Now: "${after.title}" sold!`);
-        }
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "prebids" },
+        async (payload: any) => {
+          const row = payload.new;
+          const { data: q } = await supabase
+            .from("auction_queue" as any)
+            .select("title, stream_id")
+            .eq("id", row.queue_item_id)
+            .maybeSingle();
+          if (!q || (q as any).stream_id !== id) return;
+          if (Date.now() - mountedAt < 1500) return;
+          toast.success(`💰 Pre-bid $${row.amount} on "${(q as any).title}"`, {
+            description: `from @${row.bidder_username || "anon"}`,
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "queue_offers" },
+        async (payload: any) => {
+          const row = payload.new;
+          const { data: q } = await supabase
+            .from("auction_queue" as any)
+            .select("title, stream_id")
+            .eq("id", row.queue_item_id)
+            .maybeSingle();
+          if (!q || (q as any).stream_id !== id) return;
+          if (Date.now() - mountedAt < 1500) return;
+          toast.message(`🤝 Offer $${row.amount} on "${(q as any).title}"`, {
+            description: `from @${row.buyer_username || "anon"} — review in Pre-B`,
+          });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
+        (payload: any) => {
+          const before = payload.old,
+            after = payload.new;
+          if (!before?.sold_to && after?.sold_to) {
+            toast.success(`🛒 Buy Now: "${after.title}" sold!`);
+          }
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [id, user?.id, stream?.seller_id]);
 
   const { fmt: fmtMoney } = useCurrency(viewerCurrency);
@@ -535,7 +588,12 @@ function LiveDetail() {
           if (msg?.is_system && typeof msg.body === "string" && msg.body.startsWith("🏆")) {
             const match = msg.body.match(/"(.+?)" sold to @(\S+) for \$([\d.]+)/);
             if (match) {
-              setSoldBanner({ key: Date.now(), item: match[1], user: match[2], amount: Number(match[3]) });
+              setSoldBanner({
+                key: Date.now(),
+                item: match[1],
+                user: match[2],
+                amount: Number(match[3]),
+              });
               playSfx("sold");
             }
           }
@@ -558,7 +616,11 @@ function LiveDetail() {
               setTimeout(() => setSnipeFlash(false), 1500);
             }
             // 🆕 Bid increase → SFX (for viewers) + hype tick
-            if (prev && Number(next.current_bid || 0) > Number(prev.current_bid || 0) && next.current_bidder_id) {
+            if (
+              prev &&
+              Number(next.current_bid || 0) > Number(prev.current_bid || 0) &&
+              next.current_bidder_id
+            ) {
               playSfx("bid", 0.4);
               setHypeTick(Date.now());
             }
@@ -954,7 +1016,8 @@ function LiveDetail() {
   //   - else:            legacy in-app camera preview only
   const usingCompositor = !!stream?.cf_playback_hls && !!stream?.cf_whip_url;
   const usingObs = !!stream?.cf_playback_hls && !usingCompositor;
-  const flexNeedsCameraSetup = stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
+  const flexNeedsCameraSetup =
+    stream?.mode === "show_off" && !!isSeller && stream?.status !== "ended" && !usingCompositor;
   const hostStudio = useStudio({
     whipUrl: stream?.cf_whip_url ?? null,
     autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
@@ -1099,7 +1162,9 @@ function LiveDetail() {
     stopLegacyCameraPreview();
     try {
       window.dispatchEvent(new CustomEvent("pb:release-cameras"));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     await new Promise((r) => setTimeout(r, 250));
     try {
       // If caller passed device ids but they were all empty (labels-only list
@@ -1145,7 +1210,10 @@ function LiveDetail() {
       else if (reused > 0) toast.success("That camera is already ready in cockpit");
       else if (lastErr) toast.error(lastErr);
       else if (hostStudio.error) toast.error(hostStudio.error);
-      else toast.error("Camera didn't start. Check browser permission, close other apps using the cam, and try again.");
+      else
+        toast.error(
+          "Camera didn't start. Check browser permission, close other apps using the cam, and try again.",
+        );
     } finally {
       setStartingHostCameras(false);
     }
@@ -1320,7 +1388,10 @@ function LiveDetail() {
   const callShouldRun =
     !!stream &&
     stream.status !== "ended" &&
-    ((isSeller && !usingObs && (!usingCompositor || !!hostCallsPreviewStream) && (callJoined || usingCompositor)) ||
+    ((isSeller &&
+      !usingObs &&
+      (!usingCompositor || !!hostCallsPreviewStream) &&
+      (callJoined || usingCompositor)) ||
       (isCohostParticipant && callJoined));
 
   // Pre-acquired media stream from the user-gesture "Join" click. Required so
@@ -1388,7 +1459,12 @@ function LiveDetail() {
   // In compositor mode, cohosts are already baked into the HLS feed, so regular
   // viewers must not open invisible Calls sessions or they can hit stale 410s.
   const viewerCall = useCloudflareCalls({
-    enabled: !!stream && stream.status !== "ended" && !isSeller && !isCohostParticipant && !usingCompositor,
+    enabled:
+      !!stream &&
+      stream.status !== "ended" &&
+      !isSeller &&
+      !isCohostParticipant &&
+      !usingCompositor,
     streamId: stream?.id ?? null,
     userId: user?.id ?? null,
     username: profile?.username ?? null,
@@ -1432,18 +1508,28 @@ function LiveDetail() {
 
     for (const [uid, sid] of Array.from(map.entries())) {
       if (!currentUserIds.has(uid)) {
-        try { hostStudio.removeSource(sid); } catch {}
+        try {
+          hostStudio.removeSource(sid);
+        } catch {}
         map.delete(uid);
       }
     }
-  }, [isSeller, usingCompositor, hostViewerCall.remotes, hostStudio.addExternalStream, hostStudio.removeSource]);
+  }, [
+    isSeller,
+    usingCompositor,
+    hostViewerCall.remotes,
+    hostStudio.addExternalStream,
+    hostStudio.removeSource,
+  ]);
 
   useEffect(() => {
     if (usingCompositor) return;
     return () => {
       const map = cohostStudioIdsRef.current;
       for (const sid of map.values()) {
-        try { hostStudio.removeSource(sid); } catch {}
+        try {
+          hostStudio.removeSource(sid);
+        } catch {}
       }
       map.clear();
     };
@@ -1710,16 +1796,20 @@ function LiveDetail() {
   // Fetch seller country once stream loads
   useEffect(() => {
     if (!stream?.seller_id) return;
-    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id })
-      .then(({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()));
+    (supabase.rpc as any)("seller_country", { _seller_id: stream.seller_id }).then(
+      ({ data }: any) => setSellerCountry(((data as string) || "US").toUpperCase()),
+    );
   }, [stream?.seller_id]);
 
   // International acknowledgement gate (per-stream)
   const intlAck = useIntlAck(`live-${id}`, buyerCountry, sellerCountry);
-  const intlBlocked = intlAck.isIntl && (
-    (Array.isArray((stream as any)?.blocked_countries) && (stream as any).blocked_countries.map((c: string) => c.toUpperCase()).includes(buyerCountry))
-    || (stream && (stream as any).ships_internationally === false)
-  );
+  const intlBlocked =
+    intlAck.isIntl &&
+    ((Array.isArray((stream as any)?.blocked_countries) &&
+      (stream as any).blocked_countries
+        .map((c: string) => c.toUpperCase())
+        .includes(buyerCountry)) ||
+      (stream && (stream as any).ships_internationally === false));
 
   const { requireAuth } = useAuthGate();
   function requireBuyerReady(action = "continue"): boolean {
@@ -1770,7 +1860,11 @@ function LiveDetail() {
       playSfx("bid");
       // 🆕 Gamification: combo streak + XP + daily quest. Server-validated;
       // RPCs throttle/reset, so spam-clicking can't farm progression.
-      bumpCombo(id).then((r) => { if (r) setComboCount(r.combo_count); }).catch(() => {});
+      bumpCombo(id)
+        .then((r) => {
+          if (r) setComboCount(r.combo_count);
+        })
+        .catch(() => {});
       awardXp(2, "bid", id).catch(() => {});
       bumpQuest("daily_bid", 1).catch(() => {});
       const extended = !!(bidRes as any)?.extended;
@@ -2310,7 +2404,12 @@ function LiveDetail() {
       `▶️ ${item} — ${sec}s, starting $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}${qty > 1 ? ` · qty ${qty}` : ""}`,
       true,
     );
-    setLastQuick({ item, start: String(start), timer: String(sec), buyNow: buyNow ? String(buyNow) : "" });
+    setLastQuick({
+      item,
+      start: String(start),
+      timer: String(sec),
+      buyNow: buyNow ? String(buyNow) : "",
+    });
     setQuickItem("");
     setQuickBuyNow("");
     toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
@@ -2495,10 +2594,9 @@ function LiveDetail() {
 
     // 🔒 Server-authoritative finalize: locks winner, creates order, receipt,
     // notifications, audit log, listing/vault sync — all atomically.
-    const { data: finRes, error: finErr } = await (supabase.rpc as any)(
-      "finalize_auction_round",
-      { _stream_id: id },
-    );
+    const { data: finRes, error: finErr } = await (supabase.rpc as any)("finalize_auction_round", {
+      _stream_id: id,
+    });
     if (finErr) {
       console.error("[live] finalize_auction_round failed", finErr);
       // Soft-fail: clear the timer locally so the UI recovers
@@ -2649,12 +2747,15 @@ function LiveDetail() {
       const patch = { cf_playback_hls: d.hls_url, cf_whip_url: d.whip_url };
       const { error: updateErr } = await supabase.from("live_streams").update(patch).eq("id", id);
       if (updateErr) throw updateErr;
-      await supabase.from("live_stream_credentials" as any).upsert({
-        stream_id: id,
-        cf_live_input_id: d.live_input_id ?? null,
-        cf_rtmps_url: d.rtmps_url ?? null,
-        cf_stream_key: d.stream_key ?? null,
-      }, { onConflict: "stream_id" });
+      await supabase.from("live_stream_credentials" as any).upsert(
+        {
+          stream_id: id,
+          cf_live_input_id: d.live_input_id ?? null,
+          cf_rtmps_url: d.rtmps_url ?? null,
+          cf_stream_key: d.stream_key ?? null,
+        },
+        { onConflict: "stream_id" },
+      );
       setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
       setShowHostCameraEditor(true);
       setHostCameraPanelCollapsed(false);
@@ -2878,7 +2979,10 @@ function LiveDetail() {
         const cy = Math.max(0, Math.min(1, ny - pad));
         const cw = Math.max(0.05, Math.min(1 - cx, nw + pad * 2));
         const ch = Math.max(0.05, Math.min(1 - cy, nh + pad * 2));
-        const x = cx * fw, y = cy * fh, w = cw * fw, h = ch * fh;
+        const x = cx * fw,
+          y = cy * fh,
+          w = cw * fw,
+          h = ch * fh;
         const c = document.createElement("canvas");
         c.width = Math.max(64, Math.round(w));
         c.height = Math.max(64, Math.round(h));
@@ -2905,14 +3009,18 @@ function LiveDetail() {
           r?.tcg_number ? `#${r.tcg_number}` : "",
           r?.set ? `set: ${r.set}` : "",
           r?.year ? `year: ${r.year}` : "",
-        ].filter(Boolean).join(" ");
+        ]
+          .filter(Boolean)
+          .join(" ");
         if (q.trim()) {
           const { data: idData } = await supabase.functions.invoke("identify-card", {
             body: { query: q, language: (r as any)?.language },
           });
           if (idData && (idData as any).name) authoritative = idData;
         }
-      } catch { /* non-fatal */ }
+      } catch {
+        /* non-fatal */
+      }
 
       // Hand off to the existing spotlight + auction pipeline.
       await onScanResult({
@@ -3002,7 +3110,9 @@ function LiveDetail() {
         condition: "NM",
         status: "available",
       });
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
 
     // Pin the card to the stream so the finalize RPC can match it to vault/market.
     try {
@@ -3022,8 +3132,9 @@ function LiveDetail() {
           },
         } as any)
         .eq("id", stream.id);
-    } catch { /* non-fatal */ }
-
+    } catch {
+      /* non-fatal */
+    }
 
     const update: any = {
       current_item: hypeName,
@@ -3157,7 +3268,11 @@ function LiveDetail() {
       {intlAck.modal}
       {!isSeller && intlAck.isIntl && (
         <div className="absolute left-2 right-2 top-14 z-40">
-          <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountry} variant="compact" />
+          <IntlWarningBanner
+            buyerCountry={buyerCountry}
+            sellerCountry={sellerCountry}
+            variant="compact"
+          />
         </div>
       )}
       {/* Full-screen video */}
@@ -3207,7 +3322,11 @@ function LiveDetail() {
       <button
         onClick={() => setCameraFit((f) => (f === "fit" ? "fill" : "fit"))}
         className="absolute bottom-24 left-2 z-40 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/80"
-        title={cameraFit === "fit" ? "Switch to fill (crop to fit screen)" : "Switch to fit (show full frame)"}
+        title={
+          cameraFit === "fit"
+            ? "Switch to fill (crop to fit screen)"
+            : "Switch to fit (show full frame)"
+        }
       >
         {cameraFit === "fit" ? "Fit" : "Fill"}
       </button>
@@ -3440,18 +3559,42 @@ function LiveDetail() {
               setCohostPreStream(null);
             }
             if (!isSeller && isCohostParticipant && user) {
-              await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", user.id);
-              await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", user.id);
+              await supabase
+                .from("stream_collab_participants")
+                .delete()
+                .eq("stream_id", id)
+                .eq("user_id", user.id);
+              await supabase
+                .from("stream_cohost_tracks")
+                .delete()
+                .eq("stream_id", id)
+                .eq("user_id", user.id);
               toast.success("You left the collab");
             }
           }}
-          onKickRemote={isSeller ? async (uid, uname) => {
-            if (!confirm(`Remove @${uname} from collab?`)) return;
-            await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", uid);
-            await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", uid);
-            await supabase.from("stream_moderators").delete().eq("stream_id", id).eq("mod_user_id", uid);
-            toast.success(`Removed @${uname}`);
-          } : undefined}
+          onKickRemote={
+            isSeller
+              ? async (uid, uname) => {
+                  if (!confirm(`Remove @${uname} from collab?`)) return;
+                  await supabase
+                    .from("stream_collab_participants")
+                    .delete()
+                    .eq("stream_id", id)
+                    .eq("user_id", uid);
+                  await supabase
+                    .from("stream_cohost_tracks")
+                    .delete()
+                    .eq("stream_id", id)
+                    .eq("user_id", uid);
+                  await supabase
+                    .from("stream_moderators")
+                    .delete()
+                    .eq("stream_id", id)
+                    .eq("mod_user_id", uid);
+                  toast.success(`Removed @${uname}`);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -3477,26 +3620,42 @@ function LiveDetail() {
           no studio canvas to fold cohosts into). With the in-app compositor the
           cohosts are added as external sources via addExternalStream and shown
           inside the studio preview, so this overlay would only get in the way. */}
-      {isSeller && usingObs && !usingCompositor && !callShouldRun && hostViewerCall.remotes.length > 0 && (
-        <CoHostStage
-          localStream={null}
-          localUsername=""
-          remotes={hostViewerCall.remotes}
-          audioOn={true}
-          videoOn={true}
-          onToggleAudio={() => {}}
-          onToggleVideo={() => {}}
-          onLeave={() => {}}
-          readOnly
-          onKickRemote={async (uid, uname) => {
-            if (!confirm(`Remove @${uname} from collab?`)) return;
-            await supabase.from("stream_collab_participants").delete().eq("stream_id", id).eq("user_id", uid);
-            await supabase.from("stream_cohost_tracks").delete().eq("stream_id", id).eq("user_id", uid);
-            await supabase.from("stream_moderators").delete().eq("stream_id", id).eq("mod_user_id", uid);
-            toast.success(`Removed @${uname}`);
-          }}
-        />
-      )}
+      {isSeller &&
+        usingObs &&
+        !usingCompositor &&
+        !callShouldRun &&
+        hostViewerCall.remotes.length > 0 && (
+          <CoHostStage
+            localStream={null}
+            localUsername=""
+            remotes={hostViewerCall.remotes}
+            audioOn={true}
+            videoOn={true}
+            onToggleAudio={() => {}}
+            onToggleVideo={() => {}}
+            onLeave={() => {}}
+            readOnly
+            onKickRemote={async (uid, uname) => {
+              if (!confirm(`Remove @${uname} from collab?`)) return;
+              await supabase
+                .from("stream_collab_participants")
+                .delete()
+                .eq("stream_id", id)
+                .eq("user_id", uid);
+              await supabase
+                .from("stream_cohost_tracks")
+                .delete()
+                .eq("stream_id", id)
+                .eq("user_id", uid);
+              await supabase
+                .from("stream_moderators")
+                .delete()
+                .eq("stream_id", id)
+                .eq("mod_user_id", uid);
+              toast.success(`Removed @${uname}`);
+            }}
+          />
+        )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
         <div className="flex items-center gap-1.5">
           <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur">
@@ -3607,13 +3766,17 @@ function LiveDetail() {
                     } catch (e: any) {
                       const name = e?.name || "";
                       if (name === "NotAllowedError" || name === "SecurityError") {
-                        toast.error("Camera/mic permission denied. Allow access in your browser settings and try again.");
+                        toast.error(
+                          "Camera/mic permission denied. Allow access in your browser settings and try again.",
+                        );
                       } else if (name === "NotFoundError") {
                         toast.error("No camera or microphone found on this device.");
                       } else if (name === "NotReadableError") {
                         toast.error("Camera/mic is in use by another app. Close it and try again.");
                       } else {
-                        toast.error(`Could not access camera/mic: ${e?.message || name || "unknown error"}`);
+                        toast.error(
+                          `Could not access camera/mic: ${e?.message || name || "unknown error"}`,
+                        );
                       }
                       return;
                     }
@@ -4107,7 +4270,10 @@ function LiveDetail() {
                   onChange={async (e) => {
                     const s = Number(e.target.value);
                     setEditSlowMode(String(s));
-                    await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                    await supabase
+                      .from("live_streams")
+                      .update({ chat_slow_mode_sec: s })
+                      .eq("id", id);
                     await sendMsg(
                       s === 0
                         ? "📌 Slow chat is off."
@@ -4204,37 +4370,66 @@ function LiveDetail() {
                             setEditShipPreset(key);
                             const p = SHIPPING_PRESETS[key];
                             setEditShipMethod(p.label);
-                            const auto = p.flatRate && p.flatPriceUsd != null
-                              ? p.flatPriceUsd
-                              : Number(
-                                  estimateShippingAndImportFees({
-                                    subtotal: startVal,
-                                    weightOz: p.weightOz,
-                                    quantity: Number(editQuantity) || 1,
-                                  }).shipping.toFixed(2),
-                                );
+                            const auto =
+                              p.flatRate && p.flatPriceUsd != null
+                                ? p.flatPriceUsd
+                                : Number(
+                                    estimateShippingAndImportFees({
+                                      subtotal: startVal,
+                                      weightOz: p.weightOz,
+                                      quantity: Number(editQuantity) || 1,
+                                    }).shipping.toFixed(2),
+                                  );
                             setEditShipPrice(String(auto));
                           }}
                           className="rounded-md bg-input px-2 py-1 text-[10px] font-bold text-foreground outline-none"
                         >
-                          {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map((k) => {
-                            const icon = k === "stamp" ? "📮" : k === "pwe" ? "✉️" : k === "bubble" ? "📦" : "📫";
-                            const short = k === "stamp" ? "Stamp" : k === "pwe" ? "PWE" : k === "bubble" ? "Bubble" : "Box";
-                            const price = presetEstimatedPriceUsd(k, { subtotal: startVal, quantity: Number(editQuantity) || 1 });
-                            return (
-                              <option key={k} value={k} disabled={(k === "stamp" || k === "pwe") && forceBubble}>
-                                {`${icon} ${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
-                              </option>
-                            );
-                          })}
+                          {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map(
+                            (k) => {
+                              const icon =
+                                k === "stamp"
+                                  ? "📮"
+                                  : k === "pwe"
+                                    ? "✉️"
+                                    : k === "bubble"
+                                      ? "📦"
+                                      : "📫";
+                              const short =
+                                k === "stamp"
+                                  ? "Stamp"
+                                  : k === "pwe"
+                                    ? "PWE"
+                                    : k === "bubble"
+                                      ? "Bubble"
+                                      : "Box";
+                              const price = presetEstimatedPriceUsd(k, {
+                                subtotal: startVal,
+                                quantity: Number(editQuantity) || 1,
+                              });
+                              return (
+                                <option
+                                  key={k}
+                                  value={k}
+                                  disabled={(k === "stamp" || k === "pwe") && forceBubble}
+                                >
+                                  {`${icon} ${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
+                                </option>
+                              );
+                            },
+                          )}
                         </select>
-                        <span className="text-[10px] font-bold text-muted-foreground ml-1">Slow chat</span>
+                        <span className="text-[10px] font-bold text-muted-foreground ml-1">
+                          Slow chat
+                        </span>
                         <select
                           value={editSlowMode}
                           onChange={async (e) => {
                             const s = Number(e.target.value);
                             setEditSlowMode(String(s));
-                            await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                            await supabase
+                              .from("live_streams")
+                              .update({ chat_slow_mode_sec: s })
+                              .eq("id", id);
                             await sendMsg(
                               s === 0
                                 ? "📌 Slow chat is off."
@@ -4258,7 +4453,8 @@ function LiveDetail() {
                     </div>
                     {forceBubble && (
                       <p className="text-[10px] text-amber-300">
-                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive policy).
+                        ⚠️ Items $30+ must ship in a tracked bubble mailer or box (PullBidLive
+                        policy).
                       </p>
                     )}
                     <div className="grid grid-cols-2 gap-2">
@@ -4284,7 +4480,9 @@ function LiveDetail() {
                       </label>
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Weight: {weightOz.toFixed(1)} oz · Shipping is auto-quoted from package size — host can't override. Real carrier rate is finalized via Shippo at checkout for tracked options.
+                      Weight: {weightOz.toFixed(1)} oz · Shipping is auto-quoted from package size —
+                      host can't override. Real carrier rate is finalized via Shippo at checkout for
+                      tracked options.
                     </p>
                   </>
                 );
@@ -4333,7 +4531,9 @@ function LiveDetail() {
                 />
               </label>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                Hands-free auction control. Active trigger: <b>{voicePhrase || "your custom word"}</b>, plus "start", "sold", "extend", "end live".
+                Hands-free auction control. Active trigger:{" "}
+                <b>{voicePhrase || "your custom word"}</b>, plus "start", "sold", "extend", "end
+                live".
               </p>
               <input
                 value={editVoicePhrase}
@@ -4630,7 +4830,9 @@ function LiveDetail() {
             <PinnedAuctionCard
               streamId={stream.id}
               currentItem={stream.current_item || null}
-              currentImage={(stream as any).current_item_image_url || (stream as any).item_image_url || null}
+              currentImage={
+                (stream as any).current_item_image_url || (stream as any).item_image_url || null
+              }
               currentBid={Number(stream.current_bid || 0)}
               endsAt={stream.ends_at || null}
               auctionLive={!!auctionLive}
@@ -4653,9 +4855,15 @@ function LiveDetail() {
             hostId={stream.seller_id}
             startedAt={stream.started_at || null}
             viewerCount={viewerCount || 0}
-            chatMessages={messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => ({
-              id: m.id, user_id: m.user_id, username: m.username, content: m.content, created_at: m.created_at,
-            }))}
+            chatMessages={messages
+              .filter((m) => !m.is_system && !m.is_announcement)
+              .map((m) => ({
+                id: m.id,
+                user_id: m.user_id,
+                username: m.username,
+                content: m.content,
+                created_at: m.created_at,
+              }))}
             scheduledShowId={(stream as any).scheduled_show_id || null}
           />
         </div>
@@ -5110,20 +5318,28 @@ function LiveDetail() {
                         {/* Price row — Bid Start | Buy Now */}
                         <div className="grid grid-cols-2 gap-1">
                           <label className="flex items-center gap-1 rounded bg-background/80 px-2 py-1">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">Bid Start</span>
+                            <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">
+                              Bid Start
+                            </span>
                             <span className="text-[11px] font-bold text-foreground">$</span>
                             <input
-                              type="number" min="1" inputMode="decimal"
+                              type="number"
+                              min="1"
+                              inputMode="decimal"
                               value={editStartPrice}
                               onChange={(e) => setEditStartPrice(e.target.value)}
                               className="w-full bg-transparent text-[11px] font-extrabold text-foreground outline-none"
                             />
                           </label>
                           <label className="flex items-center gap-1 rounded bg-background/80 px-2 py-1">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">Buy Now</span>
+                            <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">
+                              Buy Now
+                            </span>
                             <span className="text-[11px] font-bold text-foreground">$</span>
                             <input
-                              type="number" min="1" inputMode="decimal"
+                              type="number"
+                              min="1"
+                              inputMode="decimal"
                               value={quickBuyNow}
                               onChange={(e) => setQuickBuyNow(e.target.value)}
                               placeholder="—"
@@ -5134,7 +5350,9 @@ function LiveDetail() {
 
                         {/* Timer pills */}
                         <div className="flex flex-wrap items-center gap-1">
-                          <span className="mr-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white/70">Timer</span>
+                          <span className="mr-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white/70">
+                            Timer
+                          </span>
                           {([5, 10, 15, 20, 30, 60] as const).map((s) => (
                             <button
                               key={s}
@@ -5148,7 +5366,9 @@ function LiveDetail() {
 
                         {/* Extras row */}
                         <div className="flex flex-wrap items-center gap-1 rounded bg-background/40 p-1">
-                          <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">Extras</span>
+                          <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">
+                            Extras
+                          </span>
                           <label className="flex cursor-pointer items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
                             <input
                               type="checkbox"
@@ -5181,28 +5401,41 @@ function LiveDetail() {
                                 setEditShipPreset(key);
                                 const p = SHIPPING_PRESETS[key];
                                 setEditShipMethod(p.label);
-                                const auto = p.flatRate && p.flatPriceUsd != null
-                                  ? p.flatPriceUsd
-                                  : Number(
-                                      estimateShippingAndImportFees({
-                                        subtotal: Number(editStartPrice) || 0,
-                                        weightOz: p.weightOz,
-                                        quantity: Number(editQuantity) || 1,
-                                      }).shipping.toFixed(2),
-                                    );
+                                const auto =
+                                  p.flatRate && p.flatPriceUsd != null
+                                    ? p.flatPriceUsd
+                                    : Number(
+                                        estimateShippingAndImportFees({
+                                          subtotal: Number(editStartPrice) || 0,
+                                          weightOz: p.weightOz,
+                                          quantity: Number(editQuantity) || 1,
+                                        }).shipping.toFixed(2),
+                                      );
                                 setEditShipPrice(String(auto));
                               }}
                               className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
-                              {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map((k) => {
-                                const short = k === "stamp" ? "Stamp" : k === "pwe" ? "PWE" : k === "bubble" ? "Bubble" : "Box";
-                                const price = presetEstimatedPriceUsd(k, { subtotal: Number(editStartPrice) || 0, quantity: Number(editQuantity) || 1 });
-                                return (
-                                  <option key={k} value={k} className="bg-card">
-                                    {`${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
-                                  </option>
-                                );
-                              })}
+                              {(["stamp", "pwe", "bubble", "small_box"] as ShippingPresetKey[]).map(
+                                (k) => {
+                                  const short =
+                                    k === "stamp"
+                                      ? "Stamp"
+                                      : k === "pwe"
+                                        ? "PWE"
+                                        : k === "bubble"
+                                          ? "Bubble"
+                                          : "Box";
+                                  const price = presetEstimatedPriceUsd(k, {
+                                    subtotal: Number(editStartPrice) || 0,
+                                    quantity: Number(editQuantity) || 1,
+                                  });
+                                  return (
+                                    <option key={k} value={k} className="bg-card">
+                                      {`${short} · ${presetCapacityLabel(k)} · $${price.toFixed(2)}`}
+                                    </option>
+                                  );
+                                },
+                              )}
                             </select>
                           </label>
                           <label className="flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
@@ -5212,7 +5445,10 @@ function LiveDetail() {
                               onChange={async (e) => {
                                 const s = Number(e.target.value);
                                 setEditSlowMode(String(s));
-                                await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+                                await supabase
+                                  .from("live_streams")
+                                  .update({ chat_slow_mode_sec: s })
+                                  .eq("id", id);
                                 await sendMsg(
                                   s === 0
                                     ? "📌 Slow chat is off."
@@ -5223,11 +5459,21 @@ function LiveDetail() {
                               }}
                               className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
-                              <option value="0" className="bg-card">Off</option>
-                              <option value="3" className="bg-card">3s</option>
-                              <option value="5" className="bg-card">5s</option>
-                              <option value="10" className="bg-card">10s</option>
-                              <option value="30" className="bg-card">30s</option>
+                              <option value="0" className="bg-card">
+                                Off
+                              </option>
+                              <option value="3" className="bg-card">
+                                3s
+                              </option>
+                              <option value="5" className="bg-card">
+                                5s
+                              </option>
+                              <option value="10" className="bg-card">
+                                10s
+                              </option>
+                              <option value="30" className="bg-card">
+                                30s
+                              </option>
                             </select>
                           </label>
                           <span className="ml-auto rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-300">
@@ -6476,7 +6722,9 @@ function LiveDetail() {
             <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-200">
               <span className="text-base leading-none">📦</span>
               <span>
-                <span className="font-bold">Host only:</span> an item must ship out to the buyer when it is won on the wheel. The win auto-creates an order in your Seller Hub → Orders/Shipping.
+                <span className="font-bold">Host only:</span> an item must ship out to the buyer
+                when it is won on the wheel. The win auto-creates an order in your Seller Hub →
+                Orders/Shipping.
               </span>
             </div>
 

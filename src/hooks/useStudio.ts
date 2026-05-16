@@ -100,7 +100,8 @@ function matchesCameraDevice(source: StudioSource, devices: MediaDeviceInfo[], d
   if (!source.deviceId) {
     const device = devices.find((d) => d.deviceId === deviceId);
     const trackLabel = source.stream.getVideoTracks()[0]?.label;
-    if (!!device?.label && (source.label === device.label || trackLabel === device.label)) return true;
+    if (!!device?.label && (source.label === device.label || trackLabel === device.label))
+      return true;
   }
   return false;
 }
@@ -346,7 +347,9 @@ export function useStudio(opts: {
         // holding the camera.
         try {
           window.dispatchEvent(new CustomEvent("pb:release-cameras", { detail: { deviceId } }));
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         await wait(250);
         const baseVideoConstraints: MediaTrackConstraints = {
           width: { ideal: 1280 },
@@ -480,7 +483,13 @@ export function useStudio(opts: {
           setSources((prev) => {
             const next = prev.map((s) =>
               s.id === existing.id
-                ? { ...s, label, stream, visible: true, ownsStream: metadata.ownsStream ?? s.ownsStream }
+                ? {
+                    ...s,
+                    label,
+                    stream,
+                    visible: true,
+                    ownsStream: metadata.ownsStream ?? s.ownsStream,
+                  }
                 : s,
             );
             sourcesRef.current = next;
