@@ -1413,8 +1413,7 @@ function LiveDetail() {
     stream.status !== "ended" &&
     ((isSeller &&
       !usingObs &&
-      (!usingCompositor || !!hostCallsPreviewStream) &&
-      (callJoined || usingCompositor)) ||
+      (usingCompositor ? !!hostCallsPreviewStream : !!legacyHostStream || callJoined)) ||
       (isCohostParticipant && callJoined));
 
   // Pre-acquired media stream from the user-gesture "Join" click. Required so
@@ -1427,7 +1426,11 @@ function LiveDetail() {
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
     publishOnly: isSeller && usingCompositor,
-    preStream: isSeller && usingCompositor ? hostCallsPreviewStream : cohostPreStream,
+    preStream: isSeller
+      ? usingCompositor
+        ? hostCallsPreviewStream
+        : legacyHostStream
+      : cohostPreStream,
   });
   const cohostHostPreview = useMemo(
     () => (isCohostParticipant ? cfCall.remotes.find((r) => r.userId === stream?.seller_id) : undefined),
