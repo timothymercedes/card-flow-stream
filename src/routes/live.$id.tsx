@@ -3800,7 +3800,7 @@ function LiveDetail() {
               <Users2 className="h-4 w-4" />
             </button>
           )}
-          {!ended && (isSeller || isCohostParticipant) && (isSeller ? true : !callJoined) && (
+          {!ended && (isSeller || isCohostParticipant) && (
             <button
               onClick={async () => {
                 if (showSettings) setShowSettings(false);
@@ -3814,6 +3814,11 @@ function LiveDetail() {
                   }
                   openHostCameraControls();
                 } else {
+                  if (callJoined) {
+                    setShowCohostCameraPanel((v) => !v);
+                    void cfCall.refreshCameraDevices();
+                    return;
+                  }
                   // Cohost: capture camera+mic INSIDE the user-gesture handler so
                   // mobile Safari/Chrome don't reject getUserMedia. The hook then
                   // uses this pre-acquired stream instead of calling getUserMedia
@@ -3844,6 +3849,7 @@ function LiveDetail() {
                     }
                   }
                   setCallJoined(true);
+                  setShowCohostCameraPanel(true);
                 }
               }}
               disabled={isSeller && !usingCompositor && switchingToBrowserCam}
