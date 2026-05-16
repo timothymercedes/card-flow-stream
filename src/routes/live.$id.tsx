@@ -209,11 +209,13 @@ function LiveDetail() {
   const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
+  const [legacyHostStream, setLegacyHostStream] = useState<MediaStream | null>(null);
 
   const stopLegacyCameraPreview = useCallback(() => {
     const legacyStream = camStream.current;
     legacyStream?.getTracks().forEach((t) => t.stop());
     camStream.current = null;
+    setLegacyHostStream(null);
     if (legacyStream && videoRef.current && videoRef.current.srcObject === legacyStream) {
       videoRef.current.pause();
       videoRef.current.srcObject = null;
@@ -1087,6 +1089,7 @@ function LiveDetail() {
           return;
         }
         camStream.current = s;
+        setLegacyHostStream(s);
         if (videoRef.current) {
           videoRef.current.srcObject = s;
           videoRef.current.play().catch(() => {});
