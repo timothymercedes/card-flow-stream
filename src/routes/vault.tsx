@@ -933,11 +933,17 @@ function Vault() {
     estimated_value?: number; condition_prices?: ConditionPrices;
     card_identity_id?: string; image_source?: string; match_score?: number;
     confirmed_by?: "auto" | "manual";
+    pricing_tier?: "verified" | "estimated" | "unavailable";
+    price_range_low?: number; price_range_high?: number;
   }) {
     if (!user) return;
     const cp: ConditionPrices | null = r.condition_prices || null;
+    const tier = r.pricing_tier || (r.estimated_value && r.estimated_value > 0 ? "verified" : "unavailable");
     const baseNm = Number(r.estimated_value) > 0 ? Number(r.estimated_value) : (cp?.NM || 1);
-    const value = priceFor("NM", baseNm, cp);
+    // Only assign a numeric estimated_value when we have a verified price.
+    // Estimated / unavailable rows store the range (or nothing) and leave
+    // estimated_value at 0 so totals don't include fabricated numbers.
+    const value = tier === "verified" ? priceFor("NM", baseNm, cp) : 0;
     const lang = r.language || language || "en";
 
     const payload = {
@@ -948,7 +954,7 @@ function Vault() {
       back_image_url: null,
       description: r.variant && r.variant !== "Standard" ? `Variant: ${r.variant}` : null,
       estimated_value: value,
-      condition_prices: cp as any,
+      condition_prices: tier === "verified" ? (cp as any) : null,
       price: null,
       tcg_number: r.tcg_number || null,
       tcg_set: r.set || null,
@@ -960,6 +966,9 @@ function Vault() {
       image_source: r.image_source || null,
       match_score: typeof r.match_score === "number" ? r.match_score : null,
       confirmed_by: r.confirmed_by || null,
+      price_tier: tier,
+      price_range_low: typeof r.price_range_low === "number" ? r.price_range_low : null,
+      price_range_high: typeof r.price_range_high === "number" ? r.price_range_high : null,
     };
 
     setScanning(false);
