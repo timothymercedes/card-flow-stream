@@ -466,6 +466,18 @@ export function useCloudflareCalls(opts: {
         },
         (p) => {
           const row = p.new as CohostTrackRow;
+          const old = p.old as CohostTrackRow | undefined;
+          if (old?.session_id && old.session_id !== row.session_id) {
+            pulledRef.current.delete(old.session_id);
+            remoteStreamsByUserRef.current.delete(row.user_id);
+            setRemotes((prev) => {
+              const n = { ...prev };
+              delete n[row.user_id];
+              return n;
+            });
+            void pullRemote(row);
+            return;
+          }
           setRemotes((prev) =>
             prev[row.user_id]
               ? {
@@ -476,7 +488,7 @@ export function useCloudflareCalls(opts: {
                     videoEnabled: row.is_video_enabled,
                   },
                 }
-              : prev,
+              : (void pullRemote(row), prev),
           );
         },
       )
