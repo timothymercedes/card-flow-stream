@@ -16,7 +16,25 @@ import { supabase } from "@/integrations/supabase/client";
 const SFU_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cf-calls`;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
-async function sfu(path: string, init?: RequestInit) {
+type CallsSessionResponse = { sessionId: string };
+type CallsTracksResponse = {
+  sessionDescription?: RTCSessionDescriptionInit;
+  requiresImmediateRenegotiation?: boolean;
+  tracks?: Array<{ mid?: string | null }>;
+};
+type CohostTrackRow = {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+  session_id: string;
+  audio_track_name: string | null;
+  video_track_name: string | null;
+  is_audio_enabled: boolean;
+  is_video_enabled: boolean;
+};
+type PeerConnectionWithRouteMap = RTCPeerConnection & { __midToUser?: Record<string, string> };
+
+async function sfu<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -32,11 +50,11 @@ async function sfu(path: string, init?: RequestInit) {
     },
   });
   if (!r.ok) throw new Error(`Calls API ${path} ${r.status}: ${await r.text()}`);
-  return r.json();
+  return (await r.json()) as T;
 }
 
 function isRecoverableCallsSessionError(error: unknown) {
-  const message = String((error as any)?.message ?? error);
+  const message = error instanceof Error ? error.message : String(error);
   return /\b410\b|session_error|invalid_session_description|Mismatched number of transceivers/i.test(
     message,
   );
@@ -83,7 +101,7 @@ export function useCloudflareCalls(opts: {
   const refreshEmptySession = useCallback(async (pc: RTCPeerConnection) => {
     if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription)
       return sessionIdRef.current;
-    const session = await sfu("/sessions/new", { method: "POST" });
+    const session = await sfu<CallsSessionResponse>("/sessions/new", { method: "POST" });
     sessionIdRef.current = session.sessionId;
     sessionCreatedAtRef.current = Date.now();
     return session.sessionId as string;
