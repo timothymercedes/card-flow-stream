@@ -1698,7 +1698,10 @@ export type Database = {
         Row: {
           h: number
           hidden: boolean
+          label: string | null
           object_fit: string
+          source_key: string
+          source_type: string
           stream_id: string
           tile_user_id: string
           updated_at: string
@@ -1712,7 +1715,10 @@ export type Database = {
         Insert: {
           h?: number
           hidden?: boolean
+          label?: string | null
           object_fit?: string
+          source_key: string
+          source_type?: string
           stream_id: string
           tile_user_id: string
           updated_at?: string
@@ -1726,7 +1732,10 @@ export type Database = {
         Update: {
           h?: number
           hidden?: boolean
+          label?: string | null
           object_fit?: string
+          source_key?: string
+          source_type?: string
           stream_id?: string
           tile_user_id?: string
           updated_at?: string
