@@ -3169,7 +3169,12 @@ function LiveDetail() {
       >
         {isSeller && !usingObs ? (
           // Host's own preview (WebRTC / compositor canvas) — keep raw video
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className={`h-full w-full ${cameraFit === "fit" ? "object-contain" : "object-cover"}`}
+          />
         ) : stream.cf_playback_hls ? (
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser
           <HlsPlayer
