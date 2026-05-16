@@ -1301,10 +1301,18 @@ function LiveDetail() {
   }, [user?.id, stream?.id, id, isSeller]);
 
   // Host auto-joins only for legacy single-camera mode; multi-cam studio owns camera capture.
+  const hostCallsPreviewStream = useMemo(() => {
+    if (!isSeller || !usingCompositor || !hostStudio.canvas) return null;
+    return hostStudio.canvas.captureStream(15);
+  }, [isSeller, usingCompositor, hostStudio.canvas]);
+  useEffect(() => {
+    return () => hostCallsPreviewStream?.getTracks().forEach((track) => track.stop());
+  }, [hostCallsPreviewStream]);
+
   const callShouldRun =
     !!stream &&
     stream.status !== "ended" &&
-    ((isSeller && !usingObs && !usingCompositor) || isCohostParticipant) &&
+    ((isSeller && !usingObs) || isCohostParticipant) &&
     callJoined;
 
   // Pre-acquired media stream from the user-gesture "Join" click. Required so
@@ -1316,7 +1324,7 @@ function LiveDetail() {
     userId: user?.id ?? null,
     username: profile?.username ?? null,
     avatarUrl: profile?.avatar_url ?? null,
-    preStream: cohostPreStream,
+    preStream: isSeller && usingCompositor ? hostCallsPreviewStream : cohostPreStream,
   });
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
