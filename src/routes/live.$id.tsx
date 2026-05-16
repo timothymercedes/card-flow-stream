@@ -3468,8 +3468,32 @@ function LiveDetail() {
                   }
                   openHostCameraControls();
                 } else {
+                  // Cohost: capture camera+mic INSIDE the user-gesture handler so
+                  // mobile Safari/Chrome don't reject getUserMedia. The hook then
+                  // uses this pre-acquired stream instead of calling getUserMedia
+                  // from a non-gesture useEffect.
+                  if (!cohostPreStream) {
+                    try {
+                      const s = await navigator.mediaDevices.getUserMedia({
+                        audio: true,
+                        video: { width: 640, height: 480 },
+                      });
+                      setCohostPreStream(s);
+                    } catch (e: any) {
+                      const name = e?.name || "";
+                      if (name === "NotAllowedError" || name === "SecurityError") {
+                        toast.error("Camera/mic permission denied. Allow access in your browser settings and try again.");
+                      } else if (name === "NotFoundError") {
+                        toast.error("No camera or microphone found on this device.");
+                      } else if (name === "NotReadableError") {
+                        toast.error("Camera/mic is in use by another app. Close it and try again.");
+                      } else {
+                        toast.error(`Could not access camera/mic: ${e?.message || name || "unknown error"}`);
+                      }
+                      return;
+                    }
+                  }
                   setCallJoined(true);
-                  setShowHostCameraEditor(true);
                 }
               }}
               disabled={isSeller && !usingCompositor && switchingToBrowserCam}
