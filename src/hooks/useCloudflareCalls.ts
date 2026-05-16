@@ -236,8 +236,14 @@ export function useCloudflareCalls(opts: {
         const ms = new MediaStream();
         remoteStreamsByUserRef.current.set(row.user_id, ms);
 
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
         const resp = await sfu(`/sessions/${mySession}/tracks/new`, {
-          method: "POST", body: JSON.stringify({ tracks: wantTracks }),
+          method: "POST",
+          body: JSON.stringify({
+            sessionDescription: { type: offer.type, sdp: offer.sdp },
+            tracks: wantTracks,
+          }),
         });
 
         // Map mids returned by Cloudflare to this user so ontrack can route
@@ -246,8 +252,11 @@ export function useCloudflareCalls(opts: {
           if (t.mid != null) (pc as any).__midToUser[t.mid] = row.user_id;
         }
 
-        if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
+        if (resp.sessionDescription) {
           await pc.setRemoteDescription(resp.sessionDescription);
+        }
+
+        if (resp.requiresImmediateRenegotiation && resp.sessionDescription) {
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           await sfu(`/sessions/${mySession}/renegotiate`, {

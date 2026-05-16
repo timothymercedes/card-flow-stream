@@ -24,7 +24,8 @@ export function CoHostStage({
   /** When provided (host only), shows a kick button on each remote tile and enables drag/resize. */
   onKickRemote?: (userId: string, username: string) => void;
 }) {
-  const total = (localStream ? 1 : 0) + remotes.length;
+  const uniqueRemotes = Array.from(new Map(remotes.map((remote) => [remote.userId, remote])).values());
+  const total = (localStream ? 1 : 0) + uniqueRemotes.length;
   const isHost = !!onKickRemote;
 
   // Persisted position + size for host
@@ -102,7 +103,7 @@ export function CoHostStage({
       >
         <DragHandle onPointerDown={(e) => onPointerDown(e, "move")} onPointerMove={onPointerMove} onPointerUp={onPointerUp} />
         <StageContent
-          localStream={localStream} localUsername={localUsername} remotes={remotes}
+          localStream={localStream} localUsername={localUsername} remotes={uniqueRemotes}
           audioOn={audioOn} videoOn={videoOn} onToggleAudio={onToggleAudio} onToggleVideo={onToggleVideo}
           onLeave={onLeave} readOnly={readOnly} onKickRemote={onKickRemote} cols={cols}
           fillHeight
@@ -122,7 +123,7 @@ export function CoHostStage({
       <div className="pointer-events-auto relative w-full max-w-md rounded-2xl bg-black/60 p-2 backdrop-blur-md ring-1 ring-white/10">
         {isHost && <DragHandle onPointerDown={(e) => onPointerDown(e, "move")} onPointerMove={onPointerMove} onPointerUp={onPointerUp} />}
         <StageContent
-          localStream={localStream} localUsername={localUsername} remotes={remotes}
+          localStream={localStream} localUsername={localUsername} remotes={uniqueRemotes}
           audioOn={audioOn} videoOn={videoOn} onToggleAudio={onToggleAudio} onToggleVideo={onToggleVideo}
           onLeave={onLeave} readOnly={readOnly} onKickRemote={onKickRemote} cols={cols}
         />

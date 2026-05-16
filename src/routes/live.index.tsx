@@ -12,7 +12,6 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { BookmarkButton } from "@/components/BookmarkButton";
-import { CardQuickActions } from "@/components/CardQuickActions";
 import { InternationalBadge } from "@/components/InternationalBadge";
 
 export const Route = createFileRoute("/live/")({ component: LiveList });
@@ -244,45 +243,47 @@ function LiveList() {
             )}
             <div className="grid grid-cols-2 gap-3">
               {filteredStreams.map((s) => (
-                <Link key={s.id} to="/live/$id" params={{ id: s.id }}>
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
-                    {s.thumbnail_url ? <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
-                    <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold">
-                      <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
-                    </div>
-                    <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
-                      <Users className="h-2.5 w-2.5" />{viewerCounts[s.id] || 0}
-                    </div>
-                    <button
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShareTarget(s); }}
-                      className="absolute right-2 bottom-2 rounded-full bg-black/70 p-1.5 text-white backdrop-blur hover:bg-primary"
-                      aria-label="Share live"
-                    >
-                      <Share2 className="h-3 w-3" />
-                    </button>
-                    {s.category && (
-                      <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
-                        {categoryEmoji(s.category)} {categoryLabel(s.category)}
+                <div key={s.id} className="min-w-0">
+                  <Link to="/live/$id" params={{ id: s.id }} className="block">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
+                      {s.thumbnail_url ? <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
+                      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold">
+                        <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
                       </div>
-                    )}
-                    {s.ends_at && (
-                      <div className="absolute bottom-9 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
-                        <StreamCountdown endsAt={s.ends_at} />
+                      <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                        <Users className="h-2.5 w-2.5" />{viewerCounts[s.id] || 0}
                       </div>
+                      {s.category && (
+                        <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
+                          {categoryEmoji(s.category)} {categoryLabel(s.category)}
+                        </div>
+                      )}
+                      {s.ends_at && (
+                        <div className="absolute bottom-9 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                          <StreamCountdown endsAt={s.ends_at} />
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <SellerBadge sellerId={s.seller_id} linkable={false} />
+                      <InternationalBadge enabled={s.ships_internationally} />
+                    </div>
+                    {Number(s.current_bid) > 0 && <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>}
+                    {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
+                      <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
+                        {s.tcg_tags.slice(0, 3).map((t) => `${tcgTagMeta(t)?.emoji ?? ""} ${tcgTagMeta(t)?.label ?? t}`).join(" · ")}
+                      </p>
                     )}
-                  </div>
-                  <p className="mt-2 line-clamp-1 text-sm font-semibold">{s.title}</p>
-                  <div className="mt-0.5 flex items-center gap-1.5">
-                    <SellerBadge sellerId={s.seller_id} linkable={false} />
-                    <InternationalBadge enabled={s.ships_internationally} />
-                  </div>
-                  {Number(s.current_bid) > 0 && <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>}
-                  {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
-                    <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
-                      {s.tcg_tags.slice(0, 3).map((t) => `${tcgTagMeta(t)?.emoji ?? ""} ${tcgTagMeta(t)?.label ?? t}`).join(" · ")}
-                    </p>
-                  )}
-                </Link>
+                  </Link>
+                  <button
+                    onClick={() => setShareTarget(s)}
+                    className="mt-1 inline-flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground"
+                    aria-label="Share live"
+                  >
+                    <Share2 className="h-3 w-3" /> Share
+                  </button>
+                </div>
               ))}
             </div>
             <p className="mt-3 text-center text-[10px] text-muted-foreground">💡 Tip: inside a stream, swipe left/right to jump to the next live show.</p>
