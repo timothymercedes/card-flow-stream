@@ -218,9 +218,11 @@ export function LiveSellerDashboard({
     return (
       <button
         onClick={() => setHidden(false)}
-        className="pointer-events-auto rounded-full bg-primary/90 px-3 py-1 text-[11px] font-bold text-primary-foreground shadow-lg backdrop-blur"
+        className="pointer-events-auto flex items-center gap-1 rounded-l-lg bg-primary/90 px-2 py-2 text-[10px] font-bold text-primary-foreground shadow-lg backdrop-blur"
+        title="Open Seller Dashboard"
       >
-        📊 Dashboard
+        <span className="text-xs">📊</span>
+        <span className="hidden md:inline">Dashboard</span>
       </button>
     );
   }
