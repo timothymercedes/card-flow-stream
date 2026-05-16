@@ -1389,6 +1389,43 @@ function LiveDetail() {
     viewerMode: true,
   });
 
+  // Pipe cohost remote streams into the host's studio canvas so the
+  // broadcast (HLS) actually contains host + cohost cameras side-by-side.
+  // The CoHostStage overlay still renders them locally for the host's UI.
+  const cohostStudioIdsRef = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!isSeller || !usingCompositor) return;
+    const map = cohostStudioIdsRef.current;
+    const currentUserIds = new Set(hostViewerCall.remotes.map((r) => r.userId));
+
+    for (const r of hostViewerCall.remotes) {
+      if (map.has(r.userId)) continue;
+      if (!r.stream.getVideoTracks().length) continue;
+      try {
+        const sid = hostStudio.addExternalStream(r.stream, `@${r.username}`, "camera");
+        map.set(r.userId, sid);
+      } catch (e) {
+        console.error("[live] failed to add cohost to canvas", e);
+      }
+    }
+
+    for (const [uid, sid] of Array.from(map.entries())) {
+      if (!currentUserIds.has(uid)) {
+        try { hostStudio.removeSource(sid); } catch {}
+        map.delete(uid);
+      }
+    }
+  }, [isSeller, usingCompositor, hostViewerCall.remotes, hostStudio]);
+
+  useEffect(() => {
+    return () => {
+      const map = cohostStudioIdsRef.current;
+      for (const sid of map.values()) {
+        try { hostStudio.removeSource(sid); } catch {}
+      }
+      map.clear();
+    };
+  }, [usingCompositor, hostStudio]);
 
   // Auto-hide system notifications after 5s
   useEffect(() => {
