@@ -148,3 +148,21 @@ export function resolveGame(g: string | undefined | null): GameDefinition {
 export function listGames(): Array<Pick<GameDefinition, "id" | "label">> {
   return Object.values(GAMES).map((g) => ({ id: g.id, label: g.label }));
 }
+
+// Map free-form scanner categories (from scan-card output) to a game id.
+// Returns null when we don't recognize it (so caller can fall back to pokemon).
+export function categoryToGameId(category: string | null | undefined): Game | null {
+  const c = String(category || "").toLowerCase();
+  if (!c) return null;
+  if (/pok[eé]mon/.test(c)) return "pokemon";
+  if (/yu.?gi.?oh|ygo|遊戯王/.test(c)) return "yugioh";
+  if (/magic|mtg|gathering/.test(c)) return "mtg";
+  if (/one ?piece/.test(c)) return "onepiece";
+  if (/lorcana|disney/.test(c)) return "lorcana";
+  if (/dragon ?ball|dbs|fusion world/.test(c)) return "dbs_fusion";
+  if (/star ?wars|swu/.test(c)) return "swu";
+  if (/flesh.*blood|\bfab\b/.test(c)) return "fab";
+  if (/sport|topps|panini|upper deck|bowman|donruss|fleer|score/.test(c)) return "sports";
+  if (/other/.test(c)) return "other";
+  return null;
+}

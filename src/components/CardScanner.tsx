@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ManualCardFinder, type FinderCard } from "@/components/ManualCardFinder";
+import { categoryToGameId } from "@/lib/scannerGame";
 
 export type ScanAlternative = {
   name: string;
@@ -208,10 +209,115 @@ export function CardScanner({
     };
   }
 
+  async function enrichNonPokemon(result: ScanResult, gameId: string): Promise<ScanResult> {
+    const overall = result.overall_confidence ?? 0;
+    const setReliable = (result.confidence?.set ?? 0) >= 0.7 && overall >= 0.6;
+    const numberReliable = (result.confidence?.tcg_number ?? 0) >= 0.7 && overall >= 0.6;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const r = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/card-price`,
+        {
+          method: "POST",
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            game: gameId,
+            category: result.category,
+            name: result.name,
+            set: setReliable ? result.set : undefined,
+            number: numberReliable ? result.tcg_number : undefined,
+          }),
+        },
+      );
+      const j = await r.json();
+      const market = Number(j?.price?.market) || 0;
+      const c = j?.card;
+      const matchScore = Number(c?.match_score || 0);
+      // Vault autosave stays blocked unless we trust the identity. Sports /
+      // "other" almost never reach this bar without manual confirmation, which
+      // is the intended behavior.
+      const trustedDatabaseIdentity =
+        !!c && matchScore >= 70 && market > 0 && setReliable && numberReliable;
+      const next: ScanResult = {
+        ...result,
+        estimated_value: trustedDatabaseIdentity ? market : 0,
+        condition_prices: trustedDatabaseIdentity
+          ? conditionPricesForMarket(market)
+          : undefined,
+        price_source: trustedDatabaseIdentity ? (j?.primary_source || gameId) : undefined,
+        price_low: trustedDatabaseIdentity ? j?.price?.low : undefined,
+        price_high: trustedDatabaseIdentity ? j?.price?.high : undefined,
+        scan_debug: {
+          ...(result.scan_debug || {}),
+          price_debug: {
+            game: j?.game,
+            sources_tried: j?.sources_tried,
+            sources_failed: j?.sources_failed,
+            sources_skipped: j?.sources_skipped,
+            primary_source: j?.primary_source,
+            match_score: matchScore,
+          },
+          enrichment: {
+            trustedDatabaseIdentity,
+            setReliable,
+            numberReliable,
+            reason: trustedDatabaseIdentity
+              ? `${gameId} match accepted (score=${matchScore}, $${market}).`
+              : market > 0
+                ? `${gameId} found a price ($${market}) but identity is not trusted (score=${matchScore}). Confirm manually before saving.`
+                : `No ${gameId} price source returned a market value. Manual confirmation required.`,
+            params: { game: gameId },
+          },
+        },
+      };
+      if (trustedDatabaseIdentity && c) {
+        if (c.name) next.name = c.name;
+        if (c.set_name) next.set = c.set_name;
+        if (c.number) next.tcg_number = c.number;
+        if (c.rarity) next.rarity = c.rarity;
+        if (c.year) next.year = c.year;
+        if (c.image_large || c.image_small) next.reference_image = c.image_large || c.image_small;
+        next.overall_confidence = Math.max(next.overall_confidence ?? 0, 0.95);
+        next.match_label = "Database Match";
+      } else {
+        next.reference_image = undefined;
+        next.overall_confidence = Math.min(next.overall_confidence ?? 0.6, 0.69);
+        next.match_label = "Needs confirmation — tap the correct picture before saving";
+      }
+      return next;
+    } catch (e: any) {
+      return {
+        ...result,
+        scan_debug: {
+          ...(result.scan_debug || {}),
+          enrichment: {
+            trustedDatabaseIdentity: false,
+            setReliable,
+            numberReliable,
+            reason: `enrichNonPokemon threw: ${e?.message || e}`,
+            params: { game: gameId },
+          },
+        },
+      };
+    }
+  }
+
   async function enrichWithMarketPrice(result: ScanResult): Promise<ScanResult> {
     const hasEnoughId = !!result.name && result.name !== "Unknown Card";
     if (!hasEnoughId) return result;
+    const gameId = categoryToGameId(result.category);
     try {
+      // Non-Pokémon cards: route directly through the game-aware card-price
+      // aggregator (Scryfall / YGOPRODeck / local tcg_prices / PriceCharting
+      // when enabled). The Pokémon-only refresh-prices path stays as-is below.
+      if (gameId !== "pokemon") {
+        return await enrichNonPokemon(result, gameId);
+      }
       const params = new URLSearchParams({ name: result.name });
       const overall = result.overall_confidence ?? 0;
       const setReliable = (result.confidence?.set ?? 0) >= 0.85 && overall >= 0.75;

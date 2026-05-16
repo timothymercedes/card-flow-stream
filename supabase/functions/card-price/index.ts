@@ -9,14 +9,57 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   searchPokemonTcg,
   aggregatePrices,
+  tcgplayerQuoteFromCard,
+  ygoQuoteFromCard,
+  scryfallQuoteFromCard,
+  tcgPricesQuoteFromCard,
   type PriceQuote,
   type NormalizedCard,
+  type Source,
 } from "../_shared/cards/sources.ts";
 import { enabledProviders, pricingProviders } from "../_shared/cards/providers.ts";
+import { resolveGame, categoryToGameId, type Game } from "../_shared/cards/games.ts";
 
 function pricingProvidersSkipped(active: { id: string }[]) {
   const activeIds = new Set(active.map((p) => p.id));
   return pricingProviders.filter((p) => !activeIds.has(p.id)).map((p) => p.id);
+}
+
+// Per-source extractor used when we resolved a card via the game's catalog
+// adapter. Avoids defaulting to Pokémon/TCGplayer for non-Pokémon cards.
+function quoteFromCardForSource(card: NormalizedCard): PriceQuote | null {
+  switch (card.source) {
+    case "tcg_api": return tcgplayerQuoteFromCard(card);
+    case "tcgdex": return tcgplayerQuoteFromCard(card); // tcgdex returns pokemon shape
+    case "ygoprodeck": return ygoQuoteFromCard(card);
+    case "scryfall": return scryfallQuoteFromCard(card);
+    case "tcg_prices": return tcgPricesQuoteFromCard(card);
+    default: return null;
+  }
+}
+
+function scoreCard(c: NormalizedCard, q: { name?: string; number?: string; set?: string }) {
+  const norm = (s: string | null | undefined) =>
+    String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  let s = 0;
+  if (q.name) {
+    const a = norm(c.name), b = norm(q.name);
+    if (a === b) s += 50;
+    else if (a.startsWith(b) || b.startsWith(a)) s += 35;
+    else if (a.includes(b) || b.includes(a)) s += 20;
+  }
+  if (q.number) {
+    const cn = String(c.number || "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
+    const qn = String(q.number).split("/")[0].trim().replace(/^0+(\d)/, "$1");
+    if (cn && cn === qn) s += 30;
+  }
+  if (q.set) {
+    const a = norm(c.set_name), b = norm(q.set);
+    if (a === b) s += 20;
+    else if (a.includes(b) || b.includes(a)) s += 10;
+  }
+  if (c.image_small || c.image_large) s += 2;
+  return s;
 }
 
 const corsHeaders = {
@@ -41,6 +84,11 @@ Deno.serve(async (req) => {
     const set = String(body?.set || "").trim();
     const number = String(body?.number || "").trim();
     const skipCache = !!body?.skip_cache;
+    // game routing: accept either an explicit `game` id or a scanner `category`
+    // string. When provided and non-Pokémon, we route through the matching
+    // catalog adapters instead of defaulting to PokémonTCG.
+    const gameId: Game = (body?.game ? body.game : categoryToGameId(body?.category)) || "pokemon";
+    const game = resolveGame(gameId);
     if (!card_id && !name) {
       return new Response(JSON.stringify({ error: "card_id or name required" }), {
         status: 400, headers: { ...corsHeaders, "content-type": "application/json" },
@@ -53,7 +101,7 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const key = cacheKey(card_id, name, set, number);
+    const key = `${game.id}|${cacheKey(card_id, name, set, number)}`;
 
     // 1) Cache lookup
     if (!skipCache) {
@@ -66,10 +114,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2) Resolve a card object (for TCGplayer prices)
+    // 2) Resolve a card. Pokémon keeps the local `pokemon_cards` cache;
+    //    every other game routes through its declared catalog adapter chain.
     let card: NormalizedCard | null = null;
-    if (card_id) {
-      // try local first
+    const catalogTried: string[] = [];
+    let bestScore = 0;
+    if (card_id && game.id === "pokemon") {
       const { data: row } = await admin.from("pokemon_cards")
         .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
         .eq("id", card_id).maybeSingle();
@@ -85,14 +135,39 @@ Deno.serve(async (req) => {
       }
     }
     if (!card && name) {
-      const list = await searchPokemonTcg({ name, number, set }, 1);
-      card = list[0] ?? null;
+      const candidates: NormalizedCard[] = [];
+      for (const adapter of game.catalog) {
+        catalogTried.push(adapter.id);
+        try {
+          const rows = await adapter.search({ name, number, set, limit: 6 });
+          candidates.push(...rows);
+        } catch (e) {
+          console.warn(`[card-price] adapter ${adapter.id} failed:`, (e as Error)?.message);
+        }
+        if (candidates.length) {
+          const best = candidates
+            .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
+            .sort((a, b) => b.s - a.s)[0];
+          if (best.s >= 70) { card = best.c; bestScore = best.s; break; }
+        }
+      }
+      if (!card && candidates.length) {
+        const best = candidates
+          .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
+          .sort((a, b) => b.s - a.s)[0];
+        card = best.c;
+        bestScore = best.s;
+      }
     }
 
-    // 3) Gather quotes from every ENABLED provider in parallel.
-    //    Disabled providers (e.g. PriceCharting until paid key + flag) are skipped.
+    // 3) Gather quotes.
+    //    For non-Pokémon games, the per-source extractor on the resolved card
+    //    is the primary signal (Scryfall for MTG, YGOPRODeck for YGO, local
+    //    tcg_prices cache for One Piece / Lorcana / DBSFW / SWU / FaB). We
+    //    still run the cross-cutting provider list (PriceCharting, eBay sold,
+    //    PSA, …) when those are enabled — they apply to every game.
     const providers = enabledProviders();
-    const sourcesTried: string[] = [];
+    const sourcesTried: string[] = [...catalogTried];
     const sourcesFailed: string[] = [];
     const sourcesSkipped = pricingProvidersSkipped(providers);
 
@@ -101,7 +176,20 @@ Deno.serve(async (req) => {
       set: card?.set_name || set || null,
       number: card?.number || number || null,
     };
-    const settled = await Promise.all(providers.map(async (p) => {
+
+    const quotes: PriceQuote[] = [];
+    // Game-specific quote from the resolved card.
+    if (card) {
+      const direct = quoteFromCardForSource(card);
+      if (direct) quotes.push(direct);
+    }
+    // Cross-cutting providers — skip the Pokémon-only tcgplayerProvider for
+    // non-Pokémon games (it would just return null but spends a round-trip).
+    const applicable = providers.filter((p) => {
+      if (p.id === "tcg_api") return game.id === "pokemon";
+      return true;
+    });
+    const settled = await Promise.all(applicable.map(async (p) => {
       sourcesTried.push(p.id);
       try {
         const quote = await p.quote(card, q);
@@ -113,16 +201,18 @@ Deno.serve(async (req) => {
         return null;
       }
     }));
-    const quotes: PriceQuote[] = settled.filter((q): q is PriceQuote => !!q);
+    for (const s of settled) if (s) quotes.push(s);
 
     const aggregated = aggregatePrices(quotes);
 
     const payload = {
+      game: game.id,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
         rarity: card.rarity, year: card.year,
         image_small: card.image_small, image_large: card.image_large,
         source_ids: card.source_ids,
+        match_score: bestScore,
       } : null,
       price: {
         market: aggregated.market,
@@ -134,7 +224,7 @@ Deno.serve(async (req) => {
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
-      sources_skipped: sourcesSkipped, // disabled providers (e.g. paid APIs without flag/key)
+      sources_skipped: sourcesSkipped,
       primary_source: aggregated.primary_source,
       cached: false,
       duration_ms: Date.now() - t0,
