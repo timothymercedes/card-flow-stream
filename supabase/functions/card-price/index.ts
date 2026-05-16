@@ -152,9 +152,12 @@ Deno.serve(async (req) => {
 
     // 2) Resolve a card. Pokémon keeps the local `pokemon_cards` cache;
     //    every other game routes through its declared catalog adapter chain.
+    const variant = String(body?.variant || "").trim();
+    const year = String(body?.year || "").trim();
     let card: NormalizedCard | null = null;
     const catalogTried: string[] = [];
     let bestScore = 0;
+    let topCandidates: NormalizedCard[] = [];
     if (card_id && game.id === "pokemon") {
       const { data: row } = await admin.from("pokemon_cards")
         .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
@@ -181,18 +184,20 @@ Deno.serve(async (req) => {
           console.warn(`[card-price] adapter ${adapter.id} failed:`, (e as Error)?.message);
         }
         if (candidates.length) {
-          const best = candidates
-            .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
-            .sort((a, b) => b.s - a.s)[0];
-          if (best.s >= 70) { card = best.c; bestScore = best.s; break; }
+          const ranked = candidates
+            .map((c) => ({ c, s: scoreCard(c, { name, number, set, variant, year }) }))
+            .sort((a, b) => b.s - a.s);
+          topCandidates = ranked.slice(0, 3).map((r) => r.c);
+          if (ranked[0].s >= 70) { card = ranked[0].c; bestScore = ranked[0].s; break; }
         }
       }
       if (!card && candidates.length) {
-        const best = candidates
-          .map((c) => ({ c, s: scoreCard(c, { name, number, set }) }))
-          .sort((a, b) => b.s - a.s)[0];
-        card = best.c;
-        bestScore = best.s;
+        const ranked = candidates
+          .map((c) => ({ c, s: scoreCard(c, { name, number, set, variant, year }) }))
+          .sort((a, b) => b.s - a.s);
+        card = ranked[0].c;
+        bestScore = ranked[0].s;
+        topCandidates = ranked.slice(0, 3).map((r) => r.c);
       }
     }
 
