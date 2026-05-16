@@ -1085,6 +1085,14 @@ function LiveDetail() {
     setShowHostCameraEditor(true);
     setHostCameraPanelCollapsed(false);
     setStartingHostCameras(true);
+    // Eagerly release the legacy host preview (and any other holders) BEFORE
+    // touching getUserMedia in the studio — otherwise the browser returns
+    // NotReadableError ("camera already being held by the browser or another app").
+    stopLegacyCameraPreview();
+    try {
+      window.dispatchEvent(new CustomEvent("pb:release-cameras"));
+    } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, 250));
     try {
       // If caller passed device ids but they were all empty (labels-only list
       // before permission was granted), force a permission prompt instead of
