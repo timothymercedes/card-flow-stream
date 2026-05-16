@@ -5656,6 +5656,36 @@ function LiveDetail() {
 
         {/* Chat input — hidden in Flex immersive mode */}
         {!(stream.mode === "show_off" && flexImmersive) && (
+          <>
+            {isStaff && (
+              <div className="flex items-center gap-1 text-[10px]">
+                {(["public", "mods_only", "host_mods"] as const).map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setChatAudience(a)}
+                    className={`rounded-full px-2 py-0.5 font-bold uppercase tracking-wider transition ${
+                      chatAudience === a
+                        ? a === "public"
+                          ? "bg-primary text-primary-foreground"
+                          : a === "mods_only"
+                            ? "bg-amber-500 text-black"
+                            : "bg-fuchsia-600 text-white"
+                        : "bg-white/10 text-white/60 hover:text-white"
+                    }`}
+                    title={
+                      a === "public"
+                        ? "Visible to everyone"
+                        : a === "mods_only"
+                          ? "Visible only to host + mods"
+                          : "Private host ↔ mods channel"
+                    }
+                  >
+                    {a === "public" ? "Public" : a === "mods_only" ? "Mods" : "Host+Mods"}
+                  </button>
+                ))}
+              </div>
+            )}
           <form onSubmit={handleSend} className="relative flex gap-2">
             {tagOpen && tagResults.length > 0 && (
               <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
