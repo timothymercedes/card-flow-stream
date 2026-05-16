@@ -207,6 +207,9 @@ function LiveDetail() {
     }
   }, []);
 
+  // Tap-to-unmute for viewers (browsers block autoplay with sound)
+  const [audioUnmuted, setAudioUnmuted] = useState(false);
+
   // Mods, mod-chat, announcements, AI hype overlay
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
@@ -3299,17 +3302,18 @@ function LiveDetail() {
             style={obsVideoStyle}
             onVideoMetrics={setObsMetrics}
             autoPlay
-            muted={false}
+            muted={!audioUnmuted}
           />
         ) : stream.cf_playback_hls ? (
-          // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser
+          // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
+          // Start muted so autoplay isn't blocked; user taps to enable sound.
           <HlsPlayer
             src={stream.cf_playback_hls}
             className="h-full w-full"
             style={obsVideoStyle}
             onVideoMetrics={setObsMetrics}
             autoPlay
-            muted={isSeller}
+            muted={isSeller ? true : !audioUnmuted}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 via-black to-live/30">
@@ -3317,6 +3321,20 @@ function LiveDetail() {
           </div>
         )}
       </div>
+
+      {/* Tap to unmute — required because browsers block autoplay with sound */}
+      {!isSeller && stream.cf_playback_hls && !audioUnmuted && (
+        <button
+          onClick={() => setAudioUnmuted(true)}
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
+          aria-label="Tap to unmute"
+        >
+          <span className="flex items-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-bold text-white ring-1 ring-white/20">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            Tap to unmute
+          </span>
+        </button>
+      )}
 
       {/* Fit / Fill camera toggle */}
       <button
@@ -4869,25 +4887,20 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
+      {/* Chat overlay — floating, immersive, no heavy container on mobile */}
       {showChat && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            pb-1
-            ${
-              isStaff
-                ? "right-2 bottom-64 max-h-[40vh] w-[62%] max-w-[17rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
-                : "left-2 bottom-32 max-h-[38vh] w-[70%] max-w-[19rem] rounded-xl bg-black/55 p-1.5 ring-1 ring-white/10 backdrop-blur"
-            }
-            md:bottom-32 md:left-auto md:right-3 md:top-16 md:max-h-none md:h-auto md:w-72 md:max-w-none
-            md:rounded-2xl md:bg-black/40 md:backdrop-blur md:p-3 md:ring-1 md:ring-white/10`}
+            left-2 right-16 bottom-32 max-h-[42vh]
+            [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
+            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
+            md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
         >
-          <div className="flex flex-col items-start gap-1">
+          <div className="flex flex-col items-start gap-1.5 pr-1">
             {messages
               .filter((m) => {
                 if (m.is_system || m.is_announcement) return false;
-                // Hide messages from users I personally blocked, or users banned from this stream (unless I'm staff — keep visibility for context)
                 if (m.user_id && myBlockedIds.has(m.user_id)) return false;
                 if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
                 return true;
@@ -4898,7 +4911,11 @@ function LiveDetail() {
                 return (
                   <div
                     key={m.id}
-                    className={`max-w-full rounded-lg px-2 py-0.5 text-[11px] leading-snug backdrop-blur ${isBlocked ? "bg-red-500/30 line-through opacity-60" : "bg-black/50 md:bg-white/5"}`}
+                    className={`max-w-[95%] rounded-2xl px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-sm backdrop-blur-md ${
+                      isBlocked
+                        ? "bg-red-500/30 line-through opacity-60"
+                        : "bg-black/45 ring-1 ring-white/5"
+                    }`}
                   >
                     {isStaff &&
                     m.user_id &&
@@ -4908,14 +4925,14 @@ function LiveDetail() {
                         onClick={() =>
                           setChatActionMenu({ userId: m.user_id, username: m.username })
                         }
-                        className="mr-1 font-semibold text-live-foreground hover:underline"
+                        className="mr-1.5 font-semibold text-live-foreground hover:underline"
                         title="Mod actions"
                       >
-                        @{m.username}:
+                        @{m.username}
                       </button>
                     ) : (
-                      <span className="mr-1 font-semibold text-live-foreground">
-                        @{m.username}:
+                      <span className="mr-1.5 font-semibold text-live-foreground">
+                        @{m.username}
                       </span>
                     )}
                     <span className="break-words">
@@ -4941,7 +4958,7 @@ function LiveDetail() {
                         targetLabel={`@${m.username}: ${String(m.content).slice(0, 60)}`}
                         trigger={
                           <button
-                            className="ml-1 align-middle text-white/40 hover:text-white"
+                            className="ml-1.5 align-middle text-white/40 hover:text-white"
                             title="Report message"
                           >
                             <Flag className="inline h-2.5 w-2.5" />
