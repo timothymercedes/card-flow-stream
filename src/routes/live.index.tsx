@@ -283,7 +283,6 @@ function LiveList() {
                     </p>
                   )}
                 </Link>
-                </CardQuickActions>
               ))}
             </div>
             <p className="mt-3 text-center text-[10px] text-muted-foreground">💡 Tip: inside a stream, swipe left/right to jump to the next live show.</p>
