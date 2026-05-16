@@ -3702,7 +3702,24 @@ function LiveDetail() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Drag/resize your local tile on screen for your view only. Host layout stays public.</p>
+          {cfCall.cameraZoomRange && (
+            <div className="mt-2 rounded-xl bg-muted/35 p-2">
+              <div className="mb-1 flex items-center justify-between text-[10px] font-bold">
+                <span>Zoom / framing</span>
+                <span>{cfCall.cameraZoom.toFixed(1)}×</span>
+              </div>
+              <input
+                type="range"
+                min={cfCall.cameraZoomRange.min}
+                max={cfCall.cameraZoomRange.max}
+                step={cfCall.cameraZoomRange.step}
+                value={cfCall.cameraZoom}
+                onChange={(e) => cfCall.setCameraZoom(Number(e.currentTarget.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+          )}
+          <p className="mt-2 text-[10px] font-semibold text-muted-foreground">Your camera tile is local-only. Viewers always see the host stage output.</p>
           {cfCall.error && <p className="mt-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">{cfCall.error}</p>}
         </div>
       )}
