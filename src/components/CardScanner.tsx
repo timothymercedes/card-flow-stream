@@ -261,19 +261,26 @@ export function CardScanner({
             image_url: cand?.image_url || undefined,
           })).filter((a: ScanAlternative) => !!a.name)
         : [];
-      // Vault autosave blocked unless identity is trusted AND we have an
-      // official reference image to bind to the saved card.
+      const tier: "verified" | "estimated" | "unavailable" =
+        (j?.pricing_tier as any) || (market > 0 ? "estimated" : "unavailable");
+      const rangeLow = j?.price_range?.low ?? undefined;
+      const rangeHigh = j?.price_range?.high ?? undefined;
+      // Autosave only on a verified tier with an official reference image.
       const trustedDatabaseIdentity =
-        !!c && matchScore >= 80 && market > 0 && setReliable && numberReliable && !!officialImage;
+        !!c && tier === "verified" && setReliable && numberReliable && !!officialImage;
       const next: ScanResult = {
         ...result,
-        estimated_value: trustedDatabaseIdentity ? market : 0,
-        condition_prices: trustedDatabaseIdentity
-          ? conditionPricesForMarket(market)
-          : undefined,
-        price_source: trustedDatabaseIdentity ? (j?.primary_source || gameId) : undefined,
-        price_low: trustedDatabaseIdentity ? j?.price?.low : undefined,
-        price_high: trustedDatabaseIdentity ? j?.price?.high : undefined,
+        // Only assign an exact estimated_value on verified tier. Estimated tier
+        // surfaces a range instead of a fake exact number; unavailable shows nothing.
+        estimated_value: tier === "verified" ? market : 0,
+        condition_prices: tier === "verified" ? conditionPricesForMarket(market) : undefined,
+        price_source: tier === "verified" ? (j?.primary_source || gameId) : undefined,
+        price_low: j?.price?.low,
+        price_high: j?.price?.high,
+        pricing_tier: tier,
+        price_range_low: rangeLow,
+        price_range_high: rangeHigh,
+        tier_reason: j?.tier_reason,
         alternatives: candidates.length ? candidates : result.alternatives,
         scan_debug: {
           ...(result.scan_debug || {}),
@@ -287,18 +294,18 @@ export function CardScanner({
             confidence,
             stale: !!j?.stale,
             image_source: j?.image_source,
+            pricing_tier: tier,
+            price_range: j?.price_range,
           },
           enrichment: {
             trustedDatabaseIdentity,
             setReliable,
             numberReliable,
-            reason: trustedDatabaseIdentity
+            reason: j?.tier_reason || (trustedDatabaseIdentity
               ? `${gameId} match accepted (score=${matchScore}, conf=${confidence}, $${market}).`
-              : !officialImage
-                ? `No official reference image for ${gameId} match — tap the correct picture before saving to avoid image mismatch.`
-                : market > 0
-                  ? `${gameId} found a price ($${market}) but identity is not trusted (score=${matchScore}). Confirm manually before saving.`
-                  : `No ${gameId} price source returned a market value. Manual confirmation required.`,
+              : tier === "estimated"
+                ? `Estimated only — pick the correct card to lock in a verified price.`
+                : `No reliable market data for this ${gameId} card yet.`),
             params: { game: gameId },
           },
         },
