@@ -3739,6 +3739,60 @@ function LiveDetail() {
         />
       )}
 
+      {/* Cohost "incoming-call → ready to go live" prompt. Shown when the
+          invitee accepted while watching this live (they don't have to leave
+          the page to flip their cockpit). Must be a real button so the
+          getUserMedia call stays inside the user gesture. */}
+      {isCohostParticipant && !callJoined && !ended && (
+        <div className="absolute inset-x-3 top-16 z-50 mx-auto max-w-sm rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-3 text-white shadow-2xl ring-2 ring-white/30 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 ring-2 ring-white/30">
+              <Camera className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/85">
+                You're on as co-host
+              </p>
+              <p className="text-xs font-extrabold">Tap to turn on your camera & mic</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (!cohostPreStream) {
+                  try {
+                    const s = await navigator.mediaDevices.getUserMedia({
+                      audio: true,
+                      video: { width: 640, height: 480 },
+                    });
+                    setCohostPreStream(s);
+                  } catch (e: any) {
+                    const name = e?.name || "";
+                    if (name === "NotAllowedError" || name === "SecurityError") {
+                      toast.error(
+                        "Camera/mic permission denied. Allow access in your browser settings and try again.",
+                      );
+                    } else if (name === "NotFoundError") {
+                      toast.error("No camera or microphone found on this device.");
+                    } else if (name === "NotReadableError") {
+                      toast.error("Camera/mic is in use by another app. Close it and try again.");
+                    } else {
+                      toast.error(
+                        `Could not access camera/mic: ${e?.message || name || "unknown error"}`,
+                      );
+                    }
+                    return;
+                  }
+                }
+                setCallJoined(true);
+                setShowCohostCameraPanel(true);
+              }}
+              className="flex items-center gap-1 rounded-full bg-white px-3 py-2 text-xs font-extrabold text-emerald-700 shadow-lg hover:bg-white/90"
+            >
+              <Video className="h-3.5 w-3.5" /> Go live
+            </button>
+          </div>
+        </div>
+      )}
+
       {isCohostParticipant && callJoined && showCohostCameraPanel && !ended && (
         <div className="absolute inset-x-3 top-16 z-50 max-h-[38vh] overflow-y-auto rounded-2xl bg-card/95 p-3 text-foreground shadow-2xl ring-1 ring-border/70 backdrop-blur sm:left-auto sm:w-80">
           <div className="mb-2 flex items-center justify-between gap-2">
