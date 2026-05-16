@@ -4417,6 +4417,39 @@ function LiveDetail() {
         );
       })()}
 
+      {/* 🆕 Pinned auction card + (host-only) Live Seller Dashboard.
+          Sits above the chat overlay so hosts can manage the stream without diving into settings. */}
+      {!ended && (
+        <div className="pointer-events-none absolute left-2 right-2 top-14 z-20 flex flex-col items-stretch gap-2 md:left-auto md:right-3 md:top-16 md:w-80">
+          <PinnedAuctionCard
+            streamId={stream.id}
+            currentItem={stream.current_item || null}
+            currentImage={(stream as any).current_item_image_url || (stream as any).item_image_url || null}
+            currentBid={Number(stream.current_bid || 0)}
+            endsAt={stream.ends_at || null}
+            auctionLive={!!auctionLive}
+            auctionFinished={!!auctionFinished}
+            winnerUsername={(stream as any).winner_username || null}
+            winningBid={Number((stream as any).winning_bid || 0)}
+            prebidCount={prebidCount}
+            suddenDeath={!!stream.sudden_death_active}
+            onTapQueue={() => setQueueOpen(true)}
+          />
+          {isSeller && (
+            <LiveSellerDashboard
+              streamId={stream.id}
+              hostId={stream.seller_id}
+              startedAt={stream.started_at || null}
+              viewerCount={viewerCount || 0}
+              chatMessages={messages.filter((m) => !m.is_system && !m.is_announcement).map((m) => ({
+                id: m.id, user_id: m.user_id, username: m.username, content: m.content, created_at: m.created_at,
+              }))}
+              scheduledShowId={(stream as any).scheduled_show_id || null}
+            />
+          )}
+        </div>
+      )}
+
       {/* Chat overlay — sits low and narrow so the stream stays unobstructed */}
       {showChat && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
         <div
