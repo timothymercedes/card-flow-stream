@@ -1425,6 +1425,10 @@ function LiveDetail() {
     publishOnly: isSeller && usingCompositor,
     preStream: isSeller && usingCompositor ? hostCallsPreviewStream : cohostPreStream,
   });
+  const cohostHostPreview = useMemo(
+    () => (isCohostParticipant ? cfCall.remotes.find((r) => r.userId === stream?.seller_id) : undefined),
+    [cfCall.remotes, isCohostParticipant, stream?.seller_id],
+  );
   const [audioOn, setAudioOn] = useState(true);
   const [videoOn, setVideoOn] = useState(true);
   // Notify cohort on accept — they MUST tap the camera button to publish so
