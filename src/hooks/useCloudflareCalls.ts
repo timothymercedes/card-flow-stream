@@ -268,10 +268,12 @@ export function useCloudflareCalls(opts: {
       } catch (e: any) {
         console.error("[cf-calls] pull failed", e);
         pulledRef.current.delete(row.session_id);
-        // 410 = our session no longer exists on CF's side (PC never connected
-        // or was torn down). Surface a clear error instead of looping.
+        // 410 = our CF session was GC'd (common in viewer mode where we
+        // never did an SDP exchange because no cohorts had joined yet).
+        // Bump sessionGen so the setup effect tears down the dead PC and
+        // creates a fresh session — then the next pullRemote will succeed.
         if (/\b410\b/.test(String(e?.message))) {
-          setError("Live video connection lost — please refresh to rejoin");
+          if (!cancelled) setSessionGen((n) => n + 1);
         }
       }
     }
