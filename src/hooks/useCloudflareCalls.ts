@@ -120,6 +120,10 @@ export function useCloudflareCalls(opts: {
           const ms = remoteStreamsByUserRef.current.get(targetUserId);
           if (ms) {
             if (!ms.getTracks().some((t) => t.id === ev.track.id)) ms.addTrack(ev.track);
+            setRemotes((prev) => {
+              const remote = prev[targetUserId];
+              return remote ? { ...prev, [targetUserId]: { ...remote, stream: ms } } : prev;
+            });
           }
         };
 
@@ -129,7 +133,10 @@ export function useCloudflareCalls(opts: {
 
         if (local) {
           // Publishing path (host / cohost)
-          const transceivers = local.getTracks().map((t) => pc.addTransceiver(t, { direction: "sendonly" }));
+          const audioTracks = local.getAudioTracks();
+          const videoTracks = local.getVideoTracks();
+          const publishTracks = [...audioTracks, ...videoTracks];
+          const transceivers = publishTracks.map((t) => pc.addTransceiver(t, { direction: "sendonly" }));
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           const pubBody = {
@@ -146,8 +153,8 @@ export function useCloudflareCalls(opts: {
           await pc.setRemoteDescription(pubResp.sessionDescription);
           await waitForConnState(pc, "connected");
 
-          const audioName = `${userId}-audio`;
-          const videoName = `${userId}-video`;
+          const audioName = audioTracks.length > 0 ? `${userId}-audio` : null;
+          const videoName = videoTracks.length > 0 ? `${userId}-video` : null;
           await supabase.from("stream_cohost_tracks").upsert({
             stream_id: streamId!, user_id: userId!, username: username!, avatar_url: avatarUrl,
             session_id: session.sessionId, audio_track_name: audioName, video_track_name: videoName,
