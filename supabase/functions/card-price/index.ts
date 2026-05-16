@@ -139,14 +139,18 @@ Deno.serve(async (req) => {
 
     const key = `${game.id}|${cacheKey(card_id, name, set, number)}`;
 
-    // 1) Cache lookup
+    // 1) Cache lookup — keep stale row around to use as fallback if all live providers fail.
+    let staleCachePayload: any = null;
     if (!skipCache) {
       const { data: cached } = await admin.from("card_price_cache")
         .select("payload,expires_at").eq("card_key", key).maybeSingle();
-      if (cached && new Date(cached.expires_at).getTime() > Date.now()) {
-        return new Response(JSON.stringify({ ...(cached.payload as object), cached: true }), {
-          headers: { ...corsHeaders, "content-type": "application/json" },
-        });
+      if (cached) {
+        if (new Date(cached.expires_at).getTime() > Date.now()) {
+          return new Response(JSON.stringify({ ...(cached.payload as object), cached: true }), {
+            headers: { ...corsHeaders, "content-type": "application/json" },
+          });
+        }
+        staleCachePayload = cached.payload;
       }
     }
 
