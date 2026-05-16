@@ -1540,6 +1540,39 @@ function LiveDetail() {
     };
   }, [usingCompositor, hostStudio.removeSource]);
 
+  useEffect(() => {
+    if (!isSeller || !usingCompositor || !user?.id || hostStudio.sources.length === 0) return;
+    const timer = window.setTimeout(() => {
+      const rows = hostStudio.sources.map((source) => {
+        const layout = hostStudio.layouts[source.id] ?? { x: 0, y: 0, w: 1, h: 1, z: 1 };
+        const cohostId = source.deviceId?.startsWith("cohost:") ? source.deviceId.slice(7) : null;
+        return {
+          stream_id: id,
+          source_key: source.deviceId || source.id,
+          tile_user_id: cohostId || user.id,
+          source_type: cohostId ? "cohost" : source.kind === "screen" ? "screen" : source.kind === "phone" ? "phone" : "camera",
+          label: source.label,
+          x: layout.x,
+          y: layout.y,
+          w: layout.w,
+          h: layout.h,
+          z: layout.z,
+          object_fit: source.fit,
+          zoom: 1,
+          hidden: !source.visible,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        };
+      });
+      (supabase.from("live_stage_layouts") as any)
+        .upsert(rows, { onConflict: "stream_id,source_key" })
+        .then(({ error }: any) => {
+          if (error) console.error("[live] stage layout sync failed", error);
+        });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [isSeller, usingCompositor, user?.id, id, hostStudio.sources, hostStudio.layouts]);
+
   // Auto-hide system notifications after 5s
   useEffect(() => {
     const sysMsgs = messages.filter((m) => m.is_system && !hiddenSysIds.has(m.id));
