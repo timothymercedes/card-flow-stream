@@ -550,6 +550,116 @@ export type Database = {
         }
         Relationships: []
       }
+      card_identities: {
+        Row: {
+          category: string
+          created_at: string
+          external_ids: Json
+          fingerprint: string
+          grade: string | null
+          grading_company: string | null
+          id: string
+          image_source: string | null
+          image_url: string | null
+          is_rookie: boolean
+          manufacturer: string | null
+          name: string
+          number: string | null
+          player: string | null
+          set_code: string | null
+          set_name: string | null
+          team: string | null
+          updated_at: string
+          variant: string | null
+          year: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          external_ids?: Json
+          fingerprint: string
+          grade?: string | null
+          grading_company?: string | null
+          id?: string
+          image_source?: string | null
+          image_url?: string | null
+          is_rookie?: boolean
+          manufacturer?: string | null
+          name: string
+          number?: string | null
+          player?: string | null
+          set_code?: string | null
+          set_name?: string | null
+          team?: string | null
+          updated_at?: string
+          variant?: string | null
+          year?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          external_ids?: Json
+          fingerprint?: string
+          grade?: string | null
+          grading_company?: string | null
+          id?: string
+          image_source?: string | null
+          image_url?: string | null
+          is_rookie?: boolean
+          manufacturer?: string | null
+          name?: string
+          number?: string | null
+          player?: string | null
+          set_code?: string | null
+          set_name?: string | null
+          team?: string | null
+          updated_at?: string
+          variant?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
+      card_images: {
+        Row: {
+          created_at: string
+          id: string
+          identity_id: string
+          is_primary: boolean
+          quality_score: number | null
+          source: string
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          identity_id: string
+          is_primary?: boolean
+          quality_score?: number | null
+          source: string
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          identity_id?: string
+          is_primary?: boolean
+          quality_score?: number | null
+          source?: string
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_images_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "card_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_price_cache: {
         Row: {
           card_key: string
@@ -2915,6 +3025,47 @@ export type Database = {
           },
         ]
       }
+      price_observations: {
+        Row: {
+          currency: string
+          id: string
+          identity_id: string
+          observed_at: string
+          price_cents: number
+          raw_payload: Json | null
+          sample_size: number | null
+          source: string
+        }
+        Insert: {
+          currency?: string
+          id?: string
+          identity_id: string
+          observed_at?: string
+          price_cents: number
+          raw_payload?: Json | null
+          sample_size?: number | null
+          source: string
+        }
+        Update: {
+          currency?: string
+          id?: string
+          identity_id?: string
+          observed_at?: string
+          price_cents?: number
+          raw_payload?: Json | null
+          sample_size?: number | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_observations_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "card_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processed_webhook_events: {
         Row: {
           event_id: string
@@ -3720,6 +3871,59 @@ export type Database = {
             columns: ["show_id"]
             isOneToOne: false
             referencedRelation: "scheduled_shows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sold_comps: {
+        Row: {
+          buyer_user_id: string | null
+          channel: string | null
+          created_at: string
+          currency: string
+          external_url: string | null
+          id: string
+          identity_id: string
+          meta: Json
+          sale_price_cents: number
+          seller_user_id: string | null
+          sold_at: string
+          source: string
+        }
+        Insert: {
+          buyer_user_id?: string | null
+          channel?: string | null
+          created_at?: string
+          currency?: string
+          external_url?: string | null
+          id?: string
+          identity_id: string
+          meta?: Json
+          sale_price_cents: number
+          seller_user_id?: string | null
+          sold_at: string
+          source: string
+        }
+        Update: {
+          buyer_user_id?: string | null
+          channel?: string | null
+          created_at?: string
+          currency?: string
+          external_url?: string | null
+          id?: string
+          identity_id?: string
+          meta?: Json
+          sale_price_cents?: number
+          seller_user_id?: string | null
+          sold_at?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sold_comps_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "card_identities"
             referencedColumns: ["id"]
           },
         ]
