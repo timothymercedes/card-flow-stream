@@ -50,8 +50,10 @@ export function useCloudflareCalls(opts: {
   avatarUrl: string | null;
   /** When true: don't publish local cam/mic — only pull remote cohost tracks (for normal viewers). */
   viewerMode?: boolean;
+  /** Pre-acquired MediaStream (captured in a user-gesture handler to satisfy mobile autoplay/permission rules). */
+  preStream?: MediaStream | null;
 }) {
-  const { enabled, streamId, userId, username, avatarUrl, viewerMode } = opts;
+  const { enabled, streamId, userId, username, avatarUrl, viewerMode, preStream } = opts;
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remotes, setRemotes] = useState<Record<string, RemoteCohost>>({});
   const [error, setError] = useState<string | null>(null);
