@@ -149,6 +149,7 @@ function LiveDetail() {
   const [allStreams, setAllStreams] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
+  const [chatAudience, setChatAudience] = useState<"public" | "mods_only" | "host_mods">("public");
   const [showChat, setShowChat] = useState(true);
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
