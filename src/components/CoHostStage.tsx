@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Mic, MicOff, Video, VideoOff, X } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, X, UserX } from "lucide-react";
 import type { RemoteCohost } from "@/hooks/useCloudflareCalls";
 
 /**
@@ -9,6 +9,7 @@ import type { RemoteCohost } from "@/hooks/useCloudflareCalls";
 export function CoHostStage({
   localStream, localUsername, remotes, audioOn, videoOn,
   onToggleAudio, onToggleVideo, onLeave, readOnly = false,
+  onKickRemote,
 }: {
   localStream: MediaStream | null;
   localUsername: string;
@@ -20,6 +21,8 @@ export function CoHostStage({
   onLeave: () => void;
   /** Hide mute/cam/leave controls (used for read-only viewer overlay). */
   readOnly?: boolean;
+  /** When provided (host only), shows a kick button on each remote tile. */
+  onKickRemote?: (userId: string, username: string) => void;
 }) {
   const total = (localStream ? 1 : 0) + remotes.length;
   if (total === 0) return null;
@@ -33,7 +36,15 @@ export function CoHostStage({
             <Tile stream={localStream} label={`@${localUsername} (you)`} muted videoOn={videoOn} audioOn={audioOn} />
           )}
           {remotes.map((r) => (
-            <Tile key={r.userId} stream={r.stream} label={`@${r.username}`} muted={false} videoOn={r.videoEnabled} audioOn={r.audioEnabled} />
+            <Tile
+              key={r.userId}
+              stream={r.stream}
+              label={`@${r.username}`}
+              muted={false}
+              videoOn={r.videoEnabled}
+              audioOn={r.audioEnabled}
+              onKick={onKickRemote ? () => onKickRemote(r.userId, r.username) : undefined}
+            />
           ))}
         </div>
         {!readOnly && (
@@ -54,7 +65,7 @@ export function CoHostStage({
   );
 }
 
-function Tile({ stream, label, muted, videoOn, audioOn }: { stream: MediaStream; label: string; muted: boolean; videoOn: boolean; audioOn: boolean }) {
+function Tile({ stream, label, muted, videoOn, audioOn, onKick }: { stream: MediaStream; label: string; muted: boolean; videoOn: boolean; audioOn: boolean; onKick?: () => void }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => { if (ref.current) ref.current.srcObject = stream; }, [stream]);
   return (
@@ -62,6 +73,16 @@ function Tile({ stream, label, muted, videoOn, audioOn }: { stream: MediaStream;
       <video ref={ref} autoPlay playsInline muted={muted} className={`h-full w-full object-cover ${videoOn ? "" : "hidden"}`} />
       {!videoOn && (
         <div className="flex h-full w-full items-center justify-center text-white/60 text-xs">Camera off</div>
+      )}
+      {onKick && (
+        <button
+          onClick={onKick}
+          className="absolute right-1 top-1 rounded-full bg-destructive/85 p-1 text-destructive-foreground shadow ring-1 ring-white/20 hover:bg-destructive"
+          title="Remove from collab"
+          aria-label="Remove co-host"
+        >
+          <UserX className="h-3 w-3" />
+        </button>
       )}
       <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between gap-1">
         <span className="truncate rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">{label}</span>
