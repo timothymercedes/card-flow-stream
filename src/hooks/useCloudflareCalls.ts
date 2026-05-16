@@ -90,6 +90,7 @@ export function useCloudflareCalls(opts: {
   const [ready, setReady] = useState(false);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
   const [sessionGen, setSessionGen] = useState(0);
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -97,6 +98,23 @@ export function useCloudflareCalls(opts: {
   const pulledRef = useRef<Set<string>>(new Set()); // remote sessionIds already pulled
   const remoteStreamsByUserRef = useRef<Map<string, MediaStream>>(new Map());
   const negotiationRef = useRef<Promise<void>>(Promise.resolve());
+
+  const refreshCameraDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices?.enumerateDevices?.();
+      const cams = (devices || []).filter((d) => d.kind === "videoinput");
+      setCameraDevices(cams);
+      return cams;
+    } catch {
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCameraDevices();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshCameraDevices);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshCameraDevices);
+  }, [refreshCameraDevices]);
 
   const refreshEmptySession = useCallback(async (pc: RTCPeerConnection) => {
     if (pc.connectionState !== "new" || pc.localDescription || pc.remoteDescription)
@@ -466,6 +484,18 @@ export function useCloudflareCalls(opts: {
         },
         (p) => {
           const row = p.new as CohostTrackRow;
+          const old = p.old as CohostTrackRow | undefined;
+          if (old?.session_id && old.session_id !== row.session_id) {
+            pulledRef.current.delete(old.session_id);
+            remoteStreamsByUserRef.current.delete(row.user_id);
+            setRemotes((prev) => {
+              const n = { ...prev };
+              delete n[row.user_id];
+              return n;
+            });
+            void pullRemote(row);
+            return;
+          }
           setRemotes((prev) =>
             prev[row.user_id]
               ? {
@@ -476,7 +506,7 @@ export function useCloudflareCalls(opts: {
                     videoEnabled: row.is_video_enabled,
                   },
                 }
-              : prev,
+              : (void pullRemote(row), prev),
           );
         },
       )
@@ -540,12 +570,48 @@ export function useCloudflareCalls(opts: {
       .eq("user_id", userId);
   }, [localStream, streamId, userId]);
 
+  const switchCamera = useCallback(async (deviceId?: string) => {
+    if (!localStream || !streamId || !userId) return false;
+    try {
+      const next = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: deviceId
+          ? { deviceId: { exact: deviceId }, width: { ideal: 640 }, height: { ideal: 480 } }
+          : { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 } },
+      });
+      const nextTrack = next.getVideoTracks()[0];
+      if (!nextTrack) return false;
+      const sender = pcRef.current?.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(nextTrack);
+      const oldVideoTracks = localStream.getVideoTracks();
+      oldVideoTracks.forEach((track) => {
+        localStream.removeTrack(track);
+        track.stop();
+      });
+      localStream.addTrack(nextTrack);
+      setLocalStream(new MediaStream(localStream.getTracks()));
+      await supabase
+        .from("stream_cohost_tracks")
+        .update({ is_video_enabled: true })
+        .eq("stream_id", streamId)
+        .eq("user_id", userId);
+      await refreshCameraDevices();
+      return true;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+      return false;
+    }
+  }, [localStream, streamId, userId, refreshCameraDevices]);
+
   return {
     localStream,
     remotes: Object.values(remotes),
     ready,
     error,
     connectionState,
+    cameraDevices,
+    refreshCameraDevices,
+    switchCamera,
     toggleAudio,
     toggleVideo,
   };
