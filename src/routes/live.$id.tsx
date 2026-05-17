@@ -3349,13 +3349,13 @@ function LiveDetail() {
     hostStudioCameras.length === 0
       ? false
       : hostStudioCameras.every((s) => s.muted);
-  const toggleHostMic = useCallback(() => {
+  function toggleHostMic() {
     const nextMuted = !hostMicMuted;
     for (const s of hostStudioCameras) {
       if (!!s.muted !== nextMuted) hostStudio.toggleMute(s.id);
     }
     toast.message(nextMuted ? "Host mic muted" : "Host mic on");
-  }, [hostMicMuted, hostStudioCameras, hostStudio]);
+  }
   const hostStudioScenes: { id: StudioScene; label: string; Icon: typeof Square }[] = [
     { id: "solo", label: "Solo", Icon: Square },
     { id: "split", label: "Split", Icon: SplitSquareHorizontal },
