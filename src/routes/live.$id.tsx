@@ -3345,10 +3345,7 @@ function LiveDetail() {
     hostStudio.cameraDevices.length === 0 || hostStudio.cameraDevices.some((d) => !d.label);
   // Host mic = all camera-source audio tracks combined. "Muted" when every
   // camera source is muted (or there are none with audio).
-  const hostMicMuted =
-    hostStudioCameras.length === 0
-      ? false
-      : hostStudioCameras.every((s) => s.muted);
+  const hostMicMuted = hostStudioCameras.length === 0 ? false : hostStudioCameras.every((s) => s.muted);
   function toggleHostMic() {
     const nextMuted = !hostMicMuted;
     for (const s of hostStudioCameras) {
