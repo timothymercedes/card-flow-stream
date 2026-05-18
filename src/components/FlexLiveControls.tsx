@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Wand2, Smile, X } from "lucide-react";
+import { Sparkles, Wand2, Smile, X, Megaphone } from "lucide-react";
 import { FLEX_FILTERS, FLEX_REACTIONS, weeklyVibe } from "@/lib/flexFilters";
 
 type FloatingReaction = { id: string; emoji: string; left: number };
