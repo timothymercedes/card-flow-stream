@@ -20,6 +20,7 @@ export function FlexLiveControls({
   username,
   currentFilter,
   onShoutout,
+  onBoost,
 }: {
   streamId: string;
   isHost: boolean;
@@ -27,6 +28,7 @@ export function FlexLiveControls({
   username: string | null;
   currentFilter: string;
   onShoutout?: () => void;
+  onBoost?: () => void;
 }) {
   const [showFilters, setShowFilters] = useState(false);
   const [floats, setFloats] = useState<FloatingReaction[]>([]);
