@@ -4812,7 +4812,7 @@ function LiveDetail() {
                 return (
                   <>
                     <div className="space-y-1">
-                      <p className="text-[11px] font-bold text-foreground">Extras</p>
+                      <p className="text-[11px] font-bold text-foreground">​</p>
                       <div className="flex flex-wrap items-center gap-1 rounded-lg bg-background/40 p-1.5">
                         <label className="flex cursor-pointer items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">
                           <input
