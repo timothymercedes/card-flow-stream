@@ -5346,6 +5346,7 @@ function LiveDetail() {
                 created_at: m.created_at,
               }))}
             scheduledShowId={(stream as any).scheduled_show_id || null}
+            isFlex={stream.mode === "show_off"}
           />
         </div>
       )}
