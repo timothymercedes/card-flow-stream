@@ -97,7 +97,7 @@ import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 import { CollabPanel } from "@/components/CollabPanel";
 import { ViewerListModal } from "@/components/ViewerListModal";
-import { Users2, ChevronDown, Store } from "lucide-react";
+import { Users2, ChevronDown, Store, ShieldOff } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { CoHostStage } from "@/components/CoHostStage";
@@ -178,6 +178,12 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [chatAudience, setChatAudience] = useState<"public" | "mods_only" | "host_mods">("public");
   const [showChat, setShowChat] = useState(true);
+  const [hideModsChat, setHideModsChat] = useState<boolean>(() => {
+    try { return typeof window !== "undefined" && localStorage.getItem(`pb-hide-mod-chat-${id}`) === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(`pb-hide-mod-chat-${id}`, hideModsChat ? "1" : "0"); } catch {}
+  }, [hideModsChat, id]);
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -4220,6 +4226,15 @@ function LiveDetail() {
               <Zap className="h-4 w-4" />
             </button>
           )}
+          {isStaff && (
+            <button
+              onClick={() => setHideModsChat((v) => !v)}
+              title={hideModsChat ? "Show mod messages" : "Hide mod messages"}
+              className={`rounded-full p-2 backdrop-blur ${hideModsChat ? "bg-amber-500/30 text-amber-200 ring-1 ring-amber-300/50" : "bg-black/50 text-white"}`}
+            >
+              {hideModsChat ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+            </button>
+          )}
           <button
             onClick={() => setShowChat((v) => !v)}
             className="rounded-full bg-black/50 p-2 backdrop-blur"
@@ -5351,6 +5366,12 @@ function LiveDetail() {
                 if (m.is_system || m.is_announcement) return false;
                 if (m.user_id && myBlockedIds.has(m.user_id)) return false;
                 if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
+                if (
+                  isStaff &&
+                  hideModsChat &&
+                  m.user_id &&
+                  mods.some((mm: any) => mm.mod_user_id === m.user_id)
+                ) return false;
                 return true;
               })
               .map((m) => {
