@@ -46,6 +46,7 @@ export function LiveSellerDashboard({
   viewerCount,
   chatMessages,
   scheduledShowId,
+  isFlex = false,
 }: {
   streamId: string;
   hostId: string;
@@ -53,6 +54,7 @@ export function LiveSellerDashboard({
   viewerCount: number;
   chatMessages: ChatMsg[];
   scheduledShowId?: string | null;
+  isFlex?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -268,9 +270,13 @@ export function LiveSellerDashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1">
-        <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />
-        <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} />
+      <div className={`grid gap-1 ${isFlex ? "grid-cols-2" : "grid-cols-3"}`}>
+        {!isFlex && (
+          <>
+            <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />
+            <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} />
+          </>
+        )}
         <StatTile icon={Clock} label="Show time" value={fmtElapsed(showTime)} />
         <StatTile icon={Gift} label="Tips+Promo" value={fmtMoney(stats.tipsAndPromo)} accent="ring-purple-500/20" />
         <StatTile icon={Share2} label="Shares" value={String(shareCount)} />
