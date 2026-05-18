@@ -113,9 +113,13 @@ export function FlexLiveControls({
             </button>
           )}
           {!isHost && (
-            <span className="ml-auto flex shrink-0 items-center gap-1 px-2 text-[10px] font-bold uppercase tracking-wider text-white/60">
-              <Smile className="h-3 w-3" /> Tap to react
-            </span>
+            <button
+              onClick={() => onShoutout?.()}
+              className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-pink-500 px-3 py-2 text-[11px] font-extrabold text-white shadow-md active:scale-95"
+              title="Send a shoutout tip"
+            >
+              <Megaphone className="h-3.5 w-3.5" /> Shoutout
+            </button>
           )}
         </div>
 
