@@ -46,6 +46,7 @@ export function LiveSellerDashboard({
   viewerCount,
   chatMessages,
   scheduledShowId,
+  isFlex = false,
 }: {
   streamId: string;
   hostId: string;
@@ -53,6 +54,7 @@ export function LiveSellerDashboard({
   viewerCount: number;
   chatMessages: ChatMsg[];
   scheduledShowId?: string | null;
+  isFlex?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
