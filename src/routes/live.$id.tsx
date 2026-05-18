@@ -5977,13 +5977,20 @@ function LiveDetail() {
                           </div>
                         )}
 
-                        {/* Action row — full-width START + End */}
+                        {/* Action row — START + Extra + End */}
                         <div className="flex items-stretch gap-1">
                           <button
                             onClick={() => quickStartAuction()}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98]"
+                            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-2 text-xs font-extrabold text-white shadow active:scale-[0.98]"
                           >
-                            <Play className="h-4 w-4" /> START AUCTION
+                            <Play className="h-3.5 w-3.5" /> START
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setExtraOpen(true)}
+                            className="flex items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-3 py-2 text-xs font-bold text-white active:scale-[0.98]"
+                          >
+                            <Sparkles className="h-3.5 w-3.5" /> Extra
                           </button>
                           <button
                             onClick={endLive}
@@ -6006,6 +6013,13 @@ function LiveDetail() {
                           <Square className="h-2.5 w-2.5" /> End Auction
                         </button>
                         <button
+                          type="button"
+                          onClick={() => setExtraOpen(true)}
+                          className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-2 py-1 text-[10px] font-bold text-white active:scale-[0.98]"
+                        >
+                          <Sparkles className="h-2.5 w-2.5" /> Extra
+                        </button>
+                        <button
                           onClick={endLive}
                           className="flex shrink-0 items-center justify-center gap-1 rounded-lg bg-live px-2 py-1 text-[10px] font-bold text-live-foreground active:scale-[0.98]"
                         >
@@ -6013,13 +6027,6 @@ function LiveDetail() {
                         </button>
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setExtraOpen(true)}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 py-1.5 text-[11px] font-bold text-white active:scale-[0.98]"
-                    >
-                      <Sparkles className="h-3 w-3" /> Extra
-                    </button>
                   </>
                 )}
               </div>
