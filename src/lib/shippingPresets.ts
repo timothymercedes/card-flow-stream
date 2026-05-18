@@ -162,10 +162,10 @@ export function pickRecommendedRate<T extends { provider?: string; service?: str
  */
 export function presetCapacityLabel(key: ShippingPresetKey): string {
   switch (key) {
-    case "stamp": return "1 card";
-    case "pwe": return "1–3 cards";
-    case "bubble": return "up to 4 cards / small slab";
-    case "small_box": return "5+ cards / box";
+    case "stamp": return "1–2 cards";
+    case "pwe": return "3–4 cards";
+    case "bubble": return "card $30+ / slab";
+    case "small_box": return "heavy 8 oz+";
   }
 }
 
