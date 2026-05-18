@@ -178,6 +178,9 @@ function LiveDetail() {
   const [input, setInput] = useState("");
   const [chatAudience, setChatAudience] = useState<"public" | "mods_only" | "host_mods">("public");
   const [showChat, setShowChat] = useState(true);
+  const [hideModsChat, setHideModsChat] = useState<boolean>(() => {
+    try { return typeof window !== "undefined" && localStorage.getItem(`pb-hide-mod-chat-${typeof window !== "undefined" ? window.location.pathname : ""}`) === "1"; } catch { return false; }
+  });
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
