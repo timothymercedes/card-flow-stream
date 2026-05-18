@@ -2469,6 +2469,7 @@ export type Database = {
           shipment_verification_code: string | null
           shipment_verified_at: string | null
           shipped_at: string | null
+          shipping_amount: number
           shipping_due_at: string | null
           status: string
           stream_id: string | null
@@ -2524,6 +2525,7 @@ export type Database = {
           shipment_verification_code?: string | null
           shipment_verified_at?: string | null
           shipped_at?: string | null
+          shipping_amount?: number
           shipping_due_at?: string | null
           status?: string
           stream_id?: string | null
@@ -2579,6 +2581,7 @@ export type Database = {
           shipment_verification_code?: string | null
           shipment_verified_at?: string | null
           shipped_at?: string | null
+          shipping_amount?: number
           shipping_due_at?: string | null
           status?: string
           stream_id?: string | null
