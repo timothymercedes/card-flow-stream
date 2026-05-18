@@ -97,7 +97,7 @@ import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 import { CollabPanel } from "@/components/CollabPanel";
 import { ViewerListModal } from "@/components/ViewerListModal";
-import { Users2, ChevronDown } from "lucide-react";
+import { Users2, ChevronDown, Store } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { CoHostStage } from "@/components/CoHostStage";
@@ -4159,17 +4159,21 @@ function LiveDetail() {
               )}
             </button>
           )}
-          {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
+          {!ended && stream.mode !== "show_off" && (
             <button
-              onClick={flexNeedsCameraSetup ? enableFlexCameraStudio : openHostCameraControls}
-              disabled={flexNeedsCameraSetup && switchingToBrowserCam}
-              className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
-              title={flexNeedsCameraSetup ? "Set up Flex cameras" : "Arrange cameras"}
+              onClick={() => {
+                if (isSeller) setQueueOpen((v) => !v);
+                else setPrebidOpen(true);
+              }}
+              className="relative rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-600 p-2 text-white shadow ring-1 ring-white/20 backdrop-blur active:scale-95"
+              title={isSeller ? "Pre-Bid queue" : "Open Pre-Bid"}
+              aria-label="Pre-Bid"
             >
-              {flexNeedsCameraSetup && switchingToBrowserCam ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Settings className="h-4 w-4" />
+              <Store className="h-4 w-4" />
+              {prebidCount > 0 && (
+                <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-amber-400 px-1 text-[9px] font-extrabold leading-[16px] text-black ring-2 ring-background">
+                  {prebidCount}
+                </span>
               )}
             </button>
           )}
@@ -7468,60 +7472,29 @@ function LiveDetail() {
         />
       )}
 
-      {/* 🆕 Pre-B — small floating bubble (viewer + host). Tap to open the panel. */}
-      {stream && !isSeller && stream.mode !== "show_off" && !ended && (
-        <>
-          <button
-            onClick={() => setPrebidOpen(true)}
-            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-600 text-base font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
-            title="Open Pre-B panel"
-            aria-label="Open Pre-B panel"
-          >
-            🔖
-            {prebidCount > 0 && (
-              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
-                {prebidCount}
-              </span>
-            )}
-          </button>
-          {prebidOpen && <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />}
-        </>
+      {/* Pre-B viewer panel (button moved into top toolbar) */}
+      {stream && !isSeller && stream.mode !== "show_off" && !ended && prebidOpen && (
+        <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />
       )}
-      {stream && isSeller && stream.mode !== "show_off" && !ended && (
-        <>
-          <button
-            onClick={() => setQueueOpen((v) => !v)}
-            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-fuchsia-600/95 text-base font-extrabold text-white shadow-xl ring-2 ring-white/20 active:scale-95 md:bottom-48"
-            title="Pre-B (manage queue)"
-            aria-label="Pre-B host panel"
-          >
-            🔖
-            {prebidCount > 0 && (
-              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
-                {prebidCount}
-              </span>
-            )}
-          </button>
-          {queueOpen && (
-            <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">
-              <AuctionQueuePanel
-                streamId={id}
-                hostId={stream.seller_id}
-                isHost={true}
-                auctionLive={auctionLive}
-                onStart={async (item) => {
-                  await quickStartAuction({
-                    item: item.title,
-                    start: String(item.starting_bid),
-                    timer: String(item.duration_seconds),
-                    buyNow: item.snipe_price ? String(item.snipe_price) : "",
-                  });
-                  setQueueOpen(false);
-                }}
-              />
-            </div>
-          )}
-        </>
+      {/* Pre-B host queue panel (button moved into top toolbar) */}
+      {stream && isSeller && stream.mode !== "show_off" && !ended && queueOpen && (
+        <div className="fixed bottom-24 right-2 z-40 w-[min(92vw,360px)] md:bottom-28">
+          <AuctionQueuePanel
+            streamId={id}
+            hostId={stream.seller_id}
+            isHost={true}
+            auctionLive={auctionLive}
+            onStart={async (item) => {
+              await quickStartAuction({
+                item: item.title,
+                start: String(item.starting_bid),
+                timer: String(item.duration_seconds),
+                buyNow: item.snipe_price ? String(item.snipe_price) : "",
+              });
+              setQueueOpen(false);
+            }}
+          />
+        </div>
       )}
     </div>
   );
