@@ -4159,17 +4159,21 @@ function LiveDetail() {
               )}
             </button>
           )}
-          {!ended && isSeller && (usingCompositor || flexNeedsCameraSetup) && (
+          {!ended && stream.mode !== "show_off" && (
             <button
-              onClick={flexNeedsCameraSetup ? enableFlexCameraStudio : openHostCameraControls}
-              disabled={flexNeedsCameraSetup && switchingToBrowserCam}
-              className={`rounded-full p-2 backdrop-blur ${showHostCameraEditor ? "bg-live" : "bg-primary/85"}`}
-              title={flexNeedsCameraSetup ? "Set up Flex cameras" : "Arrange cameras"}
+              onClick={() => {
+                if (isSeller) setQueueOpen((v) => !v);
+                else setPrebidOpen(true);
+              }}
+              className="relative rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-600 p-2 text-white shadow ring-1 ring-white/20 backdrop-blur active:scale-95"
+              title={isSeller ? "Pre-Bid queue" : "Open Pre-Bid"}
+              aria-label="Pre-Bid"
             >
-              {flexNeedsCameraSetup && switchingToBrowserCam ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Settings className="h-4 w-4" />
+              <Store className="h-4 w-4" />
+              {prebidCount > 0 && (
+                <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-amber-400 px-1 text-[9px] font-extrabold leading-[16px] text-black ring-2 ring-background">
+                  {prebidCount}
+                </span>
               )}
             </button>
           )}
