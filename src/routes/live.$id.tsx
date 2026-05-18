@@ -5357,6 +5357,12 @@ function LiveDetail() {
                 if (m.is_system || m.is_announcement) return false;
                 if (m.user_id && myBlockedIds.has(m.user_id)) return false;
                 if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
+                if (
+                  isStaff &&
+                  hideModsChat &&
+                  m.user_id &&
+                  mods.some((mm: any) => mm.mod_user_id === m.user_id)
+                ) return false;
                 return true;
               })
               .map((m) => {
