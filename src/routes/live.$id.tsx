@@ -5420,6 +5420,20 @@ function LiveDetail() {
               <p className="line-clamp-1 max-w-full text-xs font-semibold text-white/90">
                 {stream.current_item || (auctionLive ? "Live auction" : "Waiting for next item")}
               </p>
+              {/* 🆕 Shipping price — visible to buyers/viewers once auction is live */}
+              {auctionLive && (
+                <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-bold text-white/90 ring-1 ring-white/15 backdrop-blur">
+                  📦 Shipping:&nbsp;
+                  {Number(stream.shipping_price || 0) > 0
+                    ? fmtMoney(Number(stream.shipping_price))
+                    : stream.shipping_method
+                      ? stream.shipping_method
+                      : "Free"}
+                  {stream.shipping_method && Number(stream.shipping_price || 0) > 0 && (
+                    <span className="text-white/60">· {stream.shipping_method}</span>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
