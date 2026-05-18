@@ -97,7 +97,7 @@ import { KOModal, type KODestination } from "@/components/KOModal";
 import { KOViewerOverlay } from "@/components/KOViewerOverlay";
 import { CollabPanel } from "@/components/CollabPanel";
 import { ViewerListModal } from "@/components/ViewerListModal";
-import { Users2, ChevronDown, Store } from "lucide-react";
+import { Users2, ChevronDown, Store, ShieldOff } from "lucide-react";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useCloudflareCalls } from "@/hooks/useCloudflareCalls";
 import { CoHostStage } from "@/components/CoHostStage";
