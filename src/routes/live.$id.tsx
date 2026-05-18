@@ -4802,14 +4802,25 @@ function LiveDetail() {
 
               {(() => {
                 const startVal = Number(editStartPrice) || 0;
+                const qty = Math.max(1, Number(editQuantity) || 1);
                 const weightOz =
                   editWeightUnit === "lbs"
                     ? (Number(editWeight) || 0) * 16
                     : Number(editWeight) || 0;
                 const forceBubble = startVal >= 30;
-                // Auto-correct: items $30+ must ship tracked (bubble or small_box)
-                if (forceBubble && (editShipPreset === "stamp" || editShipPreset === "pwe")) {
-                  setTimeout(() => setEditShipPreset(weightOz > 8 ? "small_box" : "bubble"), 0);
+                // Auto-pick preset based on price / quantity / weight
+                const autoKey: ShippingPresetKey =
+                  forceBubble
+                    ? weightOz > 8 ? "small_box" : "bubble"
+                    : qty <= 2
+                      ? "stamp"
+                      : qty <= 4
+                        ? "pwe"
+                        : weightOz > 8
+                          ? "small_box"
+                          : "bubble";
+                if (autoKey !== editShipPreset) {
+                  setTimeout(() => setEditShipPreset(autoKey), 0);
                 }
                 return (
                   <>
