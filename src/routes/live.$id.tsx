@@ -5490,6 +5490,7 @@ function LiveDetail() {
                   username={profile?.username || null}
                   currentFilter={stream.video_filter || "none"}
                   onShoutout={() => setShoutoutOpen(true)}
+                  onBoost={() => setPromoteOpen(true)}
                 />
                 {isSeller && flexNeedsCameraSetup && (
                   <button
