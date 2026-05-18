@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Wand2, Smile, X, Megaphone } from "lucide-react";
+import { Sparkles, Wand2, Smile, X, Megaphone, Rocket } from "lucide-react";
 import { FLEX_FILTERS, FLEX_REACTIONS, weeklyVibe } from "@/lib/flexFilters";
 
 type FloatingReaction = { id: string; emoji: string; left: number };
@@ -20,6 +20,7 @@ export function FlexLiveControls({
   username,
   currentFilter,
   onShoutout,
+  onBoost,
 }: {
   streamId: string;
   isHost: boolean;
@@ -27,6 +28,7 @@ export function FlexLiveControls({
   username: string | null;
   currentFilter: string;
   onShoutout?: () => void;
+  onBoost?: () => void;
 }) {
   const [showFilters, setShowFilters] = useState(false);
   const [floats, setFloats] = useState<FloatingReaction[]>([]);
@@ -113,13 +115,22 @@ export function FlexLiveControls({
             </button>
           )}
           {!isHost && (
-            <button
-              onClick={() => onShoutout?.()}
-              className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-pink-500 px-3 py-2 text-[11px] font-extrabold text-white shadow-md active:scale-95"
-              title="Send a shoutout tip"
-            >
-              <Megaphone className="h-3.5 w-3.5" /> Shoutout
-            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              <button
+                onClick={() => onBoost?.()}
+                className="flex items-center gap-1 rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 px-3 py-2 text-[11px] font-extrabold text-white shadow-md active:scale-95"
+                title="Boost this stream's visibility"
+              >
+                <Rocket className="h-3.5 w-3.5" /> Boost
+              </button>
+              <button
+                onClick={() => onShoutout?.()}
+                className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-pink-500 px-3 py-2 text-[11px] font-extrabold text-white shadow-md active:scale-95"
+                title="Send a shoutout tip"
+              >
+                <Megaphone className="h-3.5 w-3.5" /> Shoutout
+              </button>
+            </div>
           )}
         </div>
 
