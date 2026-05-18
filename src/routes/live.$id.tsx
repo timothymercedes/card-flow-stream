@@ -4527,7 +4527,15 @@ function LiveDetail() {
                     {s === 0 ? "Off" : `${s}s`}
                   </button>
                 ))}
-              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExtraOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 text-xs font-bold text-white active:scale-[0.98]"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Extra
+            </button>
             </div>
 
             <button
