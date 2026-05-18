@@ -7472,60 +7472,29 @@ function LiveDetail() {
         />
       )}
 
-      {/* 🆕 Pre-B — small floating bubble (viewer + host). Tap to open the panel. */}
-      {stream && !isSeller && stream.mode !== "show_off" && !ended && (
-        <>
-          <button
-            onClick={() => setPrebidOpen(true)}
-            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-600 to-purple-600 text-base font-extrabold text-white shadow-xl ring-2 ring-white/30 active:scale-95 md:bottom-48"
-            title="Open Pre-B panel"
-            aria-label="Open Pre-B panel"
-          >
-            🔖
-            {prebidCount > 0 && (
-              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
-                {prebidCount}
-              </span>
-            )}
-          </button>
-          {prebidOpen && <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />}
-        </>
+      {/* Pre-B viewer panel (button moved into top toolbar) */}
+      {stream && !isSeller && stream.mode !== "show_off" && !ended && prebidOpen && (
+        <PreBidPanel streamId={id} onClose={() => setPrebidOpen(false)} />
       )}
-      {stream && isSeller && stream.mode !== "show_off" && !ended && (
-        <>
-          <button
-            onClick={() => setQueueOpen((v) => !v)}
-            className="fixed bottom-44 right-3 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-fuchsia-600/95 text-base font-extrabold text-white shadow-xl ring-2 ring-white/20 active:scale-95 md:bottom-48"
-            title="Pre-B (manage queue)"
-            aria-label="Pre-B host panel"
-          >
-            🔖
-            {prebidCount > 0 && (
-              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-amber-400 px-1 text-[10px] font-extrabold leading-[18px] text-black ring-2 ring-background">
-                {prebidCount}
-              </span>
-            )}
-          </button>
-          {queueOpen && (
-            <div className="fixed bottom-56 right-2 z-40 w-[min(92vw,360px)] md:bottom-60">
-              <AuctionQueuePanel
-                streamId={id}
-                hostId={stream.seller_id}
-                isHost={true}
-                auctionLive={auctionLive}
-                onStart={async (item) => {
-                  await quickStartAuction({
-                    item: item.title,
-                    start: String(item.starting_bid),
-                    timer: String(item.duration_seconds),
-                    buyNow: item.snipe_price ? String(item.snipe_price) : "",
-                  });
-                  setQueueOpen(false);
-                }}
-              />
-            </div>
-          )}
-        </>
+      {/* Pre-B host queue panel (button moved into top toolbar) */}
+      {stream && isSeller && stream.mode !== "show_off" && !ended && queueOpen && (
+        <div className="fixed bottom-24 right-2 z-40 w-[min(92vw,360px)] md:bottom-28">
+          <AuctionQueuePanel
+            streamId={id}
+            hostId={stream.seller_id}
+            isHost={true}
+            auctionLive={auctionLive}
+            onStart={async (item) => {
+              await quickStartAuction({
+                item: item.title,
+                start: String(item.starting_bid),
+                timer: String(item.duration_seconds),
+                buyNow: item.snipe_price ? String(item.snipe_price) : "",
+              });
+              setQueueOpen(false);
+            }}
+          />
+        </div>
       )}
     </div>
   );
