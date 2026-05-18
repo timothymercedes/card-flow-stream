@@ -179,8 +179,11 @@ function LiveDetail() {
   const [chatAudience, setChatAudience] = useState<"public" | "mods_only" | "host_mods">("public");
   const [showChat, setShowChat] = useState(true);
   const [hideModsChat, setHideModsChat] = useState<boolean>(() => {
-    try { return typeof window !== "undefined" && localStorage.getItem(`pb-hide-mod-chat-${typeof window !== "undefined" ? window.location.pathname : ""}`) === "1"; } catch { return false; }
+    try { return typeof window !== "undefined" && localStorage.getItem(`pb-hide-mod-chat-${id}`) === "1"; } catch { return false; }
   });
+  useEffect(() => {
+    try { localStorage.setItem(`pb-hide-mod-chat-${id}`, hideModsChat ? "1" : "0"); } catch {}
+  }, [hideModsChat, id]);
   const [hostFocus, setHostFocus] = useState(false);
   const [flexImmersive, setFlexImmersive] = useState(false);
   const [scanning, setScanning] = useState(false);
