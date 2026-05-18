@@ -26,7 +26,7 @@ export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
   stamp: {
     key: "stamp",
     label: "Single Card (Stamp)",
-    description: "1 USPS Forever stamp · letter mail · untracked",
+    description: "1 USPS Forever stamp · 1–2 cards · untracked",
     weightOz: 1,
     lengthIn: 6,
     widthIn: 4,
@@ -39,7 +39,7 @@ export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
   pwe: {
     key: "pwe",
     label: "PWE (1 oz+)",
-    description: "Plain White Envelope · 1–3 cards · untracked",
+    description: "Plain White Envelope · 3–4 cards · untracked",
     weightOz: 1,
     lengthIn: 6,
     widthIn: 4,
@@ -52,7 +52,7 @@ export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
   bubble: {
     key: "bubble",
     label: "Bubble Mailer",
-    description: "Tracked · up to a few cards / small slab · 4 oz",
+    description: "Tracked · card value $30+ or slab · 4 oz",
     weightOz: 4,
     lengthIn: 7,
     widthIn: 5,
@@ -62,7 +62,7 @@ export const SHIPPING_PRESETS: Record<ShippingPresetKey, ShippingPreset> = {
   small_box: {
     key: "small_box",
     label: "Small TCG Box",
-    description: "Tracked · booster box / multiple slabs · 10 oz",
+    description: "Tracked · heavy (8 oz+) · booster box / multiple slabs",
     weightOz: 10,
     lengthIn: 8,
     widthIn: 6,
