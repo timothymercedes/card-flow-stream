@@ -4226,6 +4226,15 @@ function LiveDetail() {
               <Zap className="h-4 w-4" />
             </button>
           )}
+          {isStaff && (
+            <button
+              onClick={() => setHideModsChat((v) => !v)}
+              title={hideModsChat ? "Show mod messages" : "Hide mod messages"}
+              className={`rounded-full p-2 backdrop-blur ${hideModsChat ? "bg-amber-500/30 text-amber-200 ring-1 ring-amber-300/50" : "bg-black/50 text-white"}`}
+            >
+              {hideModsChat ? <ShieldOff className="h-4 w-4" /> : <Shield className="h-4 w-4" />}
+            </button>
+          )}
           <button
             onClick={() => setShowChat((v) => !v)}
             className="rounded-full bg-black/50 p-2 backdrop-blur"
