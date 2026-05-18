@@ -185,6 +185,7 @@ function LiveDetail() {
   const [now, setNow] = useState(Date.now());
   const [holdAdd, setHoldAdd] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [extraOpen, setExtraOpen] = useState(false);
   const [koOpen, setKoOpen] = useState(false);
   const [koEnrichedDests, setKoEnrichedDests] = useState<any[]>([]);
   const [pinned, setPinned] = useState(true);
@@ -4526,7 +4527,15 @@ function LiveDetail() {
                     {s === 0 ? "Off" : `${s}s`}
                   </button>
                 ))}
-              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExtraOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 py-2.5 text-xs font-bold text-white active:scale-[0.98]"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Extra
+            </button>
             </div>
 
             <button
@@ -4561,7 +4570,113 @@ function LiveDetail() {
         </div>
       )}
 
-      {/* Seller settings panel (auction mode) */}
+      {/* Extra quick-actions popup */}
+      {extraOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setExtraOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-xs rounded-2xl bg-card p-4 text-foreground shadow-2xl ring-1 ring-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setExtraOpen(false)}
+              aria-label="Close"
+              className="absolute right-2 top-2 rounded-full bg-muted/60 p-1 text-foreground hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <p className="mb-3 flex items-center gap-1.5 text-sm font-bold">
+              <Sparkles className="h-4 w-4" /> Extra
+            </p>
+            <div
+              className={`grid gap-2 ${stream?.break_mode === "open" ? "grid-cols-3" : "grid-cols-2"}`}
+            >
+              <button
+                onClick={() => {
+                  quickLiveScan();
+                  setExtraOpen(false);
+                }}
+                disabled={liveScanBusy}
+                className="flex flex-col items-center justify-center gap-1 rounded-lg bg-accent py-3 text-[11px] font-bold text-accent-foreground active:scale-[0.98] disabled:opacity-60"
+              >
+                <Camera className="h-4 w-4" /> {liveScanBusy ? "Scanning…" : "Scan"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowBreakPanel(true);
+                  setExtraOpen(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 py-3 text-[11px] font-bold text-white active:scale-[0.98]"
+              >
+                <Dice5 className="h-4 w-4" /> Break
+              </button>
+              {stream?.break_mode === "open" && (
+                <button
+                  onClick={async () => {
+                    const next = !stream.break_force_visible;
+                    setStream((prev: any) =>
+                      prev ? { ...prev, break_force_visible: next } : prev,
+                    );
+                    await supabase
+                      .from("live_streams")
+                      .update({ break_force_visible: next })
+                      .eq("id", id);
+                    toast.success(
+                      next
+                        ? "Break grid pinned for viewers"
+                        : "Viewers can collapse the break grid",
+                    );
+                    setExtraOpen(false);
+                  }}
+                  className="flex flex-col items-center justify-center gap-1 rounded-lg bg-card/70 py-3 text-[11px] font-bold text-foreground ring-1 ring-white/15 active:scale-[0.98]"
+                >
+                  {stream.break_force_visible ? (
+                    <PinOff className="h-4 w-4" />
+                  ) : (
+                    <Pin className="h-4 w-4" />
+                  )}
+                  {stream.break_force_visible ? "Unpin" : "Pin"}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowWheelEditor(true);
+                  setExtraOpen(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 py-3 text-[11px] font-bold text-white active:scale-[0.98]"
+              >
+                <RotateCw className="h-4 w-4" /> Wheel
+              </button>
+              <button
+                onClick={() => {
+                  setGiveawayComposer(true);
+                  setShowGiveaway(true);
+                  setExtraOpen(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 py-3 text-[11px] font-bold text-white active:scale-[0.98]"
+              >
+                <Gift className="h-4 w-4" /> Gift
+              </button>
+              <button
+                disabled={!auctionLive}
+                onClick={() => {
+                  setSnipeOpen(true);
+                  setExtraOpen(false);
+                }}
+                className="flex flex-col items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-yellow-500 to-amber-500 py-3 text-[11px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
+                title={auctionLive ? "Set buy-now snipe price" : "Available during auction"}
+              >
+                <Zap className="h-4 w-4" /> Snipe
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {isSeller && showSettings && !ended && stream.mode !== "show_off" && (
         <div className="absolute inset-x-2 bottom-24 z-30 max-h-[55vh] overflow-y-auto rounded-2xl bg-card/95 p-4 text-foreground shadow-2xl ring-1 ring-white/10 backdrop-blur">
           <div className="mb-2 flex items-center justify-between">
@@ -5904,82 +6019,7 @@ function LiveDetail() {
                         </button>
                       </div>
                     )}
-                    {/* Secondary tools — collapsed under "Extra" dropdown */}
-                    <details className="group rounded-lg bg-card/40 ring-1 ring-white/10 backdrop-blur">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-1 rounded-lg px-2 py-1 text-[10px] font-bold text-white/90 active:scale-[0.98]">
-                        <span className="inline-flex items-center gap-1">
-                          <Sparkles className="h-3 w-3" /> Extra
-                        </span>
-                        <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
-                      </summary>
-                      <div
-                        className={`grid gap-0.5 p-1 ${stream.break_mode === "open" ? "grid-cols-6" : "grid-cols-5"}`}
-                      >
-                        <button
-                          onClick={quickLiveScan}
-                          disabled={liveScanBusy}
-                          className="flex flex-col items-center justify-center gap-0 rounded-md bg-accent py-0.5 text-[8px] font-bold text-accent-foreground active:scale-[0.98] disabled:opacity-60"
-                        >
-                          <Camera className="h-2.5 w-2.5" /> {liveScanBusy ? "Scanning…" : "Scan"}
-                        </button>
-                        <button
-                          onClick={() => setShowBreakPanel(true)}
-                          className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-pink-500 to-purple-500 py-0.5 text-[8px] font-bold text-white active:scale-[0.98]"
-                        >
-                          <Dice5 className="h-2.5 w-2.5" /> Break
-                        </button>
-                        {stream.break_mode === "open" && (
-                          <button
-                            onClick={async () => {
-                              const next = !stream.break_force_visible;
-                              setStream((prev: any) =>
-                                prev ? { ...prev, break_force_visible: next } : prev,
-                              );
-                              await supabase
-                                .from("live_streams")
-                                .update({ break_force_visible: next })
-                                .eq("id", id);
-                              toast.success(
-                                next
-                                  ? "Break grid pinned for viewers"
-                                  : "Viewers can collapse the break grid",
-                              );
-                            }}
-                            className="flex flex-col items-center justify-center gap-0 rounded-md bg-card/70 py-0.5 text-[8px] font-bold text-foreground ring-1 ring-white/15 active:scale-[0.98]"
-                          >
-                            {stream.break_force_visible ? (
-                              <PinOff className="h-2.5 w-2.5" />
-                            ) : (
-                              <Pin className="h-2.5 w-2.5" />
-                            )}
-                            {stream.break_force_visible ? "Unpin" : "Pin"}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setShowWheelEditor(true)}
-                          className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-amber-500 to-rose-500 py-0.5 text-[8px] font-bold text-white active:scale-[0.98]"
-                        >
-                          <RotateCw className="h-2.5 w-2.5" /> Wheel
-                        </button>
-                        <button
-                          onClick={() => {
-                            setGiveawayComposer(true);
-                            setShowGiveaway(true);
-                          }}
-                          className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-emerald-500 to-teal-500 py-0.5 text-[8px] font-bold text-white active:scale-[0.98]"
-                        >
-                          <Gift className="h-2.5 w-2.5" /> Gift
-                        </button>
-                        <button
-                          disabled={!auctionLive}
-                          onClick={() => setSnipeOpen(true)}
-                          className="flex flex-col items-center justify-center gap-0 rounded-md bg-gradient-to-r from-yellow-500 to-amber-500 py-0.5 text-[8px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
-                          title={auctionLive ? "Set buy-now snipe price" : "Available during auction"}
-                        >
-                          <Zap className="h-2.5 w-2.5" /> Snipe
-                        </button>
-                      </div>
-                    </details>
+                    {/* Extra moved into Flex settings panel as a popup */}
                   </>
                 )}
               </div>
