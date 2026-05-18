@@ -5300,7 +5300,7 @@ function LiveDetail() {
         );
         if (annMsgs.length === 0) return null;
         return (
-          <div className="pointer-events-none absolute left-2 right-14 top-16 z-20 flex flex-col items-stretch gap-1">
+          <div className={`pointer-events-none absolute left-2 right-14 z-20 flex flex-col items-stretch gap-1 ${auctionLive ? "top-48" : "top-36"}`}>
             {annMsgs.slice(-3).map((m) => {
               return (
                 <div
