@@ -5191,7 +5191,7 @@ function LiveDetail() {
 
       {/* 🆕 Live Seller Dashboard — docked to the right edge, independent from auction card. */}
       {!ended && isSeller && (
-        <div className="pointer-events-none absolute right-0 top-28 z-20 md:right-0 md:top-36">
+        <div className="pointer-events-none absolute right-0 top-14 z-20 md:right-0 md:top-16">
           <LiveSellerDashboard
             streamId={stream.id}
             hostId={stream.seller_id}
