@@ -77,11 +77,12 @@ const TCG_CATEGORIES = new Set([
 ]);
 
 /**
- * Auto-pick a preset based on listing category, quantity and order value.
- * - High-value or slabbed cards → tracked bubble (never stamp/PWE)
- * - Single TCG card under $20 → stamp
- * - 2-3 cards / pack → PWE
- * - 4+ cards or "box/etb/case" keywords → small box
+ * Auto-pick a preset by quantity, order value and weight.
+ * Rules:
+ *   - Item value ≥ $30 OR slabbed → Bubble (Small Box if weight > 8oz)
+ *   - 1–2 cards → Stamp
+ *   - 3–4 cards → PWE
+ *   - 5+ cards → Bubble (Small Box if weight > 8oz)
  */
 export function suggestPreset(opts: {
   category?: string | null;
@@ -89,35 +90,33 @@ export function suggestPreset(opts: {
   title?: string | null;
   /** Order value in USD — used to decide tracked vs untracked. */
   orderValueUsd?: number | null;
+  /** Estimated package weight in oz. */
+  weightOz?: number | null;
   /** Seller settings (from profile). */
   pweEnabled?: boolean;
   pweMaxOrderValue?: number;
 }): ShippingPresetKey {
-  const cat = (opts.category || "").toLowerCase();
   const qty = Math.max(1, opts.quantity ?? 1);
   const title = (opts.title || "").toLowerCase();
+  const cat = (opts.category || "").toLowerCase();
   const value = Number(opts.orderValueUsd ?? 0);
+  const weightOz = Number(opts.weightOz ?? 0);
   const pweOk = opts.pweEnabled !== false;
-  const cap = opts.pweMaxOrderValue ?? 20;
 
+  // Always-box overrides
   if (/booster\s*box|etb|elite trainer|case|bundle/.test(title)) return "small_box";
   if (/funko|plush|figure|memorabilia|supplies/.test(cat)) return "small_box";
 
-  // Force tracked for slabs or high value
   const isSlab = /slab|psa|bgs|cgc/.test(title);
-  if (isSlab) return qty <= 4 ? "bubble" : "small_box";
-  if (value > cap) return qty <= 4 ? "bubble" : "small_box";
+  const heavy = weightOz > 8;
 
-  if (TCG_CATEGORIES.has(cat)) {
-    if (qty === 1 && pweOk) return "stamp";
-    if (qty <= 3 && pweOk) return "pwe";
-    if (qty <= 4) return "bubble";
-    return "small_box";
-  }
+  // Force tracked for slabs or $30+ items
+  if (isSlab || value >= 30) return heavy ? "small_box" : "bubble";
 
-  if (qty === 1 && pweOk && value <= cap) return "pwe";
-  if (qty <= 4) return "bubble";
-  return "small_box";
+  // Quantity-based for cheap raw cards
+  if (pweOk && qty <= 2) return "stamp";
+  if (pweOk && qty <= 4) return "pwe";
+  return heavy ? "small_box" : "bubble";
 }
 
 /**
