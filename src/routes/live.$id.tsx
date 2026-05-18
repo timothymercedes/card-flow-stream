@@ -4812,7 +4812,7 @@ function LiveDetail() {
                 return (
                   <>
                     <div className="space-y-1">
-                      <p className="text-[11px] font-bold text-foreground">Extras</p>
+                      <p className="text-[11px] font-bold text-foreground">​</p>
                       <div className="flex flex-wrap items-center gap-1 rounded-lg bg-background/40 p-1.5">
                         <label className="flex cursor-pointer items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground">
                           <input
@@ -5845,7 +5845,7 @@ function LiveDetail() {
                         {/* Extras row */}
                         <div className="flex flex-wrap items-center gap-1 rounded bg-background/40 p-1">
                           <span className="text-[9px] font-extrabold uppercase tracking-wide text-white/70">
-                            Extras
+                            ​
                           </span>
                           <label className="flex cursor-pointer items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
                             <input
