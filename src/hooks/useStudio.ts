@@ -1080,6 +1080,9 @@ export function useStudio(opts: {
     renameSource,
     toggleLock,
     setFit,
+    updateCameraSettings,
+    getCameraTrackCapabilities,
+
     setLayout,
     bringToFront,
     sendToBack,
