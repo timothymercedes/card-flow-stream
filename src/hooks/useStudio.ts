@@ -17,6 +17,20 @@ const CAMERA_RELEASE_RETRY_DELAYS_MS = [300, 900, 1800];
 
 export type StudioScene = "solo" | "split" | "grid" | "freeform";
 
+export type CameraSettings = {
+  width?: number;
+  height?: number;
+  frameRate?: number;
+  aspectRatio?: number; // 16/9, 4/3, undefined = auto
+  zoom?: number;
+  focusMode?: "continuous" | "manual";
+  focusDistance?: number;
+  brightness?: number; // 0..2 (1 = no change)
+  contrast?: number;
+  saturation?: number;
+  sharpness?: number; // mapped to extra contrast
+};
+
 export type StudioSource = {
   id: string;
   kind: "camera" | "screen" | "phone";
@@ -29,7 +43,9 @@ export type StudioSource = {
   muted: boolean; // mic muted (camera mics only)
   locked: boolean;
   fit: "cover" | "contain";
+  settings?: CameraSettings;
 };
+
 
 type ExternalStreamMetadata = {
   deviceId?: string;
@@ -119,6 +135,64 @@ function cameraErrorMessage(e: any) {
   }
   return e?.message || "Could not access camera";
 }
+
+// ─── Camera settings persistence + track constraints ───────────────────
+const CAM_PREFS_KEY = "studio:cam-prefs:v1";
+
+type PersistedCameraEntry = {
+  fit?: "cover" | "contain";
+  settings?: CameraSettings;
+};
+
+function readCamPrefs(): Record<string, PersistedCameraEntry> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(window.localStorage.getItem(CAM_PREFS_KEY) || "{}"); } catch { return {}; }
+}
+function writeCamPrefs(prefs: Record<string, PersistedCameraEntry>) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(CAM_PREFS_KEY, JSON.stringify(prefs)); } catch {}
+}
+function loadPersistedCameraSettings(deviceId?: string): PersistedCameraEntry | undefined {
+  if (!deviceId) return undefined;
+  return readCamPrefs()[deviceId];
+}
+function persistCameraSettings(deviceId: string | undefined, entry: PersistedCameraEntry) {
+  if (!deviceId) return;
+  const prefs = readCamPrefs();
+  prefs[deviceId] = { ...prefs[deviceId], ...entry };
+  writeCamPrefs(prefs);
+}
+
+export async function applyTrackConstraints(track: MediaStreamTrack, s: CameraSettings) {
+  const caps: any = typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+  const advanced: any[] = [];
+  const constraints: any = {};
+  if (s.width) constraints.width = { ideal: s.width };
+  if (s.height) constraints.height = { ideal: s.height };
+  if (s.frameRate) constraints.frameRate = { ideal: s.frameRate };
+  if (s.aspectRatio) constraints.aspectRatio = { ideal: s.aspectRatio };
+  if (typeof s.zoom === "number" && caps.zoom) advanced.push({ zoom: s.zoom });
+  if (s.focusMode && caps.focusMode?.includes?.(s.focusMode)) advanced.push({ focusMode: s.focusMode });
+  if (typeof s.focusDistance === "number" && caps.focusDistance) advanced.push({ focusDistance: s.focusDistance });
+  if (advanced.length) constraints.advanced = advanced;
+  if (Object.keys(constraints).length === 0) return;
+  await track.applyConstraints(constraints);
+}
+
+export function getCameraCapabilities(track: MediaStreamTrack): any {
+  try { return typeof track.getCapabilities === "function" ? track.getCapabilities() : {}; } catch { return {}; }
+}
+
+export function buildCameraFilter(s?: CameraSettings): string {
+  if (!s) return "none";
+  const parts: string[] = [];
+  if (typeof s.brightness === "number" && s.brightness !== 1) parts.push(`brightness(${s.brightness})`);
+  if (typeof s.contrast === "number" && s.contrast !== 1) parts.push(`contrast(${s.contrast})`);
+  if (typeof s.saturation === "number" && s.saturation !== 1) parts.push(`saturate(${s.saturation})`);
+  if (typeof s.sharpness === "number" && s.sharpness !== 1) parts.push(`contrast(${1 + (s.sharpness - 1) * 0.3})`);
+  return parts.length ? parts.join(" ") : "none";
+}
+
 
 async function openCameraStream(video: MediaTrackConstraints, withAudio: boolean) {
   const audio: MediaTrackConstraints | false = withAudio
@@ -392,18 +466,21 @@ export function useStudio(opts: {
           track?.label ||
           `Camera ${sourcesRef.current.filter((s) => s.kind === "camera").length + 1}`;
         const id = `cam-${crypto.randomUUID()}`;
+        const persistedDeviceId = settings?.deviceId ?? deviceId;
+        const restored = loadPersistedCameraSettings(persistedDeviceId);
         const src: StudioSource = {
           id,
           kind: "camera",
           label,
           stream,
           ownsStream: true,
-          deviceId: settings?.deviceId ?? deviceId,
+          deviceId: persistedDeviceId,
           groupId,
           visible: true,
           muted: false,
           locked: false,
-          fit: "cover",
+          fit: restored?.fit ?? "contain",
+          settings: restored?.settings,
         };
         setSources((prev) => {
           const next = [...prev, src];
@@ -411,7 +488,12 @@ export function useStudio(opts: {
           if (!activeIdRef.current) setActiveId(id);
           return next;
         });
+        // Re-apply persisted track-level constraints async (zoom/focus/etc).
+        if (restored?.settings && track) {
+          void applyTrackConstraints(track, restored.settings).catch(() => {});
+        }
         setLayouts((prev) => ({
+
           ...prev,
           [id]: makeDefaultLayout(Object.keys(prev).length),
         }));
@@ -609,8 +691,45 @@ export function useStudio(opts: {
   }, []);
 
   const setFit = useCallback((id: string, fit: "cover" | "contain") => {
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, fit } : s)));
+    setSources((prev) => {
+      const next = prev.map((s) => (s.id === id ? { ...s, fit } : s));
+      const target = next.find((s) => s.id === id);
+      if (target?.kind === "camera") persistCameraSettings(target.deviceId, { fit });
+      return next;
+    });
   }, []);
+
+  const updateCameraSettings = useCallback(
+    async (id: string, patch: CameraSettings) => {
+      let track: MediaStreamTrack | undefined;
+      let merged: CameraSettings | undefined;
+      let deviceId: string | undefined;
+      setSources((prev) => {
+        const next = prev.map((s) => {
+          if (s.id !== id) return s;
+          merged = { ...(s.settings ?? {}), ...patch };
+          track = s.stream.getVideoTracks()[0];
+          deviceId = s.deviceId;
+          return { ...s, settings: merged };
+        });
+        sourcesRef.current = next;
+        return next;
+      });
+      if (track && merged) {
+        try { await applyTrackConstraints(track, patch); } catch (e) { console.warn("[studio] applyConstraints failed", e); }
+      }
+      if (deviceId && merged) persistCameraSettings(deviceId, { settings: merged });
+    },
+    [],
+  );
+
+  const getCameraTrackCapabilities = useCallback((id: string): any => {
+    const s = sourcesRef.current.find((x) => x.id === id);
+    const track = s?.stream.getVideoTracks()[0];
+    return track ? getCameraCapabilities(track) : {};
+  }, []);
+
+
 
   const bringToFront = useCallback((id: string) => {
     setLayouts((prev) => {
@@ -676,7 +795,8 @@ export function useStudio(opts: {
 
     function drawTile(t: { source: StudioSource; x: number; y: number; w: number; h: number }) {
       const v = ensureVideo(t.source);
-      if (v.videoWidth > 0) drawFit(ctx!, v, t.x, t.y, t.w, t.h, t.source.fit);
+      if (v.videoWidth > 0) drawFit(ctx!, v, t.x, t.y, t.w, t.h, t.source.fit, buildCameraFilter(t.source.settings));
+
       else {
         ctx!.fillStyle = "#1a1a1a";
         ctx!.fillRect(t.x, t.y, t.w, t.h);
@@ -960,6 +1080,9 @@ export function useStudio(opts: {
     renameSource,
     toggleLock,
     setFit,
+    updateCameraSettings,
+    getCameraTrackCapabilities,
+
     setLayout,
     bringToFront,
     sendToBack,
@@ -1046,6 +1169,7 @@ function drawFit(
   w: number,
   h: number,
   fit: "cover" | "contain",
+  filter: string = "none",
 ) {
   const sw = v.videoWidth;
   const sh = v.videoHeight;
@@ -1063,9 +1187,13 @@ function drawFit(
     ctx.fillStyle = "#000";
     ctx.fillRect(x, y, w, h);
   }
+  (ctx as any).filter = filter;
   ctx.drawImage(v, dx, dy, dw, dh);
+  (ctx as any).filter = "none";
+
   ctx.restore();
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
 }
+

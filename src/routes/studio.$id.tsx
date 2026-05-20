@@ -14,6 +14,8 @@ import {
   Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X, RefreshCw,
 } from "lucide-react";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
+import { CameraSettingsPopover } from "@/components/CameraSettingsPopover";
+
 import { StudioChatDock } from "@/components/StudioChatDock";
 import { usePhoneCamera } from "@/hooks/usePhoneCamera";
 import QRCode from "qrcode";
@@ -226,9 +228,18 @@ function Studio() {
             className="ml-auto rounded bg-muted px-1 py-0.5 text-[9px] font-semibold"
             title="Fit mode"
           >
-            <option value="cover">Fill</option>
             <option value="contain">Fit</option>
+            <option value="cover">Fill</option>
           </select>
+          {s.kind === "camera" && (
+            <CameraSettingsPopover
+              source={s}
+              capabilities={studio.getCameraTrackCapabilities(s.id)}
+              onUpdate={(patch) => studio.updateCameraSettings(s.id, patch)}
+              onSetFit={(fit) => studio.setFit(s.id, fit)}
+            />
+          )}
+
           <button onClick={() => studio.expandSource(s.id)} className="rounded p-1 hover:bg-muted" title="Fullscreen">
             {studio.expandedId === s.id ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
           </button>
