@@ -1969,7 +1969,16 @@ function LiveDetail() {
         _stream_id: id,
         _amount: amount,
       });
-      if (error) return toast.error(error.message);
+      if (error) {
+        if (isMissingStreamKeySchemaError(error.message)) {
+          console.warn("Missing stream key", error);
+          return toast.error("Could not place bid. Please try again.");
+        }
+        return toast.error(error.message);
+      }
+      setStream((prev: any) =>
+        prev ? { ...prev, current_bid: amount, current_bidder_id: user.id } : prev,
+      );
       playSfx("bid");
       // 🆕 Gamification: combo streak + XP + daily quest. Server-validated;
       // RPCs throttle/reset, so spam-clicking can't farm progression.
@@ -2003,28 +2012,28 @@ function LiveDetail() {
       }
       await sendMsg(`💎 ${profile.username} bid $${amount}`, true);
       if (stream.seller_id !== user.id) {
-        await supabase.from("notifications").insert({
+        supabase.from("notifications").insert({
           user_id: stream.seller_id,
           type: "bid",
           body: `@${profile.username} bid $${amount} on "${stream.current_item || stream.title}"`,
           link: `/live/${id}`,
-        });
+        }).then(() => null);
       }
       if (prevBidder && prevBidder !== user.id) {
-        await supabase.from("notifications").insert({
+        supabase.from("notifications").insert({
           user_id: prevBidder,
           type: "outbid",
           body: `You were outbid on "${stream.current_item || stream.title}" — now $${amount}`,
           link: `/live/${id}`,
-        });
+        }).then(() => null);
       }
       // Notify the new top bidder they're winning
-      await supabase.from("notifications").insert({
+      supabase.from("notifications").insert({
         user_id: user.id,
         type: "winning",
         body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
         link: `/live/${id}`,
-      });
+      }).then(() => null);
     });
   }
 
