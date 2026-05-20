@@ -1,13 +1,27 @@
 /**
- * Auction-win auto-charge (Phase 3).
+ * Auction-win auto-charge (Phase 3 + 3.1 stabilization).
  *
  * Off-session PaymentIntent confirmation using the buyer's default saved
- * card. Called automatically when a buyer wins an auction (the live page
- * detects the new `orders` row and invokes this server fn) so they never
+ * card. Called automatically when a buyer wins an auction so they never
  * leave the livestream to check out.
  *
- * On failure the order's payment_status is set to "failed" and the buyer
- * can recover via FixPaymentModal (saved card retry or new card).
+ * Phase 3.1 fixes (do NOT regress):
+ *  - 5% seller commission is included in `application_fee_amount` (was
+ *    leaking revenue; sellers were receiving 100% of subtotal).
+ *  - `commission_amount` and `seller_payout_amount` are persisted on every
+ *    auto-charged order so payout dashboards stay correct.
+ *  - `requires_action` is surfaced as `failed` to the UI so FixPaymentModal
+ *    opens instead of silently parking the order in `processing` (off-session
+ *    SCA challenges can't be completed without the buyer picking a new card).
+ *  - `payment_failure_count` is incremented + `payment_failed_at` set so the
+ *    cross-stream restriction thresholds in Phase 6 trigger correctly.
+ *  - Failure path also stamps `payment_retry_deadline` (24h) for parity with
+ *    the legacy webhook flow, so any pre-existing UI showing "retry within
+ *    24h" continues to work.
+ *
+ * The fallback Stripe webhook at /api/public/stripe/webhook is INTACT and
+ * remains the source of truth for reconciliation if this in-stream path
+ * ever fails. Do not remove it.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -25,7 +39,9 @@ type ChargeResult =
 async function loadOrderForCharge(orderId: string, userId: string) {
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select("id,buyer_id,seller_id,amount,shipping_amount,title,payment_status,status,stream_id,stripe_payment_intent_id")
+    .select(
+      "id,buyer_id,seller_id,amount,shipping_amount,title,payment_status,status,stream_id,stripe_payment_intent_id,commission_rate,payment_failure_count"
+    )
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw error;
@@ -70,6 +86,50 @@ async function loadSellerStripe(sellerId: string) {
   return data as any;
 }
 
+async function markFailed(opts: {
+  orderId: string;
+  userId: string;
+  prevFailureCount: number;
+  message: string;
+  title: string;
+  streamId: string | null;
+}) {
+  const nowIso = new Date().toISOString();
+  const retryDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await supabaseAdmin
+    .from("orders")
+    .update({
+      payment_status: "failed",
+      payment_failure_count: (opts.prevFailureCount || 0) + 1,
+      payment_failed_at: nowIso,
+      payment_retry_deadline: retryDeadline,
+    })
+    .eq("id", opts.orderId);
+
+  // Insert/refresh a bid block so the buyer is restricted in this stream
+  // until they pay or the host cancels.
+  if (opts.streamId) {
+    await supabaseAdmin
+      .from("live_bid_blocks")
+      .upsert(
+        {
+          stream_id: opts.streamId,
+          user_id: opts.userId,
+          reason: "payment_failed",
+          expires_at: retryDeadline,
+        },
+        { onConflict: "stream_id,user_id" },
+      );
+  }
+
+  await supabaseAdmin.from("notifications").insert({
+    user_id: opts.userId,
+    type: "payment_failed",
+    body: `❗ Payment for "${opts.title}" failed (${opts.message}). Tap to fix.`,
+    link: opts.streamId ? `/live/${opts.streamId}` : "/orders",
+  });
+}
+
 async function performCharge(opts: {
   orderId: string;
   userId: string;
@@ -101,6 +161,16 @@ async function performCharge(opts: {
   const isInternational = buyerCountry !== sellerCountry && (buyerCountry !== "US" || sellerCountry !== "US");
 
   const fees = calculateFees(totalCents, { isInternational });
+
+  // Seller commission (5% of subtotal) — deducted from the seller's payout
+  // via the Connect application_fee_amount split. Buyer total is unchanged
+  // (commission comes out of the seller side, not on top of the buyer
+  // checkout). This was missing in Phase 3 and caused a revenue leak.
+  const commissionRate = Number(order.commission_rate ?? 0.05);
+  const commissionCents = Math.round(totalCents * commissionRate);
+  const applicationFeeWithCommission = fees.applicationFee + commissionCents;
+  const sellerPayoutCents = totalCents - commissionCents;
+
   const idemKey = `auction-charge:${orderId}:${fees.buyerTotal}:${pm.stripe_payment_method_id}`;
 
   try {
@@ -111,7 +181,7 @@ async function performCharge(opts: {
       payment_method: pm.stripe_payment_method_id,
       off_session: true,
       confirm: true,
-      application_fee_amount: fees.applicationFee,
+      application_fee_amount: applicationFeeWithCommission,
       transfer_data: { destination: seller.stripe_account_id },
       metadata: {
         kind: "auction_auto_charge",
@@ -121,17 +191,25 @@ async function performCharge(opts: {
         stream_id: order.stream_id ?? "",
         subtotal_cents: String(fees.subtotalCents),
         platform_fee_cents: String(fees.platformFee),
+        commission_cents: String(commissionCents),
         intl_fee_cents: String(fees.intlFee),
+        seller_payout_cents: String(sellerPayoutCents),
         is_international: String(isInternational),
+        buyer_country: buyerCountry,
+        seller_country: sellerCountry,
       },
     }, { idempotencyKey: idemKey });
 
     // Persist regardless of final status so the webhook + UI can reconcile.
+    // commission_amount + seller_payout_amount are stored as decimal dollars
+    // to match the existing `amount` / `shipping_amount` convention.
     await supabaseAdmin
       .from("orders")
       .update({
         stripe_payment_intent_id: intent.id,
         seller_stripe_account_id: seller.stripe_account_id,
+        commission_amount: commissionCents / 100,
+        seller_payout_amount: sellerPayoutCents / 100,
         payment_status: intent.status === "succeeded" ? "paid" : "processing",
         paid_at: intent.status === "succeeded" ? new Date().toISOString() : null,
       })
@@ -140,14 +218,35 @@ async function performCharge(opts: {
     if (intent.status === "succeeded") {
       return { status: "paid", paymentIntentId: intent.id };
     }
+
+    // Off-session 3DS / SCA can't be completed in the background — the
+    // buyer needs to pick a different card. Surface as failed so the
+    // in-stream FixPaymentModal opens.
     if (intent.status === "requires_action" && intent.client_secret) {
-      return { status: "requires_action", clientSecret: intent.client_secret, paymentIntentId: intent.id };
+      await markFailed({
+        orderId,
+        userId,
+        prevFailureCount: order.payment_failure_count ?? 0,
+        message: "Your bank requires extra verification",
+        title: order.title,
+        streamId: order.stream_id ?? null,
+      });
+      return {
+        status: "requires_action",
+        clientSecret: intent.client_secret,
+        paymentIntentId: intent.id,
+      };
     }
+
     // Any other non-terminal status — treat as failed so buyer can retry.
-    await supabaseAdmin
-      .from("orders")
-      .update({ payment_status: "failed" })
-      .eq("id", orderId);
+    await markFailed({
+      orderId,
+      userId,
+      prevFailureCount: order.payment_failure_count ?? 0,
+      message: `Payment ${intent.status}`,
+      title: order.title,
+      streamId: order.stream_id ?? null,
+    });
     return { status: "failed", message: `Payment ${intent.status}` };
   } catch (err: any) {
     // Stripe card errors include rich code/decline reason.
@@ -156,16 +255,13 @@ async function performCharge(opts: {
       err?.message ??
       "Payment failed";
 
-    await supabaseAdmin
-      .from("orders")
-      .update({ payment_status: "failed" })
-      .eq("id", orderId);
-
-    await supabaseAdmin.from("notifications").insert({
-      user_id: userId,
-      type: "payment_failed",
-      body: `❗ Payment for "${order.title}" failed (${message}). Tap to fix.`,
-      link: order.stream_id ? `/live/${order.stream_id}` : "/orders",
+    await markFailed({
+      orderId,
+      userId,
+      prevFailureCount: order.payment_failure_count ?? 0,
+      message,
+      title: order.title,
+      streamId: order.stream_id ?? null,
     });
 
     return { status: "failed", message };
