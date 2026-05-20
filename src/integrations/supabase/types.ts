@@ -1835,7 +1835,10 @@ export type Database = {
           break_wheel_started_at: string | null
           break_wheel_target_slot: number | null
           category: string | null
+          cf_live_input_id: string | null
           cf_playback_hls: string | null
+          cf_rtmps_url: string | null
+          cf_stream_key: string | null
           cf_video_uid: string | null
           cf_whip_url: string | null
           chat_slow_mode_sec: number
@@ -1938,7 +1941,10 @@ export type Database = {
           break_wheel_started_at?: string | null
           break_wheel_target_slot?: number | null
           category?: string | null
+          cf_live_input_id?: string | null
           cf_playback_hls?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
           cf_video_uid?: string | null
           cf_whip_url?: string | null
           chat_slow_mode_sec?: number
@@ -2041,7 +2047,10 @@ export type Database = {
           break_wheel_started_at?: string | null
           break_wheel_target_slot?: number | null
           category?: string | null
+          cf_live_input_id?: string | null
           cf_playback_hls?: string | null
+          cf_rtmps_url?: string | null
+          cf_stream_key?: string | null
           cf_video_uid?: string | null
           cf_whip_url?: string | null
           chat_slow_mode_sec?: number
