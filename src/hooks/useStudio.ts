@@ -408,18 +408,21 @@ export function useStudio(opts: {
           track?.label ||
           `Camera ${sourcesRef.current.filter((s) => s.kind === "camera").length + 1}`;
         const id = `cam-${crypto.randomUUID()}`;
+        const persistedDeviceId = settings?.deviceId ?? deviceId;
+        const restored = loadPersistedCameraSettings(persistedDeviceId);
         const src: StudioSource = {
           id,
           kind: "camera",
           label,
           stream,
           ownsStream: true,
-          deviceId: settings?.deviceId ?? deviceId,
+          deviceId: persistedDeviceId,
           groupId,
           visible: true,
           muted: false,
           locked: false,
-          fit: "cover",
+          fit: restored?.fit ?? "contain",
+          settings: restored?.settings,
         };
         setSources((prev) => {
           const next = [...prev, src];
@@ -427,7 +430,12 @@ export function useStudio(opts: {
           if (!activeIdRef.current) setActiveId(id);
           return next;
         });
+        // Re-apply persisted track-level constraints async (zoom/focus/etc).
+        if (restored?.settings && track) {
+          void applyTrackConstraints(track, restored.settings).catch(() => {});
+        }
         setLayouts((prev) => ({
+
           ...prev,
           [id]: makeDefaultLayout(Object.keys(prev).length),
         }));
