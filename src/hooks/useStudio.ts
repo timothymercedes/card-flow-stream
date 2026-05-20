@@ -17,6 +17,20 @@ const CAMERA_RELEASE_RETRY_DELAYS_MS = [300, 900, 1800];
 
 export type StudioScene = "solo" | "split" | "grid" | "freeform";
 
+export type CameraSettings = {
+  width?: number;
+  height?: number;
+  frameRate?: number;
+  aspectRatio?: number; // 16/9, 4/3, undefined = auto
+  zoom?: number;
+  focusMode?: "continuous" | "manual";
+  focusDistance?: number;
+  brightness?: number; // 0..2 (1 = no change)
+  contrast?: number;
+  saturation?: number;
+  sharpness?: number; // mapped to extra contrast
+};
+
 export type StudioSource = {
   id: string;
   kind: "camera" | "screen" | "phone";
@@ -29,7 +43,9 @@ export type StudioSource = {
   muted: boolean; // mic muted (camera mics only)
   locked: boolean;
   fit: "cover" | "contain";
+  settings?: CameraSettings;
 };
+
 
 type ExternalStreamMetadata = {
   deviceId?: string;
