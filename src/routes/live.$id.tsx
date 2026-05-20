@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
+import { useRequireCardOnFile } from "@/hooks/useRequireCardOnFile";
 import {
   Radio,
   Send,
@@ -1923,6 +1924,7 @@ function LiveDetail() {
       (stream && (stream as any).ships_internationally === false));
 
   const { requireAuth } = useAuthGate();
+  const cardGate = useRequireCardOnFile();
   function requireBuyerReady(action = "continue"): boolean {
     if (!requireAuth(action)) return false;
     if (!user || !profile) return false;
@@ -1946,6 +1948,8 @@ function LiveDetail() {
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
     if (!requireBuyerReady("bid")) return;
+    // Phase 2 hard gate — every bid requires a card on file.
+    if (!cardGate.requireCard()) return;
     if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) {
@@ -7602,6 +7606,7 @@ function LiveDetail() {
           />
         </div>
       )}
+      {cardGate.Modal}
     </div>
   );
 }
