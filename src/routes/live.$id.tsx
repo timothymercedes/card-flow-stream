@@ -565,9 +565,7 @@ function LiveDetail() {
             .eq("stream_id", id)
             .maybeSingle();
           if (cred) Object.assign(data, cred);
-          if (!(cred as any)?.cf_stream_key) {
-            console.warn("Missing stream key");
-          }
+          if (!(cred as any)?.cf_stream_key) console.warn("Missing stream key");
         }
         setStream(data);
         if (data) {
@@ -5198,6 +5196,10 @@ function LiveDetail() {
                   </button>
                   <button
                     onClick={async () => {
+                      if (!stream.cf_rtmps_url || !stream.cf_stream_key) {
+                        console.warn("Missing stream key");
+                        return toast.error("OBS credentials are not ready yet");
+                      }
                       await navigator.clipboard.writeText(
                         `Server: ${stream.cf_rtmps_url}\nStream Key: ${stream.cf_stream_key}`,
                       );
@@ -5220,6 +5222,7 @@ function LiveDetail() {
                       </code>
                       <button
                         onClick={() => {
+                          if (!stream.cf_rtmps_url) return toast.error("Server URL is not ready yet");
                           navigator.clipboard.writeText(stream.cf_rtmps_url);
                           toast.success("Copied");
                         }}
@@ -5241,6 +5244,7 @@ function LiveDetail() {
                       </code>
                       <button
                         onClick={() => {
+                          if (!stream.cf_rtmps_url) return toast.error("Server URL is not ready yet");
                           const fallback = String(stream.cf_rtmps_url || "")
                             .replace(/^rtmps:\/\//, "rtmp://")
                             .replace(":443/", ":1935/");
@@ -5263,6 +5267,10 @@ function LiveDetail() {
                       </code>
                       <button
                         onClick={() => {
+                          if (!stream.cf_stream_key) {
+                            console.warn("Missing stream key");
+                            return toast.error("Stream key is not ready yet");
+                          }
                           navigator.clipboard.writeText(stream.cf_stream_key);
                           toast.success("Stream key copied");
                         }}
