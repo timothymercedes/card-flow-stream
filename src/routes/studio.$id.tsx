@@ -14,6 +14,8 @@ import {
   Wand2, Gift, Scan, Repeat, ExternalLink, Smartphone, Copy, X, RefreshCw,
 } from "lucide-react";
 import { FreeformOverlay } from "@/components/FreeformOverlay";
+import { CameraSettingsPopover } from "@/components/CameraSettingsPopover";
+
 import { StudioChatDock } from "@/components/StudioChatDock";
 import { usePhoneCamera } from "@/hooks/usePhoneCamera";
 import QRCode from "qrcode";
