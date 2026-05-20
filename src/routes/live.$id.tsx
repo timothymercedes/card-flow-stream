@@ -128,6 +128,10 @@ function fmtRemaining(ms: number) {
   return `${m.toString().padStart(2, "0")}:${ss}`;
 }
 
+function isMissingStreamKeySchemaError(message?: string | null) {
+  return !!message && /cf_stream_key|record\s+"new"/i.test(message);
+}
+
 function RemoteStreamVideo({
   stream,
   muted,
@@ -561,6 +565,9 @@ function LiveDetail() {
             .eq("stream_id", id)
             .maybeSingle();
           if (cred) Object.assign(data, cred);
+          if (!(cred as any)?.cf_stream_key) {
+            console.warn("Missing stream key");
+          }
         }
         setStream(data);
         if (data) {
