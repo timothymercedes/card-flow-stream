@@ -71,6 +71,7 @@ import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel"
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
+import { FixPaymentModal } from "@/components/FixPaymentModal";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
 import { PromoteCheckout } from "@/components/PromoteCheckout";
