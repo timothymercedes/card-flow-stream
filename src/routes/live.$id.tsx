@@ -7676,6 +7676,11 @@ function LiveDetail() {
         </div>
       )}
       {cardGate.Modal}
+      <FixPaymentModal
+        order={failedOrder}
+        onClose={() => setFailedOrder(null)}
+        onResolved={() => setFailedOrder(null)}
+      />
     </div>
   );
 }
