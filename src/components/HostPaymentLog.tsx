@@ -177,7 +177,9 @@ export function HostPaymentLog({
     toast.success("Marked resolved · bidder unblocked");
   }
 
-  // Auto-block bidders with failed payments and auto-unblock when paid/resolved
+  // Auto-block bidders with failed payments and auto-unblock when paid/resolved/cancelled.
+  // The DB trigger trg_auto_unblock_on_order_cancel also handles cancelled orders server-side;
+  // this client sweep keeps the UI consistent and covers paid/resolved transitions.
   useEffect(() => {
     const failed = orders.filter((o) =>
       ["failed", "chargeback"].includes(o.payment_status));
@@ -187,9 +189,12 @@ export function HostPaymentLog({
         { onConflict: "stream_id,user_id" },
       ).then(() => {});
     });
-    // Unblock for any paid/resolved buyer who has no remaining failed order in this stream
+    // Unblock any buyer whose only orders in this stream are paid/resolved/cancelled
+    // (i.e. no remaining failed/chargeback rows).
+    const RESOLVED_OK = ["paid", "resolved", "cancelled", "canceled", "refunded"];
     const okBuyers = new Set(
-      orders.filter((o) => ["paid", "resolved"].includes(o.payment_status)).map((o) => o.buyer_id),
+      orders.filter((o) => RESOLVED_OK.includes(o.payment_status) || RESOLVED_OK.includes(o.status))
+        .map((o) => o.buyer_id),
     );
     okBuyers.forEach((buyerId) => {
       const stillFailed = orders.some((o) =>
@@ -200,6 +205,25 @@ export function HostPaymentLog({
       }
     });
   }, [orders, streamId]);
+
+  async function cancelUnpaidOrder(o: Order) {
+    if (!confirm(`Cancel unpaid order #${o.auction_number ?? "?"} (${o.title})? Buyer's bidding access will be restored.`)) return;
+    setBusy(o.id);
+    const { error } = await supabase.from("orders").update({
+      status: "cancelled",
+      payment_status: "cancelled",
+    }).eq("id", o.id);
+    if (!error) {
+      await supabase.from("notifications").insert({
+        user_id: o.buyer_id, type: "payment",
+        body: `Your unpaid order "${o.title}" was cancelled by the host. You can keep bidding.`,
+        link: `/live/${streamId}`,
+      });
+    }
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Order cancelled · bidder unblocked");
+  }
 
   if (!open) return null;
 
