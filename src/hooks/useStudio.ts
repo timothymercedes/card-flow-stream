@@ -795,7 +795,8 @@ export function useStudio(opts: {
 
     function drawTile(t: { source: StudioSource; x: number; y: number; w: number; h: number }) {
       const v = ensureVideo(t.source);
-      if (v.videoWidth > 0) drawFit(ctx!, v, t.x, t.y, t.w, t.h, t.source.fit);
+      if (v.videoWidth > 0) drawFit(ctx!, v, t.x, t.y, t.w, t.h, t.source.fit, buildCameraFilter(t.source.settings));
+
       else {
         ctx!.fillStyle = "#1a1a1a";
         ctx!.fillRect(t.x, t.y, t.w, t.h);
