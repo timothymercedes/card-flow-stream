@@ -71,6 +71,7 @@ import { SpinWheel, weightedPick, type WheelSlot } from "@/components/SpinWheel"
 import { LiveGiveaway } from "@/components/LiveGiveaway";
 import { ViewerGiveawayJoin } from "@/components/ViewerGiveawayJoin";
 import { HostPaymentLog, logPaymentEvent } from "@/components/HostPaymentLog";
+import { FixPaymentModal } from "@/components/FixPaymentModal";
 import { UserActionsMenu } from "@/components/UserActionsMenu";
 import { TipCheckout } from "@/components/TipCheckout";
 import { PromoteCheckout } from "@/components/PromoteCheckout";
@@ -888,6 +889,75 @@ function LiveDetail() {
       supabase.removeChannel(ch);
     };
   }, [user?.id]);
+
+  // 🆕 Phase 3 — auto-charge on auction win.
+  // Listen for THIS buyer's awaiting_payment orders in THIS stream. As soon
+  // as the server-side finalize_auction_round inserts the order, call the
+  // off-session charge so the buyer never leaves the livestream.
+  // On failure, surface FixPaymentModal so they can retry / swap card.
+  const [failedOrder, setFailedOrder] = useState<{ id: string; title: string; amount: number; stream_id: string | null } | null>(null);
+  const chargedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user || !id) return;
+    const tryCharge = async (orderId: string) => {
+      if (chargedRef.current.has(orderId)) return;
+      chargedRef.current.add(orderId);
+      try {
+        const { chargeAuctionWinner } = await import("@/lib/auctionCharge.functions");
+        const res = await chargeAuctionWinner({ data: { orderId } });
+        if (res.status === "paid") {
+          toast.success("✓ Auto-charged · you're paid up");
+        } else if (res.status === "failed") {
+          // Order info for the modal
+          const { data: o } = await supabase
+            .from("orders")
+            .select("id,title,amount,stream_id")
+            .eq("id", orderId).maybeSingle();
+          if (o) setFailedOrder(o as any);
+        }
+      } catch (e) {
+        console.warn("auto-charge failed", e);
+      }
+    };
+
+    // On mount, scan recent awaiting_payment orders for this buyer in this stream.
+    supabase
+      .from("orders")
+      .select("id,payment_status")
+      .eq("buyer_id", user.id)
+      .eq("stream_id", id)
+      .in("payment_status", ["awaiting_payment"])
+      .then(({ data }) => {
+        (data || []).forEach((o: any) => tryCharge(o.id));
+      });
+
+    const ch = supabase
+      .channel(`autocharge-${user.id}-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` },
+        (p: any) => {
+          const row = p.new;
+          if (row?.stream_id !== id) return;
+          if (row?.payment_status === "awaiting_payment") tryCharge(row.id);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` },
+        (p: any) => {
+          const row = p.new;
+          if (row?.stream_id !== id) return;
+          if (row?.payment_status === "failed") {
+            setFailedOrder({ id: row.id, title: row.title, amount: Number(row.amount), stream_id: row.stream_id });
+          } else if (row?.payment_status === "paid") {
+            setFailedOrder((cur) => (cur?.id === row.id ? null : cur));
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id, id]);
 
   // 🆕 For Giveaway eligibility — does the current viewer follow the host / has bought from them?
   useEffect(() => {
@@ -7607,6 +7677,11 @@ function LiveDetail() {
         </div>
       )}
       {cardGate.Modal}
+      <FixPaymentModal
+        order={failedOrder}
+        onClose={() => setFailedOrder(null)}
+        onResolved={() => setFailedOrder(null)}
+      />
     </div>
   );
 }
