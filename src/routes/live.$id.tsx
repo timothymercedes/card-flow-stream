@@ -1924,6 +1924,7 @@ function LiveDetail() {
       (stream && (stream as any).ships_internationally === false));
 
   const { requireAuth } = useAuthGate();
+  const cardGate = useRequireCardOnFile();
   function requireBuyerReady(action = "continue"): boolean {
     if (!requireAuth(action)) return false;
     if (!user || !profile) return false;
