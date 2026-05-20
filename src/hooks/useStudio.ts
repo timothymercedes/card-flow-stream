@@ -1166,6 +1166,7 @@ function drawFit(
   w: number,
   h: number,
   fit: "cover" | "contain",
+  filter: string = "none",
 ) {
   const sw = v.videoWidth;
   const sh = v.videoHeight;
@@ -1183,9 +1184,14 @@ function drawFit(
     ctx.fillStyle = "#000";
     ctx.fillRect(x, y, w, h);
   }
+  // @ts-expect-error filter is supported on modern browsers
+  ctx.filter = filter;
   ctx.drawImage(v, dx, dy, dw, dh);
+  // @ts-expect-error reset
+  ctx.filter = "none";
   ctx.restore();
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
 }
+
