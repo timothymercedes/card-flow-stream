@@ -691,8 +691,45 @@ export function useStudio(opts: {
   }, []);
 
   const setFit = useCallback((id: string, fit: "cover" | "contain") => {
-    setSources((prev) => prev.map((s) => (s.id === id ? { ...s, fit } : s)));
+    setSources((prev) => {
+      const next = prev.map((s) => (s.id === id ? { ...s, fit } : s));
+      const target = next.find((s) => s.id === id);
+      if (target?.kind === "camera") persistCameraSettings(target.deviceId, { fit });
+      return next;
+    });
   }, []);
+
+  const updateCameraSettings = useCallback(
+    async (id: string, patch: CameraSettings) => {
+      let track: MediaStreamTrack | undefined;
+      let merged: CameraSettings | undefined;
+      let deviceId: string | undefined;
+      setSources((prev) => {
+        const next = prev.map((s) => {
+          if (s.id !== id) return s;
+          merged = { ...(s.settings ?? {}), ...patch };
+          track = s.stream.getVideoTracks()[0];
+          deviceId = s.deviceId;
+          return { ...s, settings: merged };
+        });
+        sourcesRef.current = next;
+        return next;
+      });
+      if (track && merged) {
+        try { await applyTrackConstraints(track, patch); } catch (e) { console.warn("[studio] applyConstraints failed", e); }
+      }
+      if (deviceId && merged) persistCameraSettings(deviceId, { settings: merged });
+    },
+    [],
+  );
+
+  const getCameraTrackCapabilities = useCallback((id: string): any => {
+    const s = sourcesRef.current.find((x) => x.id === id);
+    const track = s?.stream.getVideoTracks()[0];
+    return track ? getCameraCapabilities(track) : {};
+  }, []);
+
+
 
   const bringToFront = useCallback((id: string) => {
     setLayouts((prev) => {
