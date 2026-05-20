@@ -132,6 +132,8 @@ function cameraErrorMessage(e: any) {
   }
   if (isCameraStartupError(e)) {
     return "That camera is already being held by the browser or another app. Close the other preview/app, wait a few seconds, then try again or choose a different camera.";
+  }
+  return e?.message || "Could not access camera";
 }
 
 // ─── Camera settings persistence + track constraints ───────────────────
@@ -152,8 +154,7 @@ function writeCamPrefs(prefs: Record<string, PersistedCameraEntry>) {
 }
 function loadPersistedCameraSettings(deviceId?: string): PersistedCameraEntry | undefined {
   if (!deviceId) return undefined;
-  const prefs = readCamPrefs();
-  return prefs[deviceId];
+  return readCamPrefs()[deviceId];
 }
 function persistCameraSettings(deviceId: string | undefined, entry: PersistedCameraEntry) {
   if (!deviceId) return;
@@ -178,18 +179,20 @@ export async function applyTrackConstraints(track: MediaStreamTrack, s: CameraSe
   await track.applyConstraints(constraints);
 }
 
+export function getCameraCapabilities(track: MediaStreamTrack): any {
+  try { return typeof track.getCapabilities === "function" ? track.getCapabilities() : {}; } catch { return {}; }
+}
+
 export function buildCameraFilter(s?: CameraSettings): string {
   if (!s) return "none";
   const parts: string[] = [];
   if (typeof s.brightness === "number" && s.brightness !== 1) parts.push(`brightness(${s.brightness})`);
   if (typeof s.contrast === "number" && s.contrast !== 1) parts.push(`contrast(${s.contrast})`);
   if (typeof s.saturation === "number" && s.saturation !== 1) parts.push(`saturate(${s.saturation})`);
-  // Approximate sharpness via small extra contrast boost
   if (typeof s.sharpness === "number" && s.sharpness !== 1) parts.push(`contrast(${1 + (s.sharpness - 1) * 0.3})`);
   return parts.length ? parts.join(" ") : "none";
-
-  return e?.message || "Could not access camera";
 }
+
 
 async function openCameraStream(video: MediaTrackConstraints, withAudio: boolean) {
   const audio: MediaTrackConstraints | false = withAudio
