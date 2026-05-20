@@ -331,6 +331,14 @@ export function HostPaymentLog({
                               >
                                 <ShieldCheck className="h-3 w-3" /> Mark fixed
                               </button>
+                              <button
+                                disabled={busy === o.id}
+                                onClick={() => cancelUnpaidOrder(o)}
+                                className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[10px] font-bold text-foreground disabled:opacity-50"
+                                title="Cancel this order and immediately unblock the buyer"
+                              >
+                                <XCircle className="h-3 w-3" /> Cancel order
+                              </button>
                             </div>
                           )}
                         </div>
