@@ -1948,6 +1948,8 @@ function LiveDetail() {
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
     if (!requireBuyerReady("bid")) return;
+    // Phase 2 hard gate — every bid requires a card on file.
+    if (!cardGate.requireCard()) return;
     if (!user || !profile) return;
     if (isSeller) return;
     if (unpaidOrders > 0) {
