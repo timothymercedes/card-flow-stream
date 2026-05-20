@@ -132,7 +132,62 @@ function cameraErrorMessage(e: any) {
   }
   if (isCameraStartupError(e)) {
     return "That camera is already being held by the browser or another app. Close the other preview/app, wait a few seconds, then try again or choose a different camera.";
-  }
+}
+
+// ─── Camera settings persistence + track constraints ───────────────────
+const CAM_PREFS_KEY = "studio:cam-prefs:v1";
+
+type PersistedCameraEntry = {
+  fit?: "cover" | "contain";
+  settings?: CameraSettings;
+};
+
+function readCamPrefs(): Record<string, PersistedCameraEntry> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(window.localStorage.getItem(CAM_PREFS_KEY) || "{}"); } catch { return {}; }
+}
+function writeCamPrefs(prefs: Record<string, PersistedCameraEntry>) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(CAM_PREFS_KEY, JSON.stringify(prefs)); } catch {}
+}
+function loadPersistedCameraSettings(deviceId?: string): PersistedCameraEntry | undefined {
+  if (!deviceId) return undefined;
+  const prefs = readCamPrefs();
+  return prefs[deviceId];
+}
+function persistCameraSettings(deviceId: string | undefined, entry: PersistedCameraEntry) {
+  if (!deviceId) return;
+  const prefs = readCamPrefs();
+  prefs[deviceId] = { ...prefs[deviceId], ...entry };
+  writeCamPrefs(prefs);
+}
+
+export async function applyTrackConstraints(track: MediaStreamTrack, s: CameraSettings) {
+  const caps: any = typeof track.getCapabilities === "function" ? track.getCapabilities() : {};
+  const advanced: any[] = [];
+  const constraints: any = {};
+  if (s.width) constraints.width = { ideal: s.width };
+  if (s.height) constraints.height = { ideal: s.height };
+  if (s.frameRate) constraints.frameRate = { ideal: s.frameRate };
+  if (s.aspectRatio) constraints.aspectRatio = { ideal: s.aspectRatio };
+  if (typeof s.zoom === "number" && caps.zoom) advanced.push({ zoom: s.zoom });
+  if (s.focusMode && caps.focusMode?.includes?.(s.focusMode)) advanced.push({ focusMode: s.focusMode });
+  if (typeof s.focusDistance === "number" && caps.focusDistance) advanced.push({ focusDistance: s.focusDistance });
+  if (advanced.length) constraints.advanced = advanced;
+  if (Object.keys(constraints).length === 0) return;
+  await track.applyConstraints(constraints);
+}
+
+export function buildCameraFilter(s?: CameraSettings): string {
+  if (!s) return "none";
+  const parts: string[] = [];
+  if (typeof s.brightness === "number" && s.brightness !== 1) parts.push(`brightness(${s.brightness})`);
+  if (typeof s.contrast === "number" && s.contrast !== 1) parts.push(`contrast(${s.contrast})`);
+  if (typeof s.saturation === "number" && s.saturation !== 1) parts.push(`saturate(${s.saturation})`);
+  // Approximate sharpness via small extra contrast boost
+  if (typeof s.sharpness === "number" && s.sharpness !== 1) parts.push(`contrast(${1 + (s.sharpness - 1) * 0.3})`);
+  return parts.length ? parts.join(" ") : "none";
+
   return e?.message || "Could not access camera";
 }
 
