@@ -7606,6 +7606,7 @@ function LiveDetail() {
           />
         </div>
       )}
+      {cardGate.Modal}
     </div>
   );
 }
