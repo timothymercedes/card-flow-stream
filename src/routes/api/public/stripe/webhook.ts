@@ -208,21 +208,29 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               const orderIdsStr = pi.metadata?.order_ids as string | undefined;
               const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
               if (ids.length === 0) break;
+              // Phase 3.1: auto-charge failures own their own status (`failed`).
+              // The legacy checkout flow uses `awaiting_payment` so the buyer
+              // can resume from /orders. Pick the destination status based on
+              // the PI kind so the webhook doesn't clobber in-stream state.
+              const isAutoCharge = pi.metadata?.kind === "auction_auto_charge";
+              const failedStatus = isAutoCharge ? "failed" : "awaiting_payment";
               const { data: orders } = await supabaseAdmin
                 .from("orders")
-                .select("id, buyer_id, seller_id, stream_id, title, payment_failure_count")
+                .select("id, buyer_id, seller_id, stream_id, title, payment_failure_count, payment_status")
                 .in("id", ids);
               const nowIso = new Date().toISOString();
               const retryDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
               for (const o of (orders || []) as any[]) {
+                // Don't downgrade an already-failed/paid order.
+                if (o.payment_status === "paid") continue;
                 await supabaseAdmin.from("orders").update({
-                  payment_status: "awaiting_payment",
+                  payment_status: failedStatus,
                   payment_failure_count: (o.payment_failure_count || 0) + 1,
                   payment_failed_at: nowIso,
                   payment_retry_deadline: retryDeadline,
                 }).eq("id", o.id);
                 await supabaseAdmin.from("notifications").insert([
-                  { user_id: o.buyer_id, type: "payment_failed", body: `❌ Payment failed for "${o.title}". Please retry within 24h.`, link: "/orders" },
+                  { user_id: o.buyer_id, type: "payment_failed", body: `❌ Payment failed for "${o.title}". Please retry within 24h.`, link: o.stream_id ? `/live/${o.stream_id}` : "/orders" },
                   { user_id: o.seller_id, type: "payment_failed", body: `⚠️ Buyer payment failed for "${o.title}".`, link: "/store" },
                 ]);
                 if (o.stream_id) {
