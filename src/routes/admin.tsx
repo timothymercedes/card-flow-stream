@@ -667,6 +667,7 @@ function Admin() {
         {tab === "audit" && isAdmin && <AuditLogsAdmin />}
         {tab === "beta" && isAdmin && <BetaInvitesAdmin />}
         {tab === "revenue" && isAdmin && <PlatformRevenueAdmin />}
+        {tab === "buyer_risk" && isAdmin && <BuyerRiskQueue />}
       </div>
     </AppShell>
   );
