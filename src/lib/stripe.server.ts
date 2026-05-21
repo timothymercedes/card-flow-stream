@@ -37,23 +37,34 @@ export const BUYER_SERVICE_FEE_FIXED_CENTS = 15;
  *  - Returns `buyerServiceFee` (alias of platformFee) for backwards compat
  *    with existing UI rendering.
  */
-export function calculateFees(subtotalCents: number, opts?: { isInternational?: boolean }) {
-  const platformFee = BUYER_PLATFORM_FEE_CENTS;
+export function calculateFees(
+  subtotalCents: number,
+  opts?: { isInternational?: boolean; platformFeeCentsOverride?: number },
+) {
+  const platformFee =
+    typeof opts?.platformFeeCentsOverride === "number"
+      ? Math.max(0, Math.round(opts.platformFeeCentsOverride))
+      : BUYER_PLATFORM_FEE_CENTS;
   const intlFee = opts?.isInternational
     ? Math.round(subtotalCents * INTL_PROCESSING_FEE_RATE)
     : 0;
   const buyerTotal = subtotalCents + platformFee + intlFee;
+  // When the buyer's platform fee is waived (bundle discount past threshold),
+  // the seller absorbs an equivalent amount via a larger application fee so
+  // the platform still nets the same per-order processing margin.
+  const sellerAbsorbedFee = BUYER_PLATFORM_FEE_CENTS - platformFee;
   return {
     subtotalCents,
     platformFee,
+    sellerAbsorbedFee,
     intlFee,
     isInternational: Boolean(opts?.isInternational),
-    // Application fee = platform's $1.23 + the intl 4% (both stay on the platform).
-    applicationFee: platformFee + intlFee,
-    buyerServiceFee: platformFee, // legacy alias
+    applicationFee: platformFee + intlFee + sellerAbsorbedFee,
+    buyerServiceFee: platformFee,
     buyerTotal,
   };
 }
+
 
 /**
  * Tip / shoutout fees.
