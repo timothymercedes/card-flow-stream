@@ -843,7 +843,7 @@ function IntegrityTab() {
           Only unresolved
         </label>
         <span className="ml-auto text-[10px] text-muted-foreground">
-          Nightly auto-scan at 03:15 UTC. Insert/update triggers also block bad writes in real time.
+          Nightly internal scan 03:15 UTC · Stripe scan 04:00 UTC. Triggers also block bad writes in real time.
         </span>
       </div>
 
