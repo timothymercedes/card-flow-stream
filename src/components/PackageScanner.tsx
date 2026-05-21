@@ -194,6 +194,38 @@ export function PackageScanner({
       </div>
 
       <footer className="space-y-2 border-t border-white/10 bg-black/90 p-3">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhoto(f); e.currentTarget.value = ""; }}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={aiBusy}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-primary/70 px-3 py-1.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+          >
+            {aiBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {aiBusy ? "Reading…" : "AI scan photo"}
+          </button>
+          <span className="text-[10px] text-white/50">Label · receipt · stamp · drop-off</span>
+        </div>
+        {aiPreview && (
+          <div className="rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
+            <p className="flex items-center gap-1.5 font-bold">
+              <ImagePlus className="h-3 w-3" />
+              {aiPreview.carrier} · {aiPreview.shipment_status.replace(/_/g, " ")}
+              <span className="ml-auto text-white/50">{Math.round(aiPreview.confidence * 100)}%</span>
+            </p>
+            {aiPreview.tracking_number && (
+              <p className="mt-0.5 font-mono text-white/70">{aiPreview.tracking_number}</p>
+            )}
+            {aiPreview.notes && <p className="mt-0.5 text-white/50">{aiPreview.notes}</p>}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Keyboard className="h-4 w-4 opacity-60" />
           <input
