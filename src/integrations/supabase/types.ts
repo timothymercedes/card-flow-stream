@@ -2855,6 +2855,54 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_payouts: {
+        Row: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          destination: string
+          failure_reason: string | null
+          id: string
+          notes: string | null
+          requested_at: string
+          requested_by: string
+          status: Database["public"]["Enums"]["payout_status"]
+          stripe_payout_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          destination: string
+          failure_reason?: string | null
+          id?: string
+          notes?: string | null
+          requested_at?: string
+          requested_by: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          stripe_payout_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          destination?: string
+          failure_reason?: string | null
+          id?: string
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          stripe_payout_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_revenue: {
         Row: {
           amount_cents: number
@@ -5651,6 +5699,7 @@ export type Database = {
       }
     }
     Functions: {
+      _assert_owner: { Args: never; Returns: undefined }
       accept_legal_document: {
         Args: {
           _document_type: string
@@ -5798,6 +5847,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_personal_sales_summary: {
+        Args: { _since?: string; _until?: string }
+        Returns: {
+          commission_paid_cents: number
+          gross_sales_cents: number
+          net_payout_cents: number
+          order_count: number
+          refunded_cents: number
+        }[]
+      }
       admin_remove_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5806,6 +5865,37 @@ export type Database = {
         Returns: undefined
       }
       admin_replay_finalize: { Args: { _stream_id: string }; Returns: Json }
+      admin_revenue_by_period: {
+        Args: { _bucket: string; _since?: string; _until?: string }
+        Returns: {
+          bucket_start: string
+          gross_cents: number
+          losses_cents: number
+          net_cents: number
+        }[]
+      }
+      admin_revenue_by_seller: {
+        Args: { _limit?: number; _since?: string; _until?: string }
+        Returns: {
+          commission_cents: number
+          gross_sales_cents: number
+          order_count: number
+          seller_id: string
+          seller_payout_cents: number
+          username: string
+        }[]
+      }
+      admin_revenue_by_stream: {
+        Args: { _limit?: number; _since?: string; _until?: string }
+        Returns: {
+          commission_cents: number
+          gross_sales_cents: number
+          order_count: number
+          shipping_cents: number
+          stream_id: string
+          stream_title: string
+        }[]
+      }
       admin_revenue_summary: {
         Args: { _since?: string }
         Returns: {
@@ -5817,6 +5907,15 @@ export type Database = {
       admin_set_verification_status: {
         Args: { _reason?: string; _status: string; _target_user: string }
         Returns: undefined
+      }
+      admin_shipping_margin: {
+        Args: { _since?: string; _until?: string }
+        Returns: {
+          adjustment_fees_cents: number
+          adjustment_losses_cents: number
+          net_shipping_margin_cents: number
+          shipping_charged_cents: number
+        }[]
       }
       admin_waive_buyer_restriction: {
         Args: { _buyer: string; _notes?: string }
@@ -5972,6 +6071,15 @@ export type Database = {
       compute_card_key: {
         Args: { _name: string; _number: string; _set: string }
         Returns: string
+      }
+      compute_platform_available: {
+        Args: never
+        Returns: {
+          available_cents: number
+          net_earnings_cents: number
+          payouts_completed_cents: number
+          payouts_pending_cents: number
+        }[]
       }
       compute_seller_payable: {
         Args: { _user_id: string }
@@ -6373,6 +6481,30 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "payout_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_platform_payout: {
+        Args: { _amount_cents: number; _destination: string; _notes?: string }
+        Returns: {
+          amount_cents: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          destination: string
+          failure_reason: string | null
+          id: string
+          notes: string | null
+          requested_at: string
+          requested_by: string
+          status: Database["public"]["Enums"]["payout_status"]
+          stripe_payout_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "platform_payouts"
           isOneToOne: true
           isSetofReturn: false
         }
