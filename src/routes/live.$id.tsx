@@ -5714,10 +5714,11 @@ function LiveDetail() {
               {(() => {
                 const ship = Number(stream.shipping_price || 0);
                 const bid = Number(stream.current_bid || 0);
-                const platformFee = 1.23; // flat buyer service fee (matches stripe.server.ts)
-                const estTaxRate = 0.07; // typical US sales tax estimate; final tax at checkout
+                const platformFee = (bundleFee?.platformFeeCents ?? 123) / 100;
+                const estTaxRate = 0.07;
                 const estTax = Math.max(0, bid + ship) * estTaxRate;
                 const estTotal = bid + ship + platformFee + estTax;
+                const bundleActive = !!bundleFee?.bundleDiscountActive;
                 return (
                   <div className="mt-1 flex flex-col items-center gap-1">
                     <p className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/15 backdrop-blur">
@@ -5731,6 +5732,17 @@ function LiveDetail() {
                         <span className="text-white/60">· {stream.shipping_method}</span>
                       )}
                     </p>
+                    {bundleFee && !isSeller && (
+                      <p className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 backdrop-blur ${
+                        bundleActive
+                          ? "bg-emerald-500/25 text-emerald-100 ring-emerald-300/40"
+                          : "bg-black/45 text-white/90 ring-white/15"
+                      }`}>
+                        {bundleActive
+                          ? `🎁 Bundle discount active — no platform fee on this item`
+                          : `Platform fee ${fmtMoney(platformFee)} · item ${bundleFee.nextItemIndex} of ${bundleFee.threshold} before bundle savings`}
+                      </p>
+                    )}
                     {auctionLive && bid > 0 && (
                       <p className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/30 to-fuchsia-500/25 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/20 backdrop-blur">
                         <span className="text-white/70">Est. total</span>
@@ -5743,6 +5755,7 @@ function LiveDetail() {
                   </div>
                 );
               })()}
+
 
             </div>
 
