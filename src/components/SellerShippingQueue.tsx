@@ -212,7 +212,7 @@ export function SellerShippingQueue() {
                     {o.buyer_username && (
                       <>
                         <span>·</span>
-                        <Link to="/u/$username" params={{ username: o.buyer_username }} className="inline-flex items-center gap-0.5 text-primary hover:underline">
+                        <Link to="/seller/$username" params={{ username: o.buyer_username }} className="inline-flex items-center gap-0.5 text-primary hover:underline">
                           @{o.buyer_username}<ExternalLink className="h-2.5 w-2.5" />
                         </Link>
                       </>
