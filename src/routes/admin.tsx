@@ -31,8 +31,15 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue"];
+
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: ADMIN_TABS.includes(search.tab as AdminTab) ? (search.tab as AdminTab) : undefined,
+    filter: search.filter === "issues" || search.filter === "all" ? (search.filter as "issues" | "all") : undefined,
+  }),
   component: Admin,
 });
 
