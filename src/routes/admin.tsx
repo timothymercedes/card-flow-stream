@@ -242,6 +242,45 @@ function Admin() {
     loadAll();
   }
 
+  async function cancelOrder(o: any) {
+    if (!window.confirm(`Cancel order "${o.title}"?`)) return;
+    const { error } = await supabase.from("orders").update({
+      status: "cancelled", payment_status: o.payment_status === "paid" ? o.payment_status : "void",
+    }).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Order cancelled");
+    loadOrders();
+  }
+
+  async function markRefunded(o: any) {
+    const reason = window.prompt("Refund note (optional):") ?? "";
+    const { error } = await supabase.from("orders").update({
+      status: "refunded", payment_status: "refunded",
+      refunded_amount: o.amount, admin_note: reason || null,
+    } as any).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Marked refunded");
+    loadOrders();
+  }
+
+  async function removeFromStream(o: any) {
+    if (!o.stream_id) return toast.error("Not tied to a stream");
+    if (!window.confirm("Remove this order from its stream?")) return;
+    const { error } = await supabase.from("orders").update({ stream_id: null }).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    toast.success("Removed from stream");
+    loadOrders();
+  }
+
+  async function quickBanFromOrder(o: any, who: "buyer" | "seller") {
+    const targetId = who === "buyer" ? o.buyer_id : o.seller_id;
+    const { data: prof } = await supabase.from("profiles").select("username").eq("id", targetId).maybeSingle();
+    const username = (prof as any)?.username || targetId.slice(0, 8);
+    const reason = window.prompt(`Reason for banning ${who} @${username}?`);
+    if (!reason) return;
+    await quickSuspend({ id: targetId, username }, 0, reason);
+  }
+
   if (!user) return <AppShell><div className="p-8 text-center text-sm">Sign in.</div></AppShell>;
   if (!rolesLoaded) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
   if (!canViewAdmin) return (
