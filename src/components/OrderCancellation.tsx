@@ -99,7 +99,12 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
     }
     const { error } = await supabase.from("order_cancellations").update(patch).eq("id", cancellation.id);
     if (!error && status === "accepted") {
-      await cancelOrderServer({ data: { orderId: order.id, reason: cancellation.reason || "Cancellation accepted" } });
+      try {
+        await cancelOrderServer({ data: { orderId: order.id, reason: cancellation.reason || "Cancellation accepted" } });
+      } catch (e: any) {
+        setBusy(false);
+        return toast.error(e?.message ?? "Unable to cancel order");
+      }
     }
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -169,7 +174,7 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
                       user_id: order.buyer_id,
                       sender_id: user.id,
                       type: "order_cancel",
-                      body: `Seller cancelled your order "${order.title}"${paid ? " — refund issued" : ""}`,
+                      body: `Seller cancelled your order "${order.title}"${paid ? " — refund pending" : ""}`,
                       link: "/orders",
                     });
                     setBusy(false);
