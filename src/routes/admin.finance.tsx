@@ -267,7 +267,7 @@ function OwnerFinanceDashboard() {
             sellerPayable={sellerPayable.data}
             orders={personalOrders.data?.rows ?? []}
             payouts={personalPayouts.data?.rows ?? []}
-            onWithdraw={async (cents) => {
+            onWithdraw={async (cents: number) => {
               try {
                 await reqSellerPayoutFn({ data: { amountCents: cents } });
                 toast.success("Personal payout requested");
