@@ -2680,6 +2680,9 @@ function LiveDetail() {
       snipe_extends: 0,
       snipe_price: buyNow,
       sudden_death_active: false,
+      // 🆕 Carry the host's latest shipping selection so viewers see the right price
+      shipping_price: Number(editShipPrice) || 0,
+      shipping_method: editShipMethod,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
     };
