@@ -27,6 +27,8 @@ type Order = {
   promo_cents?: number | null;        // optional, future
   commission_rate?: number | null;
   created_at: string;
+  fee_absorbed_by?: "buyer" | "seller" | null;
+  fee_index?: number | null;
 };
 
 type Recovery = {
