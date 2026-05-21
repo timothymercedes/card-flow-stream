@@ -553,22 +553,26 @@ function Admin() {
         {tab === "disputes" && (
           <div className="space-y-2">
             {disputes.map((d) => (
-              <div key={d.id} className="rounded-xl bg-card p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold">@{d.reporter_username} — {d.reason}</p>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold">{d.status}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{d.description}</p>
-                {d.order_id && <p className="text-[10px] text-muted-foreground">Order: {d.order_id}</p>}
-                {d.resolution_note && <p className="mt-1 rounded bg-muted/50 p-2 text-[11px]">{d.resolution_note}</p>}
-                {d.status !== "resolved" && d.status !== "rejected" && (
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => resolveDispute(d.id, "investigating")} className="rounded-lg bg-blue-500/20 px-3 py-1 text-[10px] font-bold text-blue-500">Investigate</button>
-                    <button onClick={() => resolveDispute(d.id, "resolved")} className="rounded-lg bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground">Resolve</button>
-                    <button onClick={() => resolveDispute(d.id, "rejected")} className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Reject</button>
-                  </div>
-                )}
-              </div>
+              <AdminDisputeRow
+                key={d.id}
+                d={d}
+                onResolve={resolveDispute}
+                onRefund={async (orderId) => {
+                  const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+                  if (o) await markRefunded(o);
+                }}
+                onCancelOrder={async (orderId) => {
+                  const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+                  if (o) await cancelOrder(o);
+                }}
+                onBan={async (uid) => {
+                  const { data: prof } = await supabase.from("profiles").select("username").eq("id", uid).maybeSingle();
+                  const username = (prof as any)?.username || uid.slice(0, 8);
+                  const reason = window.prompt(`Reason for banning @${username}?`);
+                  if (!reason) return;
+                  await quickSuspend({ id: uid, username }, 0, reason);
+                }}
+              />
             ))}
             {disputes.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No disputes.</p>}
           </div>
