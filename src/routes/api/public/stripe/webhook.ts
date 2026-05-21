@@ -275,6 +275,17 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                       { user_id: o.buyer_id, type: "refund", body: `💸 Refund issued for "${o.title}" ($${refundedAmt.toFixed(2)}).`, link: "/orders" },
                       { user_id: o.seller_id, type: "refund", body: `↩️ Refund issued on "${o.title}" ($${refundedAmt.toFixed(2)}).`, link: "/store" },
                     ]);
+                    // Phase 11: refund risk signal.
+                    try {
+                      await (supabaseAdmin.rpc as any)("record_buyer_risk_signal", {
+                        _user_id: o.buyer_id,
+                        _kind: "refund_requested",
+                        _ref_table: "orders",
+                        _ref_id: o.id,
+                        _seller_id: o.seller_id,
+                        _metadata: { amount: refundedAmt, fully_refunded: fullyRefunded },
+                      });
+                    } catch (e) { console.error("risk signal refund", e); }
                   }
                 }
               }
