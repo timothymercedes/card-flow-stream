@@ -275,12 +275,51 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) return jsonResp({ error: "AI service is not configured" }, 500);
 
-  const langName = language && LANG_MAP[language] ? LANG_MAP[language] : null;
+  // ─── STAGE 1 — Tiny language + game detect (skipped if caller already specified language, or multi-card) ───
+  // Goal: when the seller didn't pick a language, do a ~700ms pre-pass so Stage 2 gets a language-specific
+  // prompt. Improves accuracy for Japanese/Korean/Chinese/EU cards where the model otherwise wastes tokens
+  // trying to read script it didn't expect.
+  let detectedLanguage: string | null = language && LANG_MAP[language] ? language : null;
+  let detectedGameHint: string | null = null;
+  if (!multi && !detectedLanguage) {
+    try {
+      const stage1 = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3.1-flash-lite-preview",
+          messages: [
+            { role: "system", content: `Return STRICT JSON: {"language":"en|jp|kr|zh|de|fr|es|it|pt|ru|other","game":"pokemon|mtg|yugioh|onepiece|lorcana|swu|fab|dbsfw|sports|other"}. Detect by printed text/script and game iconography. No prose.` },
+            { role: "user", content: [
+              { type: "text", text: "What language and game is this card?" },
+              { type: "image_url", image_url: { url: image } },
+            ]},
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0,
+          max_tokens: 60,
+        }),
+      });
+      if (stage1.ok) {
+        const j = await stage1.json();
+        const p = JSON.parse(j.choices?.[0]?.message?.content || "{}");
+        if (typeof p?.language === "string" && LANG_MAP[p.language]) detectedLanguage = p.language;
+        if (typeof p?.game === "string") detectedGameHint = p.game;
+      }
+    } catch (e) {
+      console.warn("[scan-card] stage1 detect failed:", (e as Error)?.message);
+    }
+  }
+
+  const langName = detectedLanguage && LANG_MAP[detectedLanguage] ? LANG_MAP[detectedLanguage] : null;
   const langHint = langName
-    ? `\n\nThe seller indicated the printing is ${langName}. Confirm via printed text and set symbol; include language in set name when non-English.`
+    ? `\n\nDETECTED LANGUAGE: ${langName}. The card is printed in ${langName}. Read the native-script text directly, then ALWAYS return the canonical ENGLISH translation in "name". Set codes / numbers are usually Latin/Arabic digits even on ${langName} cards — read them literally. Set "language" field to "${langName}".`
+    : "";
+  const gameHint = detectedGameHint
+    ? `\n\nDETECTED GAME (hint): ${detectedGameHint}. Verify this against the card before locking in "category".`
     : "";
 
-  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint + BBOX_INSTRUCTION;
+  const system = (multi ? SYSTEM_MULTI : SYSTEM_SINGLE) + langHint + gameHint + BBOX_INSTRUCTION;
   const userText = multi
     ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
     : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
@@ -305,6 +344,7 @@ Deno.serve(async (req) => {
         max_tokens: multi ? 2560 : 900,
       }),
     });
+
 
     if (!resp.ok) {
       const text = await resp.text();
