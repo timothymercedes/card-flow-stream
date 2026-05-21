@@ -47,8 +47,9 @@ function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="px-4 py-4 space-y-4">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">{t("settings.title")}</h1>
+      <div className="mx-auto w-full max-w-3xl px-4 py-4 space-y-4">
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight lg:text-3xl">{t("settings.title")}</h1>
+
 
         <div className="flex gap-1 overflow-x-auto pb-1">
           {sections.map(s => {
