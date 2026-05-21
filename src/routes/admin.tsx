@@ -31,16 +31,24 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue"];
+
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: ADMIN_TABS.includes(search.tab as AdminTab) ? (search.tab as AdminTab) : undefined,
+    filter: search.filter === "issues" || search.filter === "all" ? (search.filter as "issues" | "all") : undefined,
+  }),
   component: Admin,
 });
 
 function Admin() {
   const { user } = useAuth();
+  const search = Route.useSearch();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<"reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue">("reports");
+  const [tab, setTab] = useState<AdminTab>(search.tab ?? "reports");
   const [openSupport, setOpenSupport] = useState(0);
   const [pendingVerifications, setPendingVerifications] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
@@ -52,7 +60,11 @@ function Admin() {
   const [roles, setRoles] = useState<{ user_id: string; role: Role; username?: string }[]>([]);
   const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
   const [orders, setOrders] = useState<any[]>([]);
-  const [orderFilter, setOrderFilter] = useState<"all" | "issues">("issues");
+  const [orderFilter, setOrderFilter] = useState<"all" | "issues">(search.filter ?? "issues");
+
+  useEffect(() => { if (search.tab) setTab(search.tab); }, [search.tab]);
+  useEffect(() => { if (search.filter) setOrderFilter(search.filter); }, [search.filter]);
+
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<any[]>([]);
   const [signupStats, setSignupStats] = useState<{ total: number; last_24h: number; last_7d: number } | null>(null);
