@@ -35,6 +35,7 @@ import {
   listIntegrityAlertsFn,
   resolveIntegrityAlertFn,
 } from "@/lib/integrity.functions";
+import { runStripeReconciliationFn } from "@/lib/stripe-reconcile.functions";
 
 
 export const Route = createFileRoute("/admin/finance")({
@@ -761,11 +762,13 @@ function TransactionsTab({ orders, ledger }: { orders: any[]; ledger: any[] }) {
 // ---------- Integrity tab ----------
 function IntegrityTab() {
   const runFn = useServerFn(runIntegrityReconciliationFn);
+  const stripeFn = useServerFn(runStripeReconciliationFn);
   const listFn = useServerFn(listIntegrityAlertsFn);
   const resolveFn = useServerFn(resolveIntegrityAlertFn);
   const qc = useQueryClient();
   const [onlyUnresolved, setOnlyUnresolved] = useState(true);
   const [running, setRunning] = useState(false);
+  const [runningStripe, setRunningStripe] = useState(false);
 
   const alerts = useQuery({
     queryKey: ["integrity-alerts", onlyUnresolved],
@@ -784,6 +787,21 @@ function IntegrityTab() {
       toast.error(e?.message ?? "Reconciliation failed");
     } finally {
       setRunning(false);
+    }
+  };
+
+  const runStripeScan = async () => {
+    setRunningStripe(true);
+    try {
+      const r = await stripeFn({ data: { sinceDays: 7, limit: 200 } });
+      toast.success(
+        `Stripe: ${r.checked}/${r.scanned} charges checked · ${r.newAlerts} new · ${r.errors} errors`,
+      );
+      qc.invalidateQueries({ queryKey: ["integrity-alerts"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Stripe reconciliation failed");
+    } finally {
+      setRunningStripe(false);
     }
   };
 
@@ -808,6 +826,13 @@ function IntegrityTab() {
         >
           <RefreshCcw className={`h-3 w-3 ${running ? "animate-spin" : ""}`} /> Run reconciliation
         </button>
+        <button
+          onClick={runStripeScan}
+          disabled={runningStripe}
+          className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground disabled:opacity-50"
+        >
+          <RefreshCcw className={`h-3 w-3 ${runningStripe ? "animate-spin" : ""}`} /> Reconcile with Stripe
+        </button>
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input
             type="checkbox"
@@ -818,7 +843,7 @@ function IntegrityTab() {
           Only unresolved
         </label>
         <span className="ml-auto text-[10px] text-muted-foreground">
-          Nightly auto-scan at 03:15 UTC. Insert/update triggers also block bad writes in real time.
+          Nightly internal scan 03:15 UTC · Stripe scan 04:00 UTC. Triggers also block bad writes in real time.
         </span>
       </div>
 
