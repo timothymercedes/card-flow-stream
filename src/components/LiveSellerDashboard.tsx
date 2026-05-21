@@ -285,13 +285,18 @@ export function LiveSellerDashboard({
     );
   }
 
-  const StatTile = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) => (
-    <div className={`flex min-w-0 flex-col rounded-lg bg-black/60 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
+  const StatTile = ({ icon: Icon, label, value, accent, onClick }: { icon: any; label: string; value: string; accent?: string; onClick?: () => void }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-w-0 flex-col rounded-lg bg-black/60 px-2 py-1.5 text-left ring-1 ring-white/10 backdrop-blur transition hover:bg-white/10 hover:ring-white/25 active:scale-[0.98] ${accent || ""}`}
+      title={`View ${label} details`}
+    >
       <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-white/60">
         <Icon className="h-2.5 w-2.5" /> {label}
       </div>
       <div className="truncate text-sm font-extrabold tabular-nums leading-tight text-white">{value}</div>
-    </div>
+    </button>
   );
 
   const TabBtn = ({ id, icon: Icon, label, count }: { id: Tab; icon: any; label: string; count?: number }) => (
