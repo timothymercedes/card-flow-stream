@@ -5488,6 +5488,20 @@ function LiveDetail() {
               }))}
             scheduledShowId={(stream as any).scheduled_show_id || null}
             isFlex={stream.mode === "show_off"}
+            chatAudience={chatAudience}
+            onChangeChatAudience={setChatAudience}
+            slowModeSec={Number(editSlowMode) || 0}
+            onChangeSlowMode={async (s) => {
+              setEditSlowMode(String(s));
+              await supabase.from("live_streams").update({ chat_slow_mode_sec: s }).eq("id", id);
+              await sendMsg(
+                s === 0
+                  ? "📌 Slow chat is off."
+                  : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
+                true,
+                { isAnnouncement: true },
+              );
+            }}
           />
         </div>
       )}
@@ -6116,44 +6130,7 @@ function LiveDetail() {
                               )}
                             </select>
                           </label>
-                          <label className="flex items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-bold text-white/90">
-                            <span>Slow chat</span>
-                            <select
-                              value={editSlowMode}
-                              onChange={async (e) => {
-                                const s = Number(e.target.value);
-                                setEditSlowMode(String(s));
-                                await supabase
-                                  .from("live_streams")
-                                  .update({ chat_slow_mode_sec: s })
-                                  .eq("id", id);
-                                await sendMsg(
-                                  s === 0
-                                    ? "📌 Slow chat is off."
-                                    : `📌 Chat is slowed by ${s} second${s === 1 ? "" : "s"}.`,
-                                  true,
-                                  { isAnnouncement: true },
-                                );
-                              }}
-                              className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
-                            >
-                              <option value="0" className="bg-card">
-                                Off
-                              </option>
-                              <option value="3" className="bg-card">
-                                3s
-                              </option>
-                              <option value="5" className="bg-card">
-                                5s
-                              </option>
-                              <option value="10" className="bg-card">
-                                10s
-                              </option>
-                              <option value="30" className="bg-card">
-                                30s
-                              </option>
-                            </select>
-                          </label>
+                          {/* Slow-chat moved to Dashboard › Chat */}
                           <span className="ml-auto rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-300">
                             Ship ${Number(editShipPrice || 0).toFixed(2)}
                           </span>
@@ -6242,35 +6219,7 @@ function LiveDetail() {
         {/* Chat input — hidden in Flex immersive mode */}
         {!(stream.mode === "show_off" && flexImmersive) && (
           <>
-            {isStaff && (
-              <div className="flex items-center gap-1 text-[10px]">
-                {(["public", "mods_only", "host_mods"] as const).map((a) => (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => setChatAudience(a)}
-                    className={`rounded-full px-2 py-0.5 font-bold uppercase tracking-wider transition ${
-                      chatAudience === a
-                        ? a === "public"
-                          ? "bg-primary text-primary-foreground"
-                          : a === "mods_only"
-                            ? "bg-amber-500 text-black"
-                            : "bg-fuchsia-600 text-white"
-                        : "bg-white/10 text-white/60 hover:text-white"
-                    }`}
-                    title={
-                      a === "public"
-                        ? "Visible to everyone"
-                        : a === "mods_only"
-                          ? "Visible only to host + mods"
-                          : "Private host ↔ mods channel"
-                    }
-                  >
-                    {a === "public" ? "Public" : a === "mods_only" ? "Mods" : "Host+Mods"}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Audience selector moved to Dashboard › Chat (host/mod controls) */}
             <form onSubmit={handleSend} className="relative flex gap-2">
               {tagOpen && tagResults.length > 0 && (
                 <div className="absolute bottom-full left-0 right-12 mb-2 max-h-48 overflow-y-auto rounded-xl bg-card text-foreground shadow-xl">
