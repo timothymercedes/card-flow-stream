@@ -241,6 +241,7 @@ function OwnerFinanceDashboard() {
             ["shipping", "Shipping"],
             ["refunds", "Refunds"],
             ["transactions", "Transactions"],
+            ["audit", "Audit"],
             ["integrity", "Integrity"],
 
           ] as [TabKey, string][]).map(([k, l]) => (
