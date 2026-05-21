@@ -51,6 +51,8 @@ type ProfileRow = {
 
 const fmt = (n: number) => `$${n.toFixed(2)}`;
 
+const BUYER_PLATFORM_FEE_DOLLARS = 1.23;
+
 function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   const gross = Number(o.amount || 0);
   const platformFee = gross * Number(o.commission_rate ?? PLATFORM_FEE);
@@ -59,9 +61,12 @@ function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   const promo = (o.promo_cents ?? 0) / 100;
   const refund = Number(o.refunded_amount ?? 0);
   const recovery = (recoveryByRef.get(o.id) ?? 0) / 100;
-  const totalDeductions = platformFee + processingFee + shipping + promo + refund + recovery;
+  // Bundle: when buyer's platform fee was waived (item 4+ in a stream session),
+  // the seller absorbs ~$1.23 via a larger application fee on Stripe.
+  const bundleAbsorbed = o.fee_absorbed_by === "seller" ? BUYER_PLATFORM_FEE_DOLLARS : 0;
+  const totalDeductions = platformFee + processingFee + shipping + promo + refund + recovery + bundleAbsorbed;
   const net = Math.max(0, gross - totalDeductions);
-  return { gross, platformFee, processingFee, shipping, promo, refund, recovery, totalDeductions, net };
+  return { gross, platformFee, processingFee, shipping, promo, refund, recovery, bundleAbsorbed, totalDeductions, net };
 }
 
 type PayoutRequest = {
