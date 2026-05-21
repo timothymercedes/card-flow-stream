@@ -73,10 +73,13 @@ export const getOwnerFinanceOverviewFn = createServerFn({ method: "POST" })
       },
       shipping: {
         chargedCents: Number(ship?.shipping_charged_cents ?? 0),
+        labelCostCents: Number(ship?.label_cost_cents ?? 0),
+        grossMarginCents: Number(ship?.shipping_gross_margin_cents ?? 0),
         adjFeesCents: Number(ship?.adjustment_fees_cents ?? 0),
         adjLossesCents: Number(ship?.adjustment_losses_cents ?? 0),
         netMarginCents: Number(ship?.net_shipping_margin_cents ?? 0),
       },
+
       personal: {
         orderCount: Number(pers?.order_count ?? 0),
         grossSalesCents: Number(pers?.gross_sales_cents ?? 0),
