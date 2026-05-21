@@ -161,45 +161,74 @@ function LiveList() {
 
   return (
     <AppShell>
-      <div className="px-4 py-4">
+      <div className="mx-auto w-full max-w-7xl px-4 py-4">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Live</h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Live</h1>
+            <p className="text-xs text-muted-foreground">
+              {streams.length} streaming now • {shows.length} upcoming
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <WatchTutorial routePath="/live" label="Watch tutorial" />
             {tab === "scheduled" && user && (
-              <button onClick={() => setComposeOpen(true)} className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
+              <button onClick={() => setComposeOpen(true)} className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]">
                 <Plus className="h-3.5 w-3.5" /> Schedule
               </button>
             )}
           </div>
         </div>
 
-        <div className="mb-4 flex gap-2 border-b border-border">
-          <button onClick={() => setTab("live")} className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm ${tab === "live" ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+        <div className="mb-4 flex gap-2 border-b border-border/60">
+          <button onClick={() => setTab("live")} className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm transition-colors ${tab === "live" ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             <Radio className="h-3.5 w-3.5" /> Live now
           </button>
-          <button onClick={() => setTab("scheduled")} className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm ${tab === "scheduled" ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+          <button onClick={() => setTab("scheduled")} className={`flex items-center gap-1 border-b-2 px-3 py-2 text-sm transition-colors ${tab === "scheduled" ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             <Calendar className="h-3.5 w-3.5" /> Scheduled
           </button>
         </div>
 
         {tab === "live" && (
           <>
-            {/* Filters: category + viewer-size bucket */}
-            <div className="mb-3 space-y-2">
+            {/* Sticky filter bar */}
+            <div className="sticky top-0 z-20 -mx-4 mb-3 space-y-2 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
               <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
                 <Filter className="h-3 w-3" /> Pick what you're into
               </div>
-              <select
-                value={catFilter}
-                onChange={(e) => setCatFilter(e.target.value)}
-                className={`w-full rounded-full px-3 py-1.5 text-[11px] font-bold outline-none ${catFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}
-              >
-                <option value="all">✨ All categories</option>
-                {LISTING_CATEGORIES.filter((c) => activeCategories.length === 0 || activeCategories.includes(c.value)).map((c) => (
-                  <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2 lg:flex-row">
+                <select
+                  value={catFilter}
+                  onChange={(e) => setCatFilter(e.target.value)}
+                  className={`w-full rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${catFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
+                >
+                  <option value="all">✨ All categories</option>
+                  {LISTING_CATEGORIES.filter((c) => activeCategories.length === 0 || activeCategories.includes(c.value)).map((c) => (
+                    <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+                  ))}
+                </select>
+                <div className="flex gap-1.5">
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${typeFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
+                  >
+                    <option value="all">All types</option>
+                    {STREAM_TYPES.map((s) => (
+                      <option key={s.value} value={s.value}>{s.emoji} {s.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={tcgFilter}
+                    onChange={(e) => setTcgFilter(e.target.value)}
+                    className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${tcgFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
+                  >
+                    <option value="all">All TCGs</option>
+                    {TCG_TAGS.map((t) => (
+                      <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="flex gap-1.5">
                 {([
                   { v: "any", label: "Any size" },
@@ -207,59 +236,43 @@ function LiveList() {
                   { v: "warm", label: "🔥 Warm 11–50" },
                   { v: "hot", label: "🚀 Packed 50+" },
                 ] as { v: ViewerBucket; label: string }[]).map((b) => (
-                  <button key={b.v} onClick={() => setViewerBucket(b.v)} className={`flex-1 rounded-full px-2 py-1 text-[10px] font-bold ${viewerBucket === b.v ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                  <button key={b.v} onClick={() => setViewerBucket(b.v)} className={`flex-1 rounded-full px-2 py-1 text-[10px] font-bold transition ${viewerBucket === b.v ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 ring-1 ring-border/60 hover:bg-card"}`}>
                     {b.label}
                   </button>
                 ))}
               </div>
-              <div className="flex gap-1.5">
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold outline-none ${typeFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}
-                >
-                  <option value="all">All types</option>
-                  {STREAM_TYPES.map((s) => (
-                    <option key={s.value} value={s.value}>{s.emoji} {s.label}</option>
-                  ))}
-                </select>
-                <select
-                  value={tcgFilter}
-                  onChange={(e) => setTcgFilter(e.target.value)}
-                  className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold outline-none ${tcgFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card"}`}
-                >
-                  <option value="all">All TCGs</option>
-                  {TCG_TAGS.map((t) => (
-                    <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             {filteredStreams.length === 0 && (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                {streams.length === 0 ? "No active streams. Be the first to go live!" : "No streams match these filters — try widening your picks."}
-              </p>
+              <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
+                <Radio className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-semibold">
+                  {streams.length === 0 ? "No active streams yet" : "No streams match these filters"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {streams.length === 0 ? "Be the first to go live!" : "Try widening your picks."}
+                </p>
+              </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {filteredStreams.map((s) => (
-                <div key={s.id} className="min-w-0">
+                <div key={s.id} className="min-w-0 group">
                   <Link to="/live/$id" params={{ id: s.id }} className="block">
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
-                      {s.thumbnail_url ? <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
-                      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border/60 shadow-[var(--shadow-card)] transition group-hover:-translate-y-0.5 group-hover:shadow-[var(--shadow-lg)] group-hover:ring-primary/50">
+                      {s.thumbnail_url ? <img src={s.thumbnail_url} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-105" alt={s.title} /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-10 w-10" /></div>}
+                      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground shadow-[var(--shadow-sm)]">
                         <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
                       </div>
-                      <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                      <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white backdrop-blur">
                         <Users className="h-2.5 w-2.5" />{viewerCounts[s.id] || 0}
                       </div>
                       {s.category && (
-                        <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
+                        <div className="absolute bottom-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
                           {categoryEmoji(s.category)} {categoryLabel(s.category)}
                         </div>
                       )}
                       {s.ends_at && (
-                        <div className="absolute bottom-9 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white">
+                        <div className="absolute bottom-9 right-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white backdrop-blur">
                           <StreamCountdown endsAt={s.ends_at} />
                         </div>
                       )}
@@ -269,7 +282,7 @@ function LiveList() {
                       <SellerBadge sellerId={s.seller_id} linkable={false} />
                       <InternationalBadge enabled={s.ships_internationally} />
                     </div>
-                    {Number(s.current_bid) > 0 && <p className="text-xs text-primary">${Number(s.current_bid).toFixed(0)}</p>}
+                    {Number(s.current_bid) > 0 && <p className="text-xs font-bold text-primary">${Number(s.current_bid).toFixed(0)}</p>}
                     {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
                       <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">
                         {s.tcg_tags.slice(0, 3).map((t) => `${tcgTagMeta(t)?.emoji ?? ""} ${tcgTagMeta(t)?.label ?? t}`).join(" · ")}
@@ -278,7 +291,7 @@ function LiveList() {
                   </Link>
                   <button
                     onClick={() => setShareTarget(s)}
-                    className="mt-1 inline-flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground"
+                    className="mt-1 inline-flex items-center gap-1 rounded-full bg-card/60 px-2 py-1 text-[10px] font-bold text-muted-foreground ring-1 ring-border/60 transition hover:bg-card hover:text-foreground"
                     aria-label="Share live"
                   >
                     <Share2 className="h-3 w-3" /> Share
@@ -289,6 +302,7 @@ function LiveList() {
             <p className="mt-3 text-center text-[10px] text-muted-foreground">💡 Tip: inside a stream, swipe left/right to jump to the next live show.</p>
           </>
         )}
+
 
         {tab === "scheduled" && (
           <>
