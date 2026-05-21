@@ -55,11 +55,7 @@ export async function reconcileStripeCharges(opts: {
       const stripeRefundCents = Number(charge.amount_refunded || 0);
 
       // 1. Charge not succeeded but we marked it paid
-      if (
-        o.payment_status === "paid" &&
-        charge.status !== "succeeded" &&
-        !(charge.status === "succeeded" && charge.refunded)
-      ) {
+      if (o.payment_status === "paid" && charge.status !== "succeeded") {
         alerts.push({
           severity: "critical",
           kind: "stripe_charge_status_mismatch",
