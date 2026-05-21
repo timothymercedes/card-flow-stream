@@ -427,6 +427,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
                     {b.promo > 0 && <Row small label="Promo" value={`−${fmt(b.promo)}`} negative />}
                     {b.refund > 0 && <Row small label="Refund" value={`−${fmt(b.refund)}`} negative />}
                     {b.recovery > 0 && <Row small label="Hold recovery" value={`−${fmt(b.recovery)}`} negative />}
+                    {b.bundleAbsorbed > 0 && <Row small label="Bundle fee absorbed" value={`−${fmt(b.bundleAbsorbed)}`} negative />}
                     <Row small label="Total deductions" value={`−${fmt(b.totalDeductions)}`} negative />
                     <Row small label="Net to you" value={fmt(b.net)} primary />
                   </div>
