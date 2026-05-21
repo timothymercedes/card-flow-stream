@@ -249,6 +249,9 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         order_ids: orderIds.join(","),
         subtotal_cents: String(fees.subtotalCents),
         platform_fee_cents: String(fees.platformFee),
+        commission_cents: String(fees.commissionCents),
+        processing_fee_cents: String(fees.processingFee),
+        seller_payout_cents: String(fees.sellerNet),
         intl_fee_cents: String(fees.intlFee),
         is_international: String(isInternational),
         buyer_country: buyerCountry,
@@ -257,14 +260,23 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       },
     }, { idempotencyKey: idemKey });
 
-    // Stamp the PI on every order in this group so the webhook can reconcile
-    // and refunds can be applied later.
+    // Stamp the PI + computed commission/payout on every order in this group
+    // so the webhook can reconcile and payout dashboards stay accurate.
+    const perOrderCommission = orderIds.length > 0
+      ? Math.round((fees.commissionCents / orderIds.length))
+      : 0;
+    const perOrderPayout = orderIds.length > 0
+      ? Math.round((fees.sellerNet / orderIds.length))
+      : 0;
     await supabaseAdmin
       .from("orders")
       .update({
         stripe_payment_intent_id: intent.id,
         seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
         idempotency_key: idemKey,
+        commission_rate: fees.commissionRate,
+        commission_amount: perOrderCommission / 100,
+        seller_payout_amount: perOrderPayout / 100,
       })
       .in("id", orderIds);
 
