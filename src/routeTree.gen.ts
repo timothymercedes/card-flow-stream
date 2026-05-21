@@ -54,6 +54,7 @@ import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.com
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
+import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
@@ -289,6 +290,11 @@ const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
   path: '/recovery',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminFinanceRoute = AdminFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -354,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -408,6 +415,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -463,6 +471,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -519,6 +528,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/admin/finance'
     | '/admin/recovery'
     | '/admin/performance'
     | '/legal/buyer-terms'
@@ -573,6 +583,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/admin/finance'
     | '/admin/recovery'
     | '/admin/performance'
     | '/legal/buyer-terms'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/admin/finance'
     | '/admin/recovery'
     | '/admin_/performance'
     | '/legal/buyer-terms'
@@ -1026,6 +1038,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecoveryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/finance': {
+      id: '/admin/finance'
+      path: '/finance'
+      fullPath: '/admin/finance'
+      preLoaderRoute: typeof AdminFinanceRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/shows/$id/edit': {
       id: '/shows/$id/edit'
       path: '/edit'
@@ -1079,10 +1098,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminFinanceRoute: typeof AdminFinanceRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminFinanceRoute: AdminFinanceRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
 }
 

@@ -253,9 +253,16 @@ function Admin() {
               ))}
             </div>
           )}
-          <Link to="/admin/performance" className="ml-auto inline-flex items-center gap-1 rounded-md bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary">
-            <Gauge className="h-3.5 w-3.5" /> Performance
-          </Link>
+          <div className="ml-auto flex items-center gap-1.5">
+            {isOwner && (
+              <Link to="/admin/finance" className="inline-flex items-center gap-1 rounded-md bg-yellow-500/15 px-2.5 py-1 text-[11px] font-bold text-yellow-500">
+                <Crown className="h-3.5 w-3.5" /> Finance
+              </Link>
+            )}
+            <Link to="/admin/performance" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary">
+              <Gauge className="h-3.5 w-3.5" /> Performance
+            </Link>
+          </div>
         </div>
         {isAdmin && signupStats && (
           <div className="grid grid-cols-3 gap-2">
