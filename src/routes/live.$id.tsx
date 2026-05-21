@@ -543,6 +543,28 @@ function LiveDetail() {
   } | null>(null);
   const lastChatTsRef = useRef<number>(0);
 
+  // 🆕 Auto-persist host's shipping price/method to live_streams whenever the
+  // preset or weight changes — so buyers/viewers see the updated price in
+  // real time without waiting for the host to start the next auction.
+  useEffect(() => {
+    if (!isSeller || !stream) return;
+    const price = Number(editShipPrice) || 0;
+    const method = editShipMethod || "";
+    if (
+      price === Number((stream as any).shipping_price || 0) &&
+      method === ((stream as any).shipping_method || "")
+    ) return;
+    const t = setTimeout(() => {
+      supabase
+        .from("live_streams")
+        .update({ shipping_price: price, shipping_method: method })
+        .eq("id", id);
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editShipPrice, editShipMethod, isSeller, id, (stream as any)?.shipping_price, (stream as any)?.shipping_method]);
+
+
   useEffect(() => {
     supabase
       .from("live_streams")
