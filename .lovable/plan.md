@@ -1,98 +1,144 @@
-# Owner Financial Dashboard
+# Seller Verification + Buyer Risk Monitoring
 
-Builds a dedicated, owner-only dashboard at `/admin/finance` with strict accounting separation between platform revenue and the owner's personal seller activity, plus two independent payout flows.
+Two independent systems, shipped together. Sellers get hard gates on Stripe Connect KYC; buyers stay frictionless but get scored, flagged, and optionally restricted.
 
-## What already exists (reuse, don't rebuild)
+---
 
-- `platform_revenue` table (kinds: `marketplace_commission`, `intl_processing_fee`, `tip_fee`, `promotion`, `shipping_adjustment_fee`, `refund_loss`, `dispute_loss`, `stripe_processing_fee`, `adjustment`) — owner/admin RLS, append-only.
-- `payout_requests` — seller payout queue (user-scoped; will be used for owner's *personal* seller payouts).
-- `orders` — full per-order fee/commission/shipping fields.
-- `getPlatformRevenueSummaryFn`, `listPlatformRevenueFn`, `getSellerPayableFn`, `requestPayoutFn`, `recordShippingAdjustmentFn`.
-- Existing `PlatformRevenueAdmin` tab in `/admin` (will keep as a quick summary; full dashboard moves to `/admin/finance`).
+## Part 1 — Seller Stripe Connect KYC gating
 
-## What's missing → what we'll add
+The project already has `src/server/stripe-connect.functions.ts` and a Connect onboarding flow. We extend it with a status sync + gate, and enforce the gate in 4 places.
 
-1. **Platform-payout ledger** (new) — distinct from `payout_requests`, which is seller-scoped. Owner withdraws platform commissions to a separate destination without touching seller-side accounting.
-2. **Per-stream revenue rollup** — query layer over `orders` + `platform_revenue` joined by `stream_id`.
-3. **Owner personal seller view** — reuses `getSellerPayableFn` and `orders where seller_id = owner.id`, rendered in its own tab so it never mixes with platform totals.
-4. **Granular breakdowns** — buyer fees, shipping margin (charged − label cost), seller commissions collected, refunds/disputes, stream analytics — all derived from existing tables.
-5. **Time filters** — day / week / month / year / custom range, plus per-stream and per-seller drilldowns.
+### DB (migration)
+Add to `profiles`:
+- `stripe_connect_verified BOOLEAN DEFAULT false`
+- `stripe_connect_status TEXT` ('unstarted' | 'pending' | 'restricted' | 'verified')
+- `stripe_connect_requirements JSONB` (currently_due / past_due snapshot)
+- `stripe_connect_last_synced_at TIMESTAMPTZ`
 
-## Database changes
+Security-definer helper:
+- `public.is_seller_verified(_user_id uuid) returns boolean` — reads `stripe_connect_verified`. Used by RLS + RPCs.
 
-```sql
--- New: platform-level payouts (independent of seller payout_requests)
-CREATE TABLE public.platform_payouts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  requested_by uuid NOT NULL,             -- owner user_id
-  amount_cents bigint NOT NULL CHECK (amount_cents > 0),
-  currency text NOT NULL DEFAULT 'usd',
-  status payout_status NOT NULL DEFAULT 'requested',
-  destination text NOT NULL,              -- 'platform_bank' | 'owner_personal'
-  stripe_payout_id text,
-  notes text,
-  failure_reason text,
-  requested_at timestamptz NOT NULL DEFAULT now(),
-  completed_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
--- RLS: owner-only SELECT/INSERT; no UPDATE/DELETE from client.
+Update RLS / RPCs to refuse:
+- `INSERT` on `listings` (sell) → block when `NOT is_seller_verified(auth.uid())`
+- `INSERT` on `streams` / `live_shows` (go live, host) → block when not verified
+- `request_payout` RPC → raise exception when not verified
 
--- Helper RPCs (security definer, owner-gated):
---   admin_revenue_by_period(_bucket, _since, _until)  → time-series buckets
---   admin_revenue_by_stream(_since, _until, _limit)   → per-stream rollup
---   admin_revenue_by_seller(_since, _until, _limit)   → per-seller rollup
---   admin_shipping_margin(_since, _until)             → charged - label
---   request_platform_payout(_amount_cents, _destination, _notes)
+### Server functions
+Extend `src/server/stripe-connect.functions.ts`:
+- `syncConnectAccountStatusFn` — already exists; ensure it writes the 4 new columns from `account.charges_enabled && payouts_enabled && details_submitted` → `verified`; else compute `pending` / `restricted` from `requirements`.
+- `getMyConnectStatusFn` — returns the cached row + a "needs sync" hint.
+
+### UI
+- New component `src/components/SellerVerificationGate.tsx` — mirrors `SellerAgreementGate.tsx`. Blocks `/sell`, `/payouts`, `/seller/shipping`, and "Go Live" buttons with a CTA "Verify your identity to start selling" → opens Connect onboarding link.
+- Mount inside the existing seller-only routes alongside `SellerAgreementGate`.
+- `PayoutBreakdown` / `SellerEarningsHub` show a "Verification required" banner instead of payout buttons until verified.
+
+---
+
+## Part 2 — Buyer risk monitoring
+
+### DB (same migration)
+
+```text
+buyer_risk_signals       — append-only log of every risk-relevant event
+buyer_risk_scores        — one row per user, denormalized current score + flags
+buyer_restrictions       — admin-applied restrictions (active/expired)
 ```
 
-`platform_revenue` already carries the source of truth for commissions/fees; the new RPCs are pure read-aggregations plus one write for `request_platform_payout`.
+`buyer_risk_signals` columns: `user_id`, `kind`, `severity_weight`, `ref_table`, `ref_id`, `seller_id`, `metadata jsonb`, `created_at`.
 
-## Server functions (new, in `src/lib/owner-finance.functions.ts`)
+`kind` enum: `payment_failed`, `checkout_abandoned_failed`, `order_cancelled_by_buyer`, `refund_requested`, `dispute_opened`, `chargeback`, `not_delivered_claim`, `bid_retracted`, `bid_no_pay`, `multi_seller_complaint`.
 
-All gated by an `assertOwner` middleware (role = `owner` only — admin is *not* sufficient for payout withdrawal).
+`buyer_risk_scores` columns: `user_id PK`, `score INT`, `tier TEXT` ('clean'|'watch'|'review'|'restricted'), `flagged_at`, `last_event_at`, `signals_30d JSONB` (kind→count), `under_review BOOLEAN`.
 
-- `getOwnerFinanceOverviewFn({ range })` — totals: platform commissions, buyer fees, shipping margin, refunds/disputes, net profit, Stripe balance.
-- `getRevenueByPeriodFn({ bucket: 'day'|'week'|'month'|'year', range })`
-- `getRevenueByStreamFn({ range, limit })`
-- `getRevenueBySellerFn({ range, limit })`
-- `getOwnerPersonalSalesFn({ range })` — `orders WHERE seller_id = owner.id` aggregations.
-- `listPlatformPayoutsFn`, `requestPlatformPayoutFn({ amountCents, destination })`
-- `listOwnerPersonalPayoutsFn` — filter of `payout_requests WHERE user_id = owner.id`.
-- `requestOwnerPersonalPayoutFn` — wraps existing `request_payout` RPC.
+`buyer_restrictions` columns: `user_id`, `kind` ('purchase_block'|'bid_limit'|'require_verification'|'frozen'), `cents_limit INT NULL`, `reason`, `created_by`, `expires_at`, `active`.
 
-## UI
+### Scoring engine
 
-New route `src/routes/admin.finance.tsx` (owner-only; redirect non-owners). `AppShell` layout, mobile-first.
+`public.record_buyer_risk_signal(_user_id, _kind, _ref_table, _ref_id, _seller_id, _metadata)` — SECURITY DEFINER:
+1. inserts into `buyer_risk_signals`
+2. recomputes `score` = weighted sum of last-30-day signals (weights table inline in function)
+3. updates `buyer_risk_scores` row + tier thresholds (e.g. ≥10 watch, ≥25 review, ≥50 restricted-auto)
+4. when crossing into `review`, sets `under_review=true` and inserts into `admin_alerts` (existing table — fall back to a new `buyer_risk_alerts` if missing)
 
-Tabs:
-1. **Overview** — KPI grid, period filter (D/W/M/Y/custom), revenue trend chart, two clearly separated cards: "Platform Earnings" and "My Personal Sales".
-2. **Platform Commissions** — full `platform_revenue` ledger with kind filter, totals, Stripe balance, **Withdraw Platform Commission** button.
-3. **Personal Sales** — owner-as-seller orders, payable balance, **Withdraw Personal Earnings** button (separate balance, separate destination).
-4. **Payouts** — split view: Platform Payouts history | Personal Payouts history (two columns, never mixed).
-5. **Per Stream** — table sorted by gross, drilldown to stream details.
-6. **Per Seller** — top sellers by commission contributed.
-7. **Shipping** — charged vs label cost, margin %, adjustments.
-8. **Refunds / Disputes** — losses table.
-9. **Transactions** — unified searchable ledger (orders + revenue events).
+### Wire signal emission
 
-Realtime: subscribe to `platform_revenue`, `orders`, `payout_requests`, `platform_payouts` and call `queryClient.invalidateQueries` on insert.
+Add `record_buyer_risk_signal` calls (best-effort, no throw on failure) at:
+- `src/routes/api/public/stripe/webhook.ts` — on `payment_intent.payment_failed`, `charge.dispute.created`, `charge.refunded` (when buyer-initiated).
+- `src/lib/order-actions.functions.ts` — on buyer-initiated cancel.
+- `src/components/DisputeThread.tsx` server fn — on "not delivered" claim.
+- Existing refund request flow.
 
-A new sidebar entry "Finance" in `/admin` (owner-only) links to `/admin/finance`. The existing `revenue` tab inside `/admin` stays for quick access but its CTA points to the full dashboard.
+### Admin queue UI
 
-## Accounting separation guarantees
+New route `src/routes/admin.buyer-risk.tsx` (and tab on `admin.tsx`):
+- List of `buyer_risk_scores` where `under_review=true OR tier IN ('review','restricted')`
+- Sort by score desc
+- Row → drawer/modal showing:
+  - Profile + signup date + total orders/spend
+  - 30-day signal breakdown (counts by kind)
+  - Recent orders (with seller, amount, status)
+  - Payment failures, refunds, disputes
+  - Affected sellers list (distinct from signals)
+  - Action buttons: Apply restriction (purchase block / bid limit / require KYC / freeze), Clear review, Add note
 
-- Platform balances derive from `platform_revenue` only — never from `orders.seller_payout_amount`.
-- Personal seller balance derives from `compute_seller_payable(owner_id)` — never from `platform_revenue`.
-- Two distinct payout tables (`platform_payouts` vs `payout_requests`) so reconciliation can't cross streams.
-- UI uses two color tokens (primary for platform, accent for personal) and the two balances are never summed in any view.
+Server fns in new `src/lib/buyer-risk.functions.ts`:
+- `getBuyerRiskQueueFn` (admin only)
+- `getBuyerRiskDetailFn(userId)` (admin only)
+- `applyBuyerRestrictionFn({userId, kind, centsLimit?, expiresAt?, reason})`
+- `clearBuyerRestrictionFn({restrictionId})`
+- `clearBuyerReviewFn({userId, note})`
 
-## Out of scope (call out, don't build)
+All gated with an `is_admin`/owner role check via existing `user_roles`.
 
-- Actual Stripe payout execution for `platform_payouts` is queued as `requested`; an existing/follow-up admin worker will move them to `paid`. Same model as today's `payout_requests`.
-- Tax form generation (1099s) — separate workstream.
+### Enforcement of restrictions
 
-## Approval needed
+Helper SQL fn `public.buyer_can_purchase(_user_id, _amount_cents) returns boolean` — checks active restrictions.
 
-This touches payment flows, adds a new payout table, and exposes withdrawal endpoints. Confirm to proceed and I'll ship the migration + code in one pass.
+Wire into:
+- `buyerPayments.functions.ts` / checkout server fn → raise on `frozen` or `purchase_block`, enforce `cents_limit`.
+- `auctionCharge.functions.ts` / bid server fn → raise on `bid_limit` exceeded.
+- Surface a small `BuyerRestrictionBanner` on `/cart` + checkout when restricted, with the reason.
+
+`require_verification` restriction triggers a Stripe Identity check flow (out of scope for this PR — stub it as a banner "Admin requires identity verification" + a TODO).
+
+---
+
+## Technical notes
+
+- All new tables: RLS on, only owner/admin can SELECT/INSERT/UPDATE via `has_role`. Users can SELECT their own `buyer_risk_scores` (for transparency) but NOT signals.
+- Score recompute is cheap (last-30-day window, indexed on `(user_id, created_at)`).
+- Signal emission is fire-and-forget — wrap in try/catch so risk logging never breaks a payment path.
+- No buyer-facing friction unless restricted. Normal buyers never see any of this.
+
+---
+
+## Out of scope (follow-ups)
+
+- Stripe Identity verification flow for the `require_verification` restriction
+- ML-based scoring (this is rule-based weighted sums)
+- Auto-expiry cron for restrictions (can run via existing pg_cron pattern)
+- Buyer appeal flow
+
+---
+
+## Files
+
+**New**
+- `supabase/migrations/<ts>_seller_kyc_buyer_risk.sql`
+- `src/components/SellerVerificationGate.tsx`
+- `src/components/BuyerRestrictionBanner.tsx`
+- `src/lib/buyer-risk.functions.ts`
+- `src/routes/admin.buyer-risk.tsx`
+- `src/components/admin/BuyerRiskQueue.tsx`
+
+**Edited**
+- `src/server/stripe-connect.functions.ts` (extend sync)
+- `src/routes/api/public/stripe/webhook.ts` (emit signals)
+- `src/lib/order-actions.functions.ts` (emit on cancel)
+- `src/lib/buyerPayments.functions.ts` (enforce restrictions)
+- `src/lib/auctionCharge.functions.ts` (enforce bid restrictions)
+- `src/routes/sell.tsx`, `src/routes/payouts.tsx`, `src/routes/seller.shipping.tsx`, live host entry — mount `SellerVerificationGate`
+- `src/routes/admin.tsx` — add Buyer Risk tab
+
+Approve to proceed?
