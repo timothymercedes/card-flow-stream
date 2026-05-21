@@ -181,12 +181,15 @@ function Feed() {
 
   return (
     <AppShell>
-      <div className="px-4 py-4">
+      <div className="mx-auto w-full max-w-3xl px-4 py-4">
         <div className="mb-3 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Feed</h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Feed</h1>
+            <p className="text-xs text-muted-foreground">Stories, drops, and live moments from people you follow</p>
+          </div>
           {isAdmin && (
             <button onClick={generateHype} disabled={generating}
-              className="flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-50">
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-bold text-primary ring-1 ring-primary/30 disabled:opacity-50">
               <Sparkles className="h-3.5 w-3.5" /> {generating ? "..." : "AI Hype"}
             </button>
           )}
@@ -194,10 +197,11 @@ function Feed() {
 
         <StoryRail />
 
-        <div className="mb-3 flex gap-2 overflow-x-auto">
+        <div className="sticky top-0 z-20 -mx-4 mb-3 flex gap-1.5 overflow-x-auto border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
           {(["all", "stories", "drops"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${filter === f ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+              className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${filter === f ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>
+
               {f === "all" ? "All" : f === "stories" ? "Posts" : "🔥 Drops"}
             </button>
           ))}
