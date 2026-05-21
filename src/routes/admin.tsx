@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
+import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
