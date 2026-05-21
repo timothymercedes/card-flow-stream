@@ -3938,6 +3938,9 @@ export type Database = {
       }
       shipping_scans: {
         Row: {
+          ai_confidence: number | null
+          ai_metadata: Json | null
+          carrier: string | null
           code: string
           created_at: string
           id: string
@@ -3948,8 +3951,12 @@ export type Database = {
           prev_status: string | null
           result: string
           scanned_by: string
+          suggested_status: string | null
         }
         Insert: {
+          ai_confidence?: number | null
+          ai_metadata?: Json | null
+          carrier?: string | null
           code: string
           created_at?: string
           id?: string
@@ -3960,8 +3967,12 @@ export type Database = {
           prev_status?: string | null
           result?: string
           scanned_by: string
+          suggested_status?: string | null
         }
         Update: {
+          ai_confidence?: number | null
+          ai_metadata?: Json | null
+          carrier?: string | null
           code?: string
           created_at?: string
           id?: string
@@ -3972,6 +3983,7 @@ export type Database = {
           prev_status?: string | null
           result?: string
           scanned_by?: string
+          suggested_status?: string | null
         }
         Relationships: [
           {
@@ -5920,6 +5932,22 @@ export type Database = {
       admin_waive_buyer_restriction: {
         Args: { _buyer: string; _notes?: string }
         Returns: undefined
+      }
+      apply_ai_shipment_scan: {
+        Args: {
+          _carrier?: string
+          _code: string
+          _confidence?: number
+          _kind?: string
+          _metadata?: Json
+          _suggested_status?: string
+        }
+        Returns: {
+          new_status: string
+          order_id: string
+          prev_status: string
+          result: string
+        }[]
       }
       apply_hold_recovery: {
         Args: {

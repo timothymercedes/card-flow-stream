@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, X, ScanLine, CheckCircle2, AlertTriangle, Keyboard } from "lucide-react";
-import { registerShippingScan, type ScanResult } from "@/lib/shipping";
+import { Camera, X, ScanLine, CheckCircle2, AlertTriangle, Keyboard, Sparkles, Loader2, ImagePlus } from "lucide-react";
+import { registerShippingScan, scanShipmentImage, applyAiShipmentScan, type ScanResult, type AiShipmentRead } from "@/lib/shipping";
 import { playSfx } from "@/lib/sfx";
 import { haptic } from "@/lib/motion";
 import { toast } from "sonner";
@@ -39,6 +39,9 @@ export function PackageScanner({
   const [manual, setManual] = useState("");
   const [busy, setBusy] = useState(false);
   const [recent, setRecent] = useState<ScanResult[]>([]);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiPreview, setAiPreview] = useState<AiShipmentRead | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -118,6 +121,50 @@ export function PackageScanner({
     }
   }
 
+  async function handlePhoto(file: File) {
+    if (aiBusy) return;
+    setAiBusy(true);
+    setAiPreview(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error("Could not read file"));
+        r.readAsDataURL(file);
+      });
+      const read = await scanShipmentImage(dataUrl);
+      setAiPreview(read);
+      if (!read.tracking_number) {
+        haptic(60);
+        toast.warning(read.notes || "No tracking number detected. Try a clearer photo.");
+        return;
+      }
+      const res = await applyAiShipmentScan({
+        code: read.tracking_number,
+        suggested_status: read.shipment_status,
+        carrier: read.carrier,
+        confidence: read.confidence,
+        metadata: { document_type: read.document_type, notes: read.notes, extras: read.extras },
+      });
+      setRecent((r) => [res, ...r].slice(0, 6));
+      onScanned?.(res);
+      if (res.result === "matched") {
+        playSfx("sold"); haptic([20, 40, 20]);
+        toast.success(`✅ ${read.carrier} · ${res.new_status?.replace(/_/g, " ")}`);
+      } else if (res.result === "mismatch") {
+        haptic([60, 40, 60]);
+        toast.error("That label belongs to another seller");
+      } else {
+        haptic(80);
+        toast.warning(`Tracking ${read.tracking_number} didn't match any of your orders`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "AI scan failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -147,6 +194,38 @@ export function PackageScanner({
       </div>
 
       <footer className="space-y-2 border-t border-white/10 bg-black/90 p-3">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhoto(f); e.currentTarget.value = ""; }}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={aiBusy}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-primary/70 px-3 py-1.5 text-xs font-extrabold text-primary-foreground disabled:opacity-40"
+          >
+            {aiBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {aiBusy ? "Reading…" : "AI scan photo"}
+          </button>
+          <span className="text-[10px] text-white/50">Label · receipt · stamp · drop-off</span>
+        </div>
+        {aiPreview && (
+          <div className="rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
+            <p className="flex items-center gap-1.5 font-bold">
+              <ImagePlus className="h-3 w-3" />
+              {aiPreview.carrier} · {aiPreview.shipment_status.replace(/_/g, " ")}
+              <span className="ml-auto text-white/50">{Math.round(aiPreview.confidence * 100)}%</span>
+            </p>
+            {aiPreview.tracking_number && (
+              <p className="mt-0.5 font-mono text-white/70">{aiPreview.tracking_number}</p>
+            )}
+            {aiPreview.notes && <p className="mt-0.5 text-white/50">{aiPreview.notes}</p>}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Keyboard className="h-4 w-4 opacity-60" />
           <input

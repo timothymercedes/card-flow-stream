@@ -50,3 +50,42 @@ export async function registerShippingScan(code: string, kind: "tracking" | "lab
   if (error) throw new Error(error.message);
   return (Array.isArray(data) ? data[0] : data) as ScanResult;
 }
+
+export type AiShipmentRead = {
+  ok: boolean;
+  document_type: string;
+  carrier: string;
+  tracking_number: string;
+  extras: string[];
+  shipment_status: "label_created" | "ready_for_dropoff" | "shipped" | "delivered";
+  confidence: number;
+  notes: string;
+};
+
+/** Send a photo (data URL) of a shipping doc to the AI vision endpoint. */
+export async function scanShipmentImage(image: string): Promise<AiShipmentRead> {
+  const { data, error } = await supabase.functions.invoke("scan-shipment", { body: { image } });
+  if (error) throw new Error(error.message);
+  if (!data?.ok) throw new Error(data?.error || "Scan failed");
+  return data as AiShipmentRead;
+}
+
+/** Apply an AI-detected shipment scan. Advances order prep_status (never downgrades). */
+export async function applyAiShipmentScan(input: {
+  code: string;
+  suggested_status: AiShipmentRead["shipment_status"];
+  carrier?: string;
+  confidence?: number;
+  metadata?: Record<string, unknown>;
+}): Promise<ScanResult> {
+  const { data, error } = await (supabase.rpc as any)("apply_ai_shipment_scan", {
+    _code: input.code,
+    _kind: "photo",
+    _suggested_status: input.suggested_status,
+    _carrier: input.carrier ?? null,
+    _confidence: input.confidence ?? null,
+    _metadata: input.metadata ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return (Array.isArray(data) ? data[0] : data) as ScanResult;
+}
