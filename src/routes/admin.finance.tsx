@@ -251,7 +251,7 @@ function OwnerFinanceDashboard() {
             overview={overview.data}
             ledger={ledger.data?.rows ?? []}
             payouts={platformPayouts.data?.rows ?? []}
-            onWithdraw={async (cents, dest, notes) => {
+            onWithdraw={async (cents: number, dest: "platform_bank" | "owner_personal", notes?: string) => {
               try {
                 await reqPlatformFn({ data: { amountCents: cents, destination: dest, notes } });
                 toast.success("Platform payout requested");
