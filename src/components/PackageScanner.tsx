@@ -121,6 +121,50 @@ export function PackageScanner({
     }
   }
 
+  async function handlePhoto(file: File) {
+    if (aiBusy) return;
+    setAiBusy(true);
+    setAiPreview(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(new Error("Could not read file"));
+        r.readAsDataURL(file);
+      });
+      const read = await scanShipmentImage(dataUrl);
+      setAiPreview(read);
+      if (!read.tracking_number) {
+        haptic(60);
+        toast.warning(read.notes || "No tracking number detected. Try a clearer photo.");
+        return;
+      }
+      const res = await applyAiShipmentScan({
+        code: read.tracking_number,
+        suggested_status: read.shipment_status,
+        carrier: read.carrier,
+        confidence: read.confidence,
+        metadata: { document_type: read.document_type, notes: read.notes, extras: read.extras },
+      });
+      setRecent((r) => [res, ...r].slice(0, 6));
+      onScanned?.(res);
+      if (res.result === "matched") {
+        playSfx("sold"); haptic([20, 40, 20]);
+        toast.success(`✅ ${read.carrier} · ${res.new_status?.replace(/_/g, " ")}`);
+      } else if (res.result === "mismatch") {
+        haptic([60, 40, 60]);
+        toast.error("That label belongs to another seller");
+      } else {
+        haptic(80);
+        toast.warning(`Tracking ${read.tracking_number} didn't match any of your orders`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "AI scan failed");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   if (!open) return null;
 
   return (
