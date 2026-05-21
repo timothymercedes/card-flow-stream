@@ -217,3 +217,67 @@ export const listOwnerPersonalPayoutsFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { rows: (rows ?? []) as any[] };
   });
+
+// ---- Platform-wide order audit (Phase 5) -----------------------------------
+export const getOrdersAuditFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    RangeSchema.extend({
+      limit: z.number().int().min(1).max(500).optional(),
+      sellerId: z.string().uuid().optional(),
+      paymentStatus: z.string().max(40).optional(),
+      search: z.string().max(120).optional(),
+    }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertOwner(supabase, userId);
+    const { since, until } = resolveRange(data);
+    let q = supabase
+      .from("orders")
+      .select(
+        "id,title,amount,shipping_amount,commission_rate,commission_amount,seller_payout_amount,label_cost_cents,shipping_margin_cents,refunded_amount,payment_status,status,seller_id,buyer_id,stream_id,stripe_charge_id,created_at,paid_at,shipment_verified_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(data.limit ?? 200);
+    if (since) q = q.gte("created_at", since);
+    if (until) q = q.lt("created_at", until);
+    if (data.sellerId) q = q.eq("seller_id", data.sellerId);
+    if (data.paymentStatus) q = q.eq("payment_status", data.paymentStatus);
+    if (data.search) q = q.ilike("title", `%${data.search}%`);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    // Compute drift per row: subtotal = amount - shipping; expected commission = subtotal * rate
+    const audited = ((rows ?? []) as any[]).map((o) => {
+      const amountCents = Math.round(Number(o.amount || 0) * 100);
+      const shippingCents = Math.round(Number(o.shipping_amount || 0) * 100);
+      const subtotalCents = Math.max(0, amountCents - shippingCents);
+      const commissionCents = Math.round(Number(o.commission_amount || 0) * 100);
+      const payoutCents = Math.round(Number(o.seller_payout_amount || 0) * 100);
+      const rate = Number(o.commission_rate || 0.05);
+      const expectedCommission = Math.round(subtotalCents * rate);
+      const expectedPayout = subtotalCents - expectedCommission;
+      const commissionDrift = commissionCents - expectedCommission;
+      const payoutDrift = payoutCents - expectedPayout;
+      const sumDrift = commissionCents + payoutCents - subtotalCents;
+      return {
+        ...o,
+        amountCents,
+        shippingCents,
+        subtotalCents,
+        commissionCents,
+        payoutCents,
+        labelCostCents: Number(o.label_cost_cents || 0),
+        shippingMarginCents: Number(o.shipping_margin_cents || 0),
+        refundedCents: Math.round(Number(o.refunded_amount || 0) * 100),
+        expectedCommission,
+        expectedPayout,
+        commissionDrift,
+        payoutDrift,
+        sumDrift,
+        hasDrift: Math.abs(commissionDrift) > 2 || Math.abs(payoutDrift) > 2 || Math.abs(sumDrift) > 2,
+      };
+    });
+    return { rows: audited };
+  });
