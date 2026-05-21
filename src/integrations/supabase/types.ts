@@ -1940,6 +1940,7 @@ export type Database = {
           seller_id: string
           shipping_method: string | null
           shipping_price: number | null
+          shipping_service_tier: string | null
           ships_internationally: boolean
           snipe_extends: number
           snipe_price: number | null
@@ -2046,6 +2047,7 @@ export type Database = {
           seller_id: string
           shipping_method?: string | null
           shipping_price?: number | null
+          shipping_service_tier?: string | null
           ships_internationally?: boolean
           snipe_extends?: number
           snipe_price?: number | null
@@ -2152,6 +2154,7 @@ export type Database = {
           seller_id?: string
           shipping_method?: string | null
           shipping_price?: number | null
+          shipping_service_tier?: string | null
           ships_internationally?: boolean
           snipe_extends?: number
           snipe_price?: number | null

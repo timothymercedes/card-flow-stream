@@ -862,10 +862,13 @@ function LiveDetail() {
     return () => clearInterval(iv);
   }, [selectionDeadline]);
 
-  // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
+  // 🆕 Block bidding/buying when there's an unpaid order in THIS stream.
+  // Stream-scoped only — a pending order in a different stream no longer
+  // blocks bidding here. The actual surfacing is via openStreamFixPayment
+  // below (pops FixPaymentModal inline instead of routing to /orders).
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   useEffect(() => {
-    if (!user) {
+    if (!user || !id) {
       setUnpaidOrders(0);
       return;
     }
@@ -874,11 +877,12 @@ function LiveDetail() {
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("buyer_id", user.id)
-        .eq("payment_status", "awaiting_payment")
+        .eq("stream_id", id)
+        .in("payment_status", ["awaiting_payment", "failed"])
         .then(({ count }) => setUnpaidOrders(count ?? 0));
     refresh();
     const ch = supabase
-      .channel(`unpaid-${user.id}`)
+      .channel(`unpaid-${user.id}-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` },
@@ -888,7 +892,7 @@ function LiveDetail() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user?.id]);
+  }, [user?.id, id]);
 
   // 🆕 Phase 3 — auto-charge on auction win.
   // Listen for THIS buyer's awaiting_payment orders in THIS stream. As soon
@@ -2014,6 +2018,32 @@ function LiveDetail() {
     return true;
   }
 
+  // 🆕 If there's an unpaid order in THIS stream, pop FixPaymentModal inline
+  // (instead of routing the buyer away). Returns true when the modal was
+  // opened — callers should bail out so the action doesn't proceed.
+  async function openStreamFixPaymentIfNeeded(): Promise<boolean> {
+    if (!user || !id) return false;
+    if (unpaidOrders <= 0) return false;
+    const { data } = await supabase
+      .from("orders")
+      .select("id,title,amount,stream_id,payment_status")
+      .eq("buyer_id", user.id)
+      .eq("stream_id", id)
+      .in("payment_status", ["failed", "awaiting_payment"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return false;
+    setFailedOrder({
+      id: (data as any).id,
+      title: (data as any).title,
+      amount: Number((data as any).amount),
+      stream_id: (data as any).stream_id,
+    });
+    toast.error("Fix your payment to keep bidding in this stream");
+    return true;
+  }
+
   // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
@@ -2022,11 +2052,7 @@ function LiveDetail() {
     if (!cardGate.requireCard()) return;
     if (!user || !profile) return;
     if (isSeller) return;
-    if (unpaidOrders > 0) {
-      toast.error("Pay your pending order before bidding again");
-      nav({ to: "/orders" });
-      return;
-    }
+    if (await openStreamFixPaymentIfNeeded()) return;
     if (meBlockedOrBanned) return toast.error("You're banned/muted in this stream");
     if (stream.status !== "live") return toast.error("Auction ended");
     if (!auctionLive) return toast.error("Auction not running");
@@ -2115,11 +2141,7 @@ function LiveDetail() {
     if (!requireBuyerReady("buy")) return;
     if (!user || !profile) return;
     if (isSeller) return;
-    if (unpaidOrders > 0) {
-      toast.error("Pay your pending order before buying");
-      nav({ to: "/orders" });
-      return;
-    }
+    if (await openStreamFixPaymentIfNeeded()) return;
     if (!auctionLive) return toast.error("No active auction");
     const price = Number(stream.snipe_price);
     // Force win: set bid to snipe price + bidder = me, then end immediately
@@ -2214,11 +2236,7 @@ function LiveDetail() {
     if (!requireBuyerReady("claim a character")) return;
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
-    if (unpaidOrders > 0) {
-      toast.error("Pay your pending order before claiming");
-      nav({ to: "/orders" });
-      return;
-    }
+    if (await openStreamFixPaymentIfNeeded()) return;
     const slots = selectedBreakSlots.filter((n) => !breakSlots.some((s) => s.slot_number === n));
     if (slots.length === 0) return toast.error("Choose at least one character");
     setClaimingBreakSlots(true);

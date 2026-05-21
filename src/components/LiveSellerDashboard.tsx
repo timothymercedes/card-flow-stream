@@ -4,6 +4,7 @@ import {
   DollarSign, ShoppingBag, Clock, Gift, Share2, Bookmark, X, Minimize2, Maximize2,
   MessageCircle, Users, Activity, HelpCircle, Shield, VolumeX, Trophy, CreditCard,
 } from "lucide-react";
+import { BuyerOrderPopover } from "@/components/BuyerOrderPopover";
 
 type Stats = {
   grossSales: number;
@@ -20,6 +21,16 @@ type ActivityRow = {
   amount?: number;
   text: string;
   at: string;
+};
+
+type OrderRow = {
+  id: string;
+  buyer_id: string;
+  buyer_username: string;
+  title: string;
+  amount: number;
+  payment_status: string;
+  created_at: string;
 };
 
 type WatcherRow = { user_id: string; username: string; role: "buyer" | "mod" | "muted" | "host" };
@@ -66,6 +77,8 @@ export function LiveSellerDashboard({
   });
   const [shareCount, setShareCount] = useState<number>(0);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [watchers, setWatchers] = useState<WatcherRow[]>([]);
   const [, setTick] = useState(0);
 
@@ -132,10 +145,23 @@ export function LiveSellerDashboard({
       if (buyerMap.size > 0) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("user_id, username")
-          .in("user_id", Array.from(buyerMap.keys()));
-        (profs || []).forEach((p: any) => buyerMap.set(p.user_id, p.username));
+          .select("id, username")
+          .in("id", Array.from(buyerMap.keys()));
+        (profs || []).forEach((p: any) => buyerMap.set(p.id, p.username));
       }
+
+      // Persist enriched orders for the clickable Buyers/Pending/Winners lists.
+      setOrders(
+        orders.map((o: any) => ({
+          id: o.id,
+          buyer_id: o.buyer_id,
+          buyer_username: buyerMap.get(o.buyer_id) || "buyer",
+          title: o.title,
+          amount: Number(o.amount || 0),
+          payment_status: o.payment_status,
+          created_at: o.created_at,
+        })) as OrderRow[],
+      );
 
       const w: WatcherRow[] = [];
       modMap.forEach((u, id) => w.push({ user_id: id, username: u, role: "mod" }));
@@ -305,10 +331,10 @@ export function LiveSellerDashboard({
 
           <div className="mt-1 flex gap-0.5 overflow-x-auto pb-0.5">
             <FilterChip id="questions" icon={HelpCircle} label="Q" count={questionMessages.length} />
-            <FilterChip id="buyers" icon={ShoppingBag} label="Buyers" count={watchers.filter((w) => w.role === "buyer").length} />
+            <FilterChip id="buyers" icon={ShoppingBag} label="Buyers" count={new Set(orders.filter((o) => o.payment_status === "paid").map((o) => o.buyer_id)).size} />
             <FilterChip id="mods" icon={Shield} label="Mods" count={watchers.filter((w) => w.role === "mod").length} />
             <FilterChip id="muted" icon={VolumeX} label="Muted" count={watchers.filter((w) => w.role === "muted").length} />
-            <FilterChip id="winners" icon={Trophy} label="Winners" />
+            <FilterChip id="winners" icon={Trophy} label="Winners" count={orders.length} />
             <FilterChip id="pending" icon={CreditCard} label="Pending" count={stats.pendingPayments} />
           </div>
 
@@ -323,7 +349,7 @@ export function LiveSellerDashboard({
                 {chatMessages.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">No chat yet.</p>}
               </>
             )}
-            {tab === "watching" && (
+            {tab === "watching" && filter !== "buyers" && filter !== "pending" && filter !== "winners" && (
               <>
                 {filteredWatchers.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">No watchers in this slice.</p>}
                 {filteredWatchers.map((w) => (
@@ -338,13 +364,66 @@ export function LiveSellerDashboard({
                 ))}
               </>
             )}
-            {tab === "activity" && (
+
+            {/* Buyers / Pending / Winners — clickable order lists, real-time payment status */}
+            {(filter === "buyers" || filter === "pending" || filter === "winners") && (() => {
+              let rows: OrderRow[] = [];
+              if (filter === "buyers") {
+                // unique paid buyers — aggregate by buyer
+                const byBuyer = new Map<string, OrderRow & { count: number; total: number }>();
+                orders.filter((o) => o.payment_status === "paid").forEach((o) => {
+                  const cur = byBuyer.get(o.buyer_id);
+                  if (cur) { cur.count += 1; cur.total += o.amount; }
+                  else byBuyer.set(o.buyer_id, { ...o, count: 1, total: o.amount });
+                });
+                rows = Array.from(byBuyer.values()) as any;
+              } else if (filter === "pending") {
+                rows = orders.filter((o) => ["awaiting_payment", "processing", "failed"].includes(o.payment_status));
+              } else {
+                rows = orders.slice(0, 20);
+              }
+              if (rows.length === 0) {
+                return <p className="p-2 text-center text-[11px] text-white/40">Nothing here yet.</p>;
+              }
+              return rows.map((o: any) => {
+                const isAggregate = filter === "buyers";
+                const badgeCls =
+                  o.payment_status === "paid" ? "bg-emerald-500/30 text-emerald-200" :
+                  o.payment_status === "failed" ? "bg-rose-500/30 text-rose-200" :
+                  o.payment_status === "processing" ? "bg-amber-500/30 text-amber-200" :
+                  "bg-zinc-500/30 text-zinc-200";
+                const badgeLabel =
+                  o.payment_status === "paid" ? "✅" :
+                  o.payment_status === "failed" ? "🔴 failed" :
+                  o.payment_status === "processing" ? "🟡 proc" :
+                  "⏳";
+                return (
+                  <button
+                    key={o.id + (isAggregate ? "-agg" : "")}
+                    onClick={() => setOpenOrderId(o.id)}
+                    className="flex w-full items-center justify-between gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] text-white/90 hover:bg-white/5"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-bold text-primary">@{o.buyer_username}</span>{" "}
+                      {isAggregate
+                        ? <span className="text-white/60">· {o.count} item{o.count === 1 ? "" : "s"}</span>
+                        : <span className="text-white/70">· {o.title}</span>}
+                    </span>
+                    {!isAggregate && (
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${badgeCls}`}>{badgeLabel}</span>
+                    )}
+                    <span className="shrink-0 font-bold tabular-nums text-emerald-300">
+                      {fmtMoney(isAggregate ? o.total : o.amount)}
+                    </span>
+                  </button>
+                );
+              });
+            })()}
+
+            {tab === "activity" && filter !== "buyers" && filter !== "pending" && filter !== "winners" && (
               <>
                 {activity.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">No activity yet.</p>}
-                {(filter === "pending"
-                  ? activity.filter((a) => a.kind === "order")
-                  : activity
-                ).map((a) => (
+                {activity.map((a) => (
                   <div key={a.id} className="flex items-center justify-between rounded px-1.5 py-0.5 text-[11px] text-white/90">
                     <span className="truncate">
                       <span className={`mr-1 ${a.kind === "tip" ? "text-purple-300" : a.kind === "promo" ? "text-orange-300" : "text-emerald-300"}`}>
@@ -361,6 +440,10 @@ export function LiveSellerDashboard({
             )}
           </div>
         </>
+      )}
+
+      {openOrderId && (
+        <BuyerOrderPopover orderId={openOrderId} onClose={() => setOpenOrderId(null)} />
       )}
     </div>
   );
