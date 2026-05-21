@@ -85,7 +85,7 @@ async function logEvent(args: {
 
 export const getUserDossierFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
+  .inputValidator((d) => z.object({ userId: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const uid = data.userId;
@@ -158,7 +158,7 @@ export const getUserAuditTimelineFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        userId: z.string().uuid(),
+        userId: z.string().min(1),
         eventTypes: z.array(z.string()).optional(),
         severity: z.string().optional(),
         limit: z.number().min(1).max(200).optional(),
@@ -234,7 +234,7 @@ export const updateReportStatusFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        reportId: z.string().uuid(),
+        reportId: z.string().min(1),
         status: z.enum(["open", "investigating", "resolved", "dismissed", "escalated"]),
         notes: z.string().max(2000).optional(),
       })
@@ -317,7 +317,7 @@ export const updateDisputeLifecycleFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        disputeId: z.string().uuid(),
+        disputeId: z.string().min(1),
         lifecycle: z.enum([
           "opened",
           "evidence_pending",
@@ -330,7 +330,7 @@ export const updateDisputeLifecycleFn = createServerFn({ method: "POST" })
           "closed",
         ]),
         notes: z.string().max(2000).optional(),
-        rebookOrderId: z.string().uuid().optional(),
+        rebookOrderId: z.string().min(1).optional(),
       })
       .parse(d),
   )
@@ -399,7 +399,7 @@ export const updateDisputeLifecycleFn = createServerFn({ method: "POST" })
 
 export const runReconciliationCheckFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ disputeId: z.string().uuid() }).parse(d))
+  .inputValidator((d) => z.object({ disputeId: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const { data: dispute } = await supabaseAdmin
@@ -453,8 +453,8 @@ export const listEvidenceFn = createServerFn({ method: "POST" })
     z
       .object({
         status: z.enum(["pending", "approved", "rejected", "flagged", "locked"]).optional(),
-        disputeId: z.string().uuid().optional(),
-        reportId: z.string().uuid().optional(),
+        disputeId: z.string().min(1).optional(),
+        reportId: z.string().min(1).optional(),
         limit: z.number().min(1).max(200).default(100),
       })
       .parse(d),
@@ -478,7 +478,7 @@ export const reviewEvidenceFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        evidenceId: z.string().uuid(),
+        evidenceId: z.string().min(1),
         status: z.enum(["approved", "rejected", "flagged", "locked"]),
         notes: z.string().max(2000).optional(),
       })
@@ -543,7 +543,7 @@ export const addAdminNoteFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        subjectUserId: z.string().uuid(),
+        subjectUserId: z.string().min(1),
         note: z.string().min(1).max(2000),
         severity: z.enum(["info", "low", "medium", "high", "critical"]).default("info"),
         notifyUser: z.boolean().default(false),
