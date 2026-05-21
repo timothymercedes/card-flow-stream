@@ -286,37 +286,38 @@ export function LiveSellerDashboard({
   }
 
   const StatTile = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) => (
-    <div className={`flex min-w-0 flex-col rounded-md bg-black/55 px-1.5 py-1 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
-      <div className="flex items-center gap-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/60">
-        <Icon className="h-2 w-2" /> {label}
+    <div className={`flex min-w-0 flex-col rounded-lg bg-black/60 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
+      <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-white/60">
+        <Icon className="h-2.5 w-2.5" /> {label}
       </div>
-      <div className="truncate text-xs font-extrabold tabular-nums text-white">{value}</div>
+      <div className="truncate text-sm font-extrabold tabular-nums leading-tight text-white">{value}</div>
     </div>
   );
 
   const TabBtn = ({ id, icon: Icon, label, count }: { id: Tab; icon: any; label: string; count?: number }) => (
     <button
       onClick={() => setTab(id)}
-      className={`flex shrink-0 items-center gap-1 rounded-t-md border-b-2 px-1.5 py-1 text-[10px] font-bold transition ${
+      className={`flex shrink-0 items-center gap-1 rounded-t-md border-b-2 px-2 py-1.5 text-[11px] font-bold transition ${
         tab === id ? "border-primary bg-white/5 text-white" : "border-transparent text-white/55 hover:text-white"
       }`}
     >
-      <Icon className="h-2.5 w-2.5" /> {label}
+      <Icon className="h-3 w-3" /> {label}
       {typeof count === "number" && count > 0 && (
-        <span className="rounded-full bg-white/15 px-1 text-[9px]">{count}</span>
+        <span className="rounded-full bg-primary/30 px-1.5 text-[10px] tabular-nums text-white">{count}</span>
       )}
     </button>
   );
 
   return (
-    <div className="pointer-events-auto flex max-h-[80vh] w-60 flex-col rounded-2xl bg-gradient-to-b from-black/85 via-black/70 to-black/85 p-2 ring-1 ring-white/15 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-      <div className="mb-1.5 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.15em] text-white">
-          <span className="relative flex h-1.5 w-1.5">
+    <div className="pointer-events-auto flex max-h-[80vh] w-72 flex-col rounded-2xl bg-gradient-to-b from-black/90 via-black/75 to-black/90 p-2.5 ring-1 ring-white/15 shadow-[0_10px_36px_-6px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:w-80">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.15em] text-white">
+          <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
           </span>
           Live Dashboard
+
         </p>
         <div className="flex items-center gap-0.5">
           <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
