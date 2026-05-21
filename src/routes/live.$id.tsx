@@ -5679,20 +5679,42 @@ function LiveDetail() {
               <p className="line-clamp-1 max-w-full text-xs font-semibold text-white/90">
                 {stream.current_item || (auctionLive ? "Live auction" : "Waiting for next item")}
               </p>
-              {/* 🆕 Shipping price — visible to buyers/viewers once auction is live */}
-              {auctionLive && (
-                <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-bold text-white/90 ring-1 ring-white/15 backdrop-blur">
-                  📦 Shipping:&nbsp;
-                  {Number(stream.shipping_price || 0) > 0
-                    ? fmtMoney(Number(stream.shipping_price))
-                    : stream.shipping_method
-                      ? stream.shipping_method
-                      : "Free"}
-                  {stream.shipping_method && Number(stream.shipping_price || 0) > 0 && (
-                    <span className="text-white/60">· {stream.shipping_method}</span>
-                  )}
-                </p>
-              )}
+              {/* 🆕 Shipping + estimated buyer total — always visible (not gated on auctionLive)
+                  so viewers see the host's latest shipping price + platform fee + tax
+                  BEFORE they tap "THIS IS MINE". */}
+              {(() => {
+                const ship = Number(stream.shipping_price || 0);
+                const bid = Number(stream.current_bid || 0);
+                const platformFee = 1.23; // flat buyer service fee (matches stripe.server.ts)
+                const estTaxRate = 0.07; // typical US sales tax estimate; final tax at checkout
+                const estTax = Math.max(0, bid + ship) * estTaxRate;
+                const estTotal = bid + ship + platformFee + estTax;
+                return (
+                  <div className="mt-1 flex flex-col items-center gap-1">
+                    <p className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/15 backdrop-blur">
+                      📦 Shipping:&nbsp;
+                      {ship > 0 ? (
+                        <span className="text-emerald-300">{fmtMoney(ship)}</span>
+                      ) : (
+                        <span className="text-amber-300">set by host</span>
+                      )}
+                      {stream.shipping_method && (
+                        <span className="text-white/60">· {stream.shipping_method}</span>
+                      )}
+                    </p>
+                    {auctionLive && bid > 0 && (
+                      <p className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/30 to-fuchsia-500/25 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/20 backdrop-blur">
+                        <span className="text-white/70">Est. total</span>
+                        <span className="tabular-nums text-emerald-200">{fmtMoney(estTotal)}</span>
+                        <span className="text-white/55">
+                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + fee {fmtMoney(platformFee)} + ~tax {fmtMoney(estTax)})
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
             </div>
 
             {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
