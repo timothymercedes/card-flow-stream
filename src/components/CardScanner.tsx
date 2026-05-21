@@ -634,7 +634,11 @@ export function CardScanner({
         }
       }
     } catch (e: any) {
-      toast.error(e?.message || "Scan failed");
+      const raw = String(e?.message ?? "");
+      const safe = raw && raw.length < 200 && !/debug|stack|trace/i.test(raw)
+        ? raw
+        : "Scan failed. Try again or use manual search.";
+      toast.error(safe);
     } finally {
       setScanning(false);
       capturingRef.current = false;
