@@ -5525,14 +5525,14 @@ function LiveDetail() {
                 return (
                   <div
                     key={m.id}
-                    className={`max-w-[95%] rounded-2xl px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-sm backdrop-blur-md ${
+                    className={`max-w-[95%] rounded-2xl border-l-2 px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all ${
                       isBlocked
-                        ? "bg-red-500/30 line-through opacity-60"
+                        ? "border-red-300/60 bg-red-500/25 line-through opacity-60"
                         : isHostMods
-                          ? "bg-fuchsia-600/40 ring-1 ring-fuchsia-300/40"
+                          ? "border-fuchsia-300/70 bg-gradient-to-r from-fuchsia-600/45 to-fuchsia-500/25 ring-1 ring-fuchsia-300/40"
                           : isModOnly
-                            ? "bg-amber-500/30 ring-1 ring-amber-300/40"
-                            : "bg-black/45 ring-1 ring-white/5"
+                            ? "border-amber-300/70 bg-gradient-to-r from-amber-500/35 to-amber-400/20 ring-1 ring-amber-300/40"
+                            : "border-primary/40 bg-gradient-to-r from-black/55 via-black/45 to-black/30 ring-1 ring-white/10"
                     }`}
                   >
                     {(isModOnly || isHostMods) && (
