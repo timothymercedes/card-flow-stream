@@ -30,16 +30,42 @@ export const PLATFORM_FEE_RATE = 0.05;
 export const BUYER_SERVICE_FEE_RATE = 0.0145;
 export const BUYER_SERVICE_FEE_FIXED_CENTS = 15;
 
+// Marketplace commission — platform takes 5% of every marketplace subtotal
+// (auctions AND fixed-price). Deducted from seller payout via the Connect
+// application_fee_amount split. Phase 2: now applied uniformly.
+export const MARKETPLACE_COMMISSION_RATE = 0.05;
+
+// Stripe card processing fees (US standard: 2.9% + $0.30).
+// Phase 2: passed through to the buyer in `calculateFees`, so sellers
+// never see Stripe fees deducted from their subtotal.
+export const STRIPE_PROCESSING_RATE = 0.029;
+export const STRIPE_PROCESSING_FIXED_CENTS = 30;
+
 /**
- * Marketplace purchase fees.
- *  - Buyer pays: subtotal + $1.23 fixed platform fee.
- *  - Platform takes the $1.23 as the application fee on the Connect transfer.
- *  - Returns `buyerServiceFee` (alias of platformFee) for backwards compat
- *    with existing UI rendering.
+ * Gross-up the Stripe processing fee so the buyer covers it entirely.
+ * Solve B such that B - (B * rate + fixed) = preFee. Returns the extra
+ * cents added on top of `preFeeCents`.
+ */
+function grossedUpStripeFeeCents(preFeeCents: number): number {
+  if (preFeeCents <= 0) return 0;
+  const buyerTotal = (preFeeCents + STRIPE_PROCESSING_FIXED_CENTS) / (1 - STRIPE_PROCESSING_RATE);
+  return Math.ceil(buyerTotal - preFeeCents);
+}
+
+/**
+ * Marketplace purchase fees (Phase 2).
+ *  - Buyer pays: subtotal + platformFee + intlFee + Stripe processing fee.
+ *  - Platform application_fee_amount covers: platformFee + intlFee +
+ *    5% commission + Stripe processing fee + sellerAbsorbedFee.
+ *  - Net result: seller receives exactly (subtotal - commission - sellerAbsorbedFee).
  */
 export function calculateFees(
   subtotalCents: number,
-  opts?: { isInternational?: boolean; platformFeeCentsOverride?: number },
+  opts?: {
+    isInternational?: boolean;
+    platformFeeCentsOverride?: number;
+    commissionRate?: number;
+  },
 ) {
   const platformFee =
     typeof opts?.platformFeeCentsOverride === "number"
@@ -48,18 +74,30 @@ export function calculateFees(
   const intlFee = opts?.isInternational
     ? Math.round(subtotalCents * INTL_PROCESSING_FEE_RATE)
     : 0;
-  const buyerTotal = subtotalCents + platformFee + intlFee;
-  // When the buyer's platform fee is waived (bundle discount past threshold),
-  // the seller absorbs an equivalent amount via a larger application fee so
-  // the platform still nets the same per-order processing margin.
+  // Bundle discount: seller absorbs the difference so platform still nets
+  // the same per-order margin even when the buyer fee is waived.
   const sellerAbsorbedFee = BUYER_PLATFORM_FEE_CENTS - platformFee;
+  const commissionRate = typeof opts?.commissionRate === "number"
+    ? opts.commissionRate
+    : MARKETPLACE_COMMISSION_RATE;
+  const commissionCents = Math.round(subtotalCents * commissionRate);
+  const preFeeBuyerCents = subtotalCents + platformFee + intlFee;
+  const processingFee = grossedUpStripeFeeCents(preFeeBuyerCents);
+  const buyerTotal = preFeeBuyerCents + processingFee;
+  const applicationFee =
+    platformFee + intlFee + commissionCents + sellerAbsorbedFee + processingFee;
+  const sellerNet = subtotalCents - commissionCents - sellerAbsorbedFee;
   return {
     subtotalCents,
     platformFee,
     sellerAbsorbedFee,
     intlFee,
+    commissionCents,
+    commissionRate,
+    processingFee,
     isInternational: Boolean(opts?.isInternational),
-    applicationFee: platformFee + intlFee + sellerAbsorbedFee,
+    applicationFee,
+    sellerNet,
     buyerServiceFee: platformFee,
     buyerTotal,
   };
