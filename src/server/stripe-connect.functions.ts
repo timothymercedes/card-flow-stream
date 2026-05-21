@@ -527,3 +527,80 @@ export const updateStreamPromotionSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Create a Stripe Express dashboard login link for the seller so they can
+ * update bank account, tax info, payout schedule, etc. after onboarding.
+ */
+export const createConnectLoginLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const stripe = getStripe();
+    const { data: row } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id")
+      .eq("seller_id", userId)
+      .maybeSingle();
+    if (!row) throw new Error("No Stripe account connected yet");
+    const link = await stripe.accounts.createLoginLink((row as any).stripe_account_id);
+    return { url: link.url };
+  });
+
+/**
+ * Create an "account_update" link so the seller can edit existing details
+ * (bank account, address, etc.) via Stripe's hosted onboarding flow.
+ */
+export const createConnectUpdateLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { returnUrl: string; refreshUrl: string }) => {
+    if (!data.returnUrl || !data.refreshUrl) throw new Error("Missing URLs");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const stripe = getStripe();
+    const { data: row } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id")
+      .eq("seller_id", userId)
+      .maybeSingle();
+    if (!row) throw new Error("No Stripe account connected yet");
+    const link = await stripe.accountLinks.create({
+      account: (row as any).stripe_account_id,
+      return_url: data.returnUrl,
+      refresh_url: data.refreshUrl,
+      type: "account_update",
+    });
+    return { url: link.url };
+  });
+
+/**
+ * Admin-only: create a login link for any seller so support can help them
+ * update payout info, view balances, etc.
+ */
+export const adminCreateConnectLoginLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sellerId: string }) => {
+    if (!data.sellerId) throw new Error("sellerId required");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .in("role", ["admin", "owner"]);
+    if (!roles || roles.length === 0) throw new Error("Admin only");
+
+    const stripe = getStripe();
+    const { data: row } = await supabaseAdmin
+      .from("stripe_accounts")
+      .select("stripe_account_id")
+      .eq("seller_id", data.sellerId)
+      .maybeSingle();
+    if (!row) throw new Error("Seller has no Stripe account");
+    const link = await stripe.accounts.createLoginLink((row as any).stripe_account_id);
+    return { url: link.url };
+  });
