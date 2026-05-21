@@ -136,16 +136,64 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Why are you requesting cancellation?"
+              placeholder={role === "seller" ? "Reason for cancelling (shown to buyer)" : "Why are you requesting cancellation?"}
               className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none min-h-20"
             />
-            <button
-              onClick={createRequest}
-              disabled={busy || !reason.trim()}
-              className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground disabled:opacity-60"
-            >
-              Send cancel request
-            </button>
+            {role === "seller" ? (
+              <>
+                <button
+                  onClick={async () => {
+                    if (!user || !reason.trim()) return toast.error("Add a reason");
+                    if (!window.confirm("Cancel this order now? The buyer will be notified and any payment should be refunded.")) return;
+                    setBusy(true);
+                    const paid = (order.payment_status || "") === "paid";
+                    const patch: any = { status: "cancelled" };
+                    if (paid) patch.payment_status = "refunded";
+                    const { error: oErr } = await supabase.from("orders").update(patch).eq("id", order.id);
+                    if (oErr) { setBusy(false); return toast.error(oErr.message); }
+                    await supabase.from("order_cancellations").insert({
+                      order_id: order.id,
+                      requested_by: user.id,
+                      requested_by_role: "seller",
+                      reason: reason.trim(),
+                      status: "cancelled",
+                      resolved_at: new Date().toISOString(),
+                      messages: [{ user_id: user.id, username: profile?.username || "seller", role: "seller", body: reason.trim(), at: new Date().toISOString() }],
+                    });
+                    await supabase.from("notifications").insert({
+                      user_id: order.buyer_id,
+                      sender_id: user.id,
+                      type: "order_cancel",
+                      body: `Seller cancelled your order "${order.title}"${paid ? " — refund issued" : ""}`,
+                      link: "/orders",
+                    });
+                    setBusy(false);
+                    toast.success("Order cancelled");
+                    onChanged?.();
+                    onClose();
+                  }}
+                  disabled={busy || !reason.trim()}
+                  className="w-full rounded-lg bg-destructive py-2 text-sm font-bold text-destructive-foreground disabled:opacity-60"
+                >
+                  Cancel order now
+                </button>
+                <button
+                  onClick={createRequest}
+                  disabled={busy || !reason.trim()}
+                  className="w-full rounded-lg bg-muted py-2 text-xs font-semibold disabled:opacity-60"
+                >
+                  Or send cancellation request to buyer
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={createRequest}
+                disabled={busy || !reason.trim()}
+                className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground disabled:opacity-60"
+              >
+                Send cancel request
+              </button>
+            )}
           </div>
         )}
 
