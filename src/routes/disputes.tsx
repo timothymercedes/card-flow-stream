@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldAlert, Plus } from "lucide-react";
+import { ShieldAlert, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { DisputeThread } from "@/components/DisputeThread";
 
 export const Route = createFileRoute("/disputes")({
   head: () => ({ meta: [{ title: "Disputes — PullBid Live" }] }),
