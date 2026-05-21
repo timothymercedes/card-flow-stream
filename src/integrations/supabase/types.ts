@@ -5925,8 +5925,10 @@ export type Database = {
         Returns: {
           adjustment_fees_cents: number
           adjustment_losses_cents: number
+          label_cost_cents: number
           net_shipping_margin_cents: number
           shipping_charged_cents: number
+          shipping_gross_margin_cents: number
         }[]
       }
       admin_waive_buyer_restriction: {
