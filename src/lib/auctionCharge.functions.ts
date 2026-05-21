@@ -160,16 +160,32 @@ async function performCharge(opts: {
   const sellerCountry = (seller.country || "US").toString().toUpperCase().trim();
   const isInternational = buyerCountry !== sellerCountry && (buyerCountry !== "US" || sellerCountry !== "US");
 
-  const fees = calculateFees(totalCents, { isInternational });
+  // Bundle-aware platform fee: items 1-3 in a stream charge the buyer the
+  // normal $1.23 fee; items 4+ waive the buyer fee and the seller absorbs it.
+  let platformFeeOverride: number | undefined;
+  let feeIndex: number | null = null;
+  if (order.stream_id) {
+    const { count } = await supabaseAdmin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("buyer_id", userId)
+      .eq("stream_id", order.stream_id)
+      .eq("payment_status", "paid");
+    feeIndex = (count || 0) + 1;
+    const { data: feeData } = await (supabaseAdmin.rpc as any)(
+      "compute_buyer_fee_cents",
+      { _buyer_id: userId, _stream_id: order.stream_id },
+    );
+    if (typeof feeData === "number") platformFeeOverride = feeData;
+  }
 
-  // Seller commission (5% of subtotal) — deducted from the seller's payout
-  // via the Connect application_fee_amount split. Buyer total is unchanged
-  // (commission comes out of the seller side, not on top of the buyer
-  // checkout). This was missing in Phase 3 and caused a revenue leak.
+  const fees = calculateFees(totalCents, { isInternational, platformFeeCentsOverride: platformFeeOverride });
+  const feeAbsorbedBy: "buyer" | "seller" = fees.sellerAbsorbedFee > 0 ? "seller" : "buyer";
+
   const commissionRate = Number(order.commission_rate ?? 0.05);
   const commissionCents = Math.round(totalCents * commissionRate);
   const applicationFeeWithCommission = fees.applicationFee + commissionCents;
-  const sellerPayoutCents = totalCents - commissionCents;
+  const sellerPayoutCents = totalCents - commissionCents - fees.sellerAbsorbedFee;
 
   const idemKey = `auction-charge:${orderId}:${fees.buyerTotal}:${pm.stripe_payment_method_id}`;
 
@@ -191,18 +207,18 @@ async function performCharge(opts: {
         stream_id: order.stream_id ?? "",
         subtotal_cents: String(fees.subtotalCents),
         platform_fee_cents: String(fees.platformFee),
+        seller_absorbed_fee_cents: String(fees.sellerAbsorbedFee),
         commission_cents: String(commissionCents),
         intl_fee_cents: String(fees.intlFee),
         seller_payout_cents: String(sellerPayoutCents),
         is_international: String(isInternational),
         buyer_country: buyerCountry,
         seller_country: sellerCountry,
+        fee_index: feeIndex != null ? String(feeIndex) : "",
+        fee_absorbed_by: feeAbsorbedBy,
       },
     }, { idempotencyKey: idemKey });
 
-    // Persist regardless of final status so the webhook + UI can reconcile.
-    // commission_amount + seller_payout_amount are stored as decimal dollars
-    // to match the existing `amount` / `shipping_amount` convention.
     await supabaseAdmin
       .from("orders")
       .update({
@@ -210,10 +226,13 @@ async function performCharge(opts: {
         seller_stripe_account_id: seller.stripe_account_id,
         commission_amount: commissionCents / 100,
         seller_payout_amount: sellerPayoutCents / 100,
+        fee_index: feeIndex,
+        fee_absorbed_by: feeAbsorbedBy,
         payment_status: intent.status === "succeeded" ? "paid" : "processing",
         paid_at: intent.status === "succeeded" ? new Date().toISOString() : null,
       })
       .eq("id", orderId);
+
 
     if (intent.status === "succeeded") {
       return { status: "paid", paymentIntentId: intent.id };
