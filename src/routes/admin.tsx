@@ -12,6 +12,7 @@ import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
+import { BuyerRiskQueue } from "@/components/admin/BuyerRiskQueue";
 import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
 import { cancelOrderAction } from "@/lib/order-actions.functions";
 import { DisputeThread } from "@/components/DisputeThread";
