@@ -29,6 +29,12 @@ import {
   requestPayoutFn,
   getSellerPayableFn,
 } from "@/lib/payouts.functions";
+import {
+  runIntegrityReconciliationFn,
+  listIntegrityAlertsFn,
+  resolveIntegrityAlertFn,
+} from "@/lib/integrity.functions";
+
 
 export const Route = createFileRoute("/admin/finance")({
   head: () => ({ meta: [{ title: "Finance — PullBid Live" }] }),
@@ -54,7 +60,9 @@ type TabKey =
   | "sellers"
   | "shipping"
   | "refunds"
-  | "transactions";
+  | "transactions"
+  | "integrity";
+
 
 function fmt(cents?: number | null) {
   const v = (cents || 0) / 100;
@@ -231,6 +239,8 @@ function OwnerFinanceDashboard() {
             ["shipping", "Shipping"],
             ["refunds", "Refunds"],
             ["transactions", "Transactions"],
+            ["integrity", "Integrity"],
+
           ] as [TabKey, string][]).map(([k, l]) => (
             <button
               key={k}
@@ -287,7 +297,9 @@ function OwnerFinanceDashboard() {
         {tab === "transactions" && (
           <TransactionsTab orders={personalOrders.data?.rows ?? []} ledger={ledger.data?.rows ?? []} />
         )}
+        {tab === "integrity" && <IntegrityTab />}
       </div>
+
     </AppShell>
   );
 }
@@ -737,6 +749,135 @@ function TransactionsTab({ orders, ledger }: { orders: any[]; ledger: any[] }) {
       </Section>
       <Section title="Recent personal orders" right={<ShoppingBag className="h-3 w-3 text-muted-foreground" />}>
         <OrdersTable rows={orders} />
+      </Section>
+    </div>
+  );
+}
+
+// ---------- Integrity tab ----------
+function IntegrityTab() {
+  const runFn = useServerFn(runIntegrityReconciliationFn);
+  const listFn = useServerFn(listIntegrityAlertsFn);
+  const resolveFn = useServerFn(resolveIntegrityAlertFn);
+  const qc = useQueryClient();
+  const [onlyUnresolved, setOnlyUnresolved] = useState(true);
+  const [running, setRunning] = useState(false);
+
+  const alerts = useQuery({
+    queryKey: ["integrity-alerts", onlyUnresolved],
+    queryFn: () => listFn({ data: { limit: 100, onlyUnresolved } }),
+  });
+
+  const runScan = async () => {
+    setRunning(true);
+    try {
+      const r = await runFn({ data: { sinceDays: 30 } });
+      toast.success(
+        `Scanned ${r.scannedOrders} orders · ${r.newAlerts} new alert${r.newAlerts === 1 ? "" : "s"}`,
+      );
+      qc.invalidateQueries({ queryKey: ["integrity-alerts"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Reconciliation failed");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const resolve = async (id: string) => {
+    try {
+      await resolveFn({ data: { alertId: id } });
+      qc.invalidateQueries({ queryKey: ["integrity-alerts"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed");
+    }
+  };
+
+  const rows = (alerts.data?.rows ?? []) as any[];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={runScan}
+          disabled={running}
+          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground disabled:opacity-50"
+        >
+          <RefreshCcw className={`h-3 w-3 ${running ? "animate-spin" : ""}`} /> Run reconciliation
+        </button>
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={onlyUnresolved}
+            onChange={(e) => setOnlyUnresolved(e.target.checked)}
+            className="h-3 w-3"
+          />
+          Only unresolved
+        </label>
+        <span className="ml-auto text-[10px] text-muted-foreground">
+          Nightly auto-scan at 03:15 UTC. Insert/update triggers also block bad writes in real time.
+        </span>
+      </div>
+
+      <Section title={`Alerts (${rows.length})`} right={<AlertTriangle className="h-3 w-3 text-destructive" />}>
+        {alerts.isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No alerts — books are clean. ✨</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-muted-foreground">
+                <tr>
+                  <th className="py-1 pr-2">When</th>
+                  <th className="py-1 pr-2">Severity</th>
+                  <th className="py-1 pr-2">Kind</th>
+                  <th className="py-1 pr-2">Order</th>
+                  <th className="py-1 pr-2 text-right">Amount</th>
+                  <th className="py-1 pr-2">Details</th>
+                  <th className="py-1 pr-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t border-border/50 align-top">
+                    <td className="py-1 pr-2 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="py-1 pr-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          r.severity === "critical"
+                            ? "bg-destructive/15 text-destructive"
+                            : r.severity === "warning"
+                            ? "bg-amber-500/15 text-amber-600"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {r.severity}
+                      </span>
+                    </td>
+                    <td className="py-1 pr-2 font-mono">{r.kind}</td>
+                    <td className="py-1 pr-2 font-mono text-[10px]">{r.order_id?.slice(0, 8) ?? "—"}</td>
+                    <td className="py-1 pr-2 text-right tabular-nums">{r.amount_cents != null ? fmt(r.amount_cents) : "—"}</td>
+                    <td className="py-1 pr-2 text-[10px] text-muted-foreground">
+                      <pre className="max-w-xs overflow-x-auto">{JSON.stringify(r.details, null, 0)}</pre>
+                    </td>
+                    <td className="py-1 pr-2">
+                      {r.resolved_at ? (
+                        <span className="text-[10px] text-emerald-500">resolved</span>
+                      ) : (
+                        <button
+                          onClick={() => resolve(r.id)}
+                          className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold hover:bg-muted/70"
+                        >
+                          Resolve
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Section>
     </div>
   );
