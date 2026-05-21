@@ -550,14 +550,18 @@ export function LiveSellerDashboard({
                 )}
                 {chatMessages.length === 0
                   ? <p className="p-2 text-center text-[11px] text-white/40">No chat yet.</p>
-                  : chatMessages.slice(-12).reverse().map((m) => (
-                    <div key={m.id} className="truncate rounded px-1.5 py-0.5 text-[11px] text-white/90">
-                      <button
-                        onClick={() => m.user_id && setOpenUser({ id: m.user_id, username: m.username })}
-                        className="font-bold text-primary hover:underline"
-                      >@{m.username}:</button> {m.content}
+                  : (
+                    <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-0.5">
+                      {chatMessages.slice(-12).reverse().map((m) => (
+                        <div key={m.id} className="truncate rounded px-1.5 py-0.5 text-[11px] text-white/90">
+                          <button
+                            onClick={() => m.user_id && setOpenUser({ id: m.user_id, username: m.username })}
+                            className="font-bold text-primary hover:underline"
+                          >@{m.username}:</button> {m.content}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
               </>
             )}
           </div>
