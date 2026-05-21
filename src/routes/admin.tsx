@@ -13,6 +13,11 @@ import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
 import { BuyerRiskQueue } from "@/components/admin/BuyerRiskQueue";
+import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
+import { AdminReportsQueue } from "@/components/admin/AdminReportsQueue";
+import { AdminDisputesQueue } from "@/components/admin/AdminDisputesQueue";
+import { AdminEvidenceQueue } from "@/components/admin/AdminEvidenceQueue";
+import { AdminAuditLog } from "@/components/admin/AdminAuditLog";
 import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
 import { cancelOrderAction } from "@/lib/order-actions.functions";
 import { DisputeThread } from "@/components/DisputeThread";
@@ -36,8 +41,9 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
-type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk";
-const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk"];
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit"];
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
@@ -370,6 +376,11 @@ function Admin() {
           {isAdmin && <button onClick={() => setTab("beta")} className={`pb-2 text-xs font-bold ${tab === "beta" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Beta Invites</button>}
           {isAdmin && <button onClick={() => setTab("revenue")} className={`pb-2 text-xs font-bold ${tab === "revenue" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Revenue</button>}
           {isAdmin && <button onClick={() => setTab("buyer_risk")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "buyer_risk" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><ShieldCheck className="h-3.5 w-3.5" /> Buyer Risk</button>}
+          {isAdmin && <button onClick={() => setTab("mod_users")} className={`pb-2 text-xs font-bold ${tab === "mod_users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Users</button>}
+          {isAdmin && <button onClick={() => setTab("mod_reports")} className={`pb-2 text-xs font-bold ${tab === "mod_reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Reports</button>}
+          {isAdmin && <button onClick={() => setTab("mod_disputes")} className={`pb-2 text-xs font-bold ${tab === "mod_disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Disputes</button>}
+          {isAdmin && <button onClick={() => setTab("evidence")} className={`pb-2 text-xs font-bold ${tab === "evidence" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Evidence</button>}
+          {isAdmin && <button onClick={() => setTab("mod_audit")} className={`pb-2 text-xs font-bold ${tab === "mod_audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Audit</button>}
         </div>
 
         {tab === "reports" && (() => {
@@ -668,6 +679,11 @@ function Admin() {
         {tab === "beta" && isAdmin && <BetaInvitesAdmin />}
         {tab === "revenue" && isAdmin && <PlatformRevenueAdmin />}
         {tab === "buyer_risk" && isAdmin && <BuyerRiskQueue />}
+        {tab === "mod_users" && isAdmin && <AdminUserSearch />}
+        {tab === "mod_reports" && isAdmin && <AdminReportsQueue />}
+        {tab === "mod_disputes" && isAdmin && <AdminDisputesQueue />}
+        {tab === "evidence" && isAdmin && <AdminEvidenceQueue />}
+        {tab === "mod_audit" && isAdmin && <AdminAuditLog />}
       </div>
     </AppShell>
   );

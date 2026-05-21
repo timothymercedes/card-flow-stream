@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_audit_log: {
+        Row: {
+          actor_role: string | null
+          actor_user_id: string | null
+          created_at: string
+          details: Json
+          dispute_id: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          evidence_id: string | null
+          id: string
+          occurred_at: string
+          order_id: string | null
+          payment_intent_id: string | null
+          payout_id: string | null
+          report_id: string | null
+          severity: Database["public"]["Enums"]["audit_severity"]
+          stream_id: string | null
+          subject_user_id: string
+          summary: string
+        }
+        Insert: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          dispute_id?: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          evidence_id?: string | null
+          id?: string
+          occurred_at?: string
+          order_id?: string | null
+          payment_intent_id?: string | null
+          payout_id?: string | null
+          report_id?: string | null
+          severity?: Database["public"]["Enums"]["audit_severity"]
+          stream_id?: string | null
+          subject_user_id: string
+          summary: string
+        }
+        Update: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          details?: Json
+          dispute_id?: string | null
+          event_type?: Database["public"]["Enums"]["audit_event_type"]
+          evidence_id?: string | null
+          id?: string
+          occurred_at?: string
+          order_id?: string | null
+          payment_intent_id?: string | null
+          payout_id?: string | null
+          report_id?: string | null
+          severity?: Database["public"]["Enums"]["audit_severity"]
+          stream_id?: string | null
+          subject_user_id?: string
+          summary?: string
+        }
+        Relationships: []
+      }
       account_holds: {
         Row: {
           balance_owed_cents: number
@@ -101,6 +161,45 @@ export type Database = {
           threshold?: number | null
           title?: string
           xp_reward?: number
+        }
+        Relationships: []
+      }
+      admin_action_log: {
+        Row: {
+          action: string
+          admin_id: string
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          id: string
+          reason: string | null
+          subject_user_id: string | null
+          target_id: string | null
+          target_table: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          subject_user_id?: string | null
+          target_id?: string | null
+          target_table?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          subject_user_id?: string | null
+          target_id?: string | null
+          target_table?: string | null
         }
         Relationships: []
       }
@@ -1110,11 +1209,19 @@ export type Database = {
           amount_cents: number | null
           created_at: string
           description: string
+          escalated_at: string | null
+          escalated_by: string | null
           evidence_urls: string[] | null
           id: string
+          lifecycle_status: Database["public"]["Enums"]["dispute_lifecycle"]
           messages: Json
           order_id: string | null
+          original_payout_id: string | null
           reason: string
+          rebook_order_id: string | null
+          reconciled_at: string | null
+          reconciliation_notes: string | null
+          refund_payment_intent_id: string | null
           reported_user_id: string | null
           reporter_id: string
           reporter_username: string
@@ -1131,11 +1238,19 @@ export type Database = {
           amount_cents?: number | null
           created_at?: string
           description: string
+          escalated_at?: string | null
+          escalated_by?: string | null
           evidence_urls?: string[] | null
           id?: string
+          lifecycle_status?: Database["public"]["Enums"]["dispute_lifecycle"]
           messages?: Json
           order_id?: string | null
+          original_payout_id?: string | null
           reason: string
+          rebook_order_id?: string | null
+          reconciled_at?: string | null
+          reconciliation_notes?: string | null
+          refund_payment_intent_id?: string | null
           reported_user_id?: string | null
           reporter_id: string
           reporter_username: string
@@ -1152,11 +1267,19 @@ export type Database = {
           amount_cents?: number | null
           created_at?: string
           description?: string
+          escalated_at?: string | null
+          escalated_by?: string | null
           evidence_urls?: string[] | null
           id?: string
+          lifecycle_status?: Database["public"]["Enums"]["dispute_lifecycle"]
           messages?: Json
           order_id?: string | null
+          original_payout_id?: string | null
           reason?: string
+          rebook_order_id?: string | null
+          reconciled_at?: string | null
+          reconciliation_notes?: string | null
+          refund_payment_intent_id?: string | null
           reported_user_id?: string | null
           reporter_id?: string
           reporter_username?: string
@@ -1169,7 +1292,15 @@ export type Database = {
           stripe_dispute_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "disputes_rebook_order_id_fkey"
+            columns: ["rebook_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       error_logs: {
         Row: {
@@ -1206,6 +1337,44 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      evidence_review_log: {
+        Row: {
+          created_at: string
+          evidence_id: string
+          from_status: Database["public"]["Enums"]["evidence_status"] | null
+          id: string
+          notes: string | null
+          reviewer_id: string
+          to_status: Database["public"]["Enums"]["evidence_status"]
+        }
+        Insert: {
+          created_at?: string
+          evidence_id: string
+          from_status?: Database["public"]["Enums"]["evidence_status"] | null
+          id?: string
+          notes?: string | null
+          reviewer_id: string
+          to_status: Database["public"]["Enums"]["evidence_status"]
+        }
+        Update: {
+          created_at?: string
+          evidence_id?: string
+          from_status?: Database["public"]["Enums"]["evidence_status"] | null
+          id?: string
+          notes?: string | null
+          reviewer_id?: string
+          to_status?: Database["public"]["Enums"]["evidence_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_review_log_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_integrity_alerts: {
         Row: {
@@ -2369,6 +2538,139 @@ export type Database = {
           sender_id?: string
           sender_username?: string
           status?: string
+        }
+        Relationships: []
+      }
+      moderation_evidence: {
+        Row: {
+          audit_log_id: string | null
+          caption: string | null
+          created_at: string
+          dispute_id: string | null
+          file_size: number | null
+          file_url: string
+          id: string
+          locked: boolean
+          mime_type: string | null
+          report_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["evidence_status"]
+          storage_path: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          audit_log_id?: string | null
+          caption?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          locked?: boolean
+          mime_type?: string | null
+          report_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["evidence_status"]
+          storage_path?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          audit_log_id?: string | null
+          caption?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          locked?: boolean
+          mime_type?: string | null
+          report_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["evidence_status"]
+          storage_path?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_evidence_audit_log_id_fkey"
+            columns: ["audit_log_id"]
+            isOneToOne: false
+            referencedRelation: "account_audit_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_evidence_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_evidence_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_reports: {
+        Row: {
+          assigned_admin_id: string | null
+          category: string
+          created_at: string
+          description: string
+          id: string
+          reporter_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["audit_severity"]
+          status: Database["public"]["Enums"]["report_status"]
+          subject_ref_id: string | null
+          subject_type: Database["public"]["Enums"]["report_subject_type"]
+          subject_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_admin_id?: string | null
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          reporter_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["audit_severity"]
+          status?: Database["public"]["Enums"]["report_status"]
+          subject_ref_id?: string | null
+          subject_type: Database["public"]["Enums"]["report_subject_type"]
+          subject_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_admin_id?: string | null
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          reporter_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["audit_severity"]
+          status?: Database["public"]["Enums"]["report_status"]
+          subject_ref_id?: string | null
+          subject_type?: Database["public"]["Enums"]["report_subject_type"]
+          subject_user_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4317,6 +4619,33 @@ export type Database = {
         }
         Relationships: []
       }
+      store_name_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_name: string | null
+          old_name: string | null
+          seller_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_name?: string | null
+          old_name?: string | null
+          seller_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_name?: string | null
+          old_name?: string | null
+          seller_id?: string
+        }
+        Relationships: []
+      }
       stories: {
         Row: {
           avatar_url: string | null
@@ -5471,6 +5800,30 @@ export type Database = {
         }
         Relationships: []
       }
+      username_history: {
+        Row: {
+          changed_at: string
+          id: string
+          new_username: string | null
+          old_username: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          new_username?: string | null
+          old_username?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          new_username?: string | null
+          old_username?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       vault_cards: {
         Row: {
           back_image_url: string | null
@@ -6524,6 +6877,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      log_account_event: {
+        Args: {
+          _actor_user_id?: string
+          _details?: Json
+          _dispute_id?: string
+          _event_type: Database["public"]["Enums"]["audit_event_type"]
+          _evidence_id?: string
+          _order_id?: string
+          _payment_intent_id?: string
+          _payout_id?: string
+          _report_id?: string
+          _severity?: Database["public"]["Enums"]["audit_severity"]
+          _stream_id?: string
+          _subject_user_id: string
+          _summary: string
+        }
+        Returns: string
+      }
+      log_admin_action: {
+        Args: {
+          _action: string
+          _after?: Json
+          _before?: Json
+          _reason?: string
+          _subject_user_id?: string
+          _target_id?: string
+          _target_table?: string
+        }
+        Returns: string
+      }
       log_audit_event: {
         Args: {
           _action: string
@@ -6871,7 +7254,53 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner" | "support"
+      audit_event_type:
+        | "payment_failed"
+        | "payment_declined"
+        | "chargeback"
+        | "refund_requested"
+        | "refund_issued"
+        | "order_cancelled"
+        | "not_delivered_claim"
+        | "report_filed"
+        | "suspicious_activity"
+        | "bidding_abuse"
+        | "warning_issued"
+        | "restriction_applied"
+        | "restriction_cleared"
+        | "ban_applied"
+        | "shipping_issue"
+        | "policy_violation"
+        | "store_name_changed"
+        | "username_changed"
+        | "verification_status_changed"
+        | "payout_issue"
+        | "admin_note"
+        | "admin_action"
+        | "dispute_opened"
+        | "dispute_status_changed"
+        | "dispute_escalated"
+        | "dispute_resolved"
+        | "evidence_uploaded"
+        | "evidence_reviewed"
+      audit_severity: "info" | "low" | "medium" | "high" | "critical"
       card_condition: "NM" | "LP" | "MP" | "Damaged"
+      dispute_lifecycle:
+        | "opened"
+        | "evidence_pending"
+        | "under_review"
+        | "escalated"
+        | "resolved_refund"
+        | "resolved_rebook"
+        | "resolved_partial"
+        | "rejected"
+        | "closed"
+      evidence_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "flagged"
+        | "locked"
       hold_source:
         | "refund"
         | "chargeback"
@@ -6896,6 +7325,19 @@ export type Database = {
         | "dispute_loss"
         | "stripe_processing_fee"
         | "adjustment"
+      report_status:
+        | "open"
+        | "investigating"
+        | "resolved"
+        | "dismissed"
+        | "escalated"
+      report_subject_type:
+        | "user"
+        | "store"
+        | "listing"
+        | "stream"
+        | "order"
+        | "message"
       seller_trust_tier: "new" | "bronze" | "silver" | "gold" | "platinum"
       tutorial_audience:
         | "buyer"
@@ -7032,7 +7474,50 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "owner", "support"],
+      audit_event_type: [
+        "payment_failed",
+        "payment_declined",
+        "chargeback",
+        "refund_requested",
+        "refund_issued",
+        "order_cancelled",
+        "not_delivered_claim",
+        "report_filed",
+        "suspicious_activity",
+        "bidding_abuse",
+        "warning_issued",
+        "restriction_applied",
+        "restriction_cleared",
+        "ban_applied",
+        "shipping_issue",
+        "policy_violation",
+        "store_name_changed",
+        "username_changed",
+        "verification_status_changed",
+        "payout_issue",
+        "admin_note",
+        "admin_action",
+        "dispute_opened",
+        "dispute_status_changed",
+        "dispute_escalated",
+        "dispute_resolved",
+        "evidence_uploaded",
+        "evidence_reviewed",
+      ],
+      audit_severity: ["info", "low", "medium", "high", "critical"],
       card_condition: ["NM", "LP", "MP", "Damaged"],
+      dispute_lifecycle: [
+        "opened",
+        "evidence_pending",
+        "under_review",
+        "escalated",
+        "resolved_refund",
+        "resolved_rebook",
+        "resolved_partial",
+        "rejected",
+        "closed",
+      ],
+      evidence_status: ["pending", "approved", "rejected", "flagged", "locked"],
       hold_source: [
         "refund",
         "chargeback",
@@ -7059,6 +7544,21 @@ export const Constants = {
         "dispute_loss",
         "stripe_processing_fee",
         "adjustment",
+      ],
+      report_status: [
+        "open",
+        "investigating",
+        "resolved",
+        "dismissed",
+        "escalated",
+      ],
+      report_subject_type: [
+        "user",
+        "store",
+        "listing",
+        "stream",
+        "order",
+        "message",
       ],
       seller_trust_tier: ["new", "bronze", "silver", "gold", "platinum"],
       tutorial_audience: [
