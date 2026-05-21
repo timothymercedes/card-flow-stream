@@ -2141,11 +2141,7 @@ function LiveDetail() {
     if (!requireBuyerReady("buy")) return;
     if (!user || !profile) return;
     if (isSeller) return;
-    if (unpaidOrders > 0) {
-      toast.error("Pay your pending order before buying");
-      nav({ to: "/orders" });
-      return;
-    }
+    if (await openStreamFixPaymentIfNeeded()) return;
     if (!auctionLive) return toast.error("No active auction");
     const price = Number(stream.snipe_price);
     // Force win: set bid to snipe price + bidder = me, then end immediately
