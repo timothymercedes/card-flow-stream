@@ -29,6 +29,7 @@ import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
+import { SellerVerificationGate } from "@/components/SellerVerificationGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import {
@@ -575,6 +576,7 @@ function Sell() {
 
   return (
     <SellerAgreementGate>
+    <SellerVerificationGate>
       <AppShell>
         <div className="px-4 py-4">
           <div className="mb-4 flex items-center justify-between">
@@ -903,6 +905,7 @@ function Sell() {
           </Suspense>
         )}
       </AppShell>
+    </SellerVerificationGate>
     </SellerAgreementGate>
   );
 }
