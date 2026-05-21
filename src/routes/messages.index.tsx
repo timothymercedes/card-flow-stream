@@ -118,22 +118,26 @@ function Messages() {
 
   return (
     <AppShell>
-      <div className="px-4 py-4">
+      <div className="mx-auto w-full max-w-3xl px-4 py-4">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Messages</h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Messages</h1>
+            <p className="text-xs text-muted-foreground">{threads.length} chat{threads.length !== 1 ? "s" : ""} · {requests.length} request{requests.length !== 1 ? "s" : ""}</p>
+          </div>
           <button
             onClick={() => { setComposeOpen(true); setQuery(""); setResults([]); }}
-            className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
+            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"
           >
             <PenSquare className="h-3.5 w-3.5" /> Compose
           </button>
         </div>
-        <div className="mb-3 flex rounded-xl bg-card p-1">
-          <button onClick={() => setTab("chats")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "chats" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Chats</button>
-          <button onClick={() => setTab("requests")} className={`flex-1 rounded-lg py-2 text-sm font-semibold ${tab === "requests" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+        <div className="sticky top-0 z-20 -mx-4 mb-3 flex gap-1 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <button onClick={() => setTab("chats")} className={`flex-1 rounded-full py-1.5 text-sm font-bold transition ${tab === "chats" ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>Chats</button>
+          <button onClick={() => setTab("requests")} className={`flex-1 rounded-full py-1.5 text-sm font-bold transition ${tab === "requests" ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>
             Requests {requests.length > 0 && <span className="ml-1 rounded-full bg-live px-1.5 text-[10px] text-live-foreground">{requests.length}</span>}
           </button>
         </div>
+
 
 
         {tab === "chats" ? (
