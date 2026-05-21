@@ -353,6 +353,52 @@ export function LiveSellerDashboard({
           <div className="mt-0.5 max-h-36 overflow-y-auto rounded-lg bg-black/40 p-1 ring-1 ring-white/5">
             {tab === "chat" && (
               <>
+                {(onChangeChatAudience || onChangeSlowMode) && (
+                  <div className="sticky top-0 z-10 mb-1 space-y-1 rounded-md bg-black/60 p-1 ring-1 ring-white/10 backdrop-blur">
+                    {onChangeChatAudience && chatAudience && (
+                      <div className="flex items-center gap-1 text-[9px]">
+                        <span className="font-bold uppercase tracking-wider text-white/50">Audience</span>
+                        {(["public", "mods_only", "host_mods"] as const).map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => onChangeChatAudience(a)}
+                            className={`rounded-full px-1.5 py-0.5 font-bold uppercase tracking-wider transition ${
+                              chatAudience === a
+                                ? a === "public"
+                                  ? "bg-primary text-primary-foreground"
+                                  : a === "mods_only"
+                                    ? "bg-amber-500 text-black"
+                                    : "bg-fuchsia-600 text-white"
+                                : "bg-white/10 text-white/60 hover:text-white"
+                            }`}
+                          >
+                            {a === "public" ? "All" : a === "mods_only" ? "Mods" : "Host+Mods"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {onChangeSlowMode && (
+                      <div className="flex items-center gap-1 text-[9px]">
+                        <span className="font-bold uppercase tracking-wider text-white/50">Slow</span>
+                        {[0, 3, 5, 10, 30].map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => onChangeSlowMode(s)}
+                            className={`rounded-full px-1.5 py-0.5 font-bold transition ${
+                              (slowModeSec || 0) === s
+                                ? "bg-emerald-500 text-black"
+                                : "bg-white/10 text-white/60 hover:text-white"
+                            }`}
+                          >
+                            {s === 0 ? "Off" : `${s}s`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {(filter === "questions" ? questionMessages : chatMessages.slice(-30).reverse()).map((m) => (
                   <div key={m.id} className="rounded px-1.5 py-0.5 text-[11px] text-white/90">
                     <span className="font-bold text-primary">@{m.username}:</span> {m.content}
