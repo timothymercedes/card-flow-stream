@@ -115,6 +115,7 @@ import { takeStudioCameraStreams } from "@/lib/studioCameraHandoff";
 import { useIntlAck, IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { InternationalBadge } from "@/components/InternationalBadge";
 import { HostInactivityCheckModal } from "@/components/HostInactivityCheckModal";
+import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
 import { useServerFn } from "@tanstack/react-start";
 
