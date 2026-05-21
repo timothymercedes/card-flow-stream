@@ -241,9 +241,10 @@ function Admin() {
 
   return (
     <AppShell>
-      <div className="px-4 py-4 space-y-4">
+      <div className="mx-auto max-w-7xl px-4 py-4 space-y-4">
+        <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-accent/10 to-card p-4 shadow-[var(--shadow-card)] ring-1 ring-border/60">
         <div className="flex items-center gap-2">
-          <h1 className="flex items-center gap-2 text-2xl font-bold"><ShieldCheck className="h-6 w-6" /> Admin</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight lg:text-3xl"><ShieldCheck className="h-6 w-6" /> Admin</h1>
           {myRoles.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {myRoles.map(r => (
@@ -255,32 +256,34 @@ function Admin() {
           )}
           <div className="ml-auto flex items-center gap-1.5">
             {isOwner && (
-              <Link to="/admin/finance" className="inline-flex items-center gap-1 rounded-md bg-yellow-500/15 px-2.5 py-1 text-[11px] font-bold text-yellow-500">
+              <Link to="/admin/finance" className="inline-flex items-center gap-1 rounded-md bg-yellow-500/15 px-2.5 py-1 text-[11px] font-bold text-yellow-500 ring-1 ring-yellow-500/30 active:scale-[0.98]">
                 <Crown className="h-3.5 w-3.5" /> Finance
               </Link>
             )}
-            <Link to="/admin/performance" className="inline-flex items-center gap-1 rounded-md bg-primary/15 px-2.5 py-1 text-[11px] font-bold text-primary">
+            <Link to="/admin/performance" className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98]">
               <Gauge className="h-3.5 w-3.5" /> Performance
             </Link>
           </div>
         </div>
+        <p className="mt-1 text-xs text-muted-foreground">Moderation, support, verifications & platform health.</p>
+        </div>
         {isAdmin && signupStats && (
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-lg bg-card p-3 text-center">
+            <div className="rounded-xl bg-card p-3 text-center shadow-[var(--shadow-card)] ring-1 ring-border/60">
               <p className="text-[10px] uppercase text-muted-foreground">Total signups</p>
               <p className="text-xl font-bold">{signupStats.total}</p>
             </div>
-            <div className="rounded-lg bg-card p-3 text-center">
+            <div className="rounded-xl bg-card p-3 text-center shadow-[var(--shadow-card)] ring-1 ring-border/60">
               <p className="text-[10px] uppercase text-muted-foreground">Last 24h</p>
               <p className="text-xl font-bold text-primary">{signupStats.last_24h}</p>
             </div>
-            <div className="rounded-lg bg-card p-3 text-center">
+            <div className="rounded-xl bg-card p-3 text-center shadow-[var(--shadow-card)] ring-1 ring-border/60">
               <p className="text-[10px] uppercase text-muted-foreground">Last 7d</p>
               <p className="text-xl font-bold">{signupStats.last_7d}</p>
             </div>
           </div>
         )}
-        <div className="flex flex-wrap gap-2 border-b border-border">
+        <div className="flex flex-wrap gap-2 border-b border-border/60 bg-background/85 backdrop-blur sticky top-0 z-10 -mx-1 px-1 py-1">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("support")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "support" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
             <LifeBuoy className="h-3.5 w-3.5" /> Support ({openSupport})
