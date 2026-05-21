@@ -10,7 +10,7 @@ const CancelOrderInput = z.object({
 
 function cancelledPaymentStatus(current: string | null | undefined) {
   if (["paid", "refunded", "disputed", "chargeback", "chargeback_lost"].includes(current || "")) {
-    return current;
+    return current || "paid";
   }
   return "cancelled";
 }

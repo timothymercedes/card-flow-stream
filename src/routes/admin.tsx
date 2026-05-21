@@ -13,6 +13,7 @@ import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
 import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
+import { cancelOrderAction } from "@/lib/order-actions.functions";
 import { DisputeThread } from "@/components/DisputeThread";
 import { useRealtimeChannel } from "@/lib/realtime";
 
@@ -247,10 +248,11 @@ function Admin() {
 
   async function cancelOrder(o: any) {
     if (!window.confirm(`Cancel order "${o.title}"?`)) return;
-    const { error } = await supabase.from("orders").update({
-      status: "cancelled", payment_status: o.payment_status === "paid" ? o.payment_status : "void",
-    }).eq("id", o.id);
-    if (error) return toast.error(error.message);
+    try {
+      await cancelOrderServer({ data: { orderId: o.id } });
+    } catch (error: any) {
+      return toast.error(error?.message ?? "Unable to cancel order");
+    }
     toast.success("Order cancelled");
     loadOrders();
   }
@@ -285,6 +287,7 @@ function Admin() {
   }
 
   const openSellerStripe = useServerFn(adminCreateConnectLoginLink);
+  const cancelOrderServer = useServerFn(cancelOrderAction);
   async function manageSellerPayouts(sellerId: string) {
     try {
       const { url } = await openSellerStripe({ data: { sellerId } });

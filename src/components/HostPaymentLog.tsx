@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { X, AlertCircle, CheckCircle2, RefreshCw, XCircle, Clock, Activity, Bell, ShieldCheck } from "lucide-react";
 import { FloatingBox, type FloatingBoxRect } from "@/components/FloatingBox";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { cancelOrderAction } from "@/lib/order-actions.functions";
 
 type Order = {
   id: string;
@@ -45,6 +47,7 @@ export function HostPaymentLog({
   const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<Tab>("processing");
   const [busy, setBusy] = useState<string | null>(null);
+  const cancelOrderServer = useServerFn(cancelOrderAction);
   const [panelBox, setPanelBox] = useState<FloatingBoxRect>(() => ({
     x: typeof window === "undefined" ? 24 : Math.max(4, window.innerWidth - 412),
     y: 4,
@@ -209,19 +212,14 @@ export function HostPaymentLog({
   async function cancelUnpaidOrder(o: Order) {
     if (!confirm(`Cancel unpaid order #${o.auction_number ?? "?"} (${o.title})? Buyer's bidding access will be restored.`)) return;
     setBusy(o.id);
-    const { error } = await supabase.from("orders").update({
-      status: "cancelled",
-      payment_status: "cancelled",
-    }).eq("id", o.id);
-    if (!error) {
-      await supabase.from("notifications").insert({
-        user_id: o.buyer_id, type: "payment",
-        body: `Your unpaid order "${o.title}" was cancelled by the host. You can keep bidding.`,
-        link: `/live/${streamId}`,
-      });
+    let error: any = null;
+    try {
+      await cancelOrderServer({ data: { orderId: o.id, reason: "Cancelled by host" } });
+    } catch (e: any) {
+      error = e;
     }
     setBusy(null);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(error?.message ?? "Unable to cancel order");
     toast.success("Order cancelled · bidder unblocked");
   }
 
