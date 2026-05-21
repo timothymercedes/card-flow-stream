@@ -114,6 +114,10 @@ import { useStudio, type StudioScene } from "@/hooks/useStudio";
 import { takeStudioCameraStreams } from "@/lib/studioCameraHandoff";
 import { useIntlAck, IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { InternationalBadge } from "@/components/InternationalBadge";
+import { HostInactivityCheckModal } from "@/components/HostInactivityCheckModal";
+import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
+import { useServerFn } from "@tanstack/react-start";
+
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
