@@ -60,6 +60,7 @@ import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$str
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
+import { Route as ApiPublicHooksStripeReconciliationRouteImport } from './routes/api/public/hooks/stripe-reconciliation'
 import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
@@ -322,6 +323,12 @@ const ApiPublicHooksSyncTcgcsvRoute =
     path: '/api/public/hooks/sync-tcgcsv',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksStripeReconciliationRoute =
+  ApiPublicHooksStripeReconciliationRouteImport.update({
+    id: '/api/public/hooks/stripe-reconciliation',
+    path: '/api/public/hooks/stripe-reconciliation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksShowRemindersRoute =
   ApiPublicHooksShowRemindersRouteImport.update({
     id: '/api/public/hooks/show-reminders',
@@ -394,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
+  '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -450,6 +458,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
+  '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -507,6 +516,7 @@ export interface FileRoutesById {
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
+  '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
 }
@@ -565,6 +575,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
+    | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -621,6 +632,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
+    | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
   id:
@@ -677,6 +689,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
+    | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
   fileRoutesById: FileRoutesById
@@ -731,6 +744,7 @@ export interface RootRouteChildren {
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
   ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
+  ApiPublicHooksStripeReconciliationRoute: typeof ApiPublicHooksStripeReconciliationRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
 }
@@ -1094,6 +1108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncTcgcsvRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/stripe-reconciliation': {
+      id: '/api/public/hooks/stripe-reconciliation'
+      path: '/api/public/hooks/stripe-reconciliation'
+      fullPath: '/api/public/hooks/stripe-reconciliation'
+      preLoaderRoute: typeof ApiPublicHooksStripeReconciliationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/show-reminders': {
       id: '/api/public/hooks/show-reminders'
       path: '/api/public/hooks/show-reminders'
@@ -1192,6 +1213,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksFinancialReconciliationRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
   ApiPublicHooksShowRemindersRoute: ApiPublicHooksShowRemindersRoute,
+  ApiPublicHooksStripeReconciliationRoute:
+    ApiPublicHooksStripeReconciliationRoute,
   ApiPublicHooksSyncTcgcsvRoute: ApiPublicHooksSyncTcgcsvRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
 }
