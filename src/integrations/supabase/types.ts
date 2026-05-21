@@ -6403,6 +6403,13 @@ export type Database = {
           username: string
         }[]
       }
+      sweep_inactive_streams: {
+        Args: never
+        Returns: {
+          ended_stream_id: string
+          reason: string
+        }[]
+      }
       sweep_stuck_auctions: { Args: never; Returns: Json }
       touch_live_stream_activity: {
         Args: { _activity_type?: string; _stream_id: string }
