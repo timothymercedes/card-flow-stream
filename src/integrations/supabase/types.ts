@@ -556,6 +556,48 @@ export type Database = {
         }
         Relationships: []
       }
+      buyer_restrictions: {
+        Row: {
+          active: boolean
+          cents_limit: number | null
+          cleared_at: string | null
+          cleared_by: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          cents_limit?: number | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          cents_limit?: number | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       buyer_review_queue: {
         Row: {
           buyer_id: string
@@ -589,6 +631,42 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           unpaid_strikes?: number
+        }
+        Relationships: []
+      }
+      buyer_risk_signals: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          metadata: Json
+          ref_id: string | null
+          ref_table: string | null
+          seller_id: string | null
+          severity_weight: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          metadata?: Json
+          ref_id?: string | null
+          ref_table?: string | null
+          seller_id?: string | null
+          severity_weight?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          ref_id?: string | null
+          ref_table?: string | null
+          seller_id?: string | null
+          severity_weight?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -5760,6 +5838,7 @@ export type Database = {
     }
     Functions: {
       _assert_owner: { Args: never; Returns: undefined }
+      _buyer_signal_weight: { Args: { _kind: string }; Returns: number }
       accept_legal_document: {
         Args: {
           _document_type: string
@@ -5784,6 +5863,16 @@ export type Database = {
         Args: { _minutes: number; _user_id: string }
         Returns: undefined
       }
+      admin_apply_buyer_restriction: {
+        Args: {
+          _cents_limit?: number
+          _expires_at?: string
+          _kind: string
+          _reason: string
+          _user_id: string
+        }
+        Returns: string
+      }
       admin_assign_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5793,6 +5882,10 @@ export type Database = {
       }
       admin_ban_buyer: {
         Args: { _buyer: string; _notes?: string }
+        Returns: undefined
+      }
+      admin_clear_buyer_restriction: {
+        Args: { _restriction_id: string }
         Returns: undefined
       }
       admin_extend_buyer_restriction: {
@@ -6100,6 +6193,32 @@ export type Database = {
           xp_awarded: number
         }[]
       }
+      buyer_active_restrictions: {
+        Args: { _user_id: string }
+        Returns: {
+          active: boolean
+          cents_limit: number | null
+          cleared_at: string | null
+          cleared_by: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          reason: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "buyer_restrictions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      buyer_can_purchase: {
+        Args: { _amount_cents?: number; _user_id: string }
+        Returns: boolean
+      }
       can_see_mod_chat: { Args: { _stream_id: string }; Returns: boolean }
       can_view_story: {
         Args: { _story_owner: string; _viewer: string; _visibility: string }
@@ -6362,6 +6481,7 @@ export type Database = {
       }
       is_bid_restricted: { Args: { _user: string }; Returns: boolean }
       is_in_quiet_hours: { Args: { _user_id: string }; Returns: boolean }
+      is_seller_verified: { Args: { _user_id: string }; Returns: boolean }
       is_stream_staff: {
         Args: { _stream_id: string; _user: string }
         Returns: boolean
@@ -6542,6 +6662,17 @@ export type Database = {
       reconcile_auction_states: { Args: never; Returns: number }
       reconcile_sold_items: { Args: never; Returns: number }
       reconcile_stale_payments: { Args: never; Returns: number }
+      record_buyer_risk_signal: {
+        Args: {
+          _kind: string
+          _metadata?: Json
+          _ref_id?: string
+          _ref_table?: string
+          _seller_id?: string
+          _user_id: string
+        }
+        Returns: number
+      }
       record_shipping_adjustment: {
         Args: {
           _cost_cents: number
