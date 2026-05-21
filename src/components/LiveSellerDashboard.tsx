@@ -58,6 +58,10 @@ export function LiveSellerDashboard({
   chatMessages,
   scheduledShowId,
   isFlex = false,
+  chatAudience,
+  onChangeChatAudience,
+  slowModeSec,
+  onChangeSlowMode,
 }: {
   streamId: string;
   hostId: string;
@@ -66,6 +70,10 @@ export function LiveSellerDashboard({
   chatMessages: ChatMsg[];
   scheduledShowId?: string | null;
   isFlex?: boolean;
+  chatAudience?: "public" | "mods_only" | "host_mods";
+  onChangeChatAudience?: (a: "public" | "mods_only" | "host_mods") => void;
+  slowModeSec?: number;
+  onChangeSlowMode?: (s: number) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
