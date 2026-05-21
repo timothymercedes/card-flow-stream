@@ -537,7 +537,7 @@ export function CardScanner({
         const srcW = v.videoWidth || 1280;
         const srcH = v.videoHeight || 720;
         // Smaller payload = much faster AI round-trip. Multi-card keeps a bit more res for legibility.
-        const MAX = multi ? 1600 : 1024;
+        const MAX = multi ? 1400 : 832;
         const scale = Math.min(1, MAX / Math.max(srcW, srcH));
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(srcW * scale);
@@ -699,7 +699,7 @@ export function CardScanner({
         reader.onerror = () => reject(new Error("Could not read file"));
         reader.readAsDataURL(file);
       });
-      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1400 : 832);
       await capture(resized);
     } catch (err: any) {
       toast.error(err?.message || "Could not load image");
@@ -1248,7 +1248,9 @@ export function CardScanner({
             </div>
           )}
 
-          {pending.scan_debug && <ScanDebugPanel debug={pending.scan_debug} result={pending} />}
+          {pending.scan_debug && typeof window !== "undefined" && window.localStorage?.getItem("pbl_scanner_debug") === "1" && (
+            <ScanDebugPanel debug={pending.scan_debug} result={pending} />
+          )}
 
           {(lowConf(pending.confidence?.set) ||
             lowConf(pending.confidence?.year) ||
