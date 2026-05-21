@@ -114,6 +114,10 @@ import { useStudio, type StudioScene } from "@/hooks/useStudio";
 import { takeStudioCameraStreams } from "@/lib/studioCameraHandoff";
 import { useIntlAck, IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { InternationalBadge } from "@/components/InternationalBadge";
+import { HostInactivityCheckModal } from "@/components/HostInactivityCheckModal";
+import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
+import { useServerFn } from "@tanstack/react-start";
+
 
 export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
 
@@ -1606,6 +1610,17 @@ function LiveDetail() {
   useEffect(() => {
     if (!safety.inactiveWarning) inactivityNotifiedRef.current = false;
   }, [safety.inactiveWarning]);
+
+  // Bundle-fee preview: items 1-3 in this stream → buyer pays $1.23, items 4+ → $0.
+  const previewFee = useServerFn(previewBuyerFee);
+  const [bundleFee, setBundleFee] = useState<{ platformFeeCents: number; nextItemIndex: number; threshold: number; bundleDiscountActive: boolean } | null>(null);
+  useEffect(() => {
+    if (!id || isSeller) return;
+    let cancelled = false;
+    previewFee({ data: { streamId: id } }).then((r: any) => { if (!cancelled) setBundleFee(r); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [id, isSeller, previewFee, stream?.round_number]);
+
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
@@ -5699,10 +5714,11 @@ function LiveDetail() {
               {(() => {
                 const ship = Number(stream.shipping_price || 0);
                 const bid = Number(stream.current_bid || 0);
-                const platformFee = 1.23; // flat buyer service fee (matches stripe.server.ts)
-                const estTaxRate = 0.07; // typical US sales tax estimate; final tax at checkout
+                const platformFee = (bundleFee?.platformFeeCents ?? 123) / 100;
+                const estTaxRate = 0.07;
                 const estTax = Math.max(0, bid + ship) * estTaxRate;
                 const estTotal = bid + ship + platformFee + estTax;
+                const bundleActive = !!bundleFee?.bundleDiscountActive;
                 return (
                   <div className="mt-1 flex flex-col items-center gap-1">
                     <p className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/15 backdrop-blur">
@@ -5716,6 +5732,17 @@ function LiveDetail() {
                         <span className="text-white/60">· {stream.shipping_method}</span>
                       )}
                     </p>
+                    {bundleFee && !isSeller && (
+                      <p className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 backdrop-blur ${
+                        bundleActive
+                          ? "bg-emerald-500/25 text-emerald-100 ring-emerald-300/40"
+                          : "bg-black/45 text-white/90 ring-white/15"
+                      }`}>
+                        {bundleActive
+                          ? `🎁 Bundle discount active — no platform fee on this item`
+                          : `Platform fee ${fmtMoney(platformFee)} · item ${bundleFee.nextItemIndex} of ${bundleFee.threshold} before bundle savings`}
+                      </p>
+                    )}
                     {auctionLive && bid > 0 && (
                       <p className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/30 to-fuchsia-500/25 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/20 backdrop-blur">
                         <span className="text-white/70">Est. total</span>
@@ -5728,6 +5755,7 @@ function LiveDetail() {
                   </div>
                 );
               })()}
+
 
             </div>
 
@@ -5883,6 +5911,15 @@ function LiveDetail() {
                   )}
                 </div>
               </>
+            )}
+            {isSeller && !ended && !paused && safety.inactiveWarning && (
+              <HostInactivityCheckModal
+                open
+                autoEndAt={stream?.last_activity_at
+                  ? new Date(stream.last_activity_at).getTime() + safety.tier.inactive_auto_end_minutes * 60_000
+                  : null}
+                onConfirm={safety.confirmActive}
+              />
             )}
             {isSeller && !ended && !paused && (safety.inactiveWarning || safety.flexReminder) && (
               <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
