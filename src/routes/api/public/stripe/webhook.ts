@@ -361,6 +361,17 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                   await supabaseAdmin.from("notifications").insert([
                     { user_id: order.seller_id, type: "dispute", body: `⚠️ Chargeback opened on "${order.title}" ($${(amountCents / 100).toFixed(2)}).`, link: "/disputes" },
                   ]);
+                  // Phase 11: chargeback is the strongest buyer-risk signal.
+                  try {
+                    await (supabaseAdmin.rpc as any)("record_buyer_risk_signal", {
+                      _user_id: order.buyer_id,
+                      _kind: "chargeback",
+                      _ref_table: "orders",
+                      _ref_id: order.id,
+                      _seller_id: order.seller_id,
+                      _metadata: { amount_cents: amountCents, reason: d.reason ?? null },
+                    });
+                  } catch (e) { console.error("risk signal chargeback", e); }
                 }
               }
 
