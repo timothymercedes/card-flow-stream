@@ -319,15 +319,16 @@ export function LiveSellerDashboard({
           Live Dashboard
 
         </p>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
-            {collapsed ? <Maximize2 className="h-2.5 w-2.5" /> : <Minimize2 className="h-2.5 w-2.5" />}
+        <div className="flex items-center gap-1">
+          <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-1 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
+            {collapsed ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
           </button>
-          <button onClick={() => setHidden(true)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title="Hide">
-            <X className="h-2.5 w-2.5" />
+          <button onClick={() => setHidden(true)} className="rounded-full p-1 text-white/70 hover:bg-white/10" title="Hide">
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
+
 
       <div className={`grid gap-1 ${isFlex ? "grid-cols-3" : "grid-cols-4"}`}>
         {!isFlex && <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />}
