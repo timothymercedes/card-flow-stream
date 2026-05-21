@@ -448,6 +448,7 @@ function Admin() {
                     )}
                     <button onClick={() => quickBanFromOrder(o, "buyer")} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban buyer</button>
                     <button onClick={() => quickBanFromOrder(o, "seller")} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban seller</button>
+                    <button onClick={() => manageSellerPayouts(o.seller_id)} className="rounded-lg bg-primary/20 px-2 py-1 text-[10px] font-bold text-primary">Manage seller payouts</button>
                     {o.stream_id && (
                       <Link to="/shows/$id" params={{ id: o.stream_id }} className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold">Open stream</Link>
                     )}
