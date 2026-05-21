@@ -1,75 +1,98 @@
-# Plan — Three workstreams
+# Owner Financial Dashboard
 
-This touches **payments logic**, so I'm pausing for approval before shipping.
+Builds a dedicated, owner-only dashboard at `/admin/finance` with strict accounting separation between platform revenue and the owner's personal seller activity, plus two independent payout flows.
 
----
+## What already exists (reuse, don't rebuild)
 
-## 1. Bundle-aware platform fee (live streams + cart)
+- `platform_revenue` table (kinds: `marketplace_commission`, `intl_processing_fee`, `tip_fee`, `promotion`, `shipping_adjustment_fee`, `refund_loss`, `dispute_loss`, `stripe_processing_fee`, `adjustment`) — owner/admin RLS, append-only.
+- `payout_requests` — seller payout queue (user-scoped; will be used for owner's *personal* seller payouts).
+- `orders` — full per-order fee/commission/shipping fields.
+- `getPlatformRevenueSummaryFn`, `listPlatformRevenueFn`, `getSellerPayableFn`, `requestPayoutFn`, `recordShippingAdjustmentFn`.
+- Existing `PlatformRevenueAdmin` tab in `/admin` (will keep as a quick summary; full dashboard moves to `/admin/finance`).
 
-Replace the flat $1.23 per item with a **per-buyer-per-session threshold model**.
+## What's missing → what we'll add
 
-### Rule
-- Fee applies to **first 3 items** a buyer wins in the same live stream (or first 3 items in a cart bundle).
-- Items 4+ in the same group → **buyer fee = $0**, seller absorbs equivalent fee (deducted from payout).
-- "Session" = same `stream_id` for live wins, same `cart_id` for marketplace bundles.
+1. **Platform-payout ledger** (new) — distinct from `payout_requests`, which is seller-scoped. Owner withdraws platform commissions to a separate destination without touching seller-side accounting.
+2. **Per-stream revenue rollup** — query layer over `orders` + `platform_revenue` joined by `stream_id`.
+3. **Owner personal seller view** — reuses `getSellerPayableFn` and `orders where seller_id = owner.id`, rendered in its own tab so it never mixes with platform totals.
+4. **Granular breakdowns** — buyer fees, shipping margin (charged − label cost), seller commissions collected, refunds/disputes, stream analytics — all derived from existing tables.
+5. **Time filters** — day / week / month / year / custom range, plus per-stream and per-seller drilldowns.
 
-### Numbers (proposed — confirm if different)
-- Items 1–3: buyer pays `$1.23` per item (current rate, kept for continuity).
-- Items 4+: buyer pays `$0`; seller payout reduced by `$0.75` per item (≈ Stripe processing cost).
+## Database changes
 
-### DB
-- New SQL function `compute_buyer_fee(_buyer_id, _stream_id, _cart_id) → cents` — counts prior paid items in the group and returns 0 once threshold is crossed.
-- New columns on `orders`: `fee_index` (1,2,3,4…), `fee_absorbed_by` (`'buyer' | 'seller'`).
-- `finalize_auction_round` + cart checkout call `compute_buyer_fee` instead of using constant.
+```sql
+-- New: platform-level payouts (independent of seller payout_requests)
+CREATE TABLE public.platform_payouts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  requested_by uuid NOT NULL,             -- owner user_id
+  amount_cents bigint NOT NULL CHECK (amount_cents > 0),
+  currency text NOT NULL DEFAULT 'usd',
+  status payout_status NOT NULL DEFAULT 'requested',
+  destination text NOT NULL,              -- 'platform_bank' | 'owner_personal'
+  stripe_payout_id text,
+  notes text,
+  failure_reason text,
+  requested_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- RLS: owner-only SELECT/INSERT; no UPDATE/DELETE from client.
 
-### Code
-- `src/lib/stripe.server.ts` → `calculateBuyerFees()` takes `{ subtotalCents, buyerId, streamId?, cartId? }`, queries the RPC, returns dynamic `platformFee`.
-- `src/lib/auctionCharge.functions.ts` + Stripe webhook → store `fee_index` + `fee_absorbed_by`, adjust `application_fee` on transfer accordingly.
-- UI breakdown in `StripeCheckout.tsx` + live "I want this" panel in `live.$id.tsx`:
-  - Items 1–3: `Platform fee: $1.23 ✓`
-  - Items 4+: `Platform fee: $0.00 — bundle discount (seller covers)`
-  - Show running counter "Item 2 of 3 before bundle savings".
-- Seller earnings hub (`SellerEarningsHub.tsx`) → new line `Bundle fees absorbed: -$X.XX`.
+-- Helper RPCs (security definer, owner-gated):
+--   admin_revenue_by_period(_bucket, _since, _until)  → time-series buckets
+--   admin_revenue_by_stream(_since, _until, _limit)   → per-stream rollup
+--   admin_revenue_by_seller(_since, _until, _limit)   → per-seller rollup
+--   admin_shipping_margin(_since, _until)             → charged - label
+--   request_platform_payout(_amount_cents, _destination, _notes)
+```
 
----
+`platform_revenue` already carries the source of truth for commissions/fees; the new RPCs are pure read-aggregations plus one write for `request_platform_payout`.
 
-## 2. Auto-end inactive streams from the stream screen
+## Server functions (new, in `src/lib/owner-finance.functions.ts`)
 
-Wire the existing pieces (cron sweep + `HostInactivityCheckModal` + `confirm_live_stream_active` RPC) into `/live/$id`.
+All gated by an `assertOwner` middleware (role = `owner` only — admin is *not* sufficient for payout withdrawal).
 
-- Subscribe to `live_streams` row; when `now() - last_activity_at` crosses `tier.inactive_warning_minutes`, mount `HostInactivityCheckModal` for the host with a 5-min countdown to `inactive_auto_end_minutes`.
-- "I'm still here" → `confirm_live_stream_active` RPC → resets timers.
-- No response → existing `sweep_inactive_streams()` cron flips status to `ended` within 2 min. Viewers see "Stream ended (host inactive)" banner via existing realtime subscription.
-- Host-side heartbeat from `useLivestreamSafety` already touches `last_activity_at` every 20s when mic/camera active — no change needed.
+- `getOwnerFinanceOverviewFn({ range })` — totals: platform commissions, buyer fees, shipping margin, refunds/disputes, net profit, Stripe balance.
+- `getRevenueByPeriodFn({ bucket: 'day'|'week'|'month'|'year', range })`
+- `getRevenueByStreamFn({ range, limit })`
+- `getRevenueBySellerFn({ range, limit })`
+- `getOwnerPersonalSalesFn({ range })` — `orders WHERE seller_id = owner.id` aggregations.
+- `listPlatformPayoutsFn`, `requestPlatformPayoutFn({ amountCents, destination })`
+- `listOwnerPersonalPayoutsFn` — filter of `payout_requests WHERE user_id = owner.id`.
+- `requestOwnerPersonalPayoutFn` — wraps existing `request_payout` RPC.
 
----
+## UI
 
-## 3. Scanner upgrade (speed + multilingual accuracy)
+New route `src/routes/admin.finance.tsx` (owner-only; redirect non-owners). `AppShell` layout, mobile-first.
 
-`supabase/functions/scan-card/index.ts` + `src/components/CardScanner.tsx`.
+Tabs:
+1. **Overview** — KPI grid, period filter (D/W/M/Y/custom), revenue trend chart, two clearly separated cards: "Platform Earnings" and "My Personal Sales".
+2. **Platform Commissions** — full `platform_revenue` ledger with kind filter, totals, Stripe balance, **Withdraw Platform Commission** button.
+3. **Personal Sales** — owner-as-seller orders, payable balance, **Withdraw Personal Earnings** button (separate balance, separate destination).
+4. **Payouts** — split view: Platform Payouts history | Personal Payouts history (two columns, never mixed).
+5. **Per Stream** — table sorted by gross, drilldown to stream details.
+6. **Per Seller** — top sellers by commission contributed.
+7. **Shipping** — charged vs label cost, margin %, adjustments.
+8. **Refunds / Disputes** — losses table.
+9. **Transactions** — unified searchable ledger (orders + revenue events).
 
-### Speed
-- Already moved to `gemini-3.1-flash-lite-preview` last turn. Add: skip identity-fingerprint round-trip when confidence ≥ 0.9 — return cached catalog match immediately. Target p50 ≤ 4 s.
+Realtime: subscribe to `platform_revenue`, `orders`, `payout_requests`, `platform_payouts` and call `queryClient.invalidateQueries` on insert.
 
-### Two-stage detection
-1. **Stage 1 (fast, ~1 s)**: tiny prompt → `{ language, game, is_holo, is_reverse_holo }`. Detects language first.
-2. **Stage 2**: language-scoped prompt asks for `{ name (in native script + romanized), set_name, set_code, collector_number, rarity, artwork_hash }`. Routes to language-specific catalog (`pokemon-jp`, `pokemon-kr`, `pokemon-zh-s`, `pokemon-zh-t`, `pokemon-es`, `pokemon-fr`, `pokemon-de`, `pokemon-en` default).
+A new sidebar entry "Finance" in `/admin` (owner-only) links to `/admin/finance`. The existing `revenue` tab inside `/admin` stays for quick access but its CTA points to the full dashboard.
 
-### Catalog
-- `card-catalog` edge function gets `?lang=` param. Queries `card_identities` filtered by `language` column (add column + index if missing).
-- Low-confidence (<0.7) → return top-5 alternates → existing "Did you mean?" grid in `CardScanner` already renders these.
+## Accounting separation guarantees
 
-### UX
-- Debug panel already gated behind `localStorage.pbl_scanner_debug` — keep.
-- User-facing errors: replace any `error.message` surface with friendly copy + "Try again" / "Search manually" buttons.
+- Platform balances derive from `platform_revenue` only — never from `orders.seller_payout_amount`.
+- Personal seller balance derives from `compute_seller_payable(owner_id)` — never from `platform_revenue`.
+- Two distinct payout tables (`platform_payouts` vs `payout_requests`) so reconciliation can't cross streams.
+- UI uses two color tokens (primary for platform, accent for personal) and the two balances are never summed in any view.
 
----
+## Out of scope (call out, don't build)
 
-## Order of work
+- Actual Stripe payout execution for `platform_payouts` is queued as `requested`; an existing/follow-up admin worker will move them to `paid`. Same model as today's `payout_requests`.
+- Tax form generation (1099s) — separate workstream.
 
-1. Migration: `compute_buyer_fee` function, `orders.fee_index/fee_absorbed_by`, `card_identities.language` column.
-2. Backend: `stripe.server.ts`, `auctionCharge.functions.ts`, webhook.
-3. UI: `StripeCheckout.tsx`, `live.$id.tsx` fee breakdown + inactivity modal wiring.
-4. Scanner: two-stage detect + language-aware catalog.
+## Approval needed
 
-**Reply "go" to ship all three, or tell me to adjust fee numbers / threshold first.**
+This touches payment flows, adds a new payout table, and exposes withdrawal endpoints. Confirm to proceed and I'll ship the migration + code in one pass.
