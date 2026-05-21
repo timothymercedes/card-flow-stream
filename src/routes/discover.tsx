@@ -104,8 +104,10 @@ function DiscoverPage() {
 
   return (
     <AppShell>
-      <div className="px-4 pt-4">
-        <h1 className="mb-3 text-xl font-black">Discover Collectors</h1>
+      <div className="mx-auto w-full max-w-5xl px-4 pt-4">
+        <h1 className="mb-1 text-2xl font-bold tracking-tight lg:text-3xl">Discover Collectors</h1>
+        <p className="mb-3 text-xs text-muted-foreground">Find sellers, hosts, and friends to follow</p>
+
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
