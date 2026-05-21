@@ -145,10 +145,23 @@ export function LiveSellerDashboard({
       if (buyerMap.size > 0) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("user_id, username")
-          .in("user_id", Array.from(buyerMap.keys()));
-        (profs || []).forEach((p: any) => buyerMap.set(p.user_id, p.username));
+          .select("id, username")
+          .in("id", Array.from(buyerMap.keys()));
+        (profs || []).forEach((p: any) => buyerMap.set(p.id, p.username));
       }
+
+      // Persist enriched orders for the clickable Buyers/Pending/Winners lists.
+      setOrders(
+        orders.map((o: any) => ({
+          id: o.id,
+          buyer_id: o.buyer_id,
+          buyer_username: buyerMap.get(o.buyer_id) || "buyer",
+          title: o.title,
+          amount: Number(o.amount || 0),
+          payment_status: o.payment_status,
+          created_at: o.created_at,
+        })) as OrderRow[],
+      );
 
       const w: WatcherRow[] = [];
       modMap.forEach((u, id) => w.push({ user_id: id, username: u, role: "mod" }));
