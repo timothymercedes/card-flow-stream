@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
+import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
@@ -281,6 +283,17 @@ function Admin() {
     await quickSuspend({ id: targetId, username }, 0, reason);
   }
 
+  const openSellerStripe = useServerFn(adminCreateConnectLoginLink);
+  async function manageSellerPayouts(sellerId: string) {
+    try {
+      const { url } = await openSellerStripe({ data: { sellerId } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not open seller's Stripe dashboard");
+    }
+  }
+
+
   if (!user) return <AppShell><div className="p-8 text-center text-sm">Sign in.</div></AppShell>;
   if (!rolesLoaded) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
   if (!canViewAdmin) return (
@@ -435,6 +448,7 @@ function Admin() {
                     )}
                     <button onClick={() => quickBanFromOrder(o, "buyer")} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban buyer</button>
                     <button onClick={() => quickBanFromOrder(o, "seller")} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban seller</button>
+                    <button onClick={() => manageSellerPayouts(o.seller_id)} className="rounded-lg bg-primary/20 px-2 py-1 text-[10px] font-bold text-primary">Manage seller payouts</button>
                     {o.stream_id && (
                       <Link to="/shows/$id" params={{ id: o.stream_id }} className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold">Open stream</Link>
                     )}

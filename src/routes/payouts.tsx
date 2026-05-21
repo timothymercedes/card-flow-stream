@@ -5,6 +5,8 @@ import {
   createConnectOnboardingLink,
   syncConnectAccountStatus,
   getMyConnectStatus,
+  createConnectLoginLink,
+  createConnectUpdateLink,
 } from "@/server/stripe-connect.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -39,6 +41,8 @@ function PayoutsPage() {
   const getStatus = useServerFn(getMyConnectStatus);
   const sync = useServerFn(syncConnectAccountStatus);
   const createLink = useServerFn(createConnectOnboardingLink);
+  const loginLink = useServerFn(createConnectLoginLink);
+  const updateLink = useServerFn(createConnectUpdateLink);
 
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -174,9 +178,55 @@ function PayoutsPage() {
               </Button>
             ) : null}
             {status && (
-              <Button variant="outline" onClick={handleSync} disabled={busy}>
-                Refresh status
-              </Button>
+              <>
+                <Button
+                  variant="default"
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      const { url } = await loginLink();
+                      const opened = window.open(url, "_blank", "noopener,noreferrer");
+                      if (!opened) {
+                        if (window.top && window.top !== window.self) window.top.location.href = url;
+                        else window.location.href = url;
+                      }
+                    } catch (e: any) {
+                      toast.error(e.message ?? "Could not open Stripe dashboard");
+                    } finally { setBusy(false); }
+                  }}
+                  disabled={busy}
+                >
+                  Manage bank & payouts
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      const origin = window.location.origin;
+                      const { url } = await updateLink({
+                        data: {
+                          returnUrl: `${origin}/payouts?from=stripe`,
+                          refreshUrl: `${origin}/payouts`,
+                        },
+                      });
+                      const opened = window.open(url, "_blank", "noopener,noreferrer");
+                      if (!opened) {
+                        if (window.top && window.top !== window.self) window.top.location.href = url;
+                        else window.location.href = url;
+                      }
+                    } catch (e: any) {
+                      toast.error(e.message ?? "Could not start update");
+                    } finally { setBusy(false); }
+                  }}
+                  disabled={busy}
+                >
+                  Update account details
+                </Button>
+                <Button variant="outline" onClick={handleSync} disabled={busy}>
+                  Refresh status
+                </Button>
+              </>
             )}
           </div>
         </CardContent>
