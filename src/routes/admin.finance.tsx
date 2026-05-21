@@ -300,6 +300,7 @@ function OwnerFinanceDashboard() {
         {tab === "transactions" && (
           <TransactionsTab orders={personalOrders.data?.rows ?? []} ledger={ledger.data?.rows ?? []} />
         )}
+        {tab === "audit" && <AuditTab sinceDays={sinceDays} />}
         {tab === "integrity" && <IntegrityTab />}
       </div>
 
