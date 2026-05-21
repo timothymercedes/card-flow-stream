@@ -60,7 +60,20 @@
   --live: oklch(0.65 0.25 25);
   --live-foreground: oklch(0.99 0 0);
   --gradient-primary: linear-gradient(135deg, oklch(0.72 0.17 165), oklch(0.82 0.16 170));
+  --gradient-live: linear-gradient(135deg, oklch(0.68 0.25 25), oklch(0.62 0.24 15));
+  --gradient-flex: linear-gradient(135deg, oklch(0.72 0.20 330), oklch(0.65 0.22 290));
+  --gradient-surface: linear-gradient(180deg, oklch(0.21 0.025 250) 0%, oklch(0.18 0.022 250) 100%);
+  /* Elevation system */
   --shadow-primary: 0 10px 30px -10px color-mix(in oklab, oklch(0.72 0.17 165) 40%, transparent);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+  --shadow-sm: 0 2px 6px -1px rgb(0 0 0 / 0.30), 0 1px 2px -1px rgb(0 0 0 / 0.22);
+  --shadow-md: 0 6px 18px -4px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.22);
+  --shadow-lg: 0 18px 40px -10px rgb(0 0 0 / 0.45), 0 4px 8px -4px rgb(0 0 0 / 0.28);
+  --shadow-card: 0 1px 0 inset rgb(255 255 255 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.45);
+  /* Surface layers */
+  --surface-1: oklch(0.19 0.022 250);
+  --surface-2: oklch(0.22 0.025 250);
+  --surface-3: oklch(0.26 0.028 250);
 }
 
 .dark {
