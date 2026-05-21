@@ -283,6 +283,17 @@ function Admin() {
     await quickSuspend({ id: targetId, username }, 0, reason);
   }
 
+  const openSellerStripe = useServerFn(adminCreateConnectLoginLink);
+  async function manageSellerPayouts(sellerId: string) {
+    try {
+      const { url } = await openSellerStripe({ data: { sellerId } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not open seller's Stripe dashboard");
+    }
+  }
+
+
   if (!user) return <AppShell><div className="p-8 text-center text-sm">Sign in.</div></AppShell>;
   if (!rolesLoaded) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
   if (!canViewAdmin) return (
