@@ -5,6 +5,8 @@ import {
   createConnectOnboardingLink,
   syncConnectAccountStatus,
   getMyConnectStatus,
+  createConnectLoginLink,
+  createConnectUpdateLink,
 } from "@/server/stripe-connect.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
