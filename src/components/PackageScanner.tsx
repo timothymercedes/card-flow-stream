@@ -39,6 +39,9 @@ export function PackageScanner({
   const [manual, setManual] = useState("");
   const [busy, setBusy] = useState(false);
   const [recent, setRecent] = useState<ScanResult[]>([]);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiPreview, setAiPreview] = useState<AiShipmentRead | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
