@@ -30,6 +30,7 @@ function fmtRemain(iso: string | null) {
 
 function Market() {
   const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
   const [category, setCategory] = useState<string>("all");
@@ -41,10 +42,12 @@ function Market() {
       .select("*")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
-    if (error) { console.error("[market] listings query failed", error); return; }
+    if (error) { console.error("[market] listings query failed", error); setLoading(false); return; }
     setItems(((data || []) as any[]).filter(isPublicListingVisible));
+    setLoading(false);
   }
   useEffect(() => { loadMarket(); }, []);
+
 
   // Realtime: new listings, bid bumps, and sold-outs reflect across the marketplace
   useRealtimeTable(
@@ -101,13 +104,16 @@ function Market() {
 
   return (
     <AppShell>
-      <div className="px-4 py-4">
+      <div className="mx-auto w-full max-w-7xl px-4 py-4">
         {/* Hero */}
-        <div className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-accent/20 to-primary/10 p-4">
+        <div
+          className="mb-4 overflow-hidden rounded-2xl border border-border/60 p-4 shadow-[var(--shadow-card)]"
+          style={{ background: "var(--gradient-surface)" }}
+        >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold">Marketplace</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Marketplace</h1>
             </div>
             <WatchTutorial routePath="/market" label="How it works" />
           </div>
@@ -115,77 +121,94 @@ function Market() {
             Trading cards • Funko Pops • Anime figures • Memorabilia
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold">
-            <span className="rounded-full bg-card/80 px-2.5 py-1">{items.length} live listings</span>
+            <span className="rounded-full bg-card/80 px-2.5 py-1 ring-1 ring-border/60">{items.length} live listings</span>
             {trendingCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 px-2.5 py-1 text-orange-500">
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2.5 py-1 text-orange-500 ring-1 ring-orange-500/30">
                 <Flame className="h-3 w-3" /> {trendingCount} trending
               </span>
             )}
             {endingSoonCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/20 px-2.5 py-1 text-destructive">
+              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 text-destructive ring-1 ring-destructive/30">
                 <Clock className="h-3 w-3" /> {endingSoonCount} ending in 24h
               </span>
             )}
           </div>
         </div>
 
-        {/* Search + sort */}
-        <div className="mb-3 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search Pikachu, Luffy, Funko #42…"
-              className="w-full rounded-full bg-input py-2 pl-9 pr-3 text-sm outline-none"
-            />
-          </div>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as Sort)}
-            className="rounded-full bg-input px-3 py-2 text-xs font-semibold"
-          >
-            <option value="shuffled">Discover</option>
-            <option value="newest">Newest</option>
-            <option value="price_asc">Lowest price</option>
-            <option value="price_desc">Highest price</option>
-            <option value="ending_soon">Ending soon</option>
-          </select>
-        </div>
-
-        {/* Category chips */}
-        <div className="mb-4 -mx-4 overflow-x-auto px-4">
-          <div className="flex gap-2 pb-1">
-            <button
-              onClick={() => setCategory("all")}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${category === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+        {/* Sticky search + sort + categories */}
+        <div className="sticky top-0 z-20 -mx-4 mb-3 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search Pikachu, Luffy, Funko #42…"
+                className="w-full rounded-full bg-input/60 py-2 pl-9 pr-3 text-sm shadow-[var(--shadow-xs)] outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring/40"
+              />
+            </div>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as Sort)}
+              className="rounded-full bg-input/60 px-3 py-2 text-xs font-semibold ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring/40"
             >
-              ✨ All ({items.length})
-            </button>
-            {LISTING_CATEGORIES.map((c) => {
-              const n = counts[c.value] || 0;
-              return (
-                <button
-                  key={c.value}
-                  onClick={() => setCategory(c.value)}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${category === c.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                >
-                  {c.emoji} {c.label}{n > 0 && <span className="ml-1 opacity-60">({n})</span>}
-                </button>
-              );
-            })}
+              <option value="shuffled">Discover</option>
+              <option value="newest">Newest</option>
+              <option value="price_asc">Lowest price</option>
+              <option value="price_desc">Highest price</option>
+              <option value="ending_soon">Ending soon</option>
+            </select>
+          </div>
+
+          {/* Category chips */}
+          <div className="-mx-4 mt-2 overflow-x-auto px-4">
+            <div className="flex gap-2 pb-1">
+              <button
+                onClick={() => setCategory("all")}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${category === "all" ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+              >
+                ✨ All ({items.length})
+              </button>
+              {LISTING_CATEGORIES.map((c) => {
+                const n = counts[c.value] || 0;
+                return (
+                  <button
+                    key={c.value}
+                    onClick={() => setCategory(c.value)}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${category === c.value ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                  >
+                    {c.emoji} {c.label}{n > 0 && <span className="ml-1 opacity-60">({n})</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {visible.length === 0 && (
-          <div className="rounded-2xl bg-card py-12 text-center">
+        {loading && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-xl bg-card ring-1 ring-border/60 shadow-[var(--shadow-card)]">
+                <div className="aspect-square animate-pulse bg-muted" />
+                <div className="space-y-2 p-2">
+                  <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && visible.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
             <Tag className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm font-semibold">No listings match</p>
             <p className="mt-1 text-xs text-muted-foreground">Try another category or clear your search.</p>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+
           {visible.map((l) => {
             const display = getListingPriceDisplay(l, true);
             const remain = fmtRemain(l.is_auction ? l.auction_ends_at : l.expires_at);
@@ -202,7 +225,8 @@ function Market() {
               <Link
                 to="/market/$id"
                 params={{ id: l.id }}
-                className="group block overflow-hidden rounded-xl bg-card transition hover:scale-[1.02] hover:shadow-lg"
+                className="group block overflow-hidden rounded-xl bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:ring-primary/50"
+
               >
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {l.image_url ? (
