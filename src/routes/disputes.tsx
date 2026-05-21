@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldAlert, Plus } from "lucide-react";
+import { ShieldAlert, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { DisputeThread } from "@/components/DisputeThread";
 
 export const Route = createFileRoute("/disputes")({
   head: () => ({ meta: [{ title: "Disputes — PullBid Live" }] }),
@@ -23,6 +24,7 @@ function Disputes() {
   const { user, profile } = useAuth();
   const [list, setList] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({ order_id: "", reason: "not_received", description: "" });
 
   async function load() {
@@ -91,22 +93,34 @@ function Disputes() {
         {list.length === 0 && <div className="rounded-xl bg-card p-8 text-center text-sm text-muted-foreground">No disputes filed.</div>}
 
         <div className="space-y-2">
-          {list.map((d) => (
-            <div key={d.id} className="rounded-xl bg-card p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold">{REASONS.find((r) => r.v === d.reason)?.l || d.reason}</p>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  d.status === "open" ? "bg-yellow-500/20 text-yellow-600" :
-                  d.status === "investigating" ? "bg-blue-500/20 text-blue-500" :
-                  d.status === "resolved" ? "bg-primary/20 text-primary" :
-                  "bg-destructive/20 text-destructive"
-                }`}>{d.status}</span>
+          {list.map((d) => {
+            const open = !!expanded[d.id];
+            return (
+              <div key={d.id} className="rounded-xl bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold">{REASONS.find((r) => r.v === d.reason)?.l || d.reason}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    d.status === "open" ? "bg-yellow-500/20 text-yellow-600" :
+                    d.status === "investigating" ? "bg-blue-500/20 text-blue-500" :
+                    d.status === "resolved" ? "bg-primary/20 text-primary" :
+                    "bg-destructive/20 text-destructive"
+                  }`}>{d.status}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{d.description}</p>
+                {d.resolution_note && <p className="mt-1 rounded bg-muted/50 p-2 text-[11px]"><strong>Resolution:</strong> {d.resolution_note}</p>}
+                <div className="mt-1 flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground">{new Date(d.created_at).toLocaleString()}</p>
+                  <button
+                    onClick={() => setExpanded((x) => ({ ...x, [d.id]: !open }))}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-primary"
+                  >
+                    {open ? <>Hide messages <ChevronUp className="h-3 w-3" /></> : <>Open thread <ChevronDown className="h-3 w-3" /></>}
+                  </button>
+                </div>
+                {open && <DisputeThread disputeId={d.id} />}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{d.description}</p>
-              {d.resolution_note && <p className="mt-1 rounded bg-muted/50 p-2 text-[11px]"><strong>Resolution:</strong> {d.resolution_note}</p>}
-              <p className="mt-1 text-[10px] text-muted-foreground">{new Date(d.created_at).toLocaleString()}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </AppShell>

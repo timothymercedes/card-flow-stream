@@ -13,6 +13,7 @@ import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
 import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
+import { DisputeThread } from "@/components/DisputeThread";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
@@ -552,22 +553,26 @@ function Admin() {
         {tab === "disputes" && (
           <div className="space-y-2">
             {disputes.map((d) => (
-              <div key={d.id} className="rounded-xl bg-card p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold">@{d.reporter_username} — {d.reason}</p>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold">{d.status}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{d.description}</p>
-                {d.order_id && <p className="text-[10px] text-muted-foreground">Order: {d.order_id}</p>}
-                {d.resolution_note && <p className="mt-1 rounded bg-muted/50 p-2 text-[11px]">{d.resolution_note}</p>}
-                {d.status !== "resolved" && d.status !== "rejected" && (
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => resolveDispute(d.id, "investigating")} className="rounded-lg bg-blue-500/20 px-3 py-1 text-[10px] font-bold text-blue-500">Investigate</button>
-                    <button onClick={() => resolveDispute(d.id, "resolved")} className="rounded-lg bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground">Resolve</button>
-                    <button onClick={() => resolveDispute(d.id, "rejected")} className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Reject</button>
-                  </div>
-                )}
-              </div>
+              <AdminDisputeRow
+                key={d.id}
+                d={d}
+                onResolve={resolveDispute}
+                onRefund={async (orderId) => {
+                  const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+                  if (o) await markRefunded(o);
+                }}
+                onCancelOrder={async (orderId) => {
+                  const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+                  if (o) await cancelOrder(o);
+                }}
+                onBan={async (uid) => {
+                  const { data: prof } = await supabase.from("profiles").select("username").eq("id", uid).maybeSingle();
+                  const username = (prof as any)?.username || uid.slice(0, 8);
+                  const reason = window.prompt(`Reason for banning @${username}?`);
+                  if (!reason) return;
+                  await quickSuspend({ id: uid, username }, 0, reason);
+                }}
+              />
             ))}
             {disputes.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No disputes.</p>}
           </div>
@@ -659,5 +664,79 @@ function Admin() {
         {tab === "revenue" && isAdmin && <PlatformRevenueAdmin />}
       </div>
     </AppShell>
+  );
+}
+
+function AdminDisputeRow({
+  d, onResolve, onRefund, onCancelOrder, onBan,
+}: {
+  d: any;
+  onResolve: (id: string, status: "resolved" | "rejected" | "investigating") => void;
+  onRefund: (orderId: string) => void | Promise<void>;
+  onCancelOrder: (orderId: string) => void | Promise<void>;
+  onBan: (userId: string) => void | Promise<void>;
+}) {
+  const [order, setOrder] = useState<any | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!d.order_id) return;
+    supabase.from("orders")
+      .select("id, title, amount, payment_status, status, buyer_id, seller_id, stream_id")
+      .eq("id", d.order_id)
+      .maybeSingle()
+      .then(({ data }) => setOrder(data));
+  }, [d.order_id]);
+
+  const closed = d.status === "resolved" || d.status === "rejected";
+
+  return (
+    <div className="rounded-xl bg-card p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold">@{d.reporter_username} — {d.reason}</p>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          d.status === "open" ? "bg-yellow-500/20 text-yellow-600" :
+          d.status === "investigating" ? "bg-blue-500/20 text-blue-500" :
+          d.status === "resolved" ? "bg-primary/20 text-primary" :
+          "bg-destructive/20 text-destructive"
+        }`}>{d.status}</span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{d.description}</p>
+      {order && (
+        <div className="mt-2 rounded-lg bg-muted/40 p-2 text-[11px]">
+          <p className="font-semibold">Order: {order.title} — ${Number(order.amount).toFixed(2)} · {order.payment_status} / {order.status}</p>
+          <p className="text-muted-foreground">Buyer {order.buyer_id.slice(0,8)} · Seller {order.seller_id.slice(0,8)}{order.stream_id ? ` · Stream ${order.stream_id.slice(0,8)}` : ""}</p>
+          {!closed && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {order.payment_status === "paid" && (
+                <button onClick={() => onRefund(order.id)} className="rounded-lg bg-blue-500/20 px-2 py-1 text-[10px] font-bold text-blue-500">Refund</button>
+              )}
+              {order.status !== "cancelled" && (
+                <button onClick={() => onCancelOrder(order.id)} className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold">Cancel order</button>
+              )}
+              <button onClick={() => onBan(order.buyer_id)} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban buyer</button>
+              <button onClick={() => onBan(order.seller_id)} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban seller</button>
+            </div>
+          )}
+        </div>
+      )}
+      {d.order_id && !order && <p className="mt-1 text-[10px] text-muted-foreground">Order: {d.order_id}</p>}
+      {d.resolution_note && <p className="mt-1 rounded bg-muted/50 p-2 text-[11px]"><strong>Resolution:</strong> {d.resolution_note}</p>}
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {!closed && (
+          <>
+            <button onClick={() => onResolve(d.id, "investigating")} className="rounded-lg bg-blue-500/20 px-3 py-1 text-[10px] font-bold text-blue-500">Investigate</button>
+            <button onClick={() => onResolve(d.id, "resolved")} className="rounded-lg bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground">Resolve</button>
+            <button onClick={() => onResolve(d.id, "rejected")} className="rounded-lg bg-destructive/20 px-3 py-1 text-[10px] font-bold text-destructive">Reject</button>
+          </>
+        )}
+        <button onClick={() => setOpen((v) => !v)} className="ml-auto rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">
+          {open ? "Hide thread" : "Open thread"}
+        </button>
+      </div>
+
+      {open && <DisputeThread disputeId={d.id} allowEvidence={false} />}
+    </div>
   );
 }

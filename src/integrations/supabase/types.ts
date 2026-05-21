@@ -1033,6 +1033,7 @@ export type Database = {
           description: string
           evidence_urls: string[] | null
           id: string
+          messages: Json
           order_id: string | null
           reason: string
           reported_user_id: string | null
@@ -1050,6 +1051,7 @@ export type Database = {
           description: string
           evidence_urls?: string[] | null
           id?: string
+          messages?: Json
           order_id?: string | null
           reason: string
           reported_user_id?: string | null
@@ -1067,6 +1069,7 @@ export type Database = {
           description?: string
           evidence_urls?: string[] | null
           id?: string
+          messages?: Json
           order_id?: string | null
           reason?: string
           reported_user_id?: string | null
@@ -6003,6 +6006,10 @@ export type Database = {
       }
       admin_waive_buyer_restriction: {
         Args: { _buyer: string; _notes?: string }
+        Returns: undefined
+      }
+      append_dispute_message: {
+        Args: { _body: string; _dispute_id: string; _username: string }
         Returns: undefined
       }
       apply_ai_shipment_scan: {
