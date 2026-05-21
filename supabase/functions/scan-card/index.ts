@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
 
     if (multi) {
       const arr = Array.isArray(parsed?.cards) ? parsed.cards : Array.isArray(parsed) ? parsed : [];
-      const cards = arr.map((c: any) => normalizeCard(c, language));
+      const cards = arr.map((c: any) => normalizeCard(c, detectedLanguage || language));
       const top = cards[0];
       await admin.from("card_scans").insert({
         user_id: userId, status: cards.length > 0 ? "ok" : "no_cards",
@@ -382,7 +382,7 @@ Deno.serve(async (req) => {
       return jsonResp({ cards, ocr_raw: parsed });
     }
 
-    const out = normalizeCard(parsed, language);
+    const out = normalizeCard(parsed, detectedLanguage || language);
     (out as any).ocr_raw = parsed;
 
     // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is visual.
