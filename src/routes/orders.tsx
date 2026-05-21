@@ -47,6 +47,8 @@ function Orders() {
   const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string; photo_urls: string[] }>>({});
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
+  const [tab, setTab] = useState<"all" | "awaiting" | "shipped" | "delivered">("all");
+
 
   async function load() {
     if (!user) return;
