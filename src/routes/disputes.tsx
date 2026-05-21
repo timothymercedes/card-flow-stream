@@ -24,6 +24,7 @@ function Disputes() {
   const { user, profile } = useAuth();
   const [list, setList] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({ order_id: "", reason: "not_received", description: "" });
 
   async function load() {
