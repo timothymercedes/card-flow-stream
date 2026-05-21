@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, X, ScanLine, CheckCircle2, AlertTriangle, Keyboard } from "lucide-react";
-import { registerShippingScan, type ScanResult } from "@/lib/shipping";
+import { Camera, X, ScanLine, CheckCircle2, AlertTriangle, Keyboard, Sparkles, Loader2, ImagePlus } from "lucide-react";
+import { registerShippingScan, scanShipmentImage, applyAiShipmentScan, type ScanResult, type AiShipmentRead } from "@/lib/shipping";
 import { playSfx } from "@/lib/sfx";
 import { haptic } from "@/lib/motion";
 import { toast } from "sonner";
