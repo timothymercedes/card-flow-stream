@@ -303,6 +303,8 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
       });
     }
 
+    const labelCostCents = Math.round(Number(tx.rate?.amount ?? 0) * 100);
+
     await supabaseAdmin
       .from("orders")
       .update({
@@ -314,6 +316,20 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
         shipped_at: new Date().toISOString(),
       } as any)
       .eq("id", order.id);
+
+    // Phase 3: record real label cost + shipping margin → platform_revenue
+    if (!isReissue && labelCostCents > 0) {
+      const { error: marginErr } = await supabaseAdmin.rpc(
+        "record_label_purchase" as any,
+        {
+          _order_id: order.id,
+          _label_cost_cents: labelCostCents,
+          _carrier: tx.rate?.provider ?? null,
+        },
+      );
+      if (marginErr) console.error("record_label_purchase failed", marginErr);
+    }
+
 
     // Notify buyer in-app
     await supabaseAdmin.from("notifications").insert({

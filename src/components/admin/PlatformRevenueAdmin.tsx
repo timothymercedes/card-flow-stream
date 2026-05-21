@@ -13,6 +13,7 @@ const KIND_LABEL: Record<string, string> = {
   tip_fee: "Tip platform fee",
   promotion: "Promotion revenue",
   shipping_adjustment_fee: "Shipping adj. fee",
+  shipping_margin: "Shipping margin",
   refund_loss: "Refund losses",
   dispute_loss: "Dispute losses",
   stripe_processing_fee: "Stripe processing fee",

@@ -671,18 +671,21 @@ function ShippingTab({ overview }: any) {
   const s = overview.shipping;
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat icon={<Truck className="h-3 w-3" />} label="Charged" value={fmt(s.chargedCents)} accent="text-primary" />
-        <Stat icon={<TrendingUp className="h-3 w-3" />} label="Adjustment fees" value={fmt(s.adjFeesCents)} accent="text-emerald-500" />
-        <Stat icon={<TrendingDown className="h-3 w-3" />} label="Adjustment losses" value={fmt(s.adjLossesCents)} accent="text-destructive" />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <Stat icon={<Truck className="h-3 w-3" />} label="Buyer charged" value={fmt(s.chargedCents)} accent="text-primary" />
+        <Stat icon={<TrendingDown className="h-3 w-3" />} label="Label cost" value={fmt(s.labelCostCents)} accent="text-destructive" />
+        <Stat icon={<Wallet className="h-3 w-3" />} label="Gross margin" value={fmt(s.grossMarginCents)} accent={s.grossMarginCents >= 0 ? "text-emerald-500" : "text-destructive"} />
+        <Stat icon={<TrendingUp className="h-3 w-3" />} label="Adj. fees" value={fmt(s.adjFeesCents)} accent="text-emerald-500" />
+        <Stat icon={<TrendingDown className="h-3 w-3" />} label="Adj. losses" value={fmt(s.adjLossesCents)} accent="text-destructive" />
         <Stat icon={<Wallet className="h-3 w-3" />} label="Net margin" value={fmt(s.netMarginCents)} accent={s.netMarginCents >= 0 ? "text-emerald-500" : "text-destructive"} />
       </div>
       <Section title="About shipping revenue">
         <p className="text-xs text-muted-foreground">
-          Net margin = shipping charged to buyers + adjustment fees recovered − reissue/correction losses. Label costs paid to carriers via Shippo are settled outside this ledger.
+          Gross margin = what buyers paid for shipping − what Shippo charged for the labels (recorded per order at purchase time). Net margin also adds adjustment fees recovered and subtracts reissue/correction losses.
         </p>
       </Section>
     </div>
+
   );
 }
 
