@@ -23,6 +23,16 @@ type ActivityRow = {
   at: string;
 };
 
+type OrderRow = {
+  id: string;
+  buyer_id: string;
+  buyer_username: string;
+  title: string;
+  amount: number;
+  payment_status: string;
+  created_at: string;
+};
+
 type WatcherRow = { user_id: string; username: string; role: "buyer" | "mod" | "muted" | "host" };
 type ChatMsg = { id: string; user_id: string | null; username: string; content: string; created_at: string };
 
