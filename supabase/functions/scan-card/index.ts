@@ -81,6 +81,14 @@ MULTILINGUAL — IMPORTANT:
 - Card numbers, set codes and year are usually in Latin/Arabic digits even on non-English cards — read them directly.
 - Never refuse a card because it's not English. Non-Latin scripts are expected.
 
+PHOTO QUALITY — handle gracefully (do NOT refuse):
+- LOW LIGHT / DARK / blurry: read whatever IS visible (logos, set symbol, art). Lower confidence on unreadable fields rather than refusing the whole card.
+- ANGLED / TILTED / perspective-warped: card edges may be skewed; still infer the name from artwork + visible letters. Bound the bbox to the full card outline including the angled corners.
+- HOLO / REVERSE-HOLO / FOIL glare: reflections may wash out parts of the text. Use the artwork and any readable corner (number, year) to identify. Mark variant accordingly.
+- VINTAGE (pre-2003 Pokémon, pre-2000 MTG, etc.): set symbol may be tiny or absent; rely on copyright year (e.g. "© 1999", "©1995 Wizards"), card frame style, and font era.
+- PROMO / sealed: prefix like "BLACK STAR PROMO", "PROMO", numbered "/PROMO", "P", "SWSH" promo codes — set this in variant.
+- Always return SOMETHING actionable. Empty strings are fine for individual fields; never return an empty card.
+
 Return ONLY what is visible on the card:
 - printed card name (translated to English for "name")
 - printed card number/collector number, exactly as shown (examples: "4/102", "TG05/TG30", "SV03-EN045", "070/SM-P", "DMR-001", MTG style "215/280")
