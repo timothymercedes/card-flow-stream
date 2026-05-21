@@ -27,6 +27,8 @@ type Order = {
   promo_cents?: number | null;        // optional, future
   commission_rate?: number | null;
   created_at: string;
+  fee_absorbed_by?: "buyer" | "seller" | null;
+  fee_index?: number | null;
 };
 
 type Recovery = {
@@ -49,6 +51,8 @@ type ProfileRow = {
 
 const fmt = (n: number) => `$${n.toFixed(2)}`;
 
+const BUYER_PLATFORM_FEE_DOLLARS = 1.23;
+
 function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   const gross = Number(o.amount || 0);
   const platformFee = gross * Number(o.commission_rate ?? PLATFORM_FEE);
@@ -57,9 +61,12 @@ function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   const promo = (o.promo_cents ?? 0) / 100;
   const refund = Number(o.refunded_amount ?? 0);
   const recovery = (recoveryByRef.get(o.id) ?? 0) / 100;
-  const totalDeductions = platformFee + processingFee + shipping + promo + refund + recovery;
+  // Bundle: when buyer's platform fee was waived (item 4+ in a stream session),
+  // the seller absorbs ~$1.23 via a larger application fee on Stripe.
+  const bundleAbsorbed = o.fee_absorbed_by === "seller" ? BUYER_PLATFORM_FEE_DOLLARS : 0;
+  const totalDeductions = platformFee + processingFee + shipping + promo + refund + recovery + bundleAbsorbed;
   const net = Math.max(0, gross - totalDeductions);
-  return { gross, platformFee, processingFee, shipping, promo, refund, recovery, totalDeductions, net };
+  return { gross, platformFee, processingFee, shipping, promo, refund, recovery, bundleAbsorbed, totalDeductions, net };
 }
 
 type PayoutRequest = {
@@ -183,11 +190,12 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   );
 
   const totals = useMemo(() => {
-    let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, net = 0;
+    let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, bundleAbsorbed = 0, net = 0;
     let available = 0, pending = 0, processing = 0, completed = 0;
     breakdowns.forEach(({ order, ...b }) => {
       gross += b.gross; platformFee += b.platformFee; processingFee += b.processingFee;
-      shipping += b.shipping; promo += b.promo; refund += b.refund; recovery += b.recovery; net += b.net;
+      shipping += b.shipping; promo += b.promo; refund += b.refund; recovery += b.recovery;
+      bundleAbsorbed += b.bundleAbsorbed; net += b.net;
       const paid = order.payment_status === "paid";
       if (paid && order.status === "delivered") available += b.net;
       else if (paid && (order.status === "pending" || order.status === "shipped")) pending += b.net;
@@ -196,18 +204,17 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     });
     const owed = (hold?.balance_owed_cents ?? 0) / 100;
     const processingPayout = processingPayoutCents / 100;
-    // Subtract amounts already locked in an in-flight payout
     const available_after = Math.max(0, available - processingPayout);
     const payable = Math.max(0, available_after - owed);
     const totalEarnings = available_after + pending + processingPayout;
-    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net,
+    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, bundleAbsorbed, net,
              available: available_after, pending, processing, completed, owed, payable,
              processingPayout, totalEarnings };
   }, [breakdowns, hold, processingPayoutCents]);
 
   function downloadCsv() {
     const rows = [
-      ["Date","Order ID","Item","Buyer","Gross","Platform fee","Processing","Shipping","Promo","Refund","Hold recovery","Net","Status"],
+      ["Date","Order ID","Item","Buyer","Gross","Platform fee","Processing","Shipping","Promo","Refund","Hold recovery","Bundle absorbed","Net","Status"],
       ...breakdowns.map(({ order, ...b }) => [
         new Date(order.created_at).toISOString(),
         order.id,
@@ -215,6 +222,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         buyerNames[order.buyer_id] ?? order.buyer_id,
         b.gross.toFixed(2), b.platformFee.toFixed(2), b.processingFee.toFixed(2),
         b.shipping.toFixed(2), b.promo.toFixed(2), b.refund.toFixed(2), b.recovery.toFixed(2),
+        b.bundleAbsorbed.toFixed(2),
         b.net.toFixed(2), order.status,
       ]),
     ];
@@ -379,6 +387,9 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           <Row label="Promotions / shoutouts" value={`−${fmt(totals.promo)}`} negative />
           <Row label="Refunds" value={`−${fmt(totals.refund)}`} negative />
           <Row label="Negative balance recovery" value={`−${fmt(totals.recovery)}`} negative />
+          {totals.bundleAbsorbed > 0 && (
+            <Row label="Bundle fees absorbed (buyer ≥4 items/stream)" value={`−${fmt(totals.bundleAbsorbed)}`} negative />
+          )}
           <Row label="Final net earnings" value={fmt(totals.net)} primary />
           <p className="px-1 pt-1 text-[11px] text-muted-foreground">
             Processing estimated at 2.9% + $0.30 per sale. Tax forms (1099-K) issued at year-end if you exceed reporting thresholds.
@@ -416,6 +427,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
                     {b.promo > 0 && <Row small label="Promo" value={`−${fmt(b.promo)}`} negative />}
                     {b.refund > 0 && <Row small label="Refund" value={`−${fmt(b.refund)}`} negative />}
                     {b.recovery > 0 && <Row small label="Hold recovery" value={`−${fmt(b.recovery)}`} negative />}
+                    {b.bundleAbsorbed > 0 && <Row small label="Bundle fee absorbed" value={`−${fmt(b.bundleAbsorbed)}`} negative />}
                     <Row small label="Total deductions" value={`−${fmt(b.totalDeductions)}`} negative />
                     <Row small label="Net to you" value={fmt(b.net)} primary />
                   </div>
