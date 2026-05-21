@@ -2236,11 +2236,7 @@ function LiveDetail() {
     if (!requireBuyerReady("claim a character")) return;
     if (!user || !profile) return;
     if (isSeller) return toast.error("Host can't claim slots");
-    if (unpaidOrders > 0) {
-      toast.error("Pay your pending order before claiming");
-      nav({ to: "/orders" });
-      return;
-    }
+    if (await openStreamFixPaymentIfNeeded()) return;
     const slots = selectedBreakSlots.filter((n) => !breakSlots.some((s) => s.slot_number === n));
     if (slots.length === 0) return toast.error("Choose at least one character");
     setClaimingBreakSlots(true);
