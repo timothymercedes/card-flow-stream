@@ -4,6 +4,7 @@ import {
   DollarSign, ShoppingBag, Clock, Gift, Share2, Bookmark, X, Minimize2, Maximize2,
   MessageCircle, Users, Activity, HelpCircle, Shield, VolumeX, Trophy, CreditCard,
 } from "lucide-react";
+import { BuyerOrderPopover } from "@/components/BuyerOrderPopover";
 
 type Stats = {
   grossSales: number;
