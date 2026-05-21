@@ -309,7 +309,7 @@ export function LiveSellerDashboard({
   );
 
   return (
-    <div className="pointer-events-auto flex max-h-[80vh] w-72 flex-col rounded-2xl bg-gradient-to-b from-black/90 via-black/75 to-black/90 p-2.5 ring-1 ring-white/15 shadow-[0_10px_36px_-6px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:w-80">
+    <div className="pointer-events-auto flex max-h-[80vh] w-56 flex-col rounded-2xl bg-gradient-to-b from-black/90 via-black/75 to-black/90 p-2 ring-1 ring-white/15 shadow-[0_10px_36px_-6px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:w-64">
       <div className="mb-2 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.15em] text-white">
           <span className="relative flex h-2 w-2">
