@@ -1,144 +1,86 @@
-# Seller Verification + Buyer Risk Monitoring
+# Admin Moderation & Audit History System
 
-Two independent systems, shipped together. Sellers get hard gates on Stripe Connect KYC; buyers stay frictionless but get scored, flagged, and optionally restricted.
+Builds a permanent trust-&-safety layer on top of the existing buyer risk + dispute infrastructure (Phase 11). Everything is append-only and survives username / store renames.
 
----
+## 1. Database (single migration)
 
-## Part 1 — Seller Stripe Connect KYC gating
+**`account_audit_log`** — permanent, append-only timeline for every user.
+- `subject_user_id` (the user the event is about), `actor_user_id` (admin/system/buyer/seller), `actor_role`
+- `event_type` enum: `payment_failed`, `payment_declined`, `chargeback`, `refund_requested`, `refund_issued`, `order_cancelled`, `not_delivered_claim`, `report_filed`, `suspicious_activity`, `bidding_abuse`, `warning_issued`, `restriction_applied`, `restriction_cleared`, `ban_applied`, `shipping_issue`, `policy_violation`, `store_name_changed`, `username_changed`, `verification_status_changed`, `payout_issue`, `admin_note`, `admin_action`
+- `severity` (`info|low|medium|high|critical`), `summary` text, `details` jsonb
+- Polymorphic refs: `order_id`, `stream_id`, `payment_intent_id`, `dispute_id`, `payout_id`, `report_id`, `evidence_id`
+- `occurred_at`, `created_at`. Indexed on `(subject_user_id, occurred_at desc)`, `(event_type)`, `(severity)`.
+- RLS: admins read all; users read their own non-sensitive events; service-role writes.
 
-The project already has `src/server/stripe-connect.functions.ts` and a Connect onboarding flow. We extend it with a status sync + gate, and enforce the gate in 4 places.
+**`store_name_history`** — `seller_id`, `old_name`, `new_name`, `changed_at`, `changed_by`. Trigger on `profiles.store_name` update inserts row + emits `store_name_changed` audit event.
 
-### DB (migration)
-Add to `profiles`:
-- `stripe_connect_verified BOOLEAN DEFAULT false`
-- `stripe_connect_status TEXT` ('unstarted' | 'pending' | 'restricted' | 'verified')
-- `stripe_connect_requirements JSONB` (currently_due / past_due snapshot)
-- `stripe_connect_last_synced_at TIMESTAMPTZ`
+**`username_history`** — same pattern for `profiles.username`.
 
-Security-definer helper:
-- `public.is_seller_verified(_user_id uuid) returns boolean` — reads `stripe_connect_verified`. Used by RLS + RPCs.
+**`moderation_reports`** — `id`, `reporter_id`, `subject_user_id`, `subject_type` (`user|store|listing|stream|order|message`), `subject_ref_id`, `category`, `description`, `status` (`open|investigating|resolved|dismissed|escalated`), `assigned_admin_id`, `resolution_notes`, `resolved_at`. RLS: admins all; reporter sees own.
 
-Update RLS / RPCs to refuse:
-- `INSERT` on `listings` (sell) → block when `NOT is_seller_verified(auth.uid())`
-- `INSERT` on `streams` / `live_shows` (go live, host) → block when not verified
-- `request_payout` RPC → raise exception when not verified
+**`moderation_evidence`** — `id`, `report_id` (nullable), `dispute_id` (nullable), `audit_log_id` (nullable), `uploaded_by`, `file_url`, `mime_type`, `file_size`, `caption`, `status` (`pending|approved|rejected|flagged|locked`), `review_notes`, `reviewed_by`, `reviewed_at`, `locked` bool. Backed by private storage bucket `moderation-evidence`.
 
-### Server functions
-Extend `src/server/stripe-connect.functions.ts`:
-- `syncConnectAccountStatusFn` — already exists; ensure it writes the 4 new columns from `account.charges_enabled && payouts_enabled && details_submitted` → `verified`; else compute `pending` / `restricted` from `requirements`.
-- `getMyConnectStatusFn` — returns the cached row + a "needs sync" hint.
+**`evidence_review_log`** — append-only history of every evidence status change (who/when/from→to/notes).
 
-### UI
-- New component `src/components/SellerVerificationGate.tsx` — mirrors `SellerAgreementGate.tsx`. Blocks `/sell`, `/payouts`, `/seller/shipping`, and "Go Live" buttons with a CTA "Verify your identity to start selling" → opens Connect onboarding link.
-- Mount inside the existing seller-only routes alongside `SellerAgreementGate`.
-- `PayoutBreakdown` / `SellerEarningsHub` show a "Verification required" banner instead of payout buttons until verified.
+**`dispute_reconciliation`** — extends existing `disputes`. New columns: `lifecycle_status` (`opened|evidence_pending|under_review|escalated|resolved_refund|resolved_rebook|resolved_partial|rejected|closed`), `rebook_order_id` (nullable FK → orders), `original_payout_id`, `refund_payment_intent_id`, `reconciled_at`, `reconciliation_notes`, `escalated_at`, `escalated_by`. Trigger writes audit events on every status change.
 
----
+**`admin_action_log`** — every admin write (apply restriction, lock evidence, resolve report, approve refund, freeze account). `admin_id`, `action`, `target_table`, `target_id`, `before`, `after`, `reason`, `created_at`. Read-only after insert (revoke UPDATE/DELETE).
 
-## Part 2 — Buyer risk monitoring
+### Functions
+- `log_account_event(...)` security-definer RPC — single insertion path used by app code + triggers.
+- `log_admin_action(...)` security-definer RPC — wraps every admin mutation.
+- Triggers on `disputes`, `orders` (cancellation), `payout_requests`, `profiles.store_name/username`, `user_restrictions`, `buyer_risk_signals` → call `log_account_event`.
 
-### DB (same migration)
+## 2. Server functions (`src/lib/moderation.functions.ts`)
 
-```text
-buyer_risk_signals       — append-only log of every risk-relevant event
-buyer_risk_scores        — one row per user, denormalized current score + flags
-buyer_restrictions       — admin-applied restrictions (active/expired)
-```
+All `requireSupabaseAuth` + admin role check via `has_role(auth.uid(),'admin')`.
 
-`buyer_risk_signals` columns: `user_id`, `kind`, `severity_weight`, `ref_table`, `ref_id`, `seller_id`, `metadata jsonb`, `created_at`.
+- `getUserAuditTimelineFn({ userId, filters, cursor })` — chronological merged timeline.
+- `getUserDossierFn({ userId })` — profile + store + roles + risk score + restriction summary + counts (orders, disputes, refunds, reports, payouts) + name history.
+- `searchUsersFn({ q, riskTier, hasOpenDisputes, hasFailedPayments, hasRestrictions })`.
+- `listReportsFn({ status, assignedTo, severity, cursor })` / `getReportFn` / `updateReportStatusFn` / `assignReportFn`.
+- `listDisputesFn({ lifecycleStatus, cursor })` / `getDisputeFn` / `updateDisputeLifecycleFn` / `linkRebookOrderFn` / `runReconciliationCheckFn(disputeId)`.
+- `listEvidenceFn`, `uploadEvidenceFn` (signed URL), `reviewEvidenceFn({id, action, notes})`, `lockEvidenceFn`, `flagEvidenceFn`.
+- `addAdminNoteFn({ subjectUserId, note, severity })` — writes audit row + admin_action_log.
 
-`kind` enum: `payment_failed`, `checkout_abandoned_failed`, `order_cancelled_by_buyer`, `refund_requested`, `dispute_opened`, `chargeback`, `not_delivered_claim`, `bid_retracted`, `bid_no_pay`, `multi_seller_complaint`.
+Every mutation calls `log_admin_action` + `log_account_event`.
 
-`buyer_risk_scores` columns: `user_id PK`, `score INT`, `tier TEXT` ('clean'|'watch'|'review'|'restricted'), `flagged_at`, `last_event_at`, `signals_30d JSONB` (kind→count), `under_review BOOLEAN`.
+## 3. Notifications
 
-`buyer_restrictions` columns: `user_id`, `kind` ('purchase_block'|'bid_limit'|'require_verification'|'frozen'), `cents_limit INT NULL`, `reason`, `created_by`, `expires_at`, `active`.
+Reuse existing `notifications` table; add types: `dispute_opened`, `dispute_evidence_submitted`, `dispute_status_changed`, `dispute_escalated`, `dispute_resolved`, `report_filed`, `report_resolved`, `admin_warning_issued`. Fan-out to buyer + seller + admins on dispute lifecycle events via DB trigger.
 
-### Scoring engine
+## 4. Admin UI
 
-`public.record_buyer_risk_signal(_user_id, _kind, _ref_table, _ref_id, _seller_id, _metadata)` — SECURITY DEFINER:
-1. inserts into `buyer_risk_signals`
-2. recomputes `score` = weighted sum of last-30-day signals (weights table inline in function)
-3. updates `buyer_risk_scores` row + tier thresholds (e.g. ≥10 watch, ≥25 review, ≥50 restricted-auto)
-4. when crossing into `review`, sets `under_review=true` and inserts into `admin_alerts` (existing table — fall back to a new `buyer_risk_alerts` if missing)
+New tabs in `src/routes/admin.tsx`:
+- **Users** — `AdminUserSearch.tsx`: filterable table → opens `AdminUserDossier.tsx` (timeline, profile, store, name history, risk, restrictions, evidence, linked accounts by IP/payment fingerprint).
+- **Reports** — `AdminReportsQueue.tsx` (status/assignment filters) → `AdminReportDetail.tsx` (evidence, linked audit events, resolve/dismiss/escalate).
+- **Disputes** — `AdminDisputesQueue.tsx` with lifecycle filter → `AdminDisputeDetail.tsx` (timeline, reconciliation panel: original payout / refund PI / rebook order, "Run reconciliation" button, escalation log, evidence vault).
+- **Evidence Vault** — `AdminEvidenceQueue.tsx` for pending/flagged evidence moderation.
+- **Audit Log** — global firehose with filters.
 
-### Wire signal emission
+Shared `<UserLink userId>` and `<StoreLink sellerId>` components used everywhere — render current display name + open dossier on click. Always show stable IDs alongside.
 
-Add `record_buyer_risk_signal` calls (best-effort, no throw on failure) at:
-- `src/routes/api/public/stripe/webhook.ts` — on `payment_intent.payment_failed`, `charge.dispute.created`, `charge.refunded` (when buyer-initiated).
-- `src/lib/order-actions.functions.ts` — on buyer-initiated cancel.
-- `src/components/DisputeThread.tsx` server fn — on "not delivered" claim.
-- Existing refund request flow.
+`AdminUserDossier` timeline component reused on Reports/Disputes detail pages so context is one click away.
 
-### Admin queue UI
+## 5. Integration into existing flows
 
-New route `src/routes/admin.buyer-risk.tsx` (and tab on `admin.tsx`):
-- List of `buyer_risk_scores` where `under_review=true OR tier IN ('review','restricted')`
-- Sort by score desc
-- Row → drawer/modal showing:
-  - Profile + signup date + total orders/spend
-  - 30-day signal breakdown (counts by kind)
-  - Recent orders (with seller, amount, status)
-  - Payment failures, refunds, disputes
-  - Affected sellers list (distinct from signals)
-  - Action buttons: Apply restriction (purchase block / bid limit / require KYC / freeze), Clear review, Add note
-
-Server fns in new `src/lib/buyer-risk.functions.ts`:
-- `getBuyerRiskQueueFn` (admin only)
-- `getBuyerRiskDetailFn(userId)` (admin only)
-- `applyBuyerRestrictionFn({userId, kind, centsLimit?, expiresAt?, reason})`
-- `clearBuyerRestrictionFn({restrictionId})`
-- `clearBuyerReviewFn({userId, note})`
-
-All gated with an `is_admin`/owner role check via existing `user_roles`.
-
-### Enforcement of restrictions
-
-Helper SQL fn `public.buyer_can_purchase(_user_id, _amount_cents) returns boolean` — checks active restrictions.
-
-Wire into:
-- `buyerPayments.functions.ts` / checkout server fn → raise on `frozen` or `purchase_block`, enforce `cents_limit`.
-- `auctionCharge.functions.ts` / bid server fn → raise on `bid_limit` exceeded.
-- Surface a small `BuyerRestrictionBanner` on `/cart` + checkout when restricted, with the reason.
-
-`require_verification` restriction triggers a Stripe Identity check flow (out of scope for this PR — stub it as a banner "Admin requires identity verification" + a TODO).
-
----
+Add `log_account_event` calls (mostly via triggers, a few explicit):
+- `webhook.ts` Stripe handlers → `payment_failed`, `chargeback`, `refund_issued`.
+- `order-actions.functions.ts` cancel → `order_cancelled`.
+- `DisputeThread.tsx` not-delivered → `not_delivered_claim`.
+- `buyer-risk.functions.ts` apply/clear restriction → `restriction_applied/cleared`.
+- `stripe-connect.functions.ts` verification sync → `verification_status_changed`.
+- `payout_requests` status change trigger → `payout_issue` when failed.
+- `profiles` update trigger → `store_name_changed` / `username_changed` + history row.
 
 ## Technical notes
-
-- All new tables: RLS on, only owner/admin can SELECT/INSERT/UPDATE via `has_role`. Users can SELECT their own `buyer_risk_scores` (for transparency) but NOT signals.
-- Score recompute is cheap (last-30-day window, indexed on `(user_id, created_at)`).
-- Signal emission is fire-and-forget — wrap in try/catch so risk logging never breaks a payment path.
-- No buyer-facing friction unless restricted. Normal buyers never see any of this.
-
----
-
-## Out of scope (follow-ups)
-
-- Stripe Identity verification flow for the `require_verification` restriction
-- ML-based scoring (this is rule-based weighted sums)
-- Auto-expiry cron for restrictions (can run via existing pg_cron pattern)
-- Buyer appeal flow
-
----
+- Storage bucket `moderation-evidence` private; signed URLs only via server fn.
+- `account_audit_log` is append-only: REVOKE UPDATE/DELETE from authenticated; only service role via security-definer RPC.
+- `admin_action_log` similarly locked; provides tamper-evident admin trail.
+- Linked-account detection: simple v1 = match on shared `stripe_customer_id`, payment fingerprint, or signup IP (if captured). Surface as "Possibly linked" list — no auto-action.
+- Out of scope: ML clustering, automated bans, public-facing user dispute portal redesign (uses existing `DisputeThread`).
 
 ## Files
+**New migration**, `src/lib/moderation.functions.ts`, `src/components/admin/{AdminUserSearch,AdminUserDossier,AdminReportsQueue,AdminReportDetail,AdminDisputesQueue,AdminDisputeDetail,AdminEvidenceQueue,AdminAuditLog,UserLink,StoreLink,AuditTimeline,EvidenceCard,ReconciliationPanel}.tsx`, edits to `src/routes/admin.tsx`, `src/routes/api/public/stripe/webhook.ts`, `src/lib/order-actions.functions.ts`, `src/lib/buyer-risk.functions.ts`, `src/server/stripe-connect.functions.ts`, `src/components/DisputeThread.tsx`.
 
-**New**
-- `supabase/migrations/<ts>_seller_kyc_buyer_risk.sql`
-- `src/components/SellerVerificationGate.tsx`
-- `src/components/BuyerRestrictionBanner.tsx`
-- `src/lib/buyer-risk.functions.ts`
-- `src/routes/admin.buyer-risk.tsx`
-- `src/components/admin/BuyerRiskQueue.tsx`
-
-**Edited**
-- `src/server/stripe-connect.functions.ts` (extend sync)
-- `src/routes/api/public/stripe/webhook.ts` (emit signals)
-- `src/lib/order-actions.functions.ts` (emit on cancel)
-- `src/lib/buyerPayments.functions.ts` (enforce restrictions)
-- `src/lib/auctionCharge.functions.ts` (enforce bid restrictions)
-- `src/routes/sell.tsx`, `src/routes/payouts.tsx`, `src/routes/seller.shipping.tsx`, live host entry — mount `SellerVerificationGate`
-- `src/routes/admin.tsx` — add Buyer Risk tab
-
-Approve to proceed?
+Approve to proceed; I'll ship the migration first, then server functions, then admin UI in batches.
