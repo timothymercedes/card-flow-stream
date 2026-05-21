@@ -291,7 +291,9 @@ function OwnerFinanceDashboard() {
         {tab === "transactions" && (
           <TransactionsTab orders={personalOrders.data?.rows ?? []} ledger={ledger.data?.rows ?? []} />
         )}
+        {tab === "integrity" && <IntegrityTab />}
       </div>
+
     </AppShell>
   );
 }
