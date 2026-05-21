@@ -45,8 +45,14 @@ export function AdminAlertBanner() {
       supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
       supabase.from("disputes").select("id", { count: "exact", head: true }).in("status", ["open", "investigating"]),
       supabase.from("profiles").select("id", { count: "exact", head: true }).in("verification_status", ["pending", "reverify_required"]),
-      supabase.from("orders").select("id", { count: "exact", head: true }).eq("is_late_shipment", true),
-      supabase.from("orders").select("id", { count: "exact", head: true }).gt("payment_failure_count", 0),
+      // Only count shipping issues still unresolved (not yet delivered/cancelled/refunded)
+      supabase.from("orders").select("id", { count: "exact", head: true })
+        .eq("is_late_shipment", true)
+        .not("status", "in", "(delivered,cancelled,refunded)"),
+      // Only count payment issues still failing (not paid/refunded/cancelled)
+      supabase.from("orders").select("id", { count: "exact", head: true })
+        .gt("payment_failure_count", 0)
+        .not("payment_status", "in", "(paid,refunded,cancelled)"),
     ]);
     const next: Counts = {
       reports: reports.count || 0,
@@ -61,6 +67,11 @@ export function AdminAlertBanner() {
     }
     lastTotalRef.current = total;
     setCounts(next);
+    // Auto-clear dismissal once all alerts are resolved, so banner reappears on the next one
+    if (total === 0) {
+      setDismissedAt(0);
+      try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+    }
   }, [soundOn]);
 
   useEffect(() => {
