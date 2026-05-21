@@ -54,7 +54,9 @@ type TabKey =
   | "sellers"
   | "shipping"
   | "refunds"
-  | "transactions";
+  | "transactions"
+  | "integrity";
+
 
 function fmt(cents?: number | null) {
   const v = (cents || 0) / 100;
