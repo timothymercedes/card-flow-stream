@@ -604,6 +604,7 @@ export type Database = {
           image_source: string | null
           image_url: string | null
           is_rookie: boolean
+          language: string | null
           manufacturer: string | null
           name: string
           number: string | null
@@ -626,6 +627,7 @@ export type Database = {
           image_source?: string | null
           image_url?: string | null
           is_rookie?: boolean
+          language?: string | null
           manufacturer?: string | null
           name: string
           number?: string | null
@@ -648,6 +650,7 @@ export type Database = {
           image_source?: string | null
           image_url?: string | null
           is_rookie?: boolean
+          language?: string | null
           manufacturer?: string | null
           name?: string
           number?: string | null
@@ -2489,6 +2492,8 @@ export type Database = {
           delivered_at: string | null
           description: string | null
           dropoff_scanned_at: string | null
+          fee_absorbed_by: string | null
+          fee_index: number | null
           id: string
           idempotency_key: string | null
           is_giveaway: boolean
@@ -2545,6 +2550,8 @@ export type Database = {
           delivered_at?: string | null
           description?: string | null
           dropoff_scanned_at?: string | null
+          fee_absorbed_by?: string | null
+          fee_index?: number | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -2601,6 +2608,8 @@ export type Database = {
           delivered_at?: string | null
           description?: string | null
           dropoff_scanned_at?: string | null
+          fee_absorbed_by?: string | null
+          fee_index?: number | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -5950,6 +5959,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      compute_buyer_fee_cents: {
+        Args: {
+          _buyer_id: string
+          _default_cents?: number
+          _stream_id: string
+          _threshold?: number
+        }
+        Returns: number
       }
       compute_card_key: {
         Args: { _name: string; _number: string; _set: string }
