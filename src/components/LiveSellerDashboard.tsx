@@ -124,6 +124,7 @@ export function LiveSellerDashboard({
   const [mods, setMods] = useState<ModRow[]>([]);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState<{ id: string; username: string } | null>(null);
+  const [openStat, setOpenStat] = useState<null | "gross" | "time" | "tips" | "shares" | "saves">(null);
   const [addModSearch, setAddModSearch] = useState("");
   const [, setTick] = useState(0);
 
@@ -285,13 +286,18 @@ export function LiveSellerDashboard({
     );
   }
 
-  const StatTile = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) => (
-    <div className={`flex min-w-0 flex-col rounded-lg bg-black/60 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
+  const StatTile = ({ icon: Icon, label, value, accent, onClick }: { icon: any; label: string; value: string; accent?: string; onClick?: () => void }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex min-w-0 flex-col rounded-lg bg-black/60 px-2 py-1.5 text-left ring-1 ring-white/10 backdrop-blur transition hover:bg-white/10 hover:ring-white/25 active:scale-[0.98] ${accent || ""}`}
+      title={`View ${label} details`}
+    >
       <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-white/60">
         <Icon className="h-2.5 w-2.5" /> {label}
       </div>
       <div className="truncate text-sm font-extrabold tabular-nums leading-tight text-white">{value}</div>
-    </div>
+    </button>
   );
 
   const TabBtn = ({ id, icon: Icon, label, count }: { id: Tab; icon: any; label: string; count?: number }) => (
@@ -331,14 +337,14 @@ export function LiveSellerDashboard({
 
 
       <div className={`grid gap-1 ${isFlex ? "grid-cols-3" : "grid-cols-4"}`}>
-        {!isFlex && <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />}
-        {!isFlex && <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} />}
-        <StatTile icon={Users} label="Watching" value={String(livePresenceCount)} accent="ring-primary/20" />
-        <StatTile icon={Clock} label="Time" value={fmtElapsed(showTime)} />
-        <StatTile icon={Gift} label="Tips" value={fmtMoney(stats.tipsAndPromo)} accent="ring-purple-500/20" />
-        <StatTile icon={Share2} label="Shares" value={String(shareCount)} />
-        <StatTile icon={Bookmark} label="Saves" value={String(stats.bookmarks)} />
-        <StatTile icon={CreditCard} label="Pending" value={String(stats.pendingPayments)} accent={stats.pendingPayments > 0 ? "ring-rose-500/30" : ""} />
+        {!isFlex && <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" onClick={() => { setCollapsed(false); setOpenStat("gross"); }} />}
+        {!isFlex && <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} onClick={() => { setCollapsed(false); setTab("buyers"); }} />}
+        <StatTile icon={Users} label="Watching" value={String(livePresenceCount)} accent="ring-primary/20" onClick={() => { setCollapsed(false); setTab("watchers"); }} />
+        <StatTile icon={Clock} label="Time" value={fmtElapsed(showTime)} onClick={() => setOpenStat("time")} />
+        <StatTile icon={Gift} label="Tips" value={fmtMoney(stats.tipsAndPromo)} accent="ring-purple-500/20" onClick={() => setOpenStat("tips")} />
+        <StatTile icon={Share2} label="Shares" value={String(shareCount)} onClick={() => setOpenStat("shares")} />
+        <StatTile icon={Bookmark} label="Saves" value={String(stats.bookmarks)} onClick={() => setOpenStat("saves")} />
+        <StatTile icon={CreditCard} label="Pending" value={String(stats.pendingPayments)} accent={stats.pendingPayments > 0 ? "ring-rose-500/30" : ""} onClick={() => { setCollapsed(false); setTab("pending"); }} />
       </div>
 
       {!collapsed && (
@@ -606,6 +612,120 @@ export function LiveSellerDashboard({
           </div>
         </div>
       )}
+
+      {openStat && (() => {
+        const paidOrders = orders.filter((o) => o.payment_status === "paid");
+        const tipActs = activity.filter((a) => a.kind === "tip" || a.kind === "promo");
+        const cfg: Record<string, { title: string; body: React.ReactNode; action?: { label: string; onClick: () => void } }> = {
+          gross: {
+            title: "Gross sales",
+            body: (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-emerald-500/10 px-3 py-2 ring-1 ring-emerald-500/30">
+                  <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">Total paid</p>
+                  <p className="text-xl font-extrabold text-emerald-200">{fmtMoney(stats.grossSales)}</p>
+                  <p className="text-[10px] text-white/60">{paidOrders.length} paid order{paidOrders.length === 1 ? "" : "s"}</p>
+                </div>
+                <div className="max-h-48 space-y-0.5 overflow-y-auto">
+                  {paidOrders.length === 0
+                    ? <p className="text-center text-[11px] text-white/50">No paid orders yet.</p>
+                    : paidOrders.slice(0, 20).map((o) => (
+                        <button key={o.id} onClick={() => { setOpenStat(null); setOpenOrderId(o.id); }}
+                          className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-[11px] hover:bg-white/5">
+                          <span className="min-w-0 flex-1 truncate"><span className="font-bold text-primary">@{o.buyer_username}</span> · {o.title}</span>
+                          <span className="font-bold tabular-nums text-emerald-300">{fmtMoney(o.amount)}</span>
+                        </button>
+                      ))}
+                </div>
+              </div>
+            ),
+          },
+          time: {
+            title: "Show time",
+            body: (
+              <div className="space-y-2 text-[12px]">
+                <div className="rounded-lg bg-white/5 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/50">Elapsed</p>
+                  <p className="text-xl font-extrabold text-white">{fmtElapsed(showTime)}</p>
+                </div>
+                <p className="text-white/70">Started: <span className="font-bold text-white">{startedAt ? new Date(startedAt).toLocaleString() : "—"}</span></p>
+                <p className="text-white/60">Currently watching: <span className="font-bold text-white">{livePresenceCount}</span></p>
+              </div>
+            ),
+          },
+          tips: {
+            title: "Tips + Promos",
+            body: (
+              <div className="space-y-2">
+                <div className="rounded-lg bg-purple-500/10 px-3 py-2 ring-1 ring-purple-500/30">
+                  <p className="text-[10px] uppercase tracking-wider text-purple-300/80">Total</p>
+                  <p className="text-xl font-extrabold text-purple-200">{fmtMoney(stats.tipsAndPromo)}</p>
+                </div>
+                <div className="max-h-48 space-y-0.5 overflow-y-auto">
+                  {tipActs.length === 0
+                    ? <p className="text-center text-[11px] text-white/50">No tips or promos yet.</p>
+                    : tipActs.slice(0, 30).map((a) => (
+                        <div key={a.id} className="flex items-center justify-between rounded px-2 py-1 text-[11px] text-white/90">
+                          <span className="min-w-0 flex-1 truncate">{a.kind === "tip" ? "💝" : "🔥"} {a.text}</span>
+                          {typeof a.amount === "number" && <span className="font-bold tabular-nums text-purple-300">{fmtMoney(a.amount)}</span>}
+                        </div>
+                      ))}
+                </div>
+              </div>
+            ),
+          },
+          shares: {
+            title: "Shares",
+            body: (
+              <div className="space-y-2 text-[12px]">
+                <div className="rounded-lg bg-white/5 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/50">Total shares</p>
+                  <p className="text-xl font-extrabold text-white">{shareCount}</p>
+                </div>
+                <p className="text-white/60">Viewers who shared this stream out (links, social, copy-link). Higher share count = more discovery.</p>
+                <button
+                  onClick={async () => {
+                    const url = `${window.location.origin}/live/${streamId}`;
+                    try {
+                      if (navigator.share) await navigator.share({ url, title: "Watch live" });
+                      else { await navigator.clipboard.writeText(url); toast.success("Link copied"); }
+                    } catch {}
+                  }}
+                  className="w-full rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+                >Share stream link</button>
+              </div>
+            ),
+          },
+          saves: {
+            title: "Saves / Bookmarks",
+            body: (
+              <div className="space-y-2 text-[12px]">
+                <div className="rounded-lg bg-white/5 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/50">Bookmarks</p>
+                  <p className="text-xl font-extrabold text-white">{stats.bookmarks}</p>
+                </div>
+                <p className="text-white/60">
+                  {scheduledShowId
+                    ? "Users who bookmarked this scheduled show. They'll get a reminder when you go live."
+                    : "Bookmarks are tracked for scheduled shows. Schedule a show ahead of time to grow this number."}
+                </p>
+              </div>
+            ),
+          },
+        };
+        const c = cfg[openStat];
+        return (
+          <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={() => setOpenStat(null)}>
+            <div className="w-full max-w-xs rounded-2xl bg-card p-4 shadow-2xl ring-1 ring-white/10" onClick={(e) => e.stopPropagation()}>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-extrabold">{c.title}</p>
+                <button onClick={() => setOpenStat(null)} className="rounded-full p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
+              </div>
+              {c.body}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
