@@ -762,11 +762,13 @@ function TransactionsTab({ orders, ledger }: { orders: any[]; ledger: any[] }) {
 // ---------- Integrity tab ----------
 function IntegrityTab() {
   const runFn = useServerFn(runIntegrityReconciliationFn);
+  const stripeFn = useServerFn(runStripeReconciliationFn);
   const listFn = useServerFn(listIntegrityAlertsFn);
   const resolveFn = useServerFn(resolveIntegrityAlertFn);
   const qc = useQueryClient();
   const [onlyUnresolved, setOnlyUnresolved] = useState(true);
   const [running, setRunning] = useState(false);
+  const [runningStripe, setRunningStripe] = useState(false);
 
   const alerts = useQuery({
     queryKey: ["integrity-alerts", onlyUnresolved],
@@ -785,6 +787,21 @@ function IntegrityTab() {
       toast.error(e?.message ?? "Reconciliation failed");
     } finally {
       setRunning(false);
+    }
+  };
+
+  const runStripeScan = async () => {
+    setRunningStripe(true);
+    try {
+      const r = await stripeFn({ data: { sinceDays: 7, limit: 200 } });
+      toast.success(
+        `Stripe: ${r.checked}/${r.scanned} charges checked · ${r.newAlerts} new · ${r.errors} errors`,
+      );
+      qc.invalidateQueries({ queryKey: ["integrity-alerts"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Stripe reconciliation failed");
+    } finally {
+      setRunningStripe(false);
     }
   };
 
