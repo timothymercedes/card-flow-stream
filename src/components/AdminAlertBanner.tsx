@@ -45,8 +45,14 @@ export function AdminAlertBanner() {
       supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
       supabase.from("disputes").select("id", { count: "exact", head: true }).in("status", ["open", "investigating"]),
       supabase.from("profiles").select("id", { count: "exact", head: true }).in("verification_status", ["pending", "reverify_required"]),
-      supabase.from("orders").select("id", { count: "exact", head: true }).eq("is_late_shipment", true),
-      supabase.from("orders").select("id", { count: "exact", head: true }).gt("payment_failure_count", 0),
+      // Only count shipping issues still unresolved (not yet delivered/cancelled/refunded)
+      supabase.from("orders").select("id", { count: "exact", head: true })
+        .eq("is_late_shipment", true)
+        .not("status", "in", "(delivered,cancelled,refunded)"),
+      // Only count payment issues still failing (not paid/refunded/cancelled)
+      supabase.from("orders").select("id", { count: "exact", head: true })
+        .gt("payment_failure_count", 0)
+        .not("payment_status", "in", "(paid,refunded,cancelled)"),
     ]);
     const next: Counts = {
       reports: reports.count || 0,
@@ -61,6 +67,11 @@ export function AdminAlertBanner() {
     }
     lastTotalRef.current = total;
     setCounts(next);
+    // Auto-clear dismissal once all alerts are resolved, so banner reappears on the next one
+    if (total === 0) {
+      setDismissedAt(0);
+      try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+    }
   }, [soundOn]);
 
   useEffect(() => {
@@ -81,8 +92,18 @@ export function AdminAlertBanner() {
     ch
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "user_reports" } as any, () => refresh())
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "disputes" } as any, () => refresh())
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" } as any, () => refresh())
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "orders" } as any, () => refresh()),
   );
+
+  // Refresh on focus + every 60s to catch resolutions even if realtime misses an event
+  useEffect(() => {
+    if (!isStaff) return;
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    const t = setInterval(refresh, 60000);
+    return () => { window.removeEventListener("focus", onFocus); clearInterval(t); };
+  }, [isStaff, refresh]);
 
   const total = counts.reports + counts.disputes + counts.verifications + counts.shipping + counts.payments;
   if (!isStaff || total === 0 || total <= dismissedAt) return null;
