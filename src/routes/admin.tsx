@@ -13,6 +13,7 @@ import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
 import { adminCreateConnectLoginLink } from "@/server/stripe-connect.functions";
+import { DisputeThread } from "@/components/DisputeThread";
 import { useRealtimeChannel } from "@/lib/realtime";
 
 type Role = "owner" | "admin" | "moderator" | "support";
