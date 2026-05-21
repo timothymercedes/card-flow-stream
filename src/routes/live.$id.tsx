@@ -862,10 +862,13 @@ function LiveDetail() {
     return () => clearInterval(iv);
   }, [selectionDeadline]);
 
-  // 🆕 Block bidding/buying when there's an unpaid order — buyer must settle first
+  // 🆕 Block bidding/buying when there's an unpaid order in THIS stream.
+  // Stream-scoped only — a pending order in a different stream no longer
+  // blocks bidding here. The actual surfacing is via openStreamFixPayment
+  // below (pops FixPaymentModal inline instead of routing to /orders).
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   useEffect(() => {
-    if (!user) {
+    if (!user || !id) {
       setUnpaidOrders(0);
       return;
     }
@@ -874,11 +877,12 @@ function LiveDetail() {
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("buyer_id", user.id)
-        .eq("payment_status", "awaiting_payment")
+        .eq("stream_id", id)
+        .in("payment_status", ["awaiting_payment", "failed"])
         .then(({ count }) => setUnpaidOrders(count ?? 0));
     refresh();
     const ch = supabase
-      .channel(`unpaid-${user.id}`)
+      .channel(`unpaid-${user.id}-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` },
@@ -888,7 +892,7 @@ function LiveDetail() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user?.id]);
+  }, [user?.id, id]);
 
   // 🆕 Phase 3 — auto-charge on auction win.
   // Listen for THIS buyer's awaiting_payment orders in THIS stream. As soon
