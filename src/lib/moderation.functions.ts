@@ -257,7 +257,7 @@ export const updateReportStatusFn = createServerFn({ method: "POST" })
     }
     const { data: after } = await supabaseAdmin
       .from("moderation_reports")
-      .update(patch)
+      .update(patch as any)
       .eq("id", data.reportId)
       .select()
       .maybeSingle();
@@ -359,7 +359,7 @@ export const updateDisputeLifecycleFn = createServerFn({ method: "POST" })
 
     const { data: after } = await supabaseAdmin
       .from("disputes")
-      .update(patch)
+      .update(patch as any)
       .eq("id", data.disputeId)
       .select()
       .maybeSingle();
@@ -504,7 +504,7 @@ export const reviewEvidenceFn = createServerFn({ method: "POST" })
     if (data.status === "locked") patch.locked = true;
     const { data: after } = await supabaseAdmin
       .from("moderation_evidence")
-      .update(patch)
+      .update(patch as any)
       .eq("id", data.evidenceId)
       .select()
       .maybeSingle();
