@@ -92,8 +92,18 @@ export function AdminAlertBanner() {
     ch
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "user_reports" } as any, () => refresh())
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "disputes" } as any, () => refresh())
+      .on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" } as any, () => refresh())
       .on("postgres_changes" as any, { event: "*", schema: "public", table: "orders" } as any, () => refresh()),
   );
+
+  // Refresh on focus + every 60s to catch resolutions even if realtime misses an event
+  useEffect(() => {
+    if (!isStaff) return;
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    const t = setInterval(refresh, 60000);
+    return () => { window.removeEventListener("focus", onFocus); clearInterval(t); };
+  }, [isStaff, refresh]);
 
   const total = counts.reports + counts.disputes + counts.verifications + counts.shipping + counts.payments;
   if (!isStaff || total === 0 || total <= dismissedAt) return null;
