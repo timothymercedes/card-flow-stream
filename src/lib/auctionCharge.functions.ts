@@ -179,13 +179,15 @@ async function performCharge(opts: {
     if (typeof feeData === "number") platformFeeOverride = feeData;
   }
 
-  const fees = calculateFees(totalCents, { isInternational, platformFeeCentsOverride: platformFeeOverride });
-  const feeAbsorbedBy: "buyer" | "seller" = fees.sellerAbsorbedFee > 0 ? "seller" : "buyer";
-
   const commissionRate = Number(order.commission_rate ?? 0.05);
-  const commissionCents = Math.round(totalCents * commissionRate);
-  const applicationFeeWithCommission = fees.applicationFee + commissionCents;
-  const sellerPayoutCents = totalCents - commissionCents - fees.sellerAbsorbedFee;
+  const fees = calculateFees(totalCents, {
+    isInternational,
+    platformFeeCentsOverride: platformFeeOverride,
+    commissionRate,
+  });
+  const feeAbsorbedBy: "buyer" | "seller" = fees.sellerAbsorbedFee > 0 ? "seller" : "buyer";
+  const commissionCents = fees.commissionCents;
+  const sellerPayoutCents = fees.sellerNet;
 
   const idemKey = `auction-charge:${orderId}:${fees.buyerTotal}:${pm.stripe_payment_method_id}`;
 
@@ -197,7 +199,7 @@ async function performCharge(opts: {
       payment_method: pm.stripe_payment_method_id,
       off_session: true,
       confirm: true,
-      application_fee_amount: applicationFeeWithCommission,
+      application_fee_amount: fees.applicationFee,
       transfer_data: { destination: seller.stripe_account_id },
       metadata: {
         kind: "auction_auto_charge",
@@ -209,6 +211,7 @@ async function performCharge(opts: {
         platform_fee_cents: String(fees.platformFee),
         seller_absorbed_fee_cents: String(fees.sellerAbsorbedFee),
         commission_cents: String(commissionCents),
+        processing_fee_cents: String(fees.processingFee),
         intl_fee_cents: String(fees.intlFee),
         seller_payout_cents: String(sellerPayoutCents),
         is_international: String(isInternational),
