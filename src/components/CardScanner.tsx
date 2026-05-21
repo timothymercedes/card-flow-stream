@@ -557,19 +557,26 @@ export function CardScanner({
       });
       if (error) {
         // FunctionsHttpError surfaces the JSON body in error.context
-        let msg = error.message || "Scan failed";
+        let msg = "Scan failed. Try again with better lighting, or use manual search.";
         try {
           const ctx: any = (error as any).context;
           if (ctx?.body) {
             const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
-            if (parsed?.error) msg = parsed.error;
+            // Only surface server-provided user-friendly messages — never raw debug/stack text
+            if (parsed?.error && typeof parsed.error === "string" && parsed.error.length < 200 && !/debug|stack|trace/i.test(parsed.error)) {
+              msg = parsed.error;
+            }
           }
         } catch {}
         toast.error(msg);
         return;
       }
       if ((data as any)?.error) {
-        toast.error((data as any).error);
+        const raw = String((data as any).error);
+        const safe = raw.length < 200 && !/debug|stack|trace/i.test(raw)
+          ? raw
+          : "Scan failed. Try again or use manual search.";
+        toast.error(safe);
         return;
       }
 
