@@ -426,6 +426,20 @@ function Admin() {
                     <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
                   </div>
                 </div>
+                {isAdmin && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button onClick={() => cancelOrder(o)} className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold">Cancel</button>
+                    <button onClick={() => markRefunded(o)} className="rounded-lg bg-blue-500/20 px-2 py-1 text-[10px] font-bold text-blue-500">Refund</button>
+                    {o.stream_id && (
+                      <button onClick={() => removeFromStream(o)} className="rounded-lg bg-amber-500/20 px-2 py-1 text-[10px] font-bold text-amber-500">Remove from stream</button>
+                    )}
+                    <button onClick={() => quickBanFromOrder(o, "buyer")} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban buyer</button>
+                    <button onClick={() => quickBanFromOrder(o, "seller")} className="rounded-lg bg-destructive/20 px-2 py-1 text-[10px] font-bold text-destructive">Ban seller</button>
+                    {o.stream_id && (
+                      <Link to="/shows/$id" params={{ id: o.stream_id }} className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold">Open stream</Link>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             {orders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No orders.</p>}
