@@ -124,6 +124,7 @@ export function LiveSellerDashboard({
   const [mods, setMods] = useState<ModRow[]>([]);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [openUser, setOpenUser] = useState<{ id: string; username: string } | null>(null);
+  const [openStat, setOpenStat] = useState<null | "gross" | "time" | "tips" | "shares" | "saves">(null);
   const [addModSearch, setAddModSearch] = useState("");
   const [, setTick] = useState(0);
 
