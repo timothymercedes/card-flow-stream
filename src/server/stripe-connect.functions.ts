@@ -566,12 +566,26 @@ export const createConnectUpdateLink = createServerFn({ method: "POST" })
       .eq("seller_id", userId)
       .maybeSingle();
     if (!row) throw new Error("No Stripe account connected yet");
-    const link = await stripe.accountLinks.create({
-      account: (row as any).stripe_account_id,
-      return_url: data.returnUrl,
-      refresh_url: data.refreshUrl,
-      type: "account_update",
-    });
+    const accountId = (row as any).stripe_account_id;
+    const makeLink = (type: "account_update" | "account_onboarding") =>
+      stripe.accountLinks.create({
+        account: accountId,
+        return_url: data.returnUrl,
+        refresh_url: data.refreshUrl,
+        type,
+      });
+    let link;
+    try {
+      link = await makeLink("account_update");
+    } catch (e: any) {
+      // Stripe rejects account_update until onboarding is complete.
+      // Fall back to account_onboarding so the seller can finish setup.
+      if (String(e?.message ?? "").includes("account_onboarding")) {
+        link = await makeLink("account_onboarding");
+      } else {
+        throw e;
+      }
+    }
     return { url: link.url };
   });
 
