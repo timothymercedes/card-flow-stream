@@ -214,7 +214,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
 
   function downloadCsv() {
     const rows = [
-      ["Date","Order ID","Item","Buyer","Gross","Platform fee","Processing","Shipping","Promo","Refund","Hold recovery","Net","Status"],
+      ["Date","Order ID","Item","Buyer","Gross","Platform fee","Processing","Shipping","Promo","Refund","Hold recovery","Bundle absorbed","Net","Status"],
       ...breakdowns.map(({ order, ...b }) => [
         new Date(order.created_at).toISOString(),
         order.id,
@@ -222,6 +222,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         buyerNames[order.buyer_id] ?? order.buyer_id,
         b.gross.toFixed(2), b.platformFee.toFixed(2), b.processingFee.toFixed(2),
         b.shipping.toFixed(2), b.promo.toFixed(2), b.refund.toFixed(2), b.recovery.toFixed(2),
+        b.bundleAbsorbed.toFixed(2),
         b.net.toFixed(2), order.status,
       ]),
     ];
