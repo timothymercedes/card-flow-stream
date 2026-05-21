@@ -543,6 +543,28 @@ function LiveDetail() {
   } | null>(null);
   const lastChatTsRef = useRef<number>(0);
 
+  // 🆕 Auto-persist host's shipping price/method to live_streams whenever the
+  // preset or weight changes — so buyers/viewers see the updated price in
+  // real time without waiting for the host to start the next auction.
+  useEffect(() => {
+    if (!isSeller || !stream) return;
+    const price = Number(editShipPrice) || 0;
+    const method = editShipMethod || "";
+    if (
+      price === Number((stream as any).shipping_price || 0) &&
+      method === ((stream as any).shipping_method || "")
+    ) return;
+    const t = setTimeout(() => {
+      supabase
+        .from("live_streams")
+        .update({ shipping_price: price, shipping_method: method })
+        .eq("id", id);
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editShipPrice, editShipMethod, isSeller, id, (stream as any)?.shipping_price, (stream as any)?.shipping_method]);
+
+
   useEffect(() => {
     supabase
       .from("live_streams")
@@ -2680,6 +2702,9 @@ function LiveDetail() {
       snipe_extends: 0,
       snipe_price: buyNow,
       sudden_death_active: false,
+      // 🆕 Carry the host's latest shipping selection so viewers see the right price
+      shipping_price: Number(editShipPrice) || 0,
+      shipping_method: editShipMethod,
       voice_trigger_enabled: editVoiceEnabled,
       voice_trigger_phrase: editVoicePhrase.trim().toLowerCase() || "next",
     };
@@ -5500,14 +5525,14 @@ function LiveDetail() {
                 return (
                   <div
                     key={m.id}
-                    className={`max-w-[95%] rounded-2xl px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-sm backdrop-blur-md ${
+                    className={`max-w-[95%] rounded-2xl border-l-2 px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all ${
                       isBlocked
-                        ? "bg-red-500/30 line-through opacity-60"
+                        ? "border-red-300/60 bg-red-500/25 line-through opacity-60"
                         : isHostMods
-                          ? "bg-fuchsia-600/40 ring-1 ring-fuchsia-300/40"
+                          ? "border-fuchsia-300/70 bg-gradient-to-r from-fuchsia-600/45 to-fuchsia-500/25 ring-1 ring-fuchsia-300/40"
                           : isModOnly
-                            ? "bg-amber-500/30 ring-1 ring-amber-300/40"
-                            : "bg-black/45 ring-1 ring-white/5"
+                            ? "border-amber-300/70 bg-gradient-to-r from-amber-500/35 to-amber-400/20 ring-1 ring-amber-300/40"
+                            : "border-primary/40 bg-gradient-to-r from-black/55 via-black/45 to-black/30 ring-1 ring-white/10"
                     }`}
                   >
                     {(isModOnly || isHostMods) && (
@@ -5654,20 +5679,42 @@ function LiveDetail() {
               <p className="line-clamp-1 max-w-full text-xs font-semibold text-white/90">
                 {stream.current_item || (auctionLive ? "Live auction" : "Waiting for next item")}
               </p>
-              {/* 🆕 Shipping price — visible to buyers/viewers once auction is live */}
-              {auctionLive && (
-                <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-bold text-white/90 ring-1 ring-white/15 backdrop-blur">
-                  📦 Shipping:&nbsp;
-                  {Number(stream.shipping_price || 0) > 0
-                    ? fmtMoney(Number(stream.shipping_price))
-                    : stream.shipping_method
-                      ? stream.shipping_method
-                      : "Free"}
-                  {stream.shipping_method && Number(stream.shipping_price || 0) > 0 && (
-                    <span className="text-white/60">· {stream.shipping_method}</span>
-                  )}
-                </p>
-              )}
+              {/* 🆕 Shipping + estimated buyer total — always visible (not gated on auctionLive)
+                  so viewers see the host's latest shipping price + platform fee + tax
+                  BEFORE they tap "THIS IS MINE". */}
+              {(() => {
+                const ship = Number(stream.shipping_price || 0);
+                const bid = Number(stream.current_bid || 0);
+                const platformFee = 1.23; // flat buyer service fee (matches stripe.server.ts)
+                const estTaxRate = 0.07; // typical US sales tax estimate; final tax at checkout
+                const estTax = Math.max(0, bid + ship) * estTaxRate;
+                const estTotal = bid + ship + platformFee + estTax;
+                return (
+                  <div className="mt-1 flex flex-col items-center gap-1">
+                    <p className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/15 backdrop-blur">
+                      📦 Shipping:&nbsp;
+                      {ship > 0 ? (
+                        <span className="text-emerald-300">{fmtMoney(ship)}</span>
+                      ) : (
+                        <span className="text-amber-300">set by host</span>
+                      )}
+                      {stream.shipping_method && (
+                        <span className="text-white/60">· {stream.shipping_method}</span>
+                      )}
+                    </p>
+                    {auctionLive && bid > 0 && (
+                      <p className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/30 to-fuchsia-500/25 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/20 backdrop-blur">
+                        <span className="text-white/70">Est. total</span>
+                        <span className="tabular-nums text-emerald-200">{fmtMoney(estTotal)}</span>
+                        <span className="text-white/55">
+                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + fee {fmtMoney(platformFee)} + ~tax {fmtMoney(estTax)})
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
             </div>
 
             {/* 🆕 SNIPE buy-now strip (visible to non-sellers when host set a snipe price) */}
