@@ -826,6 +826,13 @@ function IntegrityTab() {
         >
           <RefreshCcw className={`h-3 w-3 ${running ? "animate-spin" : ""}`} /> Run reconciliation
         </button>
+        <button
+          onClick={runStripeScan}
+          disabled={runningStripe}
+          className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground disabled:opacity-50"
+        >
+          <RefreshCcw className={`h-3 w-3 ${runningStripe ? "animate-spin" : ""}`} /> Reconcile with Stripe
+        </button>
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input
             type="checkbox"
