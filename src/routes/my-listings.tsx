@@ -127,46 +127,61 @@ function MyListings() {
     if (filter === "expired") return expired;
     return true;
   });
+  const activeCount = items.filter((l) => !(new Date(l.expires_at).getTime() <= now || l.auction_status === "cancelled")).length;
+  const expiredCount = items.length - activeCount;
+  const counts = { active: activeCount, expired: expiredCount, all: items.length } as const;
 
   return (
     <AppShell>
-      <div className="px-4 py-4">
-        <h1 className="mb-3 text-2xl font-bold">My Listings</h1>
+      <div className="mx-auto w-full max-w-7xl px-4 py-4">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">My Listings</h1>
+            <p className="text-xs text-muted-foreground">{activeCount} active · {expiredCount} expired</p>
+          </div>
+          <Link to="/vault" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]">
+            <Tag className="h-3.5 w-3.5" /> List from Vault
+          </Link>
+        </div>
 
-        <div className="mb-3 flex gap-2">
+        <div className="sticky top-0 z-20 -mx-4 mb-3 flex gap-1.5 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
           {(["active", "expired", "all"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${filter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-              {f[0].toUpperCase() + f.slice(1)}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${filter === f ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>
+              {f[0].toUpperCase() + f.slice(1)} <span className="ml-1 opacity-70">{counts[f]}</span>
             </button>
           ))}
         </div>
 
         {filtered.length === 0 && (
-          <p className="py-12 text-center text-sm text-muted-foreground">No {filter} listings</p>
+          <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
+            <Tag className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+            <p className="text-sm font-semibold">No {filter} listings</p>
+            <p className="mt-1 text-xs text-muted-foreground">List a card to get started.</p>
+          </div>
         )}
 
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((l) => {
             const expired = new Date(l.expires_at).getTime() <= now || l.auction_status === "cancelled";
             const display = getListingPriceDisplay(l);
             return (
-              <div key={l.id} className="flex gap-3 rounded-xl bg-card p-3">
-                <Link to="/market/$id" params={{ id: l.id }} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+              <div key={l.id} className="flex gap-3 rounded-xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]">
+                <Link to="/market/$id" params={{ id: l.id }} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/60">
                   {l.image_url
-                    ? <img src={l.image_url} className="h-full w-full object-cover" alt={l.title} />
+                    ? <img src={l.image_url} loading="lazy" className="h-full w-full object-cover" alt={l.title} />
                     : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                 </Link>
                 <div className="min-w-0 flex-1">
-                  <Link to="/market/$id" params={{ id: l.id }} className="line-clamp-1 text-sm font-semibold">{l.title}</Link>
+                  <Link to="/market/$id" params={{ id: l.id }} className="line-clamp-1 text-sm font-semibold hover:text-primary">{l.title}</Link>
                   {l.category && (
                     <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
                       {categoryEmoji(l.category)} {categoryLabel(l.category)}
                     </span>
                   )}
-                  <p className="text-xs text-primary">
+                  <p className="text-xs font-bold text-primary">
                     {display.kind === "offer" ? "Make Offer" : display.suffix ? `Bid ${display.label}` : display.label}
-                    {l.accepts_offers && <span className="ml-1 text-muted-foreground">• Offers</span>}
+                    {l.accepts_offers && <span className="ml-1 font-normal text-muted-foreground">• Offers</span>}
                   </p>
                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Clock className="h-3 w-3" />
@@ -174,15 +189,15 @@ function MyListings() {
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {expired ? (
-                      <button onClick={() => repost(l)} className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">
+                      <button onClick={() => repost(l)} className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground transition active:scale-[0.98]">
                         <RefreshCw className="h-3 w-3" /> Repost
                       </button>
                     ) : (
-                      <button onClick={() => setEditing(l)} className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold">
+                      <button onClick={() => setEditing(l)} className="flex items-center gap-1 rounded-full bg-card/60 px-2.5 py-1 text-[10px] font-bold ring-1 ring-border/60 transition hover:bg-card">
                         <Pencil className="h-3 w-3" /> Edit
                       </button>
                     )}
-                    <button onClick={() => remove(l.id)} className="flex items-center gap-1 rounded-full bg-destructive/20 px-2.5 py-1 text-[10px] font-bold text-destructive">
+                    <button onClick={() => remove(l.id)} className="flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 text-[10px] font-bold text-destructive transition hover:bg-destructive/25">
                       <Trash2 className="h-3 w-3" /> Delete
                     </button>
                   </div>
@@ -191,10 +206,6 @@ function MyListings() {
             );
           })}
         </div>
-
-        <Link to="/vault" className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-bold text-accent-foreground">
-          <Tag className="h-4 w-4" /> List a card from Vault
-        </Link>
       </div>
 
       {editing && (() => {
