@@ -331,10 +331,10 @@ export function LiveSellerDashboard({
 
           <div className="mt-1 flex gap-0.5 overflow-x-auto pb-0.5">
             <FilterChip id="questions" icon={HelpCircle} label="Q" count={questionMessages.length} />
-            <FilterChip id="buyers" icon={ShoppingBag} label="Buyers" count={watchers.filter((w) => w.role === "buyer").length} />
+            <FilterChip id="buyers" icon={ShoppingBag} label="Buyers" count={new Set(orders.filter((o) => o.payment_status === "paid").map((o) => o.buyer_id)).size} />
             <FilterChip id="mods" icon={Shield} label="Mods" count={watchers.filter((w) => w.role === "mod").length} />
             <FilterChip id="muted" icon={VolumeX} label="Muted" count={watchers.filter((w) => w.role === "muted").length} />
-            <FilterChip id="winners" icon={Trophy} label="Winners" />
+            <FilterChip id="winners" icon={Trophy} label="Winners" count={orders.length} />
             <FilterChip id="pending" icon={CreditCard} label="Pending" count={stats.pendingPayments} />
           </div>
 
@@ -349,7 +349,7 @@ export function LiveSellerDashboard({
                 {chatMessages.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">No chat yet.</p>}
               </>
             )}
-            {tab === "watching" && (
+            {tab === "watching" && filter !== "buyers" && filter !== "pending" && filter !== "winners" && (
               <>
                 {filteredWatchers.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">No watchers in this slice.</p>}
                 {filteredWatchers.map((w) => (
@@ -364,13 +364,66 @@ export function LiveSellerDashboard({
                 ))}
               </>
             )}
-            {tab === "activity" && (
+
+            {/* Buyers / Pending / Winners — clickable order lists, real-time payment status */}
+            {(filter === "buyers" || filter === "pending" || filter === "winners") && (() => {
+              let rows: OrderRow[] = [];
+              if (filter === "buyers") {
+                // unique paid buyers — aggregate by buyer
+                const byBuyer = new Map<string, OrderRow & { count: number; total: number }>();
+                orders.filter((o) => o.payment_status === "paid").forEach((o) => {
+                  const cur = byBuyer.get(o.buyer_id);
+                  if (cur) { cur.count += 1; cur.total += o.amount; }
+                  else byBuyer.set(o.buyer_id, { ...o, count: 1, total: o.amount });
+                });
+                rows = Array.from(byBuyer.values()) as any;
+              } else if (filter === "pending") {
+                rows = orders.filter((o) => ["awaiting_payment", "processing", "failed"].includes(o.payment_status));
+              } else {
+                rows = orders.slice(0, 20);
+              }
+              if (rows.length === 0) {
+                return <p className="p-2 text-center text-[11px] text-white/40">Nothing here yet.</p>;
+              }
+              return rows.map((o: any) => {
+                const isAggregate = filter === "buyers";
+                const badgeCls =
+                  o.payment_status === "paid" ? "bg-emerald-500/30 text-emerald-200" :
+                  o.payment_status === "failed" ? "bg-rose-500/30 text-rose-200" :
+                  o.payment_status === "processing" ? "bg-amber-500/30 text-amber-200" :
+                  "bg-zinc-500/30 text-zinc-200";
+                const badgeLabel =
+                  o.payment_status === "paid" ? "✅" :
+                  o.payment_status === "failed" ? "🔴 failed" :
+                  o.payment_status === "processing" ? "🟡 proc" :
+                  "⏳";
+                return (
+                  <button
+                    key={o.id + (isAggregate ? "-agg" : "")}
+                    onClick={() => setOpenOrderId(o.id)}
+                    className="flex w-full items-center justify-between gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] text-white/90 hover:bg-white/5"
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-bold text-primary">@{o.buyer_username}</span>{" "}
+                      {isAggregate
+                        ? <span className="text-white/60">· {o.count} item{o.count === 1 ? "" : "s"}</span>
+                        : <span className="text-white/70">· {o.title}</span>}
+                    </span>
+                    {!isAggregate && (
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${badgeCls}`}>{badgeLabel}</span>
+                    )}
+                    <span className="shrink-0 font-bold tabular-nums text-emerald-300">
+                      {fmtMoney(isAggregate ? o.total : o.amount)}
+                    </span>
+                  </button>
+                );
+              });
+            })()}
+
+            {tab === "activity" && filter !== "buyers" && filter !== "pending" && filter !== "winners" && (
               <>
                 {activity.length === 0 && <p className="p-2 text-center text-[11px] text-white/40">No activity yet.</p>}
-                {(filter === "pending"
-                  ? activity.filter((a) => a.kind === "order")
-                  : activity
-                ).map((a) => (
+                {activity.map((a) => (
                   <div key={a.id} className="flex items-center justify-between rounded px-1.5 py-0.5 text-[11px] text-white/90">
                     <span className="truncate">
                       <span className={`mr-1 ${a.kind === "tip" ? "text-purple-300" : a.kind === "promo" ? "text-orange-300" : "text-emerald-300"}`}>
@@ -388,6 +441,13 @@ export function LiveSellerDashboard({
           </div>
         </>
       )}
+
+      {openOrderId && (
+        <BuyerOrderPopover orderId={openOrderId} onClose={() => setOpenOrderId(null)} />
+      )}
+    </div>
+  );
+}
     </div>
   );
 }
