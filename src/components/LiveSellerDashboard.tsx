@@ -337,14 +337,14 @@ export function LiveSellerDashboard({
 
 
       <div className={`grid gap-1 ${isFlex ? "grid-cols-3" : "grid-cols-4"}`}>
-        {!isFlex && <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />}
-        {!isFlex && <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} />}
-        <StatTile icon={Users} label="Watching" value={String(livePresenceCount)} accent="ring-primary/20" />
-        <StatTile icon={Clock} label="Time" value={fmtElapsed(showTime)} />
-        <StatTile icon={Gift} label="Tips" value={fmtMoney(stats.tipsAndPromo)} accent="ring-purple-500/20" />
-        <StatTile icon={Share2} label="Shares" value={String(shareCount)} />
-        <StatTile icon={Bookmark} label="Saves" value={String(stats.bookmarks)} />
-        <StatTile icon={CreditCard} label="Pending" value={String(stats.pendingPayments)} accent={stats.pendingPayments > 0 ? "ring-rose-500/30" : ""} />
+        {!isFlex && <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" onClick={() => { setCollapsed(false); setOpenStat("gross"); }} />}
+        {!isFlex && <StatTile icon={ShoppingBag} label="Orders" value={String(stats.orderCount)} onClick={() => { setCollapsed(false); setTab("buyers"); }} />}
+        <StatTile icon={Users} label="Watching" value={String(livePresenceCount)} accent="ring-primary/20" onClick={() => { setCollapsed(false); setTab("watchers"); }} />
+        <StatTile icon={Clock} label="Time" value={fmtElapsed(showTime)} onClick={() => setOpenStat("time")} />
+        <StatTile icon={Gift} label="Tips" value={fmtMoney(stats.tipsAndPromo)} accent="ring-purple-500/20" onClick={() => setOpenStat("tips")} />
+        <StatTile icon={Share2} label="Shares" value={String(shareCount)} onClick={() => setOpenStat("shares")} />
+        <StatTile icon={Bookmark} label="Saves" value={String(stats.bookmarks)} onClick={() => setOpenStat("saves")} />
+        <StatTile icon={CreditCard} label="Pending" value={String(stats.pendingPayments)} accent={stats.pendingPayments > 0 ? "ring-rose-500/30" : ""} onClick={() => { setCollapsed(false); setTab("pending"); }} />
       </div>
 
       {!collapsed && (
