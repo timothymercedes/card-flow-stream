@@ -1117,6 +1117,42 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_integrity_alerts: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          order_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          details?: Json
+          id?: string
+          kind: string
+          order_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          details?: Json
+          id?: string
+          kind?: string
+          order_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -5777,6 +5813,26 @@ export type Database = {
           target_type: string
         }[]
       }
+      admin_list_integrity_alerts: {
+        Args: { _limit?: number; _only_unresolved?: boolean }
+        Returns: {
+          amount_cents: number | null
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          order_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "financial_integrity_alerts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_list_platform_revenue: {
         Args: {
           _kind?: Database["public"]["Enums"]["platform_revenue_kind"]
@@ -5877,6 +5933,10 @@ export type Database = {
         Returns: undefined
       }
       admin_replay_finalize: { Args: { _stream_id: string }; Returns: Json }
+      admin_resolve_integrity_alert: {
+        Args: { _alert_id: string }
+        Returns: undefined
+      }
       admin_revenue_by_period: {
         Args: { _bucket: string; _since?: string; _until?: string }
         Returns: {
@@ -5914,6 +5974,16 @@ export type Database = {
           count: number
           kind: Database["public"]["Enums"]["platform_revenue_kind"]
           total_cents: number
+        }[]
+      }
+      admin_run_financial_reconciliation: {
+        Args: { _since?: string }
+        Returns: {
+          missing_commission: number
+          missing_shipping_margin: number
+          new_alerts: number
+          payout_drift: number
+          scanned_orders: number
         }[]
       }
       admin_set_verification_status: {
@@ -6542,6 +6612,16 @@ export type Database = {
       request_verification: {
         Args: { _kind?: string; _note?: string }
         Returns: Json
+      }
+      run_financial_reconciliation: {
+        Args: { _since?: string }
+        Returns: {
+          missing_commission: number
+          missing_shipping_margin: number
+          new_alerts: number
+          payout_drift: number
+          scanned_orders: number
+        }[]
       }
       run_platform_reconciliation: { Args: never; Returns: Json }
       search_public_profiles: {
