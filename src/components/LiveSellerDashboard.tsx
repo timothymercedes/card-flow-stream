@@ -77,6 +77,8 @@ export function LiveSellerDashboard({
   });
   const [shareCount, setShareCount] = useState<number>(0);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [watchers, setWatchers] = useState<WatcherRow[]>([]);
   const [, setTick] = useState(0);
 
