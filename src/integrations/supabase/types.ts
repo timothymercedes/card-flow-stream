@@ -1029,6 +1029,7 @@ export type Database = {
       }
       disputes: {
         Row: {
+          amount_cents: number | null
           created_at: string
           description: string
           evidence_urls: string[] | null
@@ -1044,9 +1045,12 @@ export type Database = {
           resolved_by: string | null
           status: string
           stream_id: string | null
+          stripe_charge_id: string | null
+          stripe_dispute_id: string | null
           updated_at: string
         }
         Insert: {
+          amount_cents?: number | null
           created_at?: string
           description: string
           evidence_urls?: string[] | null
@@ -1062,9 +1066,12 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           stream_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_dispute_id?: string | null
           updated_at?: string
         }
         Update: {
+          amount_cents?: number | null
           created_at?: string
           description?: string
           evidence_urls?: string[] | null
@@ -1080,6 +1087,8 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           stream_id?: string | null
+          stripe_charge_id?: string | null
+          stripe_dispute_id?: string | null
           updated_at?: string
         }
         Relationships: []
