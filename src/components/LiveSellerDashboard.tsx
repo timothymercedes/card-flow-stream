@@ -54,7 +54,13 @@ type ModRow = { mod_user_id: string; mod_username: string };
 type ChatMsg = { id: string; user_id: string | null; username: string; content: string; created_at: string };
 type Tab = "stats" | "watchers" | "buyers" | "pending" | "winners" | "mods" | "activity" | "chat";
 
-function fmtMoney(n: number) { return `$${(Number(n) || 0).toFixed(0)}`; }
+function fmtMoney(n: number) {
+  const v = Number(n) || 0;
+  if (v >= 10000) return `$${(v / 1000).toFixed(1)}k`;
+  if (v >= 1000) return `$${(v / 1000).toFixed(2)}k`;
+  // Show cents for non-zero small amounts so $1.23 doesn't render as "$1"
+  return v > 0 && v < 100 ? `$${v.toFixed(2)}` : `$${Math.round(v)}`;
+}
 function fmtElapsed(ms: number) {
   if (ms < 0) ms = 0;
   const s = Math.floor(ms / 1000);
@@ -62,6 +68,7 @@ function fmtElapsed(ms: number) {
   const m = Math.floor((s % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
+
 
 async function applyMod(streamId: string, targetId: string, targetUsername: string, action: "mute" | "timeout" | "ban" | "unmute" | "unban", durationSec = 0) {
   if (action === "unmute" || action === "unban") {
@@ -279,47 +286,49 @@ export function LiveSellerDashboard({
   }
 
   const StatTile = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: string }) => (
-    <div className={`flex min-w-0 flex-col rounded-md bg-black/55 px-1.5 py-1 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
-      <div className="flex items-center gap-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/60">
-        <Icon className="h-2 w-2" /> {label}
+    <div className={`flex min-w-0 flex-col rounded-lg bg-black/60 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur ${accent || ""}`}>
+      <div className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-white/60">
+        <Icon className="h-2.5 w-2.5" /> {label}
       </div>
-      <div className="truncate text-xs font-extrabold tabular-nums text-white">{value}</div>
+      <div className="truncate text-sm font-extrabold tabular-nums leading-tight text-white">{value}</div>
     </div>
   );
 
   const TabBtn = ({ id, icon: Icon, label, count }: { id: Tab; icon: any; label: string; count?: number }) => (
     <button
       onClick={() => setTab(id)}
-      className={`flex shrink-0 items-center gap-1 rounded-t-md border-b-2 px-1.5 py-1 text-[10px] font-bold transition ${
+      className={`flex shrink-0 items-center gap-1 rounded-t-md border-b-2 px-2 py-1.5 text-[11px] font-bold transition ${
         tab === id ? "border-primary bg-white/5 text-white" : "border-transparent text-white/55 hover:text-white"
       }`}
     >
-      <Icon className="h-2.5 w-2.5" /> {label}
+      <Icon className="h-3 w-3" /> {label}
       {typeof count === "number" && count > 0 && (
-        <span className="rounded-full bg-white/15 px-1 text-[9px]">{count}</span>
+        <span className="rounded-full bg-primary/30 px-1.5 text-[10px] tabular-nums text-white">{count}</span>
       )}
     </button>
   );
 
   return (
-    <div className="pointer-events-auto flex max-h-[80vh] w-60 flex-col rounded-2xl bg-gradient-to-b from-black/85 via-black/70 to-black/85 p-2 ring-1 ring-white/15 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-      <div className="mb-1.5 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.15em] text-white">
-          <span className="relative flex h-1.5 w-1.5">
+    <div className="pointer-events-auto flex max-h-[80vh] w-72 flex-col rounded-2xl bg-gradient-to-b from-black/90 via-black/75 to-black/90 p-2.5 ring-1 ring-white/15 shadow-[0_10px_36px_-6px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:w-80">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.15em] text-white">
+          <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
           </span>
           Live Dashboard
+
         </p>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
-            {collapsed ? <Maximize2 className="h-2.5 w-2.5" /> : <Minimize2 className="h-2.5 w-2.5" />}
+        <div className="flex items-center gap-1">
+          <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-1 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
+            {collapsed ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
           </button>
-          <button onClick={() => setHidden(true)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title="Hide">
-            <X className="h-2.5 w-2.5" />
+          <button onClick={() => setHidden(true)} className="rounded-full p-1 text-white/70 hover:bg-white/10" title="Hide">
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
+
 
       <div className={`grid gap-1 ${isFlex ? "grid-cols-3" : "grid-cols-4"}`}>
         {!isFlex && <StatTile icon={DollarSign} label="Gross" value={fmtMoney(stats.grossSales)} accent="ring-emerald-500/20" />}
