@@ -54,7 +54,13 @@ type ModRow = { mod_user_id: string; mod_username: string };
 type ChatMsg = { id: string; user_id: string | null; username: string; content: string; created_at: string };
 type Tab = "stats" | "watchers" | "buyers" | "pending" | "winners" | "mods" | "activity" | "chat";
 
-function fmtMoney(n: number) { return `$${(Number(n) || 0).toFixed(0)}`; }
+function fmtMoney(n: number) {
+  const v = Number(n) || 0;
+  if (v >= 10000) return `$${(v / 1000).toFixed(1)}k`;
+  if (v >= 1000) return `$${(v / 1000).toFixed(2)}k`;
+  // Show cents for non-zero small amounts so $1.23 doesn't render as "$1"
+  return v > 0 && v < 100 ? `$${v.toFixed(2)}` : `$${Math.round(v)}`;
+}
 function fmtElapsed(ms: number) {
   if (ms < 0) ms = 0;
   const s = Math.floor(ms / 1000);
@@ -62,6 +68,7 @@ function fmtElapsed(ms: number) {
   const m = Math.floor((s % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
+
 
 async function applyMod(streamId: string, targetId: string, targetUsername: string, action: "mute" | "timeout" | "ban" | "unmute" | "unban", durationSec = 0) {
   if (action === "unmute" || action === "unban") {
