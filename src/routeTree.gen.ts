@@ -62,6 +62,7 @@ import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
 import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
+import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
 
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
@@ -333,6 +334,12 @@ const ApiPublicHooksRefreshVaultValuesRoute =
     path: '/api/public/hooks/refresh-vault-values',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksFinancialReconciliationRoute =
+  ApiPublicHooksFinancialReconciliationRouteImport.update({
+    id: '/api/public/hooks/financial-reconciliation',
+    path: '/api/public/hooks/financial-reconciliation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -439,6 +447,7 @@ export interface FileRoutesByTo {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -495,6 +504,7 @@ export interface FileRoutesById {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/shows/$id/edit'
+    | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/shows/$id/edit'
+    | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
@@ -662,6 +674,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/shows/$id/edit'
+    | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/sync-tcgcsv'
@@ -715,6 +728,7 @@ export interface RootRouteChildren {
   ShowsIndexRoute: typeof ShowsIndexRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
+  ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
   ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
@@ -1094,6 +1108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRefreshVaultValuesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/financial-reconciliation': {
+      id: '/api/public/hooks/financial-reconciliation'
+      path: '/api/public/hooks/financial-reconciliation'
+      fullPath: '/api/public/hooks/financial-reconciliation'
+      preLoaderRoute: typeof ApiPublicHooksFinancialReconciliationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1167,6 +1188,8 @@ const rootRouteChildren: RootRouteChildren = {
   ShowsIndexRoute: ShowsIndexRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
+  ApiPublicHooksFinancialReconciliationRoute:
+    ApiPublicHooksFinancialReconciliationRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
   ApiPublicHooksShowRemindersRoute: ApiPublicHooksShowRemindersRoute,
   ApiPublicHooksSyncTcgcsvRoute: ApiPublicHooksSyncTcgcsvRoute,
