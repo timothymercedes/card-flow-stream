@@ -131,6 +131,7 @@ function PayoutsPage() {
 
   return (
     <SellerAgreementGate>
+    <SellerVerificationGate>
     <div className="container max-w-2xl py-8 space-y-6">
       <div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div>
       <div>
@@ -235,6 +236,7 @@ function PayoutsPage() {
 
       <PayoutBreakdown />
     </div>
+    </SellerVerificationGate>
     </SellerAgreementGate>
   );
 }
