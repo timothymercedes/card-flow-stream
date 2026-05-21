@@ -116,7 +116,7 @@ export function LiveSellerDashboard({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [tab, setTab] = useState<Tab>("watchers");
+  const [tab, setTab] = useState<Tab>("chat");
   const [stats, setStats] = useState<Stats>({ grossSales: 0, orderCount: 0, tipsAndPromo: 0, pendingPayments: 0, bookmarks: 0 });
   const [shareCount, setShareCount] = useState(0);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
@@ -309,7 +309,7 @@ export function LiveSellerDashboard({
   );
 
   return (
-    <div className="pointer-events-auto flex max-h-[80vh] w-72 flex-col rounded-2xl bg-gradient-to-b from-black/90 via-black/75 to-black/90 p-2.5 ring-1 ring-white/15 shadow-[0_10px_36px_-6px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:w-80">
+    <div className="pointer-events-auto flex max-h-[80vh] w-56 flex-col rounded-2xl bg-gradient-to-b from-black/90 via-black/75 to-black/90 p-2 ring-1 ring-white/15 shadow-[0_10px_36px_-6px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:w-64">
       <div className="mb-2 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.15em] text-white">
           <span className="relative flex h-2 w-2">
@@ -344,13 +344,13 @@ export function LiveSellerDashboard({
       {!collapsed && (
         <>
           <div className="mt-1.5 flex gap-0.5 overflow-x-auto border-b border-white/10">
+            <TabBtn id="chat" icon={MessageCircle} label="Chat" />
             <TabBtn id="watchers" icon={Users} label={`Watchers`} count={livePresenceCount} />
             <TabBtn id="buyers" icon={ShoppingBag} label="Buyers" count={distinctBuyers.length} />
             <TabBtn id="pending" icon={CreditCard} label="Pending" count={pendingOrders.length} />
             <TabBtn id="winners" icon={Trophy} label="Winners" count={winners.length} />
             <TabBtn id="mods" icon={Shield} label="Mods" count={mods.length} />
             <TabBtn id="activity" icon={Activity} label="Activity" />
-            <TabBtn id="chat" icon={MessageCircle} label="Chat" />
           </div>
 
           <div className="mt-1 flex-1 overflow-y-auto rounded-lg bg-black/40 p-1 ring-1 ring-white/5" style={{ minHeight: 0 }}>
