@@ -27,7 +27,7 @@ export function StripeCheckout(props: Props) {
   const getKey = useServerFn(getStripePublishableKey);
   const createIntent = useServerFn(createMarketplacePaymentIntent);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; isInternational?: boolean } | null>(null);
+  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; commissionCents?: number; isInternational?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const stripePromise = useMemo(() => getStripeJs(() => getKey()), []);
@@ -41,7 +41,7 @@ export function StripeCheckout(props: Props) {
         });
         if (cancelled) return;
         setClientSecret(res.clientSecret!);
-        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, isInternational: (res as any).isInternational });
+        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, processingFee: (res as any).processingFee, commissionCents: (res as any).commissionCents, isInternational: (res as any).isInternational });
       } catch (e: any) {
         setError(e.message ?? "Failed to start payment");
       }
