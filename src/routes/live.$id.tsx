@@ -2018,6 +2018,32 @@ function LiveDetail() {
     return true;
   }
 
+  // 🆕 If there's an unpaid order in THIS stream, pop FixPaymentModal inline
+  // (instead of routing the buyer away). Returns true when the modal was
+  // opened — callers should bail out so the action doesn't proceed.
+  async function openStreamFixPaymentIfNeeded(): Promise<boolean> {
+    if (!user || !id) return false;
+    if (unpaidOrders <= 0) return false;
+    const { data } = await supabase
+      .from("orders")
+      .select("id,title,amount,stream_id,payment_status")
+      .eq("buyer_id", user.id)
+      .eq("stream_id", id)
+      .in("payment_status", ["failed", "awaiting_payment"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return false;
+    setFailedOrder({
+      id: (data as any).id,
+      title: (data as any).title,
+      amount: Number((data as any).amount),
+      stream_id: (data as any).stream_id,
+    });
+    toast.error("Fix your payment to keep bidding in this stream");
+    return true;
+  }
+
   // 🆕 Anti-snipe: bid in final 3s → +3s. After 3 extensions → SUDDEN DEATH:
   // the very next bid wins instantly. Different (and more savage) than Whatnot.
   async function placeBidAmount(amount: number) {
