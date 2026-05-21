@@ -135,14 +135,14 @@ function Support() {
   return (
     <AppShell>
       <div className="mx-auto max-w-2xl px-4 py-4">
-        <header className="mb-4 flex items-center justify-between">
+        <header className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-primary/15 via-accent/10 to-card p-4 shadow-[var(--shadow-card)] ring-1 ring-border/60">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold"><LifeBuoy className="h-5 w-5" /> Help & Support</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight lg:text-3xl"><LifeBuoy className="h-5 w-5" /> Help & Support</h1>
             <p className="text-xs text-muted-foreground">Browse FAQs or open a ticket — we usually reply within 24h.</p>
           </div>
           <button
             onClick={() => { setShowForm((s) => !s); setActive(null); }}
-            className="flex items-center gap-1 rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+            className="flex items-center gap-1 rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98]"
           >
             <Plus className="h-3.5 w-3.5" /> New ticket
           </button>
