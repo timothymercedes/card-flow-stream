@@ -98,12 +98,12 @@ export function AdminAlertBanner() {
   const dotTone = isRed ? "text-destructive" : isAmber ? "text-amber-400" : "text-blue-400";
   const cta = isRed ? "bg-destructive text-destructive-foreground" : isAmber ? "bg-amber-500 text-amber-950" : "bg-blue-500 text-white";
 
-  const chips: { label: string; n: number; href: string }[] = [];
-  if (counts.reports) chips.push({ label: `${counts.reports} report${counts.reports === 1 ? "" : "s"}`, n: counts.reports, href: "/admin?tab=reports" });
-  if (counts.disputes) chips.push({ label: `${counts.disputes} dispute${counts.disputes === 1 ? "" : "s"}`, n: counts.disputes, href: "/admin?tab=disputes" });
-  if (counts.verifications) chips.push({ label: `${counts.verifications} verification${counts.verifications === 1 ? "" : "s"}`, n: counts.verifications, href: "/admin?tab=verifications" });
-  if (counts.shipping) chips.push({ label: `${counts.shipping} shipping`, n: counts.shipping, href: "/admin?tab=orders&filter=issues" });
-  if (counts.payments) chips.push({ label: `${counts.payments} payment`, n: counts.payments, href: "/admin?tab=orders&filter=issues" });
+  const chips: { label: string; n: number; search: Record<string, string> }[] = [];
+  if (counts.reports) chips.push({ label: `${counts.reports} report${counts.reports === 1 ? "" : "s"}`, n: counts.reports, search: { tab: "reports" } });
+  if (counts.disputes) chips.push({ label: `${counts.disputes} dispute${counts.disputes === 1 ? "" : "s"}`, n: counts.disputes, search: { tab: "disputes" } });
+  if (counts.verifications) chips.push({ label: `${counts.verifications} verification${counts.verifications === 1 ? "" : "s"}`, n: counts.verifications, search: { tab: "verifications" } });
+  if (counts.shipping) chips.push({ label: `${counts.shipping} shipping`, n: counts.shipping, search: { tab: "orders", filter: "issues" } });
+  if (counts.payments) chips.push({ label: `${counts.payments} payment`, n: counts.payments, search: { tab: "orders", filter: "issues" } });
 
   function dismiss() {
     setDismissedAt(total);
@@ -139,7 +139,8 @@ export function AdminAlertBanner() {
         {chips.map((c) => (
           <Link
             key={c.label}
-            to={c.href as any}
+            to="/admin"
+            search={c.search as any}
             className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${cta} hover:opacity-90`}
           >
             {c.label} →
