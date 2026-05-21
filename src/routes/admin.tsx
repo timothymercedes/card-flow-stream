@@ -371,6 +371,11 @@ function Admin() {
           {isAdmin && <button onClick={() => setTab("beta")} className={`pb-2 text-xs font-bold ${tab === "beta" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Beta Invites</button>}
           {isAdmin && <button onClick={() => setTab("revenue")} className={`pb-2 text-xs font-bold ${tab === "revenue" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Revenue</button>}
           {isAdmin && <button onClick={() => setTab("buyer_risk")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "buyer_risk" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><ShieldCheck className="h-3.5 w-3.5" /> Buyer Risk</button>}
+          {isAdmin && <button onClick={() => setTab("mod_users")} className={`pb-2 text-xs font-bold ${tab === "mod_users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Users</button>}
+          {isAdmin && <button onClick={() => setTab("mod_reports")} className={`pb-2 text-xs font-bold ${tab === "mod_reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Reports</button>}
+          {isAdmin && <button onClick={() => setTab("mod_disputes")} className={`pb-2 text-xs font-bold ${tab === "mod_disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Disputes</button>}
+          {isAdmin && <button onClick={() => setTab("evidence")} className={`pb-2 text-xs font-bold ${tab === "evidence" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Evidence</button>}
+          {isAdmin && <button onClick={() => setTab("mod_audit")} className={`pb-2 text-xs font-bold ${tab === "mod_audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Audit</button>}
         </div>
 
         {tab === "reports" && (() => {
