@@ -41,6 +41,8 @@ function PayoutsPage() {
   const getStatus = useServerFn(getMyConnectStatus);
   const sync = useServerFn(syncConnectAccountStatus);
   const createLink = useServerFn(createConnectOnboardingLink);
+  const loginLink = useServerFn(createConnectLoginLink);
+  const updateLink = useServerFn(createConnectUpdateLink);
 
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
