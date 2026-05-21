@@ -36,8 +36,9 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
-type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk";
-const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk"];
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit"];
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
