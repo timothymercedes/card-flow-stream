@@ -35,7 +35,7 @@ async function logAdmin(args: {
   after?: unknown;
   reason?: string;
 }) {
-  await supabaseAdmin.from("admin_action_log").insert({
+  await (supabaseAdmin.from("admin_action_log") as any).insert({
     admin_id: args.admin,
     action: args.action,
     target_table: args.table ?? null,
@@ -61,7 +61,7 @@ async function logEvent(args: {
   evidenceId?: string | null;
   payoutId?: string | null;
 }) {
-  await supabaseAdmin.rpc("log_account_event", {
+  await (supabaseAdmin as any).rpc("log_account_event", {
     _subject_user_id: args.subjectUserId,
     _event_type: args.eventType,
     _summary: args.summary,
@@ -77,6 +77,7 @@ async function logEvent(args: {
     _evidence_id: args.evidenceId ?? null,
   });
 }
+
 
 // ============================================================
 // USER DOSSIER + TIMELINE
