@@ -5922,9 +5922,6 @@ function LiveDetail() {
                 onConfirm={safety.confirmActive}
               />
             )}
-            {isSeller && !ended && stream && (
-              <LiveActivityFeed streamId={id} sellerId={stream.seller_id} className="mt-2" />
-            )}
             {isSeller && !ended && !paused && (safety.inactiveWarning || safety.flexReminder) && (
               <div className="space-y-2 rounded-xl bg-amber-500/15 p-3 ring-1 ring-amber-400/40 backdrop-blur">
                 <p className="text-center text-[11px] font-bold text-amber-100">
