@@ -886,3 +886,172 @@ function IntegrityTab() {
     </div>
   );
 }
+
+// ---------- CSV helper ----------
+function downloadCsv(filename: string, rows: Record<string, any>[]) {
+  if (rows.length === 0) { toast.info("Nothing to export"); return; }
+  const cols = Array.from(rows.reduce((s, r) => { Object.keys(r).forEach((k) => s.add(k)); return s; }, new Set<string>()));
+  const esc = (v: any) => {
+    if (v == null) return "";
+    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- Audit tab (Phase 5) ----------
+function AuditTab({ sinceDays }: { sinceDays?: number }) {
+  const auditFn = useServerFn(getOrdersAuditFn);
+  const [paymentStatus, setPaymentStatus] = useState<string>("paid");
+  const [search, setSearch] = useState("");
+  const [driftOnly, setDriftOnly] = useState(false);
+
+  const q = useQuery({
+    queryKey: ["owner-audit", sinceDays, paymentStatus, search],
+    queryFn: () => auditFn({ data: { sinceDays, limit: 300, paymentStatus: paymentStatus || undefined, search: search || undefined } }),
+  });
+
+  const rows = (q.data?.rows ?? []) as any[];
+  const filtered = driftOnly ? rows.filter((r) => r.hasDrift) : rows;
+  const totals = filtered.reduce(
+    (acc, r) => {
+      acc.subtotal += r.subtotalCents;
+      acc.shipping += r.shippingCents;
+      acc.commission += r.commissionCents;
+      acc.payout += r.payoutCents;
+      acc.labelCost += r.labelCostCents;
+      acc.shipMargin += r.shippingMarginCents;
+      acc.refunded += r.refundedCents;
+      if (r.hasDrift) acc.driftCount += 1;
+      return acc;
+    },
+    { subtotal: 0, shipping: 0, commission: 0, payout: 0, labelCost: 0, shipMargin: 0, refunded: 0, driftCount: 0 },
+  );
+
+  const exportCsv = () => {
+    downloadCsv(
+      `audit-${new Date().toISOString().slice(0, 10)}.csv`,
+      filtered.map((r) => ({
+        order_id: r.id,
+        created_at: r.created_at,
+        paid_at: r.paid_at,
+        title: r.title,
+        seller_id: r.seller_id,
+        buyer_id: r.buyer_id,
+        stream_id: r.stream_id,
+        payment_status: r.payment_status,
+        status: r.status,
+        stripe_charge_id: r.stripe_charge_id,
+        amount_cents: r.amountCents,
+        shipping_cents: r.shippingCents,
+        subtotal_cents: r.subtotalCents,
+        commission_rate: r.commission_rate,
+        commission_cents: r.commissionCents,
+        expected_commission_cents: r.expectedCommission,
+        commission_drift_cents: r.commissionDrift,
+        seller_payout_cents: r.payoutCents,
+        expected_payout_cents: r.expectedPayout,
+        payout_drift_cents: r.payoutDrift,
+        sum_drift_cents: r.sumDrift,
+        label_cost_cents: r.labelCostCents,
+        shipping_margin_cents: r.shippingMarginCents,
+        refunded_cents: r.refundedCents,
+        verified_at: r.shipment_verified_at,
+      })),
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={paymentStatus}
+          onChange={(e) => setPaymentStatus(e.target.value)}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+        >
+          <option value="">All payment states</option>
+          <option value="paid">Paid</option>
+          <option value="awaiting_payment">Awaiting payment</option>
+          <option value="refunded">Refunded</option>
+          <option value="failed">Failed</option>
+        </select>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search title…"
+          maxLength={120}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+        />
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <input type="checkbox" checked={driftOnly} onChange={(e) => setDriftOnly(e.target.checked)} className="h-3 w-3" />
+          Only with drift
+        </label>
+        <button onClick={exportCsv} className="ml-auto inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-xs font-bold text-background">
+          <ArrowDownToLine className="h-3 w-3" /> Export CSV
+        </button>
+      </div>
+
+      {/* Totals */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        <Stat icon={<ShoppingBag className="h-3 w-3" />} label="Orders" value={String(filtered.length)} sub={`${totals.driftCount} w/ drift`} accent={totals.driftCount > 0 ? "text-destructive" : undefined} />
+        <Stat icon={<Receipt className="h-3 w-3" />} label="Subtotal" value={fmt(totals.subtotal)} />
+        <Stat icon={<TrendingUp className="h-3 w-3" />} label="Commission" value={fmt(totals.commission)} accent="text-primary" />
+        <Stat icon={<Wallet className="h-3 w-3" />} label="Seller payout" value={fmt(totals.payout)} accent="text-emerald-500" />
+        <Stat icon={<Truck className="h-3 w-3" />} label="Shipping" value={fmt(totals.shipping)} sub={`Label ${fmt(totals.labelCost)}`} />
+        <Stat icon={<Wallet className="h-3 w-3" />} label="Ship margin" value={fmt(totals.shipMargin)} accent={totals.shipMargin >= 0 ? "text-emerald-500" : "text-destructive"} />
+        <Stat icon={<TrendingDown className="h-3 w-3" />} label="Refunded" value={fmt(totals.refunded)} accent="text-destructive" />
+      </div>
+
+      <Section title={`Per-order audit (${filtered.length})`} right={<span className="text-[10px] text-muted-foreground">Drift &gt; $0.02 highlighted</span>}>
+        {q.isLoading ? (
+          <p className="text-xs text-muted-foreground">Loading…</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No orders match the current filters.</p>
+        ) : (
+          <div className="max-h-[28rem] overflow-auto">
+            <table className="w-full text-[11px]">
+              <thead className="sticky top-0 bg-card text-muted-foreground">
+                <tr className="text-left">
+                  <th className="py-1 pr-2">When</th>
+                  <th className="pr-2">Title</th>
+                  <th className="pr-2">Status</th>
+                  <th className="pr-2 text-right">Subtotal</th>
+                  <th className="pr-2 text-right">Comm</th>
+                  <th className="pr-2 text-right">Payout</th>
+                  <th className="pr-2 text-right">Ship</th>
+                  <th className="pr-2 text-right">Label</th>
+                  <th className="pr-2 text-right">Margin</th>
+                  <th className="pr-2 text-right">Drift</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r) => (
+                  <tr key={r.id} className={`border-t border-border/40 ${r.hasDrift ? "bg-destructive/5" : ""}`}>
+                    <td className="py-1 pr-2 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td className="pr-2 max-w-[16ch] truncate" title={r.title}>{r.title}</td>
+                    <td className="pr-2"><StatusPill status={r.payment_status} /></td>
+                    <td className="pr-2 text-right tabular-nums">{fmt(r.subtotalCents)}</td>
+                    <td className="pr-2 text-right tabular-nums text-primary">{fmt(r.commissionCents)}</td>
+                    <td className="pr-2 text-right tabular-nums text-emerald-500">{fmt(r.payoutCents)}</td>
+                    <td className="pr-2 text-right tabular-nums text-muted-foreground">{fmt(r.shippingCents)}</td>
+                    <td className="pr-2 text-right tabular-nums text-muted-foreground">{fmt(r.labelCostCents)}</td>
+                    <td className={`pr-2 text-right tabular-nums ${r.shippingMarginCents >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(r.shippingMarginCents)}</td>
+                    <td className={`pr-2 text-right tabular-nums font-bold ${r.hasDrift ? "text-destructive" : "text-muted-foreground"}`}>
+                      {r.hasDrift ? fmt(r.sumDrift || r.commissionDrift || r.payoutDrift) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
