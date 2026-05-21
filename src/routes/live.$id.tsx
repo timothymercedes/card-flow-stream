@@ -1611,6 +1611,17 @@ function LiveDetail() {
     if (!safety.inactiveWarning) inactivityNotifiedRef.current = false;
   }, [safety.inactiveWarning]);
 
+  // Bundle-fee preview: items 1-3 in this stream → buyer pays $1.23, items 4+ → $0.
+  const previewFee = useServerFn(previewBuyerFee);
+  const [bundleFee, setBundleFee] = useState<{ platformFeeCents: number; nextItemIndex: number; threshold: number; bundleDiscountActive: boolean } | null>(null);
+  useEffect(() => {
+    if (!id || isSeller) return;
+    let cancelled = false;
+    previewFee({ data: { streamId: id } }).then((r: any) => { if (!cancelled) setBundleFee(r); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [id, isSeller, previewFee, stream?.round_number]);
+
+
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
   // multi-guest tiles overlaid on the HLS broadcast — no mic/cam permission required.
   // In compositor mode, cohosts are already baked into the HLS feed, so regular
