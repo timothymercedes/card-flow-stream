@@ -207,6 +207,18 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     );
     if (subtotalCents < 50) throw new Error("Amount too low");
 
+    // Phase 11: buyer risk restrictions. Block purchase if frozen / blocked
+    // or above an admin-applied cents_limit.
+    {
+      const { data: canBuy } = await (supabaseAdmin.rpc as any)(
+        "buyer_can_purchase",
+        { _user_id: userId, _amount_cents: subtotalCents },
+      );
+      if (canBuy === false) {
+        throw new Error("Your account is currently restricted from making purchases. Contact support.");
+      }
+    }
+
     // International detection: compare buyer's profile country with the
     // seller's Stripe Connect account country. If either is outside the
     // USA, apply the 4% international processing fee.

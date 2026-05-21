@@ -150,6 +150,26 @@ async function performCharge(opts: {
   // amount and shipping_amount are stored as decimal dollars.
   const totalCents = Math.round(Number(order.amount) * 100);
 
+  // Phase 11: buyer risk restrictions — block frozen/blocked accounts and
+  // enforce admin-applied bid_limit (cents_limit).
+  {
+    const { data: canBuy } = await (supabaseAdmin.rpc as any)(
+      "buyer_can_purchase",
+      { _user_id: userId, _amount_cents: totalCents },
+    );
+    if (canBuy === false) {
+      await markFailed({
+        orderId,
+        userId,
+        prevFailureCount: order.payment_failure_count ?? 0,
+        message: "Account restricted",
+        title: order.title,
+        streamId: order.stream_id ?? null,
+      });
+      return { status: "failed", message: "Your account is currently restricted from bidding/purchases." };
+    }
+  }
+
   // Buyer country (for intl fee) and seller country for the international flag.
   const { data: buyerProfile } = await supabaseAdmin
     .from("profiles")
