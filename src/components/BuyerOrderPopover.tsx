@@ -57,7 +57,7 @@ export function BuyerOrderPopover({
       const { data: prof } = await supabase
         .from("profiles")
         .select("username")
-        .eq("user_id", (data as any).buyer_id)
+        .eq("id", (data as any).buyer_id)
         .maybeSingle();
       if (!cancelled) setUsername((prof as any)?.username ?? "buyer");
     }
