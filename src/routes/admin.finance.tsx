@@ -890,7 +890,7 @@ function IntegrityTab() {
 // ---------- CSV helper ----------
 function downloadCsv(filename: string, rows: Record<string, any>[]) {
   if (rows.length === 0) { toast.info("Nothing to export"); return; }
-  const cols = Array.from(rows.reduce((s, r) => { Object.keys(r).forEach((k) => s.add(k)); return s; }, new Set<string>()));
+  const cols = Array.from(rows.reduce((s: Set<string>, r) => { Object.keys(r).forEach((k) => s.add(k)); return s; }, new Set<string>()));
   const esc = (v: any) => {
     if (v == null) return "";
     const s = typeof v === "object" ? JSON.stringify(v) : String(v);
