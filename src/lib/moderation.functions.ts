@@ -107,9 +107,16 @@ export const getUserDossierFn = createServerFn({ method: "POST" })
         supabaseAdmin
           .from("buyer_restrictions")
           .select("*")
-          .eq("buyer_id", uid)
+          .eq("user_id", uid)
           .order("created_at", { ascending: false }),
-        supabaseAdmin.from("buyer_risk_scores").select("*").eq("buyer_id", uid).maybeSingle(),
+        supabaseAdmin
+          .from("buyer_review_queue")
+          .select("*")
+          .eq("buyer_id", uid)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+
         Promise.all([
           supabaseAdmin
             .from("orders")
