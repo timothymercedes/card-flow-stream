@@ -11,6 +11,7 @@ import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { isValidShippingAddress, validateAddress, type ShippingAddress } from "@/lib/address";
+import { BuyerRestrictionBanner } from "@/components/BuyerRestrictionBanner";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -106,6 +107,10 @@ function Cart() {
           <WatchTutorial routePath="/cart" label="Checkout help" />
         </div>
         <p className="mb-4 text-xs text-muted-foreground">Pay once per seller — combined shipping is already applied.</p>
+
+        <div className="mb-3"><BuyerRestrictionBanner /></div>
+
+
 
         {Object.keys(groups).length === 0 && (
           <div className="rounded-xl bg-card p-8 text-center">
