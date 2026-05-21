@@ -57,7 +57,7 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
     await supabase.from("notifications").insert({
       user_id: otherId,
       sender_id: user.id,
-      type: "order_cancel",
+      type: "order",
       body: `${profile?.username || "User"} requested cancellation on "${order.title}"`,
       link: role === "buyer" ? "/store" : "/orders",
     });
@@ -169,13 +169,6 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
                       status: "cancelled",
                       resolved_at: new Date().toISOString(),
                       messages: [{ user_id: user.id, username: profile?.username || "seller", role: "seller", body: reason.trim(), at: new Date().toISOString() }],
-                    });
-                    await supabase.from("notifications").insert({
-                      user_id: order.buyer_id,
-                      sender_id: user.id,
-                      type: "order_cancel",
-                      body: `Seller cancelled your order "${order.title}"${paid ? " — refund pending" : ""}`,
-                      link: "/orders",
                     });
                     setBusy(false);
                     toast.success("Order cancelled");

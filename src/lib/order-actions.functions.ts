@@ -69,15 +69,5 @@ export const cancelOrderAction = createServerFn({ method: "POST" })
         .eq("user_id", (order as any).buyer_id);
     }
 
-    if ((order as any).buyer_id !== userId) {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: (order as any).buyer_id,
-        sender_id: userId,
-        type: "order_cancel",
-        body: `Order cancelled: \"${(order as any).title}\"${data.reason ? ` — ${data.reason}` : ""}`,
-        link: (order as any).stream_id ? `/live/${(order as any).stream_id}` : "/orders",
-      });
-    }
-
     return { order: updated };
   });
