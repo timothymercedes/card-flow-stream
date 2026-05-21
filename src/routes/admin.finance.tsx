@@ -233,6 +233,8 @@ function OwnerFinanceDashboard() {
             ["shipping", "Shipping"],
             ["refunds", "Refunds"],
             ["transactions", "Transactions"],
+            ["integrity", "Integrity"],
+
           ] as [TabKey, string][]).map(([k, l]) => (
             <button
               key={k}
