@@ -94,36 +94,48 @@ export const syncConnectAccountStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
-    const stripe = getStripe();
 
-    const { data: row } = await supabaseAdmin
-      .from("stripe_accounts")
-      .select("stripe_account_id")
-      .eq("seller_id", userId)
-      .maybeSingle();
+    try {
+      const stripe = getStripe();
 
-    if (!row) return { connected: false };
+      const { data: row } = await supabaseAdmin
+        .from("stripe_accounts")
+        .select("stripe_account_id")
+        .eq("seller_id", userId)
+        .maybeSingle();
 
-    const account = await stripe.accounts.retrieve((row as any).stripe_account_id);
+      if (!row || !(row as any).stripe_account_id) {
+        return { connected: false as const };
+      }
 
-    await supabaseAdmin
-      .from("stripe_accounts")
-      .update({
+      const account = await stripe.accounts.retrieve((row as any).stripe_account_id);
+
+      await supabaseAdmin
+        .from("stripe_accounts")
+        .update({
+          charges_enabled: account.charges_enabled,
+          payouts_enabled: account.payouts_enabled,
+          details_submitted: account.details_submitted,
+          country: account.country,
+          default_currency: account.default_currency,
+        })
+        .eq("seller_id", userId);
+
+      return {
+        connected: true as const,
         charges_enabled: account.charges_enabled,
         payouts_enabled: account.payouts_enabled,
         details_submitted: account.details_submitted,
-        country: account.country,
-        default_currency: account.default_currency,
-      })
-      .eq("seller_id", userId);
-
-    return {
-      connected: true,
-      charges_enabled: account.charges_enabled,
-      payouts_enabled: account.payouts_enabled,
-      details_submitted: account.details_submitted,
-    };
+      };
+    } catch (e: any) {
+      console.error("syncConnectAccountStatus failed", e);
+      return {
+        connected: false as const,
+        error: e?.message ?? "Failed to sync Stripe status",
+      };
+    }
   });
+
 
 /**
  * Get the seller's current Connect status from our database.
