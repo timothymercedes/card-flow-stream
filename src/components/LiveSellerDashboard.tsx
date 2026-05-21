@@ -344,13 +344,13 @@ export function LiveSellerDashboard({
       {!collapsed && (
         <>
           <div className="mt-1.5 flex gap-0.5 overflow-x-auto border-b border-white/10">
+            <TabBtn id="chat" icon={MessageCircle} label="Chat" />
             <TabBtn id="watchers" icon={Users} label={`Watchers`} count={livePresenceCount} />
             <TabBtn id="buyers" icon={ShoppingBag} label="Buyers" count={distinctBuyers.length} />
             <TabBtn id="pending" icon={CreditCard} label="Pending" count={pendingOrders.length} />
             <TabBtn id="winners" icon={Trophy} label="Winners" count={winners.length} />
             <TabBtn id="mods" icon={Shield} label="Mods" count={mods.length} />
             <TabBtn id="activity" icon={Activity} label="Activity" />
-            <TabBtn id="chat" icon={MessageCircle} label="Chat" />
           </div>
 
           <div className="mt-1 flex-1 overflow-y-auto rounded-lg bg-black/40 p-1 ring-1 ring-white/5" style={{ minHeight: 0 }}>
