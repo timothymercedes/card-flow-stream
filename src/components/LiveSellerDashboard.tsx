@@ -116,7 +116,7 @@ export function LiveSellerDashboard({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [tab, setTab] = useState<Tab>("watchers");
+  const [tab, setTab] = useState<Tab>("chat");
   const [stats, setStats] = useState<Stats>({ grossSales: 0, orderCount: 0, tipsAndPromo: 0, pendingPayments: 0, bookmarks: 0 });
   const [shareCount, setShareCount] = useState(0);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
