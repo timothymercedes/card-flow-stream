@@ -369,6 +369,7 @@ function Admin() {
           {isAdmin && <button onClick={() => setTab("audit")} className={`pb-2 text-xs font-bold ${tab === "audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Audit Log</button>}
           {isAdmin && <button onClick={() => setTab("beta")} className={`pb-2 text-xs font-bold ${tab === "beta" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Beta Invites</button>}
           {isAdmin && <button onClick={() => setTab("revenue")} className={`pb-2 text-xs font-bold ${tab === "revenue" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Revenue</button>}
+          {isAdmin && <button onClick={() => setTab("buyer_risk")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "buyer_risk" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><ShieldCheck className="h-3.5 w-3.5" /> Buyer Risk</button>}
         </div>
 
         {tab === "reports" && (() => {
@@ -666,6 +667,7 @@ function Admin() {
         {tab === "audit" && isAdmin && <AuditLogsAdmin />}
         {tab === "beta" && isAdmin && <BetaInvitesAdmin />}
         {tab === "revenue" && isAdmin && <PlatformRevenueAdmin />}
+        {tab === "buyer_risk" && isAdmin && <BuyerRiskQueue />}
       </div>
     </AppShell>
   );
