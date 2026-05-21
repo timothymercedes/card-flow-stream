@@ -1,73 +1,75 @@
-# Live System Stabilization — Phase 3.3
+# Plan — Three workstreams
 
-Big scope, so I'm grouping it into 5 workstreams. I'll execute them in order in one go unless you want to split.
+This touches **payments logic**, so I'm pausing for approval before shipping.
 
-## 1. Auto-end ghost streams (host inactivity)
+---
 
-Today: `useLivestreamSafety` already polls `apply_live_stream_safety` every 60s and surfaces `inactiveWarning` / `autoEndDue`. But the warning toast/modal isn't wired, and the auto-end RPC doesn't actually flip `status='ended'` reliably.
+## 1. Bundle-aware platform fee (live streams + cart)
 
-Fix:
-- DB: harden `apply_live_stream_safety(_stream_id)` → if `now() - last_activity_at > tier.inactive_auto_end_minutes` AND no `host_active_confirmed_at` in the last `inactive_warning_minutes`, set `status='ended'`, `ended_at=now()`, `end_reason='inactivity_auto_end'`. Cancel any in-flight auction round.
-- DB: new `pg_cron` job every 2 min calling a `sweep_inactive_streams()` function so it works even when the host's tab is closed.
-- UI: new `HostInactivityCheckModal` — appears at `inactiveWarning`, big "I'm still here" button → calls `confirm_live_stream_active`. 5-min countdown. If ignored → stream auto-ends + buyers see "Stream ended by host inactivity" banner.
+Replace the flat $1.23 per item with a **per-buyer-per-session threshold model**.
 
-## 2. Shipping price sync (host → viewer → auction → checkout)
+### Rule
+- Fee applies to **first 3 items** a buyer wins in the same live stream (or first 3 items in a cart bundle).
+- Items 4+ in the same group → **buyer fee = $0**, seller absorbs equivalent fee (deducted from payout).
+- "Session" = same `stream_id` for live wins, same `cart_id` for marketplace bundles.
 
-Today: host can set `shipping_price` + `shipping_method` + `shipping_service_tier`, debounced auto-save works, but the auction round inherits `shipping_amount` from a stale snapshot, and viewer's "Est. total" pulls from `live_streams` instead of the live `auction_rounds` row.
+### Numbers (proposed — confirm if different)
+- Items 1–3: buyer pays `$1.23` per item (current rate, kept for continuity).
+- Items 4+: buyer pays `$0`; seller payout reduced by `$0.75` per item (≈ Stripe processing cost).
 
-Fix:
-- DB: `start_auction_round()` and `quickStartAuction` patch — always snapshot `shipping_price`, `shipping_method`, `shipping_service_tier` from `live_streams` at round start. `finalize_auction_round` uses the round's snapshot (not the stream's current value) so mid-round shipping changes don't change a buyer's invoice.
-- UI: single `useStreamShipping(streamId)` hook → returns `{ price, tier, label, capRemaining }`. Replace 3 hard-coded shipping reads in `live.$id.tsx`, `BuyerOrderPopover`, and `StripeCheckout`.
-- Buyer UI: shipping chip now reads from the live `auction_rounds.shipping_amount` while a round is active, else from `live_streams`. Always visible — never "Free shipping" unless the $7 USA cap actually triggered. Show "🇺🇸 $X.XX of $7 cap used" beneath.
+### DB
+- New SQL function `compute_buyer_fee(_buyer_id, _stream_id, _cart_id) → cents` — counts prior paid items in the group and returns 0 once threshold is crossed.
+- New columns on `orders`: `fee_index` (1,2,3,4…), `fee_absorbed_by` (`'buyer' | 'seller'`).
+- `finalize_auction_round` + cart checkout call `compute_buyer_fee` instead of using constant.
 
-## 3. Guest browsing (remove forced auth)
+### Code
+- `src/lib/stripe.server.ts` → `calculateBuyerFees()` takes `{ subtotalCents, buyerId, streamId?, cartId? }`, queries the RPC, returns dynamic `platformFee`.
+- `src/lib/auctionCharge.functions.ts` + Stripe webhook → store `fee_index` + `fee_absorbed_by`, adjust `application_fee` on transfer accordingly.
+- UI breakdown in `StripeCheckout.tsx` + live "I want this" panel in `live.$id.tsx`:
+  - Items 1–3: `Platform fee: $1.23 ✓`
+  - Items 4+: `Platform fee: $0.00 — bundle discount (seller covers)`
+  - Show running counter "Item 2 of 3 before bundle savings".
+- Seller earnings hub (`SellerEarningsHub.tsx`) → new line `Bundle fees absorbed: -$X.XX`.
 
-Audit shows several public-intent routes throw to `/login` during SSR. Fix list:
-- `/live/$id`, `/live` (index), `/market`, `/market/$id`, `/seller/$username`, `/discover`, `/shows`, `/shows/$id`, `/showoff`, `/stories`, `/feed` (read-only mode), `/` → public.
-- Replace loader-level `requireSupabaseAuth` calls with public `createServerFn` variants that use `supabaseAdmin` + explicit safe-column projection.
-- Components gate **actions** (bid, buy, chat, follow, message, sell, bookmark, tip) through the existing `useAuthGate` modal. Guest can watch a livestream, hear audio, see chat, see auction state — but tapping any action opens `AuthGateModal`.
-- Chat: guests see messages, input is replaced with "Sign in to chat" button.
+---
 
-## 4. Dashboard rebuild (`LiveSellerDashboard`)
+## 2. Auto-end inactive streams from the stream screen
 
-Today's dashboard mixes mocked data and real RPCs, and the chip filter is broken ("Watching 1 · No watchers in this slice"). Full rebuild:
+Wire the existing pieces (cron sweep + `HostInactivityCheckModal` + `confirm_live_stream_active` RPC) into `/live/$id`.
 
-**Tabs:**
-- **Watchers** — `useStreamPresence` viewers, virtualized list. Row → `UserActionsMenu` (mute/timeout/block/promote-to-mod/open profile).
-- **Buyers** — distinct buyers with `payment_status='paid'` for this stream. Row → `BuyerOrderPopover` (already exists).
-- **Pending** — orders in `awaiting_payment / processing / failed` for this stream. Realtime flip to ✅ Paid when buyer fixes card.
-- **Winners** — `auction_rounds` where `status='settled'`, ordered desc. Tap → order popover.
-- **Mods** — list of `stream_moderators`. Add: search user → invite. Remove: trash icon. Realtime.
-- **Activity** — unified feed from `stream_events` (joins/leaves), `bids`, `orders`, `follows`, `stream_shares`, `stream_bookmarks`, `moderation_actions`, `giveaway_events`. Single realtime channel `dash-${streamId}`.
+- Subscribe to `live_streams` row; when `now() - last_activity_at` crosses `tier.inactive_warning_minutes`, mount `HostInactivityCheckModal` for the host with a 5-min countdown to `inactive_auto_end_minutes`.
+- "I'm still here" → `confirm_live_stream_active` RPC → resets timers.
+- No response → existing `sweep_inactive_streams()` cron flips status to `ended` within 2 min. Viewers see "Stream ended (host inactive)" banner via existing realtime subscription.
+- Host-side heartbeat from `useLivestreamSafety` already touches `last_activity_at` every 20s when mic/camera active — no change needed.
 
-**Stats strip (top, sticky):** Gross sales (sum paid orders), Orders (count), Shares, Bookmarks, Tips, Watchers (live presence count). All driven by a single `useLiveDashboardStats(streamId)` hook subscribed to relevant tables.
+---
 
-**Moderation workflows:**
-- New table `stream_moderation_actions (id, stream_id, target_user_id, mod_user_id, action enum[mute|timeout|block|unmute|unblock], duration_sec, reason, created_at)`.
-- RPC `apply_stream_moderation(stream_id, target, action, duration)` — RLS: only host or active mod.
-- Chat respects active mute/timeout/block (existing `chat_messages` insert policy gets a `NOT EXISTS active_block` check).
+## 3. Scanner upgrade (speed + multilingual accuracy)
 
-**Layout fixes:** ScrollArea with `min-h-0` on flex parent (the current bug), sticky tab bar, mobile-first 100dvh on `/live` so dashboard doesn't overflow the viewport on the 762×672 you're testing in.
+`supabase/functions/scan-card/index.ts` + `src/components/CardScanner.tsx`.
 
-## 5. Cleanup / dead UI
+### Speed
+- Already moved to `gemini-3.1-flash-lite-preview` last turn. Add: skip identity-fingerprint round-trip when confidence ≥ 0.9 — return cached catalog match immediately. Target p50 ≤ 4 s.
 
-- Remove placeholder chips on dashboard with no handler.
-- Remove the "No watchers in this slice" branch when count > 0 (was a stale filter).
-- Audit empty states: every tab gets a real empty state with a CTA.
+### Two-stage detection
+1. **Stage 1 (fast, ~1 s)**: tiny prompt → `{ language, game, is_holo, is_reverse_holo }`. Detects language first.
+2. **Stage 2**: language-scoped prompt asks for `{ name (in native script + romanized), set_name, set_code, collector_number, rarity, artwork_hash }`. Routes to language-specific catalog (`pokemon-jp`, `pokemon-kr`, `pokemon-zh-s`, `pokemon-zh-t`, `pokemon-es`, `pokemon-fr`, `pokemon-de`, `pokemon-en` default).
 
-## Out of scope this turn
-- Full mod role hierarchy (head mod vs mod) — single `mod` role only.
-- Replacing Cloudflare presence with a custom WebSocket — staying on `useStreamPresence`.
-- Stripe Connect payout flow changes.
-- Email/push notifications for moderation actions.
+### Catalog
+- `card-catalog` edge function gets `?lang=` param. Queries `card_identities` filtered by `language` column (add column + index if missing).
+- Low-confidence (<0.7) → return top-5 alternates → existing "Did you mean?" grid in `CardScanner` already renders these.
+
+### UX
+- Debug panel already gated behind `localStorage.pbl_scanner_debug` — keep.
+- User-facing errors: replace any `error.message` surface with friendly copy + "Try again" / "Search manually" buttons.
+
+---
 
 ## Order of work
-1. DB migration (auto-end + cron, moderation table, round shipping snapshot)
-2. Public route audit + guest gate refactor
-3. Shipping sync hook + UI rewires
-4. Dashboard rebuild (tabs, stats, mod actions, activity feed)
-5. Inactivity modal + polish pass
 
-Likely ~12–15 file edits + 1 migration + 1 cron job. I'll batch aggressively.
+1. Migration: `compute_buyer_fee` function, `orders.fee_index/fee_absorbed_by`, `card_identities.language` column.
+2. Backend: `stripe.server.ts`, `auctionCharge.functions.ts`, webhook.
+3. UI: `StripeCheckout.tsx`, `live.$id.tsx` fee breakdown + inactivity modal wiring.
+4. Scanner: two-stage detect + language-aware catalog.
 
-**Want me to ship all 5 in this turn, or split (e.g. 1+3+5 stability first, 2+4 rebuild second)?**
+**Reply "go" to ship all three, or tell me to adjust fee numbers / threshold first.**
