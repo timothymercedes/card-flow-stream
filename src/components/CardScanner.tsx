@@ -699,7 +699,7 @@ export function CardScanner({
         reader.onerror = () => reject(new Error("Could not read file"));
         reader.readAsDataURL(file);
       });
-      const resized = await downscaleDataUrl(dataUrl, multi ? 1600 : 1024);
+      const resized = await downscaleDataUrl(dataUrl, multi ? 1400 : 832);
       await capture(resized);
     } catch (err: any) {
       toast.error(err?.message || "Could not load image");
