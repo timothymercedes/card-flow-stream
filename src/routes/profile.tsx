@@ -230,38 +230,41 @@ function Profile() {
 
   return (
     <AppShell>
-      <div className="px-4 py-6 space-y-5">
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 space-y-5">
         <LiveNowPill />
-        <div className="flex items-center gap-3">
-          <label className="relative h-16 w-16 cursor-pointer overflow-hidden rounded-full bg-primary">
-            {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (
-              <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-primary-foreground">{p.username?.[0]?.toUpperCase() || "?"}</div>
-            )}
-            <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
-            <span className="absolute bottom-0 right-0 rounded-full bg-black/60 p-1"><Upload className="h-3 w-3 text-white" /></span>
-          </label>
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold">@{p.username}</p>
-            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-            {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">User ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
-            <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
-              <button onClick={() => openList("followers")} className="hover:text-foreground">
-                <span className="font-bold text-foreground">{followers}</span> followers
-              </button>
-              <button onClick={() => openList("following")} className="hover:text-foreground">
-                <span className="font-bold text-foreground">{following}</span> following
-              </button>
-            </div>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {sellerCompleted >= 100 && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">✓ Verified Seller</span>}
-              {buyerCompleted >= 35 && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-500">✓ Verified Buyer</span>}
-              <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
-              <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
-              
-              <Badge status={p.seller_status || "none"} label="Seller" />
+        <div className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/20 via-accent/10 to-card p-5 shadow-[var(--shadow-card)]">
+          <div className="flex items-center gap-4">
+            <label className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-full bg-primary ring-2 ring-border/60 shadow-[var(--shadow-md)]">
+              {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (
+                <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-primary-foreground">{p.username?.[0]?.toUpperCase() || "?"}</div>
+              )}
+              <input type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
+              <span className="absolute bottom-0 right-0 rounded-full bg-black/70 p-1.5 backdrop-blur"><Upload className="h-3 w-3 text-white" /></span>
+              {uploading && <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[10px] font-bold text-white">…</span>}
+            </label>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xl font-bold tracking-tight">@{p.username}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              {p.public_id && <p className="mt-0.5 text-[10px] font-mono text-muted-foreground">ID: <span className="font-bold text-foreground">{p.public_id}</span></p>}
+              <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+                <button onClick={() => openList("followers")} className="hover:text-foreground">
+                  <span className="font-bold text-foreground">{followers}</span> followers
+                </button>
+                <button onClick={() => openList("following")} className="hover:text-foreground">
+                  <span className="font-bold text-foreground">{following}</span> following
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {sellerCompleted >= 100 && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">✓ Verified Seller</span>}
+                {buyerCompleted >= 35 && <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-500">✓ Verified Buyer</span>}
+                <Badge status={p.buyer_verified ? "verified" : "none"} label="Buyer" />
+                <Badge status={p.phone_verified ? "verified" : "none"} label="Phone" />
+                <Badge status={p.seller_status || "none"} label="Seller" />
+              </div>
             </div>
           </div>
         </div>
+
 
         {/* Quick action bar — own profile shortcuts */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
