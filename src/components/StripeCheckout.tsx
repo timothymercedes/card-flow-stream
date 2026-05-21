@@ -91,11 +91,20 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
 
   const intlFee = fees.intlFee ?? 0;
 
+  const bundleDiscount = fees.platformFee === 0;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-lg bg-muted/40 p-3 text-xs space-y-1">
         <Row label="Subtotal" cents={subtotalCents} />
-        <Row label="Platform Fee" cents={fees.platformFee} />
+        {bundleDiscount ? (
+          <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+            <span>🎁 Bundle discount</span>
+            <span>Platform fee waived</span>
+          </div>
+        ) : (
+          <Row label="Platform Fee" cents={fees.platformFee} />
+        )}
         {intlFee > 0 && (
           <>
             <Row label="International Processing Fee (4%)" cents={intlFee} />
@@ -105,7 +114,9 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
           </>
         )}
         <p className="text-[10px] text-muted-foreground leading-snug">
-          Platform Fee — helps cover payment processing and marketplace operations.
+          {bundleDiscount
+            ? "You've already won 3+ items from this seller this session — platform fee is waived on additional items."
+            : "Platform Fee — helps cover payment processing and marketplace operations. Waived after 3 items per seller per session."}
         </p>
         <div className="border-t border-border pt-1 mt-1 flex justify-between font-semibold text-sm">
           <span>Total</span>
