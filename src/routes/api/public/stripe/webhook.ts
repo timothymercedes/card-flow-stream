@@ -239,6 +239,17 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                     reason: "payment_failed", expires_at: retryDeadline,
                   }, { onConflict: "stream_id,user_id" });
                 }
+                // Phase 11: log buyer risk signal (fire-and-forget).
+                try {
+                  await (supabaseAdmin.rpc as any)("record_buyer_risk_signal", {
+                    _user_id: o.buyer_id,
+                    _kind: "payment_failed",
+                    _ref_table: "orders",
+                    _ref_id: o.id,
+                    _seller_id: o.seller_id,
+                    _metadata: { stripe_pi: pi.id, title: o.title },
+                  });
+                } catch (e) { console.error("risk signal payment_failed", e); }
               }
               break;
             }
