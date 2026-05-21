@@ -190,11 +190,12 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   );
 
   const totals = useMemo(() => {
-    let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, net = 0;
+    let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, bundleAbsorbed = 0, net = 0;
     let available = 0, pending = 0, processing = 0, completed = 0;
     breakdowns.forEach(({ order, ...b }) => {
       gross += b.gross; platformFee += b.platformFee; processingFee += b.processingFee;
-      shipping += b.shipping; promo += b.promo; refund += b.refund; recovery += b.recovery; net += b.net;
+      shipping += b.shipping; promo += b.promo; refund += b.refund; recovery += b.recovery;
+      bundleAbsorbed += b.bundleAbsorbed; net += b.net;
       const paid = order.payment_status === "paid";
       if (paid && order.status === "delivered") available += b.net;
       else if (paid && (order.status === "pending" || order.status === "shipped")) pending += b.net;
@@ -203,11 +204,10 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     });
     const owed = (hold?.balance_owed_cents ?? 0) / 100;
     const processingPayout = processingPayoutCents / 100;
-    // Subtract amounts already locked in an in-flight payout
     const available_after = Math.max(0, available - processingPayout);
     const payable = Math.max(0, available_after - owed);
     const totalEarnings = available_after + pending + processingPayout;
-    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net,
+    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, bundleAbsorbed, net,
              available: available_after, pending, processing, completed, owed, payable,
              processingPayout, totalEarnings };
   }, [breakdowns, hold, processingPayoutCents]);
