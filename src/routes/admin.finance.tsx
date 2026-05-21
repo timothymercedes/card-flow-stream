@@ -62,6 +62,7 @@ type TabKey =
   | "shipping"
   | "refunds"
   | "transactions"
+  | "audit"
   | "integrity";
 
 
