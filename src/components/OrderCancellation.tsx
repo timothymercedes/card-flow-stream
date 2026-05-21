@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { X, ShieldAlert, Send } from "lucide-react";
+import { cancelOrderAction } from "@/lib/order-actions.functions";
 
 type Msg = { user_id: string; username: string; role: "buyer" | "seller" | "admin"; body: string; at: string };
 
@@ -15,6 +17,7 @@ interface Props {
 
 export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
   const { user, profile } = useAuth();
+  const cancelOrderServer = useServerFn(cancelOrderAction);
   const [cancellation, setCancellation] = useState<any | null>(null);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
@@ -96,7 +99,12 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
     }
     const { error } = await supabase.from("order_cancellations").update(patch).eq("id", cancellation.id);
     if (!error && status === "accepted") {
-      await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+      try {
+        await cancelOrderServer({ data: { orderId: order.id, reason: cancellation.reason || "Cancellation accepted" } });
+      } catch (e: any) {
+        setBusy(false);
+        return toast.error(e?.message ?? "Unable to cancel order");
+      }
     }
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -147,10 +155,12 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
                     if (!window.confirm("Cancel this order now? The buyer will be notified and any payment should be refunded.")) return;
                     setBusy(true);
                     const paid = (order.payment_status || "") === "paid";
-                    const patch: any = { status: "cancelled" };
-                    if (paid) patch.payment_status = "refunded";
-                    const { error: oErr } = await supabase.from("orders").update(patch).eq("id", order.id);
-                    if (oErr) { setBusy(false); return toast.error(oErr.message); }
+                    try {
+                      await cancelOrderServer({ data: { orderId: order.id, reason: reason.trim() } });
+                    } catch (e: any) {
+                      setBusy(false);
+                      return toast.error(e?.message ?? "Unable to cancel order");
+                    }
                     await supabase.from("order_cancellations").insert({
                       order_id: order.id,
                       requested_by: user.id,
@@ -164,7 +174,7 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
                       user_id: order.buyer_id,
                       sender_id: user.id,
                       type: "order_cancel",
-                      body: `Seller cancelled your order "${order.title}"${paid ? " — refund issued" : ""}`,
+                      body: `Seller cancelled your order "${order.title}"${paid ? " — refund pending" : ""}`,
                       link: "/orders",
                     });
                     setBusy(false);
