@@ -47,6 +47,8 @@ function Orders() {
   const [reviewForm, setReviewForm] = useState<Record<string, { rating: number; shipping_rating: number; comment: string; photo_urls: string[] }>>({});
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
+  const [tab, setTab] = useState<"all" | "awaiting" | "shipped" | "delivered">("all");
+
 
   async function load() {
     if (!user) return;
@@ -151,25 +153,59 @@ function Orders() {
     </AppShell>
   );
 
+  const counts = {
+    all: orders.length,
+    awaiting: orders.filter((o) => (o.payment_status || "awaiting_payment") === "awaiting_payment").length,
+    shipped: orders.filter((o) => o.status === "shipped").length,
+    delivered: orders.filter((o) => o.status === "delivered").length,
+  };
+  const filtered = orders.filter((o) => {
+    if (tab === "all") return true;
+    if (tab === "awaiting") return (o.payment_status || "awaiting_payment") === "awaiting_payment";
+    return o.status === tab;
+  });
+
   return (
     <AppShell>
-      <div className="px-4 py-4">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-bold">My Orders</h1>
+      <div className="mx-auto w-full max-w-7xl px-4 py-4">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">My Orders</h1>
+            <p className="text-xs text-muted-foreground">Items you've purchased</p>
+          </div>
           <WatchTutorial routePath="/orders" label="Shipping help" />
         </div>
-        <p className="mb-4 text-xs text-muted-foreground">Items you've purchased</p>
         {PAYMENTS_SAFE_MODE && (
           <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
             🔒 Safe mode: payments are simulated. No real charges occur.
           </div>
         )}
-        {orders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No orders yet</p>}
-        <div className="space-y-3">
-          {orders.map((o) => {
+        <div className="sticky top-0 z-20 -mx-4 mb-3 flex flex-wrap gap-1.5 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+          {([
+            { v: "all", label: "All" },
+            { v: "awaiting", label: "Awaiting" },
+            { v: "shipped", label: "Shipped" },
+            { v: "delivered", label: "Delivered" },
+          ] as const).map((t) => (
+            <button key={t.v} onClick={() => setTab(t.v)}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${tab === t.v ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>
+              {t.label} <span className="ml-1 opacity-70">{counts[t.v]}</span>
+            </button>
+          ))}
+        </div>
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
+            <Package className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+            <p className="text-sm font-semibold">{orders.length === 0 ? "No orders yet" : `No ${tab} orders`}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Browse the marketplace to find your next pull.</p>
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          {filtered.map((o) => {
             const pay = o.payment_status || "awaiting_payment";
             return (
-              <div key={o.id} className="rounded-xl bg-card p-3">
+              <div key={o.id} className="rounded-xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)] transition hover:shadow-[var(--shadow-lg)]">
+
                 <div className="flex items-start gap-3">
                   {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-16 w-16 rounded-lg object-cover" />}
                   <div className="min-w-0 flex-1">
