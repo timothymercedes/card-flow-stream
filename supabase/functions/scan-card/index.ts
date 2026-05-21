@@ -282,10 +282,9 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Flash is fast and accurate enough to read name + set + card number,
-        // which is all we need — TCG database is the source of truth for rarity,
-        // variant and price afterwards. Multi-card stays on Pro for layout parsing.
-        model: multi ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash",
+        // Single-card uses the fastest preview model (sub-3s round-trip).
+        // Multi-card still benefits from a stronger model for layout parsing.
+        model: multi ? "google/gemini-3-flash-preview" : "google/gemini-3.1-flash-lite-preview",
         messages: [
           { role: "system", content: system },
           { role: "user", content: [
@@ -295,7 +294,7 @@ Deno.serve(async (req) => {
         ],
         response_format: { type: "json_object" },
         temperature: 0,
-        max_tokens: multi ? 2560 : 768,
+        max_tokens: multi ? 2560 : 900,
       }),
     });
 
