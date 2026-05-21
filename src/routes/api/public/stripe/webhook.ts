@@ -280,6 +280,83 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               } catch (e) { console.error("refund revenue log failed", e); }
               break;
             }
+            case "charge.dispute.created":
+            case "charge.dispute.updated":
+            case "charge.dispute.closed": {
+              const d: any = event.data.object;
+              const chargeId = d.charge as string | undefined;
+              const piId = (d.payment_intent as string | undefined) ?? null;
+              const amountCents = Number(d.amount ?? 0);
+              const stripeStatus = String(d.status ?? "");
+              // Find the linked order (if any) via payment_intent
+              let order: any = null;
+              if (piId) {
+                const { data: oRows } = await supabaseAdmin
+                  .from("orders")
+                  .select("id, buyer_id, buyer_username, seller_id, title")
+                  .eq("stripe_payment_intent_id", piId)
+                  .limit(1);
+                order = oRows?.[0] ?? null;
+              }
+              // Map Stripe dispute status -> internal dispute status
+              const internalStatus = ["won", "warning_closed", "charge_refunded"].includes(stripeStatus)
+                ? "resolved"
+                : stripeStatus === "lost"
+                  ? "lost"
+                  : "investigating";
+
+              // Upsert a dispute row keyed by stripe_dispute_id
+              const reporterId = order?.buyer_id ?? null;
+              const reporterUsername = order?.buyer_username ?? "stripe";
+              const row: any = {
+                stripe_dispute_id: d.id,
+                stripe_charge_id: chargeId ?? null,
+                amount_cents: amountCents,
+                order_id: order?.id ?? null,
+                reporter_id: reporterId,
+                reporter_username: reporterUsername,
+                reported_user_id: order?.seller_id ?? null,
+                reason: `stripe_chargeback:${d.reason ?? "unknown"}`,
+                description: `Stripe chargeback (${stripeStatus}) for $${(amountCents / 100).toFixed(2)}. Reason: ${d.reason ?? "n/a"}.`,
+                status: internalStatus,
+              };
+              if (reporterId) {
+                await supabaseAdmin
+                  .from("disputes")
+                  .upsert(row, { onConflict: "stripe_dispute_id" });
+              }
+
+              // Sync order payment_status
+              if (order) {
+                await supabaseAdmin
+                  .from("orders")
+                  .update({
+                    payment_status: stripeStatus === "lost" ? "chargeback_lost" : "disputed",
+                  })
+                  .eq("id", order.id);
+
+                if (event.type === "charge.dispute.created") {
+                  await supabaseAdmin.from("notifications").insert([
+                    { user_id: order.seller_id, type: "dispute", body: `⚠️ Chargeback opened on "${order.title}" ($${(amountCents / 100).toFixed(2)}).`, link: "/disputes" },
+                  ]);
+                }
+              }
+
+              // Ledger entry on close
+              if (event.type === "charge.dispute.closed" && stripeStatus === "lost") {
+                try {
+                  await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                    _kind: "dispute_loss",
+                    _amount_cents: -amountCents,
+                    _stripe_pi: piId,
+                    _stripe_charge: chargeId ?? null,
+                    _stripe_event: event.id,
+                    _meta: { stripe_dispute_id: d.id, reason: d.reason },
+                  });
+                } catch (e) { console.error("dispute revenue log failed", e); }
+              }
+              break;
+            }
             default:
               console.log("Unhandled Stripe event:", event.type);
           }
