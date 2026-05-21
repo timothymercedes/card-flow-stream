@@ -281,10 +281,14 @@ export function LiveSellerDashboard({
   );
 
   return (
-    <div className="pointer-events-auto w-56 rounded-xl bg-black/70 p-1.5 ring-1 ring-white/10 shadow-xl backdrop-blur">
-      <div className="mb-1 flex items-center justify-between">
-        <p className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-white">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-live" /> Dashboard
+    <div className="pointer-events-auto w-56 rounded-2xl bg-gradient-to-b from-black/80 via-black/65 to-black/80 p-2 ring-1 ring-white/15 shadow-[0_8px_28px_-6px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)_inset] backdrop-blur-xl">
+      <div className="mb-1.5 flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.15em] text-white">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
+          </span>
+          <span className="bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">Live Dashboard</span>
         </p>
         <div className="flex items-center gap-0.5">
           <button onClick={() => setCollapsed((v) => !v)} className="rounded-full p-0.5 text-white/70 hover:bg-white/10" title={collapsed ? "Expand" : "Collapse"}>
