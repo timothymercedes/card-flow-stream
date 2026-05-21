@@ -61,7 +61,7 @@ export function StripeCheckout(props: Props) {
   );
 }
 
-function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; isInternational?: boolean } }) {
+function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; commissionCents?: number; isInternational?: boolean } }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -90,7 +90,7 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
   }
 
   const intlFee = fees.intlFee ?? 0;
-
+  const processingFee = fees.processingFee ?? 0;
   const bundleDiscount = fees.platformFee === 0;
 
   return (
@@ -113,10 +113,13 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
             </p>
           </>
         )}
+        {processingFee > 0 && (
+          <Row label="Card Processing Fee" cents={processingFee} />
+        )}
         <p className="text-[10px] text-muted-foreground leading-snug">
           {bundleDiscount
             ? "You've already won 3+ items from this seller this session — platform fee is waived on additional items."
-            : "Platform Fee — helps cover payment processing and marketplace operations. Waived after 3 items per seller per session."}
+            : "Platform fee helps cover marketplace operations. Card processing fee (2.9% + $0.30) is passed through from our payment processor so 100% of the item price goes to the seller (minus our 5% marketplace commission)."}
         </p>
         <div className="border-t border-border pt-1 mt-1 flex justify-between font-semibold text-sm">
           <span>Total</span>
