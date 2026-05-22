@@ -1618,15 +1618,34 @@ function LiveDetail() {
     if (!safety.inactiveWarning) inactivityNotifiedRef.current = false;
   }, [safety.inactiveWarning]);
 
-  // Bundle-fee preview: items 1-3 in this stream → buyer pays $1.23, items 4+ → $0.
+  // Live fee preview: server-authoritative split processing + per-stream threshold.
   const previewFee = useServerFn(previewBuyerFee);
-  const [bundleFee, setBundleFee] = useState<{ platformFeeCents: number; nextItemIndex: number; threshold: number; bundleDiscountActive: boolean } | null>(null);
+  const [bundleFee, setBundleFee] = useState<{
+    itemCents: number;
+    shippingCents: number;
+    platformFee: number;
+    buyerProcessingFee: number;
+    sellerProcessingFee: number;
+    processingFee: number;
+    buyerTotal: number;
+    taxCents: number;
+    feeSplitMode: "buyer" | "split" | "seller_absorbed";
+    nextItemIndex: number;
+    threshold: number;
+    bundleDiscountActive: boolean;
+  } | null>(null);
   useEffect(() => {
     if (!id || isSeller) return;
     let cancelled = false;
-    previewFee({ data: { streamId: id } }).then((r: any) => { if (!cancelled) setBundleFee(r); }).catch(() => {});
+    previewFee({
+      data: {
+        streamId: id,
+        currentBidCents: Math.round(Number(stream?.current_bid || 0) * 100),
+        shippingCents: Math.round(Number(stream?.shipping_price || 0) * 100),
+      },
+    }).then((r: any) => { if (!cancelled) setBundleFee(r); }).catch(() => {});
     return () => { cancelled = true; };
-  }, [id, isSeller, previewFee, stream?.round_number]);
+  }, [id, isSeller, previewFee, stream?.round_number, stream?.current_bid, stream?.shipping_price]);
 
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
@@ -5783,24 +5802,25 @@ function LiveDetail() {
               <p className="line-clamp-1 max-w-full text-xs font-semibold text-white/90">
                 {stream.current_item || (auctionLive ? "Live auction" : "Waiting for next item")}
               </p>
-              {/* 🆕 Shipping + estimated buyer total — always visible (not gated on auctionLive)
-                  so viewers see the host's latest shipping price + platform fee + tax
-                  BEFORE they tap "THIS IS MINE". */}
+              {/* Shipping + estimated buyer total — server-previewed so labels match the actual Stripe charge. */}
               {(() => {
-                const ship = Number(stream.shipping_price || 0);
                 const bid = Number(stream.current_bid || 0);
-                const platformFee = (bundleFee?.platformFeeCents ?? 123) / 100;
-                const estTaxRate = 0.07;
-                const estTax = Math.max(0, bid + ship) * estTaxRate;
-                // Live auctions: buyer covers HALF of the Stripe processing
-                // fee (2.9% + $0.30). Seller absorbs the other half from
-                // payout. Mirror buyerHalfStripeFeeCents() from stripe.server.ts.
-                const preFee = Math.max(0, bid + ship + platformFee);
-                const buyerCardFee = preFee > 0
-                  ? Math.ceil(((preFee * 0.029 + 0.30) / (2 - 0.029)) * 100) / 100
+                const ship = (bundleFee?.shippingCents ?? Math.round(Number(stream.shipping_price || 0) * 100)) / 100;
+                const platformFee = (bundleFee?.platformFee ?? 0) / 100;
+                const fallbackProcessing = bid + ship > 0
+                  ? Math.ceil((((bid + ship) * 0.029 + 0.30) / (2 - 0.029)) * 100) / 100
                   : 0;
-                const estTotal = bid + ship + platformFee + buyerCardFee + estTax;
-                const bundleActive = !!bundleFee?.bundleDiscountActive;
+                const buyerProcessing = (bundleFee?.buyerProcessingFee ?? Math.round(fallbackProcessing * 100)) / 100;
+                const estTax = (bundleFee?.taxCents ?? 0) / 100;
+                const estTotal = (bundleFee?.buyerTotal ?? Math.round((bid + ship + buyerProcessing) * 100)) / 100;
+                const bundleActive = bundleFee?.feeSplitMode === "seller_absorbed" || !!bundleFee?.bundleDiscountActive;
+                const detailParts = [
+                  `subtotal ${fmtMoney(bid)}`,
+                  `shipping ${fmtMoney(ship)}`,
+                  ...(platformFee > 0 ? [`platform fee ${fmtMoney(platformFee)}`] : []),
+                  `processing ${fmtMoney(buyerProcessing)}`,
+                  `tax ${fmtMoney(estTax)}`,
+                ];
                 return (
                   <div className="mt-1 flex flex-col items-center gap-1">
                     <p className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/15 backdrop-blur">
@@ -5821,8 +5841,8 @@ function LiveDetail() {
                           : "bg-black/45 text-white/90 ring-white/15"
                       }`}>
                         {bundleActive
-                          ? `🎁 Bundle discount active — no platform fee on this item`
-                          : `Platform fee ${fmtMoney(platformFee)} · item ${bundleFee.nextItemIndex} of ${bundleFee.threshold} before bundle savings`}
+                          ? `🎁 Buyer processing waived after ${bundleFee.threshold} stream items — seller absorbs it`
+                          : `Processing fee ${fmtMoney(buyerProcessing)} · item ${bundleFee.nextItemIndex} of ${bundleFee.threshold} before buyer-side processing is waived`}
                       </p>
                     )}
                     {auctionLive && bid > 0 && (
@@ -5830,13 +5850,15 @@ function LiveDetail() {
                         <span className="text-white/70">Est. total</span>
                         <span className="tabular-nums text-emerald-200">{fmtMoney(estTotal)}</span>
                         <span className="text-white/55">
-                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + platform fee {fmtMoney(platformFee)} + card {fmtMoney(buyerCardFee)} + ~tax {fmtMoney(estTax)})
+                          ({detailParts.join(" + ")})
                         </span>
                       </p>
                     )}
                     {auctionLive && bid > 0 && !isSeller && (
                       <p className="text-[9px] font-medium text-white/55">
-                        Card fee = your half of 2.9% + $0.30 (seller covers the other half)
+                        {bundleActive
+                          ? "Buyer-side processing is waived for this stream item."
+                          : "Processing fee = your half of 2.9% + $0.30; seller covers the rest."}
                       </p>
                     )}
                   </div>

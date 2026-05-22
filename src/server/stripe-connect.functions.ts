@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
-import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds } from "@/lib/stripe.server";
+import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getOptionalUserIdFromRequest() {
@@ -190,7 +190,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("id, amount, buyer_id, seller_id, payment_status, listing_id")
+      .select("id, amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
@@ -255,7 +255,50 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       }
     }
 
-    const fees = calculateFees(subtotalCents, { isInternational });
+    const liveRows = (orderRows as any[]).filter((o) => !!o.stream_id);
+    const isLiveCheckout = liveRows.length > 0 && liveRows.length === (orderRows as any[]).length;
+    const fees = isLiveCheckout
+      ? await (async () => {
+          const paidCounts = new Map<string, number>();
+          for (const streamId of Array.from(new Set(liveRows.map((o) => String(o.stream_id))))) {
+            const { count } = await supabaseAdmin
+              .from("orders")
+              .select("id", { count: "exact", head: true })
+              .eq("buyer_id", userId)
+              .eq("stream_id", streamId)
+              .eq("payment_status", "paid");
+            paidCounts.set(streamId, count || 0);
+          }
+          const perStreamPending = new Map<string, number>();
+          const parts = [...liveRows].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).map((o) => {
+            const streamId = String(o.stream_id);
+            const pendingIndex = (perStreamPending.get(streamId) || 0) + 1;
+            perStreamPending.set(streamId, pendingIndex);
+            const feeIndex = (paidCounts.get(streamId) || 0) + pendingIndex;
+            return {
+              orderId: o.id,
+              feeIndex,
+              feeAbsorbedBy: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller" as const : "buyer" as const,
+              fees: calculateFees(Math.round(Number(o.amount) * 100), {
+                isInternational,
+                commissionRate: Number(o.commission_rate ?? 0.05),
+                platformFeeCentsOverride: 0,
+                sellerAbsorbedFeeCentsOverride: 0,
+                feeSplitMode: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller_absorbed" : "split",
+              }),
+            };
+          });
+          const sum = (key: keyof ReturnType<typeof calculateFees>) => parts.reduce((a, p) => a + Number(p.fees[key] || 0), 0);
+          return {
+            subtotalCents: sum("subtotalCents"), platformFee: sum("platformFee"), sellerAbsorbedFee: sum("sellerAbsorbedFee"),
+            intlFee: sum("intlFee"), commissionCents: sum("commissionCents"), commissionRate: 0.05,
+            processingFee: sum("processingFee"), buyerProcessingFee: sum("buyerProcessingFee"), sellerProcessingFee: sum("sellerProcessingFee"),
+            feeSplitMode: parts.some((p) => p.fees.feeSplitMode === "seller_absorbed") ? "seller_absorbed" as const : "split" as const,
+            isInternational, applicationFee: sum("applicationFee"), sellerNet: sum("sellerNet"), buyerServiceFee: 0,
+            buyerTotal: sum("buyerTotal"), liveParts: parts,
+          };
+        })()
+      : calculateFees(subtotalCents, { isInternational });
 
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${fees.buyerTotal}`;
@@ -275,6 +318,9 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         platform_fee_cents: String(fees.platformFee),
         commission_cents: String(fees.commissionCents),
         processing_fee_cents: String(fees.processingFee),
+        buyer_processing_fee_cents: String((fees as any).buyerProcessingFee ?? fees.processingFee),
+        seller_processing_fee_cents: String((fees as any).sellerProcessingFee ?? 0),
+        fee_split_mode: String((fees as any).feeSplitMode ?? "buyer"),
         seller_payout_cents: String(fees.sellerNet),
         intl_fee_cents: String(fees.intlFee),
         is_international: String(isInternational),
@@ -286,23 +332,40 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
 
     // Stamp the PI + computed commission/payout on every order in this group
     // so the webhook can reconcile and payout dashboards stay accurate.
-    const perOrderCommission = orderIds.length > 0
-      ? Math.round((fees.commissionCents / orderIds.length))
-      : 0;
-    const perOrderPayout = orderIds.length > 0
-      ? Math.round((fees.sellerNet / orderIds.length))
-      : 0;
-    await supabaseAdmin
-      .from("orders")
-      .update({
+    const liveParts = (fees as any).liveParts as Array<any> | undefined;
+    if (isLiveCheckout && liveParts?.length) {
+      await Promise.all(liveParts.map((part) => supabaseAdmin.from("orders").update({
+        stripe_payment_intent_id: intent.id,
+        seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
+        idempotency_key: idemKey,
+        commission_rate: part.fees.commissionRate,
+        commission_amount: part.fees.commissionCents / 100,
+        seller_payout_amount: part.fees.sellerNet / 100,
+        platform_fee_cents: part.fees.platformFee,
+        processing_fee_cents: part.fees.processingFee,
+        buyer_processing_fee_cents: part.fees.buyerProcessingFee,
+        seller_processing_fee_cents: part.fees.sellerProcessingFee,
+        fee_split_mode: part.fees.feeSplitMode,
+        fee_index: part.feeIndex,
+        fee_absorbed_by: part.feeAbsorbedBy,
+      }).eq("id", part.orderId)));
+    } else {
+      const perOrderCommission = orderIds.length > 0 ? Math.round((fees.commissionCents / orderIds.length)) : 0;
+      const perOrderPayout = orderIds.length > 0 ? Math.round((fees.sellerNet / orderIds.length)) : 0;
+      await supabaseAdmin.from("orders").update({
         stripe_payment_intent_id: intent.id,
         seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
         idempotency_key: idemKey,
         commission_rate: fees.commissionRate,
         commission_amount: perOrderCommission / 100,
         seller_payout_amount: perOrderPayout / 100,
-      })
-      .in("id", orderIds);
+        platform_fee_cents: fees.platformFee,
+        processing_fee_cents: fees.processingFee,
+        buyer_processing_fee_cents: (fees as any).buyerProcessingFee ?? fees.processingFee,
+        seller_processing_fee_cents: (fees as any).sellerProcessingFee ?? 0,
+        fee_split_mode: (fees as any).feeSplitMode ?? "buyer",
+      }).in("id", orderIds);
+    }
 
     return {
       clientSecret: intent.client_secret,

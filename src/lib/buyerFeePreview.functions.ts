@@ -5,7 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { BUYER_PLATFORM_FEE_CENTS, LIVE_BUYER_FEE_THRESHOLD, calculateFees } from "@/lib/stripe.server";
+import { LIVE_BUYER_FEE_THRESHOLD, calculateFees } from "@/lib/stripe.server";
 
 export const previewBuyerFee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -15,7 +15,7 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
     const streamId = data.streamId || null;
     const threshold = LIVE_BUYER_FEE_THRESHOLD;
     if (!streamId) {
-      const fees = calculateFees(0, { feeSplitMode: "split", platformFeeCentsOverride: BUYER_PLATFORM_FEE_CENTS });
+      const fees = calculateFees(0, { feeSplitMode: "split", platformFeeCentsOverride: 0, sellerAbsorbedFeeCentsOverride: 0 });
       return {
         ...fees,
         itemCents: 0,
@@ -70,7 +70,8 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
     const feeSplitMode = bundleDiscountActive ? "seller_absorbed" : "split";
     const fees = calculateFees(itemCents + shippingCents, {
       feeSplitMode,
-      platformFeeCentsOverride: bundleDiscountActive ? 0 : BUYER_PLATFORM_FEE_CENTS,
+      platformFeeCentsOverride: 0,
+      sellerAbsorbedFeeCentsOverride: 0,
     });
     return {
       ...fees,

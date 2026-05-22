@@ -28,6 +28,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   calculateFees,
+  LIVE_BUYER_FEE_THRESHOLD,
   getStripe,
 } from "@/lib/stripe.server";
 
@@ -180,9 +181,10 @@ async function performCharge(opts: {
   const sellerCountry = (seller.country || "US").toString().toUpperCase().trim();
   const isInternational = buyerCountry !== sellerCountry && (buyerCountry !== "US" || sellerCountry !== "US");
 
-  // Bundle-aware platform fee: items 1-3 in a stream charge the buyer the
-  // normal $1.23 fee; items 4+ waive the buyer fee and the seller absorbs it.
-  let platformFeeOverride: number | undefined;
+  // Live fee threshold: buyer pays their processing half only for the first
+  // few paid items in a stream. After that, seller absorbs buyer-side
+  // processing too. Live auctions do not use the old flat $1.23 platform fee.
+  let platformFeeOverride = 0;
   let feeIndex: number | null = null;
   if (order.stream_id) {
     const { count } = await supabaseAdmin
@@ -192,23 +194,20 @@ async function performCharge(opts: {
       .eq("stream_id", order.stream_id)
       .eq("payment_status", "paid");
     feeIndex = (count || 0) + 1;
-    const { data: feeData } = await (supabaseAdmin.rpc as any)(
-      "compute_buyer_fee_cents",
-      { _buyer_id: userId, _stream_id: order.stream_id },
-    );
-    if (typeof feeData === "number") platformFeeOverride = feeData;
   }
+  const feeSplitMode = order.stream_id && feeIndex != null && feeIndex > LIVE_BUYER_FEE_THRESHOLD
+    ? "seller_absorbed"
+    : "split";
 
   const commissionRate = Number(order.commission_rate ?? 0.05);
   const fees = calculateFees(totalCents, {
     isInternational,
     platformFeeCentsOverride: platformFeeOverride,
+    sellerAbsorbedFeeCentsOverride: 0,
     commissionRate,
-    // Live auctions / instant wins: buyer and seller each cover ~50% of
-    // the Stripe processing fee.
-    feeSplitMode: "split",
+    feeSplitMode,
   });
-  const feeAbsorbedBy: "buyer" | "seller" = fees.sellerAbsorbedFee > 0 ? "seller" : "buyer";
+  const feeAbsorbedBy: "buyer" | "seller" = fees.buyerProcessingFee > 0 ? "buyer" : "seller";
   const commissionCents = fees.commissionCents;
   const sellerPayoutCents = fees.sellerNet;
 
@@ -255,6 +254,11 @@ async function performCharge(opts: {
         seller_stripe_account_id: seller.stripe_account_id,
         commission_amount: commissionCents / 100,
         seller_payout_amount: sellerPayoutCents / 100,
+        platform_fee_cents: fees.platformFee,
+        processing_fee_cents: fees.processingFee,
+        buyer_processing_fee_cents: fees.buyerProcessingFee,
+        seller_processing_fee_cents: fees.sellerProcessingFee,
+        fee_split_mode: fees.feeSplitMode,
         fee_index: feeIndex,
         fee_absorbed_by: feeAbsorbedBy,
         payment_status: intent.status === "succeeded" ? "paid" : "processing",
