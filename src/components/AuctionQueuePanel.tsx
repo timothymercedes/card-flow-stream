@@ -389,6 +389,63 @@ export function AuctionQueuePanel({
         </div>
       )}
 
+      {vaultOpen && (
+        <div className="space-y-1 rounded-lg bg-white/5 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-white/60">
+              <Library className="h-3 w-3 text-cyan-300" />
+              Your Vault {vaultLoading ? "…" : `(${vaultCards.length})`}
+            </p>
+            <button onClick={() => { setVaultOpen(false); setVaultSelected(new Set()); }} className="text-[10px] text-white/60">Close</button>
+          </div>
+          {!vaultLoading && vaultCards.length === 0 && (
+            <p className="rounded bg-white/5 p-2 text-center text-[10px] text-white/50">
+              Your Vault is empty. Add cards to your Vault first.
+            </p>
+          )}
+          <div className="max-h-64 space-y-1 overflow-y-auto">
+            {vaultCards.map((v) => {
+              const picked = vaultSelected.has(v.id);
+              const val = Number(v.estimated_value || 0);
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => toggleVaultPick(v.id)}
+                  className={`flex w-full items-center gap-2 rounded-md p-1.5 text-left transition ${picked ? "bg-cyan-500/25 ring-1 ring-cyan-400/60" : "bg-white/5 hover:bg-white/10"}`}
+                >
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${picked ? "border-cyan-300 bg-cyan-400 text-black" : "border-white/30 bg-transparent"}`}>
+                    {picked && <Check className="h-3 w-3" />}
+                  </span>
+                  {v.image_url
+                    ? <img src={v.image_url} alt="" className="h-9 w-9 rounded object-cover" />
+                    : <div className="h-9 w-9 rounded bg-white/10" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-bold">{v.name}</p>
+                    <p className="truncate text-[9px] text-white/60">
+                      {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || "—"}
+                      {val > 0 && <span className="ml-1 text-emerald-300">· est ${val.toFixed(0)}</span>}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {vaultCards.length > 0 && (
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-[10px] text-white/60">{vaultSelected.size} selected · added as Pre-Bid</span>
+              <button
+                onClick={addVaultSelected}
+                disabled={vaultAdding || vaultSelected.size === 0}
+                className="rounded-md bg-cyan-500 px-3 py-1.5 text-[11px] font-bold text-black disabled:opacity-40"
+              >
+                {vaultAdding ? "Adding…" : `Add ${vaultSelected.size || ""} to Pre-B`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+
       {importing && (
         <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg bg-white/5 p-2">
           <div className="mb-1 flex items-center justify-between">
