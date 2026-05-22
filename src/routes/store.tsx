@@ -423,12 +423,14 @@ function SellerHub() {
           </div>
         </div>
 
-        {/* Top KPIs — 2x2 on phones for readability, 4 across on sm+ */}
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-card p-3 sm:grid-cols-4">
-          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gross</p><p className="text-base font-black tabular-nums">${totals.gross.toFixed(0)}</p></div>
-          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Fees</p><p className="text-base font-black tabular-nums text-destructive">-${totals.commission.toFixed(0)}</p></div>
-          <div className="rounded-lg bg-primary/10 p-2 text-center ring-1 ring-primary/30"><p className="text-[10px] uppercase tracking-wider text-primary/80">Net</p><p className="text-base font-black tabular-nums text-primary">${totals.net.toFixed(0)}</p></div>
-          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending</p><p className="text-base font-black tabular-nums">${totals.pending.toFixed(0)}</p></div>
+        {/* Top KPIs — clickable, drilldown opens modal */}
+        <div className="mb-4 grid grid-cols-3 gap-2 rounded-xl bg-card p-3 sm:grid-cols-6">
+          <KpiCard label="Gross" value={`$${totals.gross.toFixed(0)}`} onClick={() => setKpiOpen("gross")} />
+          <KpiCard label="Fees" value={`-$${totals.commission.toFixed(0)}`} tone="destructive" onClick={() => setKpiOpen("fees")} />
+          <KpiCard label="Net" value={`$${totals.net.toFixed(0)}`} tone="primary" onClick={() => setKpiOpen("net")} />
+          <KpiCard label="Pending" value={`$${totals.pending.toFixed(0)}`} onClick={() => setKpiOpen("pending")} />
+          <KpiCard label="Refund" value={`$${totals.refund.toFixed(0)}`} tone="amber" onClick={() => setKpiOpen("refund")} />
+          <KpiCard label="Cancelled" value={`$${totals.cancelled.toFixed(0)}`} tone="destructive" onClick={() => setKpiOpen("cancelled")} />
         </div>
 
         {!tutorial && payoutStatus !== "complete" && (
