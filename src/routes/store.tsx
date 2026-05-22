@@ -533,7 +533,11 @@ function SellerHub() {
                     <div className="flex items-start gap-3">
                       {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-16 w-16 rounded-lg object-cover" />}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold">{o.title}</p>
+                        {o.order_number && (
+                          <span className="mb-1 inline-block rounded-md bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold text-primary" title="Order number">
+                            {o.order_number}
+                          </span>
+                        )}
                         <p className="truncate text-sm font-bold">
                           {o.auction_number && o.stream_id && (
                             <span className="mr-1 rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">#{o.auction_number}</span>
