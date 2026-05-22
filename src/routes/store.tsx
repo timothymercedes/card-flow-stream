@@ -347,7 +347,11 @@ function SellerHub() {
     const commission = gross * COMMISSION;
     const pending = orders.filter((o) => o.payment_status === "paid" && o.status !== "delivered")
       .reduce((s, o) => s + (Number(o.amount || 0) - Number(o.amount || 0) * COMMISSION), 0);
-    return { gross, commission, net: gross - commission, pending };
+    const refund = orders.filter((o) => o.payment_status === "refunded")
+      .reduce((s, o) => s + Number(o.refunded_amount || o.amount || 0), 0);
+    const cancelled = orders.filter((o) => o.status === "cancelled")
+      .reduce((s, o) => s + Number(o.amount || 0), 0);
+    return { gross, commission, net: gross - commission, pending, refund, cancelled };
   }, [orders]);
 
   const reviewStats = useMemo(() => {
