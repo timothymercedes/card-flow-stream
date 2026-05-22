@@ -5918,12 +5918,14 @@ function LiveDetail() {
                         key={inc}
                         onClick={() => placeBidAmount(Number(stream.current_bid || 0) + inc)}
                         aria-label={`Bid plus ${inc} dollars`}
-                        className="min-h-11 rounded-xl bg-white/15 px-2 py-2.5 text-sm font-extrabold tabular-nums text-white shadow-md ring-1 ring-white/20 backdrop-blur transition active:scale-95 hover:bg-white/25"
+                        className="flex min-h-[52px] flex-col items-center justify-center rounded-xl bg-white/15 px-2 py-2 text-base font-extrabold tabular-nums leading-none text-white shadow-md ring-1 ring-white/20 backdrop-blur transition active:scale-90 active:bg-primary/40 hover:bg-white/25"
                       >
-                        +${inc}
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-white/60">Bid</span>
+                        <span className="text-lg">+${inc}</span>
                       </button>
                     ))}
                   </div>
+
 
                 )}
                 <div className="flex gap-2">
