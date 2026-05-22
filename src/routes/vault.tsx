@@ -998,14 +998,12 @@ function Vault() {
   }
 
   async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) {
-    // Sale photos MUST be freshly uploaded — vault/AI images are not allowed.
-    const frontErr = validateListingImage(opts.frontImage, { field: "Front sale photo" });
+    const frontErr = validateListingImage(opts.frontImage, { field: "Photo" });
     if (frontErr) return toast.error(frontErr);
-    const backErr = validateListingImage(opts.backImage, { field: "Back sale photo" });
-    if (backErr) return toast.error(backErr);
     if (!opts.buy_now && !opts.auction && !opts.offer) return toast.error("Pick at least one sale type");
     if (opts.buy_now && opts.price <= 0) return toast.error("Set a Buy Now price");
     if (opts.auction && opts.price <= 0) return toast.error("Set a starting bid");
+
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
