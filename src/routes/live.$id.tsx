@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { recordPolicyAcceptance } from "@/lib/policy.functions";
+import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useRequireCardOnFile } from "@/hooks/useRequireCardOnFile";
@@ -2251,6 +2253,7 @@ function LiveDetail() {
         prev ? { ...prev, current_bid: amount, current_bidder_id: user.id } : prev,
       );
       playSfx("bid");
+      recordPolicyAcceptance({ data: { context: "bid", streamId: id, metadata: { amount } } }).catch(() => {});
       // 🆕 Gamification: combo streak + XP + daily quest. Server-validated;
       // RPCs throttle/reset, so spam-clicking can't farm progression.
       bumpCombo(id)
@@ -2329,6 +2332,7 @@ function LiveDetail() {
       .eq("id", id);
     if (error) return toast.error(error.message);
     safety.touch("buy_now_snipe");
+    recordPolicyAcceptance({ data: { context: "instant_win", streamId: id, metadata: { amount: price } } }).catch(() => {});
     endedRef.current = false;
     snapshotRef.current = false;
     await sendMsg(`💥 SNIPE! @${profile.username} hit Buy-Now for $${price} — instant win!`, true);
@@ -6058,8 +6062,9 @@ function LiveDetail() {
                       </button>
                     ))}
                   </div>
-
-
+                )}
+                {auctionLive && !meBlockedOrBanned && !bidDisabled && (
+                  <FinalSaleNotice variant="compact" context="bid" />
                 )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
