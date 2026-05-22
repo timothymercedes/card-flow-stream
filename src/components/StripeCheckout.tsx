@@ -140,6 +140,7 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl, orderId, orde
         </div>
       </div>
       <PaymentElement />
+      <FinalSaleNotice variant="full" context="checkout" />
       <button
         type="submit"
         disabled={!stripe || submitting}
