@@ -5830,7 +5830,7 @@ function LiveDetail() {
                         <span className="text-white/70">Est. total</span>
                         <span className="tabular-nums text-emerald-200">{fmtMoney(estTotal)}</span>
                         <span className="text-white/55">
-                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + fee {fmtMoney(platformFee)} + card {fmtMoney(buyerCardFee)} + ~tax {fmtMoney(estTax)})
+                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + platform fee {fmtMoney(platformFee)} + card {fmtMoney(buyerCardFee)} + ~tax {fmtMoney(estTax)})
                         </span>
                       </p>
                     )}
