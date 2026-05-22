@@ -5553,20 +5553,14 @@ function LiveDetail() {
             md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
         >
           <div className="flex flex-col items-start gap-1.5 pr-1">
-            {messages
-              .filter((m) => {
-                if (m.is_system || m.is_announcement) return false;
-                if (m.user_id && myBlockedIds.has(m.user_id)) return false;
-                if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
-                if (
-                  isStaff &&
-                  hideModsChat &&
-                  m.user_id &&
-                  mods.some((mm: any) => mm.mod_user_id === m.user_id)
-                ) return false;
-                return true;
-              })
-              .map((m) => {
+            {visibleChatMessages.map((m) => {
+                const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
+                const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
+                const aud = (m as any).audience || "public";
+                const isModOnly = aud === "mods_only";
+                const isHostMods = aud === "host_mods";
+                return (
+
                 const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
                 const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
                 const aud = (m as any).audience || "public";
