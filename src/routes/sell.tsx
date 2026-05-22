@@ -716,6 +716,10 @@ function Sell() {
               setPrebidVaultPicks={setPrebidVaultPicks}
               scheduledFor={scheduledFor}
               setScheduledFor={setScheduledFor}
+              recurrence={recurrence}
+              setRecurrence={setRecurrence}
+              recurrenceUntil={recurrenceUntil}
+              setRecurrenceUntil={setRecurrenceUntil}
               startLive={async () => {
                 await startLive();
               }}
