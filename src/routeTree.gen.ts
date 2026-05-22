@@ -54,8 +54,8 @@ import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.com
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
+import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
-import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
@@ -298,14 +298,14 @@ const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   path: '/admin/performance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFinanceRoute = AdminFinanceRouteImport.update({
+  id: '/admin_/finance',
+  path: '/admin/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
   id: '/recovery',
   path: '/recovery',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminFinanceRoute = AdminFinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
   getParentRoute: () => AdminRoute,
 } as any)
 const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
@@ -414,8 +414,8 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
-  '/admin/finance': typeof AdminFinanceRoute
   '/admin/recovery': typeof AdminRecoveryRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -477,8 +477,8 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
-  '/admin/finance': typeof AdminFinanceRoute
   '/admin/recovery': typeof AdminRecoveryRoute
+  '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -541,8 +541,8 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
-  '/admin/finance': typeof AdminFinanceRoute
   '/admin/recovery': typeof AdminRecoveryRoute
+  '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -606,8 +606,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
-    | '/admin/finance'
     | '/admin/recovery'
+    | '/admin/finance'
     | '/admin/performance'
     | '/email/unsubscribe'
     | '/legal/buyer-terms'
@@ -669,8 +669,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
-    | '/admin/finance'
     | '/admin/recovery'
+    | '/admin/finance'
     | '/admin/performance'
     | '/email/unsubscribe'
     | '/legal/buyer-terms'
@@ -732,8 +732,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
-    | '/admin/finance'
     | '/admin/recovery'
+    | '/admin_/finance'
     | '/admin_/performance'
     | '/email/unsubscribe'
     | '/legal/buyer-terms'
@@ -796,6 +796,7 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
+  AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
@@ -1148,18 +1149,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/finance': {
+      id: '/admin_/finance'
+      path: '/admin/finance'
+      fullPath: '/admin/finance'
+      preLoaderRoute: typeof AdminFinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/recovery': {
       id: '/admin/recovery'
       path: '/recovery'
       fullPath: '/admin/recovery'
       preLoaderRoute: typeof AdminRecoveryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/finance': {
-      id: '/admin/finance'
-      path: '/finance'
-      fullPath: '/admin/finance'
-      preLoaderRoute: typeof AdminFinanceRouteImport
       parentRoute: typeof AdminRoute
     }
     '/shows/$id/edit': {
@@ -1264,12 +1265,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
-  AdminFinanceRoute: typeof AdminFinanceRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminFinanceRoute: AdminFinanceRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
 }
 
@@ -1312,6 +1311,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
+  AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
@@ -1351,3 +1351,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

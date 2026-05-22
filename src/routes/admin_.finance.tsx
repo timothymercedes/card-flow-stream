@@ -38,7 +38,7 @@ import {
 import { runStripeReconciliationFn } from "@/lib/stripe-reconcile.functions";
 
 
-export const Route = createFileRoute("/admin/finance")({
+export const Route = createFileRoute("/admin_/finance")({
   head: () => ({ meta: [{ title: "Finance — PullBid Live" }] }),
   component: OwnerFinanceDashboard,
 });
