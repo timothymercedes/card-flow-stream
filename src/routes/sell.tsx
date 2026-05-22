@@ -483,8 +483,10 @@ function Sell() {
           vault_card_id: v.id,
         };
       });
-      const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
-      if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+      if (rows.length > 0) {
+        const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
+        if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+      }
     }
     if (isScheduled) {
       toast.success(`Scheduled for ${new Date(scheduledIso!).toLocaleString()}`);
