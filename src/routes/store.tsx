@@ -92,7 +92,9 @@ function SellerHub() {
   // UI
   const [section, setSection] = useState<Section>("orders");
   const [listingsTab, setListingsTab] = useState<"active" | "draft" | "scheduled" | "sold">("active");
-  const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed" | "refunds" | "cancelled">("to_ship");
+  const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed">("to_ship");
+  const [kpiOpen, setKpiOpen] = useState<null | "gross" | "fees" | "net" | "pending" | "refund" | "cancelled">(null);
+  const [buyerMap, setBuyerMap] = useState<Record<string, { u: string; n: string }>>({});
   const [liveTab, setLiveTab] = useState<"upcoming" | "history" | "tools">("upcoming");
   const [shippingTab, setShippingTab] = useState<"presets" | "auto" | "combined" | "caps" | "carriers">("presets");
   
