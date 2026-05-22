@@ -1048,6 +1048,7 @@ function LiveWizard(p: LiveWizardProps) {
   const [vaultCards, setVaultCards] = useState<VaultPick[]>([]);
   const [vaultLoading, setVaultLoading] = useState(false);
   const [vaultLoaded, setVaultLoaded] = useState(false);
+  const [vaultSearch, setVaultSearch] = useState("");
 
   useEffect(() => {
     if (p.step !== 4 || vaultLoaded || !p.hostId) return;
@@ -1058,7 +1059,7 @@ function LiveWizard(p: LiveWizardProps) {
       .eq("user_id", p.hostId)
       .eq("status", "available")
       .order("created_at", { ascending: false })
-      .limit(200)
+      .limit(500)
       .then(({ data }) => {
         setVaultCards(((data as any[]) || []) as VaultPick[]);
         setVaultLoaded(true);
@@ -1069,9 +1070,21 @@ function LiveWizard(p: LiveWizardProps) {
   const pickedIds = new Set(p.prebidVaultPicks.map((v) => v.id));
   function toggleVaultPick(card: VaultPick) {
     p.setPrebidVaultPicks((cur) =>
-      cur.some((c) => c.id === card.id) ? cur.filter((c) => c.id !== card.id) : [...cur, card],
+      cur.some((c) => c.id === card.id)
+        ? cur.filter((c) => c.id !== card.id)
+        : [...cur, { ...card, starting_bid: "", buy_now_price: "", voice_trigger: "" }],
     );
   }
+  function updatePick(id: string, patch: Partial<VaultPick>) {
+    p.setPrebidVaultPicks((cur) => cur.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+  const filteredVault = (() => {
+    const q = vaultSearch.trim().toLowerCase();
+    if (!q) return vaultCards;
+    return vaultCards.filter((v) =>
+      [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" ").toLowerCase().includes(q),
+    );
+  })();
   const total = stepLabels.length;
   const canNext = (() => {
     if (p.step === 1) return p.streamTitle.trim().length >= 3;
