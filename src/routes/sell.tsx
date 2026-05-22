@@ -107,6 +107,7 @@ function Sell() {
   const [streamCategory, setStreamCategory] = useState<string>("pokemon");
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
   const [hypeTags, setHypeTags] = useState<string[]>([]);
+  const [prebidVaultPicks, setPrebidVaultPicks] = useState<VaultPick[]>([]);
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
