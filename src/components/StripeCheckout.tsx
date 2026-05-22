@@ -41,7 +41,7 @@ export function StripeCheckout(props: Props) {
         });
         if (cancelled) return;
         setClientSecret(res.clientSecret!);
-        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, processingFee: (res as any).processingFee, buyerProcessingFee: (res as any).buyerProcessingFee, commissionCents: (res as any).commissionCents, isInternational: (res as any).isInternational });
+        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, processingFee: (res as any).processingFee, buyerProcessingFee: (res as any).buyerProcessingFee, commissionCents: (res as any).commissionCents, isInternational: (res as any).isInternational, taxCents: (res as any).taxCents });
       } catch (e: any) {
         setError(e.message ?? "Failed to start payment");
       }
