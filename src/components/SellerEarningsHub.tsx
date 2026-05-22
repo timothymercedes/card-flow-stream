@@ -65,7 +65,7 @@ type Recovery = {
 };
 
 type Hold = { id: string; balance_owed_cents: number };
-type ProfileRow = { id: string; username: string | null; display_name?: string | null };
+type ProfileRow = { id: string; username: string | null; full_name?: string | null };
 
 const fmt = (n: number) => `$${n.toFixed(2)}`;
 
