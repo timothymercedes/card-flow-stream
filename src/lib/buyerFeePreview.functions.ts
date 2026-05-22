@@ -6,6 +6,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { LIVE_BUYER_FEE_THRESHOLD, calculateFees } from "@/lib/stripe.server";
+import { calculateTaxCents } from "@/lib/salesTax";
+
 
 export const previewBuyerFee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -43,10 +45,12 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
     const nextItemIndex = (count || 0) + 1;
     const bundleDiscountActive = nextItemIndex > threshold;
     let shippingCents = requestedShippingCents;
+    let buyerCountry: string | null = null;
+    let buyerState: string | null = null;
     if (sellerId) {
       const { data: buyerProfile } = await supabaseAdmin
         .from("profiles")
-        .select("address_country")
+        .select("address_country,address_state")
         .eq("id", userId)
         .maybeSingle();
       const { data: sellerProfile } = await supabaseAdmin
@@ -54,7 +58,9 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
         .select("shipping_cap")
         .eq("id", sellerId)
         .maybeSingle();
-      const country = String((buyerProfile as any)?.address_country || "US").toUpperCase();
+      buyerCountry = ((buyerProfile as any)?.address_country ?? null) as string | null;
+      buyerState = ((buyerProfile as any)?.address_state ?? null) as string | null;
+      const country = String(buyerCountry || "US").toUpperCase();
       const systemCapCents = country === "US" || country === "USA" ? 700 : 2000;
       const sellerCapRaw = (sellerProfile as any)?.shipping_cap;
       const capCents = sellerCapRaw != null ? Math.min(systemCapCents, Math.round(Number(sellerCapRaw) * 100)) : systemCapCents;
@@ -73,13 +79,17 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
       platformFeeCentsOverride: 0,
       sellerAbsorbedFeeCentsOverride: 0,
     });
+    // Sales tax — US state-based flat rate. Taxable base = item + shipping
+    // (most states tax shipping when it's part of a taxable sale).
+    const taxCents = calculateTaxCents(itemCents + shippingCents, buyerCountry, buyerState);
     return {
       ...fees,
       itemCents,
       shippingCents,
-      taxCents: 0,
+      taxCents,
       nextItemIndex,
       threshold,
       bundleDiscountActive,
     };
   });
+
