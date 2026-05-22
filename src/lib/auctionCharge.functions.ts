@@ -231,13 +231,13 @@ async function performCharge(opts: {
 
   try {
     const intent = await stripe.paymentIntents.create({
-      amount: fees.buyerTotal,
+      amount: buyerChargeTotal,
       currency: "usd",
       customer: pm.stripe_customer_id,
       payment_method: pm.stripe_payment_method_id,
       off_session: true,
       confirm: true,
-      application_fee_amount: fees.applicationFee,
+      application_fee_amount: applicationFeeWithTax,
       transfer_data: { destination: seller.stripe_account_id },
       metadata: {
         kind: "auction_auto_charge",
@@ -260,6 +260,11 @@ async function performCharge(opts: {
         seller_country: sellerCountry,
         fee_index: feeIndex != null ? String(feeIndex) : "",
         fee_absorbed_by: feeAbsorbedBy,
+        tax_cents: String(taxCents),
+        taxable_subtotal_cents: String(tax.taxableSubtotalCents),
+        tax_rate_bps: String(tax.taxRateBps),
+        tax_jurisdiction: tax.jurisdiction ?? "",
+        tax_provider: tax.provider,
       },
     }, { idempotencyKey: idemKey });
 
@@ -277,6 +282,13 @@ async function performCharge(opts: {
         fee_split_mode: fees.feeSplitMode,
         fee_index: feeIndex,
         fee_absorbed_by: feeAbsorbedBy,
+        tax_cents: taxCents,
+        taxable_subtotal_cents: tax.taxableSubtotalCents,
+        tax_rate_bps: tax.taxRateBps,
+        tax_jurisdiction: tax.jurisdiction,
+        tax_provider: tax.provider,
+        tax_country: tax.country,
+        tax_state: tax.state,
         payment_status: intent.status === "succeeded" ? "paid" : "processing",
         paid_at: intent.status === "succeeded" ? new Date().toISOString() : null,
       })
