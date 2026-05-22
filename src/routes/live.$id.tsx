@@ -753,7 +753,7 @@ function LiveDetail() {
           });
           setTimeout(
             () => setShoutoutOverlay((cur) => (cur?.id === s.id ? null : cur)),
-            6000,
+            5000,
           );
           playSfx("shoutout");
         },
