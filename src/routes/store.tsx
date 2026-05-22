@@ -111,9 +111,13 @@ function SellerHub() {
     if (!window.confirm(`Refund $${Number((o.amount || 0) + (o.shipping_amount || 0)).toFixed(2)} to ${o.ship_name || "the buyer"}? This pulls funds back from your payout and cannot be undone.`)) return;
     setRefunding(o.id);
     try {
-      await refundOrderServer({ data: { orderId: o.id, reason: "Seller-issued refund" } });
-      toast.success("Refund issued — buyer notified");
-      load();
+      const res = await refundOrderServer({ data: { orderId: o.id, reason: "Seller-issued refund" } });
+      if (res?.refunded) {
+        toast.success("Refund issued — buyer notified");
+        load();
+      } else {
+        toast.error(res?.reason ?? "Refund failed");
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Refund failed");
     } finally {
