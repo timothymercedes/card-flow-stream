@@ -4351,11 +4351,15 @@ function LiveDetail() {
               aria-label="Open quick mod chat"
             >
               <Shield className="h-3 w-3" /> Mods
-              {modChat.length > 0 && (
-                <span className="rounded-full bg-live px-1 text-[8px] text-live-foreground">
+              {modUnread > 0 ? (
+                <span className="rounded-full bg-live px-1 text-[8px] font-bold text-live-foreground animate-pulse">
+                  {modUnread > 9 ? "9+" : modUnread} new
+                </span>
+              ) : modChat.length > 0 ? (
+                <span className="rounded-full bg-live/70 px-1 text-[8px] text-live-foreground">
                   {modChat.length}
                 </span>
-              )}
+              ) : null}
             </button>
           )}
           {!ended && <TopSupporterBadge streamId={id} />}
