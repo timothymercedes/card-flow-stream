@@ -2967,6 +2967,13 @@ export type Database = {
           stream_id: string | null
           stripe_charge_id: string | null
           stripe_payment_intent_id: string | null
+          tax_cents: number
+          tax_country: string | null
+          tax_jurisdiction: string | null
+          tax_provider: string | null
+          tax_rate_bps: number
+          tax_state: string | null
+          taxable_subtotal_cents: number
           title: string
           tracking_number: string | null
           tracking_url: string | null
@@ -3030,6 +3037,13 @@ export type Database = {
           stream_id?: string | null
           stripe_charge_id?: string | null
           stripe_payment_intent_id?: string | null
+          tax_cents?: number
+          tax_country?: string | null
+          tax_jurisdiction?: string | null
+          tax_provider?: string | null
+          tax_rate_bps?: number
+          tax_state?: string | null
+          taxable_subtotal_cents?: number
           title: string
           tracking_number?: string | null
           tracking_url?: string | null
@@ -3093,6 +3107,13 @@ export type Database = {
           stream_id?: string | null
           stripe_charge_id?: string | null
           stripe_payment_intent_id?: string | null
+          tax_cents?: number
+          tax_country?: string | null
+          tax_jurisdiction?: string | null
+          tax_provider?: string | null
+          tax_rate_bps?: number
+          tax_state?: string | null
+          taxable_subtotal_cents?: number
           title?: string
           tracking_number?: string | null
           tracking_url?: string | null
