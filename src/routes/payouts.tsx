@@ -79,6 +79,35 @@ function PayoutsPage() {
     }
   }
 
+  // Open a Stripe URL in a NEW TAB. Never assigns to window.top.location.href
+  // — that throws inside the Lovable preview iframe ("does not have permission
+  // to navigate the target frame"). If popups are blocked, fall back to a
+  // toast with a clickable link the user can tap (user-initiated anchor
+  // clicks are NOT blocked).
+  function openStripeUrl(url: string, label = "Open Stripe") {
+    try {
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      if (opened) return;
+    } catch {
+      // ignore — fall through to toast
+    }
+    toast(`${label} — click below to continue in a new tab`, {
+      duration: 60000,
+      action: {
+        label: "Open Stripe",
+        onClick: () => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener,noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        },
+      },
+    });
+  }
+
   async function handleConnect() {
     setBusy(true);
     try {
@@ -89,22 +118,14 @@ function PayoutsPage() {
           refreshUrl: `${origin}/payouts`,
         },
       });
-      // Stripe blocks iframes — open in top-level window / new tab
-      const opened = window.open(url, "_blank", "noopener,noreferrer");
-      if (!opened) {
-        // Popup blocked — break out of iframe
-        if (window.top && window.top !== window.self) {
-          window.top.location.href = url;
-        } else {
-          window.location.href = url;
-        }
-      }
+      openStripeUrl(url, "Stripe onboarding ready");
     } catch (e: any) {
       toast.error(e.message ?? "Could not start onboarding");
     } finally {
       setBusy(false);
     }
   }
+
 
   async function handleSync() {
     setBusy(true);
