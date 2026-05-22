@@ -951,6 +951,7 @@ function LiveDetail() {
   // off-session charge so the buyer never leaves the livestream.
   // On failure, surface FixPaymentModal so they can retry / swap card.
   const [failedOrder, setFailedOrder] = useState<{ id: string; title: string; amount: number; stream_id: string | null } | null>(null);
+  const [fixPaymentOpen, setFixPaymentOpen] = useState(false);
   const chargedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!user || !id) return;
@@ -968,7 +969,7 @@ function LiveDetail() {
             .from("orders")
             .select("id,title,amount,stream_id")
             .eq("id", orderId).maybeSingle();
-          if (o) setFailedOrder(o as any);
+          if (o) { setFailedOrder(o as any); setFixPaymentOpen(true); }
         }
       } catch (e) {
         console.warn("auto-charge failed", e);
@@ -978,12 +979,18 @@ function LiveDetail() {
     // On mount, scan recent awaiting_payment orders for this buyer in this stream.
     supabase
       .from("orders")
-      .select("id,payment_status")
+      .select("id,title,amount,stream_id,payment_status")
       .eq("buyer_id", user.id)
       .eq("stream_id", id)
-      .in("payment_status", ["awaiting_payment"])
+      .in("payment_status", ["awaiting_payment", "failed"])
+      .order("created_at", { ascending: false })
       .then(({ data }) => {
-        (data || []).forEach((o: any) => tryCharge(o.id));
+        (data || []).forEach((o: any) => {
+          if (o.payment_status === "awaiting_payment") tryCharge(o.id);
+          else if (o.payment_status === "failed") {
+            setFailedOrder({ id: o.id, title: o.title, amount: Number(o.amount), stream_id: o.stream_id });
+          }
+        });
       });
 
     const ch = supabase
@@ -1005,8 +1012,10 @@ function LiveDetail() {
           if (row?.stream_id !== id) return;
           if (row?.payment_status === "failed") {
             setFailedOrder({ id: row.id, title: row.title, amount: Number(row.amount), stream_id: row.stream_id });
-          } else if (row?.payment_status === "paid") {
+            setFixPaymentOpen(true);
+          } else if (row?.payment_status === "paid" || row?.payment_status === "cancelled" || row?.payment_status === "refunded") {
             setFailedOrder((cur) => (cur?.id === row.id ? null : cur));
+            setFixPaymentOpen((open) => (failedOrder?.id === row.id ? false : open));
           }
         },
       )
@@ -2146,6 +2155,7 @@ function LiveDetail() {
       amount: Number((data as any).amount),
       stream_id: (data as any).stream_id,
     });
+    setFixPaymentOpen(true);
     toast.error("Fix your payment to keep bidding in this stream");
     return true;
   }
@@ -7871,10 +7881,19 @@ function LiveDetail() {
         </div>
       )}
       {cardGate.Modal}
+      {failedOrder && !fixPaymentOpen && (
+        <button
+          onClick={() => setFixPaymentOpen(true)}
+          className="fixed bottom-24 right-4 z-[180] inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xl ring-2 ring-rose-400/60 animate-pulse hover:bg-rose-500"
+          aria-label="Fix failed payment"
+        >
+          ⚠️ Fix payment · ${failedOrder.amount.toFixed(2)}
+        </button>
+      )}
       <FixPaymentModal
-        order={failedOrder}
-        onClose={() => setFailedOrder(null)}
-        onResolved={() => setFailedOrder(null)}
+        order={fixPaymentOpen ? failedOrder : null}
+        onClose={() => setFixPaymentOpen(false)}
+        onResolved={() => { setFailedOrder(null); setFixPaymentOpen(false); }}
       />
     </div>
   );
