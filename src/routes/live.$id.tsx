@@ -5677,7 +5677,7 @@ function LiveDetail() {
       )}
 
       {/* Chat overlay — floating, immersive, no heavy container on mobile */}
-      {showChat && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
+      {showChat && !isSeller && !(isStaff && hostFocus) && !(stream.mode === "show_off" && flexImmersive) && (
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
