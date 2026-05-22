@@ -1970,6 +1970,26 @@ function LiveDetail() {
   const meStreamBanned = !!user && streamBannedIds.has(user.id);
   const meBlockedOrBanned = meBlocked || meStreamBanned;
 
+  // 🆕 Perf: pre-compute the visible chat list once per render instead of
+  // re-filtering inside JSX on every paint. Cap to the last 80 messages so
+  // long live sessions don't render hundreds of DOM nodes on mobile.
+  const modUserIdSet = useMemo(
+    () => new Set(mods.map((mm: any) => mm.mod_user_id)),
+    [mods],
+  );
+  const visibleChatMessages = useMemo(() => {
+    const tail = messages.length > 80 ? messages.slice(-80) : messages;
+    return tail.filter((m) => {
+      if (m.is_system || m.is_announcement) return false;
+      if (m.user_id && myBlockedIds.has(m.user_id)) return false;
+      if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
+      if (isStaff && hideModsChat && m.user_id && modUserIdSet.has(m.user_id)) return false;
+      return true;
+    });
+  }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet]);
+
+
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (meBlockedOrBanned) return toast.error("You can't chat right now (muted by mod)");
