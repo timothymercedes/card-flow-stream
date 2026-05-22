@@ -63,6 +63,10 @@ export const createOffer = createServerFn({ method: "POST" })
     z.object({
       queueItemId: z.string().uuid(),
       amount: z.number().positive().max(1_000_000),
+      expiresInHours: z.number().int().refine(
+        (v) => (ALLOWED_TTL_HOURS as readonly number[]).includes(v),
+        { message: "Expiration must be 1, 2, 6, 12, or 24 hours" },
+      ).optional(),
       acceptedPolicyVersion: z.string().optional(),
     }).parse(input),
   )
@@ -85,6 +89,31 @@ export const createOffer = createServerFn({ method: "POST" })
 
     const min = Number((item as any).min_offer || 0);
     if (min > 0 && data.amount < min) throw new Error(`Minimum offer is $${min}`);
+
+    // Anti-abuse: check existing active offers from this buyer
+    const { data: activeOffers } = await supabaseAdmin
+      .from("queue_offers" as any)
+      .select("id, amount, queue_item_id, created_at")
+      .eq("buyer_id", userId)
+      .eq("status", "pending")
+      .eq("payment_status", "authorized");
+
+    const active = (activeOffers || []) as any[];
+    if (active.length >= MAX_ACTIVE_OFFERS_PER_BUYER) {
+      throw new Error(`You have ${active.length} active offers. Cancel or wait for some to resolve before submitting more (max ${MAX_ACTIVE_OFFERS_PER_BUYER}).`);
+    }
+    const totalPending = active.reduce((s, o) => s + Number(o.amount || 0), 0);
+    if (totalPending + data.amount > MAX_PENDING_OFFER_VALUE_USD) {
+      throw new Error(`Total pending offer value would exceed $${MAX_PENDING_OFFER_VALUE_USD.toLocaleString()}. Cancel existing offers or wait.`);
+    }
+    // Per-item cooldown: prevent rapid-fire offers on the same item
+    const recentForItem = active.find((o) =>
+      o.queue_item_id === data.queueItemId &&
+      (Date.now() - new Date(o.created_at).getTime()) < PER_ITEM_COOLDOWN_SECONDS * 1000,
+    );
+    if (recentForItem) {
+      throw new Error(`You already have a pending offer on this item. Cancel it first to submit a new one.`);
+    }
 
     // Saved payment method
     const { data: pm } = await supabase
