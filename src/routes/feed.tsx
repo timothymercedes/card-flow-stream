@@ -294,10 +294,14 @@ function Feed() {
                   <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleString()}</p>
                   <div className="flex items-center gap-1">
                     {topReactions.length > 0 && (
-                      <div className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-1 text-xs">
+                      <button
+                        onClick={() => openReactors(p.id)}
+                        className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-1 text-xs transition hover:bg-muted/80 active:scale-95"
+                        title="See who reacted"
+                      >
                         {topReactions.map(([k]) => <span key={k}>{REACTIONS.find((r) => r.key === k)?.emoji}</span>)}
-                        <span className="ml-1 text-[10px] font-semibold text-muted-foreground">{c.total}</span>
-                      </div>
+                        <span className="ml-1 text-[10px] font-semibold text-foreground">{c.total}</span>
+                      </button>
                     )}
                     <button onClick={() => setPickerFor(pickerFor === p.id ? null : p.id)}
                       className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${c.mine ? "bg-primary/20 text-primary" : "bg-muted"}`}>
