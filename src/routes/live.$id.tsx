@@ -234,6 +234,12 @@ function LiveDetail() {
     amount: number;
     message?: string;
   } | null>(null);
+  const [shoutoutOverlay, setShoutoutOverlay] = useState<{
+    id: string;
+    username: string;
+    amount: number;
+    message?: string;
+  } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
