@@ -13,6 +13,7 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { MyOffers } from "@/components/MyOffers";
+import { SellerOffersInbox } from "@/components/SellerOffersInbox";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
@@ -183,7 +184,10 @@ function Orders() {
           </div>
         )}
         <div className="mb-3"><FinalSaleNotice variant="compact" context="receipt" /></div>
-        <div className="mb-4"><MyOffers /></div>
+        <div className="mb-4 space-y-4">
+          <SellerOffersInbox />
+          <MyOffers />
+        </div>
         <div className="sticky top-0 z-20 -mx-4 mb-3 flex flex-wrap gap-1.5 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
           {([
             { v: "all", label: "All" },
