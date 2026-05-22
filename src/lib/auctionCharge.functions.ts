@@ -31,6 +31,7 @@ import {
   LIVE_BUYER_FEE_THRESHOLD,
   getStripe,
 } from "@/lib/stripe.server";
+import { quoteTax } from "@/lib/tax/taxProvider.server";
 
 type ChargeResult =
   | { status: "paid"; paymentIntentId: string }
