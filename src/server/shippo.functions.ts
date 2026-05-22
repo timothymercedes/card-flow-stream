@@ -119,7 +119,10 @@ const PRESET_PARCEL: Record<string, { weightOz: number; lengthIn: number; widthI
 };
 
 const EstimateInput = z.object({
-  sellerId: z.string().uuid(),
+  sellerId: z.preprocess(
+    (value) => (typeof value === "string" && value.trim().length > 0 ? value : undefined),
+    z.string().uuid().optional(),
+  ),
   presetKey: z.enum(["stamp", "pwe", "bubble", "small_box"]).optional(),
   weightOz: z.number().min(0.1).max(1500).optional(),
   lengthIn: z.number().min(1).max(108).optional(),
@@ -139,6 +142,21 @@ export const estimateShippoRates = createServerFn({ method: "POST" })
     const lengthIn = data.lengthIn ?? preset.lengthIn;
     const widthIn = data.widthIn ?? preset.widthIn;
     const heightIn = data.heightIn ?? preset.heightIn;
+
+    if (!data.sellerId) {
+      const buyerCountry = (data.buyerCountry || "US").toUpperCase();
+      const isInternational = buyerCountry !== "US";
+      const shipping = isInternational
+        ? 15.5 + Math.max(0, weightOz - 4) * 0.85
+        : weightOz <= 2 ? 0.99 : 4.75 + Math.max(0, weightOz - 4) * 0.35;
+      return {
+        amountUsd: shipping,
+        currency: "USD",
+        isInternational,
+        source: "fallback" as const,
+        message: "Using estimated shipping",
+      };
+    }
 
     // Resolve seller address
     const { data: seller } = await supabaseAdmin
