@@ -44,10 +44,11 @@ export function MarketQuickView({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg overflow-hidden p-0">
+      <DialogContent className="max-w-lg overflow-hidden p-0 max-h-[90vh] flex flex-col">
         <DialogTitle className="sr-only">{listing.title}</DialogTitle>
-
+        <div className="overflow-y-auto overscroll-contain">
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
+
           {listing.image_url ? (
             <img src={listing.image_url} alt={listing.title} className="h-full w-full object-cover" />
           ) : (
