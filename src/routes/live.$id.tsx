@@ -4380,12 +4380,16 @@ function LiveDetail() {
             <button
               onClick={() => setShowModPanel((v) => !v)}
               className="relative rounded-full bg-primary/80 p-2 backdrop-blur"
-              title="Mod panel"
+              title={modUnread > 0 ? `${modUnread} new mod message${modUnread === 1 ? "" : "s"}` : "Mod chat (private)"}
             >
               <Shield className="h-4 w-4" />
-              {modChat.length > 0 && (
+              {modUnread > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-live px-1 text-[9px] font-bold text-white ring-2 ring-background animate-pulse">
+                  {modUnread > 9 ? "9+" : modUnread}
+                </span>
+              ) : modChat.length > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-live" />
-              )}
+              ) : null}
             </button>
           )}
           {!ended && (isSeller || (!isSeller && stream.allow_collab_requests)) && (
