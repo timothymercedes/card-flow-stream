@@ -190,7 +190,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-        .select("id, amount, buyer_id, seller_id, payment_status, listing_id, stream_id")
+      .select("id, amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
@@ -255,7 +255,50 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       }
     }
 
-    const fees = calculateFees(subtotalCents, { isInternational });
+    const liveRows = (orderRows as any[]).filter((o) => !!o.stream_id);
+    const isLiveCheckout = liveRows.length > 0 && liveRows.length === (orderRows as any[]).length;
+    const fees = isLiveCheckout
+      ? await (async () => {
+          const paidCounts = new Map<string, number>();
+          for (const streamId of Array.from(new Set(liveRows.map((o) => String(o.stream_id))))) {
+            const { count } = await supabaseAdmin
+              .from("orders")
+              .select("id", { count: "exact", head: true })
+              .eq("buyer_id", userId)
+              .eq("stream_id", streamId)
+              .eq("payment_status", "paid");
+            paidCounts.set(streamId, count || 0);
+          }
+          const perStreamPending = new Map<string, number>();
+          const parts = [...liveRows].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).map((o) => {
+            const streamId = String(o.stream_id);
+            const pendingIndex = (perStreamPending.get(streamId) || 0) + 1;
+            perStreamPending.set(streamId, pendingIndex);
+            const feeIndex = (paidCounts.get(streamId) || 0) + pendingIndex;
+            return {
+              orderId: o.id,
+              feeIndex,
+              feeAbsorbedBy: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller" as const : "buyer" as const,
+              fees: calculateFees(Math.round(Number(o.amount) * 100), {
+                isInternational,
+                commissionRate: Number(o.commission_rate ?? 0.05),
+                platformFeeCentsOverride: 0,
+                sellerAbsorbedFeeCentsOverride: 0,
+                feeSplitMode: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller_absorbed" : "split",
+              }),
+            };
+          });
+          const sum = (key: keyof ReturnType<typeof calculateFees>) => parts.reduce((a, p) => a + Number(p.fees[key] || 0), 0);
+          return {
+            subtotalCents: sum("subtotalCents"), platformFee: sum("platformFee"), sellerAbsorbedFee: sum("sellerAbsorbedFee"),
+            intlFee: sum("intlFee"), commissionCents: sum("commissionCents"), commissionRate: 0.05,
+            processingFee: sum("processingFee"), buyerProcessingFee: sum("buyerProcessingFee"), sellerProcessingFee: sum("sellerProcessingFee"),
+            feeSplitMode: parts.some((p) => p.fees.feeSplitMode === "seller_absorbed") ? "seller_absorbed" as const : "split" as const,
+            isInternational, applicationFee: sum("applicationFee"), sellerNet: sum("sellerNet"), buyerServiceFee: 0,
+            buyerTotal: sum("buyerTotal"), liveParts: parts,
+          };
+        })()
+      : calculateFees(subtotalCents, { isInternational });
 
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${fees.buyerTotal}`;
