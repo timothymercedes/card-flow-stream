@@ -1647,18 +1647,25 @@ function SellModal({ card, onClose, onSubmit }: {
         <ListingImageUpload value={frontImage} onChange={setFrontImage} label="Photo (front)" />
         <ListingImageUpload value={backImage} onChange={setBackImage} label="Back photo (optional)" />
 
-        <div className="grid grid-cols-3 gap-1">
-          {(["buy_now", "auction", "offer"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setSaleType(t)}
-              className={`rounded-lg px-2 py-2 text-xs font-bold ${saleType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-            >
-              {t === "buy_now" ? "Buy Now" : t === "auction" ? "Auction" : "Offer"}
-            </button>
-          ))}
+        <div>
+          <p className="mb-1 text-[10px] uppercase text-muted-foreground">Marketplace listing type</p>
+          <div className="grid grid-cols-3 gap-1">
+            {(["buy_now", "auction", "offer"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setSaleType(t)}
+                className={`rounded-lg px-2 py-2 text-xs font-bold ${saleType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+              >
+                {t === "buy_now" ? "Buy Now" : t === "auction" ? "Timed Auction" : "Offer"}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Lists on the marketplace. To sell live on stream, start a Live show instead.
+          </p>
         </div>
+
 
         {!offer && (
           <div>
