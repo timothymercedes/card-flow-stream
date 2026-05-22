@@ -20,6 +20,7 @@ import { BUYER_PLATFORM_FEE_CENTS, INTL_PROCESSING_FEE_RATE } from "@/lib/market
 export const Route = createFileRoute("/cart")({ component: Cart });
 
 function Cart() {
+  const router = useRouter();
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [checkoutSeller, setCheckoutSeller] = useState<string | null>(null);
