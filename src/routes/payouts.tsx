@@ -208,11 +208,7 @@ function PayoutsPage() {
                     setBusy(true);
                     try {
                       const { url } = await loginLink();
-                      const opened = window.open(url, "_blank", "noopener,noreferrer");
-                      if (!opened) {
-                        if (window.top && window.top !== window.self) window.top.location.href = url;
-                        else window.location.href = url;
-                      }
+                      openStripeUrl(url, "Stripe dashboard ready");
                     } catch (e: any) {
                       toast.error(e.message ?? "Could not open Stripe dashboard");
                     } finally { setBusy(false); }
@@ -233,11 +229,7 @@ function PayoutsPage() {
                           refreshUrl: `${origin}/payouts`,
                         },
                       });
-                      const opened = window.open(url, "_blank", "noopener,noreferrer");
-                      if (!opened) {
-                        if (window.top && window.top !== window.self) window.top.location.href = url;
-                        else window.location.href = url;
-                      }
+                      openStripeUrl(url, "Account update ready");
                     } catch (e: any) {
                       toast.error(e.message ?? "Could not start update");
                     } finally { setBusy(false); }
@@ -249,6 +241,7 @@ function PayoutsPage() {
                 <Button variant="outline" onClick={handleSync} disabled={busy}>
                   Refresh status
                 </Button>
+
               </>
             )}
           </div>
