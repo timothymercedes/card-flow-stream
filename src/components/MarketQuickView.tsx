@@ -121,6 +121,7 @@ export function MarketQuickView({
             View full listing <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
