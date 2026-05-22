@@ -422,6 +422,28 @@ function Sell() {
         JSON.stringify(selectedCameraIds.slice(0, 3)),
       );
     }
+    // Seed Pre-B queue with cards the host picked from their vault during setup.
+    if (prebidVaultPicks.length > 0) {
+      const rows = prebidVaultPicks.map((v, i) => {
+        const val = Number(v.estimated_value || 0);
+        const start = val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1;
+        const title = [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || v.name;
+        return {
+          stream_id: data.id,
+          host_id: user!.id,
+          position: i,
+          title,
+          quantity: 1,
+          image_url: v.image_url || null,
+          sale_type: "prebid",
+          starting_bid: start,
+          duration_seconds: Number(defaultTimerSec) || 30,
+          snipe_price: val > 0 ? val : null,
+        };
+      });
+      const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
+      if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+    }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
     nav({ to: "/live/$id", params: { id: data.id } });
