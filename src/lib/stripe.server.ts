@@ -89,7 +89,7 @@ export function calculateFees(
     isInternational?: boolean;
     platformFeeCentsOverride?: number;
     commissionRate?: number;
-    feeSplitMode?: "buyer" | "split";
+    feeSplitMode?: "buyer" | "split" | "seller_absorbed";
   },
 ) {
   const platformFee =
@@ -109,18 +109,22 @@ export function calculateFees(
   const preFeeBuyerCents = subtotalCents + platformFee + intlFee;
 
   const splitMode = opts?.feeSplitMode ?? "buyer";
-  const buyerProcessingFee = splitMode === "split"
-    ? buyerHalfStripeFeeCents(preFeeBuyerCents)
-    : grossedUpStripeFeeCents(preFeeBuyerCents);
+  const buyerProcessingFee = splitMode === "seller_absorbed"
+    ? 0
+    : splitMode === "split"
+      ? buyerHalfStripeFeeCents(preFeeBuyerCents)
+      : grossedUpStripeFeeCents(preFeeBuyerCents);
   const buyerTotal = preFeeBuyerCents + buyerProcessingFee;
 
   // Actual Stripe fee Stripe will deduct from the charge on the buyer total.
   const totalProcessingFee = Math.round(
     buyerTotal * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED_CENTS,
   );
-  const sellerProcessingFee = splitMode === "split"
-    ? Math.max(0, totalProcessingFee - buyerProcessingFee)
-    : 0;
+  const sellerProcessingFee = splitMode === "seller_absorbed"
+    ? totalProcessingFee
+    : splitMode === "split"
+      ? Math.max(0, totalProcessingFee - buyerProcessingFee)
+      : 0;
 
   const applicationFee =
     platformFee + intlFee + commissionCents + sellerAbsorbedFee + totalProcessingFee;
