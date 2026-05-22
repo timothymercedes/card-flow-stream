@@ -2149,6 +2149,7 @@ function LiveDetail() {
       amount: Number((data as any).amount),
       stream_id: (data as any).stream_id,
     });
+    setFixPaymentOpen(true);
     toast.error("Fix your payment to keep bidding in this stream");
     return true;
   }
