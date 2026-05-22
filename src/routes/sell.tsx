@@ -679,6 +679,9 @@ function Sell() {
               setBreakSlotPrefix={setBreakSlotPrefix}
               streamDesc={streamDesc}
               setStreamDesc={setStreamDesc}
+              hostId={user?.id || ""}
+              prebidVaultPicks={prebidVaultPicks}
+              setPrebidVaultPicks={setPrebidVaultPicks}
               startLive={async () => {
                 await startLive();
               }}
