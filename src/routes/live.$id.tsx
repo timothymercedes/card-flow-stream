@@ -5832,12 +5832,13 @@ function LiveDetail() {
                 const estTax = (bundleFee?.taxCents ?? 0) / 100;
                 const estTotal = ((bundleFee?.buyerTotal ?? Math.round((bid + ship + buyerProcessing) * 100)) + (bundleFee?.taxCents ?? 0)) / 100;
                 const bundleActive = bundleFee?.feeSplitMode === "seller_absorbed" || !!bundleFee?.bundleDiscountActive;
+                const showTax = !isSeller && !!bundleFee;
                 const detailParts = [
                   `subtotal ${fmtMoney(bid)}`,
                   `shipping ${fmtMoney(ship)}`,
                   ...(platformFee > 0 ? [`platform fee ${fmtMoney(platformFee)}`] : []),
                   `processing ${fmtMoney(buyerProcessing)}`,
-                  `tax ${fmtMoney(estTax)}`,
+                  ...(showTax ? [`tax ${fmtMoney(estTax)}`] : []),
                 ];
                 return (
                   <div className="mt-1 flex flex-col items-center gap-1">
