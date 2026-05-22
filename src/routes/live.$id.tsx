@@ -811,7 +811,18 @@ function LiveDetail() {
           table: "stream_mod_messages",
           filter: `stream_id=eq.${id}`,
         },
-        (p) => setModChat((m) => [...m, p.new]),
+        (p) => {
+          const row: any = p.new;
+          setModChat((m) => [...m, row]);
+          // 🔔 Notify staff (host + mods) when a private mod message arrives
+          // and the mod panel isn't open. Self-sent messages don't ping.
+          if (row.user_id && row.user_id !== user?.id) {
+            setModUnread((n) => n + 1);
+            toast.message(`🛡️ @${row.username} (mods)`, {
+              description: String(row.content).slice(0, 120),
+            });
+          }
+        },
       )
       .on(
         "postgres_changes",
