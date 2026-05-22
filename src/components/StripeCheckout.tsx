@@ -63,7 +63,7 @@ export function StripeCheckout(props: Props) {
   );
 }
 
-function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean; taxCents?: number } }) {
+function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl, orderId, orderIds }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean; taxCents?: number } }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -87,9 +87,7 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
     if (result.paymentIntent?.status === "succeeded") {
       toast.success("Payment successful");
       try {
-        const orderIds = (props as any).orderIds as string[] | undefined;
-        const orderId = (props as any).orderId as string | undefined;
-        const targets = orderIds && orderIds.length ? orderIds : orderId ? [orderId] : [undefined];
+        const targets = orderIds && orderIds.length ? orderIds : orderId ? [orderId] : [undefined as string | undefined];
         for (const oid of targets) {
           recordPolicyAcceptance({
             data: { context: "checkout", orderId: oid, metadata: { payment_intent: result.paymentIntent.id } },
