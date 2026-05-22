@@ -4256,7 +4256,7 @@ function LiveDetail() {
           )}
           {!ended && <TopSupporterBadge streamId={id} />}
         </div>
-        <div className="flex gap-1">
+        <div className="flex shrink-0 gap-1">
           <button
             onClick={() => setShareOpen(true)}
             className="rounded-full bg-black/50 p-2 backdrop-blur"
