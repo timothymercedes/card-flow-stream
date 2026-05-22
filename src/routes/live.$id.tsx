@@ -406,12 +406,30 @@ function LiveDetail() {
   // 🆕 Live polish: bid-hype trigger + auto-sold banner state
   const [hypeTick, setHypeTick] = useState<number>(0);
   const [comboCount, setComboCount] = useState<number | null>(null);
-  const [soldBanner, setSoldBanner] = useState<{
+  const [soldBanner, setSoldBannerRaw] = useState<{
     key: number;
     item: string;
     user: string;
     amount: number;
   } | null>(null);
+  // Dedupe SOLD banner: host triggers it locally AND the "🏆" system chat echo
+  // would re-trigger it via the realtime subscription. Suppress duplicates with
+  // the same (item,user,amount) signature within 8 seconds.
+  const soldBannerSigRef = useRef<{ sig: string; at: number } | null>(null);
+  const setSoldBanner = useCallback(
+    (next: { key: number; item: string; user: string; amount: number } | null) => {
+      if (next) {
+        const sig = `${next.item}::${next.user}::${next.amount}`;
+        const last = soldBannerSigRef.current;
+        if (last && last.sig === sig && Date.now() - last.at < 8000) return;
+        soldBannerSigRef.current = { sig, at: Date.now() };
+      } else {
+        soldBannerSigRef.current = null;
+      }
+      setSoldBannerRaw(next);
+    },
+    [],
+  );
   const [queueOpen, setQueueOpen] = useState(false);
   const [prebidOpen, setPrebidOpen] = useState(false);
   const [prebidCount, setPrebidCount] = useState(0);
