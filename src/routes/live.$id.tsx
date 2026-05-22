@@ -7881,10 +7881,19 @@ function LiveDetail() {
         </div>
       )}
       {cardGate.Modal}
+      {failedOrder && !fixPaymentOpen && (
+        <button
+          onClick={() => setFixPaymentOpen(true)}
+          className="fixed bottom-24 right-4 z-[180] inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xl ring-2 ring-rose-400/60 animate-pulse hover:bg-rose-500"
+          aria-label="Fix failed payment"
+        >
+          ⚠️ Fix payment · ${failedOrder.amount.toFixed(2)}
+        </button>
+      )}
       <FixPaymentModal
-        order={failedOrder}
-        onClose={() => setFailedOrder(null)}
-        onResolved={() => setFailedOrder(null)}
+        order={fixPaymentOpen ? failedOrder : null}
+        onClose={() => setFixPaymentOpen(false)}
+        onResolved={() => { setFailedOrder(null); setFixPaymentOpen(false); }}
       />
     </div>
   );
