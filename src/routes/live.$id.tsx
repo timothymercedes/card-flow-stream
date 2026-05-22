@@ -2253,6 +2253,7 @@ function LiveDetail() {
         prev ? { ...prev, current_bid: amount, current_bidder_id: user.id } : prev,
       );
       playSfx("bid");
+      recordPolicyAcceptance({ data: { context: "bid", streamId: id, metadata: { amount } } }).catch(() => {});
       // 🆕 Gamification: combo streak + XP + daily quest. Server-validated;
       // RPCs throttle/reset, so spam-clicking can't farm progression.
       bumpCombo(id)
@@ -2331,6 +2332,7 @@ function LiveDetail() {
       .eq("id", id);
     if (error) return toast.error(error.message);
     safety.touch("buy_now_snipe");
+    recordPolicyAcceptance({ data: { context: "instant_win", streamId: id, metadata: { amount: price } } }).catch(() => {});
     endedRef.current = false;
     snapshotRef.current = false;
     await sendMsg(`💥 SNIPE! @${profile.username} hit Buy-Now for $${price} — instant win!`, true);
