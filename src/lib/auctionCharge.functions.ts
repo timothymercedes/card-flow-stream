@@ -149,15 +149,19 @@ async function performCharge(opts: {
   const pm = await loadDefaultPaymentMethod(userId, paymentMethodOverrideId);
   const seller = await loadSellerStripe(order.seller_id);
 
-  // amount and shipping_amount are stored as decimal dollars.
-  const totalCents = Math.round(Number(order.amount) * 100);
+  // `orders.amount` is the buyer-facing item+shipping total; seller fees and
+  // payout must be based on the item subtotal only. Shipping stays on the
+  // platform side to buy labels / cover shipping margin.
+  const orderTotalCents = Math.round(Number(order.amount) * 100);
+  const shippingCents = Math.round(Number(order.shipping_amount || 0) * 100);
+  const itemCents = Math.max(0, orderTotalCents - shippingCents);
 
   // Phase 11: buyer risk restrictions — block frozen/blocked accounts and
   // enforce admin-applied bid_limit (cents_limit).
   {
     const { data: canBuy } = await (supabaseAdmin.rpc as any)(
       "buyer_can_purchase",
-      { _user_id: userId, _amount_cents: totalCents },
+      { _user_id: userId, _amount_cents: orderTotalCents },
     );
     if (canBuy === false) {
       await markFailed({
@@ -202,7 +206,7 @@ async function performCharge(opts: {
     : "split";
 
   const commissionRate = Number(order.commission_rate ?? 0.05);
-  const fees = calculateFees(totalCents, {
+  const fees = calculateFees(itemCents, {
     isInternational,
     platformFeeCentsOverride: platformFeeOverride,
     sellerAbsorbedFeeCentsOverride: 0,
@@ -216,16 +220,14 @@ async function performCharge(opts: {
   // Tax — computed via swappable provider (state table today, Stripe Tax later).
   // Shipping is included in the auction amount on this path (order.amount
   // is the total bid; shipping is stored separately as shipping_amount).
-  const shippingCents = Math.round(Number(order.shipping_amount || 0) * 100);
-  const itemCents = Math.max(0, totalCents - shippingCents);
   const tax = await quoteTax({ itemCents, shippingCents, buyerCountry, buyerState, sellerId: order.seller_id });
   const taxCents = tax.taxCents;
 
   // Tax flows on TOP of buyerTotal and into application_fee_amount —
   // platform collects it (marketplace facilitator) and remits separately.
   // Seller payout is unaffected by tax.
-  const buyerChargeTotal = fees.buyerTotal + taxCents;
-  const applicationFeeWithTax = fees.applicationFee + taxCents;
+  const buyerChargeTotal = fees.buyerTotal + shippingCents + taxCents;
+  const applicationFeeWithTax = fees.applicationFee + shippingCents + taxCents;
 
   const idemKey = `auction-charge:${orderId}:${buyerChargeTotal}:${pm.stripe_payment_method_id}`;
 
@@ -246,6 +248,7 @@ async function performCharge(opts: {
         seller_id: order.seller_id,
         stream_id: order.stream_id ?? "",
         subtotal_cents: String(fees.subtotalCents),
+        shipping_cents: String(shippingCents),
         platform_fee_cents: String(fees.platformFee),
         seller_absorbed_fee_cents: String(fees.sellerAbsorbedFee),
         commission_cents: String(commissionCents),
@@ -275,6 +278,7 @@ async function performCharge(opts: {
         seller_stripe_account_id: seller.stripe_account_id,
         commission_amount: commissionCents / 100,
         seller_payout_amount: sellerPayoutCents / 100,
+        final_charged_total_cents: buyerChargeTotal,
         platform_fee_cents: fees.platformFee,
         processing_fee_cents: fees.processingFee,
         buyer_processing_fee_cents: fees.buyerProcessingFee,
@@ -289,6 +293,13 @@ async function performCharge(opts: {
         tax_provider: tax.provider,
         tax_country: tax.country,
         tax_state: tax.state,
+        tax_reconciliation_status: intent.status === "succeeded" ? "matched" : "pending",
+        tax_reconciliation_details: {
+          stripe_payment_intent_amount: buyerChargeTotal,
+          item_cents: itemCents,
+          shipping_cents: shippingCents,
+          tax_cents: taxCents,
+        },
         payment_status: intent.status === "succeeded" ? "paid" : "processing",
         paid_at: intent.status === "succeeded" ? new Date().toISOString() : null,
       })

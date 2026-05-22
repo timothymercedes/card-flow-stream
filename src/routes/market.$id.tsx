@@ -203,11 +203,12 @@ function ListingDetail() {
     gateIntl(() => { setCartMode("cart"); setShowShip(true); });
   }
 
-  async function placeOrder(amount: number) {
+  async function placeOrder(amount: number, shippingAmount: number) {
     if (!ensureBuyerAddress()) return;
     const { error } = await supabase.from("orders").insert({
       listing_id: id, buyer_id: profile!.id, seller_id: listing.seller_id,
       title: listing.title, amount,
+      shipping_amount: shippingAmount,
       quantity: qty,
       item_image_url: listing.image_url,
       status: "pending",
@@ -436,7 +437,7 @@ function ListingDetail() {
                 <div className="flex justify-between"><span>Shipping</span><span>{shipPrice > 0 ? `$${shipPrice.toFixed(2)}` : "Free"}</span></div>
                 <div className="flex justify-between font-bold pt-1 border-t border-border"><span>Total</span><span>${total.toFixed(2)}</span></div>
               </div>
-              <button onClick={() => placeOrder(total)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
+              <button onClick={() => placeOrder(total, shipPrice)} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
                 {cartMode === "cart" ? "Add to Cart" : "Place Order"}
               </button>
             </div>

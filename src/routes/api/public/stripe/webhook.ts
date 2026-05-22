@@ -140,6 +140,8 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               }
               const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
               if (ids.length > 0) {
+                const orderCount = Math.max(1, ids.length);
+                const finalChargedTotalCents = Number(pi.amount || pi.amount_received || 0);
                 await supabaseAdmin
                   .from("orders")
                   .update({
@@ -147,6 +149,8 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                     paid_at: new Date().toISOString(),
                     stripe_payment_intent_id: pi.id,
                     stripe_charge_id: chargeId ?? null,
+                    final_charged_total_cents: Math.round(finalChargedTotalCents / orderCount),
+                    tax_reconciliation_status: "matched",
                   })
                   .in("id", ids);
                 // Clear any bid blocks once payment recovers
@@ -162,6 +166,7 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               try {
                 const md = pi.metadata || {};
                 const platformFeeCents = Number(md.platform_fee_cents || 0);
+                const commissionCents = Number(md.commission_cents || 0);
                 const intlFeeCents = Number(md.intl_fee_cents || 0);
                 const tipFeeCents = Number(md.platform_fee_cents && md.kind === "stream_tip" ? md.platform_fee_cents : 0);
                 if (md.kind === "stream_tip" && tipFeeCents > 0) {
@@ -179,12 +184,12 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                     _stripe_event: event.id, _meta: { promotion_id: promotionId },
                   });
                 } else if (ids.length > 0) {
-                  if (platformFeeCents > 0) {
+                  if (commissionCents > 0) {
                     await (supabaseAdmin as any).rpc("log_platform_revenue", {
-                      _kind: "marketplace_commission", _amount_cents: platformFeeCents,
+                      _kind: "marketplace_commission", _amount_cents: commissionCents,
                       _seller_id: md.seller_id || null, _buyer_id: md.buyer_id || null,
                       _order_id: ids[0] || null, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
-                      _stripe_event: `${event.id}:fee`, _meta: { order_ids: ids },
+                      _stripe_event: `${event.id}:commission`, _meta: { order_ids: ids, platform_fee_cents: platformFeeCents },
                     });
                   }
                   if (intlFeeCents > 0) {
@@ -194,6 +199,21 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                       _order_id: ids[0] || null, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
                       _stripe_event: `${event.id}:intl`,
                       _meta: { buyer_country: md.buyer_country, seller_country: md.seller_country },
+                    });
+                  }
+                  const { data: taxOrders } = await supabaseAdmin
+                    .from("orders")
+                    .select("id,tax_cents,tax_jurisdiction,tax_provider,tax_country,tax_state")
+                    .in("id", ids);
+                  for (const o of ((taxOrders ?? []) as any[])) {
+                    const taxCents = Number(o.tax_cents || 0);
+                    if (taxCents <= 0) continue;
+                    await (supabaseAdmin as any).rpc("log_platform_revenue", {
+                      _kind: "sales_tax_collected", _amount_cents: taxCents,
+                      _seller_id: md.seller_id || null, _buyer_id: md.buyer_id || null,
+                      _order_id: o.id, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
+                      _stripe_event: `${event.id}:tax:${o.id}`,
+                      _meta: { jurisdiction: o.tax_jurisdiction, provider: o.tax_provider, country: o.tax_country, state: o.tax_state },
                     });
                   }
                 }

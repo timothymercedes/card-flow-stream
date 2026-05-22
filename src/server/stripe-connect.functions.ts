@@ -202,18 +202,26 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
       if (o.seller_id !== data.sellerId) throw new Error("Order seller mismatch");
       if (o.payment_status !== "awaiting_payment") throw new Error("Order already paid");
     }
-    const subtotalCents = (orderRows as any[]).reduce(
+    const orderTotalCents = (orderRows as any[]).reduce(
       (a, o) => a + Math.round(Number(o.amount) * 100),
       0,
     );
-    if (subtotalCents < 50) throw new Error("Amount too low");
+    const subtotalCents = (orderRows as any[]).reduce(
+      (a, o) => a + Math.max(0, Math.round(Number(o.amount) * 100) - Math.round(Number(o.shipping_amount || 0) * 100)),
+      0,
+    );
+    const totalShippingCents = (orderRows as any[]).reduce(
+      (a, o) => a + Math.round(Number(o.shipping_amount || 0) * 100),
+      0,
+    );
+    if (orderTotalCents < 50 || subtotalCents < 0) throw new Error("Amount too low");
 
     // Phase 11: buyer risk restrictions. Block purchase if frozen / blocked
     // or above an admin-applied cents_limit.
     {
       const { data: canBuy } = await (supabaseAdmin.rpc as any)(
         "buyer_can_purchase",
-        { _user_id: userId, _amount_cents: subtotalCents },
+        { _user_id: userId, _amount_cents: orderTotalCents },
       );
       if (canBuy === false) {
         throw new Error("Your account is currently restricted from making purchases. Contact support.");
@@ -282,13 +290,16 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
               orderId: o.id,
               feeIndex,
               feeAbsorbedBy: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller" as const : "buyer" as const,
-              fees: calculateFees(Math.round(Number(o.amount) * 100), {
+              fees: calculateFees(
+                Math.max(0, Math.round(Number(o.amount) * 100) - Math.round(Number(o.shipping_amount || 0) * 100)),
+                {
                 isInternational,
                 commissionRate: Number(o.commission_rate ?? 0.05),
                 platformFeeCentsOverride: 0,
                 sellerAbsorbedFeeCentsOverride: 0,
                 feeSplitMode: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller_absorbed" : "split",
-              }),
+                },
+              ),
             };
           });
           const sum = (key: keyof ReturnType<typeof calculateFees>) => parts.reduce((a, p) => a + Number(p.fees[key] || 0), 0);
@@ -309,8 +320,9 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     //  - tax is persisted on every order for accounting & refund logic
     //  - swapping in Stripe Tax / TaxJar later only changes taxProvider.server.ts
     const orderTaxQuotes = await Promise.all((orderRows as any[]).map(async (o) => {
-      const orderItemCents = Math.round(Number(o.amount) * 100);
+      const orderTotalCents = Math.round(Number(o.amount) * 100);
       const orderShippingCents = Math.round(Number(o.shipping_amount || 0) * 100);
+      const orderItemCents = Math.max(0, orderTotalCents - orderShippingCents);
       const q = await quoteTax({
         itemCents: orderItemCents,
         shippingCents: orderShippingCents,
@@ -325,8 +337,8 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Tax flows on TOP of buyerTotal and into application_fee_amount so the
     // marketplace receives the collected tax (facilitator model). Seller
     // payout is unaffected.
-    const buyerChargeTotal = fees.buyerTotal + totalTaxCents;
-    const applicationFeeWithTax = fees.applicationFee + totalTaxCents;
+    const buyerChargeTotal = fees.buyerTotal + totalShippingCents + totalTaxCents;
+    const applicationFeeWithTax = fees.applicationFee + totalShippingCents + totalTaxCents;
 
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${buyerChargeTotal}`;
@@ -343,6 +355,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         order_id: orderIds[0] ?? "",
         order_ids: orderIds.join(","),
         subtotal_cents: String(fees.subtotalCents),
+        shipping_cents: String(totalShippingCents),
         platform_fee_cents: String(fees.platformFee),
         commission_cents: String(fees.commissionCents),
         processing_fee_cents: String(fees.processingFee),
@@ -376,6 +389,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
           commission_rate: part.fees.commissionRate,
           commission_amount: part.fees.commissionCents / 100,
           seller_payout_amount: part.fees.sellerNet / 100,
+          final_charged_total_cents: Math.round(Number((orderRows as any[]).find((o) => o.id === part.orderId)?.amount || 0) * 100) + (tq?.taxCents ?? 0) + part.fees.buyerProcessingFee,
           platform_fee_cents: part.fees.platformFee,
           processing_fee_cents: part.fees.processingFee,
           buyer_processing_fee_cents: part.fees.buyerProcessingFee,
@@ -390,26 +404,38 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
           tax_provider: tq?.provider ?? "state_table",
           tax_country: tq?.country ?? null,
           tax_state: tq?.state ?? null,
+          tax_reconciliation_status: "pending",
+          tax_reconciliation_details: {
+            payment_intent_total_cents: buyerChargeTotal,
+            order_tax_cents: tq?.taxCents ?? 0,
+            order_shipping_cents: Math.round(Number((orderRows as any[]).find((o) => o.id === part.orderId)?.shipping_amount || 0) * 100),
+          },
         }).eq("id", part.orderId);
       }));
     } else {
-      const perOrderCommission = orderIds.length > 0 ? Math.round((fees.commissionCents / orderIds.length)) : 0;
-      const perOrderPayout = orderIds.length > 0 ? Math.round((fees.sellerNet / orderIds.length)) : 0;
       // Persist per-order tax even on non-live grouped checkouts.
       await Promise.all((orderRows as any[]).map((o) => {
         const tq = taxByOrder.get(o.id);
+        const orderTotal = Math.round(Number(o.amount || 0) * 100);
+        const orderShipping = Math.round(Number(o.shipping_amount || 0) * 100);
+        const orderItem = Math.max(0, orderTotal - orderShipping);
+        const orderFees = calculateFees(orderItem, {
+          isInternational,
+          commissionRate: Number(o.commission_rate ?? fees.commissionRate),
+        });
         return supabaseAdmin.from("orders").update({
           stripe_payment_intent_id: intent.id,
           seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
           idempotency_key: idemKey,
-          commission_rate: fees.commissionRate,
-          commission_amount: perOrderCommission / 100,
-          seller_payout_amount: perOrderPayout / 100,
-          platform_fee_cents: fees.platformFee,
-          processing_fee_cents: fees.processingFee,
-          buyer_processing_fee_cents: (fees as any).buyerProcessingFee ?? fees.processingFee,
-          seller_processing_fee_cents: (fees as any).sellerProcessingFee ?? 0,
-          fee_split_mode: (fees as any).feeSplitMode ?? "buyer",
+          commission_rate: orderFees.commissionRate,
+          commission_amount: orderFees.commissionCents / 100,
+          seller_payout_amount: orderFees.sellerNet / 100,
+          final_charged_total_cents: orderFees.buyerTotal + orderShipping + (tq?.taxCents ?? 0),
+          platform_fee_cents: orderFees.platformFee,
+          processing_fee_cents: orderFees.processingFee,
+          buyer_processing_fee_cents: orderFees.buyerProcessingFee,
+          seller_processing_fee_cents: orderFees.sellerProcessingFee,
+          fee_split_mode: orderFees.feeSplitMode,
           tax_cents: tq?.taxCents ?? 0,
           taxable_subtotal_cents: tq?.taxableSubtotalCents ?? 0,
           tax_rate_bps: tq?.taxRateBps ?? 0,
@@ -417,6 +443,14 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
           tax_provider: tq?.provider ?? "state_table",
           tax_country: tq?.country ?? null,
           tax_state: tq?.state ?? null,
+          tax_reconciliation_status: "pending",
+          tax_reconciliation_details: {
+            payment_intent_total_cents: buyerChargeTotal,
+            order_total_cents: orderTotal,
+            order_item_cents: orderItem,
+            order_shipping_cents: orderShipping,
+            order_tax_cents: tq?.taxCents ?? 0,
+          },
         }).eq("id", o.id);
       }));
     }
