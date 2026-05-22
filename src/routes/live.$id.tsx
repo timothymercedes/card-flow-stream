@@ -5812,7 +5812,7 @@ function LiveDetail() {
                   : 0;
                 const buyerProcessing = (bundleFee?.buyerProcessingFee ?? Math.round(fallbackProcessing * 100)) / 100;
                 const estTax = (bundleFee?.taxCents ?? 0) / 100;
-                const estTotal = (bundleFee?.buyerTotal ?? Math.round((bid + ship + buyerProcessing) * 100)) / 100;
+                const estTotal = ((bundleFee?.buyerTotal ?? Math.round((bid + ship + buyerProcessing) * 100)) + (bundleFee?.taxCents ?? 0)) / 100;
                 const bundleActive = bundleFee?.feeSplitMode === "seller_absorbed" || !!bundleFee?.bundleDiscountActive;
                 const detailParts = [
                   `subtotal ${fmtMoney(bid)}`,
