@@ -399,10 +399,10 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
 
       {/* Sub-tabs */}
       <div className="flex gap-2">
-        {(["summary","orders","history"] as const).map((k) => (
+        {(["summary","orders","archive","history"] as const).map((k) => (
           <button key={k} onClick={() => setTab(k)}
             className={`rounded-full px-3 py-1.5 text-xs font-bold capitalize ${tab === k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-            {k === "history" ? "Payout history" : k}
+            {k === "history" ? "Payout history" : k === "archive" ? `Archive${archivedOrders.length ? ` (${archivedOrders.length})` : ""}` : k}
           </button>
         ))}
         <button onClick={downloadCsv} className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold">
