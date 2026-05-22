@@ -40,8 +40,9 @@ const DailyOrdersDigestEmail = ({
   <Html lang="en" dir="ltr">
     <Head />
     <Preview>
-      Your {SITE_NAME} orders from {dateLabel} — {orders.length} item
-      {orders.length === 1 ? '' : 's'}, {totalLabel} total
+      {`Your ${SITE_NAME} orders from ${dateLabel} — ${orders.length} item${
+        orders.length === 1 ? '' : 's'
+      }, ${totalLabel} total`}
     </Preview>
     <Body style={main}>
       <Container style={container}>
