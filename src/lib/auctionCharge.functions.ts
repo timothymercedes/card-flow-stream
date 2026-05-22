@@ -146,6 +146,12 @@ async function performCharge(opts: {
     return { status: "paid", paymentIntentId: order.stripe_payment_intent_id ?? "" };
   }
 
+  // Never charge a cancelled or refunded order — prevents firing a fresh
+  // off-session charge against a buyer whose order was already closed out.
+  if (order.status === "cancelled" || ["cancelled", "refunded"].includes(order.payment_status || "")) {
+    return { status: "failed", message: "Order is cancelled or refunded — charge blocked." };
+  }
+
   const pm = await loadDefaultPaymentMethod(userId, paymentMethodOverrideId);
   const seller = await loadSellerStripe(order.seller_id);
 
@@ -270,6 +276,19 @@ async function performCharge(opts: {
         tax_provider: tax.provider,
       },
     }, { idempotencyKey: idemKey });
+
+    // CRITICAL: persist the PaymentIntent ID FIRST in its own minimal
+    // update so a downstream column error (schema drift, type mismatch,
+    // missing column) can never leave Stripe charged with no PI on the
+    // order — that was the root cause of the lost-$35 refund incident.
+    try {
+      await supabaseAdmin
+        .from("orders")
+        .update({ stripe_payment_intent_id: intent.id })
+        .eq("id", orderId);
+    } catch (persistErr) {
+      console.error("CRITICAL: failed to persist PI after charge", { orderId, intentId: intent.id, persistErr });
+    }
 
     await supabaseAdmin
       .from("orders")
