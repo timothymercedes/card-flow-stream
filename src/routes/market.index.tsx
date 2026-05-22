@@ -34,6 +34,7 @@ function Market() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
+  const [sortOpen, setSortOpen] = useState(false);
   const [listingFilter, setListingFilter] = useState<ListingFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState<string>("all");
