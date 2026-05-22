@@ -4346,7 +4346,7 @@ function LiveDetail() {
           )}
           {isStaff && !hostFocus && !ended && stream.mode !== "show_off" && (
             <button
-              onClick={() => setShowQuickMod(true)}
+              onClick={() => { setShowQuickMod(true); setModUnread(0); }}
               className="flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] font-bold text-primary-foreground shadow ring-1 ring-white/20 backdrop-blur hover:bg-primary"
               aria-label="Open quick mod chat"
             >
