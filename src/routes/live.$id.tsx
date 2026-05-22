@@ -4211,15 +4211,15 @@ function LiveDetail() {
             }}
           />
         )}
-      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between p-3">
-        <div className="flex items-center gap-1.5">
-          <Link to="/live" className="rounded-full bg-black/50 p-2 backdrop-blur">
+      <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between gap-1.5 p-2 sm:p-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link to="/live" className="shrink-0 rounded-full bg-black/50 p-2 backdrop-blur" aria-label="Back to live">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           {isStaff && !hostFocus && stream.mode !== "show_off" && (
             <button
               onClick={() => setShowPaymentLog(true)}
-              className="flex items-center gap-1 rounded-full bg-card/90 px-2 py-1 text-[10px] font-bold text-foreground shadow ring-1 ring-white/20 backdrop-blur hover:bg-card"
+              className="hidden items-center gap-1 rounded-full bg-card/90 px-2 py-1 text-[10px] font-bold text-foreground shadow ring-1 ring-white/20 backdrop-blur hover:bg-card sm:flex"
               aria-label="Open payment activity log"
             >
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -4227,9 +4227,9 @@ function LiveDetail() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           <div
-            className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${ended ? "bg-muted text-muted-foreground" : "bg-live"}`}
+            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider ring-1 ring-white/20 backdrop-blur ${ended ? "bg-muted text-muted-foreground" : "bg-live text-live-foreground shadow-[0_0_12px_rgba(239,68,68,0.4)]"}`}
           >
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />}{" "}
             {ended ? "ENDED" : "LIVE"}
@@ -4256,7 +4256,7 @@ function LiveDetail() {
           )}
           {!ended && <TopSupporterBadge streamId={id} />}
         </div>
-        <div className="flex gap-1">
+        <div className="flex shrink-0 gap-1">
           <button
             onClick={() => setShareOpen(true)}
             className="rounded-full bg-black/50 p-2 backdrop-blur"
