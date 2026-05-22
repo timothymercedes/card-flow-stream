@@ -213,7 +213,21 @@ async function performCharge(opts: {
   const commissionCents = fees.commissionCents;
   const sellerPayoutCents = fees.sellerNet;
 
-  const idemKey = `auction-charge:${orderId}:${fees.buyerTotal}:${pm.stripe_payment_method_id}`;
+  // Tax — computed via swappable provider (state table today, Stripe Tax later).
+  // Shipping is included in the auction amount on this path (order.amount
+  // is the total bid; shipping is stored separately as shipping_amount).
+  const shippingCents = Math.round(Number(order.shipping_amount || 0) * 100);
+  const itemCents = Math.max(0, totalCents - shippingCents);
+  const tax = await quoteTax({ itemCents, shippingCents, buyerCountry, buyerState, sellerId: order.seller_id });
+  const taxCents = tax.taxCents;
+
+  // Tax flows on TOP of buyerTotal and into application_fee_amount —
+  // platform collects it (marketplace facilitator) and remits separately.
+  // Seller payout is unaffected by tax.
+  const buyerChargeTotal = fees.buyerTotal + taxCents;
+  const applicationFeeWithTax = fees.applicationFee + taxCents;
+
+  const idemKey = `auction-charge:${orderId}:${buyerChargeTotal}:${pm.stripe_payment_method_id}`;
 
   try {
     const intent = await stripe.paymentIntents.create({
