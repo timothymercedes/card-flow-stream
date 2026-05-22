@@ -263,6 +263,8 @@ export type Database = {
           stream_id: string
           title: string
           trigger_word: string | null
+          vault_card_id: string | null
+          voice_trigger: string | null
           winner_id: string | null
           winning_bid: number | null
         }
@@ -292,6 +294,8 @@ export type Database = {
           stream_id: string
           title: string
           trigger_word?: string | null
+          vault_card_id?: string | null
+          voice_trigger?: string | null
           winner_id?: string | null
           winning_bid?: number | null
         }
@@ -321,6 +325,8 @@ export type Database = {
           stream_id?: string
           title?: string
           trigger_word?: string | null
+          vault_card_id?: string | null
+          voice_trigger?: string | null
           winner_id?: string | null
           winning_bid?: number | null
         }
@@ -337,6 +343,13 @@ export type Database = {
             columns: ["stream_id"]
             isOneToOne: false
             referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auction_queue_vault_card_id_fkey"
+            columns: ["vault_card_id"]
+            isOneToOne: false
+            referencedRelation: "vault_cards"
             referencedColumns: ["id"]
           },
         ]
@@ -2492,6 +2505,7 @@ export type Database = {
           quick_start_quantity: number
           quick_start_remaining: number | null
           round_number: number
+          scheduled_for: string | null
           seller_id: string
           shipping_method: string | null
           shipping_price: number | null
@@ -2599,6 +2613,7 @@ export type Database = {
           quick_start_quantity?: number
           quick_start_remaining?: number | null
           round_number?: number
+          scheduled_for?: string | null
           seller_id: string
           shipping_method?: string | null
           shipping_price?: number | null
@@ -2706,6 +2721,7 @@ export type Database = {
           quick_start_quantity?: number
           quick_start_remaining?: number | null
           round_number?: number
+          scheduled_for?: string | null
           seller_id?: string
           shipping_method?: string | null
           shipping_price?: number | null
