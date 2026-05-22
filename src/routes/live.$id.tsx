@@ -6062,8 +6062,9 @@ function LiveDetail() {
                       </button>
                     ))}
                   </div>
-
-
+                )}
+                {auctionLive && !meBlockedOrBanned && !bidDisabled && (
+                  <FinalSaleNotice variant="compact" context="bid" />
                 )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
