@@ -110,7 +110,11 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
     if (error) return toast.error(error.message);
     toast.success(`Request ${status}`);
     onChanged?.();
-    load();
+    if (status === "accepted" || status === "declined" || status === "cancelled") {
+      onClose();
+    } else {
+      load();
+    }
   }
 
   async function escalate() {
