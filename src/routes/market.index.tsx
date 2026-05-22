@@ -9,7 +9,7 @@ import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDis
 import { useShuffleBucket, seededHash } from "@/lib/shuffle";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { CardQuickActions } from "@/components/CardQuickActions";
+import { MarketQuickView } from "@/components/MarketQuickView";
 
 export const Route = createFileRoute("/market/")({ component: Market });
 
@@ -34,6 +34,7 @@ function Market() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
   const [category, setCategory] = useState<string>("all");
+  const [quickView, setQuickView] = useState<any | null>(null);
   const seed = useShuffleBucket();
 
   async function loadMarket() {
@@ -216,17 +217,12 @@ function Market() {
             const endingSoon = l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000;
             const soldOut = !l.is_auction && Number(l.sold_count ?? 0) >= Number(l.quantity ?? 1);
             return (
-              <CardQuickActions
+              <button
                 key={l.id}
-                sellerId={l.seller_id}
-                previewHref={`/market/${l.id}`}
-                className="overflow-hidden rounded-xl"
-              >
-              <Link
-                to="/market/$id"
-                params={{ id: l.id }}
-                className="group block overflow-hidden rounded-xl bg-card shadow-[var(--shadow-card)] ring-1 ring-border/60 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:ring-primary/50"
-
+                type="button"
+                onClick={() => setQuickView(l)}
+                className="group block w-full overflow-hidden rounded-xl bg-card text-left shadow-[var(--shadow-card)] ring-1 ring-border/60 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:ring-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={`Quick view ${l.title}`}
               >
                 <div className="relative aspect-square overflow-hidden bg-muted">
                   {l.image_url ? (
@@ -292,12 +288,16 @@ function Market() {
                     </p>
                   )}
                 </div>
-              </Link>
-              </CardQuickActions>
+              </button>
             );
           })}
         </div>
       </div>
+      <MarketQuickView
+        listing={quickView}
+        open={!!quickView}
+        onOpenChange={(v) => { if (!v) setQuickView(null); }}
+      />
     </AppShell>
   );
 }
