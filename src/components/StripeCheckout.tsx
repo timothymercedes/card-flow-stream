@@ -61,7 +61,7 @@ export function StripeCheckout(props: Props) {
   );
 }
 
-function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean } }) {
+function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean; taxCents?: number } }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
