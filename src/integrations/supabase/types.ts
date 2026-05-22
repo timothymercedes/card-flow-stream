@@ -6885,6 +6885,28 @@ export type Database = {
         Returns: undefined
       }
       admin_replay_finalize: { Args: { _stream_id: string }; Returns: Json }
+      admin_reset_seller_trust: {
+        Args: { _reason: string; _user_id: string }
+        Returns: {
+          chargeback_rate_30d: number
+          completed_deliveries: number
+          dispute_rate_30d: number
+          frozen: boolean
+          instant_release_pct: number
+          manual_override_pct: number | null
+          pending_release_pct: number
+          risk_flags: Json
+          tier: Database["public"]["Enums"]["seller_trust_tier"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_trust"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_resolve_integrity_alert: {
         Args: { _alert_id: string }
         Returns: undefined
@@ -7903,7 +7925,13 @@ export type Database = {
         | "stream"
         | "order"
         | "message"
-      seller_trust_tier: "new" | "bronze" | "silver" | "gold" | "platinum"
+      seller_trust_tier:
+        | "new"
+        | "bronze"
+        | "silver"
+        | "gold"
+        | "platinum"
+        | "diamond"
       shipping_status:
         | "pending_shipment"
         | "label_created"
@@ -8162,7 +8190,14 @@ export const Constants = {
         "order",
         "message",
       ],
-      seller_trust_tier: ["new", "bronze", "silver", "gold", "platinum"],
+      seller_trust_tier: [
+        "new",
+        "bronze",
+        "silver",
+        "gold",
+        "platinum",
+        "diamond",
+      ],
       shipping_status: [
         "pending_shipment",
         "label_created",
