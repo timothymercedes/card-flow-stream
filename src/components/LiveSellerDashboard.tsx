@@ -563,7 +563,7 @@ export function LiveSellerDashboard({
                   : (
                     <div className="max-h-64 overflow-y-auto space-y-0.5 pr-0.5">
                       {chatMessages.slice(-50).reverse().map((m) => (
-                        <div key={m.id} className="truncate rounded px-1.5 py-0.5 text-[11px] text-white/90">
+                        <div key={m.id} className="rounded px-1.5 py-0.5 text-[11px] text-white/90 break-words [overflow-wrap:anywhere] [word-break:break-word] whitespace-pre-wrap leading-snug">
                           <button
                             onClick={() => m.user_id && setOpenUser({ id: m.user_id, username: m.username })}
                             className="font-bold text-primary hover:underline"

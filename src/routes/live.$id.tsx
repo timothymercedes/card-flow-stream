@@ -753,7 +753,7 @@ function LiveDetail() {
           });
           setTimeout(
             () => setShoutoutOverlay((cur) => (cur?.id === s.id ? null : cur)),
-            6000,
+            5000,
           );
           playSfx("shoutout");
         },
@@ -761,24 +761,25 @@ function LiveDetail() {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "stream_promotions",
           filter: `stream_id=eq.${id}`,
         },
         (p: any) => {
-          if (p.new?.status === "paid") {
-            const pid = p.new.id;
-            setPromoOverlay({
-              id: pid,
-              username: p.new.promoter_username,
-              amount: Number(p.new.amount),
-              message: p.new.message,
-            });
-            setTimeout(() => {
-              setPromoOverlay((cur) => (cur?.id === pid ? null : cur));
-            }, 6000);
-          }
+          const row = p.new || p.old;
+          if (!row) return;
+          if (row.status !== "paid") return;
+          const pid = row.id;
+          setPromoOverlay({
+            id: pid,
+            username: row.promoter_username,
+            amount: Number(row.amount),
+            message: row.message,
+          });
+          setTimeout(() => {
+            setPromoOverlay((cur) => (cur?.id === pid ? null : cur));
+          }, 5000);
         },
       )
       .on(
@@ -833,18 +834,17 @@ function LiveDetail() {
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "stream_tips", filter: `stream_id=eq.${id}` },
+        { event: "*", schema: "public", table: "stream_tips", filter: `stream_id=eq.${id}` },
         (p) => {
-          const t: any = p.new;
-          if (t.status === "paid") {
-            setTipOverlay({
-              id: t.id,
-              username: t.buyer_username,
-              amount: Number(t.amount),
-              message: t.message,
-            });
-            setTimeout(() => setTipOverlay((cur) => (cur && cur.id === t.id ? null : cur)), 6000);
-          }
+          const t: any = p.new || p.old;
+          if (!t || t.status !== "paid") return;
+          setTipOverlay({
+            id: t.id,
+            username: t.buyer_username,
+            amount: Number(t.amount),
+            message: t.message,
+          });
+          setTimeout(() => setTipOverlay((cur) => (cur && cur.id === t.id ? null : cur)), 5000);
         },
       )
       .subscribe();
