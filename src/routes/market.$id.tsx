@@ -15,6 +15,8 @@ import { IntlWarningBanner, useIntlAck } from "@/components/InternationalShippin
 import { InternationalBadge } from "@/components/InternationalBadge";
 import { getIntlContext } from "@/lib/internationalShipping";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
+import { FinalSaleNotice } from "@/components/FinalSaleNotice";
+import { recordPolicyAcceptance } from "@/lib/policy.functions";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -233,6 +235,9 @@ function ListingDetail() {
   async function respondOffer(o: any, status: "accepted" | "rejected") {
     await supabase.from("offers").update({ status }).eq("id", o.id);
     await supabase.from("notifications").insert({ user_id: o.buyer_id, type: "offer", body: `Your offer of $${o.amount} on "${listing.title}" was ${status}`, link: `/market/${id}` });
+    if (status === "accepted") {
+      recordPolicyAcceptance({ data: { context: "offer_accept", listingId: id, metadata: { amount: o.amount, buyer_id: o.buyer_id } } }).catch(() => {});
+    }
     load();
   }
 
@@ -386,6 +391,7 @@ function ListingDetail() {
                       <button onClick={addToCart} className="flex-1 rounded-xl bg-muted py-3 text-sm font-bold">Add to Cart</button>
                       <button onClick={buyNow} className="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">Buy Now</button>
                     </div>
+                    <FinalSaleNotice variant="compact" context="checkout" className="mt-2" />
                   </>
                 )}
                 {soldOut && !isSeller && (
