@@ -962,6 +962,7 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
     downloadCsv(
       `audit-${new Date().toISOString().slice(0, 10)}.csv`,
       filtered.map((r) => ({
+        order_number: r.order_number,
         order_id: r.id,
         created_at: r.created_at,
         paid_at: r.paid_at,
