@@ -12,6 +12,7 @@ import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { isValidShippingAddress, validateAddress, type ShippingAddress } from "@/lib/address";
 import { BuyerRestrictionBanner } from "@/components/BuyerRestrictionBanner";
+import { InsuranceOption } from "@/components/insurance/InsuranceOption";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
@@ -23,6 +24,7 @@ function Cart() {
   const [sellerCountries, setSellerCountries] = useState<Record<string, string>>({});
   const [buyerAddress, setBuyerAddress] = useState<ShippingAddress | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [insuranceFeeCents, setInsuranceFeeCents] = useState(0);
 
   async function load() {
     if (!user) return;
@@ -218,11 +220,18 @@ function Cart() {
                   <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountries[checkoutSeller] || "US"} variant="full" />
                 </div>
               )}
+              <div className="mb-3">
+                <InsuranceOption
+                  orderIds={checkoutOrderIds}
+                  subtotalCents={Math.round(checkoutSubtotal * 100)}
+                  onChange={(fee) => setInsuranceFeeCents(fee)}
+                />
+              </div>
               <StripeCheckout
                 sellerId={checkoutSeller}
-                subtotalCents={Math.round(checkoutSubtotal * 100)}
+                subtotalCents={Math.round(checkoutSubtotal * 100) + insuranceFeeCents}
                 orderIds={checkoutOrderIds}
-                onSuccess={() => handlePaymentSuccess(checkoutSeller)}
+                onSuccess={() => { setInsuranceFeeCents(0); handlePaymentSuccess(checkoutSeller); }}
               />
             </div>
           </div>

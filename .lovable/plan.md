@@ -1,121 +1,111 @@
+## Shipping Insurance System
 
-# Shipping & Payout Protection Overhaul
+Adds optional, provider-agnostic shipping insurance across checkout, post-purchase, claims, and payouts. Integrates with the shipping/payout protection system already shipped.
 
-Your project already has scaffolding for most of this (`orders.prep_status`, `payout_held`, `shipping_due_at`, `is_late_shipment`, `account_holds`, `fraud_flags`, `payout_requests`). This plan upgrades those into a coherent lifecycle with carrier-scan gating, payout protection, fraud detection, and analytics.
+### 1. Data model (migration)
 
-## 1. Shipping lifecycle (orders.shipping_status)
+**`listings` additions**
+- `insurance_default` enum: `off | optional | required` (seller-level preference per listing, default `optional`)
+- `insurance_auto_add_by_seller` bool — seller auto-buys insurance and eats the cost
+- `insurance_paid_by` enum: `buyer | seller` (who pays when buyer doesn't opt in)
 
-New enum `shipping_status`:
+**`orders` additions**
+- `insurance_status` enum: `none | requested | active | claim_pending | claim_approved | claim_denied | reimbursed`
+- `insurance_provider` enum: `shippo | shipsurance | usps | ups | fedex | none` (extensible)
+- `insurance_coverage_cents` int — defaults to item sale value
+- `insurance_fee_cents` int
+- `insurance_paid_by` enum: `buyer | seller`
+- `insurance_purchased_at` timestamptz
+- `insurance_provider_ref` text (carrier/Shippo insurance id)
+- `insurance_added_post_purchase` bool — true ⇒ fee deducted from seller payout regardless
+
+**New `insurance_claims` table**
+- `order_id`, `claimant_user_id` (seller usually), `reason` enum (`lost | damaged | stolen`)
+- `claim_amount_cents`, `status` enum (`draft | submitted | under_review | approved | denied | paid`)
+- `provider_claim_ref`, `admin_notes`, `decided_by`, `decided_at`, `reimbursed_cents`, `reimbursed_at`
+- RLS: seller sees own; admin sees all
+
+**New `insurance_claim_evidence` table**
+- `claim_id`, `file_path` (storage), `kind` (`photo | tracking | document | other`), `notes`
+- Storage bucket `insurance-evidence` (private; signed URLs)
+
+**New `insurance_providers` table** (config/registry)
+- `code`, `display_name`, `is_active`, `supports_lost`, `supports_damaged`, `supports_stolen`, `min_cents`, `max_cents`, `rate_bps`, `flat_cents`
+- Seeded with shippo, shipsurance, usps, ups, fedex (only shippo active initially)
+
+**Payout integration**
+- Extend `v_seller_available_balance` to subtract `insurance_fee_cents` when `insurance_added_post_purchase = true` OR `insurance_paid_by = 'seller'`
+- Add rule: if `insurance_status IN ('claim_pending','claim_approved')`, freeze that order's payout eligibility
+- Reimbursements credit back to seller balance via new `payout_adjustments` rows (already used for refunds)
+
+### 2. Provider abstraction
+
+`src/server/insurance/providers/` — one file per provider implementing:
+```ts
+interface InsuranceProvider {
+  code: string
+  quote(args): Promise<{ feeCents; coverageCents; supportsReasons }>
+  purchase(args): Promise<{ providerRef; feeCents }>
+  fileClaim(args): Promise<{ providerClaimRef }>
+  refreshClaim(providerRef): Promise<{ status; reimbursedCents? }>
+}
 ```
-pending_shipment → label_created → shipped (= first carrier scan)
-  → in_transit → delivered
-  ↘ delivery_failed | returned | lost_package
-```
+- `shippo.ts` — real implementation (Shippo `parcel.extra.insurance`)
+- `shipsurance.ts`, `usps.ts`, `ups.ts`, `fedex.ts` — stubs returning "not implemented"; registered so UI/admin can switch later
+- Registry in `src/server/insurance/index.ts` picks provider from `insurance_providers`
 
-- Add `orders.shipping_status` column + backfill from existing `prep_status` / `status` / `delivered_at`.
-- **Stop auto-setting `shipped` on label purchase.** Label buy sets `label_created` + `label_purchased_at`. Today's code in `src/server/shipping.functions.ts` flips status to "shipped" the moment Shippo returns a label — that's the core bug.
-- New column `first_scan_at`. When carrier webhook reports first acceptance scan → set `first_scan_at = now()`, `shipping_status = shipped`, `shipped_at = now()`.
+### 3. Server functions
 
-## 2. Carrier tracking webhook
+`src/server/insurance.functions.ts`
+- `quoteInsurance({ orderId | listingId, coverageCents })` — public, used by checkout & post-purchase modal
+- `attachInsuranceAtCheckout({ orderId, optIn, coverageCents })` — buyer toggle path
+- `sellerAddInsurance({ orderId, coverageCents })` — post-purchase; forces `insurance_added_post_purchase=true`, fee → seller
+- `submitClaim({ orderId, reason, amountCents, evidence: [{path, kind}] })`
+- `getOrderInsurance({ orderId })`
+- Admin: `adminListClaims({ filters })`, `adminDecideClaim({ claimId, decision, notes, reimbursedCents })`, `adminFlagSeller({ sellerId, reason })`
 
-New public route `src/routes/api/public/hooks/shippo-tracking.ts`:
-- Verifies Shippo webhook signature (HMAC).
-- Maps Shippo `tracking_status` → our `shipping_status`:
-  - `TRANSIT` first time → `shipped` (+ release payout hold step 4)
-  - `TRANSIT` subsequent → `in_transit`
-  - `DELIVERED` → `delivered` + `delivered_at`
-  - `FAILURE` → `delivery_failed`
-  - `RETURNED` → `returned`
-  - `UNKNOWN` >14d after label → `lost_package` (via cron, see step 6)
-- Writes to new `shipment_events` table (audit trail: order_id, status, raw payload, occurred_at).
-- Registers tracking with Shippo at label-buy time (currently we just save the label URL).
+All gated by `requireSupabaseAuth` + role check via existing `has_role`.
 
-## 3. Shipment deadlines & reminders
+### 4. Shippo wiring (existing `shippo.functions.ts`)
+- `purchaseLabel` reads order's `insurance_*` fields; if active, sets `parcel.extra.insurance = { amount, currency, provider: 'UPS' | 'FEDEX' | 'CARRIER' }` per Shippo API
+- After label buy, store `insurance_provider_ref` from rate response
+- Shippo tracking webhook already advances status — extend `shippo-tracking.ts` to flip `insurance_status` to `claim_pending` automatically when status becomes `lost_package` or `returned`+damaged note
 
-- `shipping_due_at` already exists. Standardize: **3 business days** from `paid_at` (configurable per seller later).
-- New cron `/api/public/hooks/shipping-reminders` (runs hourly via pg_cron):
-  - 24h before due → reminder notification + email
-  - At due → 2nd reminder
-  - 24h past due → mark `is_late_shipment = true`, fraud_flag `late_shipment`, notify admin
-  - 72h past due → auto-cancel + refund buyer + seller strike
-- New view `seller_shipping_stats` (late rate, avg fulfillment time, on-time %).
+### 5. Cron / automation
+- Add `insurance-poll.ts` hook (every 6h) — refreshes `claim_pending` claims via provider `refreshClaim`, advances status, writes reimbursement when paid
+- On `reimbursed`: insert `payout_adjustments(seller, +amount, 'insurance_reimbursement')`
 
-## 4. Payout protection
+### 6. UI
 
-Today `payout_held` is a boolean with no enforcement on payout requests. Upgrade:
+**Checkout (buyer)**
+- New `<InsuranceOption>` card showing: protected amount (= sale price, editable up to listing cap), insurance fee, what's covered (lost/damaged/stolen badges from provider), est. claim resolution timeline
+- Toggle "Protect this shipment" — defaults to seller's listing default
+- If seller pre-paid, show "Insurance included by seller" (read-only)
 
-- New column `orders.payout_eligible_at` (timestamp, null until releaseable).
-- Released by ANY of:
-  - **(a)** First carrier scan (`first_scan_at` set) → eligible after a 24h hold (anti-spoof grace).
-  - **(b)** `delivered` → eligible immediately.
-  - **(c)** Admin manual release (`admin_release_payout` server fn).
-- New view `v_seller_available_balance`: sums `seller_payout_amount` for orders where `payout_eligible_at <= now()` AND no active refund/dispute, MINUS already-paid-out amounts.
-- `payout_requests` insert trigger checks `v_seller_available_balance` — rejects if requested > available.
-- Default to **delayed release**: payouts use `payout_eligible_at`, not "instant after charge".
+**Listing form (seller)**
+- "Shipping insurance" section: default mode (off/optional/required), auto-add toggle, who pays when buyer skips
 
-## 5. Anti-fraud
+**Seller order detail**
+- "Insured" badge + provider name + coverage
+- "Add/upgrade insurance" button (only before label purchased) → calls `sellerAddInsurance`, warning that fee comes out of payout
+- "File a claim" button when status is `delivery_failed | lost_package | returned` or buyer reports damage
+- Claim form: reason, amount, evidence uploader (drag-drop multiple files → `insurance-evidence` bucket)
+- Claim status timeline
 
-New cron `/api/public/hooks/fraud-sweep` (every 6h):
-- Labels created >48h ago with no `first_scan_at` → `fraud_flags` row (`label_never_scanned`, severity escalates with count).
-- Sellers with >3 such orders in 30d → auto `account_holds` row, freeze payouts.
-- Sellers with late-rate >25% over 10+ orders → `suspicious_seller` flag for admin review.
-- Block `payout_requests` insert if seller has any order in `label_created` for >5 days without scan.
+**Admin** (new route `/admin/insurance-claims`)
+- Queue of `submitted | under_review` claims with evidence preview
+- Approve/Deny with notes + reimbursement amount
+- Per-seller claim history with auto-flag if >3 claims/90d or >20% claim rate → reuses existing `fraud_flags`
 
-## 6. Shipping analytics
+### 7. Payout impact summary
+| Scenario | Who pays insurance fee | Payout effect |
+|---|---|---|
+| Buyer opts in at checkout | Buyer (added to charge) | No deduction from seller |
+| Seller marks listing "auto-add" | Seller | Deducted from payout |
+| Seller adds after purchase | Seller (forced) | Deducted from payout |
+| Required by listing, buyer pays | Buyer | No deduction |
+| Claim approved + reimbursed | n/a | Credit added to seller balance |
+| Claim pending | n/a | That order frozen from payout |
 
-- Materialized view `mv_seller_shipping_analytics` refreshed nightly:
-  - avg time paid→label, label→scan, scan→delivered
-  - delivery success rate, lost %, late %, dispute rate
-- New seller-hub page `/seller/shipping-analytics` (read-only dashboard).
-- Admin page `/admin/shipping-health` lists flagged sellers + platform-wide metrics.
-
-## 7. Refunds, disputes, cancellations
-
-Audit existing flows to make sure they:
-- Reverse `payout_eligible_at` (set null + add `payout_reversal` ledger row) when refund issued.
-- On Stripe `charge.dispute.created` webhook → freeze that order's payout + add seller hold for the disputed amount.
-- On cancel before `label_created` → no payout ever becomes eligible; full refund; no fee.
-- On cancel after `shipped` → buyer-return flow required before refund.
-
-Stripe Connect application fee already handles the 5% routing — keep as-is. Add reconciliation cron that compares `orders.seller_payout_amount` sums vs Stripe Connect balance.
-
----
-
-## Technical details
-
-**Migrations (one big migration):**
-- Create enum `shipping_status`
-- `orders`: add `shipping_status`, `first_scan_at`, `label_purchased_at`, `payout_eligible_at`, `lost_marked_at`
-- New table `shipment_events` (order_id, status, source, raw jsonb, occurred_at)
-- New view `v_seller_available_balance`
-- New materialized view `mv_seller_shipping_analytics`
-- Trigger `trg_orders_release_payout` on `shipping_status` change → set `payout_eligible_at`
-- Update `trg_orders_protect_payouts` to honor `payout_eligible_at`
-- Backfill `shipping_status` from existing data
-
-**Code changes:**
-- `src/server/shipping.functions.ts` — `buyShippingLabel` no longer sets status=shipped; sets `label_created` + registers tracking webhook
-- New `src/routes/api/public/hooks/shippo-tracking.ts`
-- New `src/routes/api/public/hooks/shipping-reminders.ts`
-- New `src/routes/api/public/hooks/fraud-sweep.ts`
-- `src/server/payouts.functions.ts` — gate on `v_seller_available_balance`
-- New `src/server/admin-shipping.functions.ts` — manual release, force lost, override
-- New pages: `src/routes/_authenticated/seller/shipping-analytics.tsx`, `src/routes/_authenticated/admin/shipping-health.tsx`
-- Update existing seller dashboard order rows to show new statuses + tracking timeline
-- Update buyer order detail page to show timeline (Pending → Label → Shipped → In Transit → Delivered)
-
-**Secrets needed:**
-- `SHIPPO_WEBHOOK_SECRET` — for verifying tracking webhooks (I'll ask for this when wiring step 2)
-
-**Scope of build:** ~1 large migration, ~12 file edits/creates, 3 new cron hooks. Estimated 15–25 min of build time.
-
----
-
-## Open questions before I build
-
-1. **Shipment deadline = 3 business days** — OK or do you want different (e.g. 2 / 5)?
-2. **Payout hold after first scan = 24h** — OK or instant on scan / wait for delivery?
-3. **Auto-cancel at 72h past due** — OK or just flag and let admin decide?
-4. **Lost package threshold = 14 days no scan after label** — OK?
-
-Answer these (even just "all defaults") and I'll execute the whole plan in one pass.
+### 8. Open question
+Default provider to enable now: **Shippo** (already integrated). Others scaffolded as inactive — toggle on later from admin without code change. OK to proceed with Shippo-only active?

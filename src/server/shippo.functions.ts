@@ -274,7 +274,7 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     const { userId } = context;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id, buyer_id, title, tracking_number")
+      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents")
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("Order not found");
@@ -308,6 +308,7 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     // Label purchased — DO NOT mark as shipped. Carrier first-scan webhook
     // (or admin manual override) is what flips us to 'shipped' and starts
     // the 24h payout-eligibility timer.
+    const insuranceActive = (order as any).insurance_status === "requested" || (order as any).insurance_status === "active";
     await supabaseAdmin
       .from("orders")
       .update({
@@ -317,6 +318,13 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
         label_url: tx.label_url || null,
         shipping_status: "label_created",
         label_purchased_at: new Date().toISOString(),
+        ...(insuranceActive
+          ? {
+              insurance_status: "active",
+              insurance_purchased_at: new Date().toISOString(),
+              insurance_provider_ref: tx.object_id || tx.rate?.object_id || null,
+            }
+          : {}),
       } as any)
       .eq("id", order.id);
 

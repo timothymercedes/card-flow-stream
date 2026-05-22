@@ -1764,6 +1764,157 @@ export type Database = {
           },
         ]
       }
+      insurance_claim_evidence: {
+        Row: {
+          claim_id: string
+          created_at: string
+          file_path: string
+          id: string
+          kind: string
+          notes: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          file_path: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claim_evidence_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_claims: {
+        Row: {
+          admin_notes: string | null
+          claim_amount_cents: number
+          claimant_user_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          description: string | null
+          id: string
+          order_id: string
+          provider_claim_ref: string | null
+          provider_code: string | null
+          reason: Database["public"]["Enums"]["insurance_claim_reason"]
+          reimbursed_at: string | null
+          reimbursed_cents: number
+          status: Database["public"]["Enums"]["insurance_claim_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          claim_amount_cents: number
+          claimant_user_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          description?: string | null
+          id?: string
+          order_id: string
+          provider_claim_ref?: string | null
+          provider_code?: string | null
+          reason: Database["public"]["Enums"]["insurance_claim_reason"]
+          reimbursed_at?: string | null
+          reimbursed_cents?: number
+          status?: Database["public"]["Enums"]["insurance_claim_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          claim_amount_cents?: number
+          claimant_user_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          description?: string | null
+          id?: string
+          order_id?: string
+          provider_claim_ref?: string | null
+          provider_code?: string | null
+          reason?: Database["public"]["Enums"]["insurance_claim_reason"]
+          reimbursed_at?: string | null
+          reimbursed_cents?: number
+          status?: Database["public"]["Enums"]["insurance_claim_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_claims_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_providers: {
+        Row: {
+          code: string
+          created_at: string
+          display_name: string
+          est_resolution_days: number
+          flat_cents: number
+          id: string
+          is_active: boolean
+          max_cents: number
+          min_cents: number
+          rate_bps: number
+          supports_damaged: boolean
+          supports_lost: boolean
+          supports_stolen: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          display_name: string
+          est_resolution_days?: number
+          flat_cents?: number
+          id?: string
+          is_active?: boolean
+          max_cents?: number
+          min_cents?: number
+          rate_bps?: number
+          supports_damaged?: boolean
+          supports_lost?: boolean
+          supports_stolen?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          display_name?: string
+          est_resolution_days?: number
+          flat_cents?: number
+          id?: string
+          is_active?: boolean
+          max_cents?: number
+          min_cents?: number
+          rate_bps?: number
+          supports_damaged?: boolean
+          supports_lost?: boolean
+          supports_stolen?: boolean
+        }
+        Relationships: []
+      }
       ko_requests: {
         Row: {
           created_at: string
@@ -1901,6 +2052,9 @@ export type Database = {
           height_in: number | null
           id: string
           image_url: string | null
+          insurance_auto_add_by_seller: boolean
+          insurance_default: Database["public"]["Enums"]["insurance_default_mode"]
+          insurance_paid_by: Database["public"]["Enums"]["insurance_payer"]
           is_auction: boolean
           is_demo: boolean
           last_sold_price: number | null
@@ -1950,6 +2104,9 @@ export type Database = {
           height_in?: number | null
           id?: string
           image_url?: string | null
+          insurance_auto_add_by_seller?: boolean
+          insurance_default?: Database["public"]["Enums"]["insurance_default_mode"]
+          insurance_paid_by?: Database["public"]["Enums"]["insurance_payer"]
           is_auction?: boolean
           is_demo?: boolean
           last_sold_price?: number | null
@@ -1999,6 +2156,9 @@ export type Database = {
           height_in?: number | null
           id?: string
           image_url?: string | null
+          insurance_auto_add_by_seller?: boolean
+          insurance_default?: Database["public"]["Enums"]["insurance_default_mode"]
+          insurance_paid_by?: Database["public"]["Enums"]["insurance_payer"]
           is_auction?: boolean
           is_demo?: boolean
           last_sold_price?: number | null
@@ -3015,6 +3175,16 @@ export type Database = {
           first_scan_at: string | null
           id: string
           idempotency_key: string | null
+          insurance_added_post_purchase: boolean
+          insurance_coverage_cents: number
+          insurance_fee_cents: number
+          insurance_paid_by:
+            | Database["public"]["Enums"]["insurance_payer"]
+            | null
+          insurance_provider: string | null
+          insurance_provider_ref: string | null
+          insurance_purchased_at: string | null
+          insurance_status: Database["public"]["Enums"]["insurance_status"]
           is_giveaway: boolean
           is_late_shipment: boolean
           item_image_url: string | null
@@ -3099,6 +3269,16 @@ export type Database = {
           first_scan_at?: string | null
           id?: string
           idempotency_key?: string | null
+          insurance_added_post_purchase?: boolean
+          insurance_coverage_cents?: number
+          insurance_fee_cents?: number
+          insurance_paid_by?:
+            | Database["public"]["Enums"]["insurance_payer"]
+            | null
+          insurance_provider?: string | null
+          insurance_provider_ref?: string | null
+          insurance_purchased_at?: string | null
+          insurance_status?: Database["public"]["Enums"]["insurance_status"]
           is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
@@ -3183,6 +3363,16 @@ export type Database = {
           first_scan_at?: string | null
           id?: string
           idempotency_key?: string | null
+          insurance_added_post_purchase?: boolean
+          insurance_coverage_cents?: number
+          insurance_fee_cents?: number
+          insurance_paid_by?:
+            | Database["public"]["Enums"]["insurance_payer"]
+            | null
+          insurance_provider?: string | null
+          insurance_provider_ref?: string | null
+          insurance_purchased_at?: string | null
+          insurance_status?: Database["public"]["Enums"]["insurance_status"]
           is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
@@ -3253,6 +3443,44 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_adjustments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["payout_adjustment_kind"]
+          notes: string | null
+          order_id: string | null
+          seller_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["payout_adjustment_kind"]
+          notes?: string | null
+          order_id?: string | null
+          seller_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["payout_adjustment_kind"]
+          notes?: string | null
+          order_id?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_adjustments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -7621,6 +7849,29 @@ export type Database = {
         | "manual"
         | "other"
       hold_status: "active" | "cleared" | "admin_override"
+      insurance_claim_reason: "lost" | "damaged" | "stolen"
+      insurance_claim_status:
+        | "draft"
+        | "submitted"
+        | "under_review"
+        | "approved"
+        | "denied"
+        | "paid"
+      insurance_default_mode: "off" | "optional" | "required"
+      insurance_payer: "buyer" | "seller"
+      insurance_status:
+        | "none"
+        | "requested"
+        | "active"
+        | "claim_pending"
+        | "claim_approved"
+        | "claim_denied"
+        | "reimbursed"
+      payout_adjustment_kind:
+        | "insurance_fee"
+        | "insurance_reimbursement"
+        | "refund"
+        | "manual"
       payout_status:
         | "requested"
         | "processing"
@@ -7850,6 +8101,32 @@ export const Constants = {
         "other",
       ],
       hold_status: ["active", "cleared", "admin_override"],
+      insurance_claim_reason: ["lost", "damaged", "stolen"],
+      insurance_claim_status: [
+        "draft",
+        "submitted",
+        "under_review",
+        "approved",
+        "denied",
+        "paid",
+      ],
+      insurance_default_mode: ["off", "optional", "required"],
+      insurance_payer: ["buyer", "seller"],
+      insurance_status: [
+        "none",
+        "requested",
+        "active",
+        "claim_pending",
+        "claim_approved",
+        "claim_denied",
+        "reimbursed",
+      ],
+      payout_adjustment_kind: [
+        "insurance_fee",
+        "insurance_reimbursement",
+        "refund",
+        "manual",
+      ],
       payout_status: [
         "requested",
         "processing",
