@@ -4511,14 +4511,19 @@ function LiveDetail() {
               {stream.item_description}
             </p>
           )}
-          {stream.mode !== "show_off" &&
-          ((stream.shipping_price != null && Number(stream.shipping_price) > 0) ||
-            stream.shipping_method) ? (
+          {stream.mode !== "show_off" ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
               📦 {stream.shipping_method || "Shipping"} —{" "}
-              {fmtMoney(Number(stream.shipping_price || 0))}
+              {Number(stream.shipping_price || 0) > 0 ? (
+                <span className="font-bold text-emerald-300">
+                  {fmtMoney(Number(stream.shipping_price))}
+                </span>
+              ) : (
+                <span className="font-bold text-amber-300">set by host</span>
+              )}
             </p>
           ) : null}
+
           {auctionLive && stream.snipe_price && (
             <p className="mt-1 inline-block rounded-lg bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold text-black backdrop-blur">
               💸 SNIPE: hit {fmtMoney(Number(stream.snipe_price))} to win NOW
