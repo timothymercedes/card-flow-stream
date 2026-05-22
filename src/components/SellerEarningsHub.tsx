@@ -196,12 +196,12 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   );
 
   const totals = useMemo(() => {
-    let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, bundleAbsorbed = 0, net = 0;
+    let gross = 0, platformFee = 0, processingFee = 0, shipping = 0, promo = 0, refund = 0, recovery = 0, net = 0;
     let available = 0, pending = 0, processing = 0, completed = 0;
     breakdowns.forEach(({ order, ...b }) => {
       gross += b.gross; platformFee += b.platformFee; processingFee += b.processingFee;
       shipping += b.shipping; promo += b.promo; refund += b.refund; recovery += b.recovery;
-      bundleAbsorbed += b.bundleAbsorbed; net += b.net;
+      net += b.net;
       const paid = order.payment_status === "paid";
       if (paid && order.status === "delivered") available += b.net;
       else if (paid && (order.status === "pending" || order.status === "shipped")) pending += b.net;
@@ -213,14 +213,14 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     const available_after = Math.max(0, available - processingPayout);
     const payable = Math.max(0, available_after - owed);
     const totalEarnings = available_after + pending + processingPayout;
-    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, bundleAbsorbed, net,
+    return { gross, platformFee, processingFee, shipping, promo, refund, recovery, net,
              available: available_after, pending, processing, completed, owed, payable,
              processingPayout, totalEarnings };
   }, [breakdowns, hold, processingPayoutCents]);
 
   function downloadCsv() {
     const rows = [
-      ["Date","Order ID","Item","Buyer","Gross","Platform fee","Processing","Shipping","Promo","Refund","Hold recovery","Bundle absorbed","Net","Status"],
+      ["Date","Order ID","Item","Buyer","Gross","Platform fee","Processing","Shipping","Promo","Refund","Hold recovery","Net","Status"],
       ...breakdowns.map(({ order, ...b }) => [
         new Date(order.created_at).toISOString(),
         order.id,
@@ -228,7 +228,6 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         buyerNames[order.buyer_id] ?? order.buyer_id,
         b.gross.toFixed(2), b.platformFee.toFixed(2), b.processingFee.toFixed(2),
         b.shipping.toFixed(2), b.promo.toFixed(2), b.refund.toFixed(2), b.recovery.toFixed(2),
-        b.bundleAbsorbed.toFixed(2),
         b.net.toFixed(2), order.status,
       ]),
     ];
