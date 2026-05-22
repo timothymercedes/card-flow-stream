@@ -1,88 +1,62 @@
-# Offer System v2 — Binding Commitments
+# Plan: Fix listing image errors + Vault→Listing flow
 
-Convert `queue_offers` (currently a casual "message-style" offer) into a financial commitment backed by Stripe pre-auth, with strict cancellation rules, auto-expiration, anti-abuse tracking, and stricter market listing standards (condition + real photos).
+## Problem
+1. Listings can be submitted with missing/invalid image URLs (data URI strings, blank values, or vault visualization images), producing the `image_url` validation error.
+2. The current "Sell from Vault" flow reuses the **vault photo** as the marketplace photo — your requirement says vault/AI images must never be used as the sale photo.
+3. After scanning a card with "Sell Item" checked, the user is dropped on the vault list with no automatic listing modal.
+4. The `sell.tsx` and `vault.tsx` listing forms don't share a single prefill path, so vault metadata (set, number, rarity, language, grading, year) isn't carried into a richer listing form.
 
-## 1. Database changes (single migration)
+## Scope of changes
 
-**`queue_offers`** — add columns:
-- `expires_at timestamptz not null default now() + interval '24 hours'`
-- `payment_intent_id text` (Stripe PI in `manual` capture mode = pre-auth)
-- `payment_status text not null default 'pending'` — `pending | authorized | captured | failed | released | voided`
-- `auth_amount_cents int`
-- `cancelled_at timestamptz`, `cancel_reason text`
-- `captured_at timestamptz`, `voided_at timestamptz`
-- `order_id uuid` (set when accepted → paid order created)
-- Indexes on `(buyer_id, status)`, `(expires_at) where status='pending'`
+### 1. Image validation hardening (fixes the reported error)
+- Add a single `validateListingImage(url)` helper in `src/lib/listingDisplay.ts`:
+  - Reject empty / null
+  - Reject `data:` URIs (force uploaded URL from Storage)
+  - Reject obvious AI/visualization markers (e.g. `/ai-generated/`, `placeholder`)
+  - Require `http(s)://` URL
+- Call it in **all** listing insert paths:
+  - `src/routes/sell.tsx` before `createListing`
+  - `src/routes/vault.tsx` → `listForSale`
+  - `src/routes/my-listings.tsx` → `saveEdit`
+- Replace generic `toast.error(error.message)` with user-friendly mapped messages: *"Please upload a real photo of the card you're selling — vault/AI images can't be used as sale photos."*
+- Tighten `ListingImageUpload` to only return uploaded Storage URLs (never raw base64).
 
-**`listings`** — enforce standards:
-- `condition text` constrained to `('MINT','NM','LP','MP','HP','DMG')` (nullable for legacy; required on new inserts via trigger)
-- `description text` (require min 30 chars on insert/update via trigger for non-draft)
-- `front_image_url text`, `back_image_url text` (required on publish via trigger)
-- `ai_images_allowed boolean default false` (only true for vault listings)
+### 2. Vault → Listing modal rebuild
+Rewrite the `SellModal` inside `src/routes/vault.tsx`:
+- **Always require fresh front + back photo uploads** (file inputs go straight to Storage via existing upload helper). Vault image is shown only as a *reference thumbnail* labeled "Vault reference — not used for sale".
+- Prefill (read-only chips, editable on tap): title, set, number, year, condition/grading, language, category, description seed.
+- Fields the seller fills: sale photos (front+back), description override, price, listing type (Buy Now / Auction / Offer), shipping (uses seller's default), auction length, reserve.
+- Submit → insert into `listings` with `vault_card_id` linkage column.
 
-**`offer_abuse_events`** (new table) — anti-abuse log:
-- `user_id, event_type` (`unpaid_offer | cancel | auth_failed | spam`), `queue_item_id`, `metadata jsonb`, `created_at`
-- View `seller_offer_risk` aggregating last-30-day counts per buyer
+### 3. Auto-open listing modal after scan/save
+- In `src/routes/vault.tsx`, the scan/add flow already has a "Sell Item" intent (checkbox in add form). After `saveCard` resolves successfully and `sellAfterSave` is true, automatically `setSelling(newCard)` to open the rebuilt SellModal.
+- Same hook for the scanner path.
 
-**`user_restrictions`** — add `offers_suspended_until timestamptz` (if column missing).
+### 4. Data integrity (DB migration)
+New migration:
+- `listings.vault_card_id uuid references vault_cards(id) on delete set null` (nullable, indexed).
+- `vault_cards.listed_listing_id uuid` (nullable, set when listed; cleared when listing expires/cancelled).
+- Unique partial index to prevent duplicate active listings from the same vault card:
+  `create unique index on listings (vault_card_id) where vault_card_id is not null and auction_status = 'active';`
+- Trigger on `listings` after insert: stamp `vault_cards.listed_listing_id`.
+- Trigger on `listings` after update (status → sold/cancelled/expired): clear `vault_cards.listed_listing_id` and mark vault row `is_sold = true` when status = sold.
 
-RLS: buyer reads own offers; seller reads offers on own queue items; admin full.
+### 5. UX polish
+- Replace blocking alerts with inline error rows under each field.
+- Modal is mobile-first (bottom sheet on <640px, centered card on desktop) — already the pattern; keep.
+- Show progress states on photo upload (spinner overlay).
 
-## 2. Server functions
+## Files touched
+- `src/lib/listingDisplay.ts` (helper)
+- `src/components/ListingImageUpload.tsx` (block base64 return)
+- `src/routes/vault.tsx` (SellModal rewrite, auto-open, prefill, linkage)
+- `src/routes/sell.tsx` (validation guard)
+- `src/routes/my-listings.tsx` (validation guard on edit)
+- `supabase/migrations/<new>.sql` (vault_card_id, dedupe index, triggers)
 
-**`src/lib/offers.functions.ts`** (new — replaces parts of `queueActions.functions.ts`):
+## Out of scope (call out if you want them too)
+- Editing a vault item should sync to its active listing (one-way push) — easy to add later if you confirm.
+- Bulk-list multiple vault cards in one flow.
+- Background job to expire stale `vault_cards.listed_listing_id` when a listing naturally expires (covered by the trigger above for explicit status changes only).
 
-| fn | role | flow |
-|---|---|---|
-| `createOffer` | buyer | check `offers_suspended_until`; require saved card; create Stripe `PaymentIntent` `capture_method=manual` `confirm=true off_session` → store `payment_intent_id`, `payment_status='authorized'`, `expires_at=now+24h`; insert `queue_offers` row |
-| `cancelOffer` | buyer | only if `status='pending'` AND not expired AND `payment_status='authorized'`; call `stripe.paymentIntents.cancel(pi)`; mark `cancelled`, log abuse event for rate-tracking |
-| `acceptOffer` | seller | atomically: re-check still authorized + not expired; `stripe.paymentIntents.capture(pi)`; on success → create `orders` row (status `paid`), mark queue item `sold`, decline siblings (releasing their PIs), kick off fulfillment. On capture fail → mark offer `voided`, notify seller, optionally relist |
-| `declineOffer` | seller | release PI via cancel |
-| `expireOffers` | cron | every 5 min — for `pending` + `expires_at < now()` → cancel PI, mark `expired`, release auth |
-
-**`src/routes/api/public/hooks/expire-offers.ts`** — cron handler calling `expireOffers`.
-
-Stripe access via `createStripeClient(env)` from `@/lib/stripe.server` (gateway pattern, never raw SDK). All offer money flows go through the same connector.
-
-## 3. Frontend
-
-- **`OfferDialog`** (new, used from market + live + queue):
-  - Requires saved card (reuse `useRequireCardOnFile`)
-  - Shows binding notice: *"Submitting an offer is a binding purchase commitment if accepted by the seller."*
-  - Shows expiration timer (24h), final-sale policy badge, auth status pill
-  - Records `policy_acceptance` (`context: 'offer'`) on submit
-- **`MyOffers` panel** (buyer side, in `orders.tsx` or new tab): list with countdown, "Cancel offer" button (disabled if seller accepted / expired / captured), auth status
-- **Seller offer inbox** (in seller hub / `shows.$id.tsx` queue panel): Accept / Decline with live capture state
-- **`MarketQuickView`** + `market.$id.tsx`: show condition badge + front/back thumbnails; "Make Offer" button opens new `OfferDialog`
-
-## 4. Listing standards enforcement
-
-- **`sell.tsx`** form: require condition dropdown (MINT/NM/LP/MP/HP/DMG), description (≥30 chars), front + back photo uploads. Show notice: "AI-generated images are only allowed for vault/storage visualizations."
-- Trigger on `listings` insert/update validates required fields when `status='live'`.
-- `MarketCard` / `market.index.tsx` displays condition badge.
-
-## 5. Admin
-
-- **`admin.tsx` → Offers tab**:
-  - Recent offer activity, abuse leaderboard (from `seller_offer_risk`)
-  - Buttons: suspend offers (sets `offers_suspended_until`), force-cancel offer, manual void
-- Audit log entry for every admin action via existing `audit.functions.ts`.
-
-## 6. Cron
-
-`pg_cron` job every 5 min → `POST /api/public/hooks/expire-offers` to release stale authorizations (Stripe auto-releases ~7d but we want clean state + buyer UI accuracy).
-
-## 7. Out of scope (call out)
-
-- Doesn't touch live-auction bidding flow (separate system).
-- Doesn't rebuild seller_trust reserve logic (already shipped Phase prior).
-- Existing offers (no PI) get `payment_status='legacy'` and are read-only — no migration of historic data.
-
-## Technical notes
-
-- Stripe `PaymentIntent` with `capture_method='manual'`, `confirm=true`, `off_session=true`, `customer=<saved>`, `payment_method=<default card>`. If `requires_action` (3DS), return `client_secret` to buyer UI to confirm — only mark `authorized` after PI status is `requires_capture`.
-- Capture on acceptance: handle Stripe error codes `card_declined`, `expired_card`, `insufficient_funds` → mark `voided`, fire `offer_abuse_events.auth_failed`, push seller notification.
-- Sibling offers on same `queue_item_id`: on accept, loop pending siblings → `stripe.paymentIntents.cancel` then mark `declined`. Use a Postgres advisory lock on `queue_item_id` to prevent double-accept.
-- Idempotency keys on every Stripe call: `offer:<id>:create | capture | cancel`.
-
-Ready to migrate the DB and implement once you approve.
+Approve and I'll implement in this order: migration → image helper + guards → SellModal rewrite → auto-open hook → my-listings guard.

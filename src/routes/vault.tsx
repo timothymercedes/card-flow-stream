@@ -9,6 +9,8 @@ const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ d
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
+import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { validateListingImage } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
@@ -70,6 +72,7 @@ function Vault() {
   const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
+  const [sellAfterSave, setSellAfterSave] = useState(false);
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
   type TcgPrices = Record<string, { market?: number; mid?: number; low?: number; high?: number } | undefined>;
@@ -556,6 +559,7 @@ function Vault() {
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
     setAlternatives([]); setAltIndex(0);
     setEdition("Unlimited"); setFinish("Holo");
+    setSellAfterSave(false);
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
@@ -684,7 +688,7 @@ function Vault() {
     }
     const variantLabel = `${edition} · ${finish}`;
     const fullDesc = [description?.trim(), `Variant: ${variantLabel}`].filter(Boolean).join("\n");
-    const { error } = await supabase.from("vault_cards").insert({
+    const { data: inserted, error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
       description: fullDesc || null,
@@ -695,10 +699,15 @@ function Vault() {
       condition,
       language,
       last_valued_at: new Date().toISOString(),
-    });
+    }).select().single();
     if (error) return toast.error(error.message);
+    const wantSell = sellAfterSave;
     resetForm(); setShowAdd(false);
     load();
+    if (wantSell && inserted) {
+      setSelling(inserted as Card);
+      toast.success("Saved to vault — now add your sale photos");
+    }
   }
   async function remove(id: string) {
     await supabase.from("vault_cards").delete().eq("id", id);
@@ -988,37 +997,48 @@ function Vault() {
     toast.error(`Couldn't save card — ${lastErr?.message || "try again"}`);
   }
 
-  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) {
-    if (!card.image_url) return toast.error("Front photo required");
-    const back = card.back_image_url || opts.backImage;
-    if (!back) return toast.error("Back photo required to sell");
+  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) {
+    // Sale photos MUST be freshly uploaded — vault/AI images are not allowed.
+    const frontErr = validateListingImage(opts.frontImage, { field: "Front sale photo" });
+    if (frontErr) return toast.error(frontErr);
+    const backErr = validateListingImage(opts.backImage, { field: "Back sale photo" });
+    if (backErr) return toast.error(backErr);
+    if (!opts.buy_now && !opts.auction && !opts.offer) return toast.error("Pick at least one sale type");
     if (opts.buy_now && opts.price <= 0) return toast.error("Set a Buy Now price");
     if (opts.auction && opts.price <= 0) return toast.error("Set a starting bid");
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
+    const baseDesc = (opts.description?.trim() || card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc;
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user!.id, title: card.name,
-      description: (card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc,
-      image_url: card.image_url,
-      back_image_url: back,
+      description: baseDesc,
+      image_url: opts.frontImage,
+      back_image_url: opts.backImage,
+      category: card.category || null,
       listing_type: primary,
       is_auction: opts.auction,
       accepts_offers: opts.offer,
       price: opts.buy_now ? opts.price : null,
+      buy_now_price: opts.buy_now ? opts.price : null,
       starting_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       current_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       reserve_price: opts.auction && opts.reserve ? opts.reserve : null,
+      shipping_price: opts.shipping ?? 0,
       auction_ends_at: opts.auction ? new Date(Date.now() + opts.days * 24 * 60 * 60 * 1000).toISOString() : null,
       condition: card.condition || null,
       tcg_number: card.tcg_number || null,
       tcg_set: card.tcg_set || null,
       tcg_year: card.tcg_year || null,
+      vault_card_id: card.id,
     }).select().single();
-    if (error) return toast.error(error.message);
-    // Persist back image to vault if newly captured
-    if (!card.back_image_url && opts.backImage) {
-      await supabase.from("vault_cards").update({ back_image_url: opts.backImage }).eq("id", card.id);
+    if (error) {
+      const msg = /duplicate|unique/i.test(error.message)
+        ? "This vault card already has an active listing. Edit or remove the existing listing first."
+        : /image|url/i.test(error.message)
+          ? "Photo upload didn't save. Please re-upload your sale photos and try again."
+          : error.message;
+      return toast.error(msg);
     }
     toast.success("Listed!");
     setSelling(null);
@@ -1185,8 +1205,13 @@ function Vault() {
               <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <p className="text-[10px] text-muted-foreground">Value is set automatically from TCG market data — it can't be edited.</p>
+            <label className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold ring-1 ring-primary/30">
+              <input type="checkbox" checked={sellAfterSave} onChange={(e) => setSellAfterSave(e.target.checked)} className="h-4 w-4" />
+              <Tag className="h-3.5 w-3.5 text-primary" />
+              Sell this item right after saving
+            </label>
             <div className="flex gap-2">
-              <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
+              <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">{sellAfterSave ? "Save & List" : "Save"}</button>
               <button onClick={() => { setShowAdd(false); resetForm(); }} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
             </div>
           </div>
@@ -1579,7 +1604,7 @@ function Vault() {
 function SellModal({ card, onClose, onSubmit }: {
   card: Card;
   onClose: () => void;
-  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) => void;
+  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) => void;
 }) {
   const [buyNow, setBuyNow] = useState(true);
   const [auction, setAuction] = useState(false);
@@ -1587,37 +1612,57 @@ function SellModal({ card, onClose, onSubmit }: {
   const [days, setDays] = useState(3);
   const [price, setPrice] = useState(String(card.price ?? card.estimated_value ?? 1));
   const [reserve, setReserve] = useState("");
-  const [backImage, setBackImage] = useState<string>(card.back_image_url || "");
+  const [shipping, setShipping] = useState("0");
+  const [frontImage, setFrontImage] = useState<string>("");
+  const [backImage, setBackImage] = useState<string>("");
+  const [desc, setDesc] = useState<string>(card.description || "");
 
-  function onBackFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => setBackImage(String(r.result));
-    r.readAsDataURL(f);
-  }
+  const meta = [
+    card.tcg_set, card.tcg_number ? `#${card.tcg_number}` : null,
+    card.tcg_year, card.condition,
+    card.is_graded && card.grader ? `${card.grader} ${card.grade ?? ""}`.trim() : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md space-y-3 overflow-y-auto rounded-2xl bg-card p-4 max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <p className="font-bold">Sell "{card.name}"</p>
-          <button onClick={onClose}><X className="h-4 w-4" /></button>
+          <p className="font-bold">List "{card.name}" for sale</p>
+          <button onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Front</p>
-            {card.image_url ? <img src={card.image_url} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <p className="text-[10px] text-destructive">Missing</p>}
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Back {backImage ? "" : "(required)"}</p>
-            {backImage ? <img src={backImage} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <div className="mt-1 flex h-24 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No back photo</div>}
-            <input type="file" accept="image/*" onChange={onBackFile} className="mt-1 block w-full text-[10px]" />
+        {/* Prefilled metadata from vault */}
+        <div className="rounded-lg bg-muted/40 p-2.5 text-[11px]">
+          <p className="mb-1 font-semibold text-muted-foreground">Auto-filled from vault</p>
+          <div className="flex flex-wrap gap-1">
+            {meta.length === 0 && <span className="text-muted-foreground">No extra metadata</span>}
+            {meta.map((m) => (
+              <span key={m} className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">{m}</span>
+            ))}
           </div>
         </div>
 
-        <p className="text-[11px] text-muted-foreground">Choose one or more listing options</p>
+        {/* Vault reference (NOT used as sale photo) */}
+        {card.image_url && (
+          <div className="flex items-center gap-2 rounded-lg bg-muted/30 p-2">
+            <img src={card.image_url} className="h-12 w-12 rounded object-cover ring-1 ring-border" alt="" />
+            <p className="text-[10px] text-muted-foreground">Vault reference — not used as the sale photo. Upload fresh photos below.</p>
+          </div>
+        )}
+
+        {/* REQUIRED fresh sale photos */}
+        <ListingImageUpload value={frontImage} onChange={setFrontImage} label="Sale photo — front (required)" />
+        <ListingImageUpload value={backImage} onChange={setBackImage} label="Sale photo — back (required)" />
+
+        <textarea
+          rows={2}
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm"
+          placeholder="Description (edit as needed)"
+        />
+
+        <p className="text-[11px] text-muted-foreground">Choose one or more sale options</p>
         <div className="space-y-2">
           <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
             <input type="checkbox" checked={buyNow} onChange={(e) => setBuyNow(e.target.checked)} className="h-4 w-4" /> Buy Now
@@ -1642,24 +1687,41 @@ function SellModal({ card, onClose, onSubmit }: {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <input type="number" min="0" step="0.01" value={reserve} onChange={(e) => setReserve(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder="No sale below this amount" />
                 </div>
-                <p className="mt-1 text-[10px] text-muted-foreground">If the top bid is below this, you'll be asked to accept or decline.</p>
               </div>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-          <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder={auction ? "Starting bid" : "Price"} />
+
+        <div>
+          <p className="mb-1 text-[10px] uppercase text-muted-foreground">{auction ? "Starting bid" : "Price"}</p>
+          <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
+          </div>
         </div>
+
+        <div>
+          <p className="mb-1 text-[10px] uppercase text-muted-foreground">Shipping ($)</p>
+          <input type="number" min="0" step="0.01" value={shipping} onChange={(e) => setShipping(e.target.value)} className="w-full rounded-lg bg-input px-3 py-2 text-sm" />
+        </div>
+
         <button
           onClick={() => {
-            if (!card.image_url) return toast.error("Front photo required");
-            if (!backImage) return toast.error("Back photo required");
+            const frontErr = validateListingImage(frontImage, { field: "Front sale photo" });
+            if (frontErr) return toast.error(frontErr);
+            const backErr = validateListingImage(backImage, { field: "Back sale photo" });
+            if (backErr) return toast.error(backErr);
             if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
             const amount = Number(price) || 0;
             if (buyNow && amount <= 0) return toast.error("Set a Buy Now price");
             if (auction && amount <= 0) return toast.error("Set a starting bid");
-            onSubmit({ buy_now: buyNow, auction, offer, days, price: amount, reserve: reserve ? Number(reserve) : undefined, backImage });
+            onSubmit({
+              buy_now: buyNow, auction, offer, days, price: amount,
+              reserve: reserve ? Number(reserve) : undefined,
+              frontImage, backImage,
+              description: desc,
+              shipping: Number(shipping) || 0,
+            });
           }}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >

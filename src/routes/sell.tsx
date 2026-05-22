@@ -9,6 +9,7 @@ const CardScanner = lazy(() =>
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
+import { validateListingImage } from "@/lib/listingDisplay";
 import { toast } from "sonner";
 import {
   Camera,
@@ -417,8 +418,10 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
-    if (!imageUrl.trim()) return toast.error("Front photo is required");
-    if (!backImageUrl.trim()) return toast.error("Back photo is required");
+    const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
+    if (frontErr) return toast.error(frontErr);
+    const backErr = validateListingImage(backImageUrl, { field: "Back photo" });
+    if (backErr) return toast.error(backErr);
     if (!category) return toast.error("Pick a category");
     if (!enableBuyNow && !enableAuction && !enableOffers)
       return toast.error("Pick at least one sale type");
@@ -455,7 +458,12 @@ function Sell() {
       weight_oz: Number(weightOz) || null,
       auction_ends_at: auctionEnds,
     });
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = /image_url|image/i.test(error.message)
+        ? "Photo upload didn't save. Please re-upload your front and back photos and try again."
+        : error.message;
+      return toast.error(msg);
+    }
     toast.success("Listing created");
     nav({ to: "/market" });
   }

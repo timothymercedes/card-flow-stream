@@ -2083,6 +2083,7 @@ export type Database = {
           tcg_year: string | null
           title: string
           top_bidder_id: string | null
+          vault_card_id: string | null
           weight_oz: number | null
           width_in: number | null
         }
@@ -2135,6 +2136,7 @@ export type Database = {
           tcg_year?: string | null
           title: string
           top_bidder_id?: string | null
+          vault_card_id?: string | null
           weight_oz?: number | null
           width_in?: number | null
         }
@@ -2187,6 +2189,7 @@ export type Database = {
           tcg_year?: string | null
           title?: string
           top_bidder_id?: string | null
+          vault_card_id?: string | null
           weight_oz?: number | null
           width_in?: number | null
         }
@@ -2204,6 +2207,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_user_hold_status"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "listings_vault_card_id_fkey"
+            columns: ["vault_card_id"]
+            isOneToOne: false
+            referencedRelation: "vault_cards"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -6448,9 +6458,11 @@ export type Database = {
           image_url: string | null
           is_demo: boolean
           is_graded: boolean
+          is_sold: boolean
           language: string | null
           last_sold_price: number | null
           last_valued_at: string | null
+          listed_listing_id: string | null
           market_price: number | null
           match_score: number | null
           name: string
@@ -6496,9 +6508,11 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_graded?: boolean
+          is_sold?: boolean
           language?: string | null
           last_sold_price?: number | null
           last_valued_at?: string | null
+          listed_listing_id?: string | null
           market_price?: number | null
           match_score?: number | null
           name: string
@@ -6544,9 +6558,11 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_graded?: boolean
+          is_sold?: boolean
           language?: string | null
           last_sold_price?: number | null
           last_valued_at?: string | null
+          listed_listing_id?: string | null
           market_price?: number | null
           match_score?: number | null
           name?: string

@@ -57,9 +57,16 @@ export function ListingImageUpload({ value, onChange, label = "Photo", className
           {busy ? "Uploading…" : "Upload"}
         </button>
         <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="…or paste image URL"
+          value={value.startsWith("data:") ? "" : value}
+          onChange={(e) => {
+            const v = e.target.value.trim();
+            if (v.startsWith("data:")) {
+              toast.error("Paste an https:// image link, not a data URL.");
+              return;
+            }
+            onChange(v);
+          }}
+          placeholder="…or paste https:// image URL"
           className="min-w-0 flex-1 rounded-lg bg-input px-3 py-2 text-xs outline-none"
         />
         {value && (

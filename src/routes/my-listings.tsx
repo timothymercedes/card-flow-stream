@@ -7,7 +7,7 @@ import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { getListingPriceDisplay } from "@/lib/listingDisplay";
+import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
@@ -86,6 +86,12 @@ function MyListings() {
     const startingBid = Number(editing.starting_bid ?? 0);
     if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price or turn on offers");
     if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid");
+    const frontErr = validateListingImage(editing.image_url, { field: "Front photo" });
+    if (frontErr) return toast.error(frontErr);
+    if (editing.back_image_url) {
+      const backErr = validateListingImage(editing.back_image_url, { field: "Back photo" });
+      if (backErr) return toast.error(backErr);
+    }
     const update: any = {
       title: editing.title,
       description: editing.description,
