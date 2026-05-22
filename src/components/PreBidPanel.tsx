@@ -15,9 +15,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { buyNowQueueItem, makeQueueOffer } from "@/lib/queueActions.functions";
+import { buyNowQueueItem } from "@/lib/queueActions.functions";
 import { toast } from "sonner";
 import { X, Bookmark, Gavel, ListOrdered, Trophy, ShoppingCart, HandCoins } from "lucide-react";
+import { OfferDialog } from "@/components/OfferDialog";
 
 type SaleType = "prebid" | "buynow" | "either" | "offer";
 
