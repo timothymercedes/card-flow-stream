@@ -166,13 +166,14 @@ export const refundOrderAction = createServerFn({ method: "POST" })
     const isSeller = (order as any).seller_id === userId;
     if (!staff && !isSeller) throw new Error("Only the seller, admin, or owner can refund this order");
 
+    let status: string;
     try {
-      const status = await refundOrderIfPaid(order, data.reason);
-      if (status !== "refunded") {
-        throw new Error("This order has no successful payment to refund");
-      }
+      status = await refundOrderIfPaid(order, data.reason);
     } catch (e: any) {
-      throw new Error(e?.message ?? "Refund failed");
+      return { refunded: false, reason: e?.message ?? "Refund failed" };
+    }
+    if (status !== "refunded") {
+      return { refunded: false, reason: "This order has no successful payment to refund" };
     }
 
     if ((order as any).buyer_id) {
@@ -187,4 +188,5 @@ export const refundOrderAction = createServerFn({ method: "POST" })
     }
 
     return { refunded: true };
+
   });
