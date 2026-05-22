@@ -165,10 +165,15 @@ function Admin() {
     });
   }, [isAdmin]);
 
+  const [orderSearch, setOrderSearch] = useState("");
   async function loadOrders() {
     let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
     if (orderFilter === "issues") {
       q = q.in("status", ["pending", "disputed"]);
+    }
+    if (orderSearch.trim()) {
+      const term = orderSearch.trim();
+      q = q.or(`order_number.ilike.%${term}%,title.ilike.%${term}%`);
     }
     const { data } = await q;
     setOrders((data as any[]) || []);
