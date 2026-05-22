@@ -213,7 +213,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
 
   const breakdowns = useMemo(
     () => activeOrders.map((o) => ({ order: o, ...computeBreakdown(o, recoveryByRef) })),
-    [orders, recoveryByRef],
+    [activeOrders, recoveryByRef],
   );
 
   const processingPayoutCents = useMemo(
