@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle } from "lucide-react";
+import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
@@ -14,6 +14,8 @@ import { isValidShippingAddress, validateAddress, type ShippingAddress } from "@
 import { BuyerRestrictionBanner } from "@/components/BuyerRestrictionBanner";
 import { InsuranceOption } from "@/components/insurance/InsuranceOption";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
+import { calculateTaxCents, salesTaxRate } from "@/lib/salesTax";
+import { BUYER_PLATFORM_FEE_CENTS, INTL_PROCESSING_FEE_RATE } from "@/lib/marketplaceFeeRates";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
