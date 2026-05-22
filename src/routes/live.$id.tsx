@@ -741,7 +741,22 @@ function LiveDetail() {
           table: "stream_shoutouts",
           filter: `stream_id=eq.${id}`,
         },
-        (p) => setShoutouts((s) => [p.new, ...s]),
+        (p: any) => {
+          const s = p.new;
+          setShoutouts((cur) => [s, ...cur]);
+          // Pop a prominent overlay so it's instantly visible to everyone.
+          setShoutoutOverlay({
+            id: s.id,
+            username: s.buyer_username,
+            amount: Number(s.amount),
+            message: s.message,
+          });
+          setTimeout(
+            () => setShoutoutOverlay((cur) => (cur?.id === s.id ? null : cur)),
+            6000,
+          );
+          playSfx("shoutout");
+        },
       )
       .on(
         "postgres_changes",
