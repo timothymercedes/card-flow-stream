@@ -529,6 +529,9 @@ function LiveDetail() {
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
   // 🆕 Shipping preset + weight (oz/lbs) — drives method & price per Shippo guideline
   const [editShipPreset, setEditShipPreset] = useState<ShippingPresetKey>("bubble");
+  // 🆕 Once the host manually picks a preset, stop auto-overriding it on every
+  // re-render. The auto-suggest only runs while the host hasn't intervened.
+  const shipPresetManualRef = useRef(false);
   const [editWeight, setEditWeight] = useState("4");
   const [editWeightUnit, setEditWeightUnit] = useState<"oz" | "lbs">("oz");
   // 🆕 Quantity (back-to-back identical auctions) + voice trigger
@@ -5007,8 +5010,24 @@ function LiveDetail() {
                         : weightOz > 8
                           ? "small_box"
                           : "bubble";
-                if (autoKey !== editShipPreset) {
-                  setTimeout(() => setEditShipPreset(autoKey), 0);
+                if (!shipPresetManualRef.current && autoKey !== editShipPreset) {
+                  setTimeout(() => {
+                    if (shipPresetManualRef.current) return;
+                    setEditShipPreset(autoKey);
+                    const ap = SHIPPING_PRESETS[autoKey];
+                    setEditShipMethod(ap.label);
+                    const autoPrice =
+                      ap.flatRate && ap.flatPriceUsd != null
+                        ? ap.flatPriceUsd
+                        : Number(
+                            estimateShippingAndImportFees({
+                              subtotal: startVal,
+                              weightOz: ap.weightOz,
+                              quantity: qty,
+                            }).shipping.toFixed(2),
+                          );
+                    setEditShipPrice(String(autoPrice));
+                  }, 0);
                 }
                 return (
                   <>
@@ -5043,6 +5062,7 @@ function LiveDetail() {
                           value={editShipPreset}
                           onChange={(e) => {
                             const key = e.target.value as ShippingPresetKey;
+                            shipPresetManualRef.current = true;
                             setEditShipPreset(key);
                             const p = SHIPPING_PRESETS[key];
                             setEditShipMethod(p.label);
@@ -6144,6 +6164,7 @@ function LiveDetail() {
                               value={editShipPreset}
                               onChange={(e) => {
                                 const key = e.target.value as ShippingPresetKey;
+                                shipPresetManualRef.current = true;
                                 setEditShipPreset(key);
                                 const p = SHIPPING_PRESETS[key];
                                 setEditShipMethod(p.label);
