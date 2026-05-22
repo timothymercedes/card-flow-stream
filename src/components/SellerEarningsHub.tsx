@@ -25,8 +25,9 @@ type Order = {
   status: string;
   payment_status?: string;
   refunded_amount?: number | null;
-  shipping_cents?: number | null;     // optional, future
-  promo_cents?: number | null;        // optional, future
+  refunded_at?: string | null;
+  shipping_cents?: number | null;
+  promo_cents?: number | null;
   commission_rate?: number | null;
   created_at: string;
   fee_absorbed_by?: "buyer" | "seller" | null;
@@ -36,7 +37,21 @@ type Order = {
   seller_processing_fee_cents?: number | null;
   processing_fee_cents?: number | null;
   fee_split_mode?: "buyer" | "split" | "seller_absorbed" | null;
+  ship_name?: string | null;
+  ship_address?: string | null;
+  ship_city?: string | null;
+  ship_state?: string | null;
+  ship_zip?: string | null;
+  ship_country?: string | null;
 };
+
+// Excluded from earnings totals — kept forever in the Archive tab for record-keeping.
+function isArchivedOrder(o: Pick<Order, "status" | "payment_status">) {
+  return o.status === "cancelled"
+    || o.payment_status === "cancelled"
+    || o.payment_status === "refunded"
+    || o.payment_status === "awaiting_payment";
+}
 
 type Recovery = {
   id: string;
