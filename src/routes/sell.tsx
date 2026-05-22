@@ -114,6 +114,8 @@ function Sell() {
   const [prebidVaultPicks, setPrebidVaultPicks] = useState<VaultPick[]>([]);
   // Schedule vs go-live-now (set in step 6). Empty string = go live now.
   const [scheduledFor, setScheduledFor] = useState<string>("");
+  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [recurrenceUntil, setRecurrenceUntil] = useState<string>("");
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
@@ -398,6 +400,10 @@ function Sell() {
         is_active: !isScheduled,
         started_at: isScheduled ? null : new Date().toISOString(),
         scheduled_for: scheduledIso,
+        recurrence: isScheduled ? recurrence : "none",
+        recurrence_until: isScheduled && recurrence !== "none" && recurrenceUntil
+          ? new Date(recurrenceUntil).toISOString()
+          : null,
         ends_at,
         quick_start_enabled: quickStart,
         default_timer_sec: Number(defaultTimerSec) || 30,
@@ -438,8 +444,19 @@ function Sell() {
       );
     }
     // Seed Pre-B queue with cards the host picked from their vault during setup.
+    // Re-check vault status so anything already sold/won elsewhere is excluded.
     if (prebidVaultPicks.length > 0) {
-      const rows = prebidVaultPicks.map((v, i) => {
+      const ids = prebidVaultPicks.map((v) => v.id);
+      const { data: stillAvail } = await supabase
+        .from("vault_cards")
+        .select("id")
+        .in("id", ids)
+        .eq("status", "available");
+      const availSet = new Set(((stillAvail as any[]) || []).map((r) => r.id));
+      const picks = prebidVaultPicks.filter((v) => availSet.has(v.id));
+      const skipped = prebidVaultPicks.length - picks.length;
+      if (skipped > 0) toast.message(`${skipped} card(s) skipped — already sold`);
+      const rows = picks.map((v, i) => {
         const val = Number(v.estimated_value || 0);
         const startFromOverride = Number(v.starting_bid);
         const start = Number.isFinite(startFromOverride) && startFromOverride > 0
@@ -466,8 +483,10 @@ function Sell() {
           vault_card_id: v.id,
         };
       });
-      const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
-      if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+      if (rows.length > 0) {
+        const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
+        if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+      }
     }
     if (isScheduled) {
       toast.success(`Scheduled for ${new Date(scheduledIso!).toLocaleString()}`);
@@ -714,6 +733,10 @@ function Sell() {
               setPrebidVaultPicks={setPrebidVaultPicks}
               scheduledFor={scheduledFor}
               setScheduledFor={setScheduledFor}
+              recurrence={recurrence}
+              setRecurrence={setRecurrence}
+              recurrenceUntil={recurrenceUntil}
+              setRecurrenceUntil={setRecurrenceUntil}
               startLive={async () => {
                 await startLive();
               }}
@@ -1035,6 +1058,10 @@ type LiveWizardProps = {
   setPrebidVaultPicks: (v: VaultPick[] | ((cur: VaultPick[]) => VaultPick[])) => void;
   scheduledFor: string;
   setScheduledFor: (v: string) => void;
+  recurrence: "none" | "daily" | "weekly" | "monthly";
+  setRecurrence: (v: "none" | "daily" | "weekly" | "monthly") => void;
+  recurrenceUntil: string;
+  setRecurrenceUntil: (v: string) => void;
   startLive: () => Promise<void>;
 };
 
@@ -1831,6 +1858,43 @@ function LiveWizard(p: LiveWizardProps) {
                   Followers will get notified and viewers can pre-bid before you go live.
                 </p>
               </label>
+            )}
+            {p.scheduledFor && (
+              <div className="space-y-2 rounded-lg bg-background/40 p-2">
+                <span className="block text-[10px] font-bold text-muted-foreground">Repeat</span>
+                <div className="grid grid-cols-4 gap-1">
+                  {(["none", "daily", "weekly", "monthly"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => p.setRecurrence(r)}
+                      className={`rounded-md px-2 py-1.5 text-[11px] font-bold capitalize ${
+                        p.recurrence === r
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {r === "none" ? "Once" : r}
+                    </button>
+                  ))}
+                </div>
+                {p.recurrence !== "none" && (
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-bold text-muted-foreground">
+                      Repeat until (optional)
+                    </span>
+                    <input
+                      type="date"
+                      value={p.recurrenceUntil}
+                      onChange={(e) => p.setRecurrenceUntil(e.target.value)}
+                      className="w-full rounded-md bg-input px-3 py-2 text-sm outline-none"
+                    />
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      Next show is auto-created when this one goes live. Sold cards are removed from the next Pre-B automatically.
+                    </p>
+                  </label>
+                )}
+              </div>
             )}
           </div>
 
