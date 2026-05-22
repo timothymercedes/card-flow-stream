@@ -515,15 +515,22 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
                     <p className="font-bold">@{buyerNames[o.buyer_id] ?? "buyer"}</p>
                     <p className="text-[11px]">{o.ship_name || "—"}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase text-muted-foreground">Ship to</p>
-                    <p className="text-[11px] leading-snug">
-                      {o.ship_address || "—"}
-                      {o.ship_address ? <br /> : null}
-                      {[o.ship_city, o.ship_state, o.ship_zip].filter(Boolean).join(", ")}
-                      {o.ship_country ? ` · ${o.ship_country}` : ""}
-                    </p>
-                  </div>
+                  {isStaff ? (
+                    <div>
+                      <p className="text-[10px] uppercase text-muted-foreground">Ship to (admin only)</p>
+                      <p className="text-[11px] leading-snug">
+                        {o.ship_address || "—"}
+                        {o.ship_address ? <br /> : null}
+                        {[o.ship_city, o.ship_state, o.ship_zip].filter(Boolean).join(", ")}
+                        {o.ship_country ? ` · ${o.ship_country}` : ""}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-[10px] uppercase text-muted-foreground">Ship to</p>
+                      <p className="text-[11px] italic text-muted-foreground">Hidden — visible to admin only for cancelled/refunded orders.</p>
+                    </div>
+                  )}
                 </div>
                 {Number(o.refunded_amount || 0) > 0 && (
                   <p className="mt-1 text-[11px] text-amber-300">Refunded {fmt(Number(o.refunded_amount))}</p>
