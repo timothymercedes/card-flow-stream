@@ -53,11 +53,35 @@ function grossedUpStripeFeeCents(preFeeCents: number): number {
 }
 
 /**
- * Marketplace purchase fees (Phase 2).
- *  - Buyer pays: subtotal + platformFee + intlFee + Stripe processing fee.
- *  - Platform application_fee_amount covers: platformFee + intlFee +
- *    5% commission + Stripe processing fee + sellerAbsorbedFee.
- *  - Net result: seller receives exactly (subtotal - commission - sellerAbsorbedFee).
+ * Gross-up HALF of the Stripe processing fee onto the buyer. The other half
+ * is absorbed by the seller (deducted from their payout). Used for live
+ * auctions, live-stream purchases, and instant auction wins.
+ *
+ * Solve X such that X = (preFee + X) * rate / 2 + fixed / 2:
+ *   X * (1 - rate/2) = (preFee * rate + fixed) / 2
+ *   X = (preFee * rate + fixed) / (2 - rate)
+ */
+function buyerHalfStripeFeeCents(preFeeCents: number): number {
+  if (preFeeCents <= 0) return 0;
+  const numerator = preFeeCents * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED_CENTS;
+  const denominator = 2 - STRIPE_PROCESSING_RATE;
+  return Math.ceil(numerator / denominator);
+}
+
+/**
+ * Marketplace purchase fees (Phase 2 + live-auction split, Phase 12).
+ *
+ *  - feeSplitMode === 'buyer' (default, marketplace fixed-price): buyer
+ *    covers 100% of the Stripe processing fee.
+ *  - feeSplitMode === 'split' (live auctions / live-stream purchases /
+ *    instant auction wins): buyer and seller each cover ~50% of the
+ *    Stripe processing fee. Buyer pays their grossed-up half on top of
+ *    subtotal + platformFee + intlFee; seller's half is deducted from
+ *    sellerNet.
+ *  - Platform application_fee_amount always covers: platformFee + intlFee
+ *    + commission + sellerAbsorbedFee + TOTAL Stripe processing fee
+ *    (Stripe deducts the processing fee from the platform side of the
+ *    Connect transfer, regardless of which party economically funded it).
  */
 export function calculateFees(
   subtotalCents: number,
@@ -65,6 +89,7 @@ export function calculateFees(
     isInternational?: boolean;
     platformFeeCentsOverride?: number;
     commissionRate?: number;
+    feeSplitMode?: "buyer" | "split";
   },
 ) {
   const platformFee =
@@ -82,11 +107,24 @@ export function calculateFees(
     : MARKETPLACE_COMMISSION_RATE;
   const commissionCents = Math.round(subtotalCents * commissionRate);
   const preFeeBuyerCents = subtotalCents + platformFee + intlFee;
-  const processingFee = grossedUpStripeFeeCents(preFeeBuyerCents);
-  const buyerTotal = preFeeBuyerCents + processingFee;
+
+  const splitMode = opts?.feeSplitMode ?? "buyer";
+  const buyerProcessingFee = splitMode === "split"
+    ? buyerHalfStripeFeeCents(preFeeBuyerCents)
+    : grossedUpStripeFeeCents(preFeeBuyerCents);
+  const buyerTotal = preFeeBuyerCents + buyerProcessingFee;
+
+  // Actual Stripe fee Stripe will deduct from the charge on the buyer total.
+  const totalProcessingFee = Math.round(
+    buyerTotal * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED_CENTS,
+  );
+  const sellerProcessingFee = splitMode === "split"
+    ? Math.max(0, totalProcessingFee - buyerProcessingFee)
+    : 0;
+
   const applicationFee =
-    platformFee + intlFee + commissionCents + sellerAbsorbedFee + processingFee;
-  const sellerNet = subtotalCents - commissionCents - sellerAbsorbedFee;
+    platformFee + intlFee + commissionCents + sellerAbsorbedFee + totalProcessingFee;
+  const sellerNet = subtotalCents - commissionCents - sellerAbsorbedFee - sellerProcessingFee;
   return {
     subtotalCents,
     platformFee,
@@ -94,7 +132,13 @@ export function calculateFees(
     intlFee,
     commissionCents,
     commissionRate,
-    processingFee,
+    // Total Stripe processing fee Stripe will deduct from the charge.
+    processingFee: totalProcessingFee,
+    // Portion of the Stripe fee added to the buyer's total.
+    buyerProcessingFee,
+    // Portion of the Stripe fee deducted from the seller's payout.
+    sellerProcessingFee,
+    feeSplitMode: splitMode,
     isInternational: Boolean(opts?.isInternational),
     applicationFee,
     sellerNet,
