@@ -318,6 +318,9 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         platform_fee_cents: String(fees.platformFee),
         commission_cents: String(fees.commissionCents),
         processing_fee_cents: String(fees.processingFee),
+        buyer_processing_fee_cents: String((fees as any).buyerProcessingFee ?? fees.processingFee),
+        seller_processing_fee_cents: String((fees as any).sellerProcessingFee ?? 0),
+        fee_split_mode: String((fees as any).feeSplitMode ?? "buyer"),
         seller_payout_cents: String(fees.sellerNet),
         intl_fee_cents: String(fees.intlFee),
         is_international: String(isInternational),
@@ -329,23 +332,40 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
 
     // Stamp the PI + computed commission/payout on every order in this group
     // so the webhook can reconcile and payout dashboards stay accurate.
-    const perOrderCommission = orderIds.length > 0
-      ? Math.round((fees.commissionCents / orderIds.length))
-      : 0;
-    const perOrderPayout = orderIds.length > 0
-      ? Math.round((fees.sellerNet / orderIds.length))
-      : 0;
-    await supabaseAdmin
-      .from("orders")
-      .update({
+    const liveParts = (fees as any).liveParts as Array<any> | undefined;
+    if (isLiveCheckout && liveParts?.length) {
+      await Promise.all(liveParts.map((part) => supabaseAdmin.from("orders").update({
+        stripe_payment_intent_id: intent.id,
+        seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
+        idempotency_key: idemKey,
+        commission_rate: part.fees.commissionRate,
+        commission_amount: part.fees.commissionCents / 100,
+        seller_payout_amount: part.fees.sellerNet / 100,
+        platform_fee_cents: part.fees.platformFee,
+        processing_fee_cents: part.fees.processingFee,
+        buyer_processing_fee_cents: part.fees.buyerProcessingFee,
+        seller_processing_fee_cents: part.fees.sellerProcessingFee,
+        fee_split_mode: part.fees.feeSplitMode,
+        fee_index: part.feeIndex,
+        fee_absorbed_by: part.feeAbsorbedBy,
+      }).eq("id", part.orderId)));
+    } else {
+      const perOrderCommission = orderIds.length > 0 ? Math.round((fees.commissionCents / orderIds.length)) : 0;
+      const perOrderPayout = orderIds.length > 0 ? Math.round((fees.sellerNet / orderIds.length)) : 0;
+      await supabaseAdmin.from("orders").update({
         stripe_payment_intent_id: intent.id,
         seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
         idempotency_key: idemKey,
         commission_rate: fees.commissionRate,
         commission_amount: perOrderCommission / 100,
         seller_payout_amount: perOrderPayout / 100,
-      })
-      .in("id", orderIds);
+        platform_fee_cents: fees.platformFee,
+        processing_fee_cents: fees.processingFee,
+        buyer_processing_fee_cents: (fees as any).buyerProcessingFee ?? fees.processingFee,
+        seller_processing_fee_cents: (fees as any).sellerProcessingFee ?? 0,
+        fee_split_mode: (fees as any).feeSplitMode ?? "buyer",
+      }).in("id", orderIds);
+    }
 
     return {
       clientSecret: intent.client_secret,
