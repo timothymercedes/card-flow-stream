@@ -274,7 +274,7 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     const { userId } = context;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id, buyer_id, title, tracking_number")
+      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents")
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("Order not found");
