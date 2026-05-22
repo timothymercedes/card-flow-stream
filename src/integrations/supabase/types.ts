@@ -3847,6 +3847,59 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_acceptances: {
+        Row: {
+          acceptance_context: string
+          accepted_at: string
+          id: string
+          ip_address: string | null
+          listing_id: string | null
+          metadata: Json
+          order_id: string | null
+          policy_type: string
+          policy_version: string
+          stream_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          acceptance_context: string
+          accepted_at?: string
+          id?: string
+          ip_address?: string | null
+          listing_id?: string | null
+          metadata?: Json
+          order_id?: string | null
+          policy_type: string
+          policy_version: string
+          stream_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          acceptance_context?: string
+          accepted_at?: string
+          id?: string
+          ip_address?: string | null
+          listing_id?: string | null
+          metadata?: Json
+          order_id?: string | null
+          policy_type?: string
+          policy_version?: string
+          stream_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_acceptances_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_comments: {
         Row: {
           content: string
