@@ -5062,6 +5062,7 @@ function LiveDetail() {
                           value={editShipPreset}
                           onChange={(e) => {
                             const key = e.target.value as ShippingPresetKey;
+                            shipPresetManualRef.current = true;
                             setEditShipPreset(key);
                             const p = SHIPPING_PRESETS[key];
                             setEditShipMethod(p.label);
