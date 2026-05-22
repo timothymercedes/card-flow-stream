@@ -1457,6 +1457,9 @@ function LiveWizard(p: LiveWizardProps) {
               Pick cards from your Vault to seed the Pre-Bid store. Viewers can bid before you go live.
               You can still scan more cards live.
             </p>
+            <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] leading-snug text-amber-700 dark:text-amber-300">
+              ⚠️ Heads up: once a card is sold or won — anywhere (Pre-Bid, live auction, or marketplace) — it's automatically removed from your Vault, the Marketplace, and any scheduled Pre-Bid stores. Please double-check before going live to make sure removed cards are no longer listed.
+            </p>
           </div>
 
           <div className="rounded-xl border border-border bg-background p-3">
