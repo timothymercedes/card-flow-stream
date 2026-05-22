@@ -25,7 +25,17 @@ import {
   Disc3,
   Package,
   Sparkles,
+  Library,
 } from "lucide-react";
+
+type VaultPick = {
+  id: string;
+  name: string;
+  image_url: string | null;
+  estimated_value: number | null;
+  tcg_set: string | null;
+  tcg_number: string | null;
+};
 import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
