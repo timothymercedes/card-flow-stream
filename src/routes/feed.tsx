@@ -28,6 +28,7 @@ type Post = { id: string; user_id: string; username: string; caption: string; im
 type Reaction = { post_id: string; user_id: string; reaction: string };
 type Edit = { id: string; post_id: string; prev_caption: string | null; prev_image_url: string | null; action: string; edited_at: string };
 type HypePost = { id: string; title: string; body: string; category: string | null; image_url: string | null; created_at: string; source: string };
+type ReactorProfile = { id: string; username: string | null; avatar_url: string | null };
 
 function Feed() {
   const { user, profile } = useAuth();
@@ -45,6 +46,8 @@ function Feed() {
   const [filter, setFilter] = useState<"all" | "stories" | "drops">("all");
   const [isAdmin, setIsAdmin] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [reactorsFor, setReactorsFor] = useState<string | null>(null);
+  const [reactorProfiles, setReactorProfiles] = useState<Record<string, ReactorProfile>>({});
 
   async function load() {
     const [{ data: ps }, { data: rs }, { data: hs }] = await Promise.all([
@@ -84,6 +87,12 @@ function Feed() {
     if (!user) return;
     setPickerFor(null);
     const mine = reactions.find((r) => r.post_id === p.id && r.user_id === user.id);
+    // Optimistic update
+    setReactions((prev) => {
+      const others = prev.filter((r) => !(r.post_id === p.id && r.user_id === user.id));
+      if (mine?.reaction === type) return others; // toggle off
+      return [...others, { post_id: p.id, user_id: user.id, reaction: type }];
+    });
     if (mine?.reaction === type) {
       await supabase.from("post_reactions").delete().eq("post_id", p.id).eq("user_id", user.id);
     } else if (mine) {
@@ -98,6 +107,21 @@ function Feed() {
           link: "/feed",
         });
       }
+    }
+  }
+
+  async function openReactors(postId: string) {
+    setReactorsFor(postId);
+    const userIds = reactions.filter((r) => r.post_id === postId).map((r) => r.user_id);
+    const missing = userIds.filter((id) => !reactorProfiles[id]);
+    if (missing.length === 0) return;
+    const { data } = await supabase.from("profiles").select("id,username,avatar_url").in("id", missing);
+    if (data) {
+      setReactorProfiles((prev) => {
+        const next = { ...prev };
+        (data as ReactorProfile[]).forEach((p) => { next[p.id] = p; });
+        return next;
+      });
     }
   }
 
@@ -270,10 +294,14 @@ function Feed() {
                   <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleString()}</p>
                   <div className="flex items-center gap-1">
                     {topReactions.length > 0 && (
-                      <div className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-1 text-xs">
+                      <button
+                        onClick={() => openReactors(p.id)}
+                        className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-1 text-xs transition hover:bg-muted/80 active:scale-95"
+                        title="See who reacted"
+                      >
                         {topReactions.map(([k]) => <span key={k}>{REACTIONS.find((r) => r.key === k)?.emoji}</span>)}
-                        <span className="ml-1 text-[10px] font-semibold text-muted-foreground">{c.total}</span>
-                      </div>
+                        <span className="ml-1 text-[10px] font-semibold text-foreground">{c.total}</span>
+                      </button>
                     )}
                     <button onClick={() => setPickerFor(pickerFor === p.id ? null : p.id)}
                       className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs ${c.mine ? "bg-primary/20 text-primary" : "bg-muted"}`}>
@@ -326,6 +354,48 @@ function Feed() {
           </div>
         </div>
       )}
+
+      {reactorsFor && (() => {
+        const list = reactions.filter((r) => r.post_id === reactorsFor);
+        const grouped = REACTIONS.map((rx) => ({
+          ...rx,
+          users: list.filter((r) => r.reaction === rx.key),
+        })).filter((g) => g.users.length > 0);
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setReactorsFor(null)}>
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-card p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-bold">Reactions ({list.length})</p>
+                <button onClick={() => setReactorsFor(null)}><X className="h-4 w-4" /></button>
+              </div>
+              <div className="max-h-96 space-y-3 overflow-y-auto">
+                {grouped.map((g) => (
+                  <div key={g.key}>
+                    <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
+                      <span className="mr-1 text-base">{g.emoji}</span> {g.label} · {g.users.length}
+                    </p>
+                    <div className="space-y-1">
+                      {g.users.map((u) => {
+                        const prof = reactorProfiles[u.user_id];
+                        return (
+                          <div key={u.user_id} className="flex items-center gap-2 rounded-lg bg-muted/30 px-2 py-1.5">
+                            {prof?.avatar_url ? (
+                              <img src={prof.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                            ) : (
+                              <div className="h-7 w-7 rounded-full bg-muted" />
+                            )}
+                            <span className="text-sm">@{prof?.username || "user"}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </AppShell>
   );
 }
