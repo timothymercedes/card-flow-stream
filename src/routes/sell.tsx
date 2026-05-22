@@ -998,6 +998,9 @@ type LiveWizardProps = {
   setBreakSlotPrefix: (v: string) => void;
   streamDesc: string;
   setStreamDesc: (v: string) => void;
+  hostId: string;
+  prebidVaultPicks: VaultPick[];
+  setPrebidVaultPicks: (v: VaultPick[] | ((cur: VaultPick[]) => VaultPick[])) => void;
   startLive: () => Promise<void>;
 };
 
