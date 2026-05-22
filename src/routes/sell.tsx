@@ -1011,6 +1011,33 @@ function LiveWizard(p: LiveWizardProps) {
     "idle",
   );
   const [cameraScanError, setCameraScanError] = useState<string | null>(null);
+  const [vaultCards, setVaultCards] = useState<VaultPick[]>([]);
+  const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultLoaded, setVaultLoaded] = useState(false);
+
+  useEffect(() => {
+    if (p.step !== 4 || vaultLoaded || !p.hostId) return;
+    setVaultLoading(true);
+    supabase
+      .from("vault_cards")
+      .select("id, name, image_url, estimated_value, tcg_set, tcg_number")
+      .eq("user_id", p.hostId)
+      .eq("status", "available")
+      .order("created_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        setVaultCards(((data as any[]) || []) as VaultPick[]);
+        setVaultLoaded(true);
+        setVaultLoading(false);
+      });
+  }, [p.step, p.hostId, vaultLoaded]);
+
+  const pickedIds = new Set(p.prebidVaultPicks.map((v) => v.id));
+  function toggleVaultPick(card: VaultPick) {
+    p.setPrebidVaultPicks((cur) =>
+      cur.some((c) => c.id === card.id) ? cur.filter((c) => c.id !== card.id) : [...cur, card],
+    );
+  }
   const total = stepLabels.length;
   const canNext = (() => {
     if (p.step === 1) return p.streamTitle.trim().length >= 3;
