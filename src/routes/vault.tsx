@@ -995,37 +995,48 @@ function Vault() {
     toast.error(`Couldn't save card — ${lastErr?.message || "try again"}`);
   }
 
-  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) {
-    if (!card.image_url) return toast.error("Front photo required");
-    const back = card.back_image_url || opts.backImage;
-    if (!back) return toast.error("Back photo required to sell");
+  async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) {
+    // Sale photos MUST be freshly uploaded — vault/AI images are not allowed.
+    const frontErr = validateListingImage(opts.frontImage, { field: "Front sale photo" });
+    if (frontErr) return toast.error(frontErr);
+    const backErr = validateListingImage(opts.backImage, { field: "Back sale photo" });
+    if (backErr) return toast.error(backErr);
+    if (!opts.buy_now && !opts.auction && !opts.offer) return toast.error("Pick at least one sale type");
     if (opts.buy_now && opts.price <= 0) return toast.error("Set a Buy Now price");
     if (opts.auction && opts.price <= 0) return toast.error("Set a starting bid");
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
+    const baseDesc = (opts.description?.trim() || card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc;
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user!.id, title: card.name,
-      description: (card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc,
-      image_url: card.image_url,
-      back_image_url: back,
+      description: baseDesc,
+      image_url: opts.frontImage,
+      back_image_url: opts.backImage,
+      category: card.category || null,
       listing_type: primary,
       is_auction: opts.auction,
       accepts_offers: opts.offer,
       price: opts.buy_now ? opts.price : null,
+      buy_now_price: opts.buy_now ? opts.price : null,
       starting_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       current_bid: opts.auction ? Math.max(1, opts.price || 1) : null,
       reserve_price: opts.auction && opts.reserve ? opts.reserve : null,
+      shipping_price: opts.shipping ?? 0,
       auction_ends_at: opts.auction ? new Date(Date.now() + opts.days * 24 * 60 * 60 * 1000).toISOString() : null,
       condition: card.condition || null,
       tcg_number: card.tcg_number || null,
       tcg_set: card.tcg_set || null,
       tcg_year: card.tcg_year || null,
+      vault_card_id: card.id,
     }).select().single();
-    if (error) return toast.error(error.message);
-    // Persist back image to vault if newly captured
-    if (!card.back_image_url && opts.backImage) {
-      await supabase.from("vault_cards").update({ back_image_url: opts.backImage }).eq("id", card.id);
+    if (error) {
+      const msg = /duplicate|unique/i.test(error.message)
+        ? "This vault card already has an active listing. Edit or remove the existing listing first."
+        : /image|url/i.test(error.message)
+          ? "Photo upload didn't save. Please re-upload your sale photos and try again."
+          : error.message;
+      return toast.error(msg);
     }
     toast.success("Listed!");
     setSelling(null);
