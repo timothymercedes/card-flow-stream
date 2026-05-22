@@ -400,6 +400,10 @@ function Sell() {
         is_active: !isScheduled,
         started_at: isScheduled ? null : new Date().toISOString(),
         scheduled_for: scheduledIso,
+        recurrence: isScheduled ? recurrence : "none",
+        recurrence_until: isScheduled && recurrence !== "none" && recurrenceUntil
+          ? new Date(recurrenceUntil).toISOString()
+          : null,
         ends_at,
         quick_start_enabled: quickStart,
         default_timer_sec: Number(defaultTimerSec) || 30,
