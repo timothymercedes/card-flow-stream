@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { recordPolicyAcceptance } from "@/lib/policy.functions";
+import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useRequireCardOnFile } from "@/hooks/useRequireCardOnFile";
