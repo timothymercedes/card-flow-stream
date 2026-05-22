@@ -1033,6 +1033,8 @@ type LiveWizardProps = {
   hostId: string;
   prebidVaultPicks: VaultPick[];
   setPrebidVaultPicks: (v: VaultPick[] | ((cur: VaultPick[]) => VaultPick[])) => void;
+  scheduledFor: string;
+  setScheduledFor: (v: string) => void;
   startLive: () => Promise<void>;
 };
 
