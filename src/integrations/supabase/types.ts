@@ -2504,6 +2504,9 @@ export type Database = {
           quick_start_enabled: boolean
           quick_start_quantity: number
           quick_start_remaining: number | null
+          recurrence: string
+          recurrence_parent_id: string | null
+          recurrence_until: string | null
           round_number: number
           scheduled_for: string | null
           seller_id: string
@@ -2612,6 +2615,9 @@ export type Database = {
           quick_start_enabled?: boolean
           quick_start_quantity?: number
           quick_start_remaining?: number | null
+          recurrence?: string
+          recurrence_parent_id?: string | null
+          recurrence_until?: string | null
           round_number?: number
           scheduled_for?: string | null
           seller_id: string
@@ -2720,6 +2726,9 @@ export type Database = {
           quick_start_enabled?: boolean
           quick_start_quantity?: number
           quick_start_remaining?: number | null
+          recurrence?: string
+          recurrence_parent_id?: string | null
+          recurrence_until?: string | null
           round_number?: number
           scheduled_for?: string | null
           seller_id?: string
@@ -2764,6 +2773,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_user_hold_status"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "live_streams_recurrence_parent_id_fkey"
+            columns: ["recurrence_parent_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "live_streams_seller_id_fkey"
