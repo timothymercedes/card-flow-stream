@@ -117,6 +117,7 @@ import { InternationalBadge } from "@/components/InternationalBadge";
 import { HostInactivityCheckModal } from "@/components/HostInactivityCheckModal";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { LiveMobileHostCard } from "@/components/LiveMobileHostCard";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -1980,16 +1981,21 @@ function LiveDetail() {
     () => new Set(mods.map((mm: any) => mm.mod_user_id)),
     [mods],
   );
+  const isMobileViewport = useIsMobile();
   const visibleChatMessages = useMemo(() => {
     const tail = messages.length > 80 ? messages.slice(-80) : messages;
-    return tail.filter((m) => {
+    const filtered = tail.filter((m) => {
       if (m.is_system || m.is_announcement) return false;
       if (m.user_id && myBlockedIds.has(m.user_id)) return false;
       if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
       if (isStaff && hideModsChat && m.user_id && modUserIdSet.has(m.user_id)) return false;
       return true;
     });
-  }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet]);
+    // 🆕 Mobile density: cap the live chat overlay to the last 6 messages so
+    // it stays readable over the video. Desktop keeps the full window.
+    if (isMobileViewport && filtered.length > 6) return filtered.slice(-6);
+    return filtered;
+  }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet, isMobileViewport]);
 
 
 
@@ -5573,7 +5579,7 @@ function LiveDetail() {
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            left-2 right-16 bottom-32 max-h-[42vh]
+            left-2 right-16 bottom-32 max-h-[32vh]
             [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
             [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
             md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
