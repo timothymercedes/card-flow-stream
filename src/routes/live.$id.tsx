@@ -1618,15 +1618,34 @@ function LiveDetail() {
     if (!safety.inactiveWarning) inactivityNotifiedRef.current = false;
   }, [safety.inactiveWarning]);
 
-  // Bundle-fee preview: items 1-3 in this stream → buyer pays $1.23, items 4+ → $0.
+  // Live fee preview: server-authoritative split processing + per-stream threshold.
   const previewFee = useServerFn(previewBuyerFee);
-  const [bundleFee, setBundleFee] = useState<{ platformFeeCents: number; nextItemIndex: number; threshold: number; bundleDiscountActive: boolean } | null>(null);
+  const [bundleFee, setBundleFee] = useState<{
+    itemCents: number;
+    shippingCents: number;
+    platformFee: number;
+    buyerProcessingFee: number;
+    sellerProcessingFee: number;
+    processingFee: number;
+    buyerTotal: number;
+    taxCents: number;
+    feeSplitMode: "buyer" | "split" | "seller_absorbed";
+    nextItemIndex: number;
+    threshold: number;
+    bundleDiscountActive: boolean;
+  } | null>(null);
   useEffect(() => {
     if (!id || isSeller) return;
     let cancelled = false;
-    previewFee({ data: { streamId: id } }).then((r: any) => { if (!cancelled) setBundleFee(r); }).catch(() => {});
+    previewFee({
+      data: {
+        streamId: id,
+        currentBidCents: Math.round(Number(stream?.current_bid || 0) * 100),
+        shippingCents: Math.round(Number(stream?.shipping_price || 0) * 100),
+      },
+    }).then((r: any) => { if (!cancelled) setBundleFee(r); }).catch(() => {});
     return () => { cancelled = true; };
-  }, [id, isSeller, previewFee, stream?.round_number]);
+  }, [id, isSeller, previewFee, stream?.round_number, stream?.current_bid, stream?.shipping_price]);
 
 
   // Viewer-mode: regular viewers receive cohost video (recvonly) so they see the
