@@ -3017,6 +3017,7 @@ export type Database = {
           is_giveaway: boolean
           is_late_shipment: boolean
           item_image_url: string | null
+          label_cost_cents: number | null
           label_url: string | null
           last_ship_reminder_at: string | null
           listing_id: string | null
@@ -3053,6 +3054,7 @@ export type Database = {
           shipped_at: string | null
           shipping_amount: number
           shipping_due_at: string | null
+          shipping_margin_cents: number | null
           status: string
           stream_id: string | null
           stripe_charge_id: string | null
@@ -3092,6 +3094,7 @@ export type Database = {
           is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
+          label_cost_cents?: number | null
           label_url?: string | null
           last_ship_reminder_at?: string | null
           listing_id?: string | null
@@ -3128,6 +3131,7 @@ export type Database = {
           shipped_at?: string | null
           shipping_amount?: number
           shipping_due_at?: string | null
+          shipping_margin_cents?: number | null
           status?: string
           stream_id?: string | null
           stripe_charge_id?: string | null
@@ -3167,6 +3171,7 @@ export type Database = {
           is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
+          label_cost_cents?: number | null
           label_url?: string | null
           last_ship_reminder_at?: string | null
           listing_id?: string | null
@@ -3203,6 +3208,7 @@ export type Database = {
           shipped_at?: string | null
           shipping_amount?: number
           shipping_due_at?: string | null
+          shipping_margin_cents?: number | null
           status?: string
           stream_id?: string | null
           stripe_charge_id?: string | null
