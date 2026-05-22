@@ -28,6 +28,7 @@ type Post = { id: string; user_id: string; username: string; caption: string; im
 type Reaction = { post_id: string; user_id: string; reaction: string };
 type Edit = { id: string; post_id: string; prev_caption: string | null; prev_image_url: string | null; action: string; edited_at: string };
 type HypePost = { id: string; title: string; body: string; category: string | null; image_url: string | null; created_at: string; source: string };
+type ReactorProfile = { id: string; username: string | null; avatar_url: string | null };
 
 function Feed() {
   const { user, profile } = useAuth();
@@ -45,6 +46,8 @@ function Feed() {
   const [filter, setFilter] = useState<"all" | "stories" | "drops">("all");
   const [isAdmin, setIsAdmin] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [reactorsFor, setReactorsFor] = useState<string | null>(null);
+  const [reactorProfiles, setReactorProfiles] = useState<Record<string, ReactorProfile>>({});
 
   async function load() {
     const [{ data: ps }, { data: rs }, { data: hs }] = await Promise.all([
