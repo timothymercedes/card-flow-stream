@@ -18,6 +18,8 @@ type Order = {
   id: string;
   title: string;
   amount: number;                     // gross $
+  shipping_amount?: number | null;
+  seller_payout_amount?: number | null;
   buyer_id: string;
   seller_id: string;
   status: string;
@@ -57,8 +59,12 @@ type ProfileRow = {
 const fmt = (n: number) => `$${n.toFixed(2)}`;
 
 function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
-  const gross = Number(o.amount || 0);
-  const platformFee = gross * Number(o.commission_rate ?? PLATFORM_FEE);
+  const totalChargedForOrder = Number(o.amount || 0);
+  const shipping = Number(o.shipping_amount ?? 0) || (o.shipping_cents ?? 0) / 100;
+  const gross = Math.max(0, totalChargedForOrder - shipping);
+  const platformFee = o.platform_fee_cents != null
+    ? o.platform_fee_cents / 100
+    : gross * Number(o.commission_rate ?? PLATFORM_FEE);
   // Prefer stored Stripe fee split values from the charge path. Fall back only
   // for older rows that predate fee accounting columns.
   const isLiveSale = !!o.stream_id;
@@ -66,12 +72,13 @@ function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   const processingFee = o.seller_processing_fee_cents != null
     ? o.seller_processing_fee_cents / 100
     : isLiveSale ? fullProcessingFee / 2 : 0;
-  const shipping = (o.shipping_cents ?? 0) / 100;
   const promo = (o.promo_cents ?? 0) / 100;
   const refund = Number(o.refunded_amount ?? 0);
   const recovery = (recoveryByRef.get(o.id) ?? 0) / 100;
   const totalDeductions = platformFee + processingFee + shipping + promo + refund + recovery;
-  const net = Math.max(0, gross - totalDeductions);
+  const net = o.seller_payout_amount != null
+    ? Math.max(0, Number(o.seller_payout_amount) - refund - recovery)
+    : Math.max(0, gross - platformFee - processingFee - refund - recovery);
   return { gross, platformFee, processingFee, shipping, promo, refund, recovery, totalDeductions, net };
 }
 
