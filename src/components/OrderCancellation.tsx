@@ -34,6 +34,11 @@ type OrderForCancellation = {
   buyer_id?: string | null;
 };
 
+type CancellationUpdate = {
+  status: "accepted" | "declined" | "cancelled";
+  resolved_at?: string;
+};
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
@@ -92,13 +97,15 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
     setBusy(false);
     if (error) return toast.error(error.message);
     const otherId = role === "buyer" ? order.seller_id : order.buyer_id;
-    await supabase.from("notifications").insert({
-      user_id: otherId,
-      sender_id: user.id,
-      type: "order",
-      body: `${profile?.username || "User"} requested cancellation on "${order.title}"`,
-      link: role === "buyer" ? "/store" : "/orders",
-    });
+    if (otherId) {
+      await supabase.from("notifications").insert({
+        user_id: otherId,
+        sender_id: user.id,
+        type: "order",
+        body: `${profile?.username || "User"} requested cancellation on "${order.title}"`,
+        link: role === "buyer" ? "/store" : "/orders",
+      });
+    }
     toast.success("Cancellation request sent");
     setReason("");
     onChanged?.();
@@ -136,12 +143,12 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
         await cancelOrderServer({
           data: { orderId: order.id, reason: cancellation.reason || "Cancellation accepted" },
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
         setBusy(false);
-        return toast.error(e?.message ?? "Unable to cancel order");
+        return toast.error(errorMessage(e, "Unable to cancel order"));
       }
     }
-    const patch: any = { status };
+    const patch: CancellationUpdate = { status };
     if (status === "accepted" || status === "cancelled") {
       patch.resolved_at = new Date().toISOString();
     }
@@ -225,14 +232,13 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
                     )
                       return;
                     setBusy(true);
-                    const paid = (order.payment_status || "") === "paid";
                     try {
                       await cancelOrderServer({
                         data: { orderId: order.id, reason: reason.trim() },
                       });
-                    } catch (e: any) {
+                    } catch (e: unknown) {
                       setBusy(false);
-                      return toast.error(e?.message ?? "Unable to cancel order");
+                      return toast.error(errorMessage(e, "Unable to cancel order"));
                     }
                     await supabase.from("order_cancellations").insert({
                       order_id: order.id,
