@@ -354,6 +354,48 @@ function Feed() {
           </div>
         </div>
       )}
+
+      {reactorsFor && (() => {
+        const list = reactions.filter((r) => r.post_id === reactorsFor);
+        const grouped = REACTIONS.map((rx) => ({
+          ...rx,
+          users: list.filter((r) => r.reaction === rx.key),
+        })).filter((g) => g.users.length > 0);
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setReactorsFor(null)}>
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-card p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-bold">Reactions ({list.length})</p>
+                <button onClick={() => setReactorsFor(null)}><X className="h-4 w-4" /></button>
+              </div>
+              <div className="max-h-96 space-y-3 overflow-y-auto">
+                {grouped.map((g) => (
+                  <div key={g.key}>
+                    <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
+                      <span className="mr-1 text-base">{g.emoji}</span> {g.label} · {g.users.length}
+                    </p>
+                    <div className="space-y-1">
+                      {g.users.map((u) => {
+                        const prof = reactorProfiles[u.user_id];
+                        return (
+                          <div key={u.user_id} className="flex items-center gap-2 rounded-lg bg-muted/30 px-2 py-1.5">
+                            {prof?.avatar_url ? (
+                              <img src={prof.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                            ) : (
+                              <div className="h-7 w-7 rounded-full bg-muted" />
+                            )}
+                            <span className="text-sm">@{prof?.username || "user"}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </AppShell>
   );
 }
