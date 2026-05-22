@@ -83,14 +83,25 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
       platformFeeCentsOverride: 0,
       sellerAbsorbedFeeCentsOverride: 0,
     });
-    // Sales tax — US state-based flat rate. Taxable base = item + shipping
-    // (most states tax shipping when it's part of a taxable sale).
-    const taxCents = calculateTaxCents(itemCents + shippingCents, buyerCountry, buyerState);
+    // Sales tax — routed through the swappable tax provider. Today this
+    // is the US state-rate table; later it can become Stripe Tax/TaxJar
+    // without touching this call site.
+    const tax = await quoteTax({
+      itemCents,
+      shippingCents,
+      buyerCountry,
+      buyerState,
+      sellerId: sellerId ?? null,
+    });
     return {
       ...fees,
       itemCents,
       shippingCents,
-      taxCents,
+      taxCents: tax.taxCents,
+      taxableSubtotalCents: tax.taxableSubtotalCents,
+      taxRateBps: tax.taxRateBps,
+      taxJurisdiction: tax.jurisdiction,
+      taxProvider: tax.provider,
       nextItemIndex,
       threshold,
       bundleDiscountActive,
