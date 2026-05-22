@@ -5704,6 +5704,8 @@ function LiveDetail() {
             isFlex={stream.mode === "show_off"}
             chatAudience={chatAudience}
             onChangeChatAudience={setChatAudience}
+            onOpenModPanel={() => setShowModPanel(true)}
+            modUnread={modUnread}
             slowModeSec={Number(editSlowMode) || 0}
             onChangeSlowMode={async (s) => {
               setEditSlowMode(String(s));
