@@ -204,6 +204,10 @@ export function LiveSellerDashboard({
         id: `p-${p.id}`, kind: "promo", text: `Promo from @${p.promoter_username}`,
         amount: Number(p.amount), at: p.created_at,
       }));
+      shoutouts.slice(0, 10).forEach((x: any) => acts.push({
+        id: `s-${x.id}`, kind: "tip", text: `Shout-out from @${x.buyer_username || "viewer"}`,
+        amount: Number(x.amount), at: x.created_at,
+      }));
       (mutesRes.data || []).forEach((a: any) => acts.push({
         id: `m-${a.created_at}-${a.target_user_id}`, kind: "mod",
         text: `${a.action} · @${a.target_username || "user"}`, at: a.created_at,
@@ -217,6 +221,7 @@ export function LiveSellerDashboard({
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `stream_id=eq.${streamId}` }, loadAll)
       .on("postgres_changes", { event: "*", schema: "public", table: "stream_tips", filter: `stream_id=eq.${streamId}` }, loadAll)
       .on("postgres_changes", { event: "*", schema: "public", table: "stream_promotions", filter: `stream_id=eq.${streamId}` }, loadAll)
+      .on("postgres_changes", { event: "*", schema: "public", table: "stream_shoutouts", filter: `stream_id=eq.${streamId}` }, loadAll)
       .on("postgres_changes", { event: "*", schema: "public", table: "stream_chat_actions", filter: `stream_id=eq.${streamId}` }, loadAll)
       .on("postgres_changes", { event: "*", schema: "public", table: "stream_moderators", filter: `stream_id=eq.${streamId}` }, loadAll)
       .subscribe();
