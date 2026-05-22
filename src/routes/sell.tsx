@@ -35,6 +35,10 @@ type VaultPick = {
   estimated_value: number | null;
   tcg_set: string | null;
   tcg_number: string | null;
+  // Per-card overrides set in the Pre-B list (step 4)
+  starting_bid?: string;
+  buy_now_price?: string;
+  voice_trigger?: string;
 };
 import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
@@ -108,6 +112,8 @@ function Sell() {
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
   const [hypeTags, setHypeTags] = useState<string[]>([]);
   const [prebidVaultPicks, setPrebidVaultPicks] = useState<VaultPick[]>([]);
+  // Schedule vs go-live-now (set in step 6). Empty string = go live now.
+  const [scheduledFor, setScheduledFor] = useState<string>("");
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
@@ -283,8 +289,16 @@ function Sell() {
   async function startLive() {
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
+    const isScheduled = !!scheduledFor;
+    let scheduledIso: string | null = null;
+    if (isScheduled) {
+      const d = new Date(scheduledFor);
+      if (isNaN(d.getTime())) return toast.error("Pick a valid date/time");
+      if (d.getTime() < Date.now() - 60_000) return toast.error("Scheduled time must be in the future");
+      scheduledIso = d.toISOString();
+    }
     const cameraHandoffStreams: StudioCameraHandoff[] = [];
-    if (useCompositor && selectedCameraIds.length > 0) {
+    if (!isScheduled && useCompositor && selectedCameraIds.length > 0) {
       try {
         for (const deviceId of selectedCameraIds.slice(0, 3)) {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -340,10 +354,10 @@ function Sell() {
     // Timer never starts on go-live — only starts when seller hits "Start Auction" inside the live page
     const ends_at: string | null = null;
 
-    // Optional: provision OBS / Cloudflare Stream input
+    // Optional: provision OBS / Cloudflare Stream input (skip when scheduling)
     let cf: { cf_live_input_id?: string; cf_rtmps_url?: string; cf_stream_key?: string } = {};
     let cfPublic: { cf_playback_hls?: string; cf_whip_url?: string } = {};
-    if (useObs || useCompositor) {
+    if (!isScheduled && (useObs || useCompositor)) {
       const { data, error } = await supabase.functions.invoke("create-stream-input", {
         body: { meta_name: streamTitle },
       });
@@ -380,9 +394,10 @@ function Sell() {
         current_bid: Number(startingBid) || 1,
         current_item: streamTitle,
         min_bid_increment: Number(minIncrement) || 1,
-        status: "live",
-        is_active: true,
-        started_at: new Date().toISOString(),
+        status: isScheduled ? "scheduled" : "live",
+        is_active: !isScheduled,
+        started_at: isScheduled ? null : new Date().toISOString(),
+        scheduled_for: scheduledIso,
         ends_at,
         quick_start_enabled: quickStart,
         default_timer_sec: Number(defaultTimerSec) || 30,
@@ -400,7 +415,7 @@ function Sell() {
             }
           : {}),
         ...cfPublic,
-      })
+      } as any)
       .select()
       .single();
     if (error) {
@@ -415,7 +430,7 @@ function Sell() {
         cf_stream_key: cf.cf_stream_key ?? null,
       });
     }
-    if (useCompositor && selectedCameraIds.length > 0) {
+    if (!isScheduled && useCompositor && selectedCameraIds.length > 0) {
       if (cameraHandoffStreams.length > 0) stashStudioCameraStreams(data.id, cameraHandoffStreams);
       window.sessionStorage.setItem(
         `studio:${data.id}:cameraDeviceIds`,
@@ -426,7 +441,14 @@ function Sell() {
     if (prebidVaultPicks.length > 0) {
       const rows = prebidVaultPicks.map((v, i) => {
         const val = Number(v.estimated_value || 0);
-        const start = val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1;
+        const startFromOverride = Number(v.starting_bid);
+        const start = Number.isFinite(startFromOverride) && startFromOverride > 0
+          ? startFromOverride
+          : (val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1);
+        const bnOverride = Number(v.buy_now_price);
+        const buyNow = Number.isFinite(bnOverride) && bnOverride > 0
+          ? bnOverride
+          : (val > 0 ? val : null);
         const title = [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || v.name;
         return {
           stream_id: data.id,
@@ -438,11 +460,19 @@ function Sell() {
           sale_type: "prebid",
           starting_bid: start,
           duration_seconds: Number(defaultTimerSec) || 30,
-          snipe_price: val > 0 ? val : null,
+          snipe_price: buyNow,
+          buy_now_price: buyNow,
+          voice_trigger: v.voice_trigger?.trim() || null,
+          vault_card_id: v.id,
         };
       });
       const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
       if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+    }
+    if (isScheduled) {
+      toast.success(`Scheduled for ${new Date(scheduledIso!).toLocaleString()}`);
+      nav({ to: "/my-listings" });
+      return;
     }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
@@ -682,6 +712,8 @@ function Sell() {
               hostId={user?.id || ""}
               prebidVaultPicks={prebidVaultPicks}
               setPrebidVaultPicks={setPrebidVaultPicks}
+              scheduledFor={scheduledFor}
+              setScheduledFor={setScheduledFor}
               startLive={async () => {
                 await startLive();
               }}
@@ -1001,6 +1033,8 @@ type LiveWizardProps = {
   hostId: string;
   prebidVaultPicks: VaultPick[];
   setPrebidVaultPicks: (v: VaultPick[] | ((cur: VaultPick[]) => VaultPick[])) => void;
+  scheduledFor: string;
+  setScheduledFor: (v: string) => void;
   startLive: () => Promise<void>;
 };
 
@@ -1014,6 +1048,7 @@ function LiveWizard(p: LiveWizardProps) {
   const [vaultCards, setVaultCards] = useState<VaultPick[]>([]);
   const [vaultLoading, setVaultLoading] = useState(false);
   const [vaultLoaded, setVaultLoaded] = useState(false);
+  const [vaultSearch, setVaultSearch] = useState("");
 
   useEffect(() => {
     if (p.step !== 4 || vaultLoaded || !p.hostId) return;
@@ -1024,7 +1059,7 @@ function LiveWizard(p: LiveWizardProps) {
       .eq("user_id", p.hostId)
       .eq("status", "available")
       .order("created_at", { ascending: false })
-      .limit(200)
+      .limit(500)
       .then(({ data }) => {
         setVaultCards(((data as any[]) || []) as VaultPick[]);
         setVaultLoaded(true);
@@ -1035,9 +1070,21 @@ function LiveWizard(p: LiveWizardProps) {
   const pickedIds = new Set(p.prebidVaultPicks.map((v) => v.id));
   function toggleVaultPick(card: VaultPick) {
     p.setPrebidVaultPicks((cur) =>
-      cur.some((c) => c.id === card.id) ? cur.filter((c) => c.id !== card.id) : [...cur, card],
+      cur.some((c) => c.id === card.id)
+        ? cur.filter((c) => c.id !== card.id)
+        : [...cur, { ...card, starting_bid: "", buy_now_price: "", voice_trigger: "" }],
     );
   }
+  function updatePick(id: string, patch: Partial<VaultPick>) {
+    p.setPrebidVaultPicks((cur) => cur.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  }
+  const filteredVault = (() => {
+    const q = vaultSearch.trim().toLowerCase();
+    if (!q) return vaultCards;
+    return vaultCards.filter((v) =>
+      [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" ").toLowerCase().includes(q),
+    );
+  })();
   const total = stepLabels.length;
   const canNext = (() => {
     if (p.step === 1) return p.streamTitle.trim().length >= 3;
@@ -1397,6 +1444,14 @@ function LiveWizard(p: LiveWizardProps) {
               </span>
             </div>
 
+            <input
+              type="text"
+              value={vaultSearch}
+              onChange={(e) => setVaultSearch(e.target.value)}
+              placeholder="Search your vault by name, set, or number…"
+              className="mb-2 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-cyan-500/40"
+            />
+
             {!vaultLoading && vaultCards.length === 0 && (
               <p className="rounded-md bg-muted/40 p-3 text-center text-[11px] text-muted-foreground">
                 No vaulted cards yet. Add cards in your{" "}
@@ -1408,40 +1463,154 @@ function LiveWizard(p: LiveWizardProps) {
             )}
 
             {vaultCards.length > 0 && (
-              <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
-                {vaultCards.map((v) => {
+              <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+                {filteredVault.length === 0 && (
+                  <p className="rounded-md bg-muted/40 p-2 text-center text-[11px] text-muted-foreground">
+                    No matches for &ldquo;{vaultSearch}&rdquo;
+                  </p>
+                )}
+                {filteredVault.map((v) => {
                   const picked = pickedIds.has(v.id);
                   return (
                     <button
                       key={v.id}
                       type="button"
                       onClick={() => toggleVaultPick(v)}
-                      className={`relative aspect-[3/4] overflow-hidden rounded-lg ring-2 transition ${
-                        picked ? "ring-cyan-500" : "ring-border hover:ring-primary/50"
+                      className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition ${
+                        picked
+                          ? "border-cyan-500 bg-cyan-500/5"
+                          : "border-border hover:border-primary/50"
                       }`}
-                      title={v.name}
                     >
-                      {v.image_url ? (
-                        <img src={v.image_url} alt={v.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted p-1 text-center text-[9px] font-bold text-muted-foreground">
-                          {v.name}
-                        </div>
-                      )}
-                      {picked && (
-                        <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-cyan-500 text-white">
-                          <Check className="h-3 w-3" />
-                        </span>
-                      )}
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 py-0.5 text-[9px] font-bold text-white">
-                        {v.estimated_value ? `$${Number(v.estimated_value).toFixed(0)}` : v.name}
+                      <span
+                        className={`grid h-5 w-5 shrink-0 place-items-center rounded border-2 ${
+                          picked ? "border-cyan-500 bg-cyan-500 text-white" : "border-border"
+                        }`}
+                      >
+                        {picked && <Check className="h-3 w-3" />}
                       </span>
+                      {v.image_url ? (
+                        <img
+                          src={v.image_url}
+                          alt={v.name}
+                          className="h-10 w-8 shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-8 shrink-0 rounded bg-muted" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold">{v.name}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">
+                          {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                      {v.estimated_value ? (
+                        <span className="shrink-0 text-[11px] font-bold text-emerald-600">
+                          ${Number(v.estimated_value).toFixed(0)}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {p.prebidVaultPicks.length > 0 && (
+            <div className="space-y-2 rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300">
+                Pre-B queue · {p.prebidVaultPicks.length} card{p.prebidVaultPicks.length === 1 ? "" : "s"}
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Set a starting bid or Buy Now price per card. Add a voice trigger phrase to
+                auto-pull the card on stream when you say it.
+              </p>
+              <div className="space-y-2">
+                {p.prebidVaultPicks.map((v) => {
+                  const suggestedStart =
+                    v.estimated_value && v.estimated_value > 0
+                      ? Math.max(1, Math.floor(Number(v.estimated_value) * 0.5))
+                      : 1;
+                  const suggestedBN = v.estimated_value ? Number(v.estimated_value) : 0;
+                  return (
+                    <div
+                      key={v.id}
+                      className="rounded-lg border border-border bg-background p-2"
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        {v.image_url ? (
+                          <img
+                            src={v.image_url}
+                            alt={v.name}
+                            className="h-10 w-8 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-8 rounded bg-muted" />
+                        )}
+                        <p className="flex-1 truncate text-xs font-semibold">{v.name}</p>
+                        <button
+                          type="button"
+                          onClick={() => toggleVaultPick(v)}
+                          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Remove from Pre-B"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block">
+                          <span className="mb-0.5 block text-[10px] font-bold text-muted-foreground">
+                            Starting bid ($)
+                          </span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="1"
+                            value={v.starting_bid ?? ""}
+                            onChange={(e) =>
+                              updatePick(v.id, { starting_bid: e.target.value })
+                            }
+                            placeholder={String(suggestedStart)}
+                            className="w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-0.5 block text-[10px] font-bold text-muted-foreground">
+                            Buy Now ($)
+                          </span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="1"
+                            value={v.buy_now_price ?? ""}
+                            onChange={(e) =>
+                              updatePick(v.id, { buy_now_price: e.target.value })
+                            }
+                            placeholder={suggestedBN > 0 ? String(suggestedBN) : "—"}
+                            className="w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
+                          />
+                        </label>
+                      </div>
+                      <label className="mt-2 block">
+                        <span className="mb-0.5 block text-[10px] font-bold text-muted-foreground">
+                          🎙️ Voice trigger (optional)
+                        </span>
+                        <input
+                          type="text"
+                          value={v.voice_trigger ?? ""}
+                          onChange={(e) =>
+                            updatePick(v.id, { voice_trigger: e.target.value })
+                          }
+                          placeholder={`e.g. "pull ${v.name.split(" ").slice(0, 2).join(" ")}"`}
+                          className="w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-xl bg-muted/40 p-3 text-[12px] text-muted-foreground">
             ⚡ <b>Scan-to-start</b> is on by default. While live, scan a card to instantly run an
@@ -1606,12 +1775,75 @@ function LiveWizard(p: LiveWizardProps) {
               <span className="font-semibold">${p.startingBid}</span>
             </li>
           </ul>
+
+          {/* Schedule vs Go Live now */}
+          <div className="space-y-2 rounded-xl border border-border bg-background/60 p-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => p.setScheduledFor("")}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${
+                  !p.scheduledFor
+                    ? "bg-live text-live-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                🔴 Go live now
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!p.scheduledFor) {
+                    const d = new Date(Date.now() + 60 * 60 * 1000);
+                    d.setSeconds(0, 0);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    p.setScheduledFor(
+                      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+                    );
+                  }
+                }}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${
+                  p.scheduledFor
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                📅 Schedule
+              </button>
+            </div>
+            {p.scheduledFor && (
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold text-muted-foreground">
+                  Date &amp; time
+                </span>
+                <input
+                  type="datetime-local"
+                  value={p.scheduledFor}
+                  min={(() => {
+                    const d = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  })()}
+                  onChange={(e) => p.setScheduledFor(e.target.value)}
+                  className="w-full rounded-md bg-input px-3 py-2 text-sm outline-none"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Followers will get notified and viewers can pre-bid before you go live.
+                </p>
+              </label>
+            )}
+          </div>
+
           <button
             data-tour="start-stream"
             onClick={() => p.startLive()}
-            className="min-h-14 w-full rounded-2xl bg-live text-base font-extrabold text-live-foreground"
+            className={`min-h-14 w-full rounded-2xl text-base font-extrabold ${
+              p.scheduledFor
+                ? "bg-primary text-primary-foreground"
+                : "bg-live text-live-foreground"
+            }`}
           >
-            🔴 Start Live Stream
+            {p.scheduledFor ? "📅 Schedule Live" : "🔴 Start Live Stream"}
           </button>
         </section>
       )}
