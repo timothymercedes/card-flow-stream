@@ -58,6 +58,7 @@ import { Route as AdminFinanceRouteImport } from './routes/admin.finance'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
 import { Route as ApiPublicHooksStripeReconciliationRouteImport } from './routes/api/public/hooks/stripe-reconciliation'
@@ -312,6 +313,12 @@ const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   path: '/api/public/beta-verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe/webhook',
   path: '/api/public/stripe/webhook',
@@ -404,6 +411,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -461,6 +469,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -519,6 +528,7 @@ export interface FileRoutesById {
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -578,6 +588,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -635,6 +646,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -692,6 +704,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
     | '/api/public/stripe/webhook'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -747,6 +760,7 @@ export interface RootRouteChildren {
   ApiPublicHooksStripeReconciliationRoute: typeof ApiPublicHooksStripeReconciliationRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1094,6 +1108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBetaVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe/webhook': {
       id: '/api/public/stripe/webhook'
       path: '/api/public/stripe/webhook'
@@ -1217,7 +1238,17 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksStripeReconciliationRoute,
   ApiPublicHooksSyncTcgcsvRoute: ApiPublicHooksSyncTcgcsvRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
