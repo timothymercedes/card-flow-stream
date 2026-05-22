@@ -104,6 +104,22 @@ function SellerHub() {
   const [labelUrls, setLabelUrls] = useState<Record<string, string>>({});
   const [preset, setPreset] = useState<Record<string, ShippingPresetKey>>({});
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
+  const [refunding, setRefunding] = useState<string | null>(null);
+  const refundOrderServer = useServerFn(refundOrderAction);
+
+  async function refundBuyer(o: any) {
+    if (!window.confirm(`Refund $${Number((o.amount || 0) + (o.shipping_amount || 0)).toFixed(2)} to ${o.ship_name || "the buyer"}? This pulls funds back from your payout and cannot be undone.`)) return;
+    setRefunding(o.id);
+    try {
+      await refundOrderServer({ data: { orderId: o.id, reason: "Seller-issued refund" } });
+      toast.success("Refund issued — buyer notified");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Refund failed");
+    } finally {
+      setRefunding(null);
+    }
+  }
   const [recommended, setRecommended] = useState<Record<string, string | null>>({});
   const [scanCode, setScanCode] = useState<Record<string, string>>({});
 
