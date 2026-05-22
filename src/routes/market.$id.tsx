@@ -44,6 +44,7 @@ function ListingDetail() {
   const [offers, setOffers] = useState<any[]>([]);
   const [bidAmt, setBidAmt] = useState("");
   const [offerAmt, setOfferAmt] = useState("");
+  const [offerExpiresInHours, setOfferExpiresInHours] = useState<number>(24);
   const [now, setNow] = useState(Date.now());
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   const [qty, setQty] = useState(1);
