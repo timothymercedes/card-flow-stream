@@ -76,6 +76,7 @@ import { Route as ApiPublicHooksShippingRemindersRouteImport } from './routes/ap
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 import { Route as ApiPublicHooksFraudSweepRouteImport } from './routes/api/public/hooks/fraud-sweep'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
+import { Route as ApiPublicHooksExpireOffersRouteImport } from './routes/api/public/hooks/expire-offers'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 
 const VaultRoute = VaultRouteImport.update({
@@ -426,6 +427,12 @@ const ApiPublicHooksFinancialReconciliationRoute =
     path: '/api/public/hooks/financial-reconciliation',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksExpireOffersRoute =
+  ApiPublicHooksExpireOffersRouteImport.update({
+    id: '/api/public/hooks/expire-offers',
+    path: '/api/public/hooks/expire-offers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDailyBuyerDigestRoute =
   ApiPublicHooksDailyBuyerDigestRouteImport.update({
     id: '/api/public/hooks/daily-buyer-digest',
@@ -490,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
+  '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
@@ -560,6 +568,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
+  '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
@@ -631,6 +640,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
+  '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
@@ -703,6 +713,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
+    | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
@@ -773,6 +784,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
+    | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
@@ -843,6 +855,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
+    | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
@@ -910,6 +923,7 @@ export interface RootRouteChildren {
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
+  ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
   ApiPublicHooksFraudSweepRoute: typeof ApiPublicHooksFraudSweepRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
@@ -1395,6 +1409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFinancialReconciliationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/expire-offers': {
+      id: '/api/public/hooks/expire-offers'
+      path: '/api/public/hooks/expire-offers'
+      fullPath: '/api/public/hooks/expire-offers'
+      preLoaderRoute: typeof ApiPublicHooksExpireOffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/daily-buyer-digest': {
       id: '/api/public/hooks/daily-buyer-digest'
       path: '/api/public/hooks/daily-buyer-digest'
@@ -1483,6 +1504,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
+  ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
   ApiPublicHooksFinancialReconciliationRoute:
     ApiPublicHooksFinancialReconciliationRoute,
   ApiPublicHooksFraudSweepRoute: ApiPublicHooksFraudSweepRoute,
