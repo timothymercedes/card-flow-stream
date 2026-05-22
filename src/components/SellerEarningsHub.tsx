@@ -467,7 +467,60 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         </div>
       )}
 
-      {/* PAYOUT HISTORY */}
+      {/* ARCHIVE — cancelled / refunded / awaiting-payment. Kept permanently for record. */}
+      {tab === "archive" && (
+        <div className="space-y-1.5">
+          <p className="px-1 text-[11px] text-muted-foreground">
+            Cancelled, refunded, and awaiting-payment orders. Kept forever for your records and excluded from Gross / Net / Fees totals above.
+          </p>
+          {archivedOrders.length === 0 && <p className="text-xs text-muted-foreground">No archived orders.</p>}
+          {archivedOrders.map((o) => {
+            const tag = o.status === "cancelled" || o.payment_status === "cancelled" ? "Cancelled"
+              : o.payment_status === "refunded" ? "Refunded"
+              : "Awaiting payment";
+            const tagColor = tag === "Refunded" ? "bg-amber-500/15 text-amber-300"
+              : tag === "Cancelled" ? "bg-destructive/15 text-destructive"
+              : "bg-muted text-muted-foreground";
+            const gross = Number(o.amount || 0);
+            return (
+              <div key={o.id} className="rounded-xl bg-card p-3 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">{o.title}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {new Date(o.created_at).toLocaleString()}
+                      {o.refunded_at ? ` · refunded ${new Date(o.refunded_at).toLocaleDateString()}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${tagColor}`}>{tag}</span>
+                    <p className="mt-1 text-[11px] font-bold">{fmt(gross)}</p>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-1 border-t border-border pt-2 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground">Buyer</p>
+                    <p className="font-bold">@{buyerNames[o.buyer_id] ?? "buyer"}</p>
+                    <p className="text-[11px]">{o.ship_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground">Ship to</p>
+                    <p className="text-[11px] leading-snug">
+                      {o.ship_address || "—"}
+                      {o.ship_address ? <br /> : null}
+                      {[o.ship_city, o.ship_state, o.ship_zip].filter(Boolean).join(", ")}
+                      {o.ship_country ? ` · ${o.ship_country}` : ""}
+                    </p>
+                  </div>
+                </div>
+                {Number(o.refunded_amount || 0) > 0 && (
+                  <p className="mt-1 text-[11px] text-amber-300">Refunded {fmt(Number(o.refunded_amount))}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {tab === "history" && (
         <div className="space-y-1.5">
           {recoveries.length === 0 && <p className="text-xs text-muted-foreground">No automatic deductions yet.</p>}
