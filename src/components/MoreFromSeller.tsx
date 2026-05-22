@@ -67,7 +67,7 @@ export function MoreFromSeller({
     let cancelled = false;
     (async () => {
       const nowIso = new Date().toISOString();
-      const tasks: Promise<any>[] = [];
+      const tasks: any[] = [];
 
       if (sellerId) {
         tasks.push(
