@@ -101,24 +101,88 @@ function KpiDrillModal({
   buyerMap: Record<string, { u: string; n: string }>;
 }) {
   const COMM = 0.05;
-  const list = open == null ? [] : orders.filter((o) => {
+  const [q, setQ] = useState("");
+  const [month, setMonth] = useState<string>("all"); // "all" or "YYYY-MM"
+
+  useEffect(() => { if (open) { setQ(""); setMonth("all"); } }, [open]);
+
+  const base = open == null ? [] : orders.filter((o) => {
     if (open === "refund") return o.payment_status === "refunded";
     if (open === "cancelled") return o.status === "cancelled";
     if (open === "pending") return o.payment_status === "paid" && o.status !== "delivered" && o.status !== "cancelled";
     // gross/fees/net: all non-cancelled, non-refunded charged orders
     return o.status !== "cancelled" && o.payment_status !== "refunded";
   });
+
+  // Month options derived from this category's full history.
+  const months = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of base) {
+      if (!o.created_at) continue;
+      const d = new Date(o.created_at);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(set).sort().reverse();
+  }, [base]);
+
+  const list = base.filter((o) => {
+    if (month !== "all") {
+      const d = o.created_at ? new Date(o.created_at) : null;
+      const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : "";
+      if (key !== month) return false;
+    }
+    if (q.trim()) {
+      const needle = q.trim().toLowerCase();
+      const buyer = buyerMap[o.buyer_id];
+      const hay = [
+        o.title, o.order_number, o.id, o.tracking_number, o.ship_name,
+        buyer?.u, buyer?.n,
+      ].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(needle)) return false;
+    }
+    return true;
+  });
+
   const isCompleted = (o: any) => o.status === "delivered";
+
+  const fmtMonth = (m: string) => {
+    const [y, mo] = m.split("-");
+    return new Date(Number(y), Number(mo) - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
+  };
+
   return (
     <Dialog open={open != null} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{open ? KPI_TITLES[open] : ""}</DialogTitle>
+          <p className="text-[11px] text-muted-foreground">
+            Tile totals reset every 7 days · full history below
+          </p>
         </DialogHeader>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by name, order #, buyer…"
+            className="flex-1 rounded-md bg-muted/40 px-3 py-2 text-xs outline-none ring-1 ring-border focus:ring-primary"
+          />
+          <select
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="rounded-md bg-muted/40 px-3 py-2 text-xs outline-none ring-1 ring-border focus:ring-primary"
+          >
+            <option value="all">All months</option>
+            {months.map((m) => (
+              <option key={m} value={m}>{fmtMonth(m)}</option>
+            ))}
+          </select>
+        </div>
+
         {list.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No orders in this category.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">No orders match.</p>
         ) : (
-          <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+          <ul className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
             {list.map((o) => {
               const amt = Number(o.amount || 0);
               const fee = amt * COMM;
