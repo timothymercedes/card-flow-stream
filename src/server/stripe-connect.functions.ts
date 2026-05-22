@@ -225,11 +225,13 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // USA, apply the 4% international processing fee.
     const { data: buyerProfile } = await supabaseAdmin
       .from("profiles")
-      .select("address_country")
+      .select("address_country,address_state")
       .eq("id", userId)
       .maybeSingle();
     const buyerCountry = ((buyerProfile as any)?.address_country || "US")
       .toString().toUpperCase().trim();
+    const buyerState = ((buyerProfile as any)?.address_state || "")
+      .toString().toUpperCase().trim() || null;
     const sellerCountry = ((sellerAcct as any).country || "US")
       .toString().toUpperCase().trim();
     const isInternational = buyerCountry !== sellerCountry &&
