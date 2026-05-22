@@ -601,7 +601,11 @@ function SellerHub() {
           </div>
         </div>
 
-        {/* Top KPIs — clickable, drilldown opens modal */}
+        {/* Top KPIs — rolling 7-day totals; click any tile for full history */}
+        <div className="mb-1 flex items-center justify-between px-1">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Last 7 days</p>
+          <p className="text-[10px] text-muted-foreground">Tap any tile for full history</p>
+        </div>
         <div className="mb-4 grid grid-cols-3 gap-2 rounded-xl bg-card p-3 sm:grid-cols-6">
           <KpiCard label="Gross" value={`$${totals.gross.toFixed(0)}`} onClick={() => setKpiOpen("gross")} />
           <KpiCard label="Fees" value={`-$${totals.commission.toFixed(0)}`} tone="destructive" onClick={() => setKpiOpen("fees")} />
