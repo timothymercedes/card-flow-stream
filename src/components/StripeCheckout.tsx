@@ -3,6 +3,8 @@ import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useServerFn } from "@tanstack/react-start";
 import { createMarketplacePaymentIntent, getStripePublishableKey } from "@/server/stripe-connect.functions";
+import { recordPolicyAcceptance } from "@/lib/policy.functions";
+import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,6 +86,16 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
     }
     if (result.paymentIntent?.status === "succeeded") {
       toast.success("Payment successful");
+      try {
+        const orderIds = (props as any).orderIds as string[] | undefined;
+        const orderId = (props as any).orderId as string | undefined;
+        const targets = orderIds && orderIds.length ? orderIds : orderId ? [orderId] : [undefined];
+        for (const oid of targets) {
+          recordPolicyAcceptance({
+            data: { context: "checkout", orderId: oid, metadata: { payment_intent: result.paymentIntent.id } },
+          }).catch(() => {});
+        }
+      } catch {}
       onSuccess?.(result.paymentIntent.id);
     }
     setSubmitting(false);
