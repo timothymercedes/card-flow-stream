@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { AppShell } from "@/components/AppShell";
-import { Pencil, Trash2, History, X, Check, Sparkles, Plus } from "lucide-react";
+import { Pencil, Trash2, History, X, Check, Sparkles, Plus, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { StoryRail } from "@/components/StoryRail";
 import { SellerBadge } from "@/components/SellerBadge";
@@ -24,11 +24,12 @@ const REACTIONS = [
   { key: "money", emoji: "💯", label: "100" },
 ] as const;
 
-type Post = { id: string; user_id: string; username: string; caption: string; image_url: string | null; created_at: string };
+type Post = { id: string; user_id: string; username: string; caption: string; image_url: string | null; created_at: string; allow_comments: boolean };
 type Reaction = { post_id: string; user_id: string; reaction: string };
 type Edit = { id: string; post_id: string; prev_caption: string | null; prev_image_url: string | null; action: string; edited_at: string };
 type HypePost = { id: string; title: string; body: string; category: string | null; image_url: string | null; created_at: string; source: string };
 type ReactorProfile = { id: string; username: string | null; avatar_url: string | null };
+type Comment = { id: string; post_id: string; user_id: string; username: string; content: string; created_at: string };
 
 function Feed() {
   const { user, profile } = useAuth();
@@ -37,9 +38,11 @@ function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [hype, setHype] = useState<HypePost[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [caption, setCaption] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [editAllowComments, setEditAllowComments] = useState(true);
   const [historyFor, setHistoryFor] = useState<Post | null>(null);
   const [history, setHistory] = useState<Edit[]>([]);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
@@ -48,22 +51,29 @@ function Feed() {
   const [generating, setGenerating] = useState(false);
   const [reactorsFor, setReactorsFor] = useState<string | null>(null);
   const [reactorProfiles, setReactorProfiles] = useState<Record<string, ReactorProfile>>({});
+  const [newAllowComments, setNewAllowComments] = useState(true);
+  const [expandedComments, setExpandedComments] = useState<string | null>(null);
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [commentProfiles, setCommentProfiles] = useState<Record<string, ReactorProfile>>({});
 
   async function load() {
-    const [{ data: ps }, { data: rs }, { data: hs }] = await Promise.all([
+    const [{ data: ps }, { data: rs }, { data: hs }, { data: cs }] = await Promise.all([
       supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("post_reactions").select("post_id,user_id,reaction"),
       supabase.from("ai_hype_posts").select("*").order("created_at", { ascending: false }).limit(20),
+      supabase.from("post_comments").select("*").order("created_at", { ascending: true }),
     ]);
     setPosts((ps as Post[]) || []);
     setReactions((rs as Reaction[]) || []);
     setHype((hs as HypePost[]) || []);
+    setComments((cs as Comment[]) || []);
   }
 
   useEffect(() => { load(); }, []);
   useRealtimeChannel({ name: "feed-all" }, (ch) => ch
     .on("postgres_changes" as any, { event: "*", schema: "public", table: "post_reactions" } as any, () => load())
     .on("postgres_changes" as any, { event: "*", schema: "public", table: "posts" } as any, () => load())
+    .on("postgres_changes" as any, { event: "*", schema: "public", table: "post_comments" } as any, () => load())
     .on("postgres_changes" as any, { event: "*", schema: "public", table: "ai_hype_posts" } as any, () => load()));
 
   useEffect(() => {
@@ -76,8 +86,9 @@ function Feed() {
     if (!requireAuth("post to the feed")) return;
     if (!profile) return;
     if (!caption.trim()) return;
-    await supabase.from("posts").insert({ user_id: profile.id, username: profile.username, caption });
+    await supabase.from("posts").insert({ user_id: profile.id, username: profile.username, caption, allow_comments: newAllowComments });
     setCaption("");
+    setNewAllowComments(true);
     load();
     toast.success("Posted!");
   }
@@ -125,6 +136,44 @@ function Feed() {
     }
   }
 
+  async function addComment(postId: string) {
+    if (!requireAuth("comment")) return;
+    if (!user || !profile) return;
+    const text = commentInputs[postId]?.trim();
+    if (!text) return;
+    setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
+    await supabase.from("post_comments").insert({
+      post_id: postId, user_id: user.id, username: profile.username, content: text,
+    });
+    // notify poster
+    const post = posts.find((p) => p.id === postId);
+    if (post && post.user_id !== user.id) {
+      await supabase.from("notifications").insert({
+        user_id: post.user_id, type: "comment",
+        body: `@${profile.username} commented on your post`,
+        link: "/feed",
+      });
+    }
+    load();
+  }
+
+  async function deleteComment(commentId: string) {
+    if (!user) return;
+    const c = comments.find((x) => x.id === commentId);
+    if (!c || c.user_id !== user.id) return;
+    if (!confirm("Delete this comment?")) return;
+    await supabase.from("post_comments").delete().eq("id", commentId);
+    load();
+  }
+
+  async function toggleAllowComments(p: Post) {
+    if (!user || user.id !== p.user_id) return;
+    const next = !p.allow_comments;
+    await supabase.from("posts").update({ allow_comments: next }).eq("id", p.id);
+    setPosts((prev) => prev.map((x) => x.id === p.id ? { ...x, allow_comments: next } : x));
+    toast.success(next ? "Comments enabled" : "Comments disabled");
+  }
+
   async function saveEdit(p: Post) {
     if (!user || user.id !== p.user_id) return;
     if (!editText.trim()) return toast.error("Caption required");
@@ -132,7 +181,7 @@ function Feed() {
       post_id: p.id, user_id: user.id,
       prev_caption: p.caption, prev_image_url: p.image_url, action: "edit",
     });
-    await supabase.from("posts").update({ caption: editText }).eq("id", p.id);
+    await supabase.from("posts").update({ caption: editText, allow_comments: editAllowComments }).eq("id", p.id);
     setEditingId(null);
     toast.success("Updated");
     load();
@@ -186,6 +235,10 @@ function Feed() {
     return { map, mine, total };
   }
 
+  function postComments(postId: string) {
+    return comments.filter((c) => c.post_id === postId);
+  }
+
   // Personalized merge: interleave posts + AI hype, filter by user interests if any
   const interests = profile?.interests as string[] | undefined;
   const merged = useMemo(() => {
@@ -233,7 +286,18 @@ function Feed() {
 
         <div className="mb-4 rounded-xl bg-card p-3">
           <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={user ? "Share an update..." : "Sign in to post"} disabled={!user} rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm outline-none disabled:opacity-50" />
-          <button onClick={post} disabled={!user || !caption.trim()} className="mt-2 w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Post</button>
+          <div className="mt-2 flex items-center justify-between">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={newAllowComments}
+                onChange={(e) => setNewAllowComments(e.target.checked)}
+                className="h-4 w-4 rounded accent-primary"
+              />
+              Allow comments
+            </label>
+            <button onClick={post} disabled={!user || !caption.trim()} className="rounded-lg bg-primary px-6 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Post</button>
+          </div>
         </div>
 
         {merged.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Nothing yet</p>}
@@ -264,6 +328,8 @@ function Feed() {
             const mine = user?.id === p.user_id;
             const isEditing = editingId === p.id;
             const topReactions = Object.entries(c.map).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            const postComms = postComments(p.id);
+            const isExpanded = expandedComments === p.id;
             return (
               <div key={p.id} className="relative rounded-xl bg-card p-3">
                   <div className="flex items-center justify-between">
@@ -272,7 +338,7 @@ function Feed() {
                     <button onClick={() => openHistory(p)} className="rounded-full p-1 text-muted-foreground hover:bg-muted" title="History"><History className="h-3.5 w-3.5" /></button>
                     {mine && !isEditing && (
                       <>
-                        <button onClick={() => { setEditingId(p.id); setEditText(p.caption); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => { setEditingId(p.id); setEditText(p.caption); setEditAllowComments(p.allow_comments); }} className="rounded-full p-1 text-muted-foreground hover:bg-muted"><Pencil className="h-3.5 w-3.5" /></button>
                         <button onClick={() => remove(p)} className="rounded-full p-1 text-muted-foreground hover:bg-muted"><Trash2 className="h-3.5 w-3.5" /></button>
                       </>
                     )}
@@ -281,6 +347,15 @@ function Feed() {
                 {isEditing ? (
                   <div className="mt-1">
                     <textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={2} className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+                    <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={editAllowComments}
+                        onChange={(e) => setEditAllowComments(e.target.checked)}
+                        className="h-4 w-4 rounded accent-primary"
+                      />
+                      Allow comments
+                    </label>
                     <div className="mt-2 flex gap-2">
                       <button onClick={() => saveEdit(p)} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-1.5 text-xs font-bold text-primary-foreground"><Check className="h-3 w-3" /> Save</button>
                       <button onClick={() => setEditingId(null)} className="rounded-lg bg-muted px-3 py-1.5 text-xs"><X className="h-3 w-3" /></button>
@@ -314,6 +389,69 @@ function Feed() {
                     </button>
                   </div>
                 </div>
+
+                {/* Comments toggle + input */}
+                <div className="mt-2 flex items-center gap-2 border-t border-border/40 pt-2">
+                  <button
+                    onClick={() => setExpandedComments(isExpanded ? null : p.id)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    {postComms.length > 0 ? `${postComms.length} comment${postComms.length > 1 ? "s" : ""}` : "Comments"}
+                  </button>
+                  {mine && (
+                    <button
+                      onClick={() => toggleAllowComments(p)}
+                      className={`ml-auto text-[10px] font-semibold ${p.allow_comments ? "text-green-500" : "text-muted-foreground"}`}
+                      title={p.allow_comments ? "Comments enabled — click to disable" : "Comments disabled — click to enable"}
+                    >
+                      {p.allow_comments ? "Comments on" : "Comments off"}
+                    </button>
+                  )}
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-2 space-y-2">
+                    {postComms.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No comments yet</p>
+                    )}
+                    {postComms.map((comm) => (
+                      <div key={comm.id} className="flex items-start gap-2 rounded-lg bg-muted/30 p-2">
+                        <div className="mt-0.5 h-6 w-6 flex-shrink-0 rounded-full bg-muted" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold">@{comm.username}</span>
+                            {user?.id === comm.user_id && (
+                              <button onClick={() => deleteComment(comm.id)} className="text-[10px] text-muted-foreground hover:text-destructive">Delete</button>
+                            )}
+                          </div>
+                          <p className="text-xs text-foreground">{comm.content}</p>
+                          <p className="text-[10px] text-muted-foreground">{new Date(comm.created_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {p.allow_comments ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={commentInputs[p.id] || ""}
+                          onChange={(e) => setCommentInputs((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === "Enter") addComment(p.id); }}
+                          placeholder="Write a comment..."
+                          className="min-w-0 flex-1 rounded-full bg-input px-3 py-1.5 text-xs outline-none"
+                        />
+                        <button
+                          onClick={() => addComment(p.id)}
+                          disabled={!commentInputs[p.id]?.trim()}
+                          className="flex-shrink-0 rounded-full bg-primary p-1.5 text-primary-foreground disabled:opacity-50"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Comments are turned off for this post.</p>
+                    )}
+                  </div>
+                )}
 
                 {pickerFor === p.id && (
                   <>
