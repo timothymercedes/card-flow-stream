@@ -113,6 +113,18 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<"summary" | "orders" | "archive" | "history">("summary");
+  const [isStaff, setIsStaff] = useState(false);
+  useEffect(() => {
+    if (!user) { setIsStaff(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      if (cancelled) return;
+      const set = new Set(((data ?? []) as any[]).map((r) => r.role));
+      setIsStaff(set.has("admin") || set.has("owner"));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
   const [open, setOpen] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverPayable, setServerPayable] = useState<{
