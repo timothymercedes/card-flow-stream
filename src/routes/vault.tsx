@@ -557,6 +557,7 @@ function Vault() {
     setDescription(""); setEstValue(""); setCondPrices(null); setPrice(""); setCondition("NM");
     setAlternatives([]); setAltIndex(0);
     setEdition("Unlimited"); setFinish("Holo");
+    setSellAfterSave(false);
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
