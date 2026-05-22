@@ -98,6 +98,7 @@ export function LiveSellerDashboard({
   streamId, hostId, startedAt, viewerCount, chatMessages, scheduledShowId, isFlex = false,
   chatAudience, onChangeChatAudience, slowModeSec, onChangeSlowMode,
   currentUserId, currentUsername, currentAvatarUrl,
+  onOpenModPanel, modUnread = 0,
 }: {
   streamId: string;
   hostId: string;
@@ -113,6 +114,8 @@ export function LiveSellerDashboard({
   currentUserId?: string | null;
   currentUsername?: string | null;
   currentAvatarUrl?: string | null;
+  onOpenModPanel?: () => void;
+  modUnread?: number;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -526,11 +529,32 @@ export function LiveSellerDashboard({
               <>
                 {(onChangeChatAudience || onChangeSlowMode) && (
                   <div className="sticky top-0 z-10 mb-1 space-y-1 rounded-md bg-black/60 p-1 ring-1 ring-white/10 backdrop-blur">
+                    {onOpenModPanel && (
+                      <button
+                        type="button"
+                        onClick={onOpenModPanel}
+                        className="relative flex w-full items-center justify-center gap-1.5 rounded-md bg-fuchsia-600/90 px-2 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-white shadow ring-1 ring-fuchsia-300/40 hover:bg-fuchsia-500"
+                        title="Private chat with your mods only"
+                      >
+                        <Shield className="h-3 w-3" />
+                        Private mod chat
+                        {modUnread > 0 && (
+                          <span className="ml-1 rounded-full bg-live px-1.5 py-0.5 text-[9px] font-extrabold text-live-foreground animate-pulse">
+                            {modUnread > 9 ? "9+" : modUnread} new
+                          </span>
+                        )}
+                      </button>
+                    )}
                     {onChangeChatAudience && chatAudience && (
-                      <div className="flex items-center gap-1 text-[9px]">
-                        <span className="font-bold uppercase tracking-wider text-white/50">Audience</span>
+                      <div className="flex flex-wrap items-center gap-1 text-[9px]">
+                        <span className="font-bold uppercase tracking-wider text-white/50" title="Who sees what you type below">Send to</span>
                         {(["public", "mods_only", "host_mods"] as const).map((a) => (
                           <button key={a} type="button" onClick={() => onChangeChatAudience(a)}
+                            title={
+                              a === "public" ? "Everyone in the stream sees it"
+                                : a === "mods_only" ? "Only your mods see it (host hidden)"
+                                : "Only host + mods see it (viewers hidden)"
+                            }
                             className={`rounded-full px-1.5 py-0.5 font-bold uppercase tracking-wider transition ${
                               chatAudience === a
                                 ? a === "public" ? "bg-primary text-primary-foreground"
@@ -542,6 +566,11 @@ export function LiveSellerDashboard({
                           </button>
                         ))}
                       </div>
+                    )}
+                    {chatAudience && chatAudience !== "public" && (
+                      <p className="px-0.5 text-[9px] font-semibold text-fuchsia-300/90">
+                        🔒 Private: viewers cannot see {chatAudience === "host_mods" ? "Host+Mods" : "Mods"} messages.
+                      </p>
                     )}
                     {onChangeSlowMode && (
                       <div className="flex items-center gap-1 text-[9px]">

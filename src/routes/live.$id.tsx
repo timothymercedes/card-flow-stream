@@ -271,6 +271,7 @@ function LiveDetail() {
   const [mods, setMods] = useState<any[]>([]);
   const [modChat, setModChat] = useState<any[]>([]);
   const [showModPanel, setShowModPanel] = useState(false);
+  const [modUnread, setModUnread] = useState(0);
   const [showCollabPanel, setShowCollabPanel] = useState(false);
   const [showViewerList, setShowViewerList] = useState(false);
   const [showQuickMod, setShowQuickMod] = useState(false);
@@ -546,6 +547,13 @@ function LiveDetail() {
     (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
 
   const isSeller = !!user && stream && user.id === stream.seller_id;
+  const isStaffRef = useRef(false);
+  useEffect(() => { isStaffRef.current = isStaff; }, [isStaff]);
+  const showModPanelRef = useRef(false);
+  useEffect(() => {
+    showModPanelRef.current = showModPanel;
+    if (showModPanel) setModUnread(0);
+  }, [showModPanel]);
 
   // Settings form state (seller)
   const [editDesc, setEditDesc] = useState("");
@@ -707,6 +715,19 @@ function LiveDetail() {
             if (msg.body.startsWith("💸")) playSfx("shoutout");
             else if (msg.body.startsWith("🔥")) playSfx("promote");
           }
+          // 🔔 Private audience message (mods_only/host_mods) → ping staff only
+          const audVal = msg?.audience;
+          if (
+            (audVal === "mods_only" || audVal === "host_mods") &&
+            msg.user_id && msg.user_id !== user?.id &&
+            isStaffRef.current
+          ) {
+            setModUnread((n) => n + 1);
+            toast.message(
+              `${audVal === "host_mods" ? "🛡️ Host+Mods" : "🛡️ Mods"} · @${msg.username}`,
+              { description: String(msg.content).slice(0, 120) },
+            );
+          }
         },
       )
       .on(
@@ -810,7 +831,21 @@ function LiveDetail() {
           table: "stream_mod_messages",
           filter: `stream_id=eq.${id}`,
         },
-        (p) => setModChat((m) => [...m, p.new]),
+        (p) => {
+          const row: any = p.new;
+          setModChat((m) => [...m, row]);
+          // 🔔 Ping staff when a private mod-team message arrives from someone else.
+          // Skip when the panel is already open so it isn't noisy.
+          if (
+            row.user_id && row.user_id !== user?.id &&
+            isStaffRef.current && !showModPanelRef.current
+          ) {
+            setModUnread((n) => n + 1);
+            toast.message(`🛡️ @${row.username} (mod team)`, {
+              description: String(row.content).slice(0, 120),
+            });
+          }
+        },
       )
       .on(
         "postgres_changes",
@@ -2057,10 +2092,11 @@ function LiveDetail() {
       if (m.user_id && myBlockedIds.has(m.user_id)) return false;
       if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
       if (isStaff && hideModsChat && m.user_id && modUserIdSet.has(m.user_id)) return false;
+      // 🔒 Private audience messages — only host & mods see them.
+      const aud = (m as any).audience || "public";
+      if ((aud === "mods_only" || aud === "host_mods") && !isStaff) return false;
       return true;
     });
-    // 🆕 Mobile density: cap the live chat overlay to the last 6 messages so
-    // it stays readable over the video. Desktop keeps the full window.
     if (isMobileViewport && filtered.length > 6) return filtered.slice(-6);
     return filtered;
   }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet, isMobileViewport]);
@@ -4310,16 +4346,20 @@ function LiveDetail() {
           )}
           {isStaff && !hostFocus && !ended && stream.mode !== "show_off" && (
             <button
-              onClick={() => setShowQuickMod(true)}
+              onClick={() => { setShowQuickMod(true); setModUnread(0); }}
               className="flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] font-bold text-primary-foreground shadow ring-1 ring-white/20 backdrop-blur hover:bg-primary"
               aria-label="Open quick mod chat"
             >
               <Shield className="h-3 w-3" /> Mods
-              {modChat.length > 0 && (
-                <span className="rounded-full bg-live px-1 text-[8px] text-live-foreground">
+              {modUnread > 0 ? (
+                <span className="rounded-full bg-live px-1 text-[8px] font-bold text-live-foreground animate-pulse">
+                  {modUnread > 9 ? "9+" : modUnread} new
+                </span>
+              ) : modChat.length > 0 ? (
+                <span className="rounded-full bg-live/70 px-1 text-[8px] text-live-foreground">
                   {modChat.length}
                 </span>
-              )}
+              ) : null}
             </button>
           )}
           {!ended && <TopSupporterBadge streamId={id} />}
@@ -4344,12 +4384,16 @@ function LiveDetail() {
             <button
               onClick={() => setShowModPanel((v) => !v)}
               className="relative rounded-full bg-primary/80 p-2 backdrop-blur"
-              title="Mod panel"
+              title={modUnread > 0 ? `${modUnread} new mod message${modUnread === 1 ? "" : "s"}` : "Mod chat (private)"}
             >
               <Shield className="h-4 w-4" />
-              {modChat.length > 0 && (
+              {modUnread > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-live px-1 text-[9px] font-bold text-white ring-2 ring-background animate-pulse">
+                  {modUnread > 9 ? "9+" : modUnread}
+                </span>
+              ) : modChat.length > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-live" />
-              )}
+              ) : null}
             </button>
           )}
           {!ended && (isSeller || (!isSeller && stream.allow_collab_requests)) && (
@@ -5660,6 +5704,8 @@ function LiveDetail() {
             isFlex={stream.mode === "show_off"}
             chatAudience={chatAudience}
             onChangeChatAudience={setChatAudience}
+            onOpenModPanel={() => setShowModPanel(true)}
+            modUnread={modUnread}
             slowModeSec={Number(editSlowMode) || 0}
             onChangeSlowMode={async (s) => {
               setEditSlowMode(String(s));
