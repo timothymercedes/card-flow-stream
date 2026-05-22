@@ -951,6 +951,7 @@ function LiveDetail() {
   // off-session charge so the buyer never leaves the livestream.
   // On failure, surface FixPaymentModal so they can retry / swap card.
   const [failedOrder, setFailedOrder] = useState<{ id: string; title: string; amount: number; stream_id: string | null } | null>(null);
+  const [fixPaymentOpen, setFixPaymentOpen] = useState(false);
   const chargedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!user || !id) return;
