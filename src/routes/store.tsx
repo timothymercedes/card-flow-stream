@@ -1040,6 +1040,7 @@ function SellerHub() {
           onChanged={load}
         />
       )}
+      <KpiDrillModal open={kpiOpen} onClose={() => setKpiOpen(null)} orders={orders} buyerMap={buyerMap} />
     </AppShell>
   );
 }
