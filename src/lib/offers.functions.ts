@@ -182,7 +182,7 @@ export const createOffer = createServerFn({ method: "POST" })
         auth_amount_cents: amountCents,
         stripe_customer_id: (pm as any).stripe_customer_id,
         stripe_payment_method_id: (pm as any).stripe_payment_method_id,
-        expires_at: new Date(Date.now() + OFFER_TTL_HOURS * 3600 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + (data.expiresInHours ?? OFFER_TTL_HOURS) * 3600 * 1000).toISOString(),
       })
       .select("id, expires_at")
       .single();
