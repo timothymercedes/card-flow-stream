@@ -2057,10 +2057,11 @@ function LiveDetail() {
       if (m.user_id && myBlockedIds.has(m.user_id)) return false;
       if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
       if (isStaff && hideModsChat && m.user_id && modUserIdSet.has(m.user_id)) return false;
+      // 🔒 Private audience messages — only host & mods see them.
+      const aud = (m as any).audience || "public";
+      if ((aud === "mods_only" || aud === "host_mods") && !isStaff) return false;
       return true;
     });
-    // 🆕 Mobile density: cap the live chat overlay to the last 6 messages so
-    // it stays readable over the video. Desktop keeps the full window.
     if (isMobileViewport && filtered.length > 6) return filtered.slice(-6);
     return filtered;
   }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet, isMobileViewport]);
