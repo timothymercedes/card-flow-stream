@@ -208,7 +208,8 @@ export const cancelOffer = createServerFn({ method: "POST" })
     if (!offer) throw new Error("Offer not found");
     const o = offer as any;
     if (o.buyer_id !== userId) throw new Error("Not your offer");
-    if (o.status !== "pending") throw new Error("Offer is no longer cancellable");
+    // Buyer may cancel any time before seller acceptance (pending OR countered)
+    if (o.status !== "pending" && o.status !== "countered") throw new Error("Offer is no longer cancellable");
     if (o.payment_status !== "authorized") throw new Error("Payment is no longer cancellable (already captured or released)");
     if (o.expires_at && new Date(o.expires_at) < new Date()) throw new Error("Offer already expired");
 
