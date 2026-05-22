@@ -28,12 +28,18 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
       .from("order_cancellations")
       .select("*")
       .eq("order_id", order.id)
+      .in("status", ["pending", "escalated"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     setCancellation(data);
   }
-  useEffect(() => { load(); }, [order.id]);
+  useEffect(() => {
+    setCancellation(null);
+    setReason("");
+    setMsg("");
+    load();
+  }, [order.id]);
 
   async function createRequest() {
     if (!user || !reason.trim()) return toast.error("Add a reason");
