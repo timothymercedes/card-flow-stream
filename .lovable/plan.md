@@ -1,111 +1,88 @@
-## Shipping Insurance System
+# Offer System v2 — Binding Commitments
 
-Adds optional, provider-agnostic shipping insurance across checkout, post-purchase, claims, and payouts. Integrates with the shipping/payout protection system already shipped.
+Convert `queue_offers` (currently a casual "message-style" offer) into a financial commitment backed by Stripe pre-auth, with strict cancellation rules, auto-expiration, anti-abuse tracking, and stricter market listing standards (condition + real photos).
 
-### 1. Data model (migration)
+## 1. Database changes (single migration)
 
-**`listings` additions**
-- `insurance_default` enum: `off | optional | required` (seller-level preference per listing, default `optional`)
-- `insurance_auto_add_by_seller` bool — seller auto-buys insurance and eats the cost
-- `insurance_paid_by` enum: `buyer | seller` (who pays when buyer doesn't opt in)
+**`queue_offers`** — add columns:
+- `expires_at timestamptz not null default now() + interval '24 hours'`
+- `payment_intent_id text` (Stripe PI in `manual` capture mode = pre-auth)
+- `payment_status text not null default 'pending'` — `pending | authorized | captured | failed | released | voided`
+- `auth_amount_cents int`
+- `cancelled_at timestamptz`, `cancel_reason text`
+- `captured_at timestamptz`, `voided_at timestamptz`
+- `order_id uuid` (set when accepted → paid order created)
+- Indexes on `(buyer_id, status)`, `(expires_at) where status='pending'`
 
-**`orders` additions**
-- `insurance_status` enum: `none | requested | active | claim_pending | claim_approved | claim_denied | reimbursed`
-- `insurance_provider` enum: `shippo | shipsurance | usps | ups | fedex | none` (extensible)
-- `insurance_coverage_cents` int — defaults to item sale value
-- `insurance_fee_cents` int
-- `insurance_paid_by` enum: `buyer | seller`
-- `insurance_purchased_at` timestamptz
-- `insurance_provider_ref` text (carrier/Shippo insurance id)
-- `insurance_added_post_purchase` bool — true ⇒ fee deducted from seller payout regardless
+**`listings`** — enforce standards:
+- `condition text` constrained to `('MINT','NM','LP','MP','HP','DMG')` (nullable for legacy; required on new inserts via trigger)
+- `description text` (require min 30 chars on insert/update via trigger for non-draft)
+- `front_image_url text`, `back_image_url text` (required on publish via trigger)
+- `ai_images_allowed boolean default false` (only true for vault listings)
 
-**New `insurance_claims` table**
-- `order_id`, `claimant_user_id` (seller usually), `reason` enum (`lost | damaged | stolen`)
-- `claim_amount_cents`, `status` enum (`draft | submitted | under_review | approved | denied | paid`)
-- `provider_claim_ref`, `admin_notes`, `decided_by`, `decided_at`, `reimbursed_cents`, `reimbursed_at`
-- RLS: seller sees own; admin sees all
+**`offer_abuse_events`** (new table) — anti-abuse log:
+- `user_id, event_type` (`unpaid_offer | cancel | auth_failed | spam`), `queue_item_id`, `metadata jsonb`, `created_at`
+- View `seller_offer_risk` aggregating last-30-day counts per buyer
 
-**New `insurance_claim_evidence` table**
-- `claim_id`, `file_path` (storage), `kind` (`photo | tracking | document | other`), `notes`
-- Storage bucket `insurance-evidence` (private; signed URLs)
+**`user_restrictions`** — add `offers_suspended_until timestamptz` (if column missing).
 
-**New `insurance_providers` table** (config/registry)
-- `code`, `display_name`, `is_active`, `supports_lost`, `supports_damaged`, `supports_stolen`, `min_cents`, `max_cents`, `rate_bps`, `flat_cents`
-- Seeded with shippo, shipsurance, usps, ups, fedex (only shippo active initially)
+RLS: buyer reads own offers; seller reads offers on own queue items; admin full.
 
-**Payout integration**
-- Extend `v_seller_available_balance` to subtract `insurance_fee_cents` when `insurance_added_post_purchase = true` OR `insurance_paid_by = 'seller'`
-- Add rule: if `insurance_status IN ('claim_pending','claim_approved')`, freeze that order's payout eligibility
-- Reimbursements credit back to seller balance via new `payout_adjustments` rows (already used for refunds)
+## 2. Server functions
 
-### 2. Provider abstraction
+**`src/lib/offers.functions.ts`** (new — replaces parts of `queueActions.functions.ts`):
 
-`src/server/insurance/providers/` — one file per provider implementing:
-```ts
-interface InsuranceProvider {
-  code: string
-  quote(args): Promise<{ feeCents; coverageCents; supportsReasons }>
-  purchase(args): Promise<{ providerRef; feeCents }>
-  fileClaim(args): Promise<{ providerClaimRef }>
-  refreshClaim(providerRef): Promise<{ status; reimbursedCents? }>
-}
-```
-- `shippo.ts` — real implementation (Shippo `parcel.extra.insurance`)
-- `shipsurance.ts`, `usps.ts`, `ups.ts`, `fedex.ts` — stubs returning "not implemented"; registered so UI/admin can switch later
-- Registry in `src/server/insurance/index.ts` picks provider from `insurance_providers`
-
-### 3. Server functions
-
-`src/server/insurance.functions.ts`
-- `quoteInsurance({ orderId | listingId, coverageCents })` — public, used by checkout & post-purchase modal
-- `attachInsuranceAtCheckout({ orderId, optIn, coverageCents })` — buyer toggle path
-- `sellerAddInsurance({ orderId, coverageCents })` — post-purchase; forces `insurance_added_post_purchase=true`, fee → seller
-- `submitClaim({ orderId, reason, amountCents, evidence: [{path, kind}] })`
-- `getOrderInsurance({ orderId })`
-- Admin: `adminListClaims({ filters })`, `adminDecideClaim({ claimId, decision, notes, reimbursedCents })`, `adminFlagSeller({ sellerId, reason })`
-
-All gated by `requireSupabaseAuth` + role check via existing `has_role`.
-
-### 4. Shippo wiring (existing `shippo.functions.ts`)
-- `purchaseLabel` reads order's `insurance_*` fields; if active, sets `parcel.extra.insurance = { amount, currency, provider: 'UPS' | 'FEDEX' | 'CARRIER' }` per Shippo API
-- After label buy, store `insurance_provider_ref` from rate response
-- Shippo tracking webhook already advances status — extend `shippo-tracking.ts` to flip `insurance_status` to `claim_pending` automatically when status becomes `lost_package` or `returned`+damaged note
-
-### 5. Cron / automation
-- Add `insurance-poll.ts` hook (every 6h) — refreshes `claim_pending` claims via provider `refreshClaim`, advances status, writes reimbursement when paid
-- On `reimbursed`: insert `payout_adjustments(seller, +amount, 'insurance_reimbursement')`
-
-### 6. UI
-
-**Checkout (buyer)**
-- New `<InsuranceOption>` card showing: protected amount (= sale price, editable up to listing cap), insurance fee, what's covered (lost/damaged/stolen badges from provider), est. claim resolution timeline
-- Toggle "Protect this shipment" — defaults to seller's listing default
-- If seller pre-paid, show "Insurance included by seller" (read-only)
-
-**Listing form (seller)**
-- "Shipping insurance" section: default mode (off/optional/required), auto-add toggle, who pays when buyer skips
-
-**Seller order detail**
-- "Insured" badge + provider name + coverage
-- "Add/upgrade insurance" button (only before label purchased) → calls `sellerAddInsurance`, warning that fee comes out of payout
-- "File a claim" button when status is `delivery_failed | lost_package | returned` or buyer reports damage
-- Claim form: reason, amount, evidence uploader (drag-drop multiple files → `insurance-evidence` bucket)
-- Claim status timeline
-
-**Admin** (new route `/admin/insurance-claims`)
-- Queue of `submitted | under_review` claims with evidence preview
-- Approve/Deny with notes + reimbursement amount
-- Per-seller claim history with auto-flag if >3 claims/90d or >20% claim rate → reuses existing `fraud_flags`
-
-### 7. Payout impact summary
-| Scenario | Who pays insurance fee | Payout effect |
+| fn | role | flow |
 |---|---|---|
-| Buyer opts in at checkout | Buyer (added to charge) | No deduction from seller |
-| Seller marks listing "auto-add" | Seller | Deducted from payout |
-| Seller adds after purchase | Seller (forced) | Deducted from payout |
-| Required by listing, buyer pays | Buyer | No deduction |
-| Claim approved + reimbursed | n/a | Credit added to seller balance |
-| Claim pending | n/a | That order frozen from payout |
+| `createOffer` | buyer | check `offers_suspended_until`; require saved card; create Stripe `PaymentIntent` `capture_method=manual` `confirm=true off_session` → store `payment_intent_id`, `payment_status='authorized'`, `expires_at=now+24h`; insert `queue_offers` row |
+| `cancelOffer` | buyer | only if `status='pending'` AND not expired AND `payment_status='authorized'`; call `stripe.paymentIntents.cancel(pi)`; mark `cancelled`, log abuse event for rate-tracking |
+| `acceptOffer` | seller | atomically: re-check still authorized + not expired; `stripe.paymentIntents.capture(pi)`; on success → create `orders` row (status `paid`), mark queue item `sold`, decline siblings (releasing their PIs), kick off fulfillment. On capture fail → mark offer `voided`, notify seller, optionally relist |
+| `declineOffer` | seller | release PI via cancel |
+| `expireOffers` | cron | every 5 min — for `pending` + `expires_at < now()` → cancel PI, mark `expired`, release auth |
 
-### 8. Open question
-Default provider to enable now: **Shippo** (already integrated). Others scaffolded as inactive — toggle on later from admin without code change. OK to proceed with Shippo-only active?
+**`src/routes/api/public/hooks/expire-offers.ts`** — cron handler calling `expireOffers`.
+
+Stripe access via `createStripeClient(env)` from `@/lib/stripe.server` (gateway pattern, never raw SDK). All offer money flows go through the same connector.
+
+## 3. Frontend
+
+- **`OfferDialog`** (new, used from market + live + queue):
+  - Requires saved card (reuse `useRequireCardOnFile`)
+  - Shows binding notice: *"Submitting an offer is a binding purchase commitment if accepted by the seller."*
+  - Shows expiration timer (24h), final-sale policy badge, auth status pill
+  - Records `policy_acceptance` (`context: 'offer'`) on submit
+- **`MyOffers` panel** (buyer side, in `orders.tsx` or new tab): list with countdown, "Cancel offer" button (disabled if seller accepted / expired / captured), auth status
+- **Seller offer inbox** (in seller hub / `shows.$id.tsx` queue panel): Accept / Decline with live capture state
+- **`MarketQuickView`** + `market.$id.tsx`: show condition badge + front/back thumbnails; "Make Offer" button opens new `OfferDialog`
+
+## 4. Listing standards enforcement
+
+- **`sell.tsx`** form: require condition dropdown (MINT/NM/LP/MP/HP/DMG), description (≥30 chars), front + back photo uploads. Show notice: "AI-generated images are only allowed for vault/storage visualizations."
+- Trigger on `listings` insert/update validates required fields when `status='live'`.
+- `MarketCard` / `market.index.tsx` displays condition badge.
+
+## 5. Admin
+
+- **`admin.tsx` → Offers tab**:
+  - Recent offer activity, abuse leaderboard (from `seller_offer_risk`)
+  - Buttons: suspend offers (sets `offers_suspended_until`), force-cancel offer, manual void
+- Audit log entry for every admin action via existing `audit.functions.ts`.
+
+## 6. Cron
+
+`pg_cron` job every 5 min → `POST /api/public/hooks/expire-offers` to release stale authorizations (Stripe auto-releases ~7d but we want clean state + buyer UI accuracy).
+
+## 7. Out of scope (call out)
+
+- Doesn't touch live-auction bidding flow (separate system).
+- Doesn't rebuild seller_trust reserve logic (already shipped Phase prior).
+- Existing offers (no PI) get `payment_status='legacy'` and are read-only — no migration of historic data.
+
+## Technical notes
+
+- Stripe `PaymentIntent` with `capture_method='manual'`, `confirm=true`, `off_session=true`, `customer=<saved>`, `payment_method=<default card>`. If `requires_action` (3DS), return `client_secret` to buyer UI to confirm — only mark `authorized` after PI status is `requires_capture`.
+- Capture on acceptance: handle Stripe error codes `card_declined`, `expired_card`, `insufficient_funds` → mark `voided`, fire `offer_abuse_events.auth_failed`, push seller notification.
+- Sibling offers on same `queue_item_id`: on accept, loop pending siblings → `stripe.paymentIntents.cancel` then mark `declined`. Use a Postgres advisory lock on `queue_item_id` to prevent double-accept.
+- Idempotency keys on every Stripe call: `offer:<id>:create | capture | cancel`.
+
+Ready to migrate the DB and implement once you approve.
