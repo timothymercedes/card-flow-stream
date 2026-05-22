@@ -685,7 +685,7 @@ function Vault() {
     }
     const variantLabel = `${edition} · ${finish}`;
     const fullDesc = [description?.trim(), `Variant: ${variantLabel}`].filter(Boolean).join("\n");
-    const { error } = await supabase.from("vault_cards").insert({
+    const { data: inserted, error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
       description: fullDesc || null,
@@ -696,10 +696,15 @@ function Vault() {
       condition,
       language,
       last_valued_at: new Date().toISOString(),
-    });
+    }).select().single();
     if (error) return toast.error(error.message);
+    const wantSell = sellAfterSave;
     resetForm(); setShowAdd(false);
     load();
+    if (wantSell && inserted) {
+      setSelling(inserted as Card);
+      toast.success("Saved to vault — now add your sale photos");
+    }
   }
   async function remove(id: string) {
     await supabase.from("vault_cards").delete().eq("id", id);
