@@ -709,6 +709,21 @@ function SellerHub() {
                         <XCircle className="h-3.5 w-3.5" /> Cancel order
                       </button>
                     )}
+                    {o.payment_status === "paid" && o.status !== "cancelled" && (
+                      <button
+                        onClick={() => refundBuyer(o)}
+                        disabled={refunding === o.id}
+                        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-destructive/15 py-2 text-[11px] font-bold text-destructive hover:bg-destructive/25 disabled:opacity-60"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        {refunding === o.id ? "Refunding…" : `Refund buyer ($${Number((o.amount || 0) + (o.shipping_amount || 0)).toFixed(2)})`}
+                      </button>
+                    )}
+                    {o.payment_status === "refunded" && (
+                      <div className="mt-2 rounded-lg bg-muted px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">
+                        ✓ Refunded to buyer
+                      </div>
+                    )}
                   </div>
                 );
               })}
