@@ -834,18 +834,17 @@ function LiveDetail() {
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "stream_tips", filter: `stream_id=eq.${id}` },
+        { event: "*", schema: "public", table: "stream_tips", filter: `stream_id=eq.${id}` },
         (p) => {
-          const t: any = p.new;
-          if (t.status === "paid") {
-            setTipOverlay({
-              id: t.id,
-              username: t.buyer_username,
-              amount: Number(t.amount),
-              message: t.message,
-            });
-            setTimeout(() => setTipOverlay((cur) => (cur && cur.id === t.id ? null : cur)), 6000);
-          }
+          const t: any = p.new || p.old;
+          if (!t || t.status !== "paid") return;
+          setTipOverlay({
+            id: t.id,
+            username: t.buyer_username,
+            amount: Number(t.amount),
+            message: t.message,
+          });
+          setTimeout(() => setTipOverlay((cur) => (cur && cur.id === t.id ? null : cur)), 5000);
         },
       )
       .subscribe();
