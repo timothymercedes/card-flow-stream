@@ -15,9 +15,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { buyNowQueueItem, makeQueueOffer } from "@/lib/queueActions.functions";
+import { buyNowQueueItem } from "@/lib/queueActions.functions";
 import { toast } from "sonner";
 import { X, Bookmark, Gavel, ListOrdered, Trophy, ShoppingCart, HandCoins } from "lucide-react";
+import { OfferDialog } from "@/components/OfferDialog";
 
 type SaleType = "prebid" | "buynow" | "either" | "offer";
 
@@ -60,7 +61,7 @@ export function PreBidPanel({
   const { requireAuth } = useAuthGate();
   const nav = useNavigate();
   const buyNowFn = useServerFn(buyNowQueueItem);
-  const makeOfferFn = useServerFn(makeQueueOffer);
+  const [offerItem, setOfferItem] = useState<QueueItem | null>(null);
 
   const [items, setItems] = useState<QueueItem[]>([]);
   const [prebids, setPrebids] = useState<PreBid[]>([]);
@@ -135,20 +136,9 @@ export function PreBidPanel({
     }
   }
 
-  async function submitOffer(item: QueueItem) {
+  function submitOffer(item: QueueItem) {
     if (!requireAuth("make an offer")) return;
-    const amount = Number(drafts[item.id]);
-    if (!amount || amount <= 0) return toast.error("Enter an offer amount");
-    setBusy(item.id);
-    try {
-      await makeOfferFn({ data: { queueItemId: item.id, amount } });
-      toast.success(`Offer sent: $${amount}`);
-      setDrafts((d) => ({ ...d, [item.id]: "" }));
-    } catch (e: any) {
-      toast.error(e?.message || "Offer failed");
-    } finally {
-      setBusy(null);
-    }
+    setOfferItem(item);
   }
 
   return (
@@ -250,6 +240,15 @@ export function PreBidPanel({
                   </button>
                 )}
 
+                {(st === "offer" || st === "either") && (
+                  <button
+                    onClick={() => submitOffer(it)} disabled={busy === it.id}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-600 px-3 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <HandCoins className="h-4 w-4" />
+                    Make a binding offer
+                  </button>
+                )}
               </div>
             );
           })}
@@ -257,9 +256,19 @@ export function PreBidPanel({
 
         <div className="border-t border-border bg-muted/30 px-4 py-2 text-center text-[10px] text-muted-foreground">
           <Bookmark className="mr-1 inline h-3 w-3" />
-          Buy Now items get added to your cart. Pre-bids and offers are saved for the host to see.
+          Buy Now goes to your cart. Offers pre-authorize your card and are binding if the seller accepts.
         </div>
       </div>
+      {offerItem && (
+        <OfferDialog
+          open={!!offerItem}
+          onClose={() => setOfferItem(null)}
+          queueItemId={offerItem.id}
+          itemTitle={offerItem.title}
+          minOffer={offerItem.min_offer ?? null}
+          suggestedPrice={offerItem.buy_now_price ?? offerItem.snipe_price ?? null}
+        />
+      )}
     </div>
   );
 }
