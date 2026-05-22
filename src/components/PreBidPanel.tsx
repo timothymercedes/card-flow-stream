@@ -61,7 +61,7 @@ export function PreBidPanel({
   const { requireAuth } = useAuthGate();
   const nav = useNavigate();
   const buyNowFn = useServerFn(buyNowQueueItem);
-  const makeOfferFn = useServerFn(makeQueueOffer);
+  const [offerItem, setOfferItem] = useState<QueueItem | null>(null);
 
   const [items, setItems] = useState<QueueItem[]>([]);
   const [prebids, setPrebids] = useState<PreBid[]>([]);
