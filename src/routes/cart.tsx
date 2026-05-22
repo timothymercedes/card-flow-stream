@@ -63,8 +63,11 @@ function Cart() {
 
   const groups = useMemo(() => {
     const m: Record<string, any[]> = {};
+    const isUuid = (v: unknown): v is string =>
+      typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
     for (const o of orders) {
-      const k = o.seller_id;
+      if (!isUuid(o.seller_id)) continue; // skip orphaned cart rows with no seller
+      const k = o.seller_id as string;
       (m[k] = m[k] || []).push(o);
     }
     return m;
