@@ -3661,6 +3661,33 @@ function LiveDetail() {
         </button>
       )}
 
+      {/* Picture-in-Picture — viewers only, lets buyers keep watching while browsing */}
+      {!isSeller && !!stream?.cf_playback_hls && (
+        <button
+          onClick={async () => {
+            const v = hlsVideoRef.current;
+            if (!v) return;
+            try {
+              if ((document as any).pictureInPictureElement) {
+                await (document as any).exitPictureInPicture();
+              } else if ((v as any).requestPictureInPicture) {
+                await (v as any).requestPictureInPicture();
+              }
+            } catch {
+              /* unsupported on this browser/iOS Safari uses native controls */
+            }
+          }}
+          className="absolute bottom-24 left-14 z-40 rounded-full bg-black/60 p-1.5 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/80"
+          aria-label="Picture in picture"
+          title="Pop out video"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <rect x="12" y="11" width="8" height="6" rx="1" fill="currentColor" />
+          </svg>
+        </button>
+      )}
+
       {/* Pinned card overlay (host scan → broadcast) */}
       {/* Pinned-card overlay removed — the AI Spotlight is the single source of truth for the scanned card. */}
 
