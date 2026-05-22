@@ -241,6 +241,7 @@ function LiveDetail() {
   const endedRef = useRef(false);
   const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsVideoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
   const [legacyHostStream, setLegacyHostStream] = useState<MediaStream | null>(null);
 
