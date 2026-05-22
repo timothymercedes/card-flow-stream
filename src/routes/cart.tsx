@@ -111,11 +111,35 @@ function Cart() {
   return (
     <AppShell>
       <div className="px-4 py-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <button
+            onClick={() => {
+              // Prefer browser back; fall back to home if there's no history entry.
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.history.back();
+              } else {
+                router.navigate({ to: "/" });
+              }
+            }}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted/80"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
+            aria-label="Close cart"
+          >
+            <X className="h-4 w-4" />
+          </Link>
+        </div>
         <div className="mb-1 flex items-center justify-between gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-bold"><ShoppingBag className="h-6 w-6" /> My Cart</h1>
           <WatchTutorial routePath="/cart" label="Checkout help" />
         </div>
         <p className="mb-4 text-xs text-muted-foreground">Pay once per seller — combined shipping is already applied.</p>
+
 
         <div className="mb-3"><BuyerRestrictionBanner /></div>
 
