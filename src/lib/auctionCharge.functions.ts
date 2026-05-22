@@ -277,6 +277,19 @@ async function performCharge(opts: {
       },
     }, { idempotencyKey: idemKey });
 
+    // CRITICAL: persist the PaymentIntent ID FIRST in its own minimal
+    // update so a downstream column error (schema drift, type mismatch,
+    // missing column) can never leave Stripe charged with no PI on the
+    // order — that was the root cause of the lost-$35 refund incident.
+    try {
+      await supabaseAdmin
+        .from("orders")
+        .update({ stripe_payment_intent_id: intent.id })
+        .eq("id", orderId);
+    } catch (persistErr) {
+      console.error("CRITICAL: failed to persist PI after charge", { orderId, intentId: intent.id, persistErr });
+    }
+
     await supabaseAdmin
       .from("orders")
       .update({
