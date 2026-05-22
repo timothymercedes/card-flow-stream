@@ -164,6 +164,7 @@ function KpiDrillModal({
   );
 }
 
+function SellerHub() {
   const { user } = useAuth();
   const tutorial = useTutorialMode();
 
