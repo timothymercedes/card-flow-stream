@@ -187,16 +187,16 @@ function OwnerFinanceDashboard() {
   );
 
   const financeErrors = [
-    ["Overview", overview],
-    ["Trend", trend],
-    ["Streams", streams],
-    ["Sellers", sellers],
-    ["Personal orders", personalOrders],
-    ["Platform payouts", platformPayouts],
-    ["Personal payouts", personalPayouts],
-    ["Ledger", ledger],
-    ["Seller payable", sellerPayable],
-  ].filter(([, query]) => query.isError) as [string, { error: unknown }][];
+    { label: "Overview", query: overview },
+    { label: "Trend", query: trend },
+    { label: "Streams", query: streams },
+    { label: "Sellers", query: sellers },
+    { label: "Personal orders", query: personalOrders },
+    { label: "Platform payouts", query: platformPayouts },
+    { label: "Personal payouts", query: personalPayouts },
+    { label: "Ledger", query: ledger },
+    { label: "Seller payable", query: sellerPayable },
+  ].filter(({ query }) => query.isError);
 
   if (authLoading || isOwner === null) {
     return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
@@ -282,7 +282,7 @@ function OwnerFinanceDashboard() {
             <div className="space-y-2 text-xs">
               <p className="text-muted-foreground">One finance query failed. Refresh after the latest backend update finishes syncing.</p>
               <ul className="space-y-1">
-                {financeErrors.map(([label, query]) => (
+                {financeErrors.map(({ label, query }) => (
                   <li key={label} className="rounded-md bg-destructive/10 px-2 py-1 text-destructive">
                     <span className="font-bold">{label}:</span> {financeErrorMessage(query.error)}
                   </li>
