@@ -116,6 +116,9 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
         {processingFee > 0 && (
           <Row label="Processing fee" cents={processingFee} />
         )}
+        {(fees.taxCents ?? 0) > 0 && (
+          <Row label="Sales tax" cents={fees.taxCents ?? 0} />
+        )}
         <p className="text-[10px] text-muted-foreground leading-snug">
           {bundleDiscount
             ? "You've already won 3+ items in this live stream — buyer-side processing is waived on additional items."
