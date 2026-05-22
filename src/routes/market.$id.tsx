@@ -179,8 +179,9 @@ function ListingDetail() {
     const dup = offers.find((o) => o.buyer_id === profile.id && Number(o.amount) === amt && o.status === "pending");
     if (dup) return toast.error("You already offered that amount");
     gateIntl(async () => {
+      const expiresAt = new Date(Date.now() + offerExpiresInHours * 3600 * 1000).toISOString();
       const { error } = await supabase.from("offers").insert({
-        listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
+        listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt, expires_at: expiresAt,
       });
       if (error) {
         if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
