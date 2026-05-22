@@ -4534,7 +4534,7 @@ function LiveDetail() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
               <div className="mt-1">
-                <LiveMobileHostCard sellerId={stream.seller_id} />
+                <LiveMobileHostCard sellerId={stream.seller_id} showTrustBadges />
               </div>
             </div>
 
