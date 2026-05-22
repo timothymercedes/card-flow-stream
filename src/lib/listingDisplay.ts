@@ -41,3 +41,25 @@ export function getListingPriceDisplay(listing: ListingLike, compact = false): L
 export function isPublicListingVisible(listing: ListingLike) {
   return getListingPriceDisplay(listing).kind !== "empty";
 }
+
+/**
+ * Validate an image URL is acceptable as a marketplace sale photo.
+ * Rejects empty, data: URIs (upload still in progress / not persisted),
+ * AI/visualization markers, and non-http(s) URLs.
+ * Returns null when valid, otherwise a user-friendly error string.
+ */
+export function validateListingImage(url: string | null | undefined, opts?: { field?: string }): string | null {
+  const field = opts?.field || "Photo";
+  const v = (url || "").trim();
+  if (!v) return `${field} is required — please upload a real photo of the card.`;
+  if (v.startsWith("data:")) {
+    return `${field} upload didn't finish. Wait for the upload to complete, then try again.`;
+  }
+  if (!/^https?:\/\//i.test(v)) {
+    return `${field} URL is invalid. Please upload an image instead of pasting text.`;
+  }
+  if (/\/ai-generated\/|placeholder|\/visualization\//i.test(v)) {
+    return `${field} can't be an AI/vault image. Please upload a real photo of the card you're selling.`;
+  }
+  return null;
+}
