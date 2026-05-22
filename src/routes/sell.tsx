@@ -1842,6 +1842,43 @@ function LiveWizard(p: LiveWizardProps) {
                 </p>
               </label>
             )}
+            {p.scheduledFor && (
+              <div className="space-y-2 rounded-lg bg-background/40 p-2">
+                <span className="block text-[10px] font-bold text-muted-foreground">Repeat</span>
+                <div className="grid grid-cols-4 gap-1">
+                  {(["none", "daily", "weekly", "monthly"] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => p.setRecurrence(r)}
+                      className={`rounded-md px-2 py-1.5 text-[11px] font-bold capitalize ${
+                        p.recurrence === r
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {r === "none" ? "Once" : r}
+                    </button>
+                  ))}
+                </div>
+                {p.recurrence !== "none" && (
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-bold text-muted-foreground">
+                      Repeat until (optional)
+                    </span>
+                    <input
+                      type="date"
+                      value={p.recurrenceUntil}
+                      onChange={(e) => p.setRecurrenceUntil(e.target.value)}
+                      className="w-full rounded-md bg-input px-3 py-2 text-sm outline-none"
+                    />
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      Next show is auto-created when this one goes live. Sold cards are removed from the next Pre-B automatically.
+                    </p>
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
           <button
