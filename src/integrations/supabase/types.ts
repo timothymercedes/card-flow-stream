@@ -3012,15 +3012,18 @@ export type Database = {
           fee_index: number | null
           fee_split_mode: string | null
           final_charged_total_cents: number
+          first_scan_at: string | null
           id: string
           idempotency_key: string | null
           is_giveaway: boolean
           is_late_shipment: boolean
           item_image_url: string | null
           label_cost_cents: number | null
+          label_purchased_at: string | null
           label_url: string | null
           last_ship_reminder_at: string | null
           listing_id: string | null
+          lost_marked_at: string | null
           order_group_id: string | null
           order_number: string | null
           packed_at: string | null
@@ -3029,7 +3032,10 @@ export type Database = {
           payment_failure_count: number
           payment_retry_deadline: string | null
           payment_status: string
+          payout_eligible_at: string | null
           payout_held: boolean
+          payout_paid_amount_cents: number | null
+          payout_paid_at: string | null
           platform_fee_cents: number | null
           prep_status: string
           processing_fee_cents: number | null
@@ -3055,6 +3061,7 @@ export type Database = {
           shipping_amount: number
           shipping_due_at: string | null
           shipping_margin_cents: number | null
+          shipping_status: Database["public"]["Enums"]["shipping_status"]
           status: string
           stream_id: string | null
           stripe_charge_id: string | null
@@ -3089,15 +3096,18 @@ export type Database = {
           fee_index?: number | null
           fee_split_mode?: string | null
           final_charged_total_cents?: number
+          first_scan_at?: string | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
           label_cost_cents?: number | null
+          label_purchased_at?: string | null
           label_url?: string | null
           last_ship_reminder_at?: string | null
           listing_id?: string | null
+          lost_marked_at?: string | null
           order_group_id?: string | null
           order_number?: string | null
           packed_at?: string | null
@@ -3106,7 +3116,10 @@ export type Database = {
           payment_failure_count?: number
           payment_retry_deadline?: string | null
           payment_status?: string
+          payout_eligible_at?: string | null
           payout_held?: boolean
+          payout_paid_amount_cents?: number | null
+          payout_paid_at?: string | null
           platform_fee_cents?: number | null
           prep_status?: string
           processing_fee_cents?: number | null
@@ -3132,6 +3145,7 @@ export type Database = {
           shipping_amount?: number
           shipping_due_at?: string | null
           shipping_margin_cents?: number | null
+          shipping_status?: Database["public"]["Enums"]["shipping_status"]
           status?: string
           stream_id?: string | null
           stripe_charge_id?: string | null
@@ -3166,15 +3180,18 @@ export type Database = {
           fee_index?: number | null
           fee_split_mode?: string | null
           final_charged_total_cents?: number
+          first_scan_at?: string | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
           is_late_shipment?: boolean
           item_image_url?: string | null
           label_cost_cents?: number | null
+          label_purchased_at?: string | null
           label_url?: string | null
           last_ship_reminder_at?: string | null
           listing_id?: string | null
+          lost_marked_at?: string | null
           order_group_id?: string | null
           order_number?: string | null
           packed_at?: string | null
@@ -3183,7 +3200,10 @@ export type Database = {
           payment_failure_count?: number
           payment_retry_deadline?: string | null
           payment_status?: string
+          payout_eligible_at?: string | null
           payout_held?: boolean
+          payout_paid_amount_cents?: number | null
+          payout_paid_at?: string | null
           platform_fee_cents?: number | null
           prep_status?: string
           processing_fee_cents?: number | null
@@ -3209,6 +3229,7 @@ export type Database = {
           shipping_amount?: number
           shipping_due_at?: string | null
           shipping_margin_cents?: number | null
+          shipping_status?: Database["public"]["Enums"]["shipping_status"]
           status?: string
           stream_id?: string | null
           stripe_charge_id?: string | null
@@ -4474,6 +4495,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      shipment_events: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          message: string | null
+          occurred_at: string
+          order_id: string
+          raw: Json | null
+          shipping_status: Database["public"]["Enums"]["shipping_status"] | null
+          source: string
+          tracking_status: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          message?: string | null
+          occurred_at?: string
+          order_id: string
+          raw?: Json | null
+          shipping_status?:
+            | Database["public"]["Enums"]["shipping_status"]
+            | null
+          source?: string
+          tracking_status?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          message?: string | null
+          occurred_at?: string
+          order_id?: string
+          raw?: Json | null
+          shipping_status?:
+            | Database["public"]["Enums"]["shipping_status"]
+            | null
+          source?: string
+          tracking_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shipping_adjustments: {
         Row: {
@@ -6331,6 +6403,24 @@ export type Database = {
       }
     }
     Views: {
+      mv_seller_shipping_analytics: {
+        Row: {
+          avg_hours_label_to_scan: number | null
+          avg_hours_paid_to_label: number | null
+          avg_hours_scan_to_delivered: number | null
+          delivered_count: number | null
+          delivery_success_pct: number | null
+          late_count: number | null
+          late_pct: number | null
+          lost_count: number | null
+          lost_pct: number | null
+          refreshed_at: string | null
+          returned_count: number | null
+          seller_id: string | null
+          total_orders: number | null
+        }
+        Relationships: []
+      }
       stream_supporters: {
         Row: {
           buyer_id: string | null
@@ -6340,6 +6430,14 @@ export type Database = {
           stream_id: string | null
           tip_count: number | null
           total_tipped: number | null
+        }
+        Relationships: []
+      }
+      v_seller_available_balance: {
+        Row: {
+          available_cents: number | null
+          eligible_orders: number | null
+          seller_id: string | null
         }
         Relationships: []
       }
@@ -6629,6 +6727,14 @@ export type Database = {
       }
       admin_waive_buyer_restriction: {
         Args: { _buyer: string; _notes?: string }
+        Returns: undefined
+      }
+      allocate_payout_to_orders: {
+        Args: {
+          _amount_cents: number
+          _completed_at?: string
+          _user_id: string
+        }
         Returns: undefined
       }
       append_dispute_message: {
@@ -7274,6 +7380,7 @@ export type Database = {
         }
       }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
+      refresh_seller_shipping_analytics: { Args: never; Returns: undefined }
       register_shipping_scan: {
         Args: { _code: string; _kind?: string }
         Returns: {
@@ -7372,6 +7479,18 @@ export type Database = {
         }[]
       }
       seller_country: { Args: { _seller_id: string }; Returns: string }
+      set_order_shipping_status: {
+        Args: {
+          _location?: string
+          _message?: string
+          _order_id: string
+          _raw?: Json
+          _source?: string
+          _status: Database["public"]["Enums"]["shipping_status"]
+          _tracking_status?: string
+        }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       suggested_users: {
@@ -7534,6 +7653,15 @@ export type Database = {
         | "order"
         | "message"
       seller_trust_tier: "new" | "bronze" | "silver" | "gold" | "platinum"
+      shipping_status:
+        | "pending_shipment"
+        | "label_created"
+        | "shipped"
+        | "in_transit"
+        | "delivered"
+        | "delivery_failed"
+        | "returned"
+        | "lost_package"
       tutorial_audience:
         | "buyer"
         | "seller"
@@ -7758,6 +7886,16 @@ export const Constants = {
         "message",
       ],
       seller_trust_tier: ["new", "bronze", "silver", "gold", "platinum"],
+      shipping_status: [
+        "pending_shipment",
+        "label_created",
+        "shipped",
+        "in_transit",
+        "delivered",
+        "delivery_failed",
+        "returned",
+        "lost_package",
+      ],
       tutorial_audience: [
         "buyer",
         "seller",
