@@ -10,6 +10,7 @@ import {
   ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
   AlertTriangle, RotateCcw, ScanLine, ShieldCheck,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
@@ -72,6 +73,97 @@ function SubTabs<T extends string>({ tabs, value, onChange }: { tabs: { k: T; l:
   );
 }
 
+function KpiCard({ label, value, tone, onClick }: { label: string; value: string; tone?: "primary" | "destructive" | "amber"; onClick: () => void }) {
+  const valueCls = tone === "destructive" ? "text-destructive" : tone === "amber" ? "text-amber-400" : tone === "primary" ? "text-primary" : "";
+  const wrapCls = tone === "primary" ? "bg-primary/10 ring-1 ring-primary/30" : "bg-muted/40";
+  const labelCls = tone === "primary" ? "text-primary/80" : "text-muted-foreground";
+  return (
+    <button onClick={onClick} className={`rounded-lg p-2 text-center transition hover:brightness-110 active:scale-[0.98] ${wrapCls}`}>
+      <p className={`text-[10px] uppercase tracking-wider ${labelCls}`}>{label}</p>
+      <p className={`text-base font-black tabular-nums ${valueCls}`}>{value}</p>
+    </button>
+  );
+}
+
+type KpiKey = "gross" | "fees" | "net" | "pending" | "refund" | "cancelled";
+
+const KPI_TITLES: Record<KpiKey, string> = {
+  gross: "Gross Sales", fees: "Platform Fees", net: "Net Earnings",
+  pending: "Pending (paid, not delivered)", refund: "Refunds", cancelled: "Cancelled Orders",
+};
+
+function KpiDrillModal({
+  open, onClose, orders, buyerMap,
+}: {
+  open: KpiKey | null;
+  onClose: () => void;
+  orders: any[];
+  buyerMap: Record<string, { u: string; n: string }>;
+}) {
+  const COMM = 0.05;
+  const list = open == null ? [] : orders.filter((o) => {
+    if (open === "refund") return o.payment_status === "refunded";
+    if (open === "cancelled") return o.status === "cancelled";
+    if (open === "pending") return o.payment_status === "paid" && o.status !== "delivered" && o.status !== "cancelled";
+    // gross/fees/net: all non-cancelled, non-refunded charged orders
+    return o.status !== "cancelled" && o.payment_status !== "refunded";
+  });
+  const isCompleted = (o: any) => o.status === "delivered";
+  return (
+    <Dialog open={open != null} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{open ? KPI_TITLES[open] : ""}</DialogTitle>
+        </DialogHeader>
+        {list.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No orders in this category.</p>
+        ) : (
+          <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+            {list.map((o) => {
+              const amt = Number(o.amount || 0);
+              const fee = amt * COMM;
+              const buyer = buyerMap[o.buyer_id];
+              const completed = isCompleted(o);
+              return (
+                <li key={o.id} className="rounded-lg bg-muted/40 p-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold">{o.title}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        @{buyer?.u ?? "buyer"}{buyer?.n ? ` · ${buyer.n}` : ""}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(o.created_at).toLocaleString()}
+                        {o.order_number ? ` · #${o.order_number}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold tabular-nums">${amt.toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {open === "fees" ? `Fee -$${fee.toFixed(2)}` :
+                         open === "net" ? `Net $${(amt - fee).toFixed(2)}` :
+                         o.status}
+                      </p>
+                    </div>
+                  </div>
+                  {completed && (
+                    <div className="mt-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+                      <p className="font-semibold text-foreground">Completed · delivered</p>
+                      {o.ship_name && <p>Ship to: {o.ship_name}</p>}
+                      {o.tracking_number && <p>Tracking: {o.tracking_number}</p>}
+                      {o.delivered_at && <p>Delivered {new Date(o.delivered_at).toLocaleDateString()}</p>}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SellerHub() {
   const { user } = useAuth();
   const tutorial = useTutorialMode();
@@ -91,7 +183,9 @@ function SellerHub() {
   // UI
   const [section, setSection] = useState<Section>("orders");
   const [listingsTab, setListingsTab] = useState<"active" | "draft" | "scheduled" | "sold">("active");
-  const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed" | "refunds" | "cancelled">("to_ship");
+  const [ordersTab, setOrdersTab] = useState<"to_ship" | "shipped" | "delivered" | "failed">("to_ship");
+  const [kpiOpen, setKpiOpen] = useState<null | "gross" | "fees" | "net" | "pending" | "refund" | "cancelled">(null);
+  const [buyerMap, setBuyerMap] = useState<Record<string, { u: string; n: string }>>({});
   const [liveTab, setLiveTab] = useState<"upcoming" | "history" | "tools">("upcoming");
   const [shippingTab, setShippingTab] = useState<"presets" | "auto" | "combined" | "caps" | "carriers">("presets");
   
@@ -344,7 +438,22 @@ function SellerHub() {
     const commission = gross * COMMISSION;
     const pending = orders.filter((o) => o.payment_status === "paid" && o.status !== "delivered")
       .reduce((s, o) => s + (Number(o.amount || 0) - Number(o.amount || 0) * COMMISSION), 0);
-    return { gross, commission, net: gross - commission, pending };
+    const refund = orders.filter((o) => o.payment_status === "refunded")
+      .reduce((s, o) => s + Number(o.refunded_amount || o.amount || 0), 0);
+    const cancelled = orders.filter((o) => o.status === "cancelled")
+      .reduce((s, o) => s + Number(o.amount || 0), 0);
+    return { gross, commission, net: gross - commission, pending, refund, cancelled };
+  }, [orders]);
+
+  // Load buyer usernames/names for the KPI drill-down modal
+  useEffect(() => {
+    const ids = Array.from(new Set(orders.map((o) => o.buyer_id).filter(Boolean)));
+    if (ids.length === 0) return;
+    supabase.from("profiles").select("id,username,full_name").in("id", ids).then(({ data }) => {
+      const m: Record<string, { u: string; n: string }> = {};
+      (data ?? []).forEach((p: any) => { m[p.id] = { u: p.username || "buyer", n: p.full_name || "" }; });
+      setBuyerMap(m);
+    });
   }, [orders]);
 
   const reviewStats = useMemo(() => {
@@ -379,9 +488,7 @@ function SellerHub() {
     ordersTab === "to_ship" ? (o.status === "pending" && !["failed", "chargeback"].includes(o.payment_status)) :
     ordersTab === "shipped" ? o.status === "shipped" :
     ordersTab === "delivered" ? o.status === "delivered" :
-    ordersTab === "failed" ? ["failed", "chargeback"].includes(o.payment_status) :
-    ordersTab === "refunds" ? o.payment_status === "refunded" :
-    o.status === "cancelled"
+    ["failed", "chargeback"].includes(o.payment_status)
   );
 
   const filteredListings = listings.filter((l) => {
@@ -418,12 +525,14 @@ function SellerHub() {
           </div>
         </div>
 
-        {/* Top KPIs — 2x2 on phones for readability, 4 across on sm+ */}
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl bg-card p-3 sm:grid-cols-4">
-          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Gross</p><p className="text-base font-black tabular-nums">${totals.gross.toFixed(0)}</p></div>
-          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Fees</p><p className="text-base font-black tabular-nums text-destructive">-${totals.commission.toFixed(0)}</p></div>
-          <div className="rounded-lg bg-primary/10 p-2 text-center ring-1 ring-primary/30"><p className="text-[10px] uppercase tracking-wider text-primary/80">Net</p><p className="text-base font-black tabular-nums text-primary">${totals.net.toFixed(0)}</p></div>
-          <div className="rounded-lg bg-muted/40 p-2 text-center"><p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pending</p><p className="text-base font-black tabular-nums">${totals.pending.toFixed(0)}</p></div>
+        {/* Top KPIs — clickable, drilldown opens modal */}
+        <div className="mb-4 grid grid-cols-3 gap-2 rounded-xl bg-card p-3 sm:grid-cols-6">
+          <KpiCard label="Gross" value={`$${totals.gross.toFixed(0)}`} onClick={() => setKpiOpen("gross")} />
+          <KpiCard label="Fees" value={`-$${totals.commission.toFixed(0)}`} tone="destructive" onClick={() => setKpiOpen("fees")} />
+          <KpiCard label="Net" value={`$${totals.net.toFixed(0)}`} tone="primary" onClick={() => setKpiOpen("net")} />
+          <KpiCard label="Pending" value={`$${totals.pending.toFixed(0)}`} onClick={() => setKpiOpen("pending")} />
+          <KpiCard label="Refund" value={`$${totals.refund.toFixed(0)}`} tone="amber" onClick={() => setKpiOpen("refund")} />
+          <KpiCard label="Cancelled" value={`$${totals.cancelled.toFixed(0)}`} tone="destructive" onClick={() => setKpiOpen("cancelled")} />
         </div>
 
         {!tutorial && payoutStatus !== "complete" && (
@@ -521,8 +630,6 @@ function SellerHub() {
                 { k: "shipped", l: "Shipped", n: counts.shipped },
                 { k: "delivered", l: "Delivered", n: counts.delivered },
                 { k: "failed", l: "Failed", n: counts.failed },
-                { k: "refunds", l: "Refunds", n: counts.refunds },
-                { k: "cancelled", l: "Cancelled", n: counts.cancelled },
               ]}
             />
             {filteredOrders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Nothing here</p>}
@@ -944,6 +1051,7 @@ function SellerHub() {
           onChanged={load}
         />
       )}
+      <KpiDrillModal open={kpiOpen} onClose={() => setKpiOpen(null)} orders={orders} buyerMap={buyerMap} />
     </AppShell>
   );
 }
