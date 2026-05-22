@@ -237,10 +237,10 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   useEffect(() => {
     const ids = Array.from(new Set(orders.map((o) => o.buyer_id))).filter(Boolean);
     if (ids.length === 0) return;
-    supabase.from("profiles").select("id,username,display_name").in("id", ids).then(({ data }) => {
+    supabase.from("profiles").select("id,username,full_name").in("id", ids).then(({ data }) => {
       const map: Record<string, { u: string; d: string }> = {};
       ((data as ProfileRow[]) ?? []).forEach((p) => {
-        map[p.id] = { u: p.username || "buyer", d: p.display_name || p.username || "Buyer" };
+        map[p.id] = { u: p.username || "buyer", d: p.full_name || p.username || "Buyer" };
       });
       setBuyerNames(map);
     });
