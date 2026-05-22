@@ -1378,11 +1378,71 @@ function LiveWizard(p: LiveWizardProps) {
       {p.step === 4 && (
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
-            <h2 className="text-base font-bold">Add products (optional)</h2>
+            <h2 className="text-base font-bold">Set up Pre-B (optional)</h2>
             <p className="text-xs text-muted-foreground">
-              Skip this — you can scan cards live and instantly start auctions during the stream.
+              Pick cards from your Vault to seed the Pre-Bid store. Viewers can bid before you go live.
+              You can still scan more cards live.
             </p>
           </div>
+
+          <div className="rounded-xl border border-border bg-background p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <Library className="h-4 w-4 text-cyan-500" />
+                Your Vault
+                {vaultLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </div>
+              <span className="text-[10px] text-muted-foreground">
+                {p.prebidVaultPicks.length} selected
+              </span>
+            </div>
+
+            {!vaultLoading && vaultCards.length === 0 && (
+              <p className="rounded-md bg-muted/40 p-3 text-center text-[11px] text-muted-foreground">
+                No vaulted cards yet. Add cards in your{" "}
+                <Link to="/vault" className="font-bold text-primary underline">
+                  Vault
+                </Link>
+                .
+              </p>
+            )}
+
+            {vaultCards.length > 0 && (
+              <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+                {vaultCards.map((v) => {
+                  const picked = pickedIds.has(v.id);
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => toggleVaultPick(v)}
+                      className={`relative aspect-[3/4] overflow-hidden rounded-lg ring-2 transition ${
+                        picked ? "ring-cyan-500" : "ring-border hover:ring-primary/50"
+                      }`}
+                      title={v.name}
+                    >
+                      {v.image_url ? (
+                        <img src={v.image_url} alt={v.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted p-1 text-center text-[9px] font-bold text-muted-foreground">
+                          {v.name}
+                        </div>
+                      )}
+                      {picked && (
+                        <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-cyan-500 text-white">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 py-0.5 text-[9px] font-bold text-white">
+                        {v.estimated_value ? `$${Number(v.estimated_value).toFixed(0)}` : v.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="rounded-xl bg-muted/40 p-3 text-[12px] text-muted-foreground">
             ⚡ <b>Scan-to-start</b> is on by default. While live, scan a card to instantly run an
             auction with your saved settings.
