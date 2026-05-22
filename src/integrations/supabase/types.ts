@@ -4438,10 +4438,13 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           captured_at: string | null
+          counter_amount: number | null
           created_at: string
           environment: string
           expires_at: string
           id: string
+          last_action_at: string
+          last_action_by: string
           order_id: string | null
           payment_intent_id: string | null
           payment_status: string
@@ -4449,6 +4452,7 @@ export type Database = {
           status: string
           stripe_customer_id: string | null
           stripe_payment_method_id: string | null
+          turn: string
           updated_at: string
           voided_at: string | null
         }
@@ -4461,10 +4465,13 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           captured_at?: string | null
+          counter_amount?: number | null
           created_at?: string
           environment?: string
           expires_at?: string
           id?: string
+          last_action_at?: string
+          last_action_by?: string
           order_id?: string | null
           payment_intent_id?: string | null
           payment_status?: string
@@ -4472,6 +4479,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
+          turn?: string
           updated_at?: string
           voided_at?: string | null
         }
@@ -4484,10 +4492,13 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           captured_at?: string | null
+          counter_amount?: number | null
           created_at?: string
           environment?: string
           expires_at?: string
           id?: string
+          last_action_at?: string
+          last_action_by?: string
           order_id?: string | null
           payment_intent_id?: string | null
           payment_status?: string
@@ -4495,6 +4506,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
+          turn?: string
           updated_at?: string
           voided_at?: string | null
         }
