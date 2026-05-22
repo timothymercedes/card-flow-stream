@@ -17,6 +17,12 @@ import { getStripe } from "@/lib/stripe.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const OFFER_TTL_HOURS = 24;
+const ALLOWED_TTL_HOURS = [1, 2, 6, 12, 24] as const;
+
+// Anti-abuse limits — soft caps to deter inventory lockup / spam
+const MAX_ACTIVE_OFFERS_PER_BUYER = 10;
+const MAX_PENDING_OFFER_VALUE_USD = 10_000;
+const PER_ITEM_COOLDOWN_SECONDS = 60;
 
 async function logAbuse(
   userId: string,
