@@ -354,10 +354,10 @@ function Sell() {
     // Timer never starts on go-live — only starts when seller hits "Start Auction" inside the live page
     const ends_at: string | null = null;
 
-    // Optional: provision OBS / Cloudflare Stream input
+    // Optional: provision OBS / Cloudflare Stream input (skip when scheduling)
     let cf: { cf_live_input_id?: string; cf_rtmps_url?: string; cf_stream_key?: string } = {};
     let cfPublic: { cf_playback_hls?: string; cf_whip_url?: string } = {};
-    if (useObs || useCompositor) {
+    if (!isScheduled && (useObs || useCompositor)) {
       const { data, error } = await supabase.functions.invoke("create-stream-input", {
         body: { meta_name: streamTitle },
       });
@@ -394,9 +394,10 @@ function Sell() {
         current_bid: Number(startingBid) || 1,
         current_item: streamTitle,
         min_bid_increment: Number(minIncrement) || 1,
-        status: "live",
-        is_active: true,
-        started_at: new Date().toISOString(),
+        status: isScheduled ? "scheduled" : "live",
+        is_active: !isScheduled,
+        started_at: isScheduled ? null : new Date().toISOString(),
+        scheduled_for: scheduledIso,
         ends_at,
         quick_start_enabled: quickStart,
         default_timer_sec: Number(defaultTimerSec) || 30,
@@ -414,7 +415,7 @@ function Sell() {
             }
           : {}),
         ...cfPublic,
-      })
+      } as any)
       .select()
       .single();
     if (error) {
@@ -429,7 +430,7 @@ function Sell() {
         cf_stream_key: cf.cf_stream_key ?? null,
       });
     }
-    if (useCompositor && selectedCameraIds.length > 0) {
+    if (!isScheduled && useCompositor && selectedCameraIds.length > 0) {
       if (cameraHandoffStreams.length > 0) stashStudioCameraStreams(data.id, cameraHandoffStreams);
       window.sessionStorage.setItem(
         `studio:${data.id}:cameraDeviceIds`,
@@ -440,7 +441,14 @@ function Sell() {
     if (prebidVaultPicks.length > 0) {
       const rows = prebidVaultPicks.map((v, i) => {
         const val = Number(v.estimated_value || 0);
-        const start = val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1;
+        const startFromOverride = Number(v.starting_bid);
+        const start = Number.isFinite(startFromOverride) && startFromOverride > 0
+          ? startFromOverride
+          : (val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1);
+        const bnOverride = Number(v.buy_now_price);
+        const buyNow = Number.isFinite(bnOverride) && bnOverride > 0
+          ? bnOverride
+          : (val > 0 ? val : null);
         const title = [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || v.name;
         return {
           stream_id: data.id,
@@ -452,11 +460,19 @@ function Sell() {
           sale_type: "prebid",
           starting_bid: start,
           duration_seconds: Number(defaultTimerSec) || 30,
-          snipe_price: val > 0 ? val : null,
+          snipe_price: buyNow,
+          buy_now_price: buyNow,
+          voice_trigger: v.voice_trigger?.trim() || null,
+          vault_card_id: v.id,
         };
       });
       const { error: qErr } = await supabase.from("auction_queue" as any).insert(rows as any);
       if (qErr) toast.error(`Pre-B seeding: ${qErr.message}`);
+    }
+    if (isScheduled) {
+      toast.success(`Scheduled for ${new Date(scheduledIso!).toLocaleString()}`);
+      nav({ to: "/my-listings" });
+      return;
     }
     // Fire-and-forget push to followers — never block navigation.
     notifyGoingLive({ data: { streamId: data.id } }).catch(() => {});
