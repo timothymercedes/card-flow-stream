@@ -240,6 +240,15 @@ export function PreBidPanel({
                   </button>
                 )}
 
+                {(st === "offer" || st === "either") && (
+                  <button
+                    onClick={() => submitOffer(it)} disabled={busy === it.id}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-600 px-3 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <HandCoins className="h-4 w-4" />
+                    Make a binding offer
+                  </button>
+                )}
               </div>
             );
           })}
@@ -247,9 +256,19 @@ export function PreBidPanel({
 
         <div className="border-t border-border bg-muted/30 px-4 py-2 text-center text-[10px] text-muted-foreground">
           <Bookmark className="mr-1 inline h-3 w-3" />
-          Buy Now items get added to your cart. Pre-bids and offers are saved for the host to see.
+          Buy Now goes to your cart. Offers pre-authorize your card and are binding if the seller accepts.
         </div>
       </div>
+      {offerItem && (
+        <OfferDialog
+          open={!!offerItem}
+          onClose={() => setOfferItem(null)}
+          queueItemId={offerItem.id}
+          itemTitle={offerItem.title}
+          minOffer={offerItem.min_offer ?? null}
+          suggestedPrice={offerItem.buy_now_price ?? offerItem.snipe_price ?? null}
+        />
+      )}
     </div>
   );
 }
