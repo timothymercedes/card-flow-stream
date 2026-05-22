@@ -205,8 +205,14 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     return m;
   }, [recoveries]);
 
+  const activeOrders = useMemo(() => orders.filter((o) => !isArchivedOrder(o)), [orders]);
+  const archivedOrders = useMemo(
+    () => orders.filter(isArchivedOrder).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)),
+    [orders],
+  );
+
   const breakdowns = useMemo(
-    () => orders.map((o) => ({ order: o, ...computeBreakdown(o, recoveryByRef) })),
+    () => activeOrders.map((o) => ({ order: o, ...computeBreakdown(o, recoveryByRef) })),
     [orders, recoveryByRef],
   );
 
