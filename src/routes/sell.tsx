@@ -114,6 +114,8 @@ function Sell() {
   const [prebidVaultPicks, setPrebidVaultPicks] = useState<VaultPick[]>([]);
   // Schedule vs go-live-now (set in step 6). Empty string = go live now.
   const [scheduledFor, setScheduledFor] = useState<string>("");
+  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [recurrenceUntil, setRecurrenceUntil] = useState<string>("");
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
