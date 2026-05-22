@@ -116,6 +116,7 @@ import { useIntlAck, IntlWarningBanner } from "@/components/InternationalShippin
 import { InternationalBadge } from "@/components/InternationalBadge";
 import { HostInactivityCheckModal } from "@/components/HostInactivityCheckModal";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
+import { LiveMobileHostCard } from "@/components/LiveMobileHostCard";
 import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -4468,17 +4469,11 @@ function LiveDetail() {
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
-              {sellerUsername && (
-                <Link
-                  to="/seller/$username"
-                  params={{ username: sellerUsername }}
-                  className="text-[10px] font-semibold text-primary hover:underline"
-                >
-                  @{sellerUsername}
-                  {stream.mode !== "show_off" ? " · view store" : ""}
-                </Link>
-              )}
+              <div className="mt-1">
+                <LiveMobileHostCard sellerId={stream.seller_id} />
+              </div>
             </div>
+
             {Number((stream as any).total_promoted_amount || 0) > 0 && (
               <span
                 title="Total promoted on this live"
@@ -4516,14 +4511,19 @@ function LiveDetail() {
               {stream.item_description}
             </p>
           )}
-          {stream.mode !== "show_off" &&
-          ((stream.shipping_price != null && Number(stream.shipping_price) > 0) ||
-            stream.shipping_method) ? (
+          {stream.mode !== "show_off" ? (
             <p className="mt-1 inline-block rounded-lg bg-black/30 px-3 py-1 text-[10px] backdrop-blur">
               📦 {stream.shipping_method || "Shipping"} —{" "}
-              {fmtMoney(Number(stream.shipping_price || 0))}
+              {Number(stream.shipping_price || 0) > 0 ? (
+                <span className="font-bold text-emerald-300">
+                  {fmtMoney(Number(stream.shipping_price))}
+                </span>
+              ) : (
+                <span className="font-bold text-amber-300">set by host</span>
+              )}
             </p>
           ) : null}
+
           {auctionLive && stream.snipe_price && (
             <p className="mt-1 inline-block rounded-lg bg-yellow-500/90 px-3 py-1 text-[10px] font-extrabold text-black backdrop-blur">
               💸 SNIPE: hit {fmtMoney(Number(stream.snipe_price))} to win NOW
@@ -5638,7 +5638,7 @@ function LiveDetail() {
 
       {/* Bottom panel */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""}`}
+        className={`absolute bottom-0 left-0 right-0 z-20 space-y-2.5 bg-gradient-to-t from-black via-black/85 to-transparent p-3 pt-8 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:right-[19rem] ${showHostCameraEditor && !hostCameraPanelCollapsed ? "pointer-events-none opacity-30" : ""}`}
       >
         {stream.mode === "show_off" && (
           <>
@@ -5843,17 +5843,19 @@ function LiveDetail() {
             {!isSeller && (
               <>
                 {auctionLive && !meBlockedOrBanned && !bidDisabled && (
-                  <div data-tour="bid-controls" className="grid grid-cols-4 gap-1.5">
+                  <div data-tour="bid-controls" className="grid grid-cols-4 gap-2">
                     {[1, 5, 10, 25].map((inc) => (
                       <button
                         key={inc}
                         onClick={() => placeBidAmount(Number(stream.current_bid || 0) + inc)}
-                        className="rounded-lg bg-white/10 py-2 text-xs font-extrabold tabular-nums text-white backdrop-blur ring-1 ring-white/15 active:scale-95 hover:bg-white/15"
+                        aria-label={`Bid plus ${inc} dollars`}
+                        className="min-h-11 rounded-xl bg-white/15 px-2 py-2.5 text-sm font-extrabold tabular-nums text-white shadow-md ring-1 ring-white/20 backdrop-blur transition active:scale-95 hover:bg-white/25"
                       >
                         +${inc}
                       </button>
                     ))}
                   </div>
+
                 )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
