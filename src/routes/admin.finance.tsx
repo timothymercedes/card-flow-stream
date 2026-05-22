@@ -237,12 +237,12 @@ function OwnerFinanceDashboard() {
             ["platform", "Platform"],
             ["personal", "My Sales"],
             ["payouts", "Payouts"],
+            ["audit", "All Sales"],
             ["streams", "Per Stream"],
             ["sellers", "Per Seller"],
             ["shipping", "Shipping"],
             ["refunds", "Refunds"],
             ["transactions", "Transactions"],
-            ["audit", "Audit"],
             ["integrity", "Integrity"],
 
           ] as [TabKey, string][]).map(([k, l]) => (
