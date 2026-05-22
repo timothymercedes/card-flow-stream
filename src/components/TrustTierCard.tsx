@@ -1,13 +1,14 @@
 import { Shield, ShieldCheck, ShieldAlert, TrendingUp, Lock } from "lucide-react";
 
-export type TrustTier = "new" | "bronze" | "silver" | "gold" | "platinum";
+export type TrustTier = "new" | "bronze" | "silver" | "gold" | "platinum" | "diamond";
 
 const TIERS: { tier: TrustTier; min: number; pct: number; label: string; color: string }[] = [
-  { tier: "new",      min: 0,   pct: 0,  label: "New seller", color: "text-muted-foreground" },
-  { tier: "bronze",   min: 25,  pct: 10, label: "Bronze",     color: "text-amber-600" },
-  { tier: "silver",   min: 50,  pct: 30, label: "Silver",     color: "text-zinc-400" },
-  { tier: "gold",     min: 75,  pct: 70, label: "Gold",       color: "text-amber-400" },
-  { tier: "platinum", min: 100, pct: 95, label: "Platinum",   color: "text-cyan-300" },
+  { tier: "new",      min: 0,   pct: 10,  label: "New seller", color: "text-muted-foreground" },
+  { tier: "bronze",   min: 26,  pct: 25,  label: "Bronze",     color: "text-amber-600" },
+  { tier: "silver",   min: 51,  pct: 40,  label: "Silver",     color: "text-zinc-400" },
+  { tier: "gold",     min: 76,  pct: 50,  label: "Gold",       color: "text-amber-400" },
+  { tier: "platinum", min: 101, pct: 75,  label: "Platinum",   color: "text-cyan-300" },
+  { tier: "diamond",  min: 200, pct: 100, label: "Diamond",    color: "text-fuchsia-300" },
 ];
 
 export function TrustTierCard({
