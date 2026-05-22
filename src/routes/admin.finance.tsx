@@ -1044,30 +1044,30 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
             <table className="w-full text-[11px]">
               <thead className="sticky top-0 bg-card text-muted-foreground">
                 <tr className="text-left">
-                  <th className="py-1 pr-2">When</th>
+                  <th className="py-1 pr-2">Order #</th>
+                  <th className="pr-2">When</th>
                   <th className="pr-2">Title</th>
                   <th className="pr-2">Status</th>
                   <th className="pr-2 text-right">Subtotal</th>
                   <th className="pr-2 text-right">Comm</th>
                   <th className="pr-2 text-right">Payout</th>
                   <th className="pr-2 text-right">Ship</th>
-                  <th className="pr-2 text-right">Label</th>
-                  <th className="pr-2 text-right">Margin</th>
+                  <th className="pr-2 text-right">Refunded</th>
                   <th className="pr-2 text-right">Drift</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.id} className={`border-t border-border/40 ${r.hasDrift ? "bg-destructive/5" : ""}`}>
-                    <td className="py-1 pr-2 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <tr key={r.id} className={`border-t border-border/40 ${r.hasDrift ? "bg-destructive/5" : ""} ${r.status === "cancelled" ? "opacity-60" : ""}`}>
+                    <td className="py-1 pr-2 whitespace-nowrap font-mono text-[10px] font-bold text-primary" title={r.id}>{r.order_number ?? r.id.slice(0, 8)}</td>
+                    <td className="pr-2 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="pr-2 max-w-[16ch] truncate" title={r.title}>{r.title}</td>
-                    <td className="pr-2"><StatusPill status={r.payment_status} /></td>
+                    <td className="pr-2"><StatusPill status={r.status === "cancelled" ? "canceled" : r.payment_status} /></td>
                     <td className="pr-2 text-right tabular-nums">{fmt(r.subtotalCents)}</td>
                     <td className="pr-2 text-right tabular-nums text-primary">{fmt(r.commissionCents)}</td>
                     <td className="pr-2 text-right tabular-nums text-emerald-500">{fmt(r.payoutCents)}</td>
                     <td className="pr-2 text-right tabular-nums text-muted-foreground">{fmt(r.shippingCents)}</td>
-                    <td className="pr-2 text-right tabular-nums text-muted-foreground">{fmt(r.labelCostCents)}</td>
-                    <td className={`pr-2 text-right tabular-nums ${r.shippingMarginCents >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(r.shippingMarginCents)}</td>
+                    <td className="pr-2 text-right tabular-nums text-destructive">{r.refundedCents > 0 ? fmt(r.refundedCents) : "—"}</td>
                     <td className={`pr-2 text-right tabular-nums font-bold ${r.hasDrift ? "text-destructive" : "text-muted-foreground"}`}>
                       {r.hasDrift ? fmt(r.sumDrift || r.commissionDrift || r.payoutDrift) : "—"}
                     </td>
