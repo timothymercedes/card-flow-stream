@@ -359,9 +359,13 @@ export function AuctionQueuePanel({
           <ListOrdered className="h-3 w-3" /> Pre-B Queue ({queued.length})
         </p>
         <div className="flex gap-1">
+          <button onClick={loadVault} title="Pick from your Vault"
+            className="flex items-center gap-1 rounded-full bg-cyan-500/90 px-2 py-1 text-[10px] font-bold text-white">
+            <Library className="h-3 w-3" /> Vault
+          </button>
           <button onClick={loadListings} title="Import from your listings"
             className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold text-white">
-            <Package className="h-3 w-3" /> Import
+            <Package className="h-3 w-3" /> Listings
           </button>
           <button onClick={() => setAdding((v) => !v)}
             className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-1 text-[10px] font-bold text-white">
