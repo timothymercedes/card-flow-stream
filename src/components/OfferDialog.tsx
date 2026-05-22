@@ -44,6 +44,7 @@ export function OfferDialog({
   const recordPolicy = useServerFn(recordPolicyAcceptance);
 
   const [amount, setAmount] = useState<string>(suggestedPrice ? String(suggestedPrice) : "");
+  const [expiresInHours, setExpiresInHours] = useState<number>(24);
   const [busy, setBusy] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -57,11 +58,11 @@ export function OfferDialog({
 
     setBusy(true);
     try {
-      const res = await submitOffer({ data: { queueItemId, amount: n } });
+      const res = await submitOffer({ data: { queueItemId, amount: n, expiresInHours } });
       await recordPolicy({
         data: {
           context: "offer_accept",
-          metadata: { offer_id: (res as any).offerId, amount: n, queue_item_id: queueItemId },
+          metadata: { offer_id: (res as any).offerId, amount: n, queue_item_id: queueItemId, expires_in_hours: expiresInHours },
         },
       }).catch(() => {});
       toast.success("Offer submitted — card authorized");
@@ -73,6 +74,8 @@ export function OfferDialog({
       setBusy(false);
     }
   };
+
+  const durationLabel = expiresInHours === 1 ? "1 hour" : `${expiresInHours} hours`;
 
   return (
     <>
