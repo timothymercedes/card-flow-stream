@@ -17,6 +17,7 @@ import { getIntlContext } from "@/lib/internationalShipping";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
+import { MoreFromSeller } from "@/components/MoreFromSeller";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -485,6 +486,12 @@ function ListingDetail() {
             </div>
           </div>
         )}
+
+        <MoreFromSeller
+          sellerId={listing.seller_id}
+          category={(listing as any).category}
+          excludeId={listing.id}
+        />
       </div>
     </div>
   );
