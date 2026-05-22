@@ -5561,12 +5561,6 @@ function LiveDetail() {
                 const isHostMods = aud === "host_mods";
                 return (
 
-                const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
-                const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
-                const aud = (m as any).audience || "public";
-                const isModOnly = aud === "mods_only";
-                const isHostMods = aud === "host_mods";
-                return (
                   <div
                     key={m.id}
                     className={`max-w-[95%] rounded-2xl border-l-2 px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all ${
