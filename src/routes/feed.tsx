@@ -296,11 +296,15 @@ function Feed() {
                     {topReactions.length > 0 && (
                       <button
                         onClick={() => openReactors(p.id)}
-                        className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-1 text-xs transition hover:bg-muted/80 active:scale-95"
+                        className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-1 text-xs transition hover:bg-muted/80 active:scale-95"
                         title="See who reacted"
                       >
-                        {topReactions.map(([k]) => <span key={k}>{REACTIONS.find((r) => r.key === k)?.emoji}</span>)}
-                        <span className="ml-1 text-[10px] font-semibold text-foreground">{c.total}</span>
+                        {topReactions.map(([k, n]) => (
+                          <span key={k} className="flex items-center gap-0.5">
+                            <span>{REACTIONS.find((r) => r.key === k)?.emoji}</span>
+                            <span className="text-[10px] font-semibold text-foreground">{n}</span>
+                          </span>
+                        ))}
                       </button>
                     )}
                     <button onClick={() => setPickerFor(pickerFor === p.id ? null : p.id)}
