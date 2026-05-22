@@ -251,7 +251,11 @@ export const acceptOffer = createServerFn({ method: "POST" })
     const aq = o.auction_queue;
     if (aq.host_id !== userId) throw new Error("Only the host can accept offers");
     if (aq.sold_to) throw new Error("Item already sold");
-    if (o.status !== "pending") throw new Error("Offer is no longer pending");
+    // Seller can accept either a fresh pending offer, OR a buyer counter-back
+    // (status='countered' with turn='seller'). In both cases o.amount reflects
+    // the buyer's currently-authorized commitment.
+    const acceptable = (o.status === "pending") || (o.status === "countered" && o.turn === "seller");
+    if (!acceptable) throw new Error("Offer is no longer pending");
     if (o.payment_status !== "authorized") throw new Error("Offer payment is not authorized");
     if (o.expires_at && new Date(o.expires_at) < new Date()) throw new Error("Offer has expired");
 
@@ -328,12 +332,12 @@ export const acceptOffer = createServerFn({ method: "POST" })
       .eq("id", aq.id)
       .is("sold_to", null);
 
-    // Decline sibling pending offers — release their authorizations
+    // Decline sibling active offers (pending OR countered) — release their authorizations
     const { data: siblings } = await supabaseAdmin
       .from("queue_offers" as any)
       .select("id, payment_intent_id")
       .eq("queue_item_id", aq.id)
-      .eq("status", "pending")
+      .in("status", ["pending", "countered"])
       .neq("id", o.id);
     for (const s of (siblings || []) as any[]) {
       if (s.payment_intent_id) {
@@ -367,7 +371,7 @@ export const declineOffer = createServerFn({ method: "POST" })
     if (!offer) throw new Error("Offer not found");
     const o = offer as any;
     if (o.auction_queue.host_id !== userId) throw new Error("Only the host can decline offers");
-    if (o.status !== "pending") throw new Error("Offer is no longer pending");
+    if (o.status !== "pending" && o.status !== "countered") throw new Error("Offer is no longer pending");
 
     if (o.payment_intent_id && o.payment_status === "authorized") {
       await getStripe().paymentIntents.cancel(o.payment_intent_id).catch(() => {});
@@ -390,7 +394,7 @@ export async function expireOffersInternal(): Promise<{ expired: number }> {
   const { data: stale } = await supabaseAdmin
     .from("queue_offers" as any)
     .select("id, payment_intent_id, buyer_id, queue_item_id")
-    .eq("status", "pending")
+    .in("status", ["pending", "countered"])
     .eq("payment_status", "authorized")
     .lt("expires_at", new Date().toISOString())
     .limit(200);
