@@ -4468,17 +4468,11 @@ function LiveDetail() {
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
-              {sellerUsername && (
-                <Link
-                  to="/seller/$username"
-                  params={{ username: sellerUsername }}
-                  className="text-[10px] font-semibold text-primary hover:underline"
-                >
-                  @{sellerUsername}
-                  {stream.mode !== "show_off" ? " · view store" : ""}
-                </Link>
-              )}
+              <div className="mt-1">
+                <LiveMobileHostCard sellerId={stream.seller_id} />
+              </div>
             </div>
+
             {Number((stream as any).total_promoted_amount || 0) > 0 && (
               <span
                 title="Total promoted on this live"
