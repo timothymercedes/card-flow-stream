@@ -225,7 +225,6 @@ export function AuctionQueuePanel({
         duration_seconds: 30,
         snipe_price: val > 0 ? val : null,
         scheduled_show_id: scheduledShowId || null,
-        vault_card_id: v.id,
       };
     });
     const { error } = await supabase.from("auction_queue" as any).insert(rows as any);
