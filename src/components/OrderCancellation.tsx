@@ -134,10 +134,15 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3">
       <div className="w-full max-w-md rounded-2xl bg-card p-4 shadow-xl">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-base font-bold">Cancel Order</h2>
+          <h2 className="text-base font-bold">{order.payment_status === "paid" && role === "buyer" ? "Cancel & Refund" : "Cancel Order"}</h2>
           <button onClick={onClose} aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
         <p className="text-xs text-muted-foreground truncate">"{order.title}" · ${Number(order.amount).toFixed(2)}</p>
+        {order.payment_status === "paid" && role === "buyer" && (
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            The seller will be notified. If they accept (or admin steps in), you'll be refunded to your original payment method in 5–10 business days.
+          </p>
+        )}
 
         {!cancellation && (
           <div className="mt-3 space-y-2">

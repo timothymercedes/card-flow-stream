@@ -266,12 +266,18 @@ function Orders() {
                     {paying === o.id ? "Processing…" : PAYMENTS_SAFE_MODE ? "Pay Now (Safe Mode)" : "Pay Now"}
                   </button>
                 )}
-                {o.status !== "delivered" && o.status !== "cancelled" && (
+                {pay === "refunded" && (
+                  <div className="mt-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-400">
+                    ✓ Refund issued — funds return to your card in 5–10 business days.
+                  </div>
+                )}
+                {o.status !== "cancelled" && pay !== "refunded" && (
                   <button
                     onClick={() => setCancelOrder(o)}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
                   >
-                    <XCircle className="h-3.5 w-3.5" /> Request cancellation
+                    <XCircle className="h-3.5 w-3.5" />
+                    {pay === "paid" ? "Request refund / cancel" : "Request cancellation"}
                   </button>
                 )}
                 {pay === "paid" && o.status === "shipped" && (

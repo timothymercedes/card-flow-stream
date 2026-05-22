@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { refundOrderAction } from "@/lib/order-actions.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
@@ -102,6 +104,22 @@ function SellerHub() {
   const [labelUrls, setLabelUrls] = useState<Record<string, string>>({});
   const [preset, setPreset] = useState<Record<string, ShippingPresetKey>>({});
   const [cancelOrder, setCancelOrder] = useState<any | null>(null);
+  const [refunding, setRefunding] = useState<string | null>(null);
+  const refundOrderServer = useServerFn(refundOrderAction);
+
+  async function refundBuyer(o: any) {
+    if (!window.confirm(`Refund $${Number((o.amount || 0) + (o.shipping_amount || 0)).toFixed(2)} to ${o.ship_name || "the buyer"}? This pulls funds back from your payout and cannot be undone.`)) return;
+    setRefunding(o.id);
+    try {
+      await refundOrderServer({ data: { orderId: o.id, reason: "Seller-issued refund" } });
+      toast.success("Refund issued — buyer notified");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Refund failed");
+    } finally {
+      setRefunding(null);
+    }
+  }
   const [recommended, setRecommended] = useState<Record<string, string | null>>({});
   const [scanCode, setScanCode] = useState<Record<string, string>>({});
 
@@ -690,6 +708,21 @@ function SellerHub() {
                       >
                         <XCircle className="h-3.5 w-3.5" /> Cancel order
                       </button>
+                    )}
+                    {o.payment_status === "paid" && o.status !== "cancelled" && (
+                      <button
+                        onClick={() => refundBuyer(o)}
+                        disabled={refunding === o.id}
+                        className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-destructive/15 py-2 text-[11px] font-bold text-destructive hover:bg-destructive/25 disabled:opacity-60"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        {refunding === o.id ? "Refunding…" : `Refund buyer ($${Number((o.amount || 0) + (o.shipping_amount || 0)).toFixed(2)})`}
+                      </button>
+                    )}
+                    {o.payment_status === "refunded" && (
+                      <div className="mt-2 rounded-lg bg-muted px-3 py-2 text-center text-[11px] font-semibold text-muted-foreground">
+                        ✓ Refunded to buyer
+                      </div>
                     )}
                   </div>
                 );
