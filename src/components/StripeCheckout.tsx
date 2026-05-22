@@ -100,7 +100,7 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
         {bundleDiscount ? (
           <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
             <span>🎁 Bundle discount</span>
-            <span>Platform fee waived</span>
+            <span>Buyer-side fee waived</span>
           </div>
         ) : (
           <Row label="Platform Fee" cents={fees.platformFee} />
@@ -118,7 +118,7 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
         )}
         <p className="text-[10px] text-muted-foreground leading-snug">
           {bundleDiscount
-            ? "You've already won 3+ items from this seller this session — platform fee is waived on additional items."
+            ? "You've already won 3+ items in this live stream — buyer-side processing is waived on additional items."
             : "Platform fee helps cover marketplace operations. Card processing fee (2.9% + $0.30) is passed through from our payment processor so 100% of the item price goes to the seller (minus our 5% marketplace commission)."}
         </p>
         <div className="border-t border-border pt-1 mt-1 flex justify-between font-semibold text-sm">
