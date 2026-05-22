@@ -9,6 +9,8 @@ const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ d
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
+import { ListingImageUpload } from "@/components/ListingImageUpload";
+import { validateListingImage } from "@/lib/listingDisplay";
 
 export const Route = createFileRoute("/vault")({ component: Vault });
 
