@@ -1775,12 +1775,75 @@ function LiveWizard(p: LiveWizardProps) {
               <span className="font-semibold">${p.startingBid}</span>
             </li>
           </ul>
+
+          {/* Schedule vs Go Live now */}
+          <div className="space-y-2 rounded-xl border border-border bg-background/60 p-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => p.setScheduledFor("")}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${
+                  !p.scheduledFor
+                    ? "bg-live text-live-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                🔴 Go live now
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!p.scheduledFor) {
+                    const d = new Date(Date.now() + 60 * 60 * 1000);
+                    d.setSeconds(0, 0);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    p.setScheduledFor(
+                      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`,
+                    );
+                  }
+                }}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${
+                  p.scheduledFor
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                📅 Schedule
+              </button>
+            </div>
+            {p.scheduledFor && (
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold text-muted-foreground">
+                  Date &amp; time
+                </span>
+                <input
+                  type="datetime-local"
+                  value={p.scheduledFor}
+                  min={(() => {
+                    const d = new Date();
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  })()}
+                  onChange={(e) => p.setScheduledFor(e.target.value)}
+                  className="w-full rounded-md bg-input px-3 py-2 text-sm outline-none"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Followers will get notified and viewers can pre-bid before you go live.
+                </p>
+              </label>
+            )}
+          </div>
+
           <button
             data-tour="start-stream"
             onClick={() => p.startLive()}
-            className="min-h-14 w-full rounded-2xl bg-live text-base font-extrabold text-live-foreground"
+            className={`min-h-14 w-full rounded-2xl text-base font-extrabold ${
+              p.scheduledFor
+                ? "bg-primary text-primary-foreground"
+                : "bg-live text-live-foreground"
+            }`}
           >
-            🔴 Start Live Stream
+            {p.scheduledFor ? "📅 Schedule Live" : "🔴 Start Live Stream"}
           </button>
         </section>
       )}
