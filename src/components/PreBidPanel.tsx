@@ -136,20 +136,9 @@ export function PreBidPanel({
     }
   }
 
-  async function submitOffer(item: QueueItem) {
+  function submitOffer(item: QueueItem) {
     if (!requireAuth("make an offer")) return;
-    const amount = Number(drafts[item.id]);
-    if (!amount || amount <= 0) return toast.error("Enter an offer amount");
-    setBusy(item.id);
-    try {
-      await makeOfferFn({ data: { queueItemId: item.id, amount } });
-      toast.success(`Offer sent: $${amount}`);
-      setDrafts((d) => ({ ...d, [item.id]: "" }));
-    } catch (e: any) {
-      toast.error(e?.message || "Offer failed");
-    } finally {
-      setBusy(null);
-    }
+    setOfferItem(item);
   }
 
   return (
