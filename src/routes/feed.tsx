@@ -87,6 +87,12 @@ function Feed() {
     if (!user) return;
     setPickerFor(null);
     const mine = reactions.find((r) => r.post_id === p.id && r.user_id === user.id);
+    // Optimistic update
+    setReactions((prev) => {
+      const others = prev.filter((r) => !(r.post_id === p.id && r.user_id === user.id));
+      if (mine?.reaction === type) return others; // toggle off
+      return [...others, { post_id: p.id, user_id: user.id, reaction: type }];
+    });
     if (mine?.reaction === type) {
       await supabase.from("post_reactions").delete().eq("post_id", p.id).eq("user_id", user.id);
     } else if (mine) {
@@ -101,6 +107,21 @@ function Feed() {
           link: "/feed",
         });
       }
+    }
+  }
+
+  async function openReactors(postId: string) {
+    setReactorsFor(postId);
+    const userIds = reactions.filter((r) => r.post_id === postId).map((r) => r.user_id);
+    const missing = userIds.filter((id) => !reactorProfiles[id]);
+    if (missing.length === 0) return;
+    const { data } = await supabase.from("profiles").select("id,username,avatar_url").in("id", missing);
+    if (data) {
+      setReactorProfiles((prev) => {
+        const next = { ...prev };
+        (data as ReactorProfile[]).forEach((p) => { next[p.id] = p; });
+        return next;
+      });
     }
   }
 
