@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle } from "lucide-react";
+import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
 import { WatchTutorial } from "@/components/WatchTutorial";
@@ -14,10 +14,13 @@ import { isValidShippingAddress, validateAddress, type ShippingAddress } from "@
 import { BuyerRestrictionBanner } from "@/components/BuyerRestrictionBanner";
 import { InsuranceOption } from "@/components/insurance/InsuranceOption";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
+import { calculateTaxCents, salesTaxRate } from "@/lib/salesTax";
+import { BUYER_PLATFORM_FEE_CENTS, INTL_PROCESSING_FEE_RATE } from "@/lib/marketplaceFeeRates";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
 function Cart() {
+  const router = useRouter();
   const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [checkoutSeller, setCheckoutSeller] = useState<string | null>(null);
@@ -108,11 +111,35 @@ function Cart() {
   return (
     <AppShell>
       <div className="px-4 py-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <button
+            onClick={() => {
+              // Prefer browser back; fall back to home if there's no history entry.
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.history.back();
+              } else {
+                router.navigate({ to: "/" });
+              }
+            }}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted/80"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
+            aria-label="Close cart"
+          >
+            <X className="h-4 w-4" />
+          </Link>
+        </div>
         <div className="mb-1 flex items-center justify-between gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-bold"><ShoppingBag className="h-6 w-6" /> My Cart</h1>
           <WatchTutorial routePath="/cart" label="Checkout help" />
         </div>
         <p className="mb-4 text-xs text-muted-foreground">Pay once per seller — combined shipping is already applied.</p>
+
 
         <div className="mb-3"><BuyerRestrictionBanner /></div>
 
@@ -202,6 +229,47 @@ function Cart() {
                     compact
                   />
                 </div>
+                {(() => {
+                  const subtotalCents = Math.round(total * 100);
+                  const platformFeeCents = BUYER_PLATFORM_FEE_CENTS;
+                  const intlFeeCents = isIntl ? Math.round(subtotalCents * INTL_PROCESSING_FEE_RATE) : 0;
+                  const taxCents = calculateTaxCents(
+                    subtotalCents,
+                    buyerAddress?.address_country,
+                    buyerAddress?.address_state,
+                  );
+                  const taxRatePct = (salesTaxRate(buyerAddress?.address_country, buyerAddress?.address_state) * 100).toFixed(2);
+                  const estTotalCents = subtotalCents + platformFeeCents + intlFeeCents + taxCents;
+                  return (
+                    <div className="mt-3 space-y-1 rounded-lg bg-muted/40 px-3 py-2 text-[11px]">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Subtotal</span>
+                        <span>${(subtotalCents / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Platform fee</span>
+                        <span>${(platformFeeCents / 100).toFixed(2)}</span>
+                      </div>
+                      {intlFeeCents > 0 && (
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>International processing (4%)</span>
+                          <span>${(intlFeeCents / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Sales tax{taxCents > 0 ? ` (${taxRatePct}%)` : ""}</span>
+                        <span>{taxCents > 0 ? `$${(taxCents / 100).toFixed(2)}` : addressOk ? "$0.00" : "Add address"}</span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-1 text-foreground">
+                        <span className="font-semibold">Estimated total</span>
+                        <span className="font-bold">${(estTotalCents / 100).toFixed(2)}</span>
+                      </div>
+                      <p className="pt-0.5 text-[10px] text-muted-foreground/80">
+                        Shipping &amp; card processing fee shown at checkout.
+                      </p>
+                    </div>
+                  );
+                })()}
                 <button
                   onClick={() => addressOk ? setCheckoutSeller(sellerId) : setShowAddressForm(true)}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
@@ -209,6 +277,7 @@ function Cart() {
                   <CreditCard className="h-4 w-4" />
                   {addressOk ? `Checkout $${total.toFixed(2)}` : "Add shipping address to check out"}
                 </button>
+
               </div>
             );
           })}
