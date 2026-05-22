@@ -526,8 +526,6 @@ function SellerHub() {
                 { k: "shipped", l: "Shipped", n: counts.shipped },
                 { k: "delivered", l: "Delivered", n: counts.delivered },
                 { k: "failed", l: "Failed", n: counts.failed },
-                { k: "refunds", l: "Refunds", n: counts.refunds },
-                { k: "cancelled", l: "Cancelled", n: counts.cancelled },
               ]}
             />
             {filteredOrders.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Nothing here</p>}
