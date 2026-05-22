@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,8 +14,32 @@ type Msg = {
   at: string;
 };
 
+type CancellationStatus = "pending" | "escalated" | "accepted" | "declined" | "cancelled";
+
+type CancellationRecord = {
+  id: string;
+  status: CancellationStatus;
+  requested_by: string;
+  reason: string | null;
+  messages: Msg[] | null;
+  admin_requested: boolean | null;
+};
+
+type OrderForCancellation = {
+  id: string;
+  title: string;
+  amount: number | string | null;
+  payment_status?: string | null;
+  seller_id?: string | null;
+  buyer_id?: string | null;
+};
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 interface Props {
-  order: any;
+  order: OrderForCancellation;
   role: "buyer" | "seller";
   onClose: () => void;
   onChanged?: () => void;
@@ -24,12 +48,12 @@ interface Props {
 export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
   const { user, profile } = useAuth();
   const cancelOrderServer = useServerFn(cancelOrderAction);
-  const [cancellation, setCancellation] = useState<any | null>(null);
+  const [cancellation, setCancellation] = useState<CancellationRecord | null>(null);
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     const { data } = await supabase
       .from("order_cancellations")
       .select("*")
@@ -38,14 +62,14 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    setCancellation(data);
-  }
+    setCancellation((data as CancellationRecord | null) ?? null);
+  }, [order.id]);
   useEffect(() => {
     setCancellation(null);
     setReason("");
     setMsg("");
     load();
-  }, [order.id]);
+  }, [load]);
 
   async function createRequest() {
     if (!user || !reason.trim()) return toast.error("Add a reason");
