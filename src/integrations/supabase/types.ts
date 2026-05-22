@@ -3062,6 +3062,36 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_abuse_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          offer_id: string | null
+          queue_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          offer_id?: string | null
+          queue_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          offer_id?: string | null
+          queue_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           amount: number
@@ -4400,34 +4430,73 @@ export type Database = {
       }
       queue_offers: {
         Row: {
+          accepted_at: string | null
           amount: number
+          auth_amount_cents: number | null
           buyer_id: string
           buyer_username: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          captured_at: string | null
           created_at: string
+          environment: string
+          expires_at: string
           id: string
+          order_id: string | null
+          payment_intent_id: string | null
+          payment_status: string
           queue_item_id: string
           status: string
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
           updated_at: string
+          voided_at: string | null
         }
         Insert: {
+          accepted_at?: string | null
           amount: number
+          auth_amount_cents?: number | null
           buyer_id: string
           buyer_username?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          captured_at?: string | null
           created_at?: string
+          environment?: string
+          expires_at?: string
           id?: string
+          order_id?: string | null
+          payment_intent_id?: string | null
+          payment_status?: string
           queue_item_id: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
           updated_at?: string
+          voided_at?: string | null
         }
         Update: {
+          accepted_at?: string | null
           amount?: number
+          auth_amount_cents?: number | null
           buyer_id?: string
           buyer_username?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          captured_at?: string | null
           created_at?: string
+          environment?: string
+          expires_at?: string
           id?: string
+          order_id?: string | null
+          payment_intent_id?: string | null
+          payment_status?: string
           queue_item_id?: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
           updated_at?: string
+          voided_at?: string | null
         }
         Relationships: [
           {
@@ -6699,6 +6768,18 @@ export type Database = {
           returned_count: number | null
           seller_id: string | null
           total_orders: number | null
+        }
+        Relationships: []
+      }
+      seller_offer_risk: {
+        Row: {
+          auth_failed_30d: number | null
+          cancels_30d: number | null
+          capture_failed_30d: number | null
+          last_event_at: string | null
+          spam_30d: number | null
+          total_30d: number | null
+          user_id: string | null
         }
         Relationships: []
       }
