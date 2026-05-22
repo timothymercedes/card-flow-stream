@@ -44,6 +44,7 @@ function ListingDetail() {
   const [offers, setOffers] = useState<any[]>([]);
   const [bidAmt, setBidAmt] = useState("");
   const [offerAmt, setOfferAmt] = useState("");
+  const [offerExpiresInHours, setOfferExpiresInHours] = useState<number>(24);
   const [now, setNow] = useState(Date.now());
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   const [qty, setQty] = useState(1);
@@ -178,8 +179,9 @@ function ListingDetail() {
     const dup = offers.find((o) => o.buyer_id === profile.id && Number(o.amount) === amt && o.status === "pending");
     if (dup) return toast.error("You already offered that amount");
     gateIntl(async () => {
+      const expiresAt = new Date(Date.now() + offerExpiresInHours * 3600 * 1000).toISOString();
       const { error } = await supabase.from("offers").insert({
-        listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt,
+        listing_id: id, buyer_id: profile.id, buyer_username: profile.username, seller_id: listing.seller_id, amount: amt, expires_at: expiresAt,
       });
       if (error) {
         if (error.message?.includes("greater than $1")) return toast.error("Offer must be more than $1");
@@ -408,6 +410,28 @@ function ListingDetail() {
               <div className="flex gap-2">
                 <input type="number" placeholder="Your offer" value={offerAmt} onChange={(e) => setOfferAmt(e.target.value)} className="flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
                 <button onClick={makeOffer} className="rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground">Offer</button>
+              </div>
+              <div className="mt-2">
+                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Offer expires in</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {([1, 2, 6, 12, 24] as const).map((h) => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => setOfferExpiresInHours(h)}
+                      className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition ${
+                        offerExpiresInHours === h
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-muted/40 hover:bg-muted"
+                      }`}
+                    >
+                      {h}h
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Default 24h. Shorter windows push the seller to respond faster.
+                </p>
               </div>
             </div>
           )}
