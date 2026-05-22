@@ -204,6 +204,9 @@ async function performCharge(opts: {
     isInternational,
     platformFeeCentsOverride: platformFeeOverride,
     commissionRate,
+    // Live auctions / instant wins: buyer and seller each cover ~50% of
+    // the Stripe processing fee.
+    feeSplitMode: "split",
   });
   const feeAbsorbedBy: "buyer" | "seller" = fees.sellerAbsorbedFee > 0 ? "seller" : "buyer";
   const commissionCents = fees.commissionCents;
@@ -232,6 +235,9 @@ async function performCharge(opts: {
         seller_absorbed_fee_cents: String(fees.sellerAbsorbedFee),
         commission_cents: String(commissionCents),
         processing_fee_cents: String(fees.processingFee),
+        buyer_processing_fee_cents: String(fees.buyerProcessingFee),
+        seller_processing_fee_cents: String(fees.sellerProcessingFee),
+        fee_split_mode: fees.feeSplitMode,
         intl_fee_cents: String(fees.intlFee),
         seller_payout_cents: String(sellerPayoutCents),
         is_international: String(isInternational),
