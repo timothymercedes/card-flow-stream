@@ -81,6 +81,33 @@ function Market() {
         l.tcg_number?.toLowerCase().includes(term)
       );
     });
+    // Apply listing type filter
+    switch (listingFilter) {
+      case "auction":
+        arr = arr.filter((l) => l.is_auction);
+        break;
+      case "buy_now":
+        arr = arr.filter((l) => !l.is_auction && (l.price ?? 0) > 0);
+        break;
+      case "make_offer":
+        arr = arr.filter((l) => {
+          const d = getListingPriceDisplay(l, true);
+          return d.kind === "offer";
+        });
+        break;
+      case "ending_soon":
+        arr = arr.filter((l) => l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000);
+        arr = arr.sort((a, b) => new Date(a.auction_ends_at).getTime() - new Date(b.auction_ends_at).getTime());
+        break;
+      case "trending":
+        arr = arr.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0));
+        break;
+      case "newly_listed":
+        arr = arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      default:
+        break;
+    }
     const priceOf = (l: any) => getListingPriceDisplay(l).amount;
     switch (sort) {
       case "price_asc": arr = [...arr].sort((a, b) => priceOf(a) - priceOf(b)); break;
@@ -98,7 +125,7 @@ function Market() {
       default: break;
     }
     return arr;
-  }, [items, q, sort, category, seed]);
+  }, [items, q, sort, category, seed, listingFilter]);
 
   const trendingCount = items.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0)).length;
   const endingSoonCount = items.filter((l) => {
