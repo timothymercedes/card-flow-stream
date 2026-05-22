@@ -420,3 +420,322 @@ export async function expireOffersInternal(): Promise<{ expired: number }> {
   }
   return { expired: count };
 }
+
+// ─── Counter-offer flow ────────────────────────────────────────────────────────
+// All actions reset expires_at using one of the ALLOWED_TTL_HOURS windows.
+// Each side's PI is always authorized at o.amount, the buyer's standing commitment.
+// counter_amount is set when one side has proposed a new price awaiting the other.
+
+const TtlInput = z.object({
+  offerId: z.string().uuid(),
+  expiresInHours: z.number().int().refine(
+    (v) => (ALLOWED_TTL_HOURS as readonly number[]).includes(v),
+    { message: "Expiration must be 1, 2, 6, 12, or 24 hours" },
+  ).optional(),
+});
+
+/** Seller proposes a counter price. PI stays authed at o.amount; counter_amount stored separately. */
+export const sellerCounterOffer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    TtlInput.extend({ counterAmount: z.number().positive().max(1_000_000) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: offer } = await supabase
+      .from("queue_offers" as any)
+      .select("*, auction_queue!inner(host_id, sold_to)")
+      .eq("id", data.offerId)
+      .maybeSingle();
+    if (!offer) throw new Error("Offer not found");
+    const o = offer as any;
+    if (o.auction_queue.host_id !== userId) throw new Error("Only the seller can counter");
+    if (o.auction_queue.sold_to) throw new Error("Item already sold");
+    // Seller may counter when it's their turn: a fresh pending offer (buyer just submitted),
+    // or a buyer counter-back (status='countered', turn='seller').
+    const sellersTurn = (o.status === "pending") || (o.status === "countered" && o.turn === "seller");
+    if (!sellersTurn) throw new Error("It's not your turn to counter");
+    if (o.payment_status !== "authorized") throw new Error("Buyer payment is no longer authorized");
+    if (o.expires_at && new Date(o.expires_at) < new Date()) throw new Error("Offer has expired");
+
+    const hours = data.expiresInHours ?? OFFER_TTL_HOURS;
+    const newExpires = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+
+    const { error } = await supabaseAdmin
+      .from("queue_offers" as any)
+      .update({
+        status: "countered",
+        counter_amount: data.counterAmount,
+        turn: "buyer",
+        last_action_by: "seller",
+        last_action_at: new Date().toISOString(),
+        expires_at: newExpires,
+      })
+      .eq("id", o.id);
+    if (error) throw new Error(error.message);
+
+    return { ok: true, counterAmount: data.counterAmount, expiresAt: newExpires };
+  });
+
+/** Buyer accepts the seller's counter price. Re-auth + capture at counter_amount. */
+export const buyerAcceptCounter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ offerId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: offer } = await supabase
+      .from("queue_offers" as any)
+      .select("*, auction_queue!inner(id, host_id, sold_to, title, image_url, stream_id)")
+      .eq("id", data.offerId)
+      .maybeSingle();
+    if (!offer) throw new Error("Offer not found");
+    const o = offer as any;
+    if (o.buyer_id !== userId) throw new Error("Not your offer");
+    if (o.status !== "countered" || o.turn !== "buyer") throw new Error("No counter awaiting your acceptance");
+    if (o.auction_queue.sold_to) throw new Error("Item already sold");
+    if (!o.counter_amount) throw new Error("Counter amount missing");
+    if (o.expires_at && new Date(o.expires_at) < new Date()) throw new Error("Counter has expired");
+
+    const stripe = getStripe();
+    const counterCents = Math.round(Number(o.counter_amount) * 100);
+
+    // Release old PI, create new one at counter_amount, capture immediately.
+    if (o.payment_intent_id) {
+      await stripe.paymentIntents.cancel(o.payment_intent_id).catch(() => {});
+    }
+    let newPiId: string;
+    try {
+      const pi = await stripe.paymentIntents.create(
+        {
+          amount: counterCents,
+          currency: "usd",
+          customer: o.stripe_customer_id,
+          payment_method: o.stripe_payment_method_id,
+          capture_method: "automatic",
+          confirm: true,
+          off_session: true,
+          description: `Counter accepted on "${o.auction_queue.title}"`,
+          metadata: {
+            kind: "queue_offer_counter_accept",
+            queue_item_id: o.queue_item_id,
+            offer_id: o.id,
+            buyer_id: o.buyer_id,
+            seller_id: o.auction_queue.host_id,
+          },
+        },
+        { idempotencyKey: `offer:counter_accept:${o.id}:${counterCents}` },
+      );
+      if (pi.status !== "succeeded") {
+        await stripe.paymentIntents.cancel(pi.id).catch(() => {});
+        await logAbuse(userId, "capture_failed", o.queue_item_id, o.id, { pi_status: pi.status });
+        throw new Error("Could not capture counter payment. Try a different card.");
+      }
+      newPiId = pi.id;
+    } catch (e: any) {
+      await logAbuse(userId, "capture_failed", o.queue_item_id, o.id, { error: e?.message });
+      throw new Error(e?.message || "Counter payment failed");
+    }
+
+    // Buyer profile for ship_name fallback
+    const { data: buyer } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", o.buyer_id)
+      .maybeSingle();
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        buyer_id: o.buyer_id,
+        seller_id: o.auction_queue.host_id,
+        title: o.auction_queue.title,
+        amount: o.counter_amount,
+        quantity: 1,
+        item_image_url: o.auction_queue.image_url,
+        stream_id: o.auction_queue.stream_id,
+        payment_status: "paid",
+        status: "pending",
+        ship_address: "",
+        ship_city: "",
+        ship_zip: "",
+        ship_name: (buyer as any)?.username || "",
+        ship_country: "US",
+      } as any)
+      .select("id")
+      .single();
+    if (orderErr) throw new Error(orderErr.message);
+
+    await supabaseAdmin
+      .from("queue_offers" as any)
+      .update({
+        status: "accepted",
+        payment_status: "captured",
+        amount: o.counter_amount,
+        auth_amount_cents: counterCents,
+        payment_intent_id: newPiId,
+        accepted_at: new Date().toISOString(),
+        captured_at: new Date().toISOString(),
+        last_action_by: "buyer",
+        last_action_at: new Date().toISOString(),
+        order_id: (order as any).id,
+      })
+      .eq("id", o.id);
+
+    await supabaseAdmin
+      .from("auction_queue")
+      .update({
+        sold_to: o.buyer_id,
+        sold_at: new Date().toISOString(),
+        order_id: (order as any).id,
+        status: "sold",
+      } as any)
+      .eq("id", o.auction_queue.id)
+      .is("sold_to", null);
+
+    // Decline sibling active offers
+    const { data: siblings } = await supabaseAdmin
+      .from("queue_offers" as any)
+      .select("id, payment_intent_id")
+      .eq("queue_item_id", o.auction_queue.id)
+      .in("status", ["pending", "countered"])
+      .neq("id", o.id);
+    for (const s of (siblings || []) as any[]) {
+      if (s.payment_intent_id) {
+        await stripe.paymentIntents.cancel(s.payment_intent_id).catch(() => {});
+      }
+      await supabaseAdmin
+        .from("queue_offers" as any)
+        .update({
+          status: "declined",
+          payment_status: "released",
+          cancelled_at: new Date().toISOString(),
+          cancel_reason: "outbid_sibling_accepted",
+        })
+        .eq("id", s.id);
+    }
+
+    return { ok: true, orderId: (order as any).id };
+  });
+
+/** Buyer declines the seller's counter. Releases authorization. */
+export const buyerDeclineCounter = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ offerId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: offer } = await supabase
+      .from("queue_offers" as any)
+      .select("id, buyer_id, status, turn, payment_status, payment_intent_id, queue_item_id")
+      .eq("id", data.offerId)
+      .maybeSingle();
+    if (!offer) throw new Error("Offer not found");
+    const o = offer as any;
+    if (o.buyer_id !== userId) throw new Error("Not your offer");
+    if (o.status !== "countered" || o.turn !== "buyer") throw new Error("No counter awaiting your response");
+
+    if (o.payment_intent_id && o.payment_status === "authorized") {
+      await getStripe().paymentIntents.cancel(o.payment_intent_id).catch(() => {});
+    }
+    await supabaseAdmin
+      .from("queue_offers" as any)
+      .update({
+        status: "declined",
+        payment_status: "released",
+        cancelled_at: new Date().toISOString(),
+        cancel_reason: "buyer_declined_counter",
+        last_action_by: "buyer",
+        last_action_at: new Date().toISOString(),
+      })
+      .eq("id", o.id);
+    return { ok: true };
+  });
+
+/** Buyer counters back at a new price. Re-auth at newAmount, hand turn to seller. */
+export const buyerCounterBack = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    TtlInput.extend({ newAmount: z.number().positive().max(1_000_000) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: offer } = await supabase
+      .from("queue_offers" as any)
+      .select("*, auction_queue!inner(id, host_id, sold_to, title, min_offer)")
+      .eq("id", data.offerId)
+      .maybeSingle();
+    if (!offer) throw new Error("Offer not found");
+    const o = offer as any;
+    if (o.buyer_id !== userId) throw new Error("Not your offer");
+    if (o.status !== "countered" || o.turn !== "buyer") throw new Error("No counter awaiting your response");
+    if (o.auction_queue.sold_to) throw new Error("Item already sold");
+    const min = Number(o.auction_queue.min_offer || 0);
+    if (min > 0 && data.newAmount < min) throw new Error(`Minimum offer is $${min}`);
+
+    const stripe = getStripe();
+    const newCents = Math.round(data.newAmount * 100);
+    const hours = data.expiresInHours ?? OFFER_TTL_HOURS;
+    const newExpires = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+
+    // Release old PI, create fresh manual-capture PI at new amount.
+    if (o.payment_intent_id) {
+      await stripe.paymentIntents.cancel(o.payment_intent_id).catch(() => {});
+    }
+    let newPiId: string;
+    try {
+      const pi = await stripe.paymentIntents.create(
+        {
+          amount: newCents,
+          currency: "usd",
+          customer: o.stripe_customer_id,
+          payment_method: o.stripe_payment_method_id,
+          capture_method: "manual",
+          confirm: true,
+          off_session: true,
+          description: `Counter-back on "${o.auction_queue.title}"`,
+          metadata: {
+            kind: "queue_offer_counter_back",
+            queue_item_id: o.queue_item_id,
+            offer_id: o.id,
+            buyer_id: o.buyer_id,
+            seller_id: o.auction_queue.host_id,
+          },
+        },
+        { idempotencyKey: `offer:counter_back:${o.id}:${newCents}:${Date.now()}` },
+      );
+      if (pi.status !== "requires_capture") {
+        await stripe.paymentIntents.cancel(pi.id).catch(() => {});
+        await logAbuse(userId, "auth_failed", o.queue_item_id, o.id, { pi_status: pi.status });
+        throw new Error("Card could not be re-authorized. Try a different card.");
+      }
+      newPiId = pi.id;
+    } catch (e: any) {
+      await logAbuse(userId, "auth_failed", o.queue_item_id, o.id, { error: e?.message });
+      throw new Error(e?.message || "Payment authorization failed");
+    }
+
+    const { error } = await supabaseAdmin
+      .from("queue_offers" as any)
+      .update({
+        status: "countered",
+        amount: data.newAmount,
+        counter_amount: null,
+        payment_intent_id: newPiId,
+        payment_status: "authorized",
+        auth_amount_cents: newCents,
+        turn: "seller",
+        last_action_by: "buyer",
+        last_action_at: new Date().toISOString(),
+        expires_at: newExpires,
+      })
+      .eq("id", o.id);
+    if (error) {
+      await stripe.paymentIntents.cancel(newPiId).catch(() => {});
+      throw new Error(error.message);
+    }
+
+    return { ok: true, newAmount: data.newAmount, expiresAt: newExpires };
+  });
