@@ -830,11 +830,14 @@ function LiveDetail() {
         (p) => {
           const row: any = p.new;
           setModChat((m) => [...m, row]);
-          // 🔔 Notify staff (host + mods) when a private mod message arrives
-          // and the mod panel isn't open. Self-sent messages don't ping.
-          if (row.user_id && row.user_id !== user?.id) {
+          // 🔔 Ping staff when a private mod-team message arrives from someone else.
+          // Skip when the panel is already open so it isn't noisy.
+          if (
+            row.user_id && row.user_id !== user?.id &&
+            isStaffRef.current && !showModPanelRef.current
+          ) {
             setModUnread((n) => n + 1);
-            toast.message(`🛡️ @${row.username} (mods)`, {
+            toast.message(`🛡️ @${row.username} (mod team)`, {
               description: String(row.content).slice(0, 120),
             });
           }
