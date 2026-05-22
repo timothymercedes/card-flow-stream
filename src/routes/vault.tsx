@@ -1604,7 +1604,7 @@ function Vault() {
 function SellModal({ card, onClose, onSubmit }: {
   card: Card;
   onClose: () => void;
-  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; backImage?: string }) => void;
+  onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) => void;
 }) {
   const [buyNow, setBuyNow] = useState(true);
   const [auction, setAuction] = useState(false);
@@ -1612,37 +1612,57 @@ function SellModal({ card, onClose, onSubmit }: {
   const [days, setDays] = useState(3);
   const [price, setPrice] = useState(String(card.price ?? card.estimated_value ?? 1));
   const [reserve, setReserve] = useState("");
-  const [backImage, setBackImage] = useState<string>(card.back_image_url || "");
+  const [shipping, setShipping] = useState("0");
+  const [frontImage, setFrontImage] = useState<string>("");
+  const [backImage, setBackImage] = useState<string>("");
+  const [desc, setDesc] = useState<string>(card.description || "");
 
-  function onBackFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => setBackImage(String(r.result));
-    r.readAsDataURL(f);
-  }
+  const meta = [
+    card.tcg_set, card.tcg_number ? `#${card.tcg_number}` : null,
+    card.tcg_year, card.condition,
+    card.is_graded && card.grader ? `${card.grader} ${card.grade ?? ""}`.trim() : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-md space-y-3 rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-md space-y-3 overflow-y-auto rounded-2xl bg-card p-4 max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <p className="font-bold">Sell "{card.name}"</p>
-          <button onClick={onClose}><X className="h-4 w-4" /></button>
+          <p className="font-bold">List "{card.name}" for sale</p>
+          <button onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Front</p>
-            {card.image_url ? <img src={card.image_url} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <p className="text-[10px] text-destructive">Missing</p>}
-          </div>
-          <div>
-            <p className="text-[10px] uppercase text-muted-foreground">Back {backImage ? "" : "(required)"}</p>
-            {backImage ? <img src={backImage} className="mt-1 h-24 w-full rounded-lg object-cover" alt="" /> : <div className="mt-1 flex h-24 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No back photo</div>}
-            <input type="file" accept="image/*" onChange={onBackFile} className="mt-1 block w-full text-[10px]" />
+        {/* Prefilled metadata from vault */}
+        <div className="rounded-lg bg-muted/40 p-2.5 text-[11px]">
+          <p className="mb-1 font-semibold text-muted-foreground">Auto-filled from vault</p>
+          <div className="flex flex-wrap gap-1">
+            {meta.length === 0 && <span className="text-muted-foreground">No extra metadata</span>}
+            {meta.map((m) => (
+              <span key={m} className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">{m}</span>
+            ))}
           </div>
         </div>
 
-        <p className="text-[11px] text-muted-foreground">Choose one or more listing options</p>
+        {/* Vault reference (NOT used as sale photo) */}
+        {card.image_url && (
+          <div className="flex items-center gap-2 rounded-lg bg-muted/30 p-2">
+            <img src={card.image_url} className="h-12 w-12 rounded object-cover ring-1 ring-border" alt="" />
+            <p className="text-[10px] text-muted-foreground">Vault reference — not used as the sale photo. Upload fresh photos below.</p>
+          </div>
+        )}
+
+        {/* REQUIRED fresh sale photos */}
+        <ListingImageUpload value={frontImage} onChange={setFrontImage} label="Sale photo — front (required)" />
+        <ListingImageUpload value={backImage} onChange={setBackImage} label="Sale photo — back (required)" />
+
+        <textarea
+          rows={2}
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm"
+          placeholder="Description (edit as needed)"
+        />
+
+        <p className="text-[11px] text-muted-foreground">Choose one or more sale options</p>
         <div className="space-y-2">
           <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
             <input type="checkbox" checked={buyNow} onChange={(e) => setBuyNow(e.target.checked)} className="h-4 w-4" /> Buy Now
@@ -1667,24 +1687,41 @@ function SellModal({ card, onClose, onSubmit }: {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <input type="number" min="0" step="0.01" value={reserve} onChange={(e) => setReserve(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder="No sale below this amount" />
                 </div>
-                <p className="mt-1 text-[10px] text-muted-foreground">If the top bid is below this, you'll be asked to accept or decline.</p>
               </div>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-          <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder={auction ? "Starting bid" : "Price"} />
+
+        <div>
+          <p className="mb-1 text-[10px] uppercase text-muted-foreground">{auction ? "Starting bid" : "Price"}</p>
+          <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
+          </div>
         </div>
+
+        <div>
+          <p className="mb-1 text-[10px] uppercase text-muted-foreground">Shipping ($)</p>
+          <input type="number" min="0" step="0.01" value={shipping} onChange={(e) => setShipping(e.target.value)} className="w-full rounded-lg bg-input px-3 py-2 text-sm" />
+        </div>
+
         <button
           onClick={() => {
-            if (!card.image_url) return toast.error("Front photo required");
-            if (!backImage) return toast.error("Back photo required");
+            const frontErr = validateListingImage(frontImage, { field: "Front sale photo" });
+            if (frontErr) return toast.error(frontErr);
+            const backErr = validateListingImage(backImage, { field: "Back sale photo" });
+            if (backErr) return toast.error(backErr);
             if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
             const amount = Number(price) || 0;
             if (buyNow && amount <= 0) return toast.error("Set a Buy Now price");
             if (auction && amount <= 0) return toast.error("Set a starting bid");
-            onSubmit({ buy_now: buyNow, auction, offer, days, price: amount, reserve: reserve ? Number(reserve) : undefined, backImage });
+            onSubmit({
+              buy_now: buyNow, auction, offer, days, price: amount,
+              reserve: reserve ? Number(reserve) : undefined,
+              frontImage, backImage,
+              description: desc,
+              shipping: Number(shipping) || 0,
+            });
           }}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >
