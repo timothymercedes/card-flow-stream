@@ -104,7 +104,7 @@ function inspectVideoFrame(video: HTMLVideoElement): HlsVideoMetrics | null {
   }
 }
 
-export function HlsPlayer({ src, className, muted = false, autoPlay = true, controls = false, style, onVideoMetrics }: {
+export const HlsPlayer = forwardRef<HTMLVideoElement, {
   src: string;
   className?: string;
   muted?: boolean;
@@ -112,9 +112,11 @@ export function HlsPlayer({ src, className, muted = false, autoPlay = true, cont
   controls?: boolean;
   style?: CSSProperties;
   onVideoMetrics?: (metrics: HlsVideoMetrics) => void;
-}) {
+}>(function HlsPlayer({ src, className, muted = false, autoPlay = true, controls = false, style, onVideoMetrics }, externalRef) {
   const ref = useRef<HTMLVideoElement>(null);
   const metricsRef = useRef(onVideoMetrics);
+
+  useImperativeHandle(externalRef, () => ref.current as HTMLVideoElement, []);
 
   useEffect(() => {
     metricsRef.current = onVideoMetrics;
@@ -199,4 +201,4 @@ export function HlsPlayer({ src, className, muted = false, autoPlay = true, cont
   }, [src, autoPlay]);
 
   return <video ref={ref} className={className} style={style} crossOrigin="anonymous" playsInline muted={muted} controls={controls} autoPlay={autoPlay} />;
-}
+});
