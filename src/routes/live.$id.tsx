@@ -4534,7 +4534,7 @@ function LiveDetail() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
               <div className="mt-1">
-                <LiveMobileHostCard sellerId={stream.seller_id} />
+                <LiveMobileHostCard sellerId={stream.seller_id} showTrustBadges />
               </div>
             </div>
 
@@ -6355,6 +6355,10 @@ function LiveDetail() {
               <input
                 value={input}
                 data-tour="chat"
+                enterKeyHint="send"
+                autoComplete="off"
+                autoCorrect="off"
+                inputMode="text"
                 onChange={(e) => {
                   const v = e.target.value;
                   setInput(v);
@@ -6372,15 +6376,16 @@ function LiveDetail() {
                     ? "Sign in to chat"
                     : meBlockedOrBanned
                       ? "🚫 You're muted in this stream"
-                      : "Say something... use @ to tag"
+                      : "Say something… use @ to tag"
                 }
                 disabled={!user || meBlockedOrBanned}
-                className="flex-1 rounded-full bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/50 outline-none disabled:opacity-50"
+                className="min-h-11 flex-1 rounded-full bg-white/10 px-4 py-2.5 text-base text-white ring-1 ring-white/15 placeholder:text-white/50 outline-none focus:ring-primary/60 disabled:opacity-50"
               />
               <button
                 type="submit"
-                disabled={meBlockedOrBanned}
-                className="rounded-full bg-primary p-2.5 text-primary-foreground disabled:opacity-50"
+                disabled={meBlockedOrBanned || !input.trim()}
+                aria-label="Send message"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-1 ring-white/20 active:scale-90 disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </button>
