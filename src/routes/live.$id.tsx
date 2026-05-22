@@ -5792,7 +5792,14 @@ function LiveDetail() {
                 const platformFee = (bundleFee?.platformFeeCents ?? 123) / 100;
                 const estTaxRate = 0.07;
                 const estTax = Math.max(0, bid + ship) * estTaxRate;
-                const estTotal = bid + ship + platformFee + estTax;
+                // Live auctions: buyer covers HALF of the Stripe processing
+                // fee (2.9% + $0.30). Seller absorbs the other half from
+                // payout. Mirror buyerHalfStripeFeeCents() from stripe.server.ts.
+                const preFee = Math.max(0, bid + ship + platformFee);
+                const buyerCardFee = preFee > 0
+                  ? Math.ceil(((preFee * 0.029 + 0.30) / (2 - 0.029)) * 100) / 100
+                  : 0;
+                const estTotal = bid + ship + platformFee + buyerCardFee + estTax;
                 const bundleActive = !!bundleFee?.bundleDiscountActive;
                 return (
                   <div className="mt-1 flex flex-col items-center gap-1">
@@ -5819,12 +5826,17 @@ function LiveDetail() {
                       </p>
                     )}
                     {auctionLive && bid > 0 && (
-                      <p className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary/30 to-fuchsia-500/25 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/20 backdrop-blur">
+                      <p className="inline-flex flex-wrap items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-primary/30 to-fuchsia-500/25 px-2.5 py-1 text-[10px] font-bold text-white/95 ring-1 ring-white/20 backdrop-blur">
                         <span className="text-white/70">Est. total</span>
                         <span className="tabular-nums text-emerald-200">{fmtMoney(estTotal)}</span>
                         <span className="text-white/55">
-                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + fee {fmtMoney(platformFee)} + ~tax {fmtMoney(estTax)})
+                          ({fmtMoney(bid)} + ship {fmtMoney(ship)} + fee {fmtMoney(platformFee)} + card {fmtMoney(buyerCardFee)} + ~tax {fmtMoney(estTax)})
                         </span>
+                      </p>
+                    )}
+                    {auctionLive && bid > 0 && !isSeller && (
+                      <p className="text-[9px] font-medium text-white/55">
+                        Card fee = your half of 2.9% + $0.30 (seller covers the other half)
                       </p>
                     )}
                   </div>
