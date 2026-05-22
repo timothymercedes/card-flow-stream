@@ -99,12 +99,7 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
   async function setStatus(status: "accepted" | "declined" | "cancelled") {
     if (!cancellation) return;
     setBusy(true);
-    const patch: any = { status };
-    if (status === "accepted" || status === "cancelled") {
-      patch.resolved_at = new Date().toISOString();
-    }
-    const { error } = await supabase.from("order_cancellations").update(patch).eq("id", cancellation.id);
-    if (!error && status === "accepted") {
+    if (status === "accepted") {
       try {
         await cancelOrderServer({ data: { orderId: order.id, reason: cancellation.reason || "Cancellation accepted" } });
       } catch (e: any) {
@@ -112,6 +107,11 @@ export function OrderCancellation({ order, role, onClose, onChanged }: Props) {
         return toast.error(e?.message ?? "Unable to cancel order");
       }
     }
+    const patch: any = { status };
+    if (status === "accepted" || status === "cancelled") {
+      patch.resolved_at = new Date().toISOString();
+    }
+    const { error } = await supabase.from("order_cancellations").update(patch).eq("id", cancellation.id);
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success(`Request ${status}`);
