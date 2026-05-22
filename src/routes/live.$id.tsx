@@ -6204,12 +6204,11 @@ function LiveDetail() {
                             <span>📦 Shipping</span>
                             <select
                               value={editShipPreset}
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 const key = e.target.value as ShippingPresetKey;
                                 shipPresetManualRef.current = true;
                                 setEditShipPreset(key);
                                 const p = SHIPPING_PRESETS[key];
-                                setEditShipMethod(p.label);
                                 const auto =
                                   p.flatRate && p.flatPriceUsd != null
                                     ? p.flatPriceUsd
@@ -6220,7 +6219,13 @@ function LiveDetail() {
                                           quantity: Number(editQuantity) || 1,
                                         }).shipping.toFixed(2),
                                       );
+                                setEditShipMethod(p.label);
                                 setEditShipPrice(String(auto));
+                                // Push immediately so viewers see the new price/method
+                                await supabase
+                                  .from("live_streams")
+                                  .update({ shipping_price: auto, shipping_method: p.label })
+                                  .eq("id", id);
                               }}
                               className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-bold text-white outline-none"
                             >
