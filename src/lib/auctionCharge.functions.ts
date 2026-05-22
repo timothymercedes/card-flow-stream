@@ -146,6 +146,12 @@ async function performCharge(opts: {
     return { status: "paid", paymentIntentId: order.stripe_payment_intent_id ?? "" };
   }
 
+  // Never charge a cancelled or refunded order — prevents firing a fresh
+  // off-session charge against a buyer whose order was already closed out.
+  if (order.status === "cancelled" || ["cancelled", "refunded"].includes(order.payment_status || "")) {
+    return { status: "failed", message: "Order is cancelled or refunded — charge blocked." };
+  }
+
   const pm = await loadDefaultPaymentMethod(userId, paymentMethodOverrideId);
   const seller = await loadSellerStripe(order.seller_id);
 
