@@ -10,6 +10,7 @@ import {
   ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
   AlertTriangle, RotateCcw, ScanLine, ShieldCheck,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { toast } from "sonner";
 import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
