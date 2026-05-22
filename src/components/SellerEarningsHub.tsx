@@ -25,8 +25,9 @@ type Order = {
   status: string;
   payment_status?: string;
   refunded_amount?: number | null;
-  shipping_cents?: number | null;     // optional, future
-  promo_cents?: number | null;        // optional, future
+  refunded_at?: string | null;
+  shipping_cents?: number | null;
+  promo_cents?: number | null;
   commission_rate?: number | null;
   created_at: string;
   fee_absorbed_by?: "buyer" | "seller" | null;
@@ -36,7 +37,21 @@ type Order = {
   seller_processing_fee_cents?: number | null;
   processing_fee_cents?: number | null;
   fee_split_mode?: "buyer" | "split" | "seller_absorbed" | null;
+  ship_name?: string | null;
+  ship_address?: string | null;
+  ship_city?: string | null;
+  ship_state?: string | null;
+  ship_zip?: string | null;
+  ship_country?: string | null;
 };
+
+// Excluded from earnings totals — kept forever in the Archive tab for record-keeping.
+function isArchivedOrder(o: Pick<Order, "status" | "payment_status">) {
+  return o.status === "cancelled"
+    || o.payment_status === "cancelled"
+    || o.payment_status === "refunded"
+    || o.payment_status === "awaiting_payment";
+}
 
 type Recovery = {
   id: string;
@@ -97,7 +112,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const [hold, setHold] = useState<Hold | null>(null);
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"summary" | "orders" | "history">("summary");
+  const [tab, setTab] = useState<"summary" | "orders" | "archive" | "history">("summary");
   const [open, setOpen] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverPayable, setServerPayable] = useState<{
@@ -190,9 +205,15 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     return m;
   }, [recoveries]);
 
+  const activeOrders = useMemo(() => orders.filter((o) => !isArchivedOrder(o)), [orders]);
+  const archivedOrders = useMemo(
+    () => orders.filter(isArchivedOrder).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)),
+    [orders],
+  );
+
   const breakdowns = useMemo(
-    () => orders.map((o) => ({ order: o, ...computeBreakdown(o, recoveryByRef) })),
-    [orders, recoveryByRef],
+    () => activeOrders.map((o) => ({ order: o, ...computeBreakdown(o, recoveryByRef) })),
+    [activeOrders, recoveryByRef],
   );
 
   const processingPayoutCents = useMemo(
@@ -378,10 +399,10 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
 
       {/* Sub-tabs */}
       <div className="flex gap-2">
-        {(["summary","orders","history"] as const).map((k) => (
+        {(["summary","orders","archive","history"] as const).map((k) => (
           <button key={k} onClick={() => setTab(k)}
             className={`rounded-full px-3 py-1.5 text-xs font-bold capitalize ${tab === k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-            {k === "history" ? "Payout history" : k}
+            {k === "history" ? "Payout history" : k === "archive" ? `Archive${archivedOrders.length ? ` (${archivedOrders.length})` : ""}` : k}
           </button>
         ))}
         <button onClick={downloadCsv} className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold">
@@ -446,7 +467,60 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         </div>
       )}
 
-      {/* PAYOUT HISTORY */}
+      {/* ARCHIVE — cancelled / refunded / awaiting-payment. Kept permanently for record. */}
+      {tab === "archive" && (
+        <div className="space-y-1.5">
+          <p className="px-1 text-[11px] text-muted-foreground">
+            Cancelled, refunded, and awaiting-payment orders. Kept forever for your records and excluded from Gross / Net / Fees totals above.
+          </p>
+          {archivedOrders.length === 0 && <p className="text-xs text-muted-foreground">No archived orders.</p>}
+          {archivedOrders.map((o) => {
+            const tag = o.status === "cancelled" || o.payment_status === "cancelled" ? "Cancelled"
+              : o.payment_status === "refunded" ? "Refunded"
+              : "Awaiting payment";
+            const tagColor = tag === "Refunded" ? "bg-amber-500/15 text-amber-300"
+              : tag === "Cancelled" ? "bg-destructive/15 text-destructive"
+              : "bg-muted text-muted-foreground";
+            const gross = Number(o.amount || 0);
+            return (
+              <div key={o.id} className="rounded-xl bg-card p-3 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">{o.title}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {new Date(o.created_at).toLocaleString()}
+                      {o.refunded_at ? ` · refunded ${new Date(o.refunded_at).toLocaleDateString()}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${tagColor}`}>{tag}</span>
+                    <p className="mt-1 text-[11px] font-bold">{fmt(gross)}</p>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-1 border-t border-border pt-2 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground">Buyer</p>
+                    <p className="font-bold">@{buyerNames[o.buyer_id] ?? "buyer"}</p>
+                    <p className="text-[11px]">{o.ship_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-foreground">Ship to</p>
+                    <p className="text-[11px] leading-snug">
+                      {o.ship_address || "—"}
+                      {o.ship_address ? <br /> : null}
+                      {[o.ship_city, o.ship_state, o.ship_zip].filter(Boolean).join(", ")}
+                      {o.ship_country ? ` · ${o.ship_country}` : ""}
+                    </p>
+                  </div>
+                </div>
+                {Number(o.refunded_amount || 0) > 0 && (
+                  <p className="mt-1 text-[11px] text-amber-300">Refunded {fmt(Number(o.refunded_amount))}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {tab === "history" && (
         <div className="space-y-1.5">
           {recoveries.length === 0 && <p className="text-xs text-muted-foreground">No automatic deductions yet.</p>}
