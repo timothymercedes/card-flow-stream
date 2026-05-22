@@ -7,7 +7,7 @@ import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { getListingPriceDisplay } from "@/lib/listingDisplay";
+import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
