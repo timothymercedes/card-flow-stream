@@ -98,6 +98,7 @@ export function LiveSellerDashboard({
   streamId, hostId, startedAt, viewerCount, chatMessages, scheduledShowId, isFlex = false,
   chatAudience, onChangeChatAudience, slowModeSec, onChangeSlowMode,
   currentUserId, currentUsername, currentAvatarUrl,
+  onOpenModPanel, modUnread = 0,
 }: {
   streamId: string;
   hostId: string;
@@ -113,6 +114,8 @@ export function LiveSellerDashboard({
   currentUserId?: string | null;
   currentUsername?: string | null;
   currentAvatarUrl?: string | null;
+  onOpenModPanel?: () => void;
+  modUnread?: number;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [hidden, setHidden] = useState(false);
