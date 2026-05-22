@@ -445,6 +445,17 @@ function SellerHub() {
     return { gross, commission, net: gross - commission, pending, refund, cancelled };
   }, [orders]);
 
+  // Load buyer usernames/names for the KPI drill-down modal
+  useEffect(() => {
+    const ids = Array.from(new Set(orders.map((o) => o.buyer_id).filter(Boolean)));
+    if (ids.length === 0) return;
+    supabase.from("profiles").select("id,username,full_name").in("id", ids).then(({ data }) => {
+      const m: Record<string, { u: string; n: string }> = {};
+      (data ?? []).forEach((p: any) => { m[p.id] = { u: p.username || "buyer", n: p.full_name || "" }; });
+      setBuyerMap(m);
+    });
+  }, [orders]);
+
   const reviewStats = useMemo(() => {
     if (!reviews.length) return { count: 0, avg: 0, ship: 0 };
     const avg = reviews.reduce((s, r) => s + Number(r.rating || 0), 0) / reviews.length;
