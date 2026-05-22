@@ -979,12 +979,18 @@ function LiveDetail() {
     // On mount, scan recent awaiting_payment orders for this buyer in this stream.
     supabase
       .from("orders")
-      .select("id,payment_status")
+      .select("id,title,amount,stream_id,payment_status")
       .eq("buyer_id", user.id)
       .eq("stream_id", id)
-      .in("payment_status", ["awaiting_payment"])
+      .in("payment_status", ["awaiting_payment", "failed"])
+      .order("created_at", { ascending: false })
       .then(({ data }) => {
-        (data || []).forEach((o: any) => tryCharge(o.id));
+        (data || []).forEach((o: any) => {
+          if (o.payment_status === "awaiting_payment") tryCharge(o.id);
+          else if (o.payment_status === "failed") {
+            setFailedOrder({ id: o.id, title: o.title, amount: Number(o.amount), stream_id: o.stream_id });
+          }
+        });
       });
 
     const ch = supabase
