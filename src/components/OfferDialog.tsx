@@ -44,6 +44,7 @@ export function OfferDialog({
   const recordPolicy = useServerFn(recordPolicyAcceptance);
 
   const [amount, setAmount] = useState<string>(suggestedPrice ? String(suggestedPrice) : "");
+  const [expiresInHours, setExpiresInHours] = useState<number>(24);
   const [busy, setBusy] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -57,11 +58,11 @@ export function OfferDialog({
 
     setBusy(true);
     try {
-      const res = await submitOffer({ data: { queueItemId, amount: n } });
+      const res = await submitOffer({ data: { queueItemId, amount: n, expiresInHours } });
       await recordPolicy({
         data: {
           context: "offer_accept",
-          metadata: { offer_id: (res as any).offerId, amount: n, queue_item_id: queueItemId },
+          metadata: { offer_id: (res as any).offerId, amount: n, queue_item_id: queueItemId, expires_in_hours: expiresInHours },
         },
       }).catch(() => {});
       toast.success("Offer submitted — card authorized");
@@ -73,6 +74,8 @@ export function OfferDialog({
       setBusy(false);
     }
   };
+
+  const durationLabel = expiresInHours === 1 ? "1 hour" : `${expiresInHours} hours`;
 
   return (
     <>
@@ -100,6 +103,29 @@ export function OfferDialog({
               ) : null}
             </div>
 
+            <div>
+              <Label>Offer expires in</Label>
+              <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+                {([1, 2, 6, 12, 24] as const).map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setExpiresInHours(h)}
+                    className={`rounded-lg border px-2 py-2 text-xs font-bold transition ${
+                      expiresInHours === h
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-muted/40 hover:bg-muted"
+                    }`}
+                  >
+                    {h}h
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Shorter windows push sellers to respond faster. Default is 24 hours.
+              </p>
+            </div>
+
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-2">
               <div className="flex items-start gap-2">
                 <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
@@ -110,7 +136,7 @@ export function OfferDialog({
               </div>
               <ul className="ml-6 list-disc space-y-1">
                 <li className="flex items-start gap-1"><CreditCard className="h-3 w-3 mt-0.5" /> Your card will be <b>pre-authorized</b> for ${amount || "—"} (not yet charged).</li>
-                <li className="flex items-start gap-1"><Clock className="h-3 w-3 mt-0.5" /> Offer expires automatically in <b>24 hours</b>.</li>
+                <li className="flex items-start gap-1"><Clock className="h-3 w-3 mt-0.5" /> Offer expires automatically in <b>{durationLabel}</b>.</li>
                 <li>You can cancel <b>only before</b> the seller accepts.</li>
                 <li>Once accepted, payment captures immediately and the sale is final.</li>
               </ul>
