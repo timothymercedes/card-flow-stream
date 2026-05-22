@@ -5843,17 +5843,19 @@ function LiveDetail() {
             {!isSeller && (
               <>
                 {auctionLive && !meBlockedOrBanned && !bidDisabled && (
-                  <div data-tour="bid-controls" className="grid grid-cols-4 gap-1.5">
+                  <div data-tour="bid-controls" className="grid grid-cols-4 gap-2">
                     {[1, 5, 10, 25].map((inc) => (
                       <button
                         key={inc}
                         onClick={() => placeBidAmount(Number(stream.current_bid || 0) + inc)}
-                        className="rounded-lg bg-white/10 py-2 text-xs font-extrabold tabular-nums text-white backdrop-blur ring-1 ring-white/15 active:scale-95 hover:bg-white/15"
+                        aria-label={`Bid plus ${inc} dollars`}
+                        className="min-h-11 rounded-xl bg-white/15 px-2 py-2.5 text-sm font-extrabold tabular-nums text-white shadow-md ring-1 ring-white/20 backdrop-blur transition active:scale-95 hover:bg-white/25"
                       >
                         +${inc}
                       </button>
                     ))}
                   </div>
+
                 )}
                 <div className="flex gap-2">
                   <div className="relative flex-1">
