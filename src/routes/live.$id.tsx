@@ -5681,10 +5681,10 @@ function LiveDetail() {
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            left-2 right-16 bottom-32 max-h-[32vh]
-            [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
-            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
-            md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
+            left-2 right-16 bottom-32 max-h-[40vh]
+            [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_100%)]
+            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_10%,black_100%)]
+            md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-96 md:max-h-none`}
         >
           <div className="flex flex-col items-start gap-1.5 pr-1">
             {visibleChatMessages.map((m) => {
