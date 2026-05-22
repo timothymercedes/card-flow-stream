@@ -708,13 +708,13 @@ function LiveDetail() {
             if (msg.body.startsWith("💸")) playSfx("shoutout");
             else if (msg.body.startsWith("🔥")) playSfx("promote");
           }
-          // 🔔 Private audience message (mods_only/host_mods) → ping staff
+          // 🔔 Private audience message (mods_only/host_mods) → ping staff only
           const audVal = msg?.audience;
           if (
             (audVal === "mods_only" || audVal === "host_mods") &&
-            msg.user_id && msg.user_id !== user?.id
+            msg.user_id && msg.user_id !== user?.id &&
+            isStaffRef.current
           ) {
-            // Defer to isStaff check via state read at toast time
             setModUnread((n) => n + 1);
             toast.message(
               `${audVal === "host_mods" ? "🛡️ Host+Mods" : "🛡️ Mods"} · @${msg.username}`,
