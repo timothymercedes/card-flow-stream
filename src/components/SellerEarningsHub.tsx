@@ -392,9 +392,6 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           <Row label="Promotions / shoutouts" value={`−${fmt(totals.promo)}`} negative />
           <Row label="Refunds" value={`−${fmt(totals.refund)}`} negative />
           <Row label="Negative balance recovery" value={`−${fmt(totals.recovery)}`} negative />
-          {totals.bundleAbsorbed > 0 && (
-            <Row label="Bundle fees absorbed (buyer ≥4 items/stream)" value={`−${fmt(totals.bundleAbsorbed)}`} negative />
-          )}
           <Row label="Final net earnings" value={fmt(totals.net)} primary />
           <p className="px-1 pt-1 text-[11px] text-muted-foreground">
             Live auctions & live-stream sales: buyer and seller each cover 50% of the Stripe processing fee (2.9% + $0.30). Marketplace fixed-price sales: buyer covers it in full. Tax forms (1099-K) issued at year-end if you exceed reporting thresholds.
@@ -432,7 +429,6 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
                     {b.promo > 0 && <Row small label="Promo" value={`−${fmt(b.promo)}`} negative />}
                     {b.refund > 0 && <Row small label="Refund" value={`−${fmt(b.refund)}`} negative />}
                     {b.recovery > 0 && <Row small label="Hold recovery" value={`−${fmt(b.recovery)}`} negative />}
-                    {b.bundleAbsorbed > 0 && <Row small label="Bundle fee absorbed" value={`−${fmt(b.bundleAbsorbed)}`} negative />}
                     <Row small label="Total deductions" value={`−${fmt(b.totalDeductions)}`} negative />
                     <Row small label="Net to you" value={fmt(b.net)} primary />
                   </div>
