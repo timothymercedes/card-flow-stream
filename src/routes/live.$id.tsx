@@ -234,6 +234,12 @@ function LiveDetail() {
     amount: number;
     message?: string;
   } | null>(null);
+  const [shoutoutOverlay, setShoutoutOverlay] = useState<{
+    id: string;
+    username: string;
+    amount: number;
+    message?: string;
+  } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
@@ -735,7 +741,22 @@ function LiveDetail() {
           table: "stream_shoutouts",
           filter: `stream_id=eq.${id}`,
         },
-        (p) => setShoutouts((s) => [p.new, ...s]),
+        (p: any) => {
+          const s = p.new;
+          setShoutouts((cur) => [s, ...cur]);
+          // Pop a prominent overlay so it's instantly visible to everyone.
+          setShoutoutOverlay({
+            id: s.id,
+            username: s.buyer_username,
+            amount: Number(s.amount),
+            message: s.message,
+          });
+          setTimeout(
+            () => setShoutoutOverlay((cur) => (cur?.id === s.id ? null : cur)),
+            6000,
+          );
+          playSfx("shoutout");
+        },
       )
       .on(
         "postgres_changes",
@@ -5660,10 +5681,10 @@ function LiveDetail() {
         <div
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
-            left-2 right-16 bottom-32 max-h-[32vh]
-            [mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
-            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_18%,black_100%)]
-            md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
+            left-2 right-16 bottom-32 max-h-[40vh]
+            [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_100%)]
+            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_10%,black_100%)]
+            md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-96 md:max-h-none`}
         >
           <div className="flex flex-col items-start gap-1.5 pr-1">
             {visibleChatMessages.map((m) => {
@@ -5676,7 +5697,7 @@ function LiveDetail() {
 
                   <div
                     key={m.id}
-                    className={`max-w-[95%] rounded-2xl border-l-2 px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all ${
+                    className={`w-full rounded-2xl border-l-2 px-3 py-1.5 text-[13px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all break-words [overflow-wrap:anywhere] ${
                       isBlocked
                         ? "border-red-300/60 bg-red-500/25 line-through opacity-60"
                         : isHostMods
@@ -7810,6 +7831,23 @@ function LiveDetail() {
               {tipOverlay.message && (
                 <div className="mt-0.5 max-w-[260px] text-xs italic opacity-95">
                   "{tipOverlay.message}"
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {shoutoutOverlay && (
+        <div className="pointer-events-none fixed left-1/2 top-24 z-[150] -translate-x-1/2 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 shadow-2xl shadow-amber-500/40">
+            <Sparkles className="h-6 w-6 text-white" />
+            <div className="text-white">
+              <div className="text-xs opacity-90">📣 @{shoutoutOverlay.username} shouted out</div>
+              <div className="text-xl font-black">${shoutoutOverlay.amount.toFixed(2)}</div>
+              {shoutoutOverlay.message && (
+                <div className="mt-0.5 max-w-[280px] text-sm font-semibold italic opacity-95 break-words">
+                  "{shoutoutOverlay.message}"
                 </div>
               )}
             </div>
