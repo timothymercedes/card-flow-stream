@@ -35,6 +35,10 @@ type VaultPick = {
   estimated_value: number | null;
   tcg_set: string | null;
   tcg_number: string | null;
+  // Per-card overrides set in the Pre-B list (step 4)
+  starting_bid?: string;
+  buy_now_price?: string;
+  voice_trigger?: string;
 };
 import { notifyGoingLive } from "@/server/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
