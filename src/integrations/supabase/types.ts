@@ -2924,6 +2924,7 @@ export type Database = {
           fee_absorbed_by: string | null
           fee_index: number | null
           fee_split_mode: string | null
+          final_charged_total_cents: number
           id: string
           idempotency_key: string | null
           is_giveaway: boolean
@@ -2947,6 +2948,7 @@ export type Database = {
           ready_at: string | null
           refunded_amount: number | null
           refunded_at: string | null
+          refunded_tax_cents: number
           seller_id: string
           seller_payout_amount: number | null
           seller_processing_fee_cents: number | null
@@ -2972,6 +2974,8 @@ export type Database = {
           tax_jurisdiction: string | null
           tax_provider: string | null
           tax_rate_bps: number
+          tax_reconciliation_details: Json
+          tax_reconciliation_status: string
           tax_state: string | null
           taxable_subtotal_cents: number
           title: string
@@ -2994,6 +2998,7 @@ export type Database = {
           fee_absorbed_by?: string | null
           fee_index?: number | null
           fee_split_mode?: string | null
+          final_charged_total_cents?: number
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -3017,6 +3022,7 @@ export type Database = {
           ready_at?: string | null
           refunded_amount?: number | null
           refunded_at?: string | null
+          refunded_tax_cents?: number
           seller_id: string
           seller_payout_amount?: number | null
           seller_processing_fee_cents?: number | null
@@ -3042,6 +3048,8 @@ export type Database = {
           tax_jurisdiction?: string | null
           tax_provider?: string | null
           tax_rate_bps?: number
+          tax_reconciliation_details?: Json
+          tax_reconciliation_status?: string
           tax_state?: string | null
           taxable_subtotal_cents?: number
           title: string
@@ -3064,6 +3072,7 @@ export type Database = {
           fee_absorbed_by?: string | null
           fee_index?: number | null
           fee_split_mode?: string | null
+          final_charged_total_cents?: number
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -3087,6 +3096,7 @@ export type Database = {
           ready_at?: string | null
           refunded_amount?: number | null
           refunded_at?: string | null
+          refunded_tax_cents?: number
           seller_id?: string
           seller_payout_amount?: number | null
           seller_processing_fee_cents?: number | null
@@ -3112,6 +3122,8 @@ export type Database = {
           tax_jurisdiction?: string | null
           tax_provider?: string | null
           tax_rate_bps?: number
+          tax_reconciliation_details?: Json
+          tax_reconciliation_status?: string
           tax_state?: string | null
           taxable_subtotal_cents?: number
           title?: string
@@ -7361,6 +7373,8 @@ export type Database = {
         | "dispute_loss"
         | "stripe_processing_fee"
         | "adjustment"
+        | "sales_tax_collected"
+        | "sales_tax_refund"
       report_status:
         | "open"
         | "investigating"
@@ -7580,6 +7594,8 @@ export const Constants = {
         "dispute_loss",
         "stripe_processing_fee",
         "adjustment",
+        "sales_tax_collected",
+        "sales_tax_refund",
       ],
       report_status: [
         "open",
