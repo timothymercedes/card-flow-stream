@@ -72,6 +72,12 @@ function fmt(cents?: number | null) {
   return v.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
+function financeErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Finance data could not be loaded.";
+}
+
 const KIND_LABEL: Record<string, string> = {
   marketplace_commission: "Marketplace commission",
   intl_processing_fee: "International fee",
@@ -180,6 +186,18 @@ function OwnerFinanceDashboard() {
         () => qc.invalidateQueries({ queryKey: ["owner-finance-personal-payouts"] }))
   );
 
+  const financeErrors = [
+    { label: "Overview", query: overview },
+    { label: "Trend", query: trend },
+    { label: "Streams", query: streams },
+    { label: "Sellers", query: sellers },
+    { label: "Personal orders", query: personalOrders },
+    { label: "Platform payouts", query: platformPayouts },
+    { label: "Personal payouts", query: personalPayouts },
+    { label: "Ledger", query: ledger },
+    { label: "Seller payable", query: sellerPayable },
+  ].filter(({ query }) => query.isError);
+
   if (authLoading || isOwner === null) {
     return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
   }
@@ -259,8 +277,24 @@ function OwnerFinanceDashboard() {
         </div>
 
         {/* Content */}
-        {tab === "overview" && <OverviewTab overview={overview.data} loading={overview.isLoading} trend={trend.data?.rows} />}
-        {tab === "platform" && (
+        {financeErrors.length > 0 ? (
+          <Section title="Finance data error" right={<AlertTriangle className="h-4 w-4 text-destructive" />}>
+            <div className="space-y-2 text-xs">
+              <p className="text-muted-foreground">One finance query failed. Refresh after the latest backend update finishes syncing.</p>
+              <ul className="space-y-1">
+                {financeErrors.map(({ label, query }) => (
+                  <li key={label} className="rounded-md bg-destructive/10 px-2 py-1 text-destructive">
+                    <span className="font-bold">{label}:</span> {financeErrorMessage(query.error)}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => qc.invalidateQueries()} className="rounded-md bg-primary px-3 py-1.5 font-bold text-primary-foreground">
+                Retry finance data
+              </button>
+            </div>
+          </Section>
+        ) : tab === "overview" ? <OverviewTab overview={overview.data} loading={overview.isLoading} trend={trend.data?.rows} /> : null}
+        {financeErrors.length === 0 && tab === "platform" && (
           <PlatformTab
             overview={overview.data}
             ledger={ledger.data?.rows ?? []}
@@ -275,7 +309,7 @@ function OwnerFinanceDashboard() {
             }}
           />
         )}
-        {tab === "personal" && (
+        {financeErrors.length === 0 && tab === "personal" && (
           <PersonalTab
             overview={overview.data}
             sellerPayable={sellerPayable.data}
@@ -291,18 +325,18 @@ function OwnerFinanceDashboard() {
             }}
           />
         )}
-        {tab === "payouts" && (
+        {financeErrors.length === 0 && tab === "payouts" && (
           <PayoutsTab platform={platformPayouts.data?.rows ?? []} personal={personalPayouts.data?.rows ?? []} />
         )}
-        {tab === "streams" && <StreamsTab rows={streams.data?.rows ?? []} loading={streams.isLoading} />}
-        {tab === "sellers" && <SellersTab rows={sellers.data?.rows ?? []} loading={sellers.isLoading} />}
-        {tab === "shipping" && <ShippingTab overview={overview.data} />}
-        {tab === "refunds" && <RefundsTab ledger={ledger.data?.rows ?? []} overview={overview.data} />}
-        {tab === "transactions" && (
+        {financeErrors.length === 0 && tab === "streams" && <StreamsTab rows={streams.data?.rows ?? []} loading={streams.isLoading} />}
+        {financeErrors.length === 0 && tab === "sellers" && <SellersTab rows={sellers.data?.rows ?? []} loading={sellers.isLoading} />}
+        {financeErrors.length === 0 && tab === "shipping" && <ShippingTab overview={overview.data} />}
+        {financeErrors.length === 0 && tab === "refunds" && <RefundsTab ledger={ledger.data?.rows ?? []} overview={overview.data} />}
+        {financeErrors.length === 0 && tab === "transactions" && (
           <TransactionsTab orders={personalOrders.data?.rows ?? []} ledger={ledger.data?.rows ?? []} />
         )}
-        {tab === "audit" && <AuditTab sinceDays={sinceDays} />}
-        {tab === "integrity" && <IntegrityTab />}
+        {financeErrors.length === 0 && tab === "audit" && <AuditTab sinceDays={sinceDays} />}
+        {financeErrors.length === 0 && tab === "integrity" && <IntegrityTab />}
       </div>
 
     </AppShell>
