@@ -182,6 +182,60 @@ export function AuctionQueuePanel({
     toast.success(`Added "${l.title}" from your listings`);
   }
 
+  async function loadVault() {
+    setVaultOpen(true);
+    setVaultLoading(true);
+    const { data } = await supabase
+      .from("vault_cards")
+      .select("id, name, image_url, estimated_value, tcg_set, tcg_number")
+      .eq("user_id", hostId)
+      .eq("status", "available")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setVaultCards((data as any[] as VaultCard[]) || []);
+    setVaultLoading(false);
+  }
+
+  function toggleVaultPick(id: string) {
+    setVaultSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function addVaultSelected() {
+    if (vaultSelected.size === 0) return toast.error("Pick at least one card");
+    setVaultAdding(true);
+    const picks = vaultCards.filter((v) => vaultSelected.has(v.id));
+    let pos = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 0;
+    const rows = picks.map((v) => {
+      const val = Number(v.estimated_value || 0);
+      const start = val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1;
+      const title = [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" · ");
+      return {
+        stream_id: streamId,
+        host_id: hostId,
+        position: pos++,
+        title: title || v.name,
+        quantity: 1,
+        image_url: v.image_url || null,
+        sale_type: "prebid" as SaleType,
+        starting_bid: start,
+        duration_seconds: 30,
+        snipe_price: val > 0 ? val : null,
+        scheduled_show_id: scheduledShowId || null,
+        vault_card_id: v.id,
+      };
+    });
+    const { error } = await supabase.from("auction_queue" as any).insert(rows as any);
+    setVaultAdding(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Added ${picks.length} card${picks.length === 1 ? "" : "s"} to Pre-B`);
+    setVaultSelected(new Set());
+    setVaultOpen(false);
+  }
+
   async function remove(id: string) {
     await supabase.from("auction_queue" as any).delete().eq("id", id);
   }
