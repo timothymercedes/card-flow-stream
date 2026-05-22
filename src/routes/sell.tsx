@@ -418,8 +418,10 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
-    if (!imageUrl.trim()) return toast.error("Front photo is required");
-    if (!backImageUrl.trim()) return toast.error("Back photo is required");
+    const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
+    if (frontErr) return toast.error(frontErr);
+    const backErr = validateListingImage(backImageUrl, { field: "Back photo" });
+    if (backErr) return toast.error(backErr);
     if (!category) return toast.error("Pick a category");
     if (!enableBuyNow && !enableAuction && !enableOffers)
       return toast.error("Pick at least one sale type");
