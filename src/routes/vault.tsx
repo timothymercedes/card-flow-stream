@@ -1012,7 +1012,8 @@ function Vault() {
       seller_id: user!.id, title: card.name,
       description: baseDesc,
       image_url: opts.frontImage,
-      back_image_url: opts.backImage,
+      back_image_url: opts.backImage || null,
+
       category: card.category || null,
       listing_type: primary,
       is_auction: opts.auction,
