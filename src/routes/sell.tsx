@@ -1444,6 +1444,14 @@ function LiveWizard(p: LiveWizardProps) {
               </span>
             </div>
 
+            <input
+              type="text"
+              value={vaultSearch}
+              onChange={(e) => setVaultSearch(e.target.value)}
+              placeholder="Search your vault by name, set, or number…"
+              className="mb-2 w-full rounded-lg bg-input px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-cyan-500/40"
+            />
+
             {!vaultLoading && vaultCards.length === 0 && (
               <p className="rounded-md bg-muted/40 p-3 text-center text-[11px] text-muted-foreground">
                 No vaulted cards yet. Add cards in your{" "}
@@ -1455,40 +1463,154 @@ function LiveWizard(p: LiveWizardProps) {
             )}
 
             {vaultCards.length > 0 && (
-              <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
-                {vaultCards.map((v) => {
+              <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+                {filteredVault.length === 0 && (
+                  <p className="rounded-md bg-muted/40 p-2 text-center text-[11px] text-muted-foreground">
+                    No matches for &ldquo;{vaultSearch}&rdquo;
+                  </p>
+                )}
+                {filteredVault.map((v) => {
                   const picked = pickedIds.has(v.id);
                   return (
                     <button
                       key={v.id}
                       type="button"
                       onClick={() => toggleVaultPick(v)}
-                      className={`relative aspect-[3/4] overflow-hidden rounded-lg ring-2 transition ${
-                        picked ? "ring-cyan-500" : "ring-border hover:ring-primary/50"
+                      className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition ${
+                        picked
+                          ? "border-cyan-500 bg-cyan-500/5"
+                          : "border-border hover:border-primary/50"
                       }`}
-                      title={v.name}
                     >
-                      {v.image_url ? (
-                        <img src={v.image_url} alt={v.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted p-1 text-center text-[9px] font-bold text-muted-foreground">
-                          {v.name}
-                        </div>
-                      )}
-                      {picked && (
-                        <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-cyan-500 text-white">
-                          <Check className="h-3 w-3" />
-                        </span>
-                      )}
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1 py-0.5 text-[9px] font-bold text-white">
-                        {v.estimated_value ? `$${Number(v.estimated_value).toFixed(0)}` : v.name}
+                      <span
+                        className={`grid h-5 w-5 shrink-0 place-items-center rounded border-2 ${
+                          picked ? "border-cyan-500 bg-cyan-500 text-white" : "border-border"
+                        }`}
+                      >
+                        {picked && <Check className="h-3 w-3" />}
                       </span>
+                      {v.image_url ? (
+                        <img
+                          src={v.image_url}
+                          alt={v.name}
+                          className="h-10 w-8 shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-8 shrink-0 rounded bg-muted" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold">{v.name}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">
+                          {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                      {v.estimated_value ? (
+                        <span className="shrink-0 text-[11px] font-bold text-emerald-600">
+                          ${Number(v.estimated_value).toFixed(0)}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {p.prebidVaultPicks.length > 0 && (
+            <div className="space-y-2 rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300">
+                Pre-B queue · {p.prebidVaultPicks.length} card{p.prebidVaultPicks.length === 1 ? "" : "s"}
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Set a starting bid or Buy Now price per card. Add a voice trigger phrase to
+                auto-pull the card on stream when you say it.
+              </p>
+              <div className="space-y-2">
+                {p.prebidVaultPicks.map((v) => {
+                  const suggestedStart =
+                    v.estimated_value && v.estimated_value > 0
+                      ? Math.max(1, Math.floor(Number(v.estimated_value) * 0.5))
+                      : 1;
+                  const suggestedBN = v.estimated_value ? Number(v.estimated_value) : 0;
+                  return (
+                    <div
+                      key={v.id}
+                      className="rounded-lg border border-border bg-background p-2"
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        {v.image_url ? (
+                          <img
+                            src={v.image_url}
+                            alt={v.name}
+                            className="h-10 w-8 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-8 rounded bg-muted" />
+                        )}
+                        <p className="flex-1 truncate text-xs font-semibold">{v.name}</p>
+                        <button
+                          type="button"
+                          onClick={() => toggleVaultPick(v)}
+                          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="Remove from Pre-B"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block">
+                          <span className="mb-0.5 block text-[10px] font-bold text-muted-foreground">
+                            Starting bid ($)
+                          </span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="1"
+                            value={v.starting_bid ?? ""}
+                            onChange={(e) =>
+                              updatePick(v.id, { starting_bid: e.target.value })
+                            }
+                            placeholder={String(suggestedStart)}
+                            className="w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="mb-0.5 block text-[10px] font-bold text-muted-foreground">
+                            Buy Now ($)
+                          </span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min="1"
+                            value={v.buy_now_price ?? ""}
+                            onChange={(e) =>
+                              updatePick(v.id, { buy_now_price: e.target.value })
+                            }
+                            placeholder={suggestedBN > 0 ? String(suggestedBN) : "—"}
+                            className="w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
+                          />
+                        </label>
+                      </div>
+                      <label className="mt-2 block">
+                        <span className="mb-0.5 block text-[10px] font-bold text-muted-foreground">
+                          🎙️ Voice trigger (optional)
+                        </span>
+                        <input
+                          type="text"
+                          value={v.voice_trigger ?? ""}
+                          onChange={(e) =>
+                            updatePick(v.id, { voice_trigger: e.target.value })
+                          }
+                          placeholder={`e.g. "pull ${v.name.split(" ").slice(0, 2).join(" ")}"`}
+                          className="w-full rounded-md bg-input px-2 py-1.5 text-xs outline-none"
+                        />
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="rounded-xl bg-muted/40 p-3 text-[12px] text-muted-foreground">
             ⚡ <b>Scan-to-start</b> is on by default. While live, scan a card to instantly run an
