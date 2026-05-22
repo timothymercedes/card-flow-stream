@@ -67,7 +67,10 @@ import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
 import { Route as ApiPublicHooksStripeReconciliationRouteImport } from './routes/api/public/hooks/stripe-reconciliation'
 import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
+import { Route as ApiPublicHooksShippoTrackingRouteImport } from './routes/api/public/hooks/shippo-tracking'
+import { Route as ApiPublicHooksShippingRemindersRouteImport } from './routes/api/public/hooks/shipping-reminders'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
+import { Route as ApiPublicHooksFraudSweepRouteImport } from './routes/api/public/hooks/fraud-sweep'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 
@@ -369,10 +372,28 @@ const ApiPublicHooksShowRemindersRoute =
     path: '/api/public/hooks/show-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksShippoTrackingRoute =
+  ApiPublicHooksShippoTrackingRouteImport.update({
+    id: '/api/public/hooks/shippo-tracking',
+    path: '/api/public/hooks/shippo-tracking',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksShippingRemindersRoute =
+  ApiPublicHooksShippingRemindersRouteImport.update({
+    id: '/api/public/hooks/shipping-reminders',
+    path: '/api/public/hooks/shipping-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRefreshVaultValuesRoute =
   ApiPublicHooksRefreshVaultValuesRouteImport.update({
     id: '/api/public/hooks/refresh-vault-values',
     path: '/api/public/hooks/refresh-vault-values',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksFraudSweepRoute =
+  ApiPublicHooksFraudSweepRouteImport.update({
+    id: '/api/public/hooks/fraud-sweep',
+    path: '/api/public/hooks/fraud-sweep',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksFinancialReconciliationRoute =
@@ -442,7 +463,10 @@ export interface FileRoutesByFullPath {
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
+  '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/shipping-reminders': typeof ApiPublicHooksShippingRemindersRoute
+  '/api/public/hooks/shippo-tracking': typeof ApiPublicHooksShippoTrackingRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -505,7 +529,10 @@ export interface FileRoutesByTo {
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
+  '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/shipping-reminders': typeof ApiPublicHooksShippingRemindersRoute
+  '/api/public/hooks/shippo-tracking': typeof ApiPublicHooksShippoTrackingRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -569,7 +596,10 @@ export interface FileRoutesById {
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
+  '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/shipping-reminders': typeof ApiPublicHooksShippingRemindersRoute
+  '/api/public/hooks/shippo-tracking': typeof ApiPublicHooksShippoTrackingRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -634,7 +664,10 @@ export interface FileRouteTypes {
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
+    | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/shipping-reminders'
+    | '/api/public/hooks/shippo-tracking'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
@@ -697,7 +730,10 @@ export interface FileRouteTypes {
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
+    | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/shipping-reminders'
+    | '/api/public/hooks/shippo-tracking'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
@@ -760,7 +796,10 @@ export interface FileRouteTypes {
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
+    | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/shipping-reminders'
+    | '/api/public/hooks/shippo-tracking'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
@@ -822,7 +861,10 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
+  ApiPublicHooksFraudSweepRoute: typeof ApiPublicHooksFraudSweepRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
+  ApiPublicHooksShippingRemindersRoute: typeof ApiPublicHooksShippingRemindersRoute
+  ApiPublicHooksShippoTrackingRoute: typeof ApiPublicHooksShippoTrackingRoute
   ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
   ApiPublicHooksStripeReconciliationRoute: typeof ApiPublicHooksStripeReconciliationRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
@@ -1240,11 +1282,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksShowRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/shippo-tracking': {
+      id: '/api/public/hooks/shippo-tracking'
+      path: '/api/public/hooks/shippo-tracking'
+      fullPath: '/api/public/hooks/shippo-tracking'
+      preLoaderRoute: typeof ApiPublicHooksShippoTrackingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/shipping-reminders': {
+      id: '/api/public/hooks/shipping-reminders'
+      path: '/api/public/hooks/shipping-reminders'
+      fullPath: '/api/public/hooks/shipping-reminders'
+      preLoaderRoute: typeof ApiPublicHooksShippingRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-vault-values': {
       id: '/api/public/hooks/refresh-vault-values'
       path: '/api/public/hooks/refresh-vault-values'
       fullPath: '/api/public/hooks/refresh-vault-values'
       preLoaderRoute: typeof ApiPublicHooksRefreshVaultValuesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/fraud-sweep': {
+      id: '/api/public/hooks/fraud-sweep'
+      path: '/api/public/hooks/fraud-sweep'
+      fullPath: '/api/public/hooks/fraud-sweep'
+      preLoaderRoute: typeof ApiPublicHooksFraudSweepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/financial-reconciliation': {
@@ -1338,7 +1401,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksFinancialReconciliationRoute:
     ApiPublicHooksFinancialReconciliationRoute,
+  ApiPublicHooksFraudSweepRoute: ApiPublicHooksFraudSweepRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
+  ApiPublicHooksShippingRemindersRoute: ApiPublicHooksShippingRemindersRoute,
+  ApiPublicHooksShippoTrackingRoute: ApiPublicHooksShippoTrackingRoute,
   ApiPublicHooksShowRemindersRoute: ApiPublicHooksShowRemindersRoute,
   ApiPublicHooksStripeReconciliationRoute:
     ApiPublicHooksStripeReconciliationRoute,
