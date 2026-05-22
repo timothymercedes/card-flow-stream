@@ -220,11 +220,18 @@ function Cart() {
                   <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountries[checkoutSeller] || "US"} variant="full" />
                 </div>
               )}
+              <div className="mb-3">
+                <InsuranceOption
+                  orderIds={checkoutOrderIds}
+                  subtotalCents={Math.round(checkoutSubtotal * 100)}
+                  onChange={(fee) => setInsuranceFeeCents(fee)}
+                />
+              </div>
               <StripeCheckout
                 sellerId={checkoutSeller}
-                subtotalCents={Math.round(checkoutSubtotal * 100)}
+                subtotalCents={Math.round(checkoutSubtotal * 100) + insuranceFeeCents}
                 orderIds={checkoutOrderIds}
-                onSuccess={() => handlePaymentSuccess(checkoutSeller)}
+                onSuccess={() => { setInsuranceFeeCents(0); handlePaymentSuccess(checkoutSeller); }}
               />
             </div>
           </div>
