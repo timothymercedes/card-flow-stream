@@ -550,6 +550,10 @@ function LiveDetail() {
   const isStaffRef = useRef(false);
   useEffect(() => { isStaffRef.current = isStaff; }, [isStaff]);
   const showModPanelRef = useRef(false);
+  useEffect(() => {
+    showModPanelRef.current = showModPanel;
+    if (showModPanel) setModUnread(0);
+  }, [showModPanel]);
 
   // Settings form state (seller)
   const [editDesc, setEditDesc] = useState("");
