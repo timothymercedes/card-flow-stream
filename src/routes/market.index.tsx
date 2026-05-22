@@ -34,7 +34,10 @@ function Market() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
+  const [listingFilter, setListingFilter] = useState<ListingFilter>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState<string>("all");
+  const [catOpen, setCatOpen] = useState(false);
   const [quickView, setQuickView] = useState<any | null>(null);
   const seed = useShuffleBucket();
 
