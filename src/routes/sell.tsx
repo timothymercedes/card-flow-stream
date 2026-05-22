@@ -444,8 +444,19 @@ function Sell() {
       );
     }
     // Seed Pre-B queue with cards the host picked from their vault during setup.
+    // Re-check vault status so anything already sold/won elsewhere is excluded.
     if (prebidVaultPicks.length > 0) {
-      const rows = prebidVaultPicks.map((v, i) => {
+      const ids = prebidVaultPicks.map((v) => v.id);
+      const { data: stillAvail } = await supabase
+        .from("vault_cards")
+        .select("id")
+        .in("id", ids)
+        .eq("status", "available");
+      const availSet = new Set(((stillAvail as any[]) || []).map((r) => r.id));
+      const picks = prebidVaultPicks.filter((v) => availSet.has(v.id));
+      const skipped = prebidVaultPicks.length - picks.length;
+      if (skipped > 0) toast.message(`${skipped} card(s) skipped — already sold`);
+      const rows = picks.map((v, i) => {
         const val = Number(v.estimated_value || 0);
         const startFromOverride = Number(v.starting_bid);
         const start = Number.isFinite(startFromOverride) && startFromOverride > 0
