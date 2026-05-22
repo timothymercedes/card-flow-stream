@@ -547,6 +547,9 @@ function LiveDetail() {
     (mods.some((m) => m.mod_user_id === user.id) || (stream && user.id === stream.seller_id));
 
   const isSeller = !!user && stream && user.id === stream.seller_id;
+  const isStaffRef = useRef(false);
+  useEffect(() => { isStaffRef.current = isStaff; }, [isStaff]);
+  const showModPanelRef = useRef(false);
 
   // Settings form state (seller)
   const [editDesc, setEditDesc] = useState("");
