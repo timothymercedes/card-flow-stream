@@ -27,7 +27,7 @@ export function StripeCheckout(props: Props) {
   const getKey = useServerFn(getStripePublishableKey);
   const createIntent = useServerFn(createMarketplacePaymentIntent);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean } | null>(null);
+  const [fees, setFees] = useState<{ buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean; taxCents?: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const stripePromise = useMemo(() => getStripeJs(() => getKey()), []);
@@ -41,7 +41,7 @@ export function StripeCheckout(props: Props) {
         });
         if (cancelled) return;
         setClientSecret(res.clientSecret!);
-        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, processingFee: (res as any).processingFee, buyerProcessingFee: (res as any).buyerProcessingFee, commissionCents: (res as any).commissionCents, isInternational: (res as any).isInternational });
+        setFees({ buyerTotal: res.buyerTotal, platformFee: res.platformFee, buyerServiceFee: res.buyerServiceFee, intlFee: (res as any).intlFee, processingFee: (res as any).processingFee, buyerProcessingFee: (res as any).buyerProcessingFee, commissionCents: (res as any).commissionCents, isInternational: (res as any).isInternational, taxCents: (res as any).taxCents });
       } catch (e: any) {
         setError(e.message ?? "Failed to start payment");
       }
@@ -61,7 +61,7 @@ export function StripeCheckout(props: Props) {
   );
 }
 
-function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean } }) {
+function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { fees: { buyerTotal: number; platformFee: number; buyerServiceFee: number; intlFee?: number; processingFee?: number; buyerProcessingFee?: number; commissionCents?: number; isInternational?: boolean; taxCents?: number } }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +115,9 @@ function CheckoutForm({ subtotalCents, fees, onSuccess, returnUrl }: Props & { f
         )}
         {processingFee > 0 && (
           <Row label="Processing fee" cents={processingFee} />
+        )}
+        {(fees.taxCents ?? 0) > 0 && (
+          <Row label="Sales tax" cents={fees.taxCents ?? 0} />
         )}
         <p className="text-[10px] text-muted-foreground leading-snug">
           {bundleDiscount

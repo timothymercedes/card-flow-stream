@@ -31,6 +31,7 @@ import {
   LIVE_BUYER_FEE_THRESHOLD,
   getStripe,
 } from "@/lib/stripe.server";
+import { quoteTax } from "@/lib/tax/taxProvider.server";
 
 type ChargeResult =
   | { status: "paid"; paymentIntentId: string }
@@ -171,13 +172,14 @@ async function performCharge(opts: {
     }
   }
 
-  // Buyer country (for intl fee) and seller country for the international flag.
+  // Buyer country + state (intl fee + sales tax destination).
   const { data: buyerProfile } = await supabaseAdmin
     .from("profiles")
-    .select("address_country")
+    .select("address_country,address_state")
     .eq("id", userId)
     .maybeSingle();
   const buyerCountry = ((buyerProfile as any)?.address_country || "US").toString().toUpperCase().trim();
+  const buyerState = ((buyerProfile as any)?.address_state || "").toString().toUpperCase().trim() || null;
   const sellerCountry = (seller.country || "US").toString().toUpperCase().trim();
   const isInternational = buyerCountry !== sellerCountry && (buyerCountry !== "US" || sellerCountry !== "US");
 
@@ -211,17 +213,31 @@ async function performCharge(opts: {
   const commissionCents = fees.commissionCents;
   const sellerPayoutCents = fees.sellerNet;
 
-  const idemKey = `auction-charge:${orderId}:${fees.buyerTotal}:${pm.stripe_payment_method_id}`;
+  // Tax — computed via swappable provider (state table today, Stripe Tax later).
+  // Shipping is included in the auction amount on this path (order.amount
+  // is the total bid; shipping is stored separately as shipping_amount).
+  const shippingCents = Math.round(Number(order.shipping_amount || 0) * 100);
+  const itemCents = Math.max(0, totalCents - shippingCents);
+  const tax = await quoteTax({ itemCents, shippingCents, buyerCountry, buyerState, sellerId: order.seller_id });
+  const taxCents = tax.taxCents;
+
+  // Tax flows on TOP of buyerTotal and into application_fee_amount —
+  // platform collects it (marketplace facilitator) and remits separately.
+  // Seller payout is unaffected by tax.
+  const buyerChargeTotal = fees.buyerTotal + taxCents;
+  const applicationFeeWithTax = fees.applicationFee + taxCents;
+
+  const idemKey = `auction-charge:${orderId}:${buyerChargeTotal}:${pm.stripe_payment_method_id}`;
 
   try {
     const intent = await stripe.paymentIntents.create({
-      amount: fees.buyerTotal,
+      amount: buyerChargeTotal,
       currency: "usd",
       customer: pm.stripe_customer_id,
       payment_method: pm.stripe_payment_method_id,
       off_session: true,
       confirm: true,
-      application_fee_amount: fees.applicationFee,
+      application_fee_amount: applicationFeeWithTax,
       transfer_data: { destination: seller.stripe_account_id },
       metadata: {
         kind: "auction_auto_charge",
@@ -244,6 +260,11 @@ async function performCharge(opts: {
         seller_country: sellerCountry,
         fee_index: feeIndex != null ? String(feeIndex) : "",
         fee_absorbed_by: feeAbsorbedBy,
+        tax_cents: String(taxCents),
+        taxable_subtotal_cents: String(tax.taxableSubtotalCents),
+        tax_rate_bps: String(tax.taxRateBps),
+        tax_jurisdiction: tax.jurisdiction ?? "",
+        tax_provider: tax.provider,
       },
     }, { idempotencyKey: idemKey });
 
@@ -261,6 +282,13 @@ async function performCharge(opts: {
         fee_split_mode: fees.feeSplitMode,
         fee_index: feeIndex,
         fee_absorbed_by: feeAbsorbedBy,
+        tax_cents: taxCents,
+        taxable_subtotal_cents: tax.taxableSubtotalCents,
+        tax_rate_bps: tax.taxRateBps,
+        tax_jurisdiction: tax.jurisdiction,
+        tax_provider: tax.provider,
+        tax_country: tax.country,
+        tax_state: tax.state,
         payment_status: intent.status === "succeeded" ? "paid" : "processing",
         paid_at: intent.status === "succeeded" ? new Date().toISOString() : null,
       })

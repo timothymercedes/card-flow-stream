@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
 import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
+import { quoteTax } from "@/lib/tax/taxProvider.server";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getOptionalUserIdFromRequest() {
@@ -190,7 +191,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("id, amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at")
+      .select("id, amount, shipping_amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
@@ -224,11 +225,13 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // USA, apply the 4% international processing fee.
     const { data: buyerProfile } = await supabaseAdmin
       .from("profiles")
-      .select("address_country")
+      .select("address_country,address_state")
       .eq("id", userId)
       .maybeSingle();
     const buyerCountry = ((buyerProfile as any)?.address_country || "US")
       .toString().toUpperCase().trim();
+    const buyerState = ((buyerProfile as any)?.address_state || "")
+      .toString().toUpperCase().trim() || null;
     const sellerCountry = ((sellerAcct as any).country || "US")
       .toString().toUpperCase().trim();
     const isInternational = buyerCountry !== sellerCountry &&
@@ -300,14 +303,39 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         })()
       : calculateFees(subtotalCents, { isInternational });
 
+    // Tax — quoted per order via the swappable tax provider so that:
+    //  - bundled stream purchases / grouped shipping / multi-item carts
+    //    each get the correct destination-based tax
+    //  - tax is persisted on every order for accounting & refund logic
+    //  - swapping in Stripe Tax / TaxJar later only changes taxProvider.server.ts
+    const orderTaxQuotes = await Promise.all((orderRows as any[]).map(async (o) => {
+      const orderItemCents = Math.round(Number(o.amount) * 100);
+      const orderShippingCents = Math.round(Number(o.shipping_amount || 0) * 100);
+      const q = await quoteTax({
+        itemCents: orderItemCents,
+        shippingCents: orderShippingCents,
+        buyerCountry,
+        buyerState,
+        sellerId: data.sellerId,
+      });
+      return { orderId: o.id, quote: q };
+    }));
+    const totalTaxCents = orderTaxQuotes.reduce((a, t) => a + t.quote.taxCents, 0);
+    const totalTaxableCents = orderTaxQuotes.reduce((a, t) => a + t.quote.taxableSubtotalCents, 0);
+    // Tax flows on TOP of buyerTotal and into application_fee_amount so the
+    // marketplace receives the collected tax (facilitator model). Seller
+    // payout is unaffected.
+    const buyerChargeTotal = fees.buyerTotal + totalTaxCents;
+    const applicationFeeWithTax = fees.applicationFee + totalTaxCents;
+
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
-    const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${fees.buyerTotal}`;
+    const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${buyerChargeTotal}`;
 
     const intent = await stripe.paymentIntents.create({
-      amount: fees.buyerTotal,
+      amount: buyerChargeTotal,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      application_fee_amount: fees.applicationFee,
+      application_fee_amount: applicationFeeWithTax,
       transfer_data: { destination: (sellerAcct as any).stripe_account_id },
       metadata: {
         buyer_id: userId,
@@ -327,50 +355,80 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         buyer_country: buyerCountry,
         seller_country: sellerCountry,
         buyer_service_fee_cents: String(fees.buyerServiceFee),
+        tax_cents: String(totalTaxCents),
+        taxable_subtotal_cents: String(totalTaxableCents),
+        tax_provider: orderTaxQuotes[0]?.quote.provider ?? "state_table",
+        tax_jurisdiction: orderTaxQuotes[0]?.quote.jurisdiction ?? "",
       },
     }, { idempotencyKey: idemKey });
 
     // Stamp the PI + computed commission/payout on every order in this group
     // so the webhook can reconcile and payout dashboards stay accurate.
+    const taxByOrder = new Map(orderTaxQuotes.map((t) => [t.orderId, t.quote]));
     const liveParts = (fees as any).liveParts as Array<any> | undefined;
     if (isLiveCheckout && liveParts?.length) {
-      await Promise.all(liveParts.map((part) => supabaseAdmin.from("orders").update({
-        stripe_payment_intent_id: intent.id,
-        seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
-        idempotency_key: idemKey,
-        commission_rate: part.fees.commissionRate,
-        commission_amount: part.fees.commissionCents / 100,
-        seller_payout_amount: part.fees.sellerNet / 100,
-        platform_fee_cents: part.fees.platformFee,
-        processing_fee_cents: part.fees.processingFee,
-        buyer_processing_fee_cents: part.fees.buyerProcessingFee,
-        seller_processing_fee_cents: part.fees.sellerProcessingFee,
-        fee_split_mode: part.fees.feeSplitMode,
-        fee_index: part.feeIndex,
-        fee_absorbed_by: part.feeAbsorbedBy,
-      }).eq("id", part.orderId)));
+      await Promise.all(liveParts.map((part) => {
+        const tq = taxByOrder.get(part.orderId);
+        return supabaseAdmin.from("orders").update({
+          stripe_payment_intent_id: intent.id,
+          seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
+          idempotency_key: idemKey,
+          commission_rate: part.fees.commissionRate,
+          commission_amount: part.fees.commissionCents / 100,
+          seller_payout_amount: part.fees.sellerNet / 100,
+          platform_fee_cents: part.fees.platformFee,
+          processing_fee_cents: part.fees.processingFee,
+          buyer_processing_fee_cents: part.fees.buyerProcessingFee,
+          seller_processing_fee_cents: part.fees.sellerProcessingFee,
+          fee_split_mode: part.fees.feeSplitMode,
+          fee_index: part.feeIndex,
+          fee_absorbed_by: part.feeAbsorbedBy,
+          tax_cents: tq?.taxCents ?? 0,
+          taxable_subtotal_cents: tq?.taxableSubtotalCents ?? 0,
+          tax_rate_bps: tq?.taxRateBps ?? 0,
+          tax_jurisdiction: tq?.jurisdiction ?? null,
+          tax_provider: tq?.provider ?? "state_table",
+          tax_country: tq?.country ?? null,
+          tax_state: tq?.state ?? null,
+        }).eq("id", part.orderId);
+      }));
     } else {
       const perOrderCommission = orderIds.length > 0 ? Math.round((fees.commissionCents / orderIds.length)) : 0;
       const perOrderPayout = orderIds.length > 0 ? Math.round((fees.sellerNet / orderIds.length)) : 0;
-      await supabaseAdmin.from("orders").update({
-        stripe_payment_intent_id: intent.id,
-        seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
-        idempotency_key: idemKey,
-        commission_rate: fees.commissionRate,
-        commission_amount: perOrderCommission / 100,
-        seller_payout_amount: perOrderPayout / 100,
-        platform_fee_cents: fees.platformFee,
-        processing_fee_cents: fees.processingFee,
-        buyer_processing_fee_cents: (fees as any).buyerProcessingFee ?? fees.processingFee,
-        seller_processing_fee_cents: (fees as any).sellerProcessingFee ?? 0,
-        fee_split_mode: (fees as any).feeSplitMode ?? "buyer",
-      }).in("id", orderIds);
+      // Persist per-order tax even on non-live grouped checkouts.
+      await Promise.all((orderRows as any[]).map((o) => {
+        const tq = taxByOrder.get(o.id);
+        return supabaseAdmin.from("orders").update({
+          stripe_payment_intent_id: intent.id,
+          seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
+          idempotency_key: idemKey,
+          commission_rate: fees.commissionRate,
+          commission_amount: perOrderCommission / 100,
+          seller_payout_amount: perOrderPayout / 100,
+          platform_fee_cents: fees.platformFee,
+          processing_fee_cents: fees.processingFee,
+          buyer_processing_fee_cents: (fees as any).buyerProcessingFee ?? fees.processingFee,
+          seller_processing_fee_cents: (fees as any).sellerProcessingFee ?? 0,
+          fee_split_mode: (fees as any).feeSplitMode ?? "buyer",
+          tax_cents: tq?.taxCents ?? 0,
+          taxable_subtotal_cents: tq?.taxableSubtotalCents ?? 0,
+          tax_rate_bps: tq?.taxRateBps ?? 0,
+          tax_jurisdiction: tq?.jurisdiction ?? null,
+          tax_provider: tq?.provider ?? "state_table",
+          tax_country: tq?.country ?? null,
+          tax_state: tq?.state ?? null,
+        }).eq("id", o.id);
+      }));
     }
 
     return {
       clientSecret: intent.client_secret,
       paymentIntentId: intent.id,
       ...fees,
+      taxCents: totalTaxCents,
+      taxableSubtotalCents: totalTaxableCents,
+      buyerTotal: buyerChargeTotal,
+      applicationFee: applicationFeeWithTax,
     };
   });
 

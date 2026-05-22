@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { LIVE_BUYER_FEE_THRESHOLD, calculateFees } from "@/lib/stripe.server";
-import { calculateTaxCents } from "@/lib/salesTax";
+import { quoteTax } from "@/lib/tax/taxProvider.server";
 
 
 export const previewBuyerFee = createServerFn({ method: "POST" })
@@ -23,6 +23,10 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
         itemCents: 0,
         shippingCents: 0,
         taxCents: 0,
+        taxableSubtotalCents: 0,
+        taxRateBps: 0,
+        taxJurisdiction: null as string | null,
+        taxProvider: "state_table" as const,
         nextItemIndex: 1,
         threshold,
         bundleDiscountActive: false,
@@ -79,14 +83,25 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
       platformFeeCentsOverride: 0,
       sellerAbsorbedFeeCentsOverride: 0,
     });
-    // Sales tax — US state-based flat rate. Taxable base = item + shipping
-    // (most states tax shipping when it's part of a taxable sale).
-    const taxCents = calculateTaxCents(itemCents + shippingCents, buyerCountry, buyerState);
+    // Sales tax — routed through the swappable tax provider. Today this
+    // is the US state-rate table; later it can become Stripe Tax/TaxJar
+    // without touching this call site.
+    const tax = await quoteTax({
+      itemCents,
+      shippingCents,
+      buyerCountry,
+      buyerState,
+      sellerId: sellerId ?? null,
+    });
     return {
       ...fees,
       itemCents,
       shippingCents,
-      taxCents,
+      taxCents: tax.taxCents,
+      taxableSubtotalCents: tax.taxableSubtotalCents,
+      taxRateBps: tax.taxRateBps,
+      taxJurisdiction: tax.jurisdiction,
+      taxProvider: tax.provider,
       nextItemIndex,
       threshold,
       bundleDiscountActive,
