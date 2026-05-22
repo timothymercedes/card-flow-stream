@@ -1970,6 +1970,26 @@ function LiveDetail() {
   const meStreamBanned = !!user && streamBannedIds.has(user.id);
   const meBlockedOrBanned = meBlocked || meStreamBanned;
 
+  // 🆕 Perf: pre-compute the visible chat list once per render instead of
+  // re-filtering inside JSX on every paint. Cap to the last 80 messages so
+  // long live sessions don't render hundreds of DOM nodes on mobile.
+  const modUserIdSet = useMemo(
+    () => new Set(mods.map((mm: any) => mm.mod_user_id)),
+    [mods],
+  );
+  const visibleChatMessages = useMemo(() => {
+    const tail = messages.length > 80 ? messages.slice(-80) : messages;
+    return tail.filter((m) => {
+      if (m.is_system || m.is_announcement) return false;
+      if (m.user_id && myBlockedIds.has(m.user_id)) return false;
+      if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
+      if (isStaff && hideModsChat && m.user_id && modUserIdSet.has(m.user_id)) return false;
+      return true;
+    });
+  }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet]);
+
+
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (meBlockedOrBanned) return toast.error("You can't chat right now (muted by mod)");
@@ -3546,7 +3566,13 @@ function LiveDetail() {
         style={
           stream.mode === "show_off" ? { filter: flexFilterCss(stream.video_filter) } : undefined
         }
+        onDoubleClick={
+          !isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview)
+            ? () => setAudioUnmuted((v) => !v)
+            : undefined
+        }
       >
+
         {isSeller && !usingObs ? (
           // Host's own preview (WebRTC / compositor canvas) — keep raw video
           <video
@@ -5533,26 +5559,14 @@ function LiveDetail() {
             md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-72 md:max-h-none`}
         >
           <div className="flex flex-col items-start gap-1.5 pr-1">
-            {messages
-              .filter((m) => {
-                if (m.is_system || m.is_announcement) return false;
-                if (m.user_id && myBlockedIds.has(m.user_id)) return false;
-                if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
-                if (
-                  isStaff &&
-                  hideModsChat &&
-                  m.user_id &&
-                  mods.some((mm: any) => mm.mod_user_id === m.user_id)
-                ) return false;
-                return true;
-              })
-              .map((m) => {
+            {visibleChatMessages.map((m) => {
                 const parts = String(m.content).split(/(@[A-Za-z0-9_]+)/g);
                 const isBlocked = m.user_id && chatBlockSet.has(m.user_id);
                 const aud = (m as any).audience || "public";
                 const isModOnly = aud === "mods_only";
                 const isHostMods = aud === "host_mods";
                 return (
+
                   <div
                     key={m.id}
                     className={`max-w-[95%] rounded-2xl border-l-2 px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all ${
