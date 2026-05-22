@@ -969,7 +969,7 @@ function LiveDetail() {
             .from("orders")
             .select("id,title,amount,stream_id")
             .eq("id", orderId).maybeSingle();
-          if (o) setFailedOrder(o as any);
+          if (o) { setFailedOrder(o as any); setFixPaymentOpen(true); }
         }
       } catch (e) {
         console.warn("auto-charge failed", e);
