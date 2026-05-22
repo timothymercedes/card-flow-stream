@@ -529,6 +529,9 @@ function LiveDetail() {
   const [editShipMethod, setEditShipMethod] = useState("USPS Ground");
   // 🆕 Shipping preset + weight (oz/lbs) — drives method & price per Shippo guideline
   const [editShipPreset, setEditShipPreset] = useState<ShippingPresetKey>("bubble");
+  // 🆕 Once the host manually picks a preset, stop auto-overriding it on every
+  // re-render. The auto-suggest only runs while the host hasn't intervened.
+  const shipPresetManualRef = useRef(false);
   const [editWeight, setEditWeight] = useState("4");
   const [editWeightUnit, setEditWeightUnit] = useState<"oz" | "lbs">("oz");
   // 🆕 Quantity (back-to-back identical auctions) + voice trigger
