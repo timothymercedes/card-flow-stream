@@ -154,7 +154,7 @@ function Admin() {
   useRealtimeChannel({ name: "admin-verif-count", enabled: canViewAdmin }, (ch) =>
     ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" } as any, () => refreshVerif()));
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
-  useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
+  useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter, orderSearch]);
   useEffect(() => {
     if (!isAdmin) return;
     (supabase.rpc as any)("admin_get_signup_stats").then(({ data }: any) => {
