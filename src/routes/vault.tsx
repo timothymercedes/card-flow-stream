@@ -1192,8 +1192,13 @@ function Vault() {
               <input type="number" min="0" step="0.01" className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <p className="text-[10px] text-muted-foreground">Value is set automatically from TCG market data — it can't be edited.</p>
+            <label className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold ring-1 ring-primary/30">
+              <input type="checkbox" checked={sellAfterSave} onChange={(e) => setSellAfterSave(e.target.checked)} className="h-4 w-4" />
+              <Tag className="h-3.5 w-3.5 text-primary" />
+              Sell this item right after saving
+            </label>
             <div className="flex gap-2">
-              <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
+              <button onClick={add} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">{sellAfterSave ? "Save & List" : "Save"}</button>
               <button onClick={() => { setShowAdd(false); resetForm(); }} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
             </div>
           </div>
