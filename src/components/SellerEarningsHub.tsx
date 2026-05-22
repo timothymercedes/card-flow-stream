@@ -29,6 +29,7 @@ type Order = {
   created_at: string;
   fee_absorbed_by?: "buyer" | "seller" | null;
   fee_index?: number | null;
+  stream_id?: string | null;
 };
 
 type Recovery = {
@@ -56,7 +57,12 @@ const BUYER_PLATFORM_FEE_DOLLARS = 1.23;
 function computeBreakdown(o: Order, recoveryByRef: Map<string, number>) {
   const gross = Number(o.amount || 0);
   const platformFee = gross * Number(o.commission_rate ?? PLATFORM_FEE);
-  const processingFee = gross > 0 ? gross * PROCESSING_RATE + PROCESSING_FIXED : 0;
+  // Live auctions / live-stream purchases split the Stripe processing fee
+  // 50/50 with the buyer, so the seller's share is roughly half. Marketplace
+  // fixed-price sales: buyer covers the full processing fee.
+  const isLiveSale = !!o.stream_id;
+  const fullProcessingFee = gross > 0 ? gross * PROCESSING_RATE + PROCESSING_FIXED : 0;
+  const processingFee = isLiveSale ? fullProcessingFee / 2 : 0;
   const shipping = (o.shipping_cents ?? 0) / 100;
   const promo = (o.promo_cents ?? 0) / 100;
   const refund = Number(o.refunded_amount ?? 0);
@@ -382,7 +388,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         <div className="space-y-1.5">
           <Row label="Gross sales" value={fmt(totals.gross)} />
           <Row label="Platform fee" value={`−${fmt(totals.platformFee)}`} negative />
-          <Row label="Payment processing" value={`−${fmt(totals.processingFee)}`} negative />
+          <Row label="Payment processing (your half on live sales)" value={`−${fmt(totals.processingFee)}`} negative />
           <Row label="Shipping / labels" value={`−${fmt(totals.shipping)}`} negative />
           <Row label="Promotions / shoutouts" value={`−${fmt(totals.promo)}`} negative />
           <Row label="Refunds" value={`−${fmt(totals.refund)}`} negative />
@@ -392,7 +398,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
           )}
           <Row label="Final net earnings" value={fmt(totals.net)} primary />
           <p className="px-1 pt-1 text-[11px] text-muted-foreground">
-            Processing estimated at 2.9% + $0.30 per sale. Tax forms (1099-K) issued at year-end if you exceed reporting thresholds.
+            Live auctions & live-stream sales: buyer and seller each cover 50% of the Stripe processing fee (2.9% + $0.30). Marketplace fixed-price sales: buyer covers it in full. Tax forms (1099-K) issued at year-end if you exceed reporting thresholds.
           </p>
         </div>
       )}
