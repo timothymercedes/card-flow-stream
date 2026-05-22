@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap, Pencil, X, Library, Check } from "lucide-react";
 
 type SaleType = "prebid" | "buynow" | "either" | "offer";
 
