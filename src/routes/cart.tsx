@@ -24,6 +24,7 @@ function Cart() {
   const [sellerCountries, setSellerCountries] = useState<Record<string, string>>({});
   const [buyerAddress, setBuyerAddress] = useState<ShippingAddress | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [insuranceFeeCents, setInsuranceFeeCents] = useState(0);
 
   async function load() {
     if (!user) return;
