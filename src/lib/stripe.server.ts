@@ -40,6 +40,7 @@ export const MARKETPLACE_COMMISSION_RATE = 0.05;
 // never see Stripe fees deducted from their subtotal.
 export const STRIPE_PROCESSING_RATE = 0.029;
 export const STRIPE_PROCESSING_FIXED_CENTS = 30;
+export const LIVE_BUYER_FEE_THRESHOLD = 3;
 
 /**
  * Gross-up the Stripe processing fee so the buyer covers it entirely.
@@ -88,6 +89,7 @@ export function calculateFees(
   opts?: {
     isInternational?: boolean;
     platformFeeCentsOverride?: number;
+    sellerAbsorbedFeeCentsOverride?: number;
     commissionRate?: number;
     feeSplitMode?: "buyer" | "split" | "seller_absorbed";
   },
@@ -101,7 +103,9 @@ export function calculateFees(
     : 0;
   // Bundle discount: seller absorbs the difference so platform still nets
   // the same per-order margin even when the buyer fee is waived.
-  const sellerAbsorbedFee = BUYER_PLATFORM_FEE_CENTS - platformFee;
+  const sellerAbsorbedFee = typeof opts?.sellerAbsorbedFeeCentsOverride === "number"
+    ? Math.max(0, Math.round(opts.sellerAbsorbedFeeCentsOverride))
+    : Math.max(0, BUYER_PLATFORM_FEE_CENTS - platformFee);
   const commissionRate = typeof opts?.commissionRate === "number"
     ? opts.commissionRate
     : MARKETPLACE_COMMISSION_RATE;
