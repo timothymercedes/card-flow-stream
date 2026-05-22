@@ -12,6 +12,7 @@ import { XCircle } from "lucide-react";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
+import { MyOffers } from "@/components/MyOffers";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
