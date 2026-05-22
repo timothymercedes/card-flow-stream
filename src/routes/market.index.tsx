@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Search, Sparkles, Flame, Clock, Tag, ChevronDown, Check, X } from "lucide-react";
+import { Search, Sparkles, Flame, Clock, Tag, ChevronDown, Check, X, SlidersHorizontal } from "lucide-react";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
@@ -14,6 +14,7 @@ import { MarketQuickView } from "@/components/MarketQuickView";
 export const Route = createFileRoute("/market/")({ component: Market });
 
 type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
+type ListingFilter = "all" | "auction" | "buy_now" | "make_offer" | "ending_soon" | "trending" | "newly_listed";
 
 // Shuffle seed rotates every 5 minutes (see @/lib/shuffle).
 
@@ -33,7 +34,11 @@ function Market() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("shuffled");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [listingFilter, setListingFilter] = useState<ListingFilter>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [category, setCategory] = useState<string>("all");
+  const [catOpen, setCatOpen] = useState(false);
   const [quickView, setQuickView] = useState<any | null>(null);
   const seed = useShuffleBucket();
 
@@ -77,6 +82,33 @@ function Market() {
         l.tcg_number?.toLowerCase().includes(term)
       );
     });
+    // Apply listing type filter
+    switch (listingFilter) {
+      case "auction":
+        arr = arr.filter((l) => l.is_auction);
+        break;
+      case "buy_now":
+        arr = arr.filter((l) => !l.is_auction && (l.price ?? 0) > 0);
+        break;
+      case "make_offer":
+        arr = arr.filter((l) => {
+          const d = getListingPriceDisplay(l, true);
+          return d.kind === "offer";
+        });
+        break;
+      case "ending_soon":
+        arr = arr.filter((l) => l.auction_ends_at && new Date(l.auction_ends_at).getTime() - Date.now() < 24 * 3600 * 1000);
+        arr = arr.sort((a, b) => new Date(a.auction_ends_at).getTime() - new Date(b.auction_ends_at).getTime());
+        break;
+      case "trending":
+        arr = arr.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0));
+        break;
+      case "newly_listed":
+        arr = arr.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      default:
+        break;
+    }
     const priceOf = (l: any) => getListingPriceDisplay(l).amount;
     switch (sort) {
       case "price_asc": arr = [...arr].sort((a, b) => priceOf(a) - priceOf(b)); break;
@@ -94,7 +126,7 @@ function Market() {
       default: break;
     }
     return arr;
-  }, [items, q, sort, category, seed]);
+  }, [items, q, sort, category, seed, listingFilter]);
 
   const trendingCount = items.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0)).length;
   const endingSoonCount = items.filter((l) => {
@@ -148,41 +180,138 @@ function Market() {
                 className="w-full rounded-full bg-input/60 py-2 pl-9 pr-3 text-sm shadow-[var(--shadow-xs)] outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as Sort)}
-              className="rounded-full bg-input/60 px-3 py-2 text-xs font-semibold ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring/40"
-            >
-              <option value="shuffled">Discover</option>
-              <option value="newest">Newest</option>
-              <option value="price_asc">Lowest price</option>
-              <option value="price_desc">Highest price</option>
-              <option value="ending_soon">Ending soon</option>
-            </select>
+
+            {/* Filter dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setFilterOpen((v) => !v)}
+                className="flex items-center gap-1 rounded-full bg-input/60 px-3 py-2 text-xs font-semibold ring-1 ring-border/60 hover:bg-muted/70"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {listingFilter === "all" && "All"}
+                  {listingFilter === "auction" && "Auction"}
+                  {listingFilter === "buy_now" && "Buy Now"}
+                  {listingFilter === "make_offer" && "Make Offer"}
+                  {listingFilter === "ending_soon" && "Ending Soon"}
+                  {listingFilter === "trending" && "Trending"}
+                  {listingFilter === "newly_listed" && "New"}
+                </span>
+                <ChevronDown className={`h-3 w-3 transition ${filterOpen ? "rotate-180" : ""}`} />
+              </button>
+              {filterOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setFilterOpen(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-xl border border-border/60 bg-card p-1.5 shadow-[var(--shadow-lg)]">
+                    {[
+                      { key: "all", label: "All Listings", icon: "✨" },
+                      { key: "auction", label: "Auction", icon: "🔨" },
+                      { key: "buy_now", label: "Buy Now", icon: "💰" },
+                      { key: "make_offer", label: "Make Offer", icon: "🤝" },
+                      { key: "ending_soon", label: "Ending Soon", icon: "⏰" },
+                      { key: "trending", label: "Trending", icon: "🔥" },
+                      { key: "newly_listed", label: "Newly Listed", icon: "🆕" },
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => { setListingFilter(f.key as ListingFilter); setFilterOpen(false); }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${listingFilter === f.key ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+                      >
+                        <span>{f.icon}</span>
+                        <span className="flex-1">{f.label}</span>
+                        {listingFilter === f.key && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Sort dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setSortOpen((v) => !v)}
+                className="flex items-center gap-1 rounded-full bg-input/60 px-3 py-2 text-xs font-semibold ring-1 ring-border/60 hover:bg-muted/70"
+              >
+                <span className="hidden sm:inline">
+                  {sort === "shuffled" && "Discover"}
+                  {sort === "newest" && "Newest"}
+                  {sort === "price_asc" && "Lowest Price"}
+                  {sort === "price_desc" && "Highest Price"}
+                  {sort === "ending_soon" && "Ending Soon"}
+                </span>
+                <ChevronDown className={`h-3 w-3 transition ${sortOpen ? "rotate-180" : ""}`} />
+              </button>
+              {sortOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-border/60 bg-card p-1.5 shadow-[var(--shadow-lg)]">
+                    {[
+                      { key: "shuffled", label: "Discover" },
+                      { key: "newest", label: "Newest" },
+                      { key: "price_asc", label: "Lowest Price" },
+                      { key: "price_desc", label: "Highest Price" },
+                      { key: "ending_soon", label: "Ending Soon" },
+                    ].map((s) => (
+                      <button
+                        key={s.key}
+                        onClick={() => { setSort(s.key as Sort); setSortOpen(false); }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${sort === s.key ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+                      >
+                        <span className="flex-1">{s.label}</span>
+                        {sort === s.key && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Category chips */}
-          <div className="-mx-4 mt-2 overflow-x-auto px-4">
-            <div className="flex gap-2 pb-1">
-              <button
-                onClick={() => setCategory("all")}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${category === "all" ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-              >
-                ✨ All ({items.length})
-              </button>
-              {LISTING_CATEGORIES.map((c) => {
-                const n = counts[c.value] || 0;
-                return (
+          {/* Category dropdown */}
+          <div className="relative mt-2">
+            <button
+              onClick={() => setCatOpen((v) => !v)}
+              className="flex w-full items-center gap-2 rounded-full bg-input/60 px-3 py-1.5 text-xs font-semibold ring-1 ring-border/60 hover:bg-muted/70"
+            >
+              <span>{category === "all" ? "✨" : categoryEmoji(category)}</span>
+              <span className="flex-1 text-left">{category === "all" ? "All Categories" : categoryLabel(category)}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {category === "all" ? items.length : (counts[category] || 0)}
+              </span>
+              <ChevronDown className={`h-3 w-3 transition ${catOpen ? "rotate-180" : ""}`} />
+            </button>
+            {catOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-xl border border-border/60 bg-card p-1.5 shadow-[var(--shadow-lg)]">
                   <button
-                    key={c.value}
-                    onClick={() => setCategory(c.value)}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${category === c.value ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
+                    onClick={() => { setCategory("all"); setCatOpen(false); }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${category === "all" ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
                   >
-                    {c.emoji} {c.label}{n > 0 && <span className="ml-1 opacity-60">({n})</span>}
+                    <span>✨</span>
+                    <span className="flex-1">All Categories</span>
+                    <span className="text-[10px] text-muted-foreground">{items.length}</span>
+                    {category === "all" && <Check className="h-3.5 w-3.5" />}
                   </button>
-                );
-              })}
-            </div>
+                  {LISTING_CATEGORIES.map((c) => {
+                    const n = counts[c.value] || 0;
+                    return (
+                      <button
+                        key={c.value}
+                        onClick={() => { setCategory(c.value); setCatOpen(false); }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${category === c.value ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+                      >
+                        <span>{c.emoji}</span>
+                        <span className="flex-1">{c.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{n}</span>
+                        {category === c.value && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
