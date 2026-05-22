@@ -712,6 +712,8 @@ function Sell() {
               hostId={user?.id || ""}
               prebidVaultPicks={prebidVaultPicks}
               setPrebidVaultPicks={setPrebidVaultPicks}
+              scheduledFor={scheduledFor}
+              setScheduledFor={setScheduledFor}
               startLive={async () => {
                 await startLive();
               }}
