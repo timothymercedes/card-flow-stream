@@ -139,10 +139,11 @@ export function LiveSellerDashboard({
   useEffect(() => {
     let cancelled = false;
     async function loadAll() {
-      const [ordersRes, tipsRes, promoRes, modsRes, mutesRes, bookmarksRes] = await Promise.all([
+      const [ordersRes, tipsRes, promoRes, shoutoutsRes, modsRes, mutesRes, bookmarksRes] = await Promise.all([
         supabase.from("orders").select("id, buyer_id, title, amount, payment_status, created_at").eq("stream_id", streamId).order("created_at", { ascending: false }),
         supabase.from("stream_tips").select("id, buyer_id, buyer_username, amount, status, created_at").eq("stream_id", streamId).order("created_at", { ascending: false }),
         supabase.from("stream_promotions").select("id, promoter_id, promoter_username, amount, status, created_at").eq("stream_id", streamId).order("created_at", { ascending: false }),
+        supabase.from("stream_shoutouts").select("id, buyer_id, buyer_username, amount, message, created_at").eq("stream_id", streamId).order("created_at", { ascending: false }),
         supabase.from("stream_moderators").select("mod_user_id, mod_username").eq("stream_id", streamId),
         supabase.from("stream_chat_actions").select("target_user_id, target_username, action, expires_at, created_at").eq("stream_id", streamId).order("created_at", { ascending: false }).limit(30),
         scheduledShowId
@@ -152,8 +153,11 @@ export function LiveSellerDashboard({
       if (cancelled) return;
 
       const ordersData = ordersRes.data || [];
-      const tips = (tipsRes.data || []).filter((t: any) => t.status === "paid");
-      const promos = (promoRes.data || []).filter((p: any) => p.status === "paid");
+      // Count paid tips, plus pending/processing so buyers see their tip
+      // reflected immediately (status flips to paid once the webhook lands).
+      const tips = (tipsRes.data || []).filter((t: any) => t.status !== "failed" && t.status !== "refunded");
+      const promos = (promoRes.data || []).filter((p: any) => p.status !== "failed" && p.status !== "refunded");
+      const shoutouts = (shoutoutsRes.data || []);
       const paidOrders = ordersData.filter((o: any) => o.payment_status === "paid");
       const pendingOrders = ordersData.filter((o: any) => o.payment_status !== "paid");
 
@@ -162,7 +166,8 @@ export function LiveSellerDashboard({
         orderCount: ordersData.length,
         tipsAndPromo:
           tips.reduce((s: number, t: any) => s + Number(t.amount || 0), 0) +
-          promos.reduce((s: number, p: any) => s + Number(p.amount || 0), 0),
+          promos.reduce((s: number, p: any) => s + Number(p.amount || 0), 0) +
+          shoutouts.reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
         pendingPayments: pendingOrders.length,
         bookmarks: (bookmarksRes as any)?.count || 0,
       });
