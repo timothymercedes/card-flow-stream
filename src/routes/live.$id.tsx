@@ -5697,7 +5697,7 @@ function LiveDetail() {
 
                   <div
                     key={m.id}
-                    className={`max-w-[95%] rounded-2xl border-l-2 px-3 py-1.5 text-[12px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all ${
+                    className={`w-full rounded-2xl border-l-2 px-3 py-1.5 text-[13px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all break-words [overflow-wrap:anywhere] ${
                       isBlocked
                         ? "border-red-300/60 bg-red-500/25 line-through opacity-60"
                         : isHostMods
