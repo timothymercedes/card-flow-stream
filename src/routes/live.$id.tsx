@@ -7837,6 +7837,23 @@ function LiveDetail() {
           </div>
         </div>
       )}
+
+      {shoutoutOverlay && (
+        <div className="pointer-events-none fixed left-1/2 top-24 z-[150] -translate-x-1/2 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 shadow-2xl shadow-amber-500/40">
+            <Sparkles className="h-6 w-6 text-white" />
+            <div className="text-white">
+              <div className="text-xs opacity-90">📣 @{shoutoutOverlay.username} shouted out</div>
+              <div className="text-xl font-black">${shoutoutOverlay.amount.toFixed(2)}</div>
+              {shoutoutOverlay.message && (
+                <div className="mt-0.5 max-w-[280px] text-sm font-semibold italic opacity-95 break-words">
+                  "{shoutoutOverlay.message}"
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* K.O. viewer overlay */}
       <KOViewerOverlay
         active={!!stream?.ko_active}
