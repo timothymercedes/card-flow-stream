@@ -112,6 +112,8 @@ function Sell() {
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
   const [hypeTags, setHypeTags] = useState<string[]>([]);
   const [prebidVaultPicks, setPrebidVaultPicks] = useState<VaultPick[]>([]);
+  // Schedule vs go-live-now (set in step 6). Empty string = go live now.
+  const [scheduledFor, setScheduledFor] = useState<string>("");
 
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
