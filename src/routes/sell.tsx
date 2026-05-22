@@ -1041,6 +1041,10 @@ type LiveWizardProps = {
   setPrebidVaultPicks: (v: VaultPick[] | ((cur: VaultPick[]) => VaultPick[])) => void;
   scheduledFor: string;
   setScheduledFor: (v: string) => void;
+  recurrence: "none" | "daily" | "weekly" | "monthly";
+  setRecurrence: (v: "none" | "daily" | "weekly" | "monthly") => void;
+  recurrenceUntil: string;
+  setRecurrenceUntil: (v: string) => void;
   startLive: () => Promise<void>;
 };
 
