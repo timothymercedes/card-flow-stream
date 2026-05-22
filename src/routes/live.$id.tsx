@@ -1006,8 +1006,10 @@ function LiveDetail() {
           if (row?.stream_id !== id) return;
           if (row?.payment_status === "failed") {
             setFailedOrder({ id: row.id, title: row.title, amount: Number(row.amount), stream_id: row.stream_id });
-          } else if (row?.payment_status === "paid") {
+            setFixPaymentOpen(true);
+          } else if (row?.payment_status === "paid" || row?.payment_status === "cancelled" || row?.payment_status === "refunded") {
             setFailedOrder((cur) => (cur?.id === row.id ? null : cur));
+            setFixPaymentOpen((open) => (failedOrder?.id === row.id ? false : open));
           }
         },
       )
