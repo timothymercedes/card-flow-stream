@@ -450,7 +450,12 @@ function Admin() {
                 <div className="flex items-start gap-3">
                   {o.item_image_url && <img src={o.item_image_url} alt="" className="h-12 w-12 shrink-0 rounded object-cover" />}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold">{o.title}</p>
+                    <div className="flex items-center gap-2">
+                      {o.order_number && (
+                        <span className="rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">{o.order_number}</span>
+                      )}
+                      <p className="truncate text-xs font-bold">{o.title}</p>
+                    </div>
                     <p className="text-[10px] text-muted-foreground">${Number(o.amount).toFixed(2)} · {o.status} · {o.payment_status}</p>
                     <p className="text-[10px] text-muted-foreground">Buyer: {o.buyer_id.slice(0,8)} · Seller: {o.seller_id.slice(0,8)}</p>
                     <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
