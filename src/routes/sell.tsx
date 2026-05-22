@@ -458,7 +458,12 @@ function Sell() {
       weight_oz: Number(weightOz) || null,
       auction_ends_at: auctionEnds,
     });
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = /image_url|image/i.test(error.message)
+        ? "Photo upload didn't save. Please re-upload your front and back photos and try again."
+        : error.message;
+      return toast.error(msg);
+    }
     toast.success("Listing created");
     nav({ to: "/market" });
   }
