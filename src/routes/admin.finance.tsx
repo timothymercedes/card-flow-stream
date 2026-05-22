@@ -1035,7 +1035,7 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
         <Stat icon={<TrendingDown className="h-3 w-3" />} label="Refunded" value={fmt(totals.refunded)} accent="text-destructive" />
       </div>
 
-      <Section title={`Per-order audit (${filtered.length})`} right={<span className="text-[10px] text-muted-foreground">Drift &gt; $0.02 highlighted</span>}>
+      <Section title={`All sales (${filtered.length})`} right={<span className="text-[10px] text-muted-foreground">Search by order # · Drift &gt; $0.02 highlighted</span>}>
         {q.isLoading ? (
           <p className="text-xs text-muted-foreground">Loading…</p>
         ) : filtered.length === 0 ? (
