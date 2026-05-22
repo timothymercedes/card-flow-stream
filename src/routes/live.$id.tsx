@@ -5010,8 +5010,24 @@ function LiveDetail() {
                         : weightOz > 8
                           ? "small_box"
                           : "bubble";
-                if (autoKey !== editShipPreset) {
-                  setTimeout(() => setEditShipPreset(autoKey), 0);
+                if (!shipPresetManualRef.current && autoKey !== editShipPreset) {
+                  setTimeout(() => {
+                    if (shipPresetManualRef.current) return;
+                    setEditShipPreset(autoKey);
+                    const ap = SHIPPING_PRESETS[autoKey];
+                    setEditShipMethod(ap.label);
+                    const autoPrice =
+                      ap.flatRate && ap.flatPriceUsd != null
+                        ? ap.flatPriceUsd
+                        : Number(
+                            estimateShippingAndImportFees({
+                              subtotal: startVal,
+                              weightOz: ap.weightOz,
+                              quantity: qty,
+                            }).shipping.toFixed(2),
+                          );
+                    setEditShipPrice(String(autoPrice));
+                  }, 0);
                 }
                 return (
                   <>
