@@ -3566,7 +3566,13 @@ function LiveDetail() {
         style={
           stream.mode === "show_off" ? { filter: flexFilterCss(stream.video_filter) } : undefined
         }
+        onDoubleClick={
+          !isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview)
+            ? () => setAudioUnmuted((v) => !v)
+            : undefined
+        }
       >
+
         {isSeller && !usingObs ? (
           // Host's own preview (WebRTC / compositor canvas) — keep raw video
           <video
