@@ -209,7 +209,14 @@ function Orders() {
                 <div className="flex items-start gap-3">
                   {o.item_image_url && <img src={o.item_image_url} alt={o.title} className="h-16 w-16 rounded-lg object-cover" />}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold">{o.title}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-bold">{o.title}</p>
+                      {o.order_number && (
+                        <span className="shrink-0 rounded-md bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-bold text-primary" title="Order number — share this with support">
+                          {o.order_number}
+                        </span>
+                      )}
+                    </div>
                     {o.description && <p className="line-clamp-2 text-[11px] text-muted-foreground">{o.description}</p>}
                     <p className="text-xs font-semibold text-primary">${Number(o.amount).toFixed(2)}</p>
                     <div className="mt-0.5"><SellerBadge sellerId={o.seller_id} /></div>
