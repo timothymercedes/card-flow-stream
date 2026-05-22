@@ -446,9 +446,15 @@ function Admin() {
 
         {tab === "orders" && (
           <div className="space-y-2">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button onClick={() => setOrderFilter("issues")} className={`rounded-full px-3 py-1 text-[11px] font-bold ${orderFilter === "issues" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Issues only</button>
               <button onClick={() => setOrderFilter("all")} className={`rounded-full px-3 py-1 text-[11px] font-bold ${orderFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>All recent</button>
+              <input
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Search order # or title…"
+                className="min-w-[180px] flex-1 rounded-full bg-muted px-3 py-1 text-[11px] outline-none"
+              />
               <span className="ml-auto self-center text-[10px] text-muted-foreground">{orders.length} shown</span>
             </div>
             {orders.map((o) => (
