@@ -237,12 +237,12 @@ function OwnerFinanceDashboard() {
             ["platform", "Platform"],
             ["personal", "My Sales"],
             ["payouts", "Payouts"],
+            ["audit", "All Sales"],
             ["streams", "Per Stream"],
             ["sellers", "Per Seller"],
             ["shipping", "Shipping"],
             ["refunds", "Refunds"],
             ["transactions", "Transactions"],
-            ["audit", "Audit"],
             ["integrity", "Integrity"],
 
           ] as [TabKey, string][]).map(([k, l]) => (
@@ -962,6 +962,7 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
     downloadCsv(
       `audit-${new Date().toISOString().slice(0, 10)}.csv`,
       filtered.map((r) => ({
+        order_number: r.order_number,
         order_id: r.id,
         created_at: r.created_at,
         paid_at: r.paid_at,
@@ -1000,18 +1001,19 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
           onChange={(e) => setPaymentStatus(e.target.value)}
           className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
         >
-          <option value="">All payment states</option>
+          <option value="">All statuses</option>
           <option value="paid">Paid</option>
           <option value="awaiting_payment">Awaiting payment</option>
           <option value="refunded">Refunded</option>
           <option value="failed">Failed</option>
+          <option value="chargeback">Chargeback</option>
         </select>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search title…"
+          placeholder="Search order # or title…"
           maxLength={120}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+          className="min-w-[220px] flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs"
         />
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input type="checkbox" checked={driftOnly} onChange={(e) => setDriftOnly(e.target.checked)} className="h-3 w-3" />
@@ -1033,7 +1035,7 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
         <Stat icon={<TrendingDown className="h-3 w-3" />} label="Refunded" value={fmt(totals.refunded)} accent="text-destructive" />
       </div>
 
-      <Section title={`Per-order audit (${filtered.length})`} right={<span className="text-[10px] text-muted-foreground">Drift &gt; $0.02 highlighted</span>}>
+      <Section title={`All sales (${filtered.length})`} right={<span className="text-[10px] text-muted-foreground">Search by order # · Drift &gt; $0.02 highlighted</span>}>
         {q.isLoading ? (
           <p className="text-xs text-muted-foreground">Loading…</p>
         ) : filtered.length === 0 ? (
@@ -1043,30 +1045,30 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
             <table className="w-full text-[11px]">
               <thead className="sticky top-0 bg-card text-muted-foreground">
                 <tr className="text-left">
-                  <th className="py-1 pr-2">When</th>
+                  <th className="py-1 pr-2">Order #</th>
+                  <th className="pr-2">When</th>
                   <th className="pr-2">Title</th>
                   <th className="pr-2">Status</th>
                   <th className="pr-2 text-right">Subtotal</th>
                   <th className="pr-2 text-right">Comm</th>
                   <th className="pr-2 text-right">Payout</th>
                   <th className="pr-2 text-right">Ship</th>
-                  <th className="pr-2 text-right">Label</th>
-                  <th className="pr-2 text-right">Margin</th>
+                  <th className="pr-2 text-right">Refunded</th>
                   <th className="pr-2 text-right">Drift</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.id} className={`border-t border-border/40 ${r.hasDrift ? "bg-destructive/5" : ""}`}>
-                    <td className="py-1 pr-2 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <tr key={r.id} className={`border-t border-border/40 ${r.hasDrift ? "bg-destructive/5" : ""} ${r.status === "cancelled" ? "opacity-60" : ""}`}>
+                    <td className="py-1 pr-2 whitespace-nowrap font-mono text-[10px] font-bold text-primary" title={r.id}>{r.order_number ?? r.id.slice(0, 8)}</td>
+                    <td className="pr-2 whitespace-nowrap text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="pr-2 max-w-[16ch] truncate" title={r.title}>{r.title}</td>
-                    <td className="pr-2"><StatusPill status={r.payment_status} /></td>
+                    <td className="pr-2"><StatusPill status={r.status === "cancelled" ? "canceled" : r.payment_status} /></td>
                     <td className="pr-2 text-right tabular-nums">{fmt(r.subtotalCents)}</td>
                     <td className="pr-2 text-right tabular-nums text-primary">{fmt(r.commissionCents)}</td>
                     <td className="pr-2 text-right tabular-nums text-emerald-500">{fmt(r.payoutCents)}</td>
                     <td className="pr-2 text-right tabular-nums text-muted-foreground">{fmt(r.shippingCents)}</td>
-                    <td className="pr-2 text-right tabular-nums text-muted-foreground">{fmt(r.labelCostCents)}</td>
-                    <td className={`pr-2 text-right tabular-nums ${r.shippingMarginCents >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(r.shippingMarginCents)}</td>
+                    <td className="pr-2 text-right tabular-nums text-destructive">{r.refundedCents > 0 ? fmt(r.refundedCents) : "—"}</td>
                     <td className={`pr-2 text-right tabular-nums font-bold ${r.hasDrift ? "text-destructive" : "text-muted-foreground"}`}>
                       {r.hasDrift ? fmt(r.sumDrift || r.commissionDrift || r.payoutDrift) : "—"}
                     </td>

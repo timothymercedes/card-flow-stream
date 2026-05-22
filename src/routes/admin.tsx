@@ -72,6 +72,7 @@ function Admin() {
   const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
   const [orders, setOrders] = useState<any[]>([]);
   const [orderFilter, setOrderFilter] = useState<"all" | "issues">(search.filter ?? "issues");
+  const [orderSearch, setOrderSearch] = useState("");
 
   useEffect(() => { if (search.tab) setTab(search.tab); }, [search.tab]);
   useEffect(() => { if (search.filter) setOrderFilter(search.filter); }, [search.filter]);
@@ -154,7 +155,7 @@ function Admin() {
   useRealtimeChannel({ name: "admin-verif-count", enabled: canViewAdmin }, (ch) =>
     ch.on("postgres_changes" as any, { event: "*", schema: "public", table: "profiles" } as any, () => refreshVerif()));
   useEffect(() => { if (isAdmin && tab === "roles") loadRoles(); }, [isAdmin, tab]);
-  useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter]);
+  useEffect(() => { if (canViewAdmin && tab === "orders") loadOrders(); }, [canViewAdmin, tab, orderFilter, orderSearch]);
   useEffect(() => {
     if (!isAdmin) return;
     (supabase.rpc as any)("admin_get_signup_stats").then(({ data }: any) => {
@@ -165,10 +166,15 @@ function Admin() {
     });
   }, [isAdmin]);
 
+  
   async function loadOrders() {
     let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
     if (orderFilter === "issues") {
       q = q.in("status", ["pending", "disputed"]);
+    }
+    if (orderSearch.trim()) {
+      const term = orderSearch.trim();
+      q = q.or(`order_number.ilike.%${term}%,title.ilike.%${term}%`);
     }
     const { data } = await q;
     setOrders((data as any[]) || []);
@@ -440,9 +446,15 @@ function Admin() {
 
         {tab === "orders" && (
           <div className="space-y-2">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button onClick={() => setOrderFilter("issues")} className={`rounded-full px-3 py-1 text-[11px] font-bold ${orderFilter === "issues" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>Issues only</button>
               <button onClick={() => setOrderFilter("all")} className={`rounded-full px-3 py-1 text-[11px] font-bold ${orderFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>All recent</button>
+              <input
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Search order # or title…"
+                className="min-w-[180px] flex-1 rounded-full bg-muted px-3 py-1 text-[11px] outline-none"
+              />
               <span className="ml-auto self-center text-[10px] text-muted-foreground">{orders.length} shown</span>
             </div>
             {orders.map((o) => (
@@ -450,7 +462,12 @@ function Admin() {
                 <div className="flex items-start gap-3">
                   {o.item_image_url && <img src={o.item_image_url} alt="" className="h-12 w-12 shrink-0 rounded object-cover" />}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold">{o.title}</p>
+                    <div className="flex items-center gap-2">
+                      {o.order_number && (
+                        <span className="rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">{o.order_number}</span>
+                      )}
+                      <p className="truncate text-xs font-bold">{o.title}</p>
+                    </div>
                     <p className="text-[10px] text-muted-foreground">${Number(o.amount).toFixed(2)} · {o.status} · {o.payment_status}</p>
                     <p className="text-[10px] text-muted-foreground">Buyer: {o.buyer_id.slice(0,8)} · Seller: {o.seller_id.slice(0,8)}</p>
                     <p className="text-[10px] text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>

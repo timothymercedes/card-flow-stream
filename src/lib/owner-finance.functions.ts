@@ -236,7 +236,7 @@ export const getOrdersAuditFn = createServerFn({ method: "POST" })
     let q = supabase
       .from("orders")
       .select(
-        "id,title,amount,shipping_amount,commission_rate,commission_amount,seller_payout_amount,label_cost_cents,shipping_margin_cents,refunded_amount,payment_status,status,seller_id,buyer_id,stream_id,stripe_charge_id,created_at,paid_at,shipment_verified_at",
+        "id,order_number,title,amount,shipping_amount,commission_rate,commission_amount,seller_payout_amount,label_cost_cents,shipping_margin_cents,refunded_amount,payment_status,status,seller_id,buyer_id,stream_id,stripe_charge_id,stripe_payment_intent_id,tracking_number,carrier,ship_name,ship_city,ship_state,created_at,paid_at,refunded_at,shipment_verified_at",
       )
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 200);
@@ -244,7 +244,11 @@ export const getOrdersAuditFn = createServerFn({ method: "POST" })
     if (until) q = q.lt("created_at", until);
     if (data.sellerId) q = q.eq("seller_id", data.sellerId);
     if (data.paymentStatus) q = q.eq("payment_status", data.paymentStatus);
-    if (data.search) q = q.ilike("title", `%${data.search}%`);
+    if (data.search) {
+      const term = data.search.trim();
+      // Search by order number OR title
+      q = q.or(`order_number.ilike.%${term}%,title.ilike.%${term}%`);
+    }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
