@@ -433,14 +433,26 @@ function SellerHub() {
     };
   }, [orders, listings, streams]);
 
+  // Rolling 7-day window for KPI tiles. Tiles "reset" weekly but full
+  // history is still available inside the drill-down modal.
   const totals = useMemo(() => {
-    const gross = orders.reduce((s, o) => s + Number(o.amount || 0), 0);
+    const cutoff = Date.now() - 7 * 86400000;
+    const recent = orders.filter((o) => {
+      const t = o.created_at ? new Date(o.created_at).getTime() : 0;
+      return t >= cutoff;
+    });
+    // Gross excludes refunded + cancelled orders entirely.
+    const grossOrders = recent.filter(
+      (o) => o.status !== "cancelled" && o.payment_status !== "refunded",
+    );
+    const gross = grossOrders.reduce((s, o) => s + Number(o.amount || 0), 0);
     const commission = gross * COMMISSION;
-    const pending = orders.filter((o) => o.payment_status === "paid" && o.status !== "delivered")
-      .reduce((s, o) => s + (Number(o.amount || 0) - Number(o.amount || 0) * COMMISSION), 0);
-    const refund = orders.filter((o) => o.payment_status === "refunded")
+    const pending = recent.filter(
+      (o) => o.payment_status === "paid" && o.status !== "delivered" && o.status !== "cancelled",
+    ).reduce((s, o) => s + (Number(o.amount || 0) - Number(o.amount || 0) * COMMISSION), 0);
+    const refund = recent.filter((o) => o.payment_status === "refunded")
       .reduce((s, o) => s + Number(o.refunded_amount || o.amount || 0), 0);
-    const cancelled = orders.filter((o) => o.status === "cancelled")
+    const cancelled = recent.filter((o) => o.status === "cancelled")
       .reduce((s, o) => s + Number(o.amount || 0), 0);
     return { gross, commission, net: gross - commission, pending, refund, cancelled };
   }, [orders]);
