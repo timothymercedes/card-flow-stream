@@ -40,6 +40,7 @@ import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
+import { Route as SellerShippingAnalyticsRouteImport } from './routes/seller.shipping-analytics'
 import { Route as SellerShippingRouteImport } from './routes/seller.shipping'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
@@ -55,6 +56,7 @@ import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
+import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -67,7 +69,10 @@ import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
 import { Route as ApiPublicHooksStripeReconciliationRouteImport } from './routes/api/public/hooks/stripe-reconciliation'
 import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
+import { Route as ApiPublicHooksShippoTrackingRouteImport } from './routes/api/public/hooks/shippo-tracking'
+import { Route as ApiPublicHooksShippingRemindersRouteImport } from './routes/api/public/hooks/shipping-reminders'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
+import { Route as ApiPublicHooksFraudSweepRouteImport } from './routes/api/public/hooks/fraud-sweep'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 
@@ -226,6 +231,11 @@ const ShowsIdRoute = ShowsIdRouteImport.update({
   path: '/shows/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellerShippingAnalyticsRoute = SellerShippingAnalyticsRouteImport.update({
+  id: '/seller/shipping-analytics',
+  path: '/seller/shipping-analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerShippingRoute = SellerShippingRouteImport.update({
   id: '/seller/shipping',
   path: '/seller/shipping',
@@ -303,6 +313,11 @@ const AdminFinanceRoute = AdminFinanceRouteImport.update({
   path: '/admin/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminShippingHealthRoute = AdminShippingHealthRouteImport.update({
+  id: '/shipping-health',
+  path: '/shipping-health',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
   id: '/recovery',
   path: '/recovery',
@@ -369,10 +384,28 @@ const ApiPublicHooksShowRemindersRoute =
     path: '/api/public/hooks/show-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksShippoTrackingRoute =
+  ApiPublicHooksShippoTrackingRouteImport.update({
+    id: '/api/public/hooks/shippo-tracking',
+    path: '/api/public/hooks/shippo-tracking',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksShippingRemindersRoute =
+  ApiPublicHooksShippingRemindersRouteImport.update({
+    id: '/api/public/hooks/shipping-reminders',
+    path: '/api/public/hooks/shipping-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRefreshVaultValuesRoute =
   ApiPublicHooksRefreshVaultValuesRouteImport.update({
     id: '/api/public/hooks/refresh-vault-values',
     path: '/api/public/hooks/refresh-vault-values',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksFraudSweepRoute =
+  ApiPublicHooksFraudSweepRouteImport.update({
+    id: '/api/public/hooks/fraud-sweep',
+    path: '/api/public/hooks/fraud-sweep',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksFinancialReconciliationRoute =
@@ -415,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/recovery': typeof AdminRecoveryRoute
+  '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -430,6 +464,7 @@ export interface FileRoutesByFullPath {
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/shipping': typeof SellerShippingRoute
+  '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
@@ -442,7 +477,10 @@ export interface FileRoutesByFullPath {
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
+  '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/shipping-reminders': typeof ApiPublicHooksShippingRemindersRoute
+  '/api/public/hooks/shippo-tracking': typeof ApiPublicHooksShippoTrackingRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -478,6 +516,7 @@ export interface FileRoutesByTo {
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/recovery': typeof AdminRecoveryRoute
+  '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -493,6 +532,7 @@ export interface FileRoutesByTo {
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/shipping': typeof SellerShippingRoute
+  '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/live': typeof LiveIndexRoute
@@ -505,7 +545,10 @@ export interface FileRoutesByTo {
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
+  '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/shipping-reminders': typeof ApiPublicHooksShippingRemindersRoute
+  '/api/public/hooks/shippo-tracking': typeof ApiPublicHooksShippoTrackingRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -542,6 +585,7 @@ export interface FileRoutesById {
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/recovery': typeof AdminRecoveryRoute
+  '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
@@ -557,6 +601,7 @@ export interface FileRoutesById {
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/shipping': typeof SellerShippingRoute
+  '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
@@ -569,7 +614,10 @@ export interface FileRoutesById {
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
+  '/api/public/hooks/fraud-sweep': typeof ApiPublicHooksFraudSweepRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
+  '/api/public/hooks/shipping-reminders': typeof ApiPublicHooksShippingRemindersRoute
+  '/api/public/hooks/shippo-tracking': typeof ApiPublicHooksShippoTrackingRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
@@ -607,6 +655,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/vault'
     | '/admin/recovery'
+    | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
     | '/email/unsubscribe'
@@ -622,6 +671,7 @@ export interface FileRouteTypes {
     | '/messages/$userId'
     | '/seller/$username'
     | '/seller/shipping'
+    | '/seller/shipping-analytics'
     | '/shows/$id'
     | '/studio/$id'
     | '/live/'
@@ -634,7 +684,10 @@ export interface FileRouteTypes {
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
+    | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/shipping-reminders'
+    | '/api/public/hooks/shippo-tracking'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
@@ -670,6 +723,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/vault'
     | '/admin/recovery'
+    | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
     | '/email/unsubscribe'
@@ -685,6 +739,7 @@ export interface FileRouteTypes {
     | '/messages/$userId'
     | '/seller/$username'
     | '/seller/shipping'
+    | '/seller/shipping-analytics'
     | '/shows/$id'
     | '/studio/$id'
     | '/live'
@@ -697,7 +752,10 @@ export interface FileRouteTypes {
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
+    | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/shipping-reminders'
+    | '/api/public/hooks/shippo-tracking'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
@@ -733,6 +791,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/vault'
     | '/admin/recovery'
+    | '/admin/shipping-health'
     | '/admin_/finance'
     | '/admin_/performance'
     | '/email/unsubscribe'
@@ -748,6 +807,7 @@ export interface FileRouteTypes {
     | '/messages/$userId'
     | '/seller/$username'
     | '/seller/shipping'
+    | '/seller/shipping-analytics'
     | '/shows/$id'
     | '/studio/$id'
     | '/live/'
@@ -760,7 +820,10 @@ export interface FileRouteTypes {
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
+    | '/api/public/hooks/fraud-sweep'
     | '/api/public/hooks/refresh-vault-values'
+    | '/api/public/hooks/shipping-reminders'
+    | '/api/public/hooks/shippo-tracking'
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
@@ -811,6 +874,7 @@ export interface RootRouteChildren {
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
   SellerShippingRoute: typeof SellerShippingRoute
+  SellerShippingAnalyticsRoute: typeof SellerShippingAnalyticsRoute
   ShowsIdRoute: typeof ShowsIdRouteWithChildren
   StudioIdRoute: typeof StudioIdRoute
   LiveIndexRoute: typeof LiveIndexRoute
@@ -822,7 +886,10 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
+  ApiPublicHooksFraudSweepRoute: typeof ApiPublicHooksFraudSweepRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
+  ApiPublicHooksShippingRemindersRoute: typeof ApiPublicHooksShippingRemindersRoute
+  ApiPublicHooksShippoTrackingRoute: typeof ApiPublicHooksShippoTrackingRoute
   ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
   ApiPublicHooksStripeReconciliationRoute: typeof ApiPublicHooksStripeReconciliationRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
@@ -1051,6 +1118,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShowsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seller/shipping-analytics': {
+      id: '/seller/shipping-analytics'
+      path: '/seller/shipping-analytics'
+      fullPath: '/seller/shipping-analytics'
+      preLoaderRoute: typeof SellerShippingAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/shipping': {
       id: '/seller/shipping'
       path: '/seller/shipping'
@@ -1156,6 +1230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/shipping-health': {
+      id: '/admin/shipping-health'
+      path: '/shipping-health'
+      fullPath: '/admin/shipping-health'
+      preLoaderRoute: typeof AdminShippingHealthRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/recovery': {
       id: '/admin/recovery'
       path: '/recovery'
@@ -1240,11 +1321,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksShowRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/shippo-tracking': {
+      id: '/api/public/hooks/shippo-tracking'
+      path: '/api/public/hooks/shippo-tracking'
+      fullPath: '/api/public/hooks/shippo-tracking'
+      preLoaderRoute: typeof ApiPublicHooksShippoTrackingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/shipping-reminders': {
+      id: '/api/public/hooks/shipping-reminders'
+      path: '/api/public/hooks/shipping-reminders'
+      fullPath: '/api/public/hooks/shipping-reminders'
+      preLoaderRoute: typeof ApiPublicHooksShippingRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-vault-values': {
       id: '/api/public/hooks/refresh-vault-values'
       path: '/api/public/hooks/refresh-vault-values'
       fullPath: '/api/public/hooks/refresh-vault-values'
       preLoaderRoute: typeof ApiPublicHooksRefreshVaultValuesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/fraud-sweep': {
+      id: '/api/public/hooks/fraud-sweep'
+      path: '/api/public/hooks/fraud-sweep'
+      fullPath: '/api/public/hooks/fraud-sweep'
+      preLoaderRoute: typeof ApiPublicHooksFraudSweepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/financial-reconciliation': {
@@ -1266,10 +1368,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminRecoveryRoute: typeof AdminRecoveryRoute
+  AdminShippingHealthRoute: typeof AdminShippingHealthRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminRecoveryRoute: AdminRecoveryRoute,
+  AdminShippingHealthRoute: AdminShippingHealthRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1326,6 +1430,7 @@ const rootRouteChildren: RootRouteChildren = {
   MessagesUserIdRoute: MessagesUserIdRoute,
   SellerUsernameRoute: SellerUsernameRoute,
   SellerShippingRoute: SellerShippingRoute,
+  SellerShippingAnalyticsRoute: SellerShippingAnalyticsRoute,
   ShowsIdRoute: ShowsIdRouteWithChildren,
   StudioIdRoute: StudioIdRoute,
   LiveIndexRoute: LiveIndexRoute,
@@ -1338,7 +1443,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksFinancialReconciliationRoute:
     ApiPublicHooksFinancialReconciliationRoute,
+  ApiPublicHooksFraudSweepRoute: ApiPublicHooksFraudSweepRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
+  ApiPublicHooksShippingRemindersRoute: ApiPublicHooksShippingRemindersRoute,
+  ApiPublicHooksShippoTrackingRoute: ApiPublicHooksShippoTrackingRoute,
   ApiPublicHooksShowRemindersRoute: ApiPublicHooksShowRemindersRoute,
   ApiPublicHooksStripeReconciliationRoute:
     ApiPublicHooksStripeReconciliationRoute,
@@ -1351,12 +1459,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

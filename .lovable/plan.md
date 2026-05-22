@@ -1,86 +1,121 @@
-# Admin Moderation & Audit History System
 
-Builds a permanent trust-&-safety layer on top of the existing buyer risk + dispute infrastructure (Phase 11). Everything is append-only and survives username / store renames.
+# Shipping & Payout Protection Overhaul
 
-## 1. Database (single migration)
+Your project already has scaffolding for most of this (`orders.prep_status`, `payout_held`, `shipping_due_at`, `is_late_shipment`, `account_holds`, `fraud_flags`, `payout_requests`). This plan upgrades those into a coherent lifecycle with carrier-scan gating, payout protection, fraud detection, and analytics.
 
-**`account_audit_log`** — permanent, append-only timeline for every user.
-- `subject_user_id` (the user the event is about), `actor_user_id` (admin/system/buyer/seller), `actor_role`
-- `event_type` enum: `payment_failed`, `payment_declined`, `chargeback`, `refund_requested`, `refund_issued`, `order_cancelled`, `not_delivered_claim`, `report_filed`, `suspicious_activity`, `bidding_abuse`, `warning_issued`, `restriction_applied`, `restriction_cleared`, `ban_applied`, `shipping_issue`, `policy_violation`, `store_name_changed`, `username_changed`, `verification_status_changed`, `payout_issue`, `admin_note`, `admin_action`
-- `severity` (`info|low|medium|high|critical`), `summary` text, `details` jsonb
-- Polymorphic refs: `order_id`, `stream_id`, `payment_intent_id`, `dispute_id`, `payout_id`, `report_id`, `evidence_id`
-- `occurred_at`, `created_at`. Indexed on `(subject_user_id, occurred_at desc)`, `(event_type)`, `(severity)`.
-- RLS: admins read all; users read their own non-sensitive events; service-role writes.
+## 1. Shipping lifecycle (orders.shipping_status)
 
-**`store_name_history`** — `seller_id`, `old_name`, `new_name`, `changed_at`, `changed_by`. Trigger on `profiles.store_name` update inserts row + emits `store_name_changed` audit event.
+New enum `shipping_status`:
+```
+pending_shipment → label_created → shipped (= first carrier scan)
+  → in_transit → delivered
+  ↘ delivery_failed | returned | lost_package
+```
 
-**`username_history`** — same pattern for `profiles.username`.
+- Add `orders.shipping_status` column + backfill from existing `prep_status` / `status` / `delivered_at`.
+- **Stop auto-setting `shipped` on label purchase.** Label buy sets `label_created` + `label_purchased_at`. Today's code in `src/server/shipping.functions.ts` flips status to "shipped" the moment Shippo returns a label — that's the core bug.
+- New column `first_scan_at`. When carrier webhook reports first acceptance scan → set `first_scan_at = now()`, `shipping_status = shipped`, `shipped_at = now()`.
 
-**`moderation_reports`** — `id`, `reporter_id`, `subject_user_id`, `subject_type` (`user|store|listing|stream|order|message`), `subject_ref_id`, `category`, `description`, `status` (`open|investigating|resolved|dismissed|escalated`), `assigned_admin_id`, `resolution_notes`, `resolved_at`. RLS: admins all; reporter sees own.
+## 2. Carrier tracking webhook
 
-**`moderation_evidence`** — `id`, `report_id` (nullable), `dispute_id` (nullable), `audit_log_id` (nullable), `uploaded_by`, `file_url`, `mime_type`, `file_size`, `caption`, `status` (`pending|approved|rejected|flagged|locked`), `review_notes`, `reviewed_by`, `reviewed_at`, `locked` bool. Backed by private storage bucket `moderation-evidence`.
+New public route `src/routes/api/public/hooks/shippo-tracking.ts`:
+- Verifies Shippo webhook signature (HMAC).
+- Maps Shippo `tracking_status` → our `shipping_status`:
+  - `TRANSIT` first time → `shipped` (+ release payout hold step 4)
+  - `TRANSIT` subsequent → `in_transit`
+  - `DELIVERED` → `delivered` + `delivered_at`
+  - `FAILURE` → `delivery_failed`
+  - `RETURNED` → `returned`
+  - `UNKNOWN` >14d after label → `lost_package` (via cron, see step 6)
+- Writes to new `shipment_events` table (audit trail: order_id, status, raw payload, occurred_at).
+- Registers tracking with Shippo at label-buy time (currently we just save the label URL).
 
-**`evidence_review_log`** — append-only history of every evidence status change (who/when/from→to/notes).
+## 3. Shipment deadlines & reminders
 
-**`dispute_reconciliation`** — extends existing `disputes`. New columns: `lifecycle_status` (`opened|evidence_pending|under_review|escalated|resolved_refund|resolved_rebook|resolved_partial|rejected|closed`), `rebook_order_id` (nullable FK → orders), `original_payout_id`, `refund_payment_intent_id`, `reconciled_at`, `reconciliation_notes`, `escalated_at`, `escalated_by`. Trigger writes audit events on every status change.
+- `shipping_due_at` already exists. Standardize: **3 business days** from `paid_at` (configurable per seller later).
+- New cron `/api/public/hooks/shipping-reminders` (runs hourly via pg_cron):
+  - 24h before due → reminder notification + email
+  - At due → 2nd reminder
+  - 24h past due → mark `is_late_shipment = true`, fraud_flag `late_shipment`, notify admin
+  - 72h past due → auto-cancel + refund buyer + seller strike
+- New view `seller_shipping_stats` (late rate, avg fulfillment time, on-time %).
 
-**`admin_action_log`** — every admin write (apply restriction, lock evidence, resolve report, approve refund, freeze account). `admin_id`, `action`, `target_table`, `target_id`, `before`, `after`, `reason`, `created_at`. Read-only after insert (revoke UPDATE/DELETE).
+## 4. Payout protection
 
-### Functions
-- `log_account_event(...)` security-definer RPC — single insertion path used by app code + triggers.
-- `log_admin_action(...)` security-definer RPC — wraps every admin mutation.
-- Triggers on `disputes`, `orders` (cancellation), `payout_requests`, `profiles.store_name/username`, `user_restrictions`, `buyer_risk_signals` → call `log_account_event`.
+Today `payout_held` is a boolean with no enforcement on payout requests. Upgrade:
 
-## 2. Server functions (`src/lib/moderation.functions.ts`)
+- New column `orders.payout_eligible_at` (timestamp, null until releaseable).
+- Released by ANY of:
+  - **(a)** First carrier scan (`first_scan_at` set) → eligible after a 24h hold (anti-spoof grace).
+  - **(b)** `delivered` → eligible immediately.
+  - **(c)** Admin manual release (`admin_release_payout` server fn).
+- New view `v_seller_available_balance`: sums `seller_payout_amount` for orders where `payout_eligible_at <= now()` AND no active refund/dispute, MINUS already-paid-out amounts.
+- `payout_requests` insert trigger checks `v_seller_available_balance` — rejects if requested > available.
+- Default to **delayed release**: payouts use `payout_eligible_at`, not "instant after charge".
 
-All `requireSupabaseAuth` + admin role check via `has_role(auth.uid(),'admin')`.
+## 5. Anti-fraud
 
-- `getUserAuditTimelineFn({ userId, filters, cursor })` — chronological merged timeline.
-- `getUserDossierFn({ userId })` — profile + store + roles + risk score + restriction summary + counts (orders, disputes, refunds, reports, payouts) + name history.
-- `searchUsersFn({ q, riskTier, hasOpenDisputes, hasFailedPayments, hasRestrictions })`.
-- `listReportsFn({ status, assignedTo, severity, cursor })` / `getReportFn` / `updateReportStatusFn` / `assignReportFn`.
-- `listDisputesFn({ lifecycleStatus, cursor })` / `getDisputeFn` / `updateDisputeLifecycleFn` / `linkRebookOrderFn` / `runReconciliationCheckFn(disputeId)`.
-- `listEvidenceFn`, `uploadEvidenceFn` (signed URL), `reviewEvidenceFn({id, action, notes})`, `lockEvidenceFn`, `flagEvidenceFn`.
-- `addAdminNoteFn({ subjectUserId, note, severity })` — writes audit row + admin_action_log.
+New cron `/api/public/hooks/fraud-sweep` (every 6h):
+- Labels created >48h ago with no `first_scan_at` → `fraud_flags` row (`label_never_scanned`, severity escalates with count).
+- Sellers with >3 such orders in 30d → auto `account_holds` row, freeze payouts.
+- Sellers with late-rate >25% over 10+ orders → `suspicious_seller` flag for admin review.
+- Block `payout_requests` insert if seller has any order in `label_created` for >5 days without scan.
 
-Every mutation calls `log_admin_action` + `log_account_event`.
+## 6. Shipping analytics
 
-## 3. Notifications
+- Materialized view `mv_seller_shipping_analytics` refreshed nightly:
+  - avg time paid→label, label→scan, scan→delivered
+  - delivery success rate, lost %, late %, dispute rate
+- New seller-hub page `/seller/shipping-analytics` (read-only dashboard).
+- Admin page `/admin/shipping-health` lists flagged sellers + platform-wide metrics.
 
-Reuse existing `notifications` table; add types: `dispute_opened`, `dispute_evidence_submitted`, `dispute_status_changed`, `dispute_escalated`, `dispute_resolved`, `report_filed`, `report_resolved`, `admin_warning_issued`. Fan-out to buyer + seller + admins on dispute lifecycle events via DB trigger.
+## 7. Refunds, disputes, cancellations
 
-## 4. Admin UI
+Audit existing flows to make sure they:
+- Reverse `payout_eligible_at` (set null + add `payout_reversal` ledger row) when refund issued.
+- On Stripe `charge.dispute.created` webhook → freeze that order's payout + add seller hold for the disputed amount.
+- On cancel before `label_created` → no payout ever becomes eligible; full refund; no fee.
+- On cancel after `shipped` → buyer-return flow required before refund.
 
-New tabs in `src/routes/admin.tsx`:
-- **Users** — `AdminUserSearch.tsx`: filterable table → opens `AdminUserDossier.tsx` (timeline, profile, store, name history, risk, restrictions, evidence, linked accounts by IP/payment fingerprint).
-- **Reports** — `AdminReportsQueue.tsx` (status/assignment filters) → `AdminReportDetail.tsx` (evidence, linked audit events, resolve/dismiss/escalate).
-- **Disputes** — `AdminDisputesQueue.tsx` with lifecycle filter → `AdminDisputeDetail.tsx` (timeline, reconciliation panel: original payout / refund PI / rebook order, "Run reconciliation" button, escalation log, evidence vault).
-- **Evidence Vault** — `AdminEvidenceQueue.tsx` for pending/flagged evidence moderation.
-- **Audit Log** — global firehose with filters.
+Stripe Connect application fee already handles the 5% routing — keep as-is. Add reconciliation cron that compares `orders.seller_payout_amount` sums vs Stripe Connect balance.
 
-Shared `<UserLink userId>` and `<StoreLink sellerId>` components used everywhere — render current display name + open dossier on click. Always show stable IDs alongside.
+---
 
-`AdminUserDossier` timeline component reused on Reports/Disputes detail pages so context is one click away.
+## Technical details
 
-## 5. Integration into existing flows
+**Migrations (one big migration):**
+- Create enum `shipping_status`
+- `orders`: add `shipping_status`, `first_scan_at`, `label_purchased_at`, `payout_eligible_at`, `lost_marked_at`
+- New table `shipment_events` (order_id, status, source, raw jsonb, occurred_at)
+- New view `v_seller_available_balance`
+- New materialized view `mv_seller_shipping_analytics`
+- Trigger `trg_orders_release_payout` on `shipping_status` change → set `payout_eligible_at`
+- Update `trg_orders_protect_payouts` to honor `payout_eligible_at`
+- Backfill `shipping_status` from existing data
 
-Add `log_account_event` calls (mostly via triggers, a few explicit):
-- `webhook.ts` Stripe handlers → `payment_failed`, `chargeback`, `refund_issued`.
-- `order-actions.functions.ts` cancel → `order_cancelled`.
-- `DisputeThread.tsx` not-delivered → `not_delivered_claim`.
-- `buyer-risk.functions.ts` apply/clear restriction → `restriction_applied/cleared`.
-- `stripe-connect.functions.ts` verification sync → `verification_status_changed`.
-- `payout_requests` status change trigger → `payout_issue` when failed.
-- `profiles` update trigger → `store_name_changed` / `username_changed` + history row.
+**Code changes:**
+- `src/server/shipping.functions.ts` — `buyShippingLabel` no longer sets status=shipped; sets `label_created` + registers tracking webhook
+- New `src/routes/api/public/hooks/shippo-tracking.ts`
+- New `src/routes/api/public/hooks/shipping-reminders.ts`
+- New `src/routes/api/public/hooks/fraud-sweep.ts`
+- `src/server/payouts.functions.ts` — gate on `v_seller_available_balance`
+- New `src/server/admin-shipping.functions.ts` — manual release, force lost, override
+- New pages: `src/routes/_authenticated/seller/shipping-analytics.tsx`, `src/routes/_authenticated/admin/shipping-health.tsx`
+- Update existing seller dashboard order rows to show new statuses + tracking timeline
+- Update buyer order detail page to show timeline (Pending → Label → Shipped → In Transit → Delivered)
 
-## Technical notes
-- Storage bucket `moderation-evidence` private; signed URLs only via server fn.
-- `account_audit_log` is append-only: REVOKE UPDATE/DELETE from authenticated; only service role via security-definer RPC.
-- `admin_action_log` similarly locked; provides tamper-evident admin trail.
-- Linked-account detection: simple v1 = match on shared `stripe_customer_id`, payment fingerprint, or signup IP (if captured). Surface as "Possibly linked" list — no auto-action.
-- Out of scope: ML clustering, automated bans, public-facing user dispute portal redesign (uses existing `DisputeThread`).
+**Secrets needed:**
+- `SHIPPO_WEBHOOK_SECRET` — for verifying tracking webhooks (I'll ask for this when wiring step 2)
 
-## Files
-**New migration**, `src/lib/moderation.functions.ts`, `src/components/admin/{AdminUserSearch,AdminUserDossier,AdminReportsQueue,AdminReportDetail,AdminDisputesQueue,AdminDisputeDetail,AdminEvidenceQueue,AdminAuditLog,UserLink,StoreLink,AuditTimeline,EvidenceCard,ReconciliationPanel}.tsx`, edits to `src/routes/admin.tsx`, `src/routes/api/public/stripe/webhook.ts`, `src/lib/order-actions.functions.ts`, `src/lib/buyer-risk.functions.ts`, `src/server/stripe-connect.functions.ts`, `src/components/DisputeThread.tsx`.
+**Scope of build:** ~1 large migration, ~12 file edits/creates, 3 new cron hooks. Estimated 15–25 min of build time.
 
-Approve to proceed; I'll ship the migration first, then server functions, then admin UI in batches.
+---
+
+## Open questions before I build
+
+1. **Shipment deadline = 3 business days** — OK or do you want different (e.g. 2 / 5)?
+2. **Payout hold after first scan = 24h** — OK or instant on scan / wait for delivery?
+3. **Auto-cancel at 72h past due** — OK or just flag and let admin decide?
+4. **Lost package threshold = 14 days no scan after label** — OK?
+
+Answer these (even just "all defaults") and I'll execute the whole plan in one pass.

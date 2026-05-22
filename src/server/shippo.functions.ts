@@ -305,6 +305,9 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
 
     const labelCostCents = Math.round(Number(tx.rate?.amount ?? 0) * 100);
 
+    // Label purchased — DO NOT mark as shipped. Carrier first-scan webhook
+    // (or admin manual override) is what flips us to 'shipped' and starts
+    // the 24h payout-eligibility timer.
     await supabaseAdmin
       .from("orders")
       .update({
@@ -312,10 +315,35 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
         tracking_url: tx.tracking_url_provider,
         carrier: tx.rate?.provider || null,
         label_url: tx.label_url || null,
-        status: "shipped",
-        shipped_at: new Date().toISOString(),
+        shipping_status: "label_created",
+        label_purchased_at: new Date().toISOString(),
       } as any)
       .eq("id", order.id);
+
+    // Log lifecycle event
+    await supabaseAdmin.from("shipment_events").insert({
+      order_id: order.id,
+      shipping_status: "label_created",
+      source: "shippo_label_purchase",
+      message: `Label purchased via ${tx.rate?.provider ?? "carrier"}`,
+      raw: { tracking_number: tx.tracking_number, rate: tx.rate },
+    } as any);
+
+    // Register webhook tracking with Shippo (best-effort) so we get scan updates
+    try {
+      if (tx.tracking_number && tx.rate?.provider) {
+        await shippo("/tracks/", {
+          method: "POST",
+          body: JSON.stringify({
+            carrier: String(tx.rate.provider).toLowerCase(),
+            tracking_number: tx.tracking_number,
+            metadata: order.id,
+          }),
+        });
+      }
+    } catch (e) {
+      console.error("Shippo track registration failed", e);
+    }
 
     // Phase 3: record real label cost + shipping margin → platform_revenue
     if (!isReissue && labelCostCents > 0) {
@@ -331,13 +359,14 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     }
 
 
-    // Notify buyer in-app
+    // Notify buyer in-app — label created, awaiting carrier scan
     await supabaseAdmin.from("notifications").insert({
       user_id: order.buyer_id,
-      type: "order_shipped",
-      body: `Your order "${order.title}" has shipped — tracking ${tx.tracking_number}`,
+      type: "order_label_created",
+      body: `Label created for "${order.title}" — tracking ${tx.tracking_number}. Status will update once the carrier scans it.`,
       link: "/orders",
     });
+
 
     // Email buyer (best-effort)
     try {
