@@ -70,6 +70,7 @@ function Vault() {
   const [condPrices, setCondPrices] = useState<ConditionPrices | null>(null);
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("NM");
+  const [sellAfterSave, setSellAfterSave] = useState(false);
   // (vault-wide visibility lives on vault_settings, not per card)
   const [identifying, setIdentifying] = useState(false);
   type TcgPrices = Record<string, { market?: number; mid?: number; low?: number; high?: number } | undefined>;
