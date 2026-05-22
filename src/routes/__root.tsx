@@ -1,4 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
@@ -13,6 +15,7 @@ import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
 import { BidAnnouncer } from "@/components/BidAnnouncer";
 import { AuthGateProvider } from "@/hooks/useAuthGate";
+
 
 function NotFoundComponent() {
   return (
