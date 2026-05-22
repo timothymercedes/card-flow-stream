@@ -73,7 +73,97 @@ function SubTabs<T extends string>({ tabs, value, onChange }: { tabs: { k: T; l:
   );
 }
 
-function SellerHub() {
+function KpiCard({ label, value, tone, onClick }: { label: string; value: string; tone?: "primary" | "destructive" | "amber"; onClick: () => void }) {
+  const valueCls = tone === "destructive" ? "text-destructive" : tone === "amber" ? "text-amber-400" : tone === "primary" ? "text-primary" : "";
+  const wrapCls = tone === "primary" ? "bg-primary/10 ring-1 ring-primary/30" : "bg-muted/40";
+  const labelCls = tone === "primary" ? "text-primary/80" : "text-muted-foreground";
+  return (
+    <button onClick={onClick} className={`rounded-lg p-2 text-center transition hover:brightness-110 active:scale-[0.98] ${wrapCls}`}>
+      <p className={`text-[10px] uppercase tracking-wider ${labelCls}`}>{label}</p>
+      <p className={`text-base font-black tabular-nums ${valueCls}`}>{value}</p>
+    </button>
+  );
+}
+
+type KpiKey = "gross" | "fees" | "net" | "pending" | "refund" | "cancelled";
+
+const KPI_TITLES: Record<KpiKey, string> = {
+  gross: "Gross Sales", fees: "Platform Fees", net: "Net Earnings",
+  pending: "Pending (paid, not delivered)", refund: "Refunds", cancelled: "Cancelled Orders",
+};
+
+function KpiDrillModal({
+  open, onClose, orders, buyerMap,
+}: {
+  open: KpiKey | null;
+  onClose: () => void;
+  orders: any[];
+  buyerMap: Record<string, { u: string; n: string }>;
+}) {
+  const COMM = 0.05;
+  const list = open == null ? [] : orders.filter((o) => {
+    if (open === "refund") return o.payment_status === "refunded";
+    if (open === "cancelled") return o.status === "cancelled";
+    if (open === "pending") return o.payment_status === "paid" && o.status !== "delivered" && o.status !== "cancelled";
+    // gross/fees/net: all non-cancelled, non-refunded charged orders
+    return o.status !== "cancelled" && o.payment_status !== "refunded";
+  });
+  const isCompleted = (o: any) => o.status === "delivered";
+  return (
+    <Dialog open={open != null} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{open ? KPI_TITLES[open] : ""}</DialogTitle>
+        </DialogHeader>
+        {list.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No orders in this category.</p>
+        ) : (
+          <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+            {list.map((o) => {
+              const amt = Number(o.amount || 0);
+              const fee = amt * COMM;
+              const buyer = buyerMap[o.buyer_id];
+              const completed = isCompleted(o);
+              return (
+                <li key={o.id} className="rounded-lg bg-muted/40 p-3 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold">{o.title}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        @{buyer?.u ?? "buyer"}{buyer?.n ? ` · ${buyer.n}` : ""}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(o.created_at).toLocaleString()}
+                        {o.order_number ? ` · #${o.order_number}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold tabular-nums">${amt.toFixed(2)}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {open === "fees" ? `Fee -$${fee.toFixed(2)}` :
+                         open === "net" ? `Net $${(amt - fee).toFixed(2)}` :
+                         o.status}
+                      </p>
+                    </div>
+                  </div>
+                  {completed && (
+                    <div className="mt-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+                      <p className="font-semibold text-foreground">Completed · delivered</p>
+                      {o.ship_name && <p>Ship to: {o.ship_name}</p>}
+                      {o.tracking_number && <p>Tracking: {o.tracking_number}</p>}
+                      {o.delivered_at && <p>Delivered {new Date(o.delivered_at).toLocaleDateString()}</p>}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
   const { user } = useAuth();
   const tutorial = useTutorialMode();
 
