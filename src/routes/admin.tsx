@@ -165,7 +165,7 @@ function Admin() {
     });
   }, [isAdmin]);
 
-  const [orderSearch, setOrderSearch] = useState("");
+  
   async function loadOrders() {
     let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
     if (orderFilter === "issues") {
