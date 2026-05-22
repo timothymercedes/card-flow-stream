@@ -112,7 +112,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const [hold, setHold] = useState<Hold | null>(null);
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
-  const [tab, setTab] = useState<"summary" | "orders" | "history">("summary");
+  const [tab, setTab] = useState<"summary" | "orders" | "archive" | "history">("summary");
   const [open, setOpen] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverPayable, setServerPayable] = useState<{
