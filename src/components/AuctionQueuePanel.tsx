@@ -26,6 +26,7 @@ type QueueItem = {
 };
 
 type Listing = { id: string; title: string; price: number | null; image_url: string | null };
+type VaultCard = { id: string; name: string; image_url: string | null; estimated_value: number | null; tcg_set: string | null; tcg_number: string | null };
 
 /**
  * AuctionQueuePanel — host preloads items before going live; viewers see "up next".
