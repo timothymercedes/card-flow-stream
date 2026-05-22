@@ -117,6 +117,7 @@ import { InternationalBadge } from "@/components/InternationalBadge";
 import { HostInactivityCheckModal } from "@/components/HostInactivityCheckModal";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { LiveMobileHostCard } from "@/components/LiveMobileHostCard";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
 import { useServerFn } from "@tanstack/react-start";
 
