@@ -241,6 +241,7 @@ function LiveDetail() {
   const endedRef = useRef(false);
   const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsVideoRef = useRef<HTMLVideoElement>(null);
   const camStream = useRef<MediaStream | null>(null);
   const [legacyHostStream, setLegacyHostStream] = useState<MediaStream | null>(null);
 
@@ -3603,6 +3604,7 @@ function LiveDetail() {
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
           // Start muted so autoplay isn't blocked; user taps to enable sound.
           <HlsPlayer
+            ref={hlsVideoRef}
             src={stream.cf_playback_hls}
             className="h-full w-full"
             style={obsVideoStyle}
@@ -3656,6 +3658,33 @@ function LiveDetail() {
           }
         >
           {cameraFit === "fit" ? "Fit" : "Fill"}
+        </button>
+      )}
+
+      {/* Picture-in-Picture — viewers only, lets buyers keep watching while browsing */}
+      {!isSeller && !!stream?.cf_playback_hls && (
+        <button
+          onClick={async () => {
+            const v = hlsVideoRef.current;
+            if (!v) return;
+            try {
+              if ((document as any).pictureInPictureElement) {
+                await (document as any).exitPictureInPicture();
+              } else if ((v as any).requestPictureInPicture) {
+                await (v as any).requestPictureInPicture();
+              }
+            } catch {
+              /* unsupported on this browser/iOS Safari uses native controls */
+            }
+          }}
+          className="absolute bottom-24 left-14 z-40 rounded-full bg-black/60 p-1.5 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/80"
+          aria-label="Picture in picture"
+          title="Pop out video"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <rect x="12" y="11" width="8" height="6" rx="1" fill="currentColor" />
+          </svg>
         </button>
       )}
 
