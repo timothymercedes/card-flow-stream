@@ -42,6 +42,7 @@ import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
 import { Route as SellerShippingAnalyticsRouteImport } from './routes/seller.shipping-analytics'
 import { Route as SellerShippingRouteImport } from './routes/seller.shipping'
+import { Route as SellerInsuranceRouteImport } from './routes/seller.insurance'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
@@ -58,6 +59,7 @@ import { Route as AdminPerformanceRouteImport } from './routes/admin_.performanc
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
+import { Route as AdminInsuranceClaimsRouteImport } from './routes/admin.insurance-claims'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
@@ -241,6 +243,11 @@ const SellerShippingRoute = SellerShippingRouteImport.update({
   path: '/seller/shipping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellerInsuranceRoute = SellerInsuranceRouteImport.update({
+  id: '/seller/insurance',
+  path: '/seller/insurance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerUsernameRoute = SellerUsernameRouteImport.update({
   id: '/seller/$username',
   path: '/seller/$username',
@@ -321,6 +328,11 @@ const AdminShippingHealthRoute = AdminShippingHealthRouteImport.update({
 const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
   id: '/recovery',
   path: '/recovery',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInsuranceClaimsRoute = AdminInsuranceClaimsRouteImport.update({
+  id: '/insurance-claims',
+  path: '/insurance-claims',
   getParentRoute: () => AdminRoute,
 } as any)
 const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
@@ -447,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -463,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
@@ -515,6 +529,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -531,6 +546,7 @@ export interface FileRoutesByTo {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
@@ -584,6 +600,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
@@ -600,6 +617,7 @@ export interface FileRoutesById {
   '/market/$id': typeof MarketIdRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
+  '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
@@ -654,6 +672,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/admin/insurance-claims'
     | '/admin/recovery'
     | '/admin/shipping-health'
     | '/admin/finance'
@@ -670,6 +689,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/seller/insurance'
     | '/seller/shipping'
     | '/seller/shipping-analytics'
     | '/shows/$id'
@@ -722,6 +742,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/admin/insurance-claims'
     | '/admin/recovery'
     | '/admin/shipping-health'
     | '/admin/finance'
@@ -738,6 +759,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/seller/insurance'
     | '/seller/shipping'
     | '/seller/shipping-analytics'
     | '/shows/$id'
@@ -790,6 +812,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/admin/insurance-claims'
     | '/admin/recovery'
     | '/admin/shipping-health'
     | '/admin_/finance'
@@ -806,6 +829,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/messages/$userId'
     | '/seller/$username'
+    | '/seller/insurance'
     | '/seller/shipping'
     | '/seller/shipping-analytics'
     | '/shows/$id'
@@ -873,6 +897,7 @@ export interface RootRouteChildren {
   MarketIdRoute: typeof MarketIdRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
+  SellerInsuranceRoute: typeof SellerInsuranceRoute
   SellerShippingRoute: typeof SellerShippingRoute
   SellerShippingAnalyticsRoute: typeof SellerShippingAnalyticsRoute
   ShowsIdRoute: typeof ShowsIdRouteWithChildren
@@ -1132,6 +1157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellerShippingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seller/insurance': {
+      id: '/seller/insurance'
+      path: '/seller/insurance'
+      fullPath: '/seller/insurance'
+      preLoaderRoute: typeof SellerInsuranceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/$username': {
       id: '/seller/$username'
       path: '/seller/$username'
@@ -1242,6 +1274,13 @@ declare module '@tanstack/react-router' {
       path: '/recovery'
       fullPath: '/admin/recovery'
       preLoaderRoute: typeof AdminRecoveryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/insurance-claims': {
+      id: '/admin/insurance-claims'
+      path: '/insurance-claims'
+      fullPath: '/admin/insurance-claims'
+      preLoaderRoute: typeof AdminInsuranceClaimsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/shows/$id/edit': {
@@ -1367,11 +1406,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminInsuranceClaimsRoute: typeof AdminInsuranceClaimsRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
   AdminShippingHealthRoute: typeof AdminShippingHealthRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminInsuranceClaimsRoute: AdminInsuranceClaimsRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
   AdminShippingHealthRoute: AdminShippingHealthRoute,
 }
@@ -1429,6 +1470,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIdRoute: MarketIdRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
   SellerUsernameRoute: SellerUsernameRoute,
+  SellerInsuranceRoute: SellerInsuranceRoute,
   SellerShippingRoute: SellerShippingRoute,
   SellerShippingAnalyticsRoute: SellerShippingAnalyticsRoute,
   ShowsIdRoute: ShowsIdRouteWithChildren,

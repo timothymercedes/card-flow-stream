@@ -12,6 +12,7 @@ import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { isValidShippingAddress, validateAddress, type ShippingAddress } from "@/lib/address";
 import { BuyerRestrictionBanner } from "@/components/BuyerRestrictionBanner";
+import { InsuranceOption } from "@/components/insurance/InsuranceOption";
 
 export const Route = createFileRoute("/cart")({ component: Cart });
 
