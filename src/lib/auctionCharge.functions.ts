@@ -172,13 +172,14 @@ async function performCharge(opts: {
     }
   }
 
-  // Buyer country (for intl fee) and seller country for the international flag.
+  // Buyer country + state (intl fee + sales tax destination).
   const { data: buyerProfile } = await supabaseAdmin
     .from("profiles")
-    .select("address_country")
+    .select("address_country,address_state")
     .eq("id", userId)
     .maybeSingle();
   const buyerCountry = ((buyerProfile as any)?.address_country || "US").toString().toUpperCase().trim();
+  const buyerState = ((buyerProfile as any)?.address_state || "").toString().toUpperCase().trim() || null;
   const sellerCountry = (seller.country || "US").toString().toUpperCase().trim();
   const isInternational = buyerCountry !== sellerCountry && (buyerCountry !== "US" || sellerCountry !== "US");
 
