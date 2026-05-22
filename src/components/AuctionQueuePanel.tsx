@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Play, ChevronUp, ChevronDown, ListOrdered, RotateCw, ImagePlus, Eye, EyeOff, Package, Zap, Pencil, X, Library, Check } from "lucide-react";
 
 type SaleType = "prebid" | "buynow" | "either" | "offer";
 
@@ -26,6 +26,7 @@ type QueueItem = {
 };
 
 type Listing = { id: string; title: string; price: number | null; image_url: string | null };
+type VaultCard = { id: string; name: string; image_url: string | null; estimated_value: number | null; tcg_set: string | null; tcg_number: string | null };
 
 /**
  * AuctionQueuePanel — host preloads items before going live; viewers see "up next".
@@ -66,6 +67,11 @@ export function AuctionQueuePanel({
   });
   const [uploading, setUploading] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultCards, setVaultCards] = useState<VaultCard[]>([]);
+  const [vaultSelected, setVaultSelected] = useState<Set<string>>(new Set());
+  const [vaultAdding, setVaultAdding] = useState(false);
   const [triggerInput, setTriggerInput] = useState("");
   const [editing, setEditing] = useState<QueueItem | null>(null);
   const [editUploading, setEditUploading] = useState(false);
@@ -174,6 +180,59 @@ export function AuctionQueuePanel({
     } as any);
     if (error) return toast.error(error.message);
     toast.success(`Added "${l.title}" from your listings`);
+  }
+
+  async function loadVault() {
+    setVaultOpen(true);
+    setVaultLoading(true);
+    const { data } = await supabase
+      .from("vault_cards")
+      .select("id, name, image_url, estimated_value, tcg_set, tcg_number")
+      .eq("user_id", hostId)
+      .eq("status", "available")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setVaultCards((data as any[] as VaultCard[]) || []);
+    setVaultLoading(false);
+  }
+
+  function toggleVaultPick(id: string) {
+    setVaultSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function addVaultSelected() {
+    if (vaultSelected.size === 0) return toast.error("Pick at least one card");
+    setVaultAdding(true);
+    const picks = vaultCards.filter((v) => vaultSelected.has(v.id));
+    let pos = items.length > 0 ? Math.max(...items.map((i) => i.position)) + 1 : 0;
+    const rows = picks.map((v) => {
+      const val = Number(v.estimated_value || 0);
+      const start = val > 0 ? Math.max(1, Math.floor(val * 0.5)) : 1;
+      const title = [v.name, v.tcg_set, v.tcg_number].filter(Boolean).join(" · ");
+      return {
+        stream_id: streamId,
+        host_id: hostId,
+        position: pos++,
+        title: title || v.name,
+        quantity: 1,
+        image_url: v.image_url || null,
+        sale_type: "prebid" as SaleType,
+        starting_bid: start,
+        duration_seconds: 30,
+        snipe_price: val > 0 ? val : null,
+        scheduled_show_id: scheduledShowId || null,
+      };
+    });
+    const { error } = await supabase.from("auction_queue" as any).insert(rows as any);
+    setVaultAdding(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Added ${picks.length} card${picks.length === 1 ? "" : "s"} to Pre-B`);
+    setVaultSelected(new Set());
+    setVaultOpen(false);
   }
 
   async function remove(id: string) {
@@ -300,9 +359,13 @@ export function AuctionQueuePanel({
           <ListOrdered className="h-3 w-3" /> Pre-B Queue ({queued.length})
         </p>
         <div className="flex gap-1">
+          <button onClick={loadVault} title="Pick from your Vault"
+            className="flex items-center gap-1 rounded-full bg-cyan-500/90 px-2 py-1 text-[10px] font-bold text-white">
+            <Library className="h-3 w-3" /> Vault
+          </button>
           <button onClick={loadListings} title="Import from your listings"
             className="flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold text-white">
-            <Package className="h-3 w-3" /> Import
+            <Package className="h-3 w-3" /> Listings
           </button>
           <button onClick={() => setAdding((v) => !v)}
             className="flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-1 text-[10px] font-bold text-white">
@@ -325,6 +388,63 @@ export function AuctionQueuePanel({
           <button onClick={startByTrigger} className="rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-black">Go</button>
         </div>
       )}
+
+      {vaultOpen && (
+        <div className="space-y-1 rounded-lg bg-white/5 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-white/60">
+              <Library className="h-3 w-3 text-cyan-300" />
+              Your Vault {vaultLoading ? "…" : `(${vaultCards.length})`}
+            </p>
+            <button onClick={() => { setVaultOpen(false); setVaultSelected(new Set()); }} className="text-[10px] text-white/60">Close</button>
+          </div>
+          {!vaultLoading && vaultCards.length === 0 && (
+            <p className="rounded bg-white/5 p-2 text-center text-[10px] text-white/50">
+              Your Vault is empty. Add cards to your Vault first.
+            </p>
+          )}
+          <div className="max-h-64 space-y-1 overflow-y-auto">
+            {vaultCards.map((v) => {
+              const picked = vaultSelected.has(v.id);
+              const val = Number(v.estimated_value || 0);
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => toggleVaultPick(v.id)}
+                  className={`flex w-full items-center gap-2 rounded-md p-1.5 text-left transition ${picked ? "bg-cyan-500/25 ring-1 ring-cyan-400/60" : "bg-white/5 hover:bg-white/10"}`}
+                >
+                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${picked ? "border-cyan-300 bg-cyan-400 text-black" : "border-white/30 bg-transparent"}`}>
+                    {picked && <Check className="h-3 w-3" />}
+                  </span>
+                  {v.image_url
+                    ? <img src={v.image_url} alt="" className="h-9 w-9 rounded object-cover" />
+                    : <div className="h-9 w-9 rounded bg-white/10" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-bold">{v.name}</p>
+                    <p className="truncate text-[9px] text-white/60">
+                      {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || "—"}
+                      {val > 0 && <span className="ml-1 text-emerald-300">· est ${val.toFixed(0)}</span>}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {vaultCards.length > 0 && (
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-[10px] text-white/60">{vaultSelected.size} selected · added as Pre-Bid</span>
+              <button
+                onClick={addVaultSelected}
+                disabled={vaultAdding || vaultSelected.size === 0}
+                className="rounded-md bg-cyan-500 px-3 py-1.5 text-[11px] font-bold text-black disabled:opacity-40"
+              >
+                {vaultAdding ? "Adding…" : `Add ${vaultSelected.size || ""} to Pre-B`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
 
       {importing && (
         <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg bg-white/5 p-2">
