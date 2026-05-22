@@ -50,10 +50,30 @@ export function ShippingEstimator({
   const estimate = useServerFn(estimateShippoRates);
   const [state, setState] = useState<{ loading: boolean; error?: string; result?: EstimateResult }>({ loading: true });
 
+  const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v);
+
   useEffect(() => {
     let cancelled = false;
     setState({ loading: true });
+    if (!isUuid(sellerId)) {
+      const fb = estimateShippingAndImportFees({
+        subtotal: subtotalUsd,
+        buyerCountry: buyerCountry || "US",
+        sellerCountry: "US",
+        weightOz: weightOz ?? SHIPPING_PRESETS[(presetKey || "bubble") as ShippingPresetKey]?.weightOz ?? 4,
+      });
+      const result: EstimateResult = {
+        ok: true,
+        amountUsd: fb.shipping,
+        isInternational: !fb.domestic,
+        source: "fallback",
+      };
+      setState({ loading: false, result });
+      onResolved?.({ amountUsd: result.amountUsd, isInternational: result.isInternational });
+      return () => { cancelled = true; };
+    }
     const t = setTimeout(async () => {
+
       try {
         const r = await estimate({
           data: {
