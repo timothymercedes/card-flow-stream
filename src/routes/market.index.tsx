@@ -14,6 +14,7 @@ import { MarketQuickView } from "@/components/MarketQuickView";
 export const Route = createFileRoute("/market/")({ component: Market });
 
 type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
+type ListingFilter = "all" | "auction" | "buy_now" | "make_offer" | "ending_soon" | "trending" | "newly_listed";
 
 // Shuffle seed rotates every 5 minutes (see @/lib/shuffle).
 
