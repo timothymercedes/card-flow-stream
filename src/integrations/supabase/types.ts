@@ -2934,6 +2934,7 @@ export type Database = {
           last_ship_reminder_at: string | null
           listing_id: string | null
           order_group_id: string | null
+          order_number: string | null
           packed_at: string | null
           paid_at: string | null
           payment_failed_at: string | null
@@ -3008,6 +3009,7 @@ export type Database = {
           last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
+          order_number?: string | null
           packed_at?: string | null
           paid_at?: string | null
           payment_failed_at?: string | null
@@ -3082,6 +3084,7 @@ export type Database = {
           last_ship_reminder_at?: string | null
           listing_id?: string | null
           order_group_id?: string | null
+          order_number?: string | null
           packed_at?: string | null
           paid_at?: string | null
           payment_failed_at?: string | null
