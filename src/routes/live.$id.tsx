@@ -3604,6 +3604,7 @@ function LiveDetail() {
           // Everyone else (viewers + OBS host) gets HLS — works on every mobile browser.
           // Start muted so autoplay isn't blocked; user taps to enable sound.
           <HlsPlayer
+            ref={hlsVideoRef}
             src={stream.cf_playback_hls}
             className="h-full w-full"
             style={obsVideoStyle}
