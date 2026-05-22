@@ -5682,8 +5682,6 @@ function LiveDetail() {
           ref={chatScrollRef}
           className={`chat-scroll absolute z-10 overflow-y-auto overscroll-contain
             left-2 right-16 bottom-32 max-h-[40vh]
-            [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_100%)]
-            [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_10%,black_100%)]
             md:left-auto md:right-3 md:top-16 md:bottom-32 md:w-96 md:max-h-none`}
         >
           <div className="flex flex-col items-start gap-1.5 pr-1">
@@ -5697,7 +5695,7 @@ function LiveDetail() {
 
                   <div
                     key={m.id}
-                    className={`w-full rounded-2xl border-l-2 px-3 py-1.5 text-[13px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all break-words [overflow-wrap:anywhere] ${
+                    className={`w-full rounded-2xl border-l-2 px-3 py-1.5 text-[13px] leading-relaxed text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all break-all [overflow-wrap:anywhere] [word-break:break-word] ${
                       isBlocked
                         ? "border-red-300/60 bg-red-500/25 line-through opacity-60"
                         : isHostMods
