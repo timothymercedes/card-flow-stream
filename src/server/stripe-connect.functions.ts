@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
-import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds } from "@/lib/stripe.server";
+import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getOptionalUserIdFromRequest() {
@@ -190,7 +190,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("id, amount, buyer_id, seller_id, payment_status, listing_id")
+        .select("id, amount, buyer_id, seller_id, payment_status, listing_id, stream_id")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
