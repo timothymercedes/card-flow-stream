@@ -69,6 +69,7 @@ import { Route as ApiPublicHooksStripeReconciliationRouteImport } from './routes
 import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
 import { Route as ApiPublicHooksRefreshVaultValuesRouteImport } from './routes/api/public/hooks/refresh-vault-values'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
+import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
@@ -380,6 +381,12 @@ const ApiPublicHooksFinancialReconciliationRoute =
     path: '/api/public/hooks/financial-reconciliation',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDailyBuyerDigestRoute =
+  ApiPublicHooksDailyBuyerDigestRouteImport.update({
+    id: '/api/public/hooks/daily-buyer-digest',
+    path: '/api/public/hooks/daily-buyer-digest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -433,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
@@ -495,6 +503,7 @@ export interface FileRoutesByTo {
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
@@ -558,6 +567,7 @@ export interface FileRoutesById {
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
   '/api/public/hooks/refresh-vault-values': typeof ApiPublicHooksRefreshVaultValuesRoute
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
@@ -622,6 +632,7 @@ export interface FileRouteTypes {
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
+    | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
@@ -684,6 +695,7 @@ export interface FileRouteTypes {
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
+    | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
@@ -746,6 +758,7 @@ export interface FileRouteTypes {
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
+    | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/financial-reconciliation'
     | '/api/public/hooks/refresh-vault-values'
     | '/api/public/hooks/show-reminders'
@@ -806,6 +819,7 @@ export interface RootRouteChildren {
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
+  ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
   ApiPublicHooksRefreshVaultValuesRoute: typeof ApiPublicHooksRefreshVaultValuesRoute
   ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
@@ -1239,6 +1253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFinancialReconciliationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/daily-buyer-digest': {
+      id: '/api/public/hooks/daily-buyer-digest'
+      path: '/api/public/hooks/daily-buyer-digest'
+      fullPath: '/api/public/hooks/daily-buyer-digest'
+      preLoaderRoute: typeof ApiPublicHooksDailyBuyerDigestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1314,6 +1335,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
+  ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksFinancialReconciliationRoute:
     ApiPublicHooksFinancialReconciliationRoute,
   ApiPublicHooksRefreshVaultValuesRoute: ApiPublicHooksRefreshVaultValuesRoute,
