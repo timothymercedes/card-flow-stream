@@ -1000,18 +1000,19 @@ function AuditTab({ sinceDays }: { sinceDays?: number }) {
           onChange={(e) => setPaymentStatus(e.target.value)}
           className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
         >
-          <option value="">All payment states</option>
+          <option value="">All statuses</option>
           <option value="paid">Paid</option>
           <option value="awaiting_payment">Awaiting payment</option>
           <option value="refunded">Refunded</option>
           <option value="failed">Failed</option>
+          <option value="chargeback">Chargeback</option>
         </select>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search title…"
+          placeholder="Search order # or title…"
           maxLength={120}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+          className="min-w-[220px] flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs"
         />
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <input type="checkbox" checked={driftOnly} onChange={(e) => setDriftOnly(e.target.checked)} className="h-3 w-3" />
