@@ -998,14 +998,12 @@ function Vault() {
   }
 
   async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) {
-    // Sale photos MUST be freshly uploaded — vault/AI images are not allowed.
-    const frontErr = validateListingImage(opts.frontImage, { field: "Front sale photo" });
+    const frontErr = validateListingImage(opts.frontImage, { field: "Photo" });
     if (frontErr) return toast.error(frontErr);
-    const backErr = validateListingImage(opts.backImage, { field: "Back sale photo" });
-    if (backErr) return toast.error(backErr);
     if (!opts.buy_now && !opts.auction && !opts.offer) return toast.error("Pick at least one sale type");
     if (opts.buy_now && opts.price <= 0) return toast.error("Set a Buy Now price");
     if (opts.auction && opts.price <= 0) return toast.error("Set a starting bid");
+
     if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
     const primary: "buy_now" | "auction" | "offer" = opts.auction ? "auction" : opts.buy_now ? "buy_now" : "offer";
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
@@ -1014,7 +1012,8 @@ function Vault() {
       seller_id: user!.id, title: card.name,
       description: baseDesc,
       image_url: opts.frontImage,
-      back_image_url: opts.backImage,
+      back_image_url: opts.backImage || null,
+
       category: card.category || null,
       listing_type: primary,
       is_auction: opts.auction,
@@ -1606,16 +1605,22 @@ function SellModal({ card, onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) => void;
 }) {
-  const [buyNow, setBuyNow] = useState(true);
-  const [auction, setAuction] = useState(false);
-  const [offer, setOffer] = useState(false);
+  const [saleType, setSaleType] = useState<"buy_now" | "auction" | "offer">("buy_now");
   const [days, setDays] = useState(3);
   const [price, setPrice] = useState(String(card.price ?? card.estimated_value ?? 1));
   const [reserve, setReserve] = useState("");
   const [shipping, setShipping] = useState("0");
-  const [frontImage, setFrontImage] = useState<string>("");
-  const [backImage, setBackImage] = useState<string>("");
+  const [frontImage, setFrontImage] = useState<string>(
+    !card.image_url || card.image_url.startsWith("data:") ? "" : card.image_url,
+  );
+  const [backImage, setBackImage] = useState<string>(
+    !card.back_image_url || card.back_image_url.startsWith("data:") ? "" : (card.back_image_url || ""),
+  );
   const [desc, setDesc] = useState<string>(card.description || "");
+
+  const buyNow = saleType === "buy_now";
+  const auction = saleType === "auction";
+  const offer = saleType === "offer";
 
   const meta = [
     card.tcg_set, card.tcg_number ? `#${card.tcg_number}` : null,
@@ -1627,93 +1632,81 @@ function SellModal({ card, onClose, onSubmit }: {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={onClose}>
       <div className="w-full max-w-md space-y-3 overflow-y-auto rounded-2xl bg-card p-4 max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <p className="font-bold">List "{card.name}" for sale</p>
+          <p className="font-bold">List "{card.name}"</p>
           <button onClick={onClose} aria-label="Close"><X className="h-4 w-4" /></button>
         </div>
 
-        {/* Prefilled metadata from vault */}
-        <div className="rounded-lg bg-muted/40 p-2.5 text-[11px]">
-          <p className="mb-1 font-semibold text-muted-foreground">Auto-filled from vault</p>
-          <div className="flex flex-wrap gap-1">
-            {meta.length === 0 && <span className="text-muted-foreground">No extra metadata</span>}
+        {meta.length > 0 && (
+          <div className="flex flex-wrap gap-1 text-[11px]">
             {meta.map((m) => (
-              <span key={m} className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">{m}</span>
+              <span key={m} className="rounded-full bg-muted/50 px-2 py-0.5">{m}</span>
             ))}
-          </div>
-        </div>
-
-        {/* Vault reference (NOT used as sale photo) */}
-        {card.image_url && (
-          <div className="flex items-center gap-2 rounded-lg bg-muted/30 p-2">
-            <img src={card.image_url} className="h-12 w-12 rounded object-cover ring-1 ring-border" alt="" />
-            <p className="text-[10px] text-muted-foreground">Vault reference — not used as the sale photo. Upload fresh photos below.</p>
           </div>
         )}
 
-        {/* REQUIRED fresh sale photos */}
-        <ListingImageUpload value={frontImage} onChange={setFrontImage} label="Sale photo — front (required)" />
-        <ListingImageUpload value={backImage} onChange={setBackImage} label="Sale photo — back (required)" />
+        <ListingImageUpload value={frontImage} onChange={setFrontImage} label="Photo (front)" />
+        <ListingImageUpload value={backImage} onChange={setBackImage} label="Back photo (optional)" />
 
-        <textarea
-          rows={2}
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          className="w-full resize-none rounded-lg bg-input px-3 py-2 text-sm"
-          placeholder="Description (edit as needed)"
-        />
-
-        <p className="text-[11px] text-muted-foreground">Choose one or more sale options</p>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
-            <input type="checkbox" checked={buyNow} onChange={(e) => setBuyNow(e.target.checked)} className="h-4 w-4" /> Buy Now
-          </label>
-          <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
-            <input type="checkbox" checked={offer} onChange={(e) => setOffer(e.target.checked)} className="h-4 w-4" /> Accept Offers
-          </label>
-          <label className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm">
-            <input type="checkbox" checked={auction} onChange={(e) => setAuction(e.target.checked)} className="h-4 w-4" /> Auction
-          </label>
-          {auction && (
-            <>
-              <div>
-                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Auction length</p>
-                <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-full rounded-lg bg-input px-3 py-2 text-sm">
-                  {[1, 2, 3, 4, 5, 6, 7, 10, 14, 21, 30].map((d) => <option key={d} value={d}>{d} day{d > 1 ? "s" : ""}</option>)}
-                </select>
-              </div>
-              <div>
-                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Reserve / minimum (optional)</p>
-                <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <input type="number" min="0" step="0.01" value={reserve} onChange={(e) => setReserve(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" placeholder="No sale below this amount" />
-                </div>
-              </div>
-            </>
-          )}
+        <div className="grid grid-cols-3 gap-1">
+          {(["buy_now", "auction", "offer"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setSaleType(t)}
+              className={`rounded-lg px-2 py-2 text-xs font-bold ${saleType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+            >
+              {t === "buy_now" ? "Buy Now" : t === "auction" ? "Auction" : "Offer"}
+            </button>
+          ))}
         </div>
 
-        <div>
-          <p className="mb-1 text-[10px] uppercase text-muted-foreground">{auction ? "Starting bid" : "Price"}</p>
-          <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
+        {!offer && (
+          <div>
+            <p className="mb-1 text-[10px] uppercase text-muted-foreground">{auction ? "Starting bid" : "Price"}</p>
+            <div className="flex items-center gap-2 rounded-lg bg-input px-3 py-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <input type="number" min="0.01" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="flex-1 bg-transparent text-sm outline-none" />
+            </div>
           </div>
-        </div>
+        )}
+
+        {auction && (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="mb-1 text-[10px] uppercase text-muted-foreground">Length</p>
+              <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-full rounded-lg bg-input px-2 py-2 text-sm">
+                {[1, 3, 5, 7, 10, 14].map((d) => <option key={d} value={d}>{d}d</option>)}
+              </select>
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] uppercase text-muted-foreground">Reserve</p>
+              <input type="number" min="0" step="0.01" value={reserve} onChange={(e) => setReserve(e.target.value)} className="w-full rounded-lg bg-input px-2 py-2 text-sm" placeholder="None" />
+            </div>
+          </div>
+        )}
 
         <div>
           <p className="mb-1 text-[10px] uppercase text-muted-foreground">Shipping ($)</p>
           <input type="number" min="0" step="0.01" value={shipping} onChange={(e) => setShipping(e.target.value)} className="w-full rounded-lg bg-input px-3 py-2 text-sm" />
         </div>
 
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted-foreground">Edit description</summary>
+          <textarea
+            rows={2}
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            className="mt-1 w-full resize-none rounded-lg bg-input px-3 py-2 text-sm"
+            placeholder="Description"
+          />
+        </details>
+
         <button
           onClick={() => {
-            const frontErr = validateListingImage(frontImage, { field: "Front sale photo" });
+            const frontErr = validateListingImage(frontImage, { field: "Photo" });
             if (frontErr) return toast.error(frontErr);
-            const backErr = validateListingImage(backImage, { field: "Back sale photo" });
-            if (backErr) return toast.error(backErr);
-            if (!buyNow && !auction && !offer) return toast.error("Pick at least one option");
             const amount = Number(price) || 0;
-            if (buyNow && amount <= 0) return toast.error("Set a Buy Now price");
+            if (buyNow && amount <= 0) return toast.error("Set a price");
             if (auction && amount <= 0) return toast.error("Set a starting bid");
             onSubmit({
               buy_now: buyNow, auction, offer, days, price: amount,
@@ -1731,4 +1724,5 @@ function SellModal({ card, onClose, onSubmit }: {
     </div>
   );
 }
+
 
