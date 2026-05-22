@@ -1,12 +1,12 @@
 /**
  * LiveMobileHostCard — compact, mobile-first host card for the /live route.
- * Shows avatar + handle + shop, follow button, verification + trust badges,
- * and (optionally) a rating chip. Designed to live inside the pinned title
- * overlay so buyers always know WHO is hosting and can follow in one tap.
+ * Shows avatar + handle + shop, follow button, and trust badges.
+ * Designed to live inside the pinned title overlay so buyers always know WHO
+ * is hosting and can follow / open the store in one tap.
  */
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { BadgeCheck, Star } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { FollowButton } from "@/components/FollowButton";
 import { SellerTrustBadges } from "@/components/SellerTrustBadges";
@@ -15,34 +15,48 @@ type Profile = {
   username: string | null;
   avatar_url: string | null;
   shop_name: string | null;
-  rating_avg?: number | null;
-  rating_count?: number | null;
-  is_verified_seller?: boolean | null;
 };
 
-const cache = new Map<string, Profile>();
+const profileCache = new Map<string, Profile>();
+const verifiedCache = new Map<string, boolean>();
 
 export function LiveMobileHostCard({
   sellerId,
-  compact = true,
+  showTrustBadges = false,
 }: {
   sellerId: string | null | undefined;
-  compact?: boolean;
+  showTrustBadges?: boolean;
 }) {
-  const [p, setP] = useState<Profile | null>(sellerId ? (cache.get(sellerId) ?? null) : null);
+  const [p, setP] = useState<Profile | null>(
+    sellerId ? (profileCache.get(sellerId) ?? null) : null,
+  );
+  const [verified, setVerified] = useState<boolean>(
+    sellerId ? (verifiedCache.get(sellerId) ?? false) : false,
+  );
 
   useEffect(() => {
-    if (!sellerId || cache.has(sellerId)) return;
+    if (!sellerId) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("username, avatar_url, shop_name, rating_avg, rating_count, is_verified_seller")
-        .eq("id", sellerId)
-        .maybeSingle();
-      if (cancelled || !data) return;
-      cache.set(sellerId, data as Profile);
-      setP(data as Profile);
+      if (!profileCache.has(sellerId)) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("username, avatar_url, shop_name")
+          .eq("id", sellerId)
+          .maybeSingle();
+        if (data && !cancelled) {
+          profileCache.set(sellerId, data as Profile);
+          setP(data as Profile);
+        }
+      }
+      if (!verifiedCache.has(sellerId)) {
+        const { data: v } = await (supabase.rpc as any)("is_seller_verified", {
+          _user_id: sellerId,
+        });
+        const isV = !!v;
+        verifiedCache.set(sellerId, isV);
+        if (!cancelled) setVerified(isV);
+      }
     })();
     return () => {
       cancelled = true;
@@ -52,9 +66,6 @@ export function LiveMobileHostCard({
   if (!sellerId || !p?.username) {
     return null;
   }
-
-  const rating = Number(p.rating_avg || 0);
-  const ratingCount = Number(p.rating_count || 0);
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -79,26 +90,21 @@ export function LiveMobileHostCard({
             <span className="truncate text-xs font-extrabold leading-tight text-white">
               {p.shop_name || `@${p.username}`}
             </span>
-            {p.is_verified_seller && (
+            {verified && (
               <BadgeCheck
                 className="h-3.5 w-3.5 shrink-0 text-sky-300"
                 aria-label="Verified seller"
               />
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] leading-tight text-white/70">
-            {p.shop_name && <span className="truncate">@{p.username}</span>}
-            {ratingCount > 0 && (
-              <span className="inline-flex items-center gap-0.5 tabular-nums text-amber-300">
-                <Star className="h-2.5 w-2.5 fill-current" />
-                {rating.toFixed(1)}
-                <span className="text-white/50">({ratingCount})</span>
-              </span>
-            )}
-          </div>
+          {p.shop_name && (
+            <div className="truncate text-[10px] leading-tight text-white/70">
+              @{p.username}
+            </div>
+          )}
         </div>
       </Link>
-      {!compact && <SellerTrustBadges sellerId={sellerId} compact />}
+      {showTrustBadges && <SellerTrustBadges sellerId={sellerId} compact />}
       <FollowButton userId={sellerId} size="sm" className="ml-auto shrink-0" />
     </div>
   );
