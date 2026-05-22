@@ -1981,16 +1981,21 @@ function LiveDetail() {
     () => new Set(mods.map((mm: any) => mm.mod_user_id)),
     [mods],
   );
+  const isMobileViewport = useIsMobile();
   const visibleChatMessages = useMemo(() => {
     const tail = messages.length > 80 ? messages.slice(-80) : messages;
-    return tail.filter((m) => {
+    const filtered = tail.filter((m) => {
       if (m.is_system || m.is_announcement) return false;
       if (m.user_id && myBlockedIds.has(m.user_id)) return false;
       if (m.user_id && streamBannedIds.has(m.user_id) && !isStaff) return false;
       if (isStaff && hideModsChat && m.user_id && modUserIdSet.has(m.user_id)) return false;
       return true;
     });
-  }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet]);
+    // 🆕 Mobile density: cap the live chat overlay to the last 6 messages so
+    // it stays readable over the video. Desktop keeps the full window.
+    if (isMobileViewport && filtered.length > 6) return filtered.slice(-6);
+    return filtered;
+  }, [messages, myBlockedIds, streamBannedIds, isStaff, hideModsChat, modUserIdSet, isMobileViewport]);
 
 
 
