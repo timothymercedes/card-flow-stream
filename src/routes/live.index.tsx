@@ -202,7 +202,7 @@ function LiveList() {
                   className={`w-full rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${catFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
                 >
                   <option value="all">✨ All categories</option>
-                  {LISTING_CATEGORIES.filter((c) => activeCategories.length === 0 || activeCategories.includes(c.value)).map((c) => (
+                  {LISTING_CATEGORIES.map((c) => (
                     <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
                   ))}
                 </select>
