@@ -69,30 +69,40 @@ export const Route = createRootRoute({
       <body>{children}<Scripts /></body>
     </html>
   ),
-  component: () => (
-    <AuthProvider>
-      <AuthGateProvider>
-        <MascotTourProvider>
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[1000] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground focus:shadow-lg"
-          >
-            Skip to main content
-          </a>
-          <LanguageSync />
-          <A11yClassSync />
-          <TutorialModeBootstrap />
-          <PerfMonitorBootstrap />
-          <BetaGate>
-            <Outlet />
-            <LegalGate />
-          </BetaGate>
-          <RealtimeStatusBadge />
-          <BidAnnouncer />
-          <Toaster />
-        </MascotTourProvider>
-      </AuthGateProvider>
-    </AuthProvider>
-  ),
+  component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
+
+function RootComponent() {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+  }));
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AuthGateProvider>
+          <MascotTourProvider>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[1000] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground focus:shadow-lg"
+            >
+              Skip to main content
+            </a>
+            <LanguageSync />
+            <A11yClassSync />
+            <TutorialModeBootstrap />
+            <PerfMonitorBootstrap />
+            <BetaGate>
+              <Outlet />
+              <LegalGate />
+            </BetaGate>
+            <RealtimeStatusBadge />
+            <BidAnnouncer />
+            <Toaster />
+          </MascotTourProvider>
+        </AuthGateProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
