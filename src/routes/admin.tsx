@@ -72,6 +72,7 @@ function Admin() {
   const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
   const [orders, setOrders] = useState<any[]>([]);
   const [orderFilter, setOrderFilter] = useState<"all" | "issues">(search.filter ?? "issues");
+  const [orderSearch, setOrderSearch] = useState("");
 
   useEffect(() => { if (search.tab) setTab(search.tab); }, [search.tab]);
   useEffect(() => { if (search.filter) setOrderFilter(search.filter); }, [search.filter]);
