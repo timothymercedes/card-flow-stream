@@ -40,6 +40,7 @@ export const MARKETPLACE_COMMISSION_RATE = 0.05;
 // never see Stripe fees deducted from their subtotal.
 export const STRIPE_PROCESSING_RATE = 0.029;
 export const STRIPE_PROCESSING_FIXED_CENTS = 30;
+export const LIVE_BUYER_FEE_THRESHOLD = 3;
 
 /**
  * Gross-up the Stripe processing fee so the buyer covers it entirely.
@@ -88,8 +89,9 @@ export function calculateFees(
   opts?: {
     isInternational?: boolean;
     platformFeeCentsOverride?: number;
+    sellerAbsorbedFeeCentsOverride?: number;
     commissionRate?: number;
-    feeSplitMode?: "buyer" | "split";
+    feeSplitMode?: "buyer" | "split" | "seller_absorbed";
   },
 ) {
   const platformFee =
@@ -101,7 +103,9 @@ export function calculateFees(
     : 0;
   // Bundle discount: seller absorbs the difference so platform still nets
   // the same per-order margin even when the buyer fee is waived.
-  const sellerAbsorbedFee = BUYER_PLATFORM_FEE_CENTS - platformFee;
+  const sellerAbsorbedFee = typeof opts?.sellerAbsorbedFeeCentsOverride === "number"
+    ? Math.max(0, Math.round(opts.sellerAbsorbedFeeCentsOverride))
+    : Math.max(0, BUYER_PLATFORM_FEE_CENTS - platformFee);
   const commissionRate = typeof opts?.commissionRate === "number"
     ? opts.commissionRate
     : MARKETPLACE_COMMISSION_RATE;
@@ -109,18 +113,22 @@ export function calculateFees(
   const preFeeBuyerCents = subtotalCents + platformFee + intlFee;
 
   const splitMode = opts?.feeSplitMode ?? "buyer";
-  const buyerProcessingFee = splitMode === "split"
-    ? buyerHalfStripeFeeCents(preFeeBuyerCents)
-    : grossedUpStripeFeeCents(preFeeBuyerCents);
+  const buyerProcessingFee = splitMode === "seller_absorbed"
+    ? 0
+    : splitMode === "split"
+      ? buyerHalfStripeFeeCents(preFeeBuyerCents)
+      : grossedUpStripeFeeCents(preFeeBuyerCents);
   const buyerTotal = preFeeBuyerCents + buyerProcessingFee;
 
   // Actual Stripe fee Stripe will deduct from the charge on the buyer total.
   const totalProcessingFee = Math.round(
     buyerTotal * STRIPE_PROCESSING_RATE + STRIPE_PROCESSING_FIXED_CENTS,
   );
-  const sellerProcessingFee = splitMode === "split"
-    ? Math.max(0, totalProcessingFee - buyerProcessingFee)
-    : 0;
+  const sellerProcessingFee = splitMode === "seller_absorbed"
+    ? totalProcessingFee
+    : splitMode === "split"
+      ? Math.max(0, totalProcessingFee - buyerProcessingFee)
+      : 0;
 
   const applicationFee =
     platformFee + intlFee + commissionCents + sellerAbsorbedFee + totalProcessingFee;

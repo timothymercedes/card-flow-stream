@@ -2912,6 +2912,7 @@ export type Database = {
           amount: number
           auction_number: number | null
           buyer_id: string
+          buyer_processing_fee_cents: number | null
           carrier: string | null
           commission_amount: number | null
           commission_rate: number
@@ -2922,6 +2923,7 @@ export type Database = {
           dropoff_scanned_at: string | null
           fee_absorbed_by: string | null
           fee_index: number | null
+          fee_split_mode: string | null
           id: string
           idempotency_key: string | null
           is_giveaway: boolean
@@ -2938,13 +2940,16 @@ export type Database = {
           payment_retry_deadline: string | null
           payment_status: string
           payout_held: boolean
+          platform_fee_cents: number | null
           prep_status: string
+          processing_fee_cents: number | null
           quantity: number
           ready_at: string | null
           refunded_amount: number | null
           refunded_at: string | null
           seller_id: string
           seller_payout_amount: number | null
+          seller_processing_fee_cents: number | null
           seller_stripe_account_id: string | null
           ship_address: string
           ship_city: string
@@ -2970,6 +2975,7 @@ export type Database = {
           amount: number
           auction_number?: number | null
           buyer_id: string
+          buyer_processing_fee_cents?: number | null
           carrier?: string | null
           commission_amount?: number | null
           commission_rate?: number
@@ -2980,6 +2986,7 @@ export type Database = {
           dropoff_scanned_at?: string | null
           fee_absorbed_by?: string | null
           fee_index?: number | null
+          fee_split_mode?: string | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -2996,13 +3003,16 @@ export type Database = {
           payment_retry_deadline?: string | null
           payment_status?: string
           payout_held?: boolean
+          platform_fee_cents?: number | null
           prep_status?: string
+          processing_fee_cents?: number | null
           quantity?: number
           ready_at?: string | null
           refunded_amount?: number | null
           refunded_at?: string | null
           seller_id: string
           seller_payout_amount?: number | null
+          seller_processing_fee_cents?: number | null
           seller_stripe_account_id?: string | null
           ship_address: string
           ship_city: string
@@ -3028,6 +3038,7 @@ export type Database = {
           amount?: number
           auction_number?: number | null
           buyer_id?: string
+          buyer_processing_fee_cents?: number | null
           carrier?: string | null
           commission_amount?: number | null
           commission_rate?: number
@@ -3038,6 +3049,7 @@ export type Database = {
           dropoff_scanned_at?: string | null
           fee_absorbed_by?: string | null
           fee_index?: number | null
+          fee_split_mode?: string | null
           id?: string
           idempotency_key?: string | null
           is_giveaway?: boolean
@@ -3054,13 +3066,16 @@ export type Database = {
           payment_retry_deadline?: string | null
           payment_status?: string
           payout_held?: boolean
+          platform_fee_cents?: number | null
           prep_status?: string
+          processing_fee_cents?: number | null
           quantity?: number
           ready_at?: string | null
           refunded_amount?: number | null
           refunded_at?: string | null
           seller_id?: string
           seller_payout_amount?: number | null
+          seller_processing_fee_cents?: number | null
           seller_stripe_account_id?: string | null
           ship_address?: string
           ship_city?: string
