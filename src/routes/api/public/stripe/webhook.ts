@@ -140,8 +140,6 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
               }
               const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
               if (ids.length > 0) {
-                const orderCount = Math.max(1, ids.length);
-                const finalChargedTotalCents = Number(pi.amount || pi.amount_received || 0);
                 await supabaseAdmin
                   .from("orders")
                   .update({
@@ -149,7 +147,6 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                     paid_at: new Date().toISOString(),
                     stripe_payment_intent_id: pi.id,
                     stripe_charge_id: chargeId ?? null,
-                    final_charged_total_cents: Math.round(finalChargedTotalCents / orderCount),
                     tax_reconciliation_status: "matched",
                   })
                   .in("id", ids);
@@ -184,12 +181,18 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                     _stripe_event: event.id, _meta: { promotion_id: promotionId },
                   });
                 } else if (ids.length > 0) {
-                  if (commissionCents > 0) {
+                  const { data: paidOrdersForLedger } = await supabaseAdmin
+                    .from("orders")
+                    .select("id,commission_amount,tax_cents,tax_jurisdiction,tax_provider,tax_country,tax_state")
+                    .in("id", ids);
+                  for (const o of ((paidOrdersForLedger ?? []) as any[])) {
+                    const orderCommissionCents = Math.round(Number(o.commission_amount || 0) * 100);
+                    if (orderCommissionCents <= 0) continue;
                     await (supabaseAdmin as any).rpc("log_platform_revenue", {
-                      _kind: "marketplace_commission", _amount_cents: commissionCents,
+                      _kind: "marketplace_commission", _amount_cents: orderCommissionCents,
                       _seller_id: md.seller_id || null, _buyer_id: md.buyer_id || null,
-                      _order_id: ids[0] || null, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
-                      _stripe_event: `${event.id}:commission`, _meta: { order_ids: ids, platform_fee_cents: platformFeeCents },
+                      _order_id: o.id, _stripe_pi: pi.id, _stripe_charge: chargeId || null,
+                      _stripe_event: `${event.id}:commission:${o.id}`, _meta: { order_ids: ids, platform_fee_cents: platformFeeCents, metadata_commission_cents: commissionCents },
                     });
                   }
                   if (intlFeeCents > 0) {
@@ -201,11 +204,7 @@ export const Route = createFileRoute("/api/public/stripe/webhook")({
                       _meta: { buyer_country: md.buyer_country, seller_country: md.seller_country },
                     });
                   }
-                  const { data: taxOrders } = await supabaseAdmin
-                    .from("orders")
-                    .select("id,tax_cents,tax_jurisdiction,tax_provider,tax_country,tax_state")
-                    .in("id", ids);
-                  for (const o of ((taxOrders ?? []) as any[])) {
+                  for (const o of ((paidOrdersForLedger ?? []) as any[])) {
                     const taxCents = Number(o.tax_cents || 0);
                     if (taxCents <= 0) continue;
                     await (supabaseAdmin as any).rpc("log_platform_revenue", {
