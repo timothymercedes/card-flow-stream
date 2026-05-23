@@ -401,6 +401,10 @@ function LiveDetail() {
     duration_seconds: number;
     snipe_price: number | null;
     voice_trigger: string;
+    image_url: string | null;
+    description: string | null;
+    prebid_enabled: boolean;
+    sale_type: string | null;
   }>>([]);
   // 🆕 Break-reveal wheel animation state
   const [breakWheelAngle, setBreakWheelAngle] = useState(0);
