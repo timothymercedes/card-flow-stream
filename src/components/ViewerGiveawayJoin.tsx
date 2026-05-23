@@ -138,18 +138,17 @@ export function ViewerGiveawayJoin({
 
   let content: React.ReactNode;
 
-  // Winner reveal (compact)
-  if (g.status === "complete" && g.winner_username) {
+  if (g.status === "drawing") {
     content = (
-      <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/20 p-3 ring-1 ring-emerald-400/40">
-        <Trophy className="h-5 w-5 text-amber-300" />
+      <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-500/20 p-3 ring-1 ring-amber-400/40">
+        <Loader2 className="h-5 w-5 animate-spin text-amber-300" />
         <div className="flex-1 text-xs text-white">
-          <p className="font-bold">@{g.winner_username} won {g.prize_label}</p>
-          <p className="text-[10px] text-white/70">Shipping covered by host</p>
+          <p className="font-bold">Drawing winner…</p>
+          <p className="text-[10px] text-white/70">{entryCount} entered · {g.prize_label}</p>
         </div>
       </div>
     );
-  } else if (g.status === "drawing") {
+  } else {
     content = (
       <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-500/20 p-3 ring-1 ring-amber-400/40">
         <Loader2 className="h-5 w-5 animate-spin text-amber-300" />
