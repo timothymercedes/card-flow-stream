@@ -393,6 +393,15 @@ function LiveDetail() {
   // 🆕 Voice trigger phrase
   const [voiceListening, setVoiceListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  // 🆕 Per-card voice triggers from auction queue (host says phrase → that card auto-starts)
+  const [queueVoiceItems, setQueueVoiceItems] = useState<Array<{
+    id: string;
+    title: string;
+    starting_bid: number;
+    duration_seconds: number;
+    snipe_price: number | null;
+    voice_trigger: string;
+  }>>([]);
   // 🆕 Break-reveal wheel animation state
   const [breakWheelAngle, setBreakWheelAngle] = useState(0);
   const breakWheelRafRef = useRef<number | null>(null);
