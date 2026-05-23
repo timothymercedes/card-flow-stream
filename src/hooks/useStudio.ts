@@ -464,10 +464,10 @@ export function useStudio(opts: {
         for (let attempt = 0; attempt <= CAMERA_RELEASE_RETRY_DELAYS_MS.length; attempt += 1) {
           try {
             try {
-              stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
+              stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0, micDeviceIdRef.current);
             } catch (e: any) {
               if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
-                stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
+                stream = await openCameraStream(baseVideoConstraints, cameraCount === 0, micDeviceIdRef.current);
               } else {
                 throw e;
               }
