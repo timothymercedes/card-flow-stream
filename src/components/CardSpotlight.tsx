@@ -35,6 +35,7 @@ export function CardSpotlight({ card, isHost, onClose }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [zoom, setZoom] = useState(false);
   const [lineIdx, setLineIdx] = useState(0);
+  const [seen, setSeen] = useState<Set<number>>(new Set([0]));
 
   const DEFAULT_HYPE = [
     "🔥 Heat alert — eyes on this one!",
@@ -45,16 +46,33 @@ export function CardSpotlight({ card, isHost, onClose }: Props) {
   const rawLines = (card.hype_lines || []).filter(Boolean);
   const lines = rawLines.length > 0 ? rawLines : DEFAULT_HYPE;
 
-  // Cycle hype lines every 3.5s
+  // Cycle hype lines every 3.5s, never repeat until all shown
   useEffect(() => {
     if (lines.length < 2) return;
-    const t = setInterval(() => setLineIdx((i) => (i + 1) % lines.length), 3500);
+    const t = setInterval(() => {
+      setSeen((prev) => {
+        const next = new Set(prev);
+        let pick = -1;
+        for (let i = 0; i < lines.length; i++) {
+          if (!next.has(i)) { pick = i; break; }
+        }
+        // If every line already seen, reset and pick the first unseen (which is 0)
+        if (pick === -1) {
+          next.clear();
+          pick = 0;
+        }
+        next.add(pick);
+        setLineIdx(pick);
+        return next;
+      });
+    }, 3500);
     return () => clearInterval(t);
   }, [lines.length]);
 
   // Reset on new card
   useEffect(() => {
     setLineIdx(0);
+    setSeen(new Set([0]));
     setCollapsed(false);
   }, [card.id]);
 
