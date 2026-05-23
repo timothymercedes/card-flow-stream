@@ -149,16 +149,6 @@ export function ViewerGiveawayJoin({
       </div>
     );
   } else {
-    content = (
-      <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-500/20 p-3 ring-1 ring-amber-400/40">
-        <Loader2 className="h-5 w-5 animate-spin text-amber-300" />
-        <div className="flex-1 text-xs text-white">
-          <p className="font-bold">Drawing winner…</p>
-          <p className="text-[10px] text-white/70">{entryCount} entered · {g.prize_label}</p>
-        </div>
-      </div>
-    );
-  } else {
     // Open
     const eligibilityLabel =
       g.eligibility === "anyone" ? "Anyone can join"
