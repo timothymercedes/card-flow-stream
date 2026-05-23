@@ -23,6 +23,7 @@ type Props = {
   isFollower: boolean;
   isBuyer: boolean;
   onFollowed?: () => void;
+  floating?: boolean;
 };
 
 /**
@@ -31,7 +32,7 @@ type Props = {
  * One-tap join — if the giveaway requires followers, joining also follows the host.
  */
 export function ViewerGiveawayJoin({
-  streamId, sellerId, userId, username, isFollower, isBuyer, onFollowed,
+  streamId, sellerId, userId, username, isFollower, isBuyer, onFollowed, floating = false,
 }: Props) {
   const [g, setG] = useState<Giveaway | null>(null);
   const [entryCount, setEntryCount] = useState(0);
@@ -134,9 +135,11 @@ export function ViewerGiveawayJoin({
   if (!g) return null;
   if (g.status === "complete" && !g.winner_username) return null;
 
+  let content: React.ReactNode;
+
   // Winner reveal (compact)
   if (g.status === "complete" && g.winner_username) {
-    return (
+    content = (
       <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/20 p-3 ring-1 ring-emerald-400/40">
         <Trophy className="h-5 w-5 text-amber-300" />
         <div className="flex-1 text-xs text-white">
@@ -145,10 +148,8 @@ export function ViewerGiveawayJoin({
         </div>
       </div>
     );
-  }
-
-  if (g.status === "drawing") {
-    return (
+  } else if (g.status === "drawing") {
+    content = (
       <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-500/20 p-3 ring-1 ring-amber-400/40">
         <Loader2 className="h-5 w-5 animate-spin text-amber-300" />
         <div className="flex-1 text-xs text-white">
@@ -157,45 +158,55 @@ export function ViewerGiveawayJoin({
         </div>
       </div>
     );
+  } else {
+    // Open
+    const eligibilityLabel =
+      g.eligibility === "anyone" ? "Anyone can join"
+      : g.eligibility === "followers" ? (isFollower ? "Followers only · you qualify" : "Followers only · tap to follow + join")
+      : (isBuyer ? "Past buyers only · you qualify" : "Past buyers only");
+    const urgent = remainingMs <= 8000;
+
+    content = (
+      <div className={`rounded-xl p-3 ring-1 backdrop-blur ${urgent ? "bg-rose-500/20 ring-rose-400/50 animate-pulse" : "bg-gradient-to-r from-amber-500/20 to-violet-600/20 ring-amber-400/40"}`}>
+        <div className="flex items-center gap-2.5">
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${urgent ? "bg-rose-500" : "bg-gradient-to-br from-amber-400 to-violet-600"} shadow-lg`}>
+            <Gift className="h-5 w-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[10px] font-bold uppercase tracking-wider text-amber-200">
+              🎁 Giveaway running
+            </p>
+            <p className="truncate text-sm font-extrabold text-white">{g.prize_label}</p>
+            <p className="truncate text-[10px] text-white/70">
+              {entryCount} joined · {Math.ceil(remainingMs / 1000)}s · {eligibilityLabel}
+            </p>
+          </div>
+          <button
+            onClick={joinGiveaway}
+            disabled={!userId || hasEntered || joining || (g.eligibility === "buyers" && !isBuyer)}
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-extrabold shadow-lg transition active:scale-95 ${
+              hasEntered
+                ? "bg-emerald-500 text-white"
+                : "bg-gradient-to-r from-amber-400 to-rose-500 text-white disabled:opacity-50"
+            }`}
+          >
+            {joining ? <Loader2 className="h-4 w-4 animate-spin" />
+              : hasEntered ? <span className="flex items-center gap-1"><Check className="h-3.5 w-3.5" /> In!</span>
+              : g.eligibility === "followers" && !isFollower ? <span className="flex items-center gap-1"><UserPlus className="h-3.5 w-3.5" /> Follow + Join</span>
+              : "Join"}
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  // Open
-  const eligibilityLabel =
-    g.eligibility === "anyone" ? "Anyone can join"
-    : g.eligibility === "followers" ? (isFollower ? "Followers only · you qualify" : "Followers only · tap to follow + join")
-    : (isBuyer ? "Past buyers only · you qualify" : "Past buyers only");
-  const urgent = remainingMs <= 8000;
-
-  return (
-    <div className={`rounded-xl p-3 ring-1 backdrop-blur ${urgent ? "bg-rose-500/20 ring-rose-400/50 animate-pulse" : "bg-gradient-to-r from-amber-500/20 to-violet-600/20 ring-amber-400/40"}`}>
-      <div className="flex items-center gap-2.5">
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${urgent ? "bg-rose-500" : "bg-gradient-to-br from-amber-400 to-violet-600"} shadow-lg`}>
-          <Gift className="h-5 w-5 text-white" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-bold uppercase tracking-wider text-amber-200">
-            🎁 Giveaway running
-          </p>
-          <p className="truncate text-sm font-extrabold text-white">{g.prize_label}</p>
-          <p className="truncate text-[10px] text-white/70">
-            {entryCount} joined · {Math.ceil(remainingMs / 1000)}s · {eligibilityLabel}
-          </p>
-        </div>
-        <button
-          onClick={joinGiveaway}
-          disabled={!userId || hasEntered || joining || (g.eligibility === "buyers" && !isBuyer)}
-          className={`shrink-0 rounded-full px-4 py-2 text-xs font-extrabold shadow-lg transition active:scale-95 ${
-            hasEntered
-              ? "bg-emerald-500 text-white"
-              : "bg-gradient-to-r from-amber-400 to-rose-500 text-white disabled:opacity-50"
-          }`}
-        >
-          {joining ? <Loader2 className="h-4 w-4 animate-spin" />
-            : hasEntered ? <span className="flex items-center gap-1"><Check className="h-3.5 w-3.5" /> In!</span>
-            : g.eligibility === "followers" && !isFollower ? <span className="flex items-center gap-1"><UserPlus className="h-3.5 w-3.5" /> Follow + Join</span>
-            : "Join"}
-        </button>
+  if (floating) {
+    return (
+      <div className="pointer-events-none absolute left-2 top-12 z-20 flex max-w-[260px] justify-start sm:left-3 sm:top-14">
+        <div className="pointer-events-auto w-full">{content}</div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return content;
 }
