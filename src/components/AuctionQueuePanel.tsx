@@ -413,41 +413,88 @@ export function AuctionQueuePanel({
             </button>
           </div>
 
-          {/* Scrollable list */}
-          <div className="flex-1 overflow-y-auto p-3">
-            {!vaultLoading && vaultCards.length === 0 && (
-              <p className="rounded bg-white/5 p-4 text-center text-xs text-white/60">
-                Your Vault is empty. Add cards to your Vault first.
-              </p>
-            )}
-            <div className="space-y-1.5">
-              {vaultCards.map((v) => {
-                const picked = vaultSelected.has(v.id);
-                const val = Number(v.estimated_value || 0);
-                return (
+          {/* Search + select-all toolbar */}
+          {(() => {
+            const q = vaultSearch.trim().toLowerCase();
+            const filtered = q
+              ? vaultCards.filter((v) =>
+                  [v.name, v.tcg_set, v.tcg_number].filter(Boolean).some((s) => String(s).toLowerCase().includes(q)),
+                )
+              : vaultCards;
+            const allPicked = filtered.length > 0 && filtered.every((v) => vaultSelected.has(v.id));
+            return (
+              <>
+                <div className="flex items-center gap-2 border-b border-white/10 bg-black/60 p-2">
+                  <div className="relative flex-1">
+                    <input
+                      value={vaultSearch}
+                      onChange={(e) => setVaultSearch(e.target.value)}
+                      placeholder="Search vault by name, set, number…"
+                      className="w-full rounded-md bg-white/10 px-3 py-2 text-[12px] text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-400/60"
+                    />
+                    {vaultSearch && (
+                      <button onClick={() => setVaultSearch("")} aria-label="Clear" className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-white/60 hover:bg-white/10">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                   <button
-                    key={v.id}
-                    onClick={() => toggleVaultPick(v.id)}
-                    className={`flex w-full items-center gap-2 rounded-md p-2 text-left transition ${picked ? "bg-cyan-500/25 ring-1 ring-cyan-400/60" : "bg-white/5 hover:bg-white/10"}`}
+                    onClick={() => {
+                      const next = new Set(vaultSelected);
+                      if (allPicked) filtered.forEach((v) => next.delete(v.id));
+                      else filtered.forEach((v) => next.add(v.id));
+                      setVaultSelected(next);
+                    }}
+                    disabled={filtered.length === 0}
+                    className="shrink-0 rounded-md bg-white/10 px-3 py-2 text-[11px] font-bold text-white hover:bg-white/20 disabled:opacity-40"
                   >
-                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${picked ? "border-cyan-300 bg-cyan-400 text-black" : "border-white/30 bg-transparent"}`}>
-                      {picked && <Check className="h-3 w-3" />}
-                    </span>
-                    {v.image_url
-                      ? <img src={v.image_url} alt="" className="h-10 w-10 rounded object-cover" />
-                      : <div className="h-10 w-10 rounded bg-white/10" />}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-bold text-white">{v.name}</p>
-                      <p className="truncate text-[10px] text-white/60">
-                        {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || "—"}
-                        {val > 0 && <span className="ml-1 text-emerald-300">· est ${val.toFixed(0)}</span>}
-                      </p>
-                    </div>
+                    {allPicked ? "Unselect all" : "Select all"}
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+
+                {/* Scrollable list */}
+                <div className="flex-1 overflow-y-auto p-3">
+                  {!vaultLoading && vaultCards.length === 0 && (
+                    <p className="rounded bg-white/5 p-4 text-center text-xs text-white/60">
+                      Your Vault is empty. Add cards to your Vault first.
+                    </p>
+                  )}
+                  {!vaultLoading && vaultCards.length > 0 && filtered.length === 0 && (
+                    <p className="rounded bg-white/5 p-4 text-center text-xs text-white/60">
+                      No cards match "{vaultSearch}".
+                    </p>
+                  )}
+                  <div className="space-y-1.5">
+                    {filtered.map((v) => {
+                      const picked = vaultSelected.has(v.id);
+                      const val = Number(v.estimated_value || 0);
+                      return (
+                        <button
+                          key={v.id}
+                          onClick={() => toggleVaultPick(v.id)}
+                          className={`flex w-full items-center gap-2 rounded-md p-2 text-left transition ${picked ? "bg-cyan-500/25 ring-1 ring-cyan-400/60" : "bg-white/5 hover:bg-white/10"}`}
+                        >
+                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${picked ? "border-cyan-300 bg-cyan-400 text-black" : "border-white/30 bg-transparent"}`}>
+                            {picked && <Check className="h-3 w-3" />}
+                          </span>
+                          {v.image_url
+                            ? <img src={v.image_url} alt="" className="h-10 w-10 rounded object-cover" />
+                            : <div className="h-10 w-10 rounded bg-white/10" />}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[12px] font-bold text-white">{v.name}</p>
+                            <p className="truncate text-[10px] text-white/60">
+                              {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || "—"}
+                              {val > 0 && <span className="ml-1 text-emerald-300">· est ${val.toFixed(0)}</span>}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Sticky footer */}
           {vaultCards.length > 0 && (
