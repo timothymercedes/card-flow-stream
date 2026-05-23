@@ -1573,7 +1573,7 @@ function LiveDetail() {
       // the generic "next" trigger when both could match the same utterance.
       ...queueVoiceItems.map((q) => ({
         phrase: q.voice_trigger,
-        cooldownMs: 3500,
+        cooldownMs: 1200,
         action: async () => {
           const isPrebid = !!q.prebid_enabled && (q.sale_type === "prebid" || q.sale_type === "either" || q.sale_type == null);
           const launch = async () => {
@@ -1623,7 +1623,7 @@ function LiveDetail() {
           if (auctionLive) {
             endedRef.current = true;
             await finalizeAuctionRound();
-            setTimeout(() => { launch().catch(() => {}); }, 600);
+            setTimeout(() => { launch().catch(() => {}); }, 150);
           } else {
             launch().catch(() => {});
           }
@@ -1632,14 +1632,14 @@ function LiveDetail() {
       // "next" / custom phrase: end current round and start the next (or just start if idle)
       {
         phrase: `${voicePhrase}|next round|go go go`,
-        cooldownMs: 2500,
+        cooldownMs: 1200,
         action: async () => {
           if (auctionLive) {
             endedRef.current = true;
             await finalizeAuctionRound();
             setTimeout(() => {
               startAuction().catch(() => {});
-            }, 600);
+            }, 150);
           } else {
             startAuction().catch(() => {});
           }
@@ -1648,7 +1648,7 @@ function LiveDetail() {
       // "start" — start a round when idle
       {
         phrase: "start auction|start round|start now",
-        cooldownMs: 2500,
+        cooldownMs: 1200,
         action: async () => {
           if (!auctionLive) startAuction().catch(() => {});
         },
@@ -1656,7 +1656,7 @@ function LiveDetail() {
       // "sold" — finalize current round immediately
       {
         phrase: "sold|going once going twice",
-        cooldownMs: 2500,
+        cooldownMs: 1200,
         action: async () => {
           if (!auctionLive) return;
           endedRef.current = true;
@@ -1666,7 +1666,7 @@ function LiveDetail() {
       // "extend" — add 10 seconds to running timer
       {
         phrase: "extend|add time|more time",
-        cooldownMs: 1500,
+        cooldownMs: 1000,
         action: async () => {
           await extendCurrentTimer(10);
         },
