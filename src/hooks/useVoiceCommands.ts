@@ -48,9 +48,12 @@ function normalizeVoiceText(value: string) {
 
 function matchesAlias(transcript: string, alias: string) {
   if (!alias) return false;
-  if (transcript.includes(alias)) return true;
-  const words = alias.split(" ").filter((word) => word.length > 1);
-  return words.length >= 2 && words.every((word) => transcript.includes(word));
+  // Require the alias to appear as a contiguous whole-word phrase in the transcript.
+  // Single-word aliases shorter than 4 chars are rejected to prevent stray hits.
+  const aliasWords = alias.split(" ").filter(Boolean);
+  if (aliasWords.length === 0) return false;
+  if (aliasWords.length === 1 && aliasWords[0].length < 4) return false;
+  return ` ${transcript} `.includes(` ${alias} `);
 }
 
 /**
@@ -118,6 +121,8 @@ export function useVoiceCommands({
         const last = lastFiredRef.current[cmd.phrase] || 0;
         if (now - last < cd) continue;
         lastFiredRef.current[cmd.phrase] = now;
+        // Clear the rolling window so leftover words can't re-match other commands.
+        recentTranscriptRef.current = { text: "", at: 0 };
         try {
           Promise.resolve(cmd.action()).catch(() => {});
         } catch {
