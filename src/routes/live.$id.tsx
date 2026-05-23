@@ -247,6 +247,10 @@ function LiveDetail() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const endedRef = useRef(false);
+  const auctionStartLockRef = useRef(false);
+  const auctionFinalizingRef = useRef(false);
+  const [auctionStartBusy, setAuctionStartBusy] = useState(false);
+  const [auctionFinalizing, setAuctionFinalizing] = useState(false);
   const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsVideoRef = useRef<HTMLVideoElement>(null);
@@ -401,6 +405,7 @@ function LiveDetail() {
     duration_seconds: number;
     snipe_price: number | null;
     voice_trigger: string;
+    trigger_word: string | null;
     image_url: string | null;
     description: string | null;
     prebid_enabled: boolean;
@@ -1496,6 +1501,7 @@ function LiveDetail() {
   );
   const auctionLive = !!stream?.ends_at && remaining > 0 && stream?.status === "live";
   const auctionFinished = !!stream?.ends_at && remaining <= 0;
+  const voicePausedForAuction = auctionLive || auctionStartBusy || auctionFinalizing;
 
   // Auto-end auction round when timer hits 0 (seller drives this); snapshot at T-2s
   useEffect(() => {
@@ -1525,6 +1531,24 @@ function LiveDetail() {
 
   const voicePhrase = (stream?.voice_trigger_phrase || "next").toLowerCase().trim();
 
+  function reserveAuctionStart() {
+    if (auctionLive || auctionStartLockRef.current || auctionFinalizingRef.current) return false;
+    auctionStartLockRef.current = true;
+    setAuctionStartBusy(true);
+    return true;
+  }
+
+  function releaseAuctionStartLock() {
+    auctionStartLockRef.current = false;
+    setAuctionStartBusy(false);
+  }
+
+  function releaseAuctionFinalizing() {
+    auctionFinalizingRef.current = false;
+    setAuctionFinalizing(false);
+    releaseAuctionStartLock();
+  }
+
   // 🆕 Load per-card voice triggers from the auction queue and keep in sync.
   useEffect(() => {
     if (!isSeller || !id) return;
@@ -1532,21 +1556,25 @@ function LiveDetail() {
     async function refresh() {
       const { data } = await supabase
         .from("auction_queue" as any)
-        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,status,sold_to,image_url,description,prebid_enabled,sale_type")
+        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,trigger_word,status,sold_to,image_url,description,prebid_enabled,sale_type")
         .eq("stream_id", id)
         .eq("status", "queued")
         .is("sold_to", null)
-        .not("voice_trigger", "is", null);
+        .or("voice_trigger.not.is.null,trigger_word.not.is.null");
       if (!alive) return;
       const items = ((data as any[]) || [])
-        .filter((r) => r.voice_trigger && String(r.voice_trigger).trim().length > 0)
+        .filter((r) => {
+          const trigger = String(r.voice_trigger || r.trigger_word || "").trim();
+          return trigger.length > 0;
+        })
         .map((r) => ({
           id: r.id as string,
           title: r.title as string,
           starting_bid: Number(r.starting_bid) || 1,
           duration_seconds: Number(r.duration_seconds) || 30,
           snipe_price: r.snipe_price != null ? Number(r.snipe_price) : null,
-          voice_trigger: String(r.voice_trigger).toLowerCase().trim(),
+          voice_trigger: String(r.trigger_word || r.voice_trigger).toLowerCase().trim(),
+          trigger_word: r.trigger_word ? String(r.trigger_word).toLowerCase().trim() : null,
           image_url: (r.image_url as string) || null,
           description: (r.description as string) || null,
           prebid_enabled: !!r.prebid_enabled,
@@ -1568,31 +1596,20 @@ function LiveDetail() {
 
   const voice = useVoiceCommands({
     enabled: !!isSeller && !!stream?.voice_trigger_enabled,
-    commands: [
+    commands: voicePausedForAuction ? [] : [
       // 🆕 Per-card voice triggers FIRST so specific card phrases win over
       // the generic "next" trigger when both could match the same utterance.
       ...queueVoiceItems.map((q) => ({
         phrase: q.voice_trigger,
         cooldownMs: 1200,
         action: async () => {
+          if (!reserveAuctionStart()) return;
           const isPrebid = !!q.prebid_enabled && (q.sale_type === "prebid" || q.sale_type === "either" || q.sale_type == null);
           const launch = async () => {
             let startBid = q.starting_bid;
             // For pre-bid cards: pop the spotlight (same UX as a host scan)
             // and carry the highest existing pre-bid into the live round.
             if (isPrebid) {
-              try {
-                const { data: topBid } = await supabase
-                  .from("prebids" as any)
-                  .select("amount")
-                  .eq("queue_item_id", q.id)
-                  .order("amount", { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-                const top = Number((topBid as any)?.amount) || 0;
-                if (top > startBid) startBid = top;
-              } catch {/* ignore */}
-
               const spotlight = {
                 id: `sp-${Date.now()}`,
                 name: q.title,
@@ -1604,6 +1621,18 @@ function LiveDetail() {
               };
               setHypeCard(spotlight as any);
               spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: spotlight });
+
+              try {
+                const { data: topBid } = await supabase
+                  .from("prebids" as any)
+                  .select("amount")
+                  .eq("queue_item_id", q.id)
+                  .order("amount", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                const top = Number((topBid as any)?.amount) || 0;
+                if (top > startBid) startBid = top;
+              } catch {/* ignore */}
             }
 
             await quickStartAuction({
@@ -1611,6 +1640,7 @@ function LiveDetail() {
               start: String(startBid),
               timer: String(q.duration_seconds),
               buyNow: q.snipe_price ? String(q.snipe_price) : "",
+              reserved: true,
             });
             // Mark the queue row as launched so we don't re-trigger it.
             try {
@@ -1620,13 +1650,7 @@ function LiveDetail() {
                 .eq("id", q.id);
             } catch {/* ignore */}
           };
-          if (auctionLive) {
-            endedRef.current = true;
-            await finalizeAuctionRound();
-            setTimeout(() => { launch().catch(() => {}); }, 150);
-          } else {
-            launch().catch(() => {});
-          }
+          launch().catch(() => releaseAuctionStartLock());
         },
       })),
       // "next" / custom phrase: end current round and start the next (or just start if idle)
@@ -1634,15 +1658,8 @@ function LiveDetail() {
         phrase: `${voicePhrase}|next round|go go go`,
         cooldownMs: 1200,
         action: async () => {
-          if (auctionLive) {
-            endedRef.current = true;
-            await finalizeAuctionRound();
-            setTimeout(() => {
-              startAuction().catch(() => {});
-            }, 150);
-          } else {
-            startAuction().catch(() => {});
-          }
+          if (!reserveAuctionStart()) return;
+          startAuction({ reserved: true }).catch(() => releaseAuctionStartLock());
         },
       },
       // "start" — start a round when idle
@@ -1650,7 +1667,8 @@ function LiveDetail() {
         phrase: "start auction|start round|start now",
         cooldownMs: 1200,
         action: async () => {
-          if (!auctionLive) startAuction().catch(() => {});
+          if (!reserveAuctionStart()) return;
+          startAuction({ reserved: true }).catch(() => releaseAuctionStartLock());
         },
       },
       // "sold" — finalize current round immediately
@@ -2863,8 +2881,17 @@ function LiveDetail() {
     toast.success(action === "remove" ? "Slot removed" : "Slot kept on wheel");
   }
 
-  async function startAuction() {
-    if (!isSeller) return;
+  async function startAuction(opts?: { reserved?: boolean }) {
+    if (!isSeller) {
+      if (opts?.reserved) releaseAuctionStartLock();
+      return;
+    }
+    if (auctionLive || auctionFinalizingRef.current || (!opts?.reserved && auctionStartLockRef.current)) {
+      if (opts?.reserved) releaseAuctionStartLock();
+      if (!opts?.reserved) toast.error("Finish current round first");
+      return;
+    }
+    if (!opts?.reserved && !reserveAuctionStart()) return;
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
     const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
@@ -2903,7 +2930,11 @@ function LiveDetail() {
     setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
     endedRef.current = false;
     snapshotRef.current = false;
-    await supabase.from("live_streams").update(patch).eq("id", id);
+    const { error } = await supabase.from("live_streams").update(patch).eq("id", id);
+    if (error) {
+      releaseAuctionStartLock();
+      return toast.error(error.message);
+    }
     safety.touch("auction_started");
     await sendMsg(
       `▶️ ${item} — ${sec}s, starting $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}${qty > 1 ? ` · qty ${qty}` : ""}`,
@@ -2948,8 +2979,18 @@ function LiveDetail() {
     start?: string;
     timer?: string;
     buyNow?: string;
+    reserved?: boolean;
   }) {
-    if (!isSeller || !stream) return;
+    if (!isSeller || !stream) {
+      if (opts?.reserved) releaseAuctionStartLock();
+      return;
+    }
+    if (auctionLive || auctionFinalizingRef.current || (!opts?.reserved && auctionStartLockRef.current)) {
+      if (opts?.reserved) releaseAuctionStartLock();
+      if (!opts?.reserved) toast.error("Finish current round first");
+      return;
+    }
+    if (!opts?.reserved && !reserveAuctionStart()) return;
     const sec = Math.max(5, Math.min(600, Number(opts?.timer ?? editTimerSec) || 30));
     const start = Math.max(1, Number(opts?.start ?? editStartPrice) || 1);
     const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
@@ -2982,7 +3023,11 @@ function LiveDetail() {
     setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
     endedRef.current = false;
     snapshotRef.current = false;
-    await supabase.from("live_streams").update(patch).eq("id", id);
+    const { error } = await supabase.from("live_streams").update(patch).eq("id", id);
+    if (error) {
+      releaseAuctionStartLock();
+      return toast.error(error.message);
+    }
     safety.touch("auction_started");
     await sendMsg(
       `▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`,
@@ -3088,6 +3133,10 @@ function LiveDetail() {
 
   async function finalizeAuctionRound() {
     if (!stream) return;
+    if (auctionFinalizingRef.current) return;
+    auctionFinalizingRef.current = true;
+    setAuctionFinalizing(true);
+    releaseAuctionStartLock();
     safety.touch("auction_finalized");
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
@@ -3109,6 +3158,7 @@ function LiveDetail() {
       console.error("[live] finalize_auction_round failed", finErr);
       // Soft-fail: clear the timer locally so the UI recovers
       if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+      releaseAuctionFinalizing();
       return;
     }
 
@@ -3141,6 +3191,7 @@ function LiveDetail() {
         }
         endedRef.current = false;
         snapshotRef.current = false;
+        releaseAuctionFinalizing();
         if (remaining > 0)
           sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
       }, 5000);
@@ -3152,6 +3203,7 @@ function LiveDetail() {
         } catch {}
         endedRef.current = false;
         snapshotRef.current = false;
+        releaseAuctionFinalizing();
       }, 5000);
     }
   }
@@ -5657,7 +5709,7 @@ function LiveDetail() {
             </div>
 
             <button
-              onClick={startAuction}
+              onClick={() => startAuction()}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground"
             >
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
