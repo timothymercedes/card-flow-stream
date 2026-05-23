@@ -2887,6 +2887,7 @@ function LiveDetail() {
       return;
     }
     if (auctionLive || auctionFinalizingRef.current || (!opts?.reserved && auctionStartLockRef.current)) {
+      if (opts?.reserved) releaseAuctionStartLock();
       if (!opts?.reserved) toast.error("Finish current round first");
       return;
     }
@@ -2986,6 +2987,7 @@ function LiveDetail() {
       return;
     }
     if (auctionLive || auctionFinalizingRef.current || (!opts?.reserved && auctionStartLockRef.current)) {
+      if (opts?.reserved) releaseAuctionStartLock();
       if (!opts?.reserved) toast.error("Finish current round first");
       return;
     }
