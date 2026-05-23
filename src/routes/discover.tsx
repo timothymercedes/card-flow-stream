@@ -191,6 +191,43 @@ function DiscoverPage() {
       {showResults ? (
         <>
           <section className="mt-4 px-4">
+            <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Radio className="h-3.5 w-3.5 text-red-500" /> Live now {searching ? "· searching…" : `· ${liveHits.length}`}
+            </h2>
+            {liveHits.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No live hosts with "{query}" right now</div>
+            )}
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {liveHits.map((h) => (
+                <li key={h.stream_id}>
+                  <Link
+                    to="/live/$id"
+                    params={{ id: h.stream_id }}
+                    className="flex items-center gap-2 rounded-xl bg-card p-2 ring-1 ring-border hover:ring-primary/60"
+                  >
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                      {h.thumbnail_url && <img src={h.thumbnail_url} alt="" className="h-full w-full object-cover" />}
+                      <span className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> Live
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{h.title}</p>
+                      {h.matched_item ? (
+                        <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-amber-600 dark:text-amber-400">
+                          <Zap className="h-3 w-3" /> Pre-bid: {h.matched_item.title}
+                          {h.matched_item.starting_bid > 0 && <span className="text-muted-foreground"> · from ${h.matched_item.starting_bid.toFixed(2)}</span>}
+                        </p>
+                      ) : h.current_item ? (
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">On now: {h.current_item}</p>
+                      ) : null}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="mt-4 px-4">
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               People {searching ? "· searching…" : `· ${results.length}`}
             </h2>
