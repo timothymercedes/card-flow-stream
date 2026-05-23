@@ -161,7 +161,7 @@ export function LiveGiveaway({
       .select("id", { count: "exact", head: true })
       .eq("stream_id", streamId);
     const giveawayNumber = (count || 0) + 1;
-    const autoTitle = `Giveaway #${giveawayNumber} — ${prize}`;
+    const autoTitle = `Appreciation #${giveawayNumber} — ${prize}`;
     const { error } = await supabase.from("giveaways").insert({
       stream_id: streamId, seller_id: userId,
       prize_label: prize, code, eligibility: draftEligibility,
