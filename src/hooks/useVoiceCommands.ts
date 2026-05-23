@@ -104,7 +104,8 @@ export function useVoiceCommands({
       const t = normalizeVoiceText(fresh);
       if (!t) return;
       const now = Date.now();
-      const previous = now - recentTranscriptRef.current.at < 1800 ? recentTranscriptRef.current.text : "";
+      const previous =
+        now - recentTranscriptRef.current.at < 1800 ? recentTranscriptRef.current.text : "";
       const rolling = normalizeVoiceText(`${previous} ${t}`.split(" ").slice(-16).join(" "));
       recentTranscriptRef.current = { text: rolling, at: now };
       setLastHeard(rolling);
