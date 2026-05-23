@@ -2,11 +2,14 @@
 // orders that are >72h past the shipping deadline.
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/shipping-reminders")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request);
+        if (unauthorized) return unauthorized;
         const now = new Date();
         const out = { reminders_sent: 0, late_flagged: 0, auto_cancelled: 0, errors: [] as string[] };
 

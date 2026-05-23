@@ -3,6 +3,7 @@ import { render } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { requireCronSecret } from '@/lib/cron-auth.server'
 
 // Daily buyer order digest cron route.
 // POSTed by pg_cron once per day; for each buyer who placed orders in the last 24h,
@@ -55,6 +56,8 @@ export const Route = createFileRoute('/api/public/hooks/daily-buyer-digest')({
         }),
 
       POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request)
+        if (unauthorized) return unauthorized
         const url = new URL(request.url)
         const dryRun = url.searchParams.get('dry') === '1'
         const sinceHours = Math.max(

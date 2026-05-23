@@ -1,11 +1,14 @@
 // Phase 6: Daily Stripe ↔ orders reconciliation. pg_cron hits this endpoint.
 import { createFileRoute } from "@tanstack/react-router";
 import { reconcileStripeCharges } from "@/lib/stripe-reconcile.server";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/stripe-reconciliation")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request);
+        if (unauthorized) return unauthorized;
         try {
           const result = await reconcileStripeCharges({ sinceDays: 7, limit: 200 });
           return new Response(JSON.stringify({ ok: true, ...result }), {

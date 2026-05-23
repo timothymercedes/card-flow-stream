@@ -15,6 +15,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendPushToUsers } from "@/server/push.server";
 import { sendEmail } from "@/server/email.server";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 type Bookmark = {
   id: string;
@@ -138,9 +139,9 @@ async function dispatchReminders(window: "24h" | "1h") {
 export const Route = createFileRoute("/api/public/hooks/show-reminders")({
   server: {
     handlers: {
-      POST: async () => {
-        // /api/public/* bypasses auth at the edge — this route is safe because
-        // it only sends notifications to users who explicitly bookmarked a show.
+      POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request);
+        if (unauthorized) return unauthorized;
         try {
           const r24 = await dispatchReminders("24h");
           const r1 = await dispatchReminders("1h");

@@ -5,11 +5,14 @@
 // - Labels >14d with no scan → mark lost_package
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/fraud-sweep")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request);
+        if (unauthorized) return unauthorized;
         const out = { labels_flagged: 0, sellers_held: 0, suspicious: 0, lost_marked: 0 };
 
         // 1. Labels created >48h ago with no first_scan_at

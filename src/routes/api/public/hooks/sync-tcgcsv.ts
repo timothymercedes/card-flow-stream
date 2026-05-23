@@ -111,10 +111,11 @@ export const Route = createFileRoute("/api/public/hooks/sync-tcgcsv")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        // Light auth: require anon key in apikey header (pg_cron pattern)
-        const apikey = request.headers.get("apikey");
-        if (!apikey || apikey !== process.env.SUPABASE_PUBLISHABLE_KEY) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        // Require shared cron secret (this endpoint triggers tens of thousands of DB writes)
+        const secret = process.env.CRON_SECRET;
+        const provided = request.headers.get("x-cron-secret");
+        if (!secret || !provided || provided !== secret) {
+          return new Response(JSON.stringify({ error: "unauthorized" }), {
             status: 401,
             headers: { "Content-Type": "application/json" },
           });
