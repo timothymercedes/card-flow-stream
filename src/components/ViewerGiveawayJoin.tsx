@@ -164,7 +164,7 @@ export function ViewerGiveawayJoin({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[10px] font-bold uppercase tracking-wider text-amber-200">
-              🎁 Giveaway running
+              APPRECIATION 🎁 click to join
             </p>
             <p className="truncate text-sm font-extrabold text-white">{g.prize_label}</p>
             <p className="truncate text-[10px] text-white/70">
