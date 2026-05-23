@@ -279,37 +279,6 @@ export function LiveGiveaway({
   // === HOST CONTROLS ===
   // Compact, non-blocking floating widget when a giveaway is running and the host
   // hasn't explicitly opened the full panel.
-  if (
-    !open &&
-    !hostOpenComposer &&
-    !isDrawingMoment &&
-    !isWinnerReveal &&
-    giveaway &&
-    giveaway.status === "open"
-  ) {
-    return (
-      <div className="pointer-events-none fixed right-3 top-14 z-40 flex justify-end sm:right-4 sm:top-16">
-        <div className="pointer-events-auto flex max-w-sm items-center gap-2 rounded-full bg-card/90 px-3 py-2 text-xs shadow-2xl ring-1 ring-emerald-400/30 backdrop-blur">
-          <Gift className="h-4 w-4 shrink-0 text-emerald-400" />
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-[11px] font-bold text-foreground">APPRECIATION 🎁 click to join</span>
-            <span className="truncate text-[10px] text-muted-foreground">{giveaway.title || giveaway.prize_label} · {entries.length} joined</span>
-          </div>
-          <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-extrabold tabular-nums ${remainingMs <= 5000 ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500/20 text-emerald-200"}`}>
-            ⏱ {Math.ceil(remainingMs / 1000)}s
-          </span>
-          <button
-            onClick={startDraw}
-            disabled={entries.length === 0}
-            className="ml-1 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-3 py-1 text-[11px] font-extrabold text-white disabled:opacity-50"
-          >
-            Draw
-          </button>
-        </div>
-      </div>
-
-    );
-  }
 
   if (!open && !giveaway) return null;
   if (giveaway && giveaway.status === "complete" && !isWinnerReveal) {
