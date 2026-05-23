@@ -286,10 +286,11 @@ export function LiveGiveaway({
           <Gift className="h-4 w-4 shrink-0 text-emerald-400" />
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-[11px] font-bold text-foreground">{giveaway.prize_label}</span>
-            <span className="text-[10px] text-muted-foreground">
-              {entries.length} joined · {Math.ceil(remainingMs / 1000)}s left
-            </span>
+            <span className="text-[10px] text-muted-foreground">{entries.length} joined</span>
           </div>
+          <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-extrabold tabular-nums ${remainingMs <= 5000 ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500/20 text-emerald-200"}`}>
+            ⏱ {Math.ceil(remainingMs / 1000)}s
+          </span>
           <button
             onClick={startDraw}
             disabled={entries.length === 0}
@@ -299,6 +300,7 @@ export function LiveGiveaway({
           </button>
         </div>
       </div>
+
     );
   }
 
