@@ -350,13 +350,25 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     const { userId } = context;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents")
+      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents, is_giveaway")
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("Order not found");
     if (order.seller_id !== userId) throw new Error("Only the seller can buy a label");
 
     const isReissue = !!(order as any).tracking_number;
+    const isGiveaway = !!(order as any).is_giveaway;
+
+    // Giveaway shipping is charged to the HOST. Refuse to buy the label if
+    // they have no saved card — the UI prompts them to add one.
+    if (isGiveaway && !isReissue) {
+      const pm = await loadHostDefaultPaymentMethod(userId);
+      if (!pm?.stripe_customer_id || !pm?.stripe_payment_method_id) {
+        throw new Error(
+          "Add a payment method before shipping a giveaway. Giveaway shipping is billed to the host's card on file.",
+        );
+      }
+    }
 
     const tx = await shippo<any>("/transactions/", {
       method: "POST",
