@@ -170,7 +170,8 @@ export function PreBidPanel({
           {items.map((it, i) => {
             const st = (it.sale_type || "prebid") as SaleType;
             const top = topByItem.get(it.id);
-            // Default starting bid to $2 when the host didn't set one
+            // Host sets the price; if unset, silently default to $2 floor
+            const hostSetPrice = Number(it.starting_bid) > 0;
             const effectiveStart = Math.max(Number(it.starting_bid) || 0, 2);
             const min = Math.max(effectiveStart, top ? top.amount + 1 : effectiveStart);
             const bnPrice = Number(it.buy_now_price ?? it.snipe_price ?? 0);
