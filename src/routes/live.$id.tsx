@@ -5689,7 +5689,9 @@ function LiveDetail() {
             : latestManualAnn;
         if (annMsgs.length === 0) return null;
         return (
-          <div className={`pointer-events-none absolute left-1/2 z-20 flex w-[60%] max-w-2xl min-w-[260px] -translate-x-1/2 flex-col items-stretch gap-1.5 ${auctionLive ? "top-48" : "top-36"} sm:w-[55%]`}>
+          <div
+            className={`pointer-events-none absolute left-1/2 z-20 flex w-[60%] max-w-2xl min-w-[260px] -translate-x-1/2 flex-col items-stretch gap-1.5 ${auctionLive ? "top-48" : "top-36"} sm:w-[55%]`}
+          >
             {annMsgs.map((m) => {
               const cleaned = String(m.content || "")
                 .replace(/^📢\s*/, "")
