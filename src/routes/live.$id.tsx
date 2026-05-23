@@ -1501,6 +1501,7 @@ function LiveDetail() {
   );
   const auctionLive = !!stream?.ends_at && remaining > 0 && stream?.status === "live";
   const auctionFinished = !!stream?.ends_at && remaining <= 0;
+  const voicePausedForAuction = auctionLive || auctionStartBusy || auctionFinalizing;
 
   // Auto-end auction round when timer hits 0 (seller drives this); snapshot at T-2s
   useEffect(() => {
@@ -1576,7 +1577,7 @@ function LiveDetail() {
   }, [isSeller, id]);
 
   const voice = useVoiceCommands({
-    enabled: !!isSeller && !!stream?.voice_trigger_enabled,
+    enabled: !!isSeller && !!stream?.voice_trigger_enabled && !voicePausedForAuction,
     commands: [
       // 🆕 Per-card voice triggers FIRST so specific card phrases win over
       // the generic "next" trigger when both could match the same utterance.
@@ -1584,24 +1585,13 @@ function LiveDetail() {
         phrase: q.voice_trigger,
         cooldownMs: 1200,
         action: async () => {
+          if (!reserveAuctionStart()) return;
           const isPrebid = !!q.prebid_enabled && (q.sale_type === "prebid" || q.sale_type === "either" || q.sale_type == null);
           const launch = async () => {
             let startBid = q.starting_bid;
             // For pre-bid cards: pop the spotlight (same UX as a host scan)
             // and carry the highest existing pre-bid into the live round.
             if (isPrebid) {
-              try {
-                const { data: topBid } = await supabase
-                  .from("prebids" as any)
-                  .select("amount")
-                  .eq("queue_item_id", q.id)
-                  .order("amount", { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-                const top = Number((topBid as any)?.amount) || 0;
-                if (top > startBid) startBid = top;
-              } catch {/* ignore */}
-
               const spotlight = {
                 id: `sp-${Date.now()}`,
                 name: q.title,
@@ -1613,6 +1603,18 @@ function LiveDetail() {
               };
               setHypeCard(spotlight as any);
               spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: spotlight });
+
+              try {
+                const { data: topBid } = await supabase
+                  .from("prebids" as any)
+                  .select("amount")
+                  .eq("queue_item_id", q.id)
+                  .order("amount", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                const top = Number((topBid as any)?.amount) || 0;
+                if (top > startBid) startBid = top;
+              } catch {/* ignore */}
             }
 
             await quickStartAuction({
@@ -1629,13 +1631,7 @@ function LiveDetail() {
                 .eq("id", q.id);
             } catch {/* ignore */}
           };
-          if (auctionLive) {
-            endedRef.current = true;
-            await finalizeAuctionRound();
-            setTimeout(() => { launch().catch(() => {}); }, 150);
-          } else {
-            launch().catch(() => {});
-          }
+          launch().catch(() => releaseAuctionStartLock());
         },
       })),
       // "next" / custom phrase: end current round and start the next (or just start if idle)
@@ -1643,15 +1639,8 @@ function LiveDetail() {
         phrase: `${voicePhrase}|next round|go go go`,
         cooldownMs: 1200,
         action: async () => {
-          if (auctionLive) {
-            endedRef.current = true;
-            await finalizeAuctionRound();
-            setTimeout(() => {
-              startAuction().catch(() => {});
-            }, 150);
-          } else {
-            startAuction().catch(() => {});
-          }
+          if (!reserveAuctionStart()) return;
+          startAuction().catch(() => releaseAuctionStartLock());
         },
       },
       // "start" — start a round when idle
@@ -1659,7 +1648,8 @@ function LiveDetail() {
         phrase: "start auction|start round|start now",
         cooldownMs: 1200,
         action: async () => {
-          if (!auctionLive) startAuction().catch(() => {});
+          if (!reserveAuctionStart()) return;
+          startAuction().catch(() => releaseAuctionStartLock());
         },
       },
       // "sold" — finalize current round immediately
