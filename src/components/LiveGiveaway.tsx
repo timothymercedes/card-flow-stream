@@ -195,18 +195,24 @@ export function LiveGiveaway({
     }, 3000);
   }
 
-  // Auto-draw when timer expires
+  // Auto-draw when timer expires (guarded so it only fires once per giveaway)
+  const autoDrawFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isSeller || !giveaway) return;
     if (giveaway.status !== "open" || !giveaway.ends_at) return;
     if (remainingMs > 0) return;
+    if (autoDrawFiredRef.current === giveaway.id) return;
+    autoDrawFiredRef.current = giveaway.id;
     if (entries.length === 0) {
       supabase.from("giveaways").update({ status: "complete", closed_at: new Date().toISOString() }).eq("id", giveaway.id);
+      toast("Giveaway ended — no entries");
       return;
     }
+    toast.success("⏱ Time's up — drawing winner!");
     startDraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSeller, giveaway?.id, giveaway?.status, giveaway?.ends_at, remainingMs, entries.length]);
+
 
   async function clearGiveaway() {
     if (!isSeller || !giveaway) return;
@@ -280,10 +286,11 @@ export function LiveGiveaway({
           <Gift className="h-4 w-4 shrink-0 text-emerald-400" />
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-[11px] font-bold text-foreground">{giveaway.prize_label}</span>
-            <span className="text-[10px] text-muted-foreground">
-              {entries.length} joined · {Math.ceil(remainingMs / 1000)}s left
-            </span>
+            <span className="text-[10px] text-muted-foreground">{entries.length} joined</span>
           </div>
+          <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-extrabold tabular-nums ${remainingMs <= 5000 ? "bg-red-500 text-white animate-pulse" : "bg-emerald-500/20 text-emerald-200"}`}>
+            ⏱ {Math.ceil(remainingMs / 1000)}s
+          </span>
           <button
             onClick={startDraw}
             disabled={entries.length === 0}
@@ -293,6 +300,7 @@ export function LiveGiveaway({
           </button>
         </div>
       </div>
+
     );
   }
 
