@@ -401,6 +401,10 @@ function LiveDetail() {
     duration_seconds: number;
     snipe_price: number | null;
     voice_trigger: string;
+    image_url: string | null;
+    description: string | null;
+    prebid_enabled: boolean;
+    sale_type: string | null;
   }>>([]);
   // 🆕 Break-reveal wheel animation state
   const [breakWheelAngle, setBreakWheelAngle] = useState(0);
@@ -1528,7 +1532,7 @@ function LiveDetail() {
     async function refresh() {
       const { data } = await supabase
         .from("auction_queue" as any)
-        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,status,sold_to")
+        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,status,sold_to,image_url,description,prebid_enabled,sale_type")
         .eq("stream_id", id)
         .eq("status", "queued")
         .is("sold_to", null)
@@ -1537,12 +1541,16 @@ function LiveDetail() {
       const items = ((data as any[]) || [])
         .filter((r) => r.voice_trigger && String(r.voice_trigger).trim().length > 0)
         .map((r) => ({
-          id: r.id,
-          title: r.title,
+          id: r.id as string,
+          title: r.title as string,
           starting_bid: Number(r.starting_bid) || 1,
           duration_seconds: Number(r.duration_seconds) || 30,
           snipe_price: r.snipe_price != null ? Number(r.snipe_price) : null,
           voice_trigger: String(r.voice_trigger).toLowerCase().trim(),
+          image_url: (r.image_url as string) || null,
+          description: (r.description as string) || null,
+          prebid_enabled: !!r.prebid_enabled,
+          sale_type: (r.sale_type as string) || null,
         }));
       setQueueVoiceItems(items);
     }
@@ -1618,10 +1626,40 @@ function LiveDetail() {
         phrase: q.voice_trigger,
         cooldownMs: 3500,
         action: async () => {
+          const isPrebid = !!q.prebid_enabled && (q.sale_type === "prebid" || q.sale_type === "either" || q.sale_type == null);
           const launch = async () => {
+            let startBid = q.starting_bid;
+            // For pre-bid cards: pop the spotlight (same UX as a host scan)
+            // and carry the highest existing pre-bid into the live round.
+            if (isPrebid) {
+              try {
+                const { data: topBid } = await supabase
+                  .from("prebids" as any)
+                  .select("amount")
+                  .eq("queue_item_id", q.id)
+                  .order("amount", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                const top = Number((topBid as any)?.amount) || 0;
+                if (top > startBid) startBid = top;
+              } catch {/* ignore */}
+
+              const spotlight = {
+                id: `sp-${Date.now()}`,
+                name: q.title,
+                category: "Trading Card",
+                set_guess: "",
+                rarity_vibe: "",
+                image: q.image_url || "",
+                hype_lines: q.description ? [q.description] : [],
+              };
+              setHypeCard(spotlight as any);
+              spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: spotlight });
+            }
+
             await quickStartAuction({
               item: q.title,
-              start: String(q.starting_bid),
+              start: String(startBid),
               timer: String(q.duration_seconds),
               buyNow: q.snipe_price ? String(q.snipe_price) : "",
             });
