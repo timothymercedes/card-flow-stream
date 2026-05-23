@@ -303,12 +303,14 @@ export function LiveGiveaway({
   if (!open && !hostOpenComposer && !isDrawingMoment && !isWinnerReveal && (!giveaway || giveaway.status !== "open")) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
-      <button onClick={onClose} className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white">
-        <X className="h-5 w-5" />
-      </button>
+    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-3 sm:bottom-6 sm:right-6 sm:left-auto sm:justify-end">
+      <div className="pointer-events-auto relative w-full max-w-sm rounded-2xl bg-black/80 p-3 pt-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
+        <button onClick={onClose} className="absolute right-2 top-2 rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20">
+          <X className="h-4 w-4" />
+        </button>
 
-      <div className="w-full max-w-md">
+        <div className="w-full">
+
         <p className="mb-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
           <Gift className="h-3.5 w-3.5" /> Giveaway
         </p>
