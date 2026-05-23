@@ -133,7 +133,8 @@ export function ViewerGiveawayJoin({
   }
 
   if (!g) return null;
-  if (g.status === "complete" && !g.winner_username) return null;
+  // Vanish once the winner is called — box reappears when host opens a new giveaway
+  if (g.status === "complete") return null;
 
   let content: React.ReactNode;
 
