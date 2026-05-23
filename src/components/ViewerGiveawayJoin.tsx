@@ -133,22 +133,12 @@ export function ViewerGiveawayJoin({
   }
 
   if (!g) return null;
-  if (g.status === "complete" && !g.winner_username) return null;
+  // Vanish once the winner is called — box reappears when host opens a new giveaway
+  if (g.status === "complete") return null;
 
   let content: React.ReactNode;
 
-  // Winner reveal (compact)
-  if (g.status === "complete" && g.winner_username) {
-    content = (
-      <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/30 to-teal-500/20 p-3 ring-1 ring-emerald-400/40">
-        <Trophy className="h-5 w-5 text-amber-300" />
-        <div className="flex-1 text-xs text-white">
-          <p className="font-bold">@{g.winner_username} won {g.prize_label}</p>
-          <p className="text-[10px] text-white/70">Shipping covered by host</p>
-        </div>
-      </div>
-    );
-  } else if (g.status === "drawing") {
+  if (g.status === "drawing") {
     content = (
       <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500/30 to-rose-500/20 p-3 ring-1 ring-amber-400/40">
         <Loader2 className="h-5 w-5 animate-spin text-amber-300" />
@@ -174,7 +164,7 @@ export function ViewerGiveawayJoin({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[10px] font-bold uppercase tracking-wider text-amber-200">
-              🎁 Giveaway running
+              APPRECIATION 🎁 click to join
             </p>
             <p className="truncate text-sm font-extrabold text-white">{g.prize_label}</p>
             <p className="truncate text-[10px] text-white/70">
@@ -202,7 +192,7 @@ export function ViewerGiveawayJoin({
 
   if (floating) {
     return (
-      <div className="pointer-events-none absolute left-2 top-12 z-20 flex max-w-[260px] justify-start sm:left-3 sm:top-14">
+      <div className="pointer-events-none absolute right-2 top-12 z-20 flex max-w-[260px] justify-end sm:right-3 sm:top-14">
         <div className="pointer-events-auto w-full">{content}</div>
       </div>
     );
