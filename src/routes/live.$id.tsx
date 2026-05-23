@@ -5642,10 +5642,10 @@ function LiveDetail() {
       )}
 
       {/* Auction notification feed (separate from chat, pinnable) */}
-      {pinned && messages.some((m) => m.is_system && !hiddenSysIds.has(m.id)) && (
+      {pinned && messages.some((m) => m.is_system && !m.is_announcement && !hiddenSysIds.has(m.id)) && (
         <div className="pointer-events-none absolute right-3 top-32 z-10 flex max-h-[28vh] w-56 flex-col items-end gap-1 overflow-hidden">
           {messages
-            .filter((m) => m.is_system && !hiddenSysIds.has(m.id))
+            .filter((m) => m.is_system && !m.is_announcement && !hiddenSysIds.has(m.id))
             .slice(-5)
             .map((m) => (
               <div
@@ -5663,17 +5663,36 @@ function LiveDetail() {
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
       {(() => {
-        // Always hide the giveaway-open announcement — the top-right chip already shows the live countdown.
-        const annMsgs = messages.filter(
-          (m) =>
-            m.is_announcement &&
-            !dismissedAnnouncementIds.has(m.id) &&
-            !/Appreciation Gift opened/i.test(String(m.content || "")),
-        );
+        const givyOpen =
+          activeGiveaway?.status === "open" &&
+          (!activeGiveaway.ends_at || new Date(activeGiveaway.ends_at).getTime() > now);
+        const activeGivyAnn = givyOpen
+          ? {
+              id: `givy-${activeGiveaway.id}`,
+              username: sellerUsername || "host",
+              content: `APPRECIATION 🎁 click to join · ${activeGiveaway.prize_label || activeGiveaway.title || "Gift"}`,
+            }
+          : null;
+        const isGivyAnnouncement = (content: string) =>
+          /APPRECIATION\s*🎁\s*click to join|Appreciation #|\bgivy\b|\bgiveaway\b/i.test(content);
+        const latestManualAnn = messages
+          .filter(
+            (m) =>
+              m.is_announcement &&
+              !dismissedAnnouncementIds.has(m.id) &&
+              !isGivyAnnouncement(String(m.content || "")),
+          )
+          .slice(-1);
+        const annMsgs =
+          activeGivyAnn && !dismissedAnnouncementIds.has(activeGivyAnn.id)
+            ? [activeGivyAnn]
+            : latestManualAnn;
         if (annMsgs.length === 0) return null;
         return (
-          <div className={`pointer-events-none absolute left-1/2 z-20 flex w-[60%] max-w-2xl min-w-[260px] -translate-x-1/2 flex-col items-stretch gap-1.5 ${auctionLive ? "top-48" : "top-36"} sm:w-[55%]`}>
-            {annMsgs.slice(-3).map((m) => {
+          <div
+            className={`pointer-events-none absolute left-1/2 z-20 flex w-[60%] max-w-2xl min-w-[260px] -translate-x-1/2 flex-col items-stretch gap-1.5 ${auctionLive ? "top-48" : "top-36"} sm:w-[55%]`}
+          >
+            {annMsgs.map((m) => {
               const cleaned = String(m.content || "")
                 .replace(/^📢\s*/, "")
                 .replace(/giveaway/gi, "Appreciation");
