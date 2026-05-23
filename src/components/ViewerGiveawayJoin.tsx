@@ -23,6 +23,7 @@ type Props = {
   isFollower: boolean;
   isBuyer: boolean;
   onFollowed?: () => void;
+  floating?: boolean;
 };
 
 /**
@@ -31,7 +32,7 @@ type Props = {
  * One-tap join — if the giveaway requires followers, joining also follows the host.
  */
 export function ViewerGiveawayJoin({
-  streamId, sellerId, userId, username, isFollower, isBuyer, onFollowed,
+  streamId, sellerId, userId, username, isFollower, isBuyer, onFollowed, floating = false,
 }: Props) {
   const [g, setG] = useState<Giveaway | null>(null);
   const [entryCount, setEntryCount] = useState(0);

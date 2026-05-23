@@ -288,7 +288,7 @@ export function LiveGiveaway({
     giveaway.status === "open"
   ) {
     return (
-      <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-3 sm:top-16">
+      <div className="pointer-events-none fixed left-3 top-14 z-40 flex justify-start sm:left-4 sm:top-16">
         <div className="pointer-events-auto flex max-w-sm items-center gap-2 rounded-full bg-card/90 px-3 py-2 text-xs shadow-2xl ring-1 ring-emerald-400/30 backdrop-blur">
           <Gift className="h-4 w-4 shrink-0 text-emerald-400" />
           <div className="flex min-w-0 flex-col leading-tight">
