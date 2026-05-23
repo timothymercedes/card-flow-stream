@@ -17,6 +17,27 @@ export type VoiceCommandOpts = {
   lang?: string;
 };
 
+type SpeechRecognitionResultLike = ArrayLike<{ transcript?: string }>;
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+};
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
 function normalizeVoiceText(value: string) {
   return value
     .toLowerCase()
@@ -42,21 +63,32 @@ function matchesAlias(transcript: string, alias: string) {
  * The hook is intentionally lightweight — no audio is streamed to a server, so there's
  * minimal CPU and zero stream lag.
  */
-export function useVoiceCommands({ enabled, commands, wakeWord, lang = "en-US" }: VoiceCommandOpts) {
+export function useVoiceCommands({
+  enabled,
+  commands,
+  wakeWord,
+  lang = "en-US",
+}: VoiceCommandOpts) {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(true);
   const [lastHeard, setLastHeard] = useState<string>("");
-  const recRef = useRef<any>(null);
+  const recRef = useRef<SpeechRecognitionLike | null>(null);
   const lastFiredRef = useRef<Record<string, number>>({});
   const recentTranscriptRef = useRef<{ text: string; at: number }>({ text: "", at: 0 });
   // keep latest commands in a ref so we don't recreate the SR session on every render
   const commandsRef = useRef(commands);
-  useEffect(() => { commandsRef.current = commands; }, [commands]);
+  useEffect(() => {
+    commandsRef.current = commands;
+  }, [commands]);
 
   useEffect(() => {
     if (!enabled) return;
-    const SR: any = (typeof window !== "undefined") && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
-    if (!SR) { setSupported(false); return; }
+    const speechWindow = typeof window !== "undefined" ? (window as SpeechRecognitionWindow) : null;
+    const SR = speechWindow?.SpeechRecognition || speechWindow?.webkitSpeechRecognition;
+    if (!SR) {
+      setSupported(false);
+      return;
+    }
     setSupported(true);
 
     const rec = new SR();
@@ -64,10 +96,10 @@ export function useVoiceCommands({ enabled, commands, wakeWord, lang = "en-US" }
     rec.interimResults = true; // faster trigger latency (~200-400ms vs ~1s for finals only)
     rec.lang = lang;
 
-    rec.onresult = (ev: any) => {
+    rec.onresult = (ev: SpeechRecognitionEventLike) => {
       const fresh = Array.from(ev.results)
         .slice(ev.resultIndex)
-        .map((result: any) => String(result?.[0]?.transcript || ""))
+        .map((result) => String(result?.[0]?.transcript || ""))
         .join(" ");
       const t = normalizeVoiceText(fresh);
       if (!t) return;
@@ -77,29 +109,49 @@ export function useVoiceCommands({ enabled, commands, wakeWord, lang = "en-US" }
       recentTranscriptRef.current = { text: rolling, at: now };
       setLastHeard(rolling);
       if (wakeWord && !rolling.includes(normalizeVoiceText(wakeWord))) return;
-        for (const cmd of commandsRef.current) {
-          const aliases = cmd.phrase.split("|").map(normalizeVoiceText).filter(Boolean);
-          const hit = aliases.some((p) => matchesAlias(rolling, p));
-          if (!hit) continue;
-          const cd = cmd.cooldownMs ?? 1500;
-          const last = lastFiredRef.current[cmd.phrase] || 0;
-          if (now - last < cd) continue;
-          lastFiredRef.current[cmd.phrase] = now;
-          try { Promise.resolve(cmd.action()).catch(() => {}); } catch {/* swallow */}
-          break; // one command per utterance
+      for (const cmd of commandsRef.current) {
+        const aliases = cmd.phrase.split("|").map(normalizeVoiceText).filter(Boolean);
+        const hit = aliases.some((p) => matchesAlias(rolling, p));
+        if (!hit) continue;
+        const cd = cmd.cooldownMs ?? 1500;
+        const last = lastFiredRef.current[cmd.phrase] || 0;
+        if (now - last < cd) continue;
+        lastFiredRef.current[cmd.phrase] = now;
+        try {
+          Promise.resolve(cmd.action()).catch(() => {});
+        } catch {
+          /* swallow */
         }
+        break; // one command per utterance
+      }
     };
-    rec.onerror = () => { /* will auto-restart via onend */ };
+    rec.onerror = () => {
+      /* will auto-restart via onend */
+    };
     rec.onend = () => {
       // Browsers stop SR after periods of silence — restart while host is live.
-      try { rec.start(); } catch {/* race */}
+      try {
+        rec.start();
+      } catch {
+        /* race */
+      }
     };
 
-    try { rec.start(); setListening(true); } catch {/* already started */}
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      /* already started */
+    }
     recRef.current = rec;
     return () => {
       setListening(false);
-      try { rec.onend = null; rec.stop(); } catch {}
+      try {
+        rec.onend = null;
+        rec.stop();
+      } catch {
+        /* already stopped */
+      }
       recRef.current = null;
     };
   }, [enabled, lang, wakeWord]);
