@@ -15,7 +15,7 @@ import { ShieldAlert, Clock, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRequireCardOnFile } from "@/hooks/useRequireCardOnFile";
 import { useAuthGate } from "@/hooks/useAuthGate";
-import { createOffer } from "@/lib/offers.functions";
+import { createOffer } from "@/lib/createOffer.functions";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { FINAL_SALE_POLICY_VERSION } from "@/lib/policy";
 

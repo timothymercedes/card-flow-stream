@@ -13,8 +13,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { getStripe } from "@/lib/stripe.server";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const OFFER_TTL_HOURS = 24;
 const ALLOWED_TTL_HOURS = [1, 2, 6, 12, 24] as const;
@@ -24,6 +22,16 @@ const MAX_ACTIVE_OFFERS_PER_BUYER = 10;
 const MAX_PENDING_OFFER_VALUE_USD = 10_000;
 const PER_ITEM_COOLDOWN_SECONDS = 60;
 
+async function getAdminClient() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
+async function getStripeClient() {
+  const { getStripe } = await import("@/lib/stripe.server");
+  return getStripe();
+}
+
 async function logAbuse(
   userId: string,
   event_type: "unpaid_offer" | "cancel" | "auth_failed" | "spam" | "capture_failed" | "expired",
@@ -32,7 +40,7 @@ async function logAbuse(
   metadata: Record<string, any> = {},
 ) {
   try {
-    await supabaseAdmin.from("offer_abuse_events" as any).insert({
+    await (await getAdminClient()).from("offer_abuse_events" as any).insert({
       user_id: userId,
       event_type,
       queue_item_id: queue_item_id ?? null,
@@ -45,7 +53,7 @@ async function logAbuse(
 }
 
 async function isOfferSuspended(userId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
+  const { data } = await (await getAdminClient())
     .from("buyer_restrictions")
     .select("id, expires_at, active")
     .eq("user_id", userId)
@@ -91,7 +99,7 @@ export const createOffer = createServerFn({ method: "POST" })
     if (min > 0 && data.amount < min) throw new Error(`Minimum offer is $${min}`);
 
     // Anti-abuse: check existing active offers from this buyer
-    const { data: activeOffers } = await supabaseAdmin
+    const { data: activeOffers } = await (await getAdminClient())
       .from("queue_offers" as any)
       .select("id, amount, queue_item_id, created_at")
       .eq("buyer_id", userId)
@@ -136,7 +144,7 @@ export const createOffer = createServerFn({ method: "POST" })
       .maybeSingle();
 
     // Stripe pre-authorization (manual capture)
-    const stripe = getStripe();
+    const stripe = await getStripeClient();
     let piId: string;
     try {
       const pi = await stripe.paymentIntents.create(
@@ -187,7 +195,7 @@ export const createOffer = createServerFn({ method: "POST" })
       .select("id, expires_at")
       .single();
     if (error) {
-      await getStripe().paymentIntents.cancel(piId).catch(() => {});
+      await (await getStripeClient()).paymentIntents.cancel(piId).catch(() => {});
       throw new Error(error.message);
     }
 
@@ -215,7 +223,7 @@ export const cancelOffer = createServerFn({ method: "POST" })
 
     if (o.payment_intent_id) {
       try {
-        await getStripe().paymentIntents.cancel(o.payment_intent_id);
+        await (await getStripeClient()).paymentIntents.cancel(o.payment_intent_id);
       } catch (e: any) {
         // If already cancelled, continue; otherwise surface
         if (!/already/i.test(e?.message || "")) throw new Error(e?.message || "Failed to release authorization");
@@ -261,13 +269,13 @@ export const acceptOffer = createServerFn({ method: "POST" })
     if (o.expires_at && new Date(o.expires_at) < new Date()) throw new Error("Offer has expired");
 
     // Capture payment
-    const stripe = getStripe();
+    const stripe = await getStripeClient();
     try {
       await stripe.paymentIntents.capture(o.payment_intent_id, undefined, {
         idempotencyKey: `offer:capture:${o.id}`,
       });
     } catch (e: any) {
-      await supabaseAdmin
+      await (await getAdminClient())
         .from("queue_offers" as any)
         .update({
           status: "voided",
@@ -288,7 +296,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
       .maybeSingle();
 
     // Create paid order (buyer fills shipping post-acceptance)
-    const { data: order, error: orderErr } = await supabaseAdmin
+    const { data: order, error: orderErr } = await (await getAdminClient())
       .from("orders")
       .insert({
         buyer_id: o.buyer_id,
@@ -311,7 +319,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
     if (orderErr) throw new Error(orderErr.message);
 
     // Mark offer accepted + queue item sold
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "accepted",
@@ -322,7 +330,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
       })
       .eq("id", o.id);
 
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("auction_queue")
       .update({
         sold_to: o.buyer_id,
@@ -334,7 +342,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
       .is("sold_to", null);
 
     // Decline sibling active offers (pending OR countered) — release their authorizations
-    const { data: siblings } = await supabaseAdmin
+    const { data: siblings } = await (await getAdminClient())
       .from("queue_offers" as any)
       .select("id, payment_intent_id")
       .eq("queue_item_id", aq.id)
@@ -344,7 +352,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
       if (s.payment_intent_id) {
         await stripe.paymentIntents.cancel(s.payment_intent_id).catch(() => {});
       }
-      await supabaseAdmin
+      await (await getAdminClient())
         .from("queue_offers" as any)
         .update({
           status: "declined",
@@ -375,10 +383,10 @@ export const declineOffer = createServerFn({ method: "POST" })
     if (o.status !== "pending" && o.status !== "countered") throw new Error("Offer is no longer pending");
 
     if (o.payment_intent_id && o.payment_status === "authorized") {
-      await getStripe().paymentIntents.cancel(o.payment_intent_id).catch(() => {});
+      await (await getStripeClient()).paymentIntents.cancel(o.payment_intent_id).catch(() => {});
     }
 
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "declined",
@@ -392,7 +400,7 @@ export const declineOffer = createServerFn({ method: "POST" })
 
 /** Cron-only: expire stale authorizations. No auth middleware — called from server route with shared check. */
 export async function expireOffersInternal(): Promise<{ expired: number }> {
-  const { data: stale } = await supabaseAdmin
+  const { data: stale } = await (await getAdminClient())
     .from("queue_offers" as any)
     .select("id, payment_intent_id, buyer_id, queue_item_id")
     .in("status", ["pending", "countered"])
@@ -400,13 +408,13 @@ export async function expireOffersInternal(): Promise<{ expired: number }> {
     .lt("expires_at", new Date().toISOString())
     .limit(200);
   const rows = (stale || []) as any[];
-  const stripe = getStripe();
+  const stripe = await getStripeClient();
   let count = 0;
   for (const o of rows) {
     if (o.payment_intent_id) {
       await stripe.paymentIntents.cancel(o.payment_intent_id).catch(() => {});
     }
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "expired",
@@ -462,7 +470,7 @@ export const sellerCounterOffer = createServerFn({ method: "POST" })
     const hours = data.expiresInHours ?? OFFER_TTL_HOURS;
     const newExpires = new Date(Date.now() + hours * 3600 * 1000).toISOString();
 
-    const { error } = await supabaseAdmin
+    const { error } = await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "countered",
@@ -498,7 +506,7 @@ export const buyerAcceptCounter = createServerFn({ method: "POST" })
     if (!o.counter_amount) throw new Error("Counter amount missing");
     if (o.expires_at && new Date(o.expires_at) < new Date()) throw new Error("Counter has expired");
 
-    const stripe = getStripe();
+    const stripe = await getStripeClient();
     const counterCents = Math.round(Number(o.counter_amount) * 100);
 
     // Release old PI, create new one at counter_amount, capture immediately.
@@ -545,7 +553,7 @@ export const buyerAcceptCounter = createServerFn({ method: "POST" })
       .eq("id", o.buyer_id)
       .maybeSingle();
 
-    const { data: order, error: orderErr } = await supabaseAdmin
+    const { data: order, error: orderErr } = await (await getAdminClient())
       .from("orders")
       .insert({
         buyer_id: o.buyer_id,
@@ -567,7 +575,7 @@ export const buyerAcceptCounter = createServerFn({ method: "POST" })
       .single();
     if (orderErr) throw new Error(orderErr.message);
 
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "accepted",
@@ -583,7 +591,7 @@ export const buyerAcceptCounter = createServerFn({ method: "POST" })
       })
       .eq("id", o.id);
 
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("auction_queue")
       .update({
         sold_to: o.buyer_id,
@@ -595,7 +603,7 @@ export const buyerAcceptCounter = createServerFn({ method: "POST" })
       .is("sold_to", null);
 
     // Decline sibling active offers
-    const { data: siblings } = await supabaseAdmin
+    const { data: siblings } = await (await getAdminClient())
       .from("queue_offers" as any)
       .select("id, payment_intent_id")
       .eq("queue_item_id", o.auction_queue.id)
@@ -605,7 +613,7 @@ export const buyerAcceptCounter = createServerFn({ method: "POST" })
       if (s.payment_intent_id) {
         await stripe.paymentIntents.cancel(s.payment_intent_id).catch(() => {});
       }
-      await supabaseAdmin
+      await (await getAdminClient())
         .from("queue_offers" as any)
         .update({
           status: "declined",
@@ -637,9 +645,9 @@ export const buyerDeclineCounter = createServerFn({ method: "POST" })
     if (o.status !== "countered" || o.turn !== "buyer") throw new Error("No counter awaiting your response");
 
     if (o.payment_intent_id && o.payment_status === "authorized") {
-      await getStripe().paymentIntents.cancel(o.payment_intent_id).catch(() => {});
+      await (await getStripeClient()).paymentIntents.cancel(o.payment_intent_id).catch(() => {});
     }
-    await supabaseAdmin
+    await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "declined",
@@ -675,7 +683,7 @@ export const buyerCounterBack = createServerFn({ method: "POST" })
     const min = Number(o.auction_queue.min_offer || 0);
     if (min > 0 && data.newAmount < min) throw new Error(`Minimum offer is $${min}`);
 
-    const stripe = getStripe();
+    const stripe = await getStripeClient();
     const newCents = Math.round(data.newAmount * 100);
     const hours = data.expiresInHours ?? OFFER_TTL_HOURS;
     const newExpires = new Date(Date.now() + hours * 3600 * 1000).toISOString();
@@ -717,7 +725,7 @@ export const buyerCounterBack = createServerFn({ method: "POST" })
       throw new Error(e?.message || "Payment authorization failed");
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await (await getAdminClient())
       .from("queue_offers" as any)
       .update({
         status: "countered",
