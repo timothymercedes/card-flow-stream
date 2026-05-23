@@ -194,13 +194,27 @@ export function buildCameraFilter(s?: CameraSettings): string {
 }
 
 
-async function openCameraStream(video: MediaTrackConstraints, withAudio: boolean) {
+async function openCameraStream(
+  video: MediaTrackConstraints,
+  withAudio: boolean,
+  micDeviceId?: string | null,
+) {
   const audio: MediaTrackConstraints | false = withAudio
-    ? { echoCancellation: true, noiseSuppression: true }
+    ? {
+        echoCancellation: true,
+        noiseSuppression: true,
+        ...(micDeviceId ? { deviceId: { exact: micDeviceId } as any } : {}),
+      }
     : false;
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio });
   } catch (e: any) {
+    if (withAudio && micDeviceId && e?.name === "OverconstrainedError") {
+      return navigator.mediaDevices.getUserMedia({
+        video,
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+    }
     if (withAudio && isCameraStartupError(e)) {
       return navigator.mediaDevices.getUserMedia({ video, audio: false });
     }
