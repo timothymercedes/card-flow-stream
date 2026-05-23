@@ -5663,9 +5663,15 @@ function LiveDetail() {
 
       {/* 📢 Announcements — pinned to TOP, above the chat. Live-ticks the giveaway timer. */}
       {(() => {
+        // A giveaway announcement is only valid while the giveaway is OPEN and
+        // its end time is still in the future. The moment the timer hits 0 (or
+        // status moves to drawing/complete), this flips false and the bar is
+        // unmounted immediately on the next 1s tick.
+        const endsAtMs = activeGiveaway?.ends_at
+          ? new Date(activeGiveaway.ends_at).getTime()
+          : 0;
         const givyOpen =
-          activeGiveaway?.status === "open" &&
-          (!activeGiveaway.ends_at || new Date(activeGiveaway.ends_at).getTime() > now);
+          activeGiveaway?.status === "open" && endsAtMs > 0 && endsAtMs > now;
         const activeGivyAnn = givyOpen
           ? {
               id: `givy-${activeGiveaway.id}`,
@@ -5674,7 +5680,9 @@ function LiveDetail() {
             }
           : null;
         const isGivyAnnouncement = (content: string) =>
-          /APPRECIATION\s*🎁\s*click to join|Appreciation #|\bgivy\b|\bgiveaway\b/i.test(content);
+          /APPRECIATION|Appreciation #|\bgivy\b|\bgiveaway\b|🎁/i.test(content);
+        // Always strip giveaway-style chat announcements once the giveaway is
+        // not actively open — even if they were inserted as manual announcements.
         const latestManualAnn = messages
           .filter(
             (m) =>
@@ -5683,10 +5691,11 @@ function LiveDetail() {
               !isGivyAnnouncement(String(m.content || "")),
           )
           .slice(-1);
-        const annMsgs =
-          activeGivyAnn && !dismissedAnnouncementIds.has(activeGivyAnn.id)
-            ? [activeGivyAnn]
-            : latestManualAnn;
+        const annMsgs = activeGivyAnn
+          ? dismissedAnnouncementIds.has(activeGivyAnn.id)
+            ? []
+            : [activeGivyAnn]
+          : latestManualAnn;
         if (annMsgs.length === 0) return null;
         return (
           <div
