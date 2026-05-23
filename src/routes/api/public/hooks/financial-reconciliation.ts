@@ -1,11 +1,14 @@
 // Nightly financial reconciliation — pg_cron hits this endpoint.
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/financial-reconciliation")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request);
+        if (unauthorized) return unauthorized;
         const { data, error } = await supabaseAdmin.rpc(
           "run_financial_reconciliation" as any,
           { _since: new Date(Date.now() - 7 * 86400000).toISOString() },
