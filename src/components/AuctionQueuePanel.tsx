@@ -390,60 +390,80 @@ export function AuctionQueuePanel({
       )}
 
       {vaultOpen && (
-        <div className="space-y-1 rounded-lg bg-white/5 p-2">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-white/60">
-              <Library className="h-3 w-3 text-cyan-300" />
+        <div className="fixed inset-0 z-[80] flex flex-col bg-black/95 backdrop-blur">
+          {/* Sticky header with back button */}
+          <div className="flex items-center gap-2 border-b border-white/10 bg-black/80 p-3">
+            <button
+              onClick={() => { setVaultOpen(false); setVaultSelected(new Set()); }}
+              aria-label="Back"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <p className="flex items-center gap-1.5 text-sm font-bold text-white">
+              <Library className="h-4 w-4 text-cyan-300" />
               Your Vault {vaultLoading ? "…" : `(${vaultCards.length})`}
             </p>
-            <button onClick={() => { setVaultOpen(false); setVaultSelected(new Set()); }} className="text-[10px] text-white/60">Close</button>
+            <button
+              onClick={() => { setVaultOpen(false); setVaultSelected(new Set()); }}
+              className="ml-auto rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-white/20"
+            >
+              Cancel
+            </button>
           </div>
-          {!vaultLoading && vaultCards.length === 0 && (
-            <p className="rounded bg-white/5 p-2 text-center text-[10px] text-white/50">
-              Your Vault is empty. Add cards to your Vault first.
-            </p>
-          )}
-          <div className="max-h-64 space-y-1 overflow-y-auto">
-            {vaultCards.map((v) => {
-              const picked = vaultSelected.has(v.id);
-              const val = Number(v.estimated_value || 0);
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => toggleVaultPick(v.id)}
-                  className={`flex w-full items-center gap-2 rounded-md p-1.5 text-left transition ${picked ? "bg-cyan-500/25 ring-1 ring-cyan-400/60" : "bg-white/5 hover:bg-white/10"}`}
-                >
-                  <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${picked ? "border-cyan-300 bg-cyan-400 text-black" : "border-white/30 bg-transparent"}`}>
-                    {picked && <Check className="h-3 w-3" />}
-                  </span>
-                  {v.image_url
-                    ? <img src={v.image_url} alt="" className="h-9 w-9 rounded object-cover" />
-                    : <div className="h-9 w-9 rounded bg-white/10" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-bold">{v.name}</p>
-                    <p className="truncate text-[9px] text-white/60">
-                      {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || "—"}
-                      {val > 0 && <span className="ml-1 text-emerald-300">· est ${val.toFixed(0)}</span>}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
+
+          {/* Scrollable list */}
+          <div className="flex-1 overflow-y-auto p-3">
+            {!vaultLoading && vaultCards.length === 0 && (
+              <p className="rounded bg-white/5 p-4 text-center text-xs text-white/60">
+                Your Vault is empty. Add cards to your Vault first.
+              </p>
+            )}
+            <div className="space-y-1.5">
+              {vaultCards.map((v) => {
+                const picked = vaultSelected.has(v.id);
+                const val = Number(v.estimated_value || 0);
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => toggleVaultPick(v.id)}
+                    className={`flex w-full items-center gap-2 rounded-md p-2 text-left transition ${picked ? "bg-cyan-500/25 ring-1 ring-cyan-400/60" : "bg-white/5 hover:bg-white/10"}`}
+                  >
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${picked ? "border-cyan-300 bg-cyan-400 text-black" : "border-white/30 bg-transparent"}`}>
+                      {picked && <Check className="h-3 w-3" />}
+                    </span>
+                    {v.image_url
+                      ? <img src={v.image_url} alt="" className="h-10 w-10 rounded object-cover" />
+                      : <div className="h-10 w-10 rounded bg-white/10" />}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] font-bold text-white">{v.name}</p>
+                      <p className="truncate text-[10px] text-white/60">
+                        {[v.tcg_set, v.tcg_number].filter(Boolean).join(" · ") || "—"}
+                        {val > 0 && <span className="ml-1 text-emerald-300">· est ${val.toFixed(0)}</span>}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Sticky footer */}
           {vaultCards.length > 0 && (
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <span className="text-[10px] text-white/60">{vaultSelected.size} selected · added as Pre-Bid</span>
+            <div className="flex items-center justify-between gap-2 border-t border-white/10 bg-black/80 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <span className="text-[11px] text-white/70">{vaultSelected.size} selected · added as Pre-Bid</span>
               <button
                 onClick={addVaultSelected}
                 disabled={vaultAdding || vaultSelected.size === 0}
-                className="rounded-md bg-cyan-500 px-3 py-1.5 text-[11px] font-bold text-black disabled:opacity-40"
+                className="rounded-md bg-cyan-500 px-4 py-2 text-[12px] font-bold text-black disabled:opacity-40"
               >
-                {vaultAdding ? "Adding…" : `Add ${vaultSelected.size || ""} to Pre-B`}
+                {vaultAdding ? "Adding…" : `Add ${vaultSelected.size || ""} to Pre-Bid`}
               </button>
             </div>
           )}
         </div>
       )}
+
 
 
       {importing && (
