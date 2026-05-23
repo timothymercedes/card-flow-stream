@@ -4,11 +4,14 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { expireOffersInternal } from "@/lib/offers.functions";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 export const Route = createFileRoute("/api/public/hooks/expire-offers")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request);
+        if (unauthorized) return unauthorized;
         try {
           const result = await expireOffersInternal();
           return Response.json({ ok: true, ...result });
