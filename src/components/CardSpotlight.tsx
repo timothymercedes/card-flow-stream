@@ -128,11 +128,27 @@ export function CardSpotlight({ card, isHost, onClose }: Props) {
                   />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-extrabold text-white">{card.name}</p>
-                  <p className="truncate text-[11px] text-white/70">
-                    {card.category}
-                    {card.set_guess ? ` · ${card.set_guess}` : ""}
-                  </p>
+                  {(() => {
+                    // Title may arrive combined as "Name · Set · Number". Split into 3 rows.
+                    const parts = String(card.name || "")
+                      .split(/\s·\s/)
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+                    const name = parts[0] || card.name;
+                    const setLine = parts[1] || card.set_guess || "";
+                    const num = parts[2] || "";
+                    return (
+                      <>
+                        <p className="truncate text-sm font-extrabold text-white">{name}</p>
+                        {setLine && (
+                          <p className="truncate text-[11px] text-white/80">{setLine}</p>
+                        )}
+                        {num && (
+                          <p className="truncate text-[11px] text-white/60">#{num.replace(/^#/, "")}</p>
+                        )}
+                      </>
+                    );
+                  })()}
                   {card.rarity_vibe && (
                     <span className="mt-1 inline-block rounded-md bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                       {card.rarity_vibe}
