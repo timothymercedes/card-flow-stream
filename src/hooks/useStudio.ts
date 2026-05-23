@@ -289,8 +289,10 @@ export function useStudio(opts: {
       if (!navigator.mediaDevices?.enumerateDevices) return [];
       const all = await navigator.mediaDevices.enumerateDevices();
       const cameras = all.filter((d) => d.kind === "videoinput");
+      const mics = all.filter((d) => d.kind === "audioinput");
       cameraDevicesRef.current = cameras;
       setCameraDevices(cameras);
+      setAudioDevices(mics);
       return cameras;
     } catch {
       return [];
