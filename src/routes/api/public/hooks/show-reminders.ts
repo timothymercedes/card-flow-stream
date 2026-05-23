@@ -15,6 +15,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendPushToUsers } from "@/server/push.server";
 import { sendEmail } from "@/server/email.server";
+import { requireCronSecret } from "@/lib/cron-auth.server";
 
 type Bookmark = {
   id: string;
