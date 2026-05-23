@@ -369,7 +369,7 @@ export function LiveGiveaway({
             </div>
             <div className="mb-3 flex items-start gap-2 rounded-lg bg-emerald-500/10 p-2 text-[11px] text-emerald-300">
               <Truck className="mt-0.5 h-3.5 w-3.5" />
-              <span><b>Shipping is on you, the seller.</b> Winner enters their address and ships free.</span>
+              <span><b>Shipping is auto-billed to your card on file</b> when you buy the label. Winner pays nothing.</span>
             </div>
             <button onClick={createGiveaway}
               className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-sm font-extrabold text-white">
