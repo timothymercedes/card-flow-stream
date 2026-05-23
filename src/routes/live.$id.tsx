@@ -3179,33 +3179,42 @@ function LiveDetail() {
       if (isSeller && revealMode === "wheel") triggerSpin().catch(() => {});
       else if (isSeller && revealMode === "break") spinBreakWheel().catch(() => {});
 
-      // Server-authoritative rearm (cron also re-runs this if seller disconnects).
+      // ⛔ Do NOT auto-rearm/start the next round. The host explicitly wants
+      // only one active auction at a time — they trigger the next round
+      // themselves via voice phrase ("next" / per-card trigger) or by
+      // clicking Start. Just clear timer state so voice re-activates.
       setTimeout(async () => {
-        const remaining = Math.max(0, Number((stream as any).quick_start_remaining || 0));
-        const sec = Number(stream.default_timer_sec || 30);
-        const start = Number(stream.default_starting_bid || stream.starting_bid || 1);
         try {
-          await (supabase.rpc as any)("rearm_next_round", { _stream_id: id });
+          if (isSeller) {
+            await supabase
+              .from("live_streams")
+              .update({ ends_at: null, current_bidder_id: null, current_bid: 0 })
+              .eq("id", id);
+          }
         } catch (e) {
-          console.warn("[live] rearm_next_round failed", e);
+          console.warn("[live] clear round state failed", e);
         }
         endedRef.current = false;
         snapshotRef.current = false;
         releaseAuctionFinalizing();
-        if (remaining > 0)
-          sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
-      }, 5000);
+      }, 2500);
     } else {
-      // No winner: server clears via rearm (will null ends_at when remaining=0)
+      // No winner: clear timer locally so host can trigger the next round.
       setTimeout(async () => {
         try {
-          await (supabase.rpc as any)("rearm_next_round", { _stream_id: id });
+          if (isSeller) {
+            await supabase
+              .from("live_streams")
+              .update({ ends_at: null, current_bidder_id: null, current_bid: 0 })
+              .eq("id", id);
+          }
         } catch {}
         endedRef.current = false;
         snapshotRef.current = false;
         releaseAuctionFinalizing();
-      }, 5000);
+      }, 2500);
     }
+
   }
 
   const [endLiveOpen, setEndLiveOpen] = useState(false);
