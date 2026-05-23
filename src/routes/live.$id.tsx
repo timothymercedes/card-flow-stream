@@ -2874,8 +2874,16 @@ function LiveDetail() {
     toast.success(action === "remove" ? "Slot removed" : "Slot kept on wheel");
   }
 
-  async function startAuction() {
-    if (!isSeller) return;
+  async function startAuction(opts?: { reserved?: boolean }) {
+    if (!isSeller) {
+      if (opts?.reserved) releaseAuctionStartLock();
+      return;
+    }
+    if (auctionLive || auctionFinalizingRef.current || (!opts?.reserved && auctionStartLockRef.current)) {
+      if (!opts?.reserved) toast.error("Finish current round first");
+      return;
+    }
+    if (!opts?.reserved && !reserveAuctionStart()) return;
     const sec = Number(editTimerSec) || 60;
     const start = Number(editStartPrice) || 1;
     const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
@@ -2914,7 +2922,11 @@ function LiveDetail() {
     setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
     endedRef.current = false;
     snapshotRef.current = false;
-    await supabase.from("live_streams").update(patch).eq("id", id);
+    const { error } = await supabase.from("live_streams").update(patch).eq("id", id);
+    if (error) {
+      releaseAuctionStartLock();
+      return toast.error(error.message);
+    }
     safety.touch("auction_started");
     await sendMsg(
       `▶️ ${item} — ${sec}s, starting $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}${qty > 1 ? ` · qty ${qty}` : ""}`,
@@ -2959,8 +2971,17 @@ function LiveDetail() {
     start?: string;
     timer?: string;
     buyNow?: string;
+    reserved?: boolean;
   }) {
-    if (!isSeller || !stream) return;
+    if (!isSeller || !stream) {
+      if (opts?.reserved) releaseAuctionStartLock();
+      return;
+    }
+    if (auctionLive || auctionFinalizingRef.current || (!opts?.reserved && auctionStartLockRef.current)) {
+      if (!opts?.reserved) toast.error("Finish current round first");
+      return;
+    }
+    if (!opts?.reserved && !reserveAuctionStart()) return;
     const sec = Math.max(5, Math.min(600, Number(opts?.timer ?? editTimerSec) || 30));
     const start = Math.max(1, Number(opts?.start ?? editStartPrice) || 1);
     const nextBidNum = Number((stream as any)?.round_number || 0) + 1;
@@ -2993,7 +3014,11 @@ function LiveDetail() {
     setStream((prev: any) => (prev ? { ...prev, ...patch } : prev));
     endedRef.current = false;
     snapshotRef.current = false;
-    await supabase.from("live_streams").update(patch).eq("id", id);
+    const { error } = await supabase.from("live_streams").update(patch).eq("id", id);
+    if (error) {
+      releaseAuctionStartLock();
+      return toast.error(error.message);
+    }
     safety.touch("auction_started");
     await sendMsg(
       `▶️ ${item} — ${sec}s · start $${start}${buyNow ? ` · Buy Now $${buyNow}` : ""}`,
