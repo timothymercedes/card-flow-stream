@@ -3,7 +3,65 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail } from "./email.server";
 import { sortRatesCheapestFirst, pickRecommendedRate } from "@/lib/shippingPresets";
+import { getStripe } from "@/lib/stripe.server";
 import { z } from "zod";
+
+/**
+ * Giveaway shipping is paid by the HOST (the seller running the giveaway),
+ * not the winner. This helper charges the host's default saved card for the
+ * Shippo label cost on `is_giveaway` orders. Called immediately after the
+ * label is purchased so the platform never eats the cost.
+ *
+ * - Idempotent via Stripe idempotency key (orderId + amount).
+ * - If the host has no card on file we abort BEFORE buying the label so they
+ *   are nudged to add one instead of silently being put in debt.
+ * - On charge failure post-label-purchase we log a shipping_adjustment so
+ *   finance can reconcile — the label is already paid to the carrier so we
+ *   don't unwind it.
+ */
+async function loadHostDefaultPaymentMethod(hostUserId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("buyer_payment_methods" as any)
+    .select("stripe_customer_id,stripe_payment_method_id")
+    .eq("user_id", hostUserId)
+    .eq("is_default", true)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) || null;
+}
+
+async function chargeHostForGiveawayLabel(opts: {
+  orderId: string;
+  hostUserId: string;
+  amountCents: number;
+  carrier: string | null;
+}) {
+  if (opts.amountCents <= 0) return { charged: false as const, reason: "zero_cost" };
+  const pm = await loadHostDefaultPaymentMethod(opts.hostUserId);
+  if (!pm?.stripe_customer_id || !pm?.stripe_payment_method_id) {
+    return { charged: false as const, reason: "no_card_on_file" };
+  }
+  const stripe = getStripe();
+  const intent = await stripe.paymentIntents.create(
+    {
+      amount: opts.amountCents,
+      currency: "usd",
+      customer: pm.stripe_customer_id,
+      payment_method: pm.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      description: `Giveaway shipping label (${opts.carrier || "carrier"})`,
+      metadata: {
+        kind: "giveaway_host_shipping",
+        order_id: opts.orderId,
+        host_id: opts.hostUserId,
+        carrier: opts.carrier || "",
+      },
+    },
+    { idempotencyKey: `giveaway-ship:${opts.orderId}:${opts.amountCents}` },
+  );
+  return { charged: true as const, paymentIntentId: intent.id, status: intent.status };
+}
 
 const SHIPPO_BASE = "https://api.goshippo.com";
 
@@ -292,13 +350,25 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     const { userId } = context;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents")
+      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents, is_giveaway")
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("Order not found");
     if (order.seller_id !== userId) throw new Error("Only the seller can buy a label");
 
     const isReissue = !!(order as any).tracking_number;
+    const isGiveaway = !!(order as any).is_giveaway;
+
+    // Giveaway shipping is charged to the HOST. Refuse to buy the label if
+    // they have no saved card — the UI prompts them to add one.
+    if (isGiveaway && !isReissue) {
+      const pm = await loadHostDefaultPaymentMethod(userId);
+      if (!pm?.stripe_customer_id || !pm?.stripe_payment_method_id) {
+        throw new Error(
+          "Add a payment method before shipping a giveaway. Giveaway shipping is billed to the host's card on file.",
+        );
+      }
+    }
 
     const tx = await shippo<any>("/transactions/", {
       method: "POST",
@@ -383,6 +453,49 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
       );
       if (marginErr) console.error("record_label_purchase failed", marginErr);
     }
+
+    // Giveaway shipping → bill the host's saved card for the actual label cost.
+    if (isGiveaway && !isReissue && labelCostCents > 0) {
+      try {
+        const charge = await chargeHostForGiveawayLabel({
+          orderId: order.id,
+          hostUserId: order.seller_id,
+          amountCents: labelCostCents,
+          carrier: tx.rate?.provider ?? null,
+        });
+        if (charge.charged) {
+          await supabaseAdmin
+            .from("orders")
+            .update({ shipping_amount: labelCostCents / 100 } as any)
+            .eq("id", order.id);
+          await supabaseAdmin.from("shipment_events").insert({
+            order_id: order.id,
+            shipping_status: "label_created",
+            source: "giveaway_host_charge",
+            message: `Host charged $${(labelCostCents / 100).toFixed(2)} for giveaway shipping`,
+            raw: { payment_intent_id: charge.paymentIntentId, status: charge.status },
+          } as any);
+        }
+      } catch (chargeErr: any) {
+        console.error("Giveaway host shipping charge failed", { orderId: order.id, err: chargeErr?.message });
+        // Label is already paid — record an adjustment so finance can recover.
+        try {
+          await supabaseAdmin.rpc("record_shipping_adjustment" as any, {
+            _order_id: order.id,
+            _type: "giveaway_host_charge_failed",
+            _cost_cents: labelCostCents,
+            _notes: `Auto-charge to host failed: ${chargeErr?.message?.slice(0, 200) || "unknown"}`,
+          });
+        } catch {}
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.seller_id,
+          type: "order",
+          body: `We couldn't charge your card for giveaway shipping on "${order.title}". Please update your payment method — we'll retry.`,
+          link: "/settings",
+        } as any);
+      }
+    }
+
 
 
     // Notify buyer in-app — label created, awaiting carrier scan
