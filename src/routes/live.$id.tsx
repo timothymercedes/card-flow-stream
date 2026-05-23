@@ -1573,7 +1573,7 @@ function LiveDetail() {
           starting_bid: Number(r.starting_bid) || 1,
           duration_seconds: Number(r.duration_seconds) || 30,
           snipe_price: r.snipe_price != null ? Number(r.snipe_price) : null,
-          voice_trigger: String(r.voice_trigger || r.trigger_word).toLowerCase().trim(),
+          voice_trigger: String(r.trigger_word || r.voice_trigger).toLowerCase().trim(),
           trigger_word: r.trigger_word ? String(r.trigger_word).toLowerCase().trim() : null,
           image_url: (r.image_url as string) || null,
           description: (r.description as string) || null,
@@ -1595,8 +1595,8 @@ function LiveDetail() {
   }, [isSeller, id]);
 
   const voice = useVoiceCommands({
-    enabled: !!isSeller && !!stream?.voice_trigger_enabled && !voicePausedForAuction,
-    commands: [
+    enabled: !!isSeller && !!stream?.voice_trigger_enabled,
+    commands: voicePausedForAuction ? [] : [
       // 🆕 Per-card voice triggers FIRST so specific card phrases win over
       // the generic "next" trigger when both could match the same utterance.
       ...queueVoiceItems.map((q) => ({
