@@ -152,7 +152,7 @@ export function LiveGiveaway({
     if (!isSeller || !userId) return;
     const prize = draftPrize.trim();
     if (!prize) return toast.error("Add a prize label");
-    const dur = Math.max(15, Math.min(600, Math.floor(draftDuration || 60)));
+    const dur = Math.max(15, Math.min(300, Math.floor(draftDuration || 60)));
     const ends = new Date(Date.now() + dur * 1000).toISOString();
     const code = draftCode || suggestCode();
     // Auto-number giveaways per stream
