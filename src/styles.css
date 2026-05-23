@@ -344,8 +344,8 @@ html.a11y-reduced-motion *, html.a11y-reduced-motion *::before, html.a11y-reduce
 
 /* Announcement ticker / marquee */
 @keyframes ann-marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
 }
 .ann-marquee-track {
   display: inline-flex;
