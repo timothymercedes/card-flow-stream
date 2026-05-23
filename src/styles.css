@@ -341,3 +341,25 @@ html.a11y-reduced-motion *, html.a11y-reduced-motion *::before, html.a11y-reduce
   25%      { transform: translateX(-4px) rotate(-1deg); }
   75%      { transform: translateX(4px) rotate(1deg); }
 }
+
+/* Announcement ticker / marquee */
+@keyframes ann-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ann-marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ann-marquee var(--ann-duration, 22s) linear infinite;
+  will-change: transform;
+}
+.ann-marquee-viewport:hover .ann-marquee-track {
+  animation-play-state: paused;
+}
+.ann-fade-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ann-marquee-track { animation: none; }
+}
