@@ -121,6 +121,8 @@ export function useVoiceCommands({
         const last = lastFiredRef.current[cmd.phrase] || 0;
         if (now - last < cd) continue;
         lastFiredRef.current[cmd.phrase] = now;
+        // Clear the rolling window so leftover words can't re-match other commands.
+        recentTranscriptRef.current = { text: "", at: 0 };
         try {
           Promise.resolve(cmd.action()).catch(() => {});
         } catch {
