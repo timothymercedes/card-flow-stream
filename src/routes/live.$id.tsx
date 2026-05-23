@@ -4319,7 +4319,23 @@ function LiveDetail() {
             }}
           />
         )}
+      {!isSeller && !ended && (
+        <div className="pointer-events-none absolute right-2 top-12 z-20 flex max-w-[260px] justify-end sm:right-3 sm:top-14">
+          <div className="pointer-events-auto w-full">
+            <ViewerGiveawayJoin
+              streamId={id}
+              sellerId={stream?.seller_id || null}
+              userId={user?.id || null}
+              username={profile?.username || null}
+              isFollower={isFollowingHost}
+              isBuyer={isPastBuyer}
+              onFollowed={() => setIsFollowingHost(true)}
+            />
+          </div>
+        </div>
+      )}
       <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between gap-1.5 p-2 sm:p-3">
+
         <div className="flex min-w-0 items-center gap-1.5">
           <Link to="/live" className="shrink-0 rounded-full bg-black/50 p-2 backdrop-blur" aria-label="Back to live">
             <ArrowLeft className="h-4 w-4" />
