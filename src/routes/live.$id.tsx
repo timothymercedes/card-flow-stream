@@ -405,6 +405,7 @@ function LiveDetail() {
     duration_seconds: number;
     snipe_price: number | null;
     voice_trigger: string;
+    trigger_word: string | null;
     image_url: string | null;
     description: string | null;
     prebid_enabled: boolean;
@@ -1536,21 +1537,25 @@ function LiveDetail() {
     async function refresh() {
       const { data } = await supabase
         .from("auction_queue" as any)
-        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,status,sold_to,image_url,description,prebid_enabled,sale_type")
+        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,trigger_word,status,sold_to,image_url,description,prebid_enabled,sale_type")
         .eq("stream_id", id)
         .eq("status", "queued")
         .is("sold_to", null)
-        .not("voice_trigger", "is", null);
+        .or("voice_trigger.not.is.null,trigger_word.not.is.null");
       if (!alive) return;
       const items = ((data as any[]) || [])
-        .filter((r) => r.voice_trigger && String(r.voice_trigger).trim().length > 0)
+        .filter((r) => {
+          const trigger = String(r.voice_trigger || r.trigger_word || "").trim();
+          return trigger.length > 0;
+        })
         .map((r) => ({
           id: r.id as string,
           title: r.title as string,
           starting_bid: Number(r.starting_bid) || 1,
           duration_seconds: Number(r.duration_seconds) || 30,
           snipe_price: r.snipe_price != null ? Number(r.snipe_price) : null,
-          voice_trigger: String(r.voice_trigger).toLowerCase().trim(),
+          voice_trigger: String(r.voice_trigger || r.trigger_word).toLowerCase().trim(),
+          trigger_word: r.trigger_word ? String(r.trigger_word).toLowerCase().trim() : null,
           image_url: (r.image_url as string) || null,
           description: (r.description as string) || null,
           prebid_enabled: !!r.prebid_enabled,
