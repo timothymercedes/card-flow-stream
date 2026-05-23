@@ -38,12 +38,21 @@ type UserRow = {
 };
 
 type ListingRow = { id: string; title: string; price: number | null; image_url: string | null };
+type LiveHit = {
+  stream_id: string;
+  title: string;
+  thumbnail_url: string | null;
+  seller_id: string;
+  current_item: string | null;
+  matched_item?: { id: string; title: string; image_url: string | null; starting_bid: number; sale_type: string } | null;
+};
 
 function DiscoverPage() {
   const initialQ = (Route.useSearch() as any).q ?? "";
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
   const [listings, setListings] = useState<ListingRow[]>([]);
+  const [liveHits, setLiveHits] = useState<LiveHit[]>([]);
   const [trending, setTrending] = useState<UserRow[]>([]);
   const [suggested, setSuggested] = useState<UserRow[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
