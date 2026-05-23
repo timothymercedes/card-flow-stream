@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { FollowButton } from "@/components/FollowButton";
-import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store } from "lucide-react";
+import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store, Radio, Zap } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
@@ -38,12 +38,21 @@ type UserRow = {
 };
 
 type ListingRow = { id: string; title: string; price: number | null; image_url: string | null };
+type LiveHit = {
+  stream_id: string;
+  title: string;
+  thumbnail_url: string | null;
+  seller_id: string;
+  current_item: string | null;
+  matched_item?: { id: string; title: string; image_url: string | null; starting_bid: number; sale_type: string } | null;
+};
 
 function DiscoverPage() {
   const initialQ = (Route.useSearch() as any).q ?? "";
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
   const [listings, setListings] = useState<ListingRow[]>([]);
+  const [liveHits, setLiveHits] = useState<LiveHit[]>([]);
   const [trending, setTrending] = useState<UserRow[]>([]);
   const [suggested, setSuggested] = useState<UserRow[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
@@ -65,18 +74,54 @@ function DiscoverPage() {
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) { setResults([]); setListings([]); setSearching(false); return; }
+    if (!q) { setResults([]); setListings([]); setLiveHits([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
-      const [{ data: users }, { data: cards }] = await Promise.all([
+      const like = `%${q}%`;
+      const [{ data: users }, { data: cards }, { data: streamsByTitle }, { data: queueMatches }] = await Promise.all([
         (supabase.rpc as any)("search_users", { _query: q, _limit: 25 }),
         supabase.from("listings")
           .select("id,title,price,image_url")
-          .ilike("title", `%${q}%`)
+          .ilike("title", like)
           .limit(20),
+        supabase.from("live_streams")
+          .select("id,title,thumbnail_url,seller_id,current_item")
+          .eq("is_active", true)
+          .or(`title.ilike.${like},current_item.ilike.${like}`)
+          .limit(20),
+        supabase.from("auction_queue")
+          .select("id,title,image_url,starting_bid,sale_type,stream_id,prebid_enabled,status")
+          .ilike("title", like)
+          .in("status", ["queued", "running"])
+          .limit(40),
       ]);
       setResults(users || []);
       setListings((cards as any) || []);
+
+      // Merge live hits: streams whose title/current item match + streams with matching queued items
+      const map = new Map<string, LiveHit>();
+      for (const s of (streamsByTitle || []) as any[]) {
+        map.set(s.id, { stream_id: s.id, title: s.title, thumbnail_url: s.thumbnail_url, seller_id: s.seller_id, current_item: s.current_item, matched_item: null });
+      }
+      const qmatches = (queueMatches || []) as any[];
+      const needStreams = Array.from(new Set(qmatches.map((q) => q.stream_id))).filter((sid) => !map.has(sid));
+      if (needStreams.length) {
+        const { data: extraStreams } = await supabase
+          .from("live_streams")
+          .select("id,title,thumbnail_url,seller_id,current_item,is_active")
+          .in("id", needStreams)
+          .eq("is_active", true);
+        for (const s of (extraStreams || []) as any[]) {
+          map.set(s.id, { stream_id: s.id, title: s.title, thumbnail_url: s.thumbnail_url, seller_id: s.seller_id, current_item: s.current_item, matched_item: null });
+        }
+      }
+      for (const it of qmatches) {
+        const hit = map.get(it.stream_id);
+        if (!hit) continue;
+        if (!hit.matched_item) hit.matched_item = { id: it.id, title: it.title, image_url: it.image_url, starting_bid: Number(it.starting_bid || 0), sale_type: it.sale_type };
+      }
+      setLiveHits(Array.from(map.values()));
+
       setSearching(false);
       saveRecent(q);
     }, 250);
@@ -145,6 +190,43 @@ function DiscoverPage() {
 
       {showResults ? (
         <>
+          <section className="mt-4 px-4">
+            <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Radio className="h-3.5 w-3.5 text-red-500" /> Live now {searching ? "· searching…" : `· ${liveHits.length}`}
+            </h2>
+            {liveHits.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No live hosts with "{query}" right now</div>
+            )}
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {liveHits.map((h) => (
+                <li key={h.stream_id}>
+                  <Link
+                    to="/live/$id"
+                    params={{ id: h.stream_id }}
+                    className="flex items-center gap-2 rounded-xl bg-card p-2 ring-1 ring-border hover:ring-primary/60"
+                  >
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                      {h.thumbnail_url && <img src={h.thumbnail_url} alt="" className="h-full w-full object-cover" />}
+                      <span className="absolute left-1 top-1 inline-flex items-center gap-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> Live
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{h.title}</p>
+                      {h.matched_item ? (
+                        <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-amber-600 dark:text-amber-400">
+                          <Zap className="h-3 w-3" /> Pre-bid: {h.matched_item.title}
+                          {h.matched_item.starting_bid > 0 && <span className="text-muted-foreground"> · from ${h.matched_item.starting_bid.toFixed(2)}</span>}
+                        </p>
+                      ) : h.current_item ? (
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">On now: {h.current_item}</p>
+                      ) : null}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
           <section className="mt-4 px-4">
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               People {searching ? "· searching…" : `· ${results.length}`}
