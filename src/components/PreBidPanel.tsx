@@ -106,7 +106,8 @@ export function PreBidPanel({
     const amount = Number(raw);
     if (!amount || amount <= 0) return toast.error("Enter a bid amount");
     const top = topByItem.get(item.id);
-    const min = Math.max(Number(item.starting_bid) || 1, top ? top.amount + 1 : 0);
+    const effectiveStart = Math.max(Number(item.starting_bid) || 0, 2);
+    const min = Math.max(effectiveStart, top ? top.amount + 1 : effectiveStart);
     if (amount < min) return toast.error(`Pre-bid must be at least $${min}`);
     setBusy(item.id);
     const { data: profile } = await supabase.from("profiles").select("username").eq("id", user!.id).maybeSingle();
