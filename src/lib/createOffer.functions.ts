@@ -32,13 +32,17 @@ export const createOffer = createServerFn({ method: "POST" })
       offer_id?: string | null,
       metadata: Record<string, any> = {},
     ) {
-      await supabaseAdmin.from("offer_abuse_events" as any).insert({
-        user_id: userId,
-        event_type,
-        queue_item_id: queue_item_id ?? null,
-        offer_id: offer_id ?? null,
-        metadata,
-      }).catch(() => null);
+      try {
+        await supabaseAdmin.from("offer_abuse_events" as any).insert({
+          user_id: userId,
+          event_type,
+          queue_item_id: queue_item_id ?? null,
+          offer_id: offer_id ?? null,
+          metadata,
+        });
+      } catch {
+        /* non-fatal */
+      }
     }
 
     const { data: restriction } = await supabaseAdmin
