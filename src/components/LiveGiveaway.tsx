@@ -342,11 +342,11 @@ export function LiveGiveaway({
             <div className="mb-3">
               <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Duration</p>
               <div className="flex items-center gap-1">
-                <input type="number" min={15} max={600} value={draftDuration}
+                <input type="number" min={15} max={300} value={draftDuration}
                   onChange={(e) => setDraftDuration(Number(e.target.value) || 60)}
                   className="w-16 rounded-md bg-muted px-2 py-1.5 text-center text-sm font-bold outline-none" />
-                <span className="text-[11px] text-muted-foreground">sec</span>
-                {[60, 120, 240, 360].map((s) => (
+                <span className="text-[11px] text-muted-foreground">sec (max 5 min)</span>
+                {[60, 120, 180, 240, 300].map((s) => (
                   <button key={s} type="button" onClick={() => setDraftDuration(s)}
                     className={`rounded-md px-1.5 py-1 text-[10px] font-bold ${draftDuration === s ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"}`}>
                     {s < 60 ? `${s}s` : `${s / 60}m`}
