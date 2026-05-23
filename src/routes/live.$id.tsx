@@ -1569,59 +1569,8 @@ function LiveDetail() {
   const voice = useVoiceCommands({
     enabled: !!isSeller && !!stream?.voice_trigger_enabled,
     commands: [
-      // "next" / custom phrase: end current round and start the next (or just start if idle)
-      {
-        phrase: `${voicePhrase}|next round|go go go`,
-        cooldownMs: 2500,
-        action: async () => {
-          if (auctionLive) {
-            endedRef.current = true;
-            await finalizeAuctionRound();
-            setTimeout(() => {
-              startAuction().catch(() => {});
-            }, 600);
-          } else {
-            startAuction().catch(() => {});
-          }
-        },
-      },
-      // "start" — start a round when idle
-      {
-        phrase: "start auction|start round|start now",
-        cooldownMs: 2500,
-        action: async () => {
-          if (!auctionLive) startAuction().catch(() => {});
-        },
-      },
-      // "sold" — finalize current round immediately
-      {
-        phrase: "sold|going once going twice",
-        cooldownMs: 2500,
-        action: async () => {
-          if (!auctionLive) return;
-          endedRef.current = true;
-          await finalizeAuctionRound();
-        },
-      },
-      // "extend" — add 10 seconds to running timer
-      {
-        phrase: "extend|add time|more time",
-        cooldownMs: 1500,
-        action: async () => {
-          await extendCurrentTimer(10);
-        },
-      },
-      // "end live" — end the entire stream
-      {
-        phrase: "end live|stop live|end stream",
-        cooldownMs: 4000,
-        action: async () => {
-          setEndLiveOpen(true);
-        },
-      },
-      // 🆕 Per-card voice triggers from the queue (set during Sell setup).
-      // When the host says the card's trigger phrase, that card's auction
-      // auto-starts using its own title / starting bid / duration.
+      // 🆕 Per-card voice triggers FIRST so specific card phrases win over
+      // the generic "next" trigger when both could match the same utterance.
       ...queueVoiceItems.map((q) => ({
         phrase: q.voice_trigger,
         cooldownMs: 3500,
@@ -1680,7 +1629,58 @@ function LiveDetail() {
           }
         },
       })),
+      // "next" / custom phrase: end current round and start the next (or just start if idle)
+      {
+        phrase: `${voicePhrase}|next round|go go go`,
+        cooldownMs: 2500,
+        action: async () => {
+          if (auctionLive) {
+            endedRef.current = true;
+            await finalizeAuctionRound();
+            setTimeout(() => {
+              startAuction().catch(() => {});
+            }, 600);
+          } else {
+            startAuction().catch(() => {});
+          }
+        },
+      },
+      // "start" — start a round when idle
+      {
+        phrase: "start auction|start round|start now",
+        cooldownMs: 2500,
+        action: async () => {
+          if (!auctionLive) startAuction().catch(() => {});
+        },
+      },
+      // "sold" — finalize current round immediately
+      {
+        phrase: "sold|going once going twice",
+        cooldownMs: 2500,
+        action: async () => {
+          if (!auctionLive) return;
+          endedRef.current = true;
+          await finalizeAuctionRound();
+        },
+      },
+      // "extend" — add 10 seconds to running timer
+      {
+        phrase: "extend|add time|more time",
+        cooldownMs: 1500,
+        action: async () => {
+          await extendCurrentTimer(10);
+        },
+      },
+      // "end live" — end the entire stream
+      {
+        phrase: "end live|stop live|end stream",
+        cooldownMs: 4000,
+        action: async () => {
+          setEndLiveOpen(true);
+        },
+      },
     ],
+
   });
   // Keep `voiceListening` flag in sync for the existing badge UI
   useEffect(() => {
