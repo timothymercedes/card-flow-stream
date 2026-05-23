@@ -188,11 +188,22 @@ export function CardSpotlight({ card, isHost, onClose }: Props) {
             onClick={(e) => e.stopPropagation()}
           />
           <div className="mt-3 text-center">
-            <p className="text-lg font-extrabold text-white">{card.name}</p>
-            <p className="text-xs text-white/70">
-              {card.category}
-              {card.set_guess ? ` · ${card.set_guess}` : ""}
-            </p>
+            {(() => {
+              const parts = String(card.name || "")
+                .split(/\s·\s/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+              const name = parts[0] || card.name;
+              const setLine = parts[1] || card.set_guess || "";
+              const num = parts[2] || "";
+              return (
+                <>
+                  <p className="text-lg font-extrabold text-white">{name}</p>
+                  {setLine && <p className="text-xs text-white/80">{setLine}</p>}
+                  {num && <p className="text-xs text-white/60">#{num.replace(/^#/, "")}</p>}
+                </>
+              );
+            })()}
             {card.rarity_vibe && (
               <span className="mt-1 inline-block rounded-md bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-foreground">
                 {card.rarity_vibe}
