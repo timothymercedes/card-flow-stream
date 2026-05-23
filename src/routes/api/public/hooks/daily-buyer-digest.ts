@@ -3,6 +3,7 @@ import { render } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
 import { supabaseAdmin } from '@/integrations/supabase/client.server'
 import { TEMPLATES } from '@/lib/email-templates/registry'
+import { requireCronSecret } from '@/lib/cron-auth.server'
 
 // Daily buyer order digest cron route.
 // POSTed by pg_cron once per day; for each buyer who placed orders in the last 24h,
