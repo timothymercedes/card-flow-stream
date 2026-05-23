@@ -3133,6 +3133,10 @@ function LiveDetail() {
 
   async function finalizeAuctionRound() {
     if (!stream) return;
+    if (auctionFinalizingRef.current) return;
+    auctionFinalizingRef.current = true;
+    setAuctionFinalizing(true);
+    releaseAuctionStartLock();
     safety.touch("auction_finalized");
     const winnerId = stream.current_bidder_id;
     const winningBid = Number(stream.current_bid || 0);
@@ -3154,6 +3158,7 @@ function LiveDetail() {
       console.error("[live] finalize_auction_round failed", finErr);
       // Soft-fail: clear the timer locally so the UI recovers
       if (isSeller) await supabase.from("live_streams").update({ ends_at: null }).eq("id", id);
+      releaseAuctionFinalizing();
       return;
     }
 
@@ -3186,6 +3191,7 @@ function LiveDetail() {
         }
         endedRef.current = false;
         snapshotRef.current = false;
+        releaseAuctionFinalizing();
         if (remaining > 0)
           sendMsg(`▶️ Next round — ${sec}s, starting $${start} (qty ${remaining} left)`, true);
       }, 5000);
@@ -3197,6 +3203,7 @@ function LiveDetail() {
         } catch {}
         endedRef.current = false;
         snapshotRef.current = false;
+        releaseAuctionFinalizing();
       }, 5000);
     }
   }
