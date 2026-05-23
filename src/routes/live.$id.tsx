@@ -3920,6 +3920,30 @@ function LiveDetail() {
                   })}
                 </div>
               )}
+              {/* 🎙️ Microphone picker — host can choose which mic to use */}
+              {hostStudio.audioDevices && hostStudio.audioDevices.length > 0 && (
+                <div className="mb-2 rounded-lg bg-muted/40 p-1.5">
+                  <div className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <Mic className="h-3 w-3" /> Microphone
+                  </div>
+                  <select
+                    value={hostStudio.micDeviceId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value || null;
+                      hostStudio.setMicDevice(v);
+                      toast.success("Microphone switched");
+                    }}
+                    className="w-full rounded-md border border-border bg-background px-2 py-1 text-[10px] font-semibold"
+                  >
+                    <option value="">System default</option>
+                    {hostStudio.audioDevices.map((d, i) => (
+                      <option key={d.deviceId || i} value={d.deviceId}>
+                        {d.label || `Microphone ${i + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {hostStudio.error && (
                 <div className="mb-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">
                   {hostStudio.error}
