@@ -431,10 +431,12 @@ export function LiveGiveaway({
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );
 }
+
 
 function eligibilityHint(eligibility: string) {
   if (eligibility === "followers") return "Follow the host to enter";
