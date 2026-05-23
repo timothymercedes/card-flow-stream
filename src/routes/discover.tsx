@@ -74,18 +74,54 @@ function DiscoverPage() {
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) { setResults([]); setListings([]); setSearching(false); return; }
+    if (!q) { setResults([]); setListings([]); setLiveHits([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
-      const [{ data: users }, { data: cards }] = await Promise.all([
+      const like = `%${q}%`;
+      const [{ data: users }, { data: cards }, { data: streamsByTitle }, { data: queueMatches }] = await Promise.all([
         (supabase.rpc as any)("search_users", { _query: q, _limit: 25 }),
         supabase.from("listings")
           .select("id,title,price,image_url")
-          .ilike("title", `%${q}%`)
+          .ilike("title", like)
           .limit(20),
+        supabase.from("live_streams")
+          .select("id,title,thumbnail_url,seller_id,current_item")
+          .eq("is_active", true)
+          .or(`title.ilike.${like},current_item.ilike.${like}`)
+          .limit(20),
+        supabase.from("auction_queue")
+          .select("id,title,image_url,starting_bid,sale_type,stream_id,prebid_enabled,status")
+          .ilike("title", like)
+          .in("status", ["queued", "running"])
+          .limit(40),
       ]);
       setResults(users || []);
       setListings((cards as any) || []);
+
+      // Merge live hits: streams whose title/current item match + streams with matching queued items
+      const map = new Map<string, LiveHit>();
+      for (const s of (streamsByTitle || []) as any[]) {
+        map.set(s.id, { stream_id: s.id, title: s.title, thumbnail_url: s.thumbnail_url, seller_id: s.seller_id, current_item: s.current_item, matched_item: null });
+      }
+      const qmatches = (queueMatches || []) as any[];
+      const needStreams = Array.from(new Set(qmatches.map((q) => q.stream_id))).filter((sid) => !map.has(sid));
+      if (needStreams.length) {
+        const { data: extraStreams } = await supabase
+          .from("live_streams")
+          .select("id,title,thumbnail_url,seller_id,current_item,is_active")
+          .in("id", needStreams)
+          .eq("is_active", true);
+        for (const s of (extraStreams || []) as any[]) {
+          map.set(s.id, { stream_id: s.id, title: s.title, thumbnail_url: s.thumbnail_url, seller_id: s.seller_id, current_item: s.current_item, matched_item: null });
+        }
+      }
+      for (const it of qmatches) {
+        const hit = map.get(it.stream_id);
+        if (!hit) continue;
+        if (!hit.matched_item) hit.matched_item = { id: it.id, title: it.title, image_url: it.image_url, starting_bid: Number(it.starting_bid || 0), sale_type: it.sale_type };
+      }
+      setLiveHits(Array.from(map.values()));
+
       setSearching(false);
       saveRecent(q);
     }, 250);
