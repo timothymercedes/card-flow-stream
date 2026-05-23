@@ -170,7 +170,8 @@ export function PreBidPanel({
           {items.map((it, i) => {
             const st = (it.sale_type || "prebid") as SaleType;
             const top = topByItem.get(it.id);
-            // Default starting bid to $2 when the host didn't set one
+            // Host sets the price; if unset, silently default to $2 floor
+            const hostSetPrice = Number(it.starting_bid) > 0;
             const effectiveStart = Math.max(Number(it.starting_bid) || 0, 2);
             const min = Math.max(effectiveStart, top ? top.amount + 1 : effectiveStart);
             const bnPrice = Number(it.buy_now_price ?? it.snipe_price ?? 0);
@@ -230,7 +231,7 @@ export function PreBidPanel({
                   <div className="mt-2 flex items-center gap-1.5">
                     <input
                       type="number" inputMode="decimal" min={min}
-                      placeholder={`Pre-bid · min $${min}`}
+                      placeholder={hostSetPrice ? `Pre-bid · min $${min}` : `Place pre-bid`}
                       value={drafts[it.id] || ""}
                       onChange={(e) => setDrafts((d) => ({ ...d, [it.id]: e.target.value }))}
                       className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50"

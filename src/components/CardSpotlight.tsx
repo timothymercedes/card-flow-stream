@@ -36,7 +36,14 @@ export function CardSpotlight({ card, isHost, onClose }: Props) {
   const [zoom, setZoom] = useState(false);
   const [lineIdx, setLineIdx] = useState(0);
 
-  const lines = (card.hype_lines || []).filter(Boolean);
+  const DEFAULT_HYPE = [
+    "🔥 Heat alert — eyes on this one!",
+    "👀 Don't sleep on this pickup!",
+    "💎 Clean copy, big upside!",
+    "🚀 This one's about to pop off!",
+  ];
+  const rawLines = (card.hype_lines || []).filter(Boolean);
+  const lines = rawLines.length > 0 ? rawLines : DEFAULT_HYPE;
 
   // Cycle hype lines every 3.5s
   useEffect(() => {
