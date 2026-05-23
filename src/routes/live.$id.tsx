@@ -5502,6 +5502,13 @@ function LiveDetail() {
                 <b>{voicePhrase || "your custom word"}</b>, plus "start", "sold", "extend", "end
                 live".
               </p>
+              {queueVoiceItems.length > 0 && (
+                <p className="mt-1 rounded-md bg-fuchsia-500/10 px-2 py-1 text-[10px] font-semibold text-fuchsia-600 dark:text-fuchsia-300">
+                  🎯 {queueVoiceItems.length} per-card trigger{queueVoiceItems.length === 1 ? "" : "s"} loaded from your Pre-B queue:{" "}
+                  {queueVoiceItems.slice(0, 5).map((q) => `"${q.voice_trigger}"`).join(", ")}
+                  {queueVoiceItems.length > 5 ? "…" : ""}
+                </p>
+              )}
               <input
                 value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
