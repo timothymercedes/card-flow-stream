@@ -106,7 +106,8 @@ export function PreBidPanel({
     const amount = Number(raw);
     if (!amount || amount <= 0) return toast.error("Enter a bid amount");
     const top = topByItem.get(item.id);
-    const min = Math.max(Number(item.starting_bid) || 1, top ? top.amount + 1 : 0);
+    const effectiveStart = Math.max(Number(item.starting_bid) || 0, 2);
+    const min = Math.max(effectiveStart, top ? top.amount + 1 : effectiveStart);
     if (amount < min) return toast.error(`Pre-bid must be at least $${min}`);
     setBusy(item.id);
     const { data: profile } = await supabase.from("profiles").select("username").eq("id", user!.id).maybeSingle();
@@ -169,33 +170,50 @@ export function PreBidPanel({
           {items.map((it, i) => {
             const st = (it.sale_type || "prebid") as SaleType;
             const top = topByItem.get(it.id);
-            const min = Math.max(Number(it.starting_bid) || 1, top ? top.amount + 1 : Number(it.starting_bid) || 1);
+            // Default starting bid to $2 when the host didn't set one
+            const effectiveStart = Math.max(Number(it.starting_bid) || 0, 2);
+            const min = Math.max(effectiveStart, top ? top.amount + 1 : effectiveStart);
             const bnPrice = Number(it.buy_now_price ?? it.snipe_price ?? 0);
+            // Parse "Name · Set · Number" into 3 rows
+            const titleParts = String(it.title || "").split(/\s·\s/).map((s) => s.trim()).filter(Boolean);
+            const cardName = titleParts[0] || it.title;
+            const cardSet = titleParts[1] || "";
+            const cardNum = titleParts[2] || "";
+            // Rotating hype lines per item (deterministic by index)
+            const HYPE = [
+              "🔥 Don't sleep on this one!",
+              "👀 Heating up — lock your pre-bid in!",
+              "💎 Clean copy, big demand!",
+              "🚀 This one's about to pop off!",
+              "🎯 Chaser alert — get in early!",
+            ];
+            const hypeMsg = HYPE[i % HYPE.length];
             return (
               <div key={it.id} className="rounded-xl border border-border bg-background p-3">
                 <div className="flex gap-3">
                   {it.image_url ? (
-                    <img src={it.image_url} alt={it.title} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                    <img src={it.image_url} alt={cardName} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
                   ) : (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted text-lg font-extrabold text-muted-foreground">
                       #{i + 1}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="truncate text-sm font-bold">
-                        <span className="mr-1 text-amber-500">#{i + 1}</span>
-                        {it.title}
-                        {Number(it.quantity || 1) > 1 && (
-                          <span className="ml-1 rounded bg-fuchsia-500/20 px-1 text-[10px] font-extrabold text-fuchsia-600">×{it.quantity}</span>
-                        )}
-                      </p>
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {st === "prebid" && (<>Start ${Number(it.starting_bid).toFixed(0)} · {it.duration_seconds}s{it.snipe_price ? ` · BIN $${Number(it.snipe_price).toFixed(0)}` : ""}</>)}
-                      {st === "buynow" && (<>Buy Now ${bnPrice.toFixed(0)}</>)}
-                      {st === "either" && (<>Pre-Bid from ${Number(it.starting_bid).toFixed(0)} · or Buy Now ${bnPrice.toFixed(0)}</>)}
-                      
+                    <p className="truncate text-sm font-extrabold">
+                      <span className="mr-1 text-amber-500">#{i + 1}</span>
+                      {cardName}
+                      {Number(it.quantity || 1) > 1 && (
+                        <span className="ml-1 rounded bg-fuchsia-500/20 px-1 text-[10px] font-extrabold text-fuchsia-600">×{it.quantity}</span>
+                      )}
+                    </p>
+                    {cardSet && (
+                      <p className="truncate text-[11px] text-muted-foreground">{cardSet}</p>
+                    )}
+                    {cardNum && (
+                      <p className="truncate text-[11px] text-muted-foreground">#{cardNum.replace(/^#/, "")}</p>
+                    )}
+                    <p className="mt-1 text-[11px] font-semibold text-fuchsia-500 animate-pulse">
+                      {hypeMsg}
                     </p>
                     {(st === "prebid" || st === "either") && top && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">
