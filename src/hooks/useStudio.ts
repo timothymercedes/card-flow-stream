@@ -235,6 +235,13 @@ export function useStudio(opts: {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [micDeviceId, setMicDeviceIdState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return window.localStorage.getItem("pb:studio:micDeviceId") || null; } catch { return null; }
+  });
+  const micDeviceIdRef = useRef<string | null>(micDeviceId);
+  useEffect(() => { micDeviceIdRef.current = micDeviceId; }, [micDeviceId]);
   const [layouts, setLayouts] = useState<Record<string, FreeformLayout>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
