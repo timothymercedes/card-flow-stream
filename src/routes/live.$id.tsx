@@ -1531,6 +1531,18 @@ function LiveDetail() {
 
   const voicePhrase = (stream?.voice_trigger_phrase || "next").toLowerCase().trim();
 
+  function reserveAuctionStart() {
+    if (auctionLive || auctionStartLockRef.current || auctionFinalizingRef.current) return false;
+    auctionStartLockRef.current = true;
+    setAuctionStartBusy(true);
+    return true;
+  }
+
+  function releaseAuctionStartLock() {
+    auctionStartLockRef.current = false;
+    setAuctionStartBusy(false);
+  }
+
   // 🆕 Load per-card voice triggers from the auction queue and keep in sync.
   useEffect(() => {
     if (!isSeller || !id) return;
