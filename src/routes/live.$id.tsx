@@ -5674,7 +5674,10 @@ function LiveDetail() {
         return (
           <div className={`pointer-events-none absolute left-1/2 z-20 flex w-[60%] max-w-2xl min-w-[260px] -translate-x-1/2 flex-col items-stretch gap-1.5 ${auctionLive ? "top-48" : "top-36"} sm:w-[55%]`}>
             {annMsgs.slice(-3).map((m) => {
-              const text = `@${m.username}: ${m.content.replace(/^📢\s*/, "")}`;
+              const cleaned = String(m.content || "")
+                .replace(/^📢\s*/, "")
+                .replace(/giveaway/gi, "Appreciation");
+              const text = `@${m.username}: ${cleaned}`;
               // Auto-tune speed: longer text = a bit longer duration (medium-slow, readable)
               const duration = Math.min(60, Math.max(16, Math.round(text.length * 0.28)));
               return (
@@ -5691,7 +5694,6 @@ function LiveDetail() {
                       style={{ ["--ann-duration" as any]: `${duration}s` }}
                     >
                       <span className="px-6">{text}</span>
-                      <span className="px-6" aria-hidden="true">{text}</span>
                     </div>
                   </div>
                   <button
