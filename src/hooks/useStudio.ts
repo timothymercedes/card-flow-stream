@@ -1075,6 +1075,39 @@ export function useStudio(opts: {
     setPresets((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  // Pick microphone — hot-swap the audio track on whichever camera source owns audio.
+  const setMicDevice = useCallback(async (deviceId: string | null) => {
+    setMicDeviceIdState(deviceId);
+    try {
+      if (typeof window !== "undefined") {
+        if (deviceId) window.localStorage.setItem("pb:studio:micDeviceId", deviceId);
+        else window.localStorage.removeItem("pb:studio:micDeviceId");
+      }
+    } catch {/* ignore */}
+    const audioOwner = sourcesRef.current.find(
+      (s) => s.kind === "camera" && s.stream.getAudioTracks().length > 0,
+    );
+    if (!audioOwner) return;
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          ...(deviceId ? { deviceId: { exact: deviceId } as any } : {}),
+        },
+      });
+      const newTrack = newStream.getAudioTracks()[0];
+      if (!newTrack) return;
+      audioOwner.stream.getAudioTracks().forEach((t) => {
+        try { audioOwner.stream.removeTrack(t); t.stop(); } catch {/* ignore */}
+      });
+      audioOwner.stream.addTrack(newTrack);
+    } catch (e: any) {
+      setError(e?.message || "Could not switch microphone");
+    }
+  }, []);
+
+
   return {
     sources,
     scene,
