@@ -247,6 +247,10 @@ function LiveDetail() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const endedRef = useRef(false);
+  const auctionStartLockRef = useRef(false);
+  const auctionFinalizingRef = useRef(false);
+  const [auctionStartBusy, setAuctionStartBusy] = useState(false);
+  const [auctionFinalizing, setAuctionFinalizing] = useState(false);
   const spotlightChanRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsVideoRef = useRef<HTMLVideoElement>(null);
