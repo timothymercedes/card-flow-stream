@@ -231,7 +231,7 @@ export function PreBidPanel({
                   <div className="mt-2 flex items-center gap-1.5">
                     <input
                       type="number" inputMode="decimal" min={min}
-                      placeholder={`Pre-bid · min $${min}`}
+                      placeholder={hostSetPrice ? `Pre-bid · min $${min}` : `Place pre-bid`}
                       value={drafts[it.id] || ""}
                       onChange={(e) => setDrafts((d) => ({ ...d, [it.id]: e.target.value }))}
                       className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50"
