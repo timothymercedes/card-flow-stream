@@ -3,7 +3,65 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail } from "./email.server";
 import { sortRatesCheapestFirst, pickRecommendedRate } from "@/lib/shippingPresets";
+import { getStripe } from "@/lib/stripe.server";
 import { z } from "zod";
+
+/**
+ * Giveaway shipping is paid by the HOST (the seller running the giveaway),
+ * not the winner. This helper charges the host's default saved card for the
+ * Shippo label cost on `is_giveaway` orders. Called immediately after the
+ * label is purchased so the platform never eats the cost.
+ *
+ * - Idempotent via Stripe idempotency key (orderId + amount).
+ * - If the host has no card on file we abort BEFORE buying the label so they
+ *   are nudged to add one instead of silently being put in debt.
+ * - On charge failure post-label-purchase we log a shipping_adjustment so
+ *   finance can reconcile — the label is already paid to the carrier so we
+ *   don't unwind it.
+ */
+async function loadHostDefaultPaymentMethod(hostUserId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("buyer_payment_methods" as any)
+    .select("stripe_customer_id,stripe_payment_method_id")
+    .eq("user_id", hostUserId)
+    .eq("is_default", true)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any) || null;
+}
+
+async function chargeHostForGiveawayLabel(opts: {
+  orderId: string;
+  hostUserId: string;
+  amountCents: number;
+  carrier: string | null;
+}) {
+  if (opts.amountCents <= 0) return { charged: false as const, reason: "zero_cost" };
+  const pm = await loadHostDefaultPaymentMethod(opts.hostUserId);
+  if (!pm?.stripe_customer_id || !pm?.stripe_payment_method_id) {
+    return { charged: false as const, reason: "no_card_on_file" };
+  }
+  const stripe = getStripe();
+  const intent = await stripe.paymentIntents.create(
+    {
+      amount: opts.amountCents,
+      currency: "usd",
+      customer: pm.stripe_customer_id,
+      payment_method: pm.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      description: `Giveaway shipping label (${opts.carrier || "carrier"})`,
+      metadata: {
+        kind: "giveaway_host_shipping",
+        order_id: opts.orderId,
+        host_id: opts.hostUserId,
+        carrier: opts.carrier || "",
+      },
+    },
+    { idempotencyKey: `giveaway-ship:${opts.orderId}:${opts.amountCents}` },
+  );
+  return { charged: true as const, paymentIntentId: intent.id, status: intent.status };
+}
 
 const SHIPPO_BASE = "https://api.goshippo.com";
 
