@@ -171,7 +171,7 @@ export function LiveGiveaway({
     if (error) return toast.error(error.message);
     await supabase.from("chat_messages").insert({
       stream_id: streamId, user_id: userId, username: username || "host",
-      content: `🎁 ${autoTitle} opened — tap "Join" to enter!`,
+      content: `🎁 ${autoTitle} — APPRECIATION 🎁 click to join!`,
       is_system: true, is_announcement: true,
     });
     setHostOpenComposer(false);
