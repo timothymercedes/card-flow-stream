@@ -194,13 +194,27 @@ export function buildCameraFilter(s?: CameraSettings): string {
 }
 
 
-async function openCameraStream(video: MediaTrackConstraints, withAudio: boolean) {
+async function openCameraStream(
+  video: MediaTrackConstraints,
+  withAudio: boolean,
+  micDeviceId?: string | null,
+) {
   const audio: MediaTrackConstraints | false = withAudio
-    ? { echoCancellation: true, noiseSuppression: true }
+    ? {
+        echoCancellation: true,
+        noiseSuppression: true,
+        ...(micDeviceId ? { deviceId: { exact: micDeviceId } as any } : {}),
+      }
     : false;
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio });
   } catch (e: any) {
+    if (withAudio && micDeviceId && e?.name === "OverconstrainedError") {
+      return navigator.mediaDevices.getUserMedia({
+        video,
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+    }
     if (withAudio && isCameraStartupError(e)) {
       return navigator.mediaDevices.getUserMedia({ video, audio: false });
     }
@@ -221,6 +235,13 @@ export function useStudio(opts: {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [micDeviceId, setMicDeviceIdState] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try { return window.localStorage.getItem("pb:studio:micDeviceId") || null; } catch { return null; }
+  });
+  const micDeviceIdRef = useRef<string | null>(micDeviceId);
+  useEffect(() => { micDeviceIdRef.current = micDeviceId; }, [micDeviceId]);
   const [layouts, setLayouts] = useState<Record<string, FreeformLayout>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -268,8 +289,10 @@ export function useStudio(opts: {
       if (!navigator.mediaDevices?.enumerateDevices) return [];
       const all = await navigator.mediaDevices.enumerateDevices();
       const cameras = all.filter((d) => d.kind === "videoinput");
+      const mics = all.filter((d) => d.kind === "audioinput");
       cameraDevicesRef.current = cameras;
       setCameraDevices(cameras);
+      setAudioDevices(mics);
       return cameras;
     } catch {
       return [];
@@ -441,10 +464,10 @@ export function useStudio(opts: {
         for (let attempt = 0; attempt <= CAMERA_RELEASE_RETRY_DELAYS_MS.length; attempt += 1) {
           try {
             try {
-              stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0);
+              stream = await openCameraStream(preferredVideoConstraints, cameraCount === 0, micDeviceIdRef.current);
             } catch (e: any) {
               if (deviceId && isCameraStartupError(e) && cameraCount === 0) {
-                stream = await openCameraStream(baseVideoConstraints, cameraCount === 0);
+                stream = await openCameraStream(baseVideoConstraints, cameraCount === 0, micDeviceIdRef.current);
               } else {
                 throw e;
               }
@@ -1052,6 +1075,39 @@ export function useStudio(opts: {
     setPresets((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  // Pick microphone — hot-swap the audio track on whichever camera source owns audio.
+  const setMicDevice = useCallback(async (deviceId: string | null) => {
+    setMicDeviceIdState(deviceId);
+    try {
+      if (typeof window !== "undefined") {
+        if (deviceId) window.localStorage.setItem("pb:studio:micDeviceId", deviceId);
+        else window.localStorage.removeItem("pb:studio:micDeviceId");
+      }
+    } catch {/* ignore */}
+    const audioOwner = sourcesRef.current.find(
+      (s) => s.kind === "camera" && s.stream.getAudioTracks().length > 0,
+    );
+    if (!audioOwner) return;
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          ...(deviceId ? { deviceId: { exact: deviceId } as any } : {}),
+        },
+      });
+      const newTrack = newStream.getAudioTracks()[0];
+      if (!newTrack) return;
+      audioOwner.stream.getAudioTracks().forEach((t) => {
+        try { audioOwner.stream.removeTrack(t); t.stop(); } catch {/* ignore */}
+      });
+      audioOwner.stream.addTrack(newTrack);
+    } catch (e: any) {
+      setError(e?.message || "Could not switch microphone");
+    }
+  }, []);
+
+
   return {
     sources,
     scene,
@@ -1059,6 +1115,9 @@ export function useStudio(opts: {
     publishing,
     error,
     cameraDevices,
+    audioDevices,
+    micDeviceId,
+    setMicDevice,
     layouts,
     expandedId,
     snapEnabled,

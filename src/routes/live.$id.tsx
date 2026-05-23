@@ -393,6 +393,15 @@ function LiveDetail() {
   // 🆕 Voice trigger phrase
   const [voiceListening, setVoiceListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  // 🆕 Per-card voice triggers from auction queue (host says phrase → that card auto-starts)
+  const [queueVoiceItems, setQueueVoiceItems] = useState<Array<{
+    id: string;
+    title: string;
+    starting_bid: number;
+    duration_seconds: number;
+    snipe_price: number | null;
+    voice_trigger: string;
+  }>>([]);
   // 🆕 Break-reveal wheel animation state
   const [breakWheelAngle, setBreakWheelAngle] = useState(0);
   const breakWheelRafRef = useRef<number | null>(null);
@@ -1511,6 +1520,44 @@ function LiveDetail() {
   }
 
   const voicePhrase = (stream?.voice_trigger_phrase || "next").toLowerCase().trim();
+
+  // 🆕 Load per-card voice triggers from the auction queue and keep in sync.
+  useEffect(() => {
+    if (!isSeller || !id) return;
+    let alive = true;
+    async function refresh() {
+      const { data } = await supabase
+        .from("auction_queue" as any)
+        .select("id,title,starting_bid,duration_seconds,snipe_price,voice_trigger,status,sold_to")
+        .eq("stream_id", id)
+        .eq("status", "queued")
+        .is("sold_to", null)
+        .not("voice_trigger", "is", null);
+      if (!alive) return;
+      const items = ((data as any[]) || [])
+        .filter((r) => r.voice_trigger && String(r.voice_trigger).trim().length > 0)
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          starting_bid: Number(r.starting_bid) || 1,
+          duration_seconds: Number(r.duration_seconds) || 30,
+          snipe_price: r.snipe_price != null ? Number(r.snipe_price) : null,
+          voice_trigger: String(r.voice_trigger).toLowerCase().trim(),
+        }));
+      setQueueVoiceItems(items);
+    }
+    refresh();
+    const ch = supabase
+      .channel(`voice-queue-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${id}` },
+        refresh,
+      )
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
+  }, [isSeller, id]);
+
   const voice = useVoiceCommands({
     enabled: !!isSeller && !!stream?.voice_trigger_enabled,
     commands: [
@@ -1564,6 +1611,37 @@ function LiveDetail() {
           setEndLiveOpen(true);
         },
       },
+      // 🆕 Per-card voice triggers from the queue (set during Sell setup).
+      // When the host says the card's trigger phrase, that card's auction
+      // auto-starts using its own title / starting bid / duration.
+      ...queueVoiceItems.map((q) => ({
+        phrase: q.voice_trigger,
+        cooldownMs: 3500,
+        action: async () => {
+          const launch = async () => {
+            await quickStartAuction({
+              item: q.title,
+              start: String(q.starting_bid),
+              timer: String(q.duration_seconds),
+              buyNow: q.snipe_price ? String(q.snipe_price) : "",
+            });
+            // Mark the queue row as launched so we don't re-trigger it.
+            try {
+              await supabase
+                .from("auction_queue" as any)
+                .update({ status: "live" })
+                .eq("id", q.id);
+            } catch {/* ignore */}
+          };
+          if (auctionLive) {
+            endedRef.current = true;
+            await finalizeAuctionRound();
+            setTimeout(() => { launch().catch(() => {}); }, 600);
+          } else {
+            launch().catch(() => {});
+          }
+        },
+      })),
     ],
   });
   // Keep `voiceListening` flag in sync for the existing badge UI
@@ -3920,6 +3998,30 @@ function LiveDetail() {
                   })}
                 </div>
               )}
+              {/* 🎙️ Microphone picker — host can choose which mic to use */}
+              {hostStudio.audioDevices && hostStudio.audioDevices.length > 0 && (
+                <div className="mb-2 rounded-lg bg-muted/40 p-1.5">
+                  <div className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <Mic className="h-3 w-3" /> Microphone
+                  </div>
+                  <select
+                    value={hostStudio.micDeviceId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value || null;
+                      hostStudio.setMicDevice(v);
+                      toast.success("Microphone switched");
+                    }}
+                    className="w-full rounded-md border border-border bg-background px-2 py-1 text-[10px] font-semibold"
+                  >
+                    <option value="">System default</option>
+                    {hostStudio.audioDevices.map((d, i) => (
+                      <option key={d.deviceId || i} value={d.deviceId}>
+                        {d.label || `Microphone ${i + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {hostStudio.error && (
                 <div className="mb-2 rounded-lg bg-destructive/15 px-2 py-1.5 text-[10px] font-semibold text-destructive">
                   {hostStudio.error}
@@ -5400,6 +5502,13 @@ function LiveDetail() {
                 <b>{voicePhrase || "your custom word"}</b>, plus "start", "sold", "extend", "end
                 live".
               </p>
+              {queueVoiceItems.length > 0 && (
+                <p className="mt-1 rounded-md bg-fuchsia-500/10 px-2 py-1 text-[10px] font-semibold text-fuchsia-600 dark:text-fuchsia-300">
+                  🎯 {queueVoiceItems.length} per-card trigger{queueVoiceItems.length === 1 ? "" : "s"} loaded from your Pre-B queue:{" "}
+                  {queueVoiceItems.slice(0, 5).map((q) => `"${q.voice_trigger}"`).join(", ")}
+                  {queueVoiceItems.length > 5 ? "…" : ""}
+                </p>
+              )}
               <input
                 value={editVoicePhrase}
                 onChange={(e) => setEditVoicePhrase(e.target.value)}
