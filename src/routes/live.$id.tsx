@@ -2948,7 +2948,6 @@ function LiveDetail() {
     });
     setQuickItem("");
     setQuickBuyNow("");
-    releaseAuctionStartLock();
     toast.success(`Auction live — ${sec}s${qty > 1 ? ` · ${qty} rounds queued` : ""}`);
     setShowSettings(false);
   }
@@ -3042,7 +3041,6 @@ function LiveDetail() {
     });
     setQuickItem("");
     setQuickBuyNow("");
-    releaseAuctionStartLock();
     toast.success("Round started");
   }
 
