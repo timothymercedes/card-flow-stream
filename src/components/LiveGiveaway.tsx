@@ -155,16 +155,23 @@ export function LiveGiveaway({
     const dur = Math.max(15, Math.min(600, Math.floor(draftDuration || 60)));
     const ends = new Date(Date.now() + dur * 1000).toISOString();
     const code = draftCode || suggestCode();
+    // Auto-number giveaways per stream
+    const { count } = await supabase
+      .from("giveaways")
+      .select("id", { count: "exact", head: true })
+      .eq("stream_id", streamId);
+    const giveawayNumber = (count || 0) + 1;
+    const autoTitle = `Giveaway #${giveawayNumber} — ${prize}`;
     const { error } = await supabase.from("giveaways").insert({
       stream_id: streamId, seller_id: userId,
       prize_label: prize, code, eligibility: draftEligibility,
       duration_sec: dur, ends_at: ends, quantity: 1,
-      title: "Giveaway",
+      title: autoTitle,
     });
     if (error) return toast.error(error.message);
     await supabase.from("chat_messages").insert({
       stream_id: streamId, user_id: userId, username: username || "host",
-      content: `🎁 Giveaway opened: ${prize} — tap "Join" to enter!`,
+      content: `🎁 ${autoTitle} opened — tap "Join" to enter!`,
       is_system: true, is_announcement: true,
     });
     setHostOpenComposer(false);
