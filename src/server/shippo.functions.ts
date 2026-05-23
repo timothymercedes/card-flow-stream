@@ -454,6 +454,49 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
       if (marginErr) console.error("record_label_purchase failed", marginErr);
     }
 
+    // Giveaway shipping → bill the host's saved card for the actual label cost.
+    if (isGiveaway && !isReissue && labelCostCents > 0) {
+      try {
+        const charge = await chargeHostForGiveawayLabel({
+          orderId: order.id,
+          hostUserId: order.seller_id,
+          amountCents: labelCostCents,
+          carrier: tx.rate?.provider ?? null,
+        });
+        if (charge.charged) {
+          await supabaseAdmin
+            .from("orders")
+            .update({ shipping_amount: labelCostCents / 100 } as any)
+            .eq("id", order.id);
+          await supabaseAdmin.from("shipment_events").insert({
+            order_id: order.id,
+            shipping_status: "label_created",
+            source: "giveaway_host_charge",
+            message: `Host charged $${(labelCostCents / 100).toFixed(2)} for giveaway shipping`,
+            raw: { payment_intent_id: charge.paymentIntentId, status: charge.status },
+          } as any);
+        }
+      } catch (chargeErr: any) {
+        console.error("Giveaway host shipping charge failed", { orderId: order.id, err: chargeErr?.message });
+        // Label is already paid — record an adjustment so finance can recover.
+        try {
+          await supabaseAdmin.rpc("record_shipping_adjustment" as any, {
+            _order_id: order.id,
+            _type: "giveaway_host_charge_failed",
+            _cost_cents: labelCostCents,
+            _notes: `Auto-charge to host failed: ${chargeErr?.message?.slice(0, 200) || "unknown"}`,
+          });
+        } catch {}
+        await supabaseAdmin.from("notifications").insert({
+          user_id: order.seller_id,
+          type: "order",
+          body: `We couldn't charge your card for giveaway shipping on "${order.title}". Please update your payment method — we'll retry.`,
+          link: "/settings",
+        } as any);
+      }
+    }
+
+
 
     // Notify buyer in-app — label created, awaiting carrier scan
     await supabaseAdmin.from("notifications").insert({
