@@ -73,6 +73,7 @@ export function AuctionQueuePanel({
   const [vaultSelected, setVaultSelected] = useState<Set<string>>(new Set());
   const [vaultAdding, setVaultAdding] = useState(false);
   const [triggerInput, setTriggerInput] = useState("");
+  const [vaultSearch, setVaultSearch] = useState("");
   const [editing, setEditing] = useState<QueueItem | null>(null);
   const [editUploading, setEditUploading] = useState(false);
 
