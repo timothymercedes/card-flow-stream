@@ -1543,6 +1543,12 @@ function LiveDetail() {
     setAuctionStartBusy(false);
   }
 
+  function releaseAuctionFinalizing() {
+    auctionFinalizingRef.current = false;
+    setAuctionFinalizing(false);
+    releaseAuctionStartLock();
+  }
+
   // 🆕 Load per-card voice triggers from the auction queue and keep in sync.
   useEffect(() => {
     if (!isSeller || !id) return;
@@ -1634,6 +1640,7 @@ function LiveDetail() {
               start: String(startBid),
               timer: String(q.duration_seconds),
               buyNow: q.snipe_price ? String(q.snipe_price) : "",
+              reserved: true,
             });
             // Mark the queue row as launched so we don't re-trigger it.
             try {
@@ -1652,7 +1659,7 @@ function LiveDetail() {
         cooldownMs: 1200,
         action: async () => {
           if (!reserveAuctionStart()) return;
-          startAuction().catch(() => releaseAuctionStartLock());
+          startAuction({ reserved: true }).catch(() => releaseAuctionStartLock());
         },
       },
       // "start" — start a round when idle
@@ -1661,7 +1668,7 @@ function LiveDetail() {
         cooldownMs: 1200,
         action: async () => {
           if (!reserveAuctionStart()) return;
-          startAuction().catch(() => releaseAuctionStartLock());
+          startAuction({ reserved: true }).catch(() => releaseAuctionStartLock());
         },
       },
       // "sold" — finalize current round immediately
