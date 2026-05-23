@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { FollowButton } from "@/components/FollowButton";
-import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store } from "lucide-react";
+import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store, Radio, Zap } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
