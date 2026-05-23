@@ -56,6 +56,8 @@ export const Route = createFileRoute('/api/public/hooks/daily-buyer-digest')({
         }),
 
       POST: async ({ request }) => {
+        const unauthorized = requireCronSecret(request)
+        if (unauthorized) return unauthorized
         const url = new URL(request.url)
         const dryRun = url.searchParams.get('dry') === '1'
         const sinceHours = Math.max(
