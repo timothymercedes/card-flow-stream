@@ -195,18 +195,24 @@ export function LiveGiveaway({
     }, 3000);
   }
 
-  // Auto-draw when timer expires
+  // Auto-draw when timer expires (guarded so it only fires once per giveaway)
+  const autoDrawFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isSeller || !giveaway) return;
     if (giveaway.status !== "open" || !giveaway.ends_at) return;
     if (remainingMs > 0) return;
+    if (autoDrawFiredRef.current === giveaway.id) return;
+    autoDrawFiredRef.current = giveaway.id;
     if (entries.length === 0) {
       supabase.from("giveaways").update({ status: "complete", closed_at: new Date().toISOString() }).eq("id", giveaway.id);
+      toast("Giveaway ended — no entries");
       return;
     }
+    toast.success("⏱ Time's up — drawing winner!");
     startDraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSeller, giveaway?.id, giveaway?.status, giveaway?.ends_at, remainingMs, entries.length]);
+
 
   async function clearGiveaway() {
     if (!isSeller || !giveaway) return;
