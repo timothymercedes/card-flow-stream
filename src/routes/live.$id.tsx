@@ -5700,7 +5700,7 @@ function LiveDetail() {
             </div>
 
             <button
-              onClick={startAuction}
+              onClick={() => startAuction()}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold text-primary-foreground"
             >
               <Play className="h-3.5 w-3.5" /> {auctionLive ? "Restart Auction" : "Start Auction"}
