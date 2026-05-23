@@ -192,7 +192,7 @@ export function ViewerGiveawayJoin({
 
   if (floating) {
     return (
-      <div className="pointer-events-none absolute left-2 top-12 z-20 flex max-w-[260px] justify-start sm:left-3 sm:top-14">
+      <div className="pointer-events-none absolute right-2 top-12 z-20 flex max-w-[260px] justify-end sm:right-3 sm:top-14">
         <div className="pointer-events-auto w-full">{content}</div>
       </div>
     );
