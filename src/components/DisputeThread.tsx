@@ -113,10 +113,10 @@ export function DisputeThread({ disputeId, canPost = true, allowEvidence = true 
             if (!src) return null;
             return (
               <a key={u} href={src} target="_blank" rel="noreferrer">
-            <a key={u} href={u} target="_blank" rel="noreferrer">
-              <img src={u} alt="evidence" className="h-14 w-14 rounded object-cover ring-1 ring-border/60" />
-            </a>
-          ))}
+                <img src={src} alt="evidence" className="h-14 w-14 rounded object-cover ring-1 ring-border/60" />
+              </a>
+            );
+          })}
         </div>
       )}
 
