@@ -19,6 +19,7 @@ export function DisputeThread({ disputeId, canPost = true, allowEvidence = true 
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   async function load() {
     const { data } = await supabase
@@ -29,6 +30,26 @@ export function DisputeThread({ disputeId, canPost = true, allowEvidence = true 
     setDispute(data);
   }
   useEffect(() => { load(); }, [disputeId]);
+
+  // Resolve stored entries (storage paths or legacy public URLs) to short-lived signed URLs.
+  useEffect(() => {
+    const entries: string[] = dispute?.evidence_urls || [];
+    if (entries.length === 0) { setSignedUrls({}); return; }
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const entry of entries) {
+        const m = entry.match(/dispute-evidence\/(.+)$/);
+        const path = m ? m[1] : entry;
+        const { data } = await supabase.storage
+          .from("dispute-evidence")
+          .createSignedUrl(path, 60 * 60);
+        if (data?.signedUrl) next[entry] = data.signedUrl;
+      }
+      if (!cancelled) setSignedUrls(next);
+    })();
+    return () => { cancelled = true; };
+  }, [dispute?.evidence_urls]);
 
   async function send() {
     if (!user || !body.trim()) return;
@@ -53,8 +74,8 @@ export function DisputeThread({ disputeId, canPost = true, allowEvidence = true 
       .from("dispute-evidence")
       .upload(path, file, { upsert: false, contentType: file.type });
     if (upErr) { setUploading(false); return toast.error(upErr.message); }
-    const { data: pub } = supabase.storage.from("dispute-evidence").getPublicUrl(path);
-    const next = [...(dispute?.evidence_urls || []), pub.publicUrl];
+    // Store the storage path; display layer resolves a signed URL on demand.
+    const next = [...(dispute?.evidence_urls || []), path];
     const { error } = await supabase.from("disputes").update({ evidence_urls: next }).eq("id", disputeId);
     setUploading(false);
     if (error) return toast.error(error.message);
@@ -87,11 +108,15 @@ export function DisputeThread({ disputeId, canPost = true, allowEvidence = true 
 
       {dispute.evidence_urls?.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {dispute.evidence_urls.map((u: string) => (
-            <a key={u} href={u} target="_blank" rel="noreferrer">
-              <img src={u} alt="evidence" className="h-14 w-14 rounded object-cover ring-1 ring-border/60" />
-            </a>
-          ))}
+          {dispute.evidence_urls.map((u: string) => {
+            const src = signedUrls[u];
+            if (!src) return null;
+            return (
+              <a key={u} href={src} target="_blank" rel="noreferrer">
+                <img src={src} alt="evidence" className="h-14 w-14 rounded object-cover ring-1 ring-border/60" />
+              </a>
+            );
+          })}
         </div>
       )}
 
