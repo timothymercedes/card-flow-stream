@@ -10,6 +10,7 @@ import { writeA11yLocal, readA11yLocal } from "@/components/A11yClassSync";
 import { toast } from "sonner";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ShippingAddressForm } from "@/components/ShippingAddressForm";
+import { StorefrontBrandingEditor } from "@/components/StorefrontBrandingEditor";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — PullBid Live" }] }),
@@ -165,15 +166,18 @@ function SellerSection() {
   }
 
   return (
-    <div className="rounded-xl bg-card p-4 space-y-3">
-      <p className="text-sm font-bold">{t("settings.shop_name")}</p>
-      <p className="text-xs text-muted-foreground">{t("settings.shop_name_help")}</p>
-      <input value={name} onChange={e => setName(e.target.value)} disabled={locked}
-        className="w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" maxLength={30} />
-      <button onClick={save} disabled={busy || locked || !name.trim() || name.trim() === p?.shop_name}
-        className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-40">
-        {locked ? "Already used your one change" : t("settings.shop_name_change")}
-      </button>
+    <div className="space-y-4">
+      <div className="rounded-xl bg-card p-4 space-y-3">
+        <p className="text-sm font-bold">{t("settings.shop_name")}</p>
+        <p className="text-xs text-muted-foreground">{t("settings.shop_name_help")}</p>
+        <input value={name} onChange={e => setName(e.target.value)} disabled={locked}
+          className="w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" maxLength={30} />
+        <button onClick={save} disabled={busy || locked || !name.trim() || name.trim() === p?.shop_name}
+          className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-40">
+          {locked ? "Already used your one change" : t("settings.shop_name_change")}
+        </button>
+      </div>
+      <StorefrontBrandingEditor />
     </div>
   );
 }
