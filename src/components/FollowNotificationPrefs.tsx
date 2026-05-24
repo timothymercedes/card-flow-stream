@@ -31,7 +31,7 @@ export function FollowNotificationPrefs({
     const next = { ...prefs, [key]: !prefs[key] };
     setPrefs(next);
     onChange?.(next);
-    const { error } = await supabase.from("follows").update({ [key]: next[key] }).eq("follower_id", userId).eq("followee_id", sellerId);
+    const { error } = await (supabase.from("follows") as any).update({ [key]: next[key] }).eq("follower_id", userId).eq("followee_id", sellerId);
     if (error) {
       toast.error(error.message);
       return;
