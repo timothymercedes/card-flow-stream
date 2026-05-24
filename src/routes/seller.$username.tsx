@@ -230,7 +230,14 @@ function PublicStore() {
           </Link>
         )}
 
-        <div className="mb-4 rounded-2xl bg-card p-4">
+        {seller.banner_url && (
+          <div className="mb-3 overflow-hidden rounded-2xl">
+            <img src={seller.banner_url} alt="" className="h-32 w-full object-cover sm:h-44" />
+          </div>
+        )}
+
+        <div className="mb-4 rounded-2xl bg-card p-4" style={seller.accent_color ? { boxShadow: `inset 0 2px 0 0 ${seller.accent_color}` } : undefined}>
+
           <div className="flex items-center gap-3">
             <UserAvatar
               username={seller.username}
