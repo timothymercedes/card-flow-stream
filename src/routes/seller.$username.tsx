@@ -432,7 +432,29 @@ function PublicStore() {
           </div>
         )}
 
+        {(seller.bio || (seller.social_links && Object.keys(seller.social_links).length > 0)) && (
+          <div className="mb-3 rounded-2xl bg-card p-3 text-xs">
+            {seller.bio && <p className="whitespace-pre-wrap text-foreground">{seller.bio}</p>}
+            {seller.social_links && Object.keys(seller.social_links).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                {Object.entries(seller.social_links as Record<string, string>).filter(([, v]) => !!v).map(([k, v]) => {
+                  const Icon = k === "instagram" ? Instagram : k === "youtube" ? Youtube : k === "discord" ? MessageSquare : Globe2;
+                  const href = /^https?:\/\//.test(v) ? v : `https://${v}`;
+                  return (
+                    <a key={k} href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-semibold text-foreground hover:bg-muted/70">
+                      <Icon className="h-3 w-3" /> {k}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {seller?.id && <UpcomingShowsSection sellerId={seller.id} />}
+
         <div className="mb-3 flex gap-2 overflow-x-auto border-b border-border text-xs">
+
           {(["listings", "vault", "sold", "posts", "reviews"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
               {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
