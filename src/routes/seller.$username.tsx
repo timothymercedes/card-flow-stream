@@ -75,12 +75,20 @@ function PublicStore() {
   const [sellerStats, setSellerStats] = useState<any>(null);
   const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [notifyOnLive, setNotifyOnLive] = useState(true);
+  const [followPrefs, setFollowPrefs] = useState({ notify_on_live: true, notify_new_listing: true, notify_auction_start: true, notify_promotions: true });
 
   useEffect(() => {
     if (!user || !seller) { setIsFollowing(false); return; }
-    supabase.from("follows").select("follower_id, notify_on_live").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
-      .then(({ data }) => { setIsFollowing(!!data); setNotifyOnLive((data as any)?.notify_on_live ?? true); });
+    (supabase.from("follows") as any).select("follower_id, notify_on_live, notify_new_listing, notify_auction_start, notify_promotions").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
+      .then(({ data }: any) => {
+        setIsFollowing(!!data);
+        if (data) setFollowPrefs({
+          notify_on_live: data.notify_on_live ?? true,
+          notify_new_listing: data.notify_new_listing ?? true,
+          notify_auction_start: data.notify_auction_start ?? true,
+          notify_promotions: data.notify_promotions ?? true,
+        });
+      });
   }, [user, seller]);
 
   async function toggleFollow() {
