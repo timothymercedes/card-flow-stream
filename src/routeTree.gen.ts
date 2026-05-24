@@ -39,6 +39,7 @@ import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
+import { Route as StoreUsernameRouteImport } from './routes/store.$username'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
 import { Route as SellerShippingAnalyticsRouteImport } from './routes/seller.shipping-analytics'
 import { Route as SellerShippingRouteImport } from './routes/seller.shipping'
@@ -228,6 +229,11 @@ const StudioIdRoute = StudioIdRouteImport.update({
   id: '/studio/$id',
   path: '/studio/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const StoreUsernameRoute = StoreUsernameRouteImport.update({
+  id: '/$username',
+  path: '/$username',
+  getParentRoute: () => StoreRoute,
 } as any)
 const ShowsIdRoute = ShowsIdRouteImport.update({
   id: '/shows/$id',
@@ -461,7 +467,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/showoff': typeof ShowoffRoute
   '/status': typeof StatusRoute
-  '/store': typeof StoreRoute
+  '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
@@ -487,6 +493,7 @@ export interface FileRoutesByFullPath {
   '/seller/shipping': typeof SellerShippingRoute
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
+  '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
@@ -532,7 +539,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/showoff': typeof ShowoffRoute
   '/status': typeof StatusRoute
-  '/store': typeof StoreRoute
+  '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
@@ -558,6 +565,7 @@ export interface FileRoutesByTo {
   '/seller/shipping': typeof SellerShippingRoute
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
+  '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
@@ -604,7 +612,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/showoff': typeof ShowoffRoute
   '/status': typeof StatusRoute
-  '/store': typeof StoreRoute
+  '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
@@ -630,6 +638,7 @@ export interface FileRoutesById {
   '/seller/shipping': typeof SellerShippingRoute
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
+  '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
@@ -703,6 +712,7 @@ export interface FileRouteTypes {
     | '/seller/shipping'
     | '/seller/shipping-analytics'
     | '/shows/$id'
+    | '/store/$username'
     | '/studio/$id'
     | '/live/'
     | '/market/'
@@ -774,6 +784,7 @@ export interface FileRouteTypes {
     | '/seller/shipping'
     | '/seller/shipping-analytics'
     | '/shows/$id'
+    | '/store/$username'
     | '/studio/$id'
     | '/live'
     | '/market'
@@ -845,6 +856,7 @@ export interface FileRouteTypes {
     | '/seller/shipping'
     | '/seller/shipping-analytics'
     | '/shows/$id'
+    | '/store/$username'
     | '/studio/$id'
     | '/live/'
     | '/market/'
@@ -891,7 +903,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ShowoffRoute: typeof ShowoffRoute
   StatusRoute: typeof StatusRoute
-  StoreRoute: typeof StoreRoute
+  StoreRoute: typeof StoreRouteWithChildren
   StoriesRoute: typeof StoriesRoute
   SupportRoute: typeof SupportRoute
   TutorialsRoute: typeof TutorialsRoute
@@ -1149,6 +1161,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/studio/$id'
       preLoaderRoute: typeof StudioIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/store/$username': {
+      id: '/store/$username'
+      path: '/$username'
+      fullPath: '/store/$username'
+      preLoaderRoute: typeof StoreUsernameRouteImport
+      parentRoute: typeof StoreRoute
     }
     '/shows/$id': {
       id: '/shows/$id'
@@ -1440,6 +1459,16 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface StoreRouteChildren {
+  StoreUsernameRoute: typeof StoreUsernameRoute
+}
+
+const StoreRouteChildren: StoreRouteChildren = {
+  StoreUsernameRoute: StoreUsernameRoute,
+}
+
+const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
+
 interface ShowsIdRouteChildren {
   ShowsIdEditRoute: typeof ShowsIdEditRoute
 }
@@ -1472,7 +1501,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ShowoffRoute: ShowoffRoute,
   StatusRoute: StatusRoute,
-  StoreRoute: StoreRoute,
+  StoreRoute: StoreRouteWithChildren,
   StoriesRoute: StoriesRoute,
   SupportRoute: SupportRoute,
   TutorialsRoute: TutorialsRoute,
@@ -1523,12 +1552,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

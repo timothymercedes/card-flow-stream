@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff, Radio, Share2 } from "lucide-react";
+import { Star, Package, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Radio, Share2, Instagram, Youtube, Globe2, MessageSquare } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -14,8 +14,34 @@ import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { UserAvatar } from "@/components/UserAvatar";
+import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowser";
+import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
+import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
 
-export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
+export const Route = createFileRoute("/seller/$username")({
+  head: ({ params }) => {
+    const handle = params.username;
+    const title = `@${handle} on PullBid Live — storefront, live shows & cards`;
+    const description = `Browse cards, auctions, and live streams from @${handle}. Follow for new listings and live alerts on PullBid Live.`;
+    const url = `https://pullbidlive.com/store/${handle}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "profile" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
+  component: PublicStore,
+});
+
 
 function Stars({ n, size = 14 }: { n: number; size?: number }) {
   return (
@@ -49,12 +75,20 @@ function PublicStore() {
   const [sellerStats, setSellerStats] = useState<any>(null);
   const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [notifyOnLive, setNotifyOnLive] = useState(true);
+  const [followPrefs, setFollowPrefs] = useState({ notify_on_live: true, notify_new_listing: true, notify_auction_start: true, notify_promotions: true });
 
   useEffect(() => {
     if (!user || !seller) { setIsFollowing(false); return; }
-    supabase.from("follows").select("follower_id, notify_on_live").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
-      .then(({ data }) => { setIsFollowing(!!data); setNotifyOnLive((data as any)?.notify_on_live ?? true); });
+    (supabase.from("follows") as any).select("follower_id, notify_on_live, notify_new_listing, notify_auction_start, notify_promotions").eq("follower_id", user.id).eq("followee_id", seller.id).maybeSingle()
+      .then(({ data }: any) => {
+        setIsFollowing(!!data);
+        if (data) setFollowPrefs({
+          notify_on_live: data.notify_on_live ?? true,
+          notify_new_listing: data.notify_new_listing ?? true,
+          notify_auction_start: data.notify_auction_start ?? true,
+          notify_promotions: data.notify_promotions ?? true,
+        });
+      });
   }, [user, seller]);
 
   async function toggleFollow() {
@@ -68,14 +102,13 @@ function PublicStore() {
       const { error } = await supabase.from("follows").insert({ follower_id: user.id, followee_id: seller.id });
       if (error) { toast.error(error.message); return; }
       setIsFollowing(true);
-      setNotifyOnLive(true);
+      setFollowPrefs({ notify_on_live: true, notify_new_listing: true, notify_auction_start: true, notify_promotions: true });
       setFollowers((c) => c + 1);
       await supabase.from("notifications").insert({
         user_id: seller.id, type: "follow",
         body: `@${myProfile.username} started following you`,
         link: `/seller/${myProfile.username}`,
       });
-      // Offer push notifications when following so they actually get the live alerts
       if (pushSupported()) {
         ensurePushSubscribed(user.id).then((r) => {
           if (r.ok) toast.success(`You'll get a ping when @${seller.username} goes live`);
@@ -84,18 +117,6 @@ function PublicStore() {
     }
   }
 
-  async function toggleNotify() {
-    if (!user || !seller || !isFollowing) return;
-    const next = !notifyOnLive;
-    setNotifyOnLive(next);
-    await supabase.from("follows").update({ notify_on_live: next })
-      .eq("follower_id", user.id).eq("followee_id", seller.id);
-    if (next && pushSupported()) {
-      const r = await ensurePushSubscribed(user.id);
-      if (!r.ok) toast.error(r.reason || "Couldn't enable notifications");
-    }
-    toast.success(next ? "Live alerts on" : "Live alerts off");
-  }
 
   async function startMessage() {
     if (!user || !myProfile) { toast.error("Sign in to message"); return; }
@@ -209,7 +230,14 @@ function PublicStore() {
           </Link>
         )}
 
-        <div className="mb-4 rounded-2xl bg-card p-4">
+        {seller.banner_url && (
+          <div className="mb-3 overflow-hidden rounded-2xl">
+            <img src={seller.banner_url} alt="" className="h-32 w-full object-cover sm:h-44" />
+          </div>
+        )}
+
+        <div className="mb-4 rounded-2xl bg-card p-4" style={seller.accent_color ? { boxShadow: `inset 0 2px 0 0 ${seller.accent_color}` } : undefined}>
+
           <div className="flex items-center gap-3">
             <UserAvatar
               username={seller.username}
@@ -240,14 +268,13 @@ function PublicStore() {
                       >
                         {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
                       </button>
-                      {isFollowing && (
-                        <button
-                          onClick={toggleNotify}
-                          title={notifyOnLive ? "Live alerts on — tap to mute" : "Live alerts off — tap to enable"}
-                          className={`inline-flex items-center justify-center rounded-full p-1.5 ring-1 ring-border ${notifyOnLive ? "bg-primary/15 text-primary" : "bg-card text-muted-foreground"}`}
-                        >
-                          {notifyOnLive ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
-                        </button>
+                      {isFollowing && user && (
+                        <FollowNotificationPrefs
+                          userId={user.id}
+                          sellerId={seller.id}
+                          initial={followPrefs}
+                          onChange={setFollowPrefs}
+                        />
                       )}
                       <button
                         onClick={startMessage}
@@ -405,7 +432,29 @@ function PublicStore() {
           </div>
         )}
 
+        {(seller.bio || (seller.social_links && Object.keys(seller.social_links).length > 0)) && (
+          <div className="mb-3 rounded-2xl bg-card p-3 text-xs">
+            {seller.bio && <p className="whitespace-pre-wrap text-foreground">{seller.bio}</p>}
+            {seller.social_links && Object.keys(seller.social_links).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                {Object.entries(seller.social_links as Record<string, string>).filter(([, v]) => !!v).map(([k, v]) => {
+                  const Icon = k === "instagram" ? Instagram : k === "youtube" ? Youtube : k === "discord" ? MessageSquare : Globe2;
+                  const href = /^https?:\/\//.test(v) ? v : `https://${v}`;
+                  return (
+                    <a key={k} href={href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-semibold text-foreground hover:bg-muted/70">
+                      <Icon className="h-3 w-3" /> {k}
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {seller?.id && <UpcomingShowsSection sellerId={seller.id} />}
+
         <div className="mb-3 flex gap-2 overflow-x-auto border-b border-border text-xs">
+
           {(["listings", "vault", "sold", "posts", "reviews"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
               {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
@@ -413,31 +462,8 @@ function PublicStore() {
           ))}
         </div>
 
-        {tab === "listings" && (
-          <>
-            {listings.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No active listings.</p>}
-            <div className="grid grid-cols-2 gap-3">
-              {listings.map((l) => {
-                const display = getListingPriceDisplay(l);
-                return (
-                  <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card">
-                    <div className="aspect-square overflow-hidden bg-muted">
-                      {l.image_url ? <img src={l.image_url} alt={l.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
-                    </div>
-                    <div className="p-2">
-                      <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
-                      {display.kind === "offer" ? (
-                        <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
-                      ) : (
-                        <p className="text-xs text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </>
-        )}
+        {tab === "listings" && <StorefrontListingsBrowser listings={listings} />}
+
 
         {tab === "sold" && (
           <>

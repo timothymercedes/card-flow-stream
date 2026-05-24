@@ -1517,19 +1517,28 @@ export type Database = {
           created_at: string
           followee_id: string
           follower_id: string
+          notify_auction_start: boolean
+          notify_new_listing: boolean
           notify_on_live: boolean
+          notify_promotions: boolean
         }
         Insert: {
           created_at?: string
           followee_id: string
           follower_id: string
+          notify_auction_start?: boolean
+          notify_new_listing?: boolean
           notify_on_live?: boolean
+          notify_promotions?: boolean
         }
         Update: {
           created_at?: string
           followee_id?: string
           follower_id?: string
+          notify_auction_start?: boolean
+          notify_new_listing?: boolean
           notify_on_live?: boolean
+          notify_promotions?: boolean
         }
         Relationships: []
       }
@@ -4215,6 +4224,7 @@ export type Database = {
       profiles: {
         Row: {
           a11y_settings: Json
+          accent_color: string | null
           address_city: string | null
           address_country: string | null
           address_line1: string | null
@@ -4228,12 +4238,15 @@ export type Database = {
           avatar_url: string | null
           avg_response_minutes: number | null
           balance_cents: number
+          banner_url: string | null
           bid_restricted_reason: string | null
           bid_restricted_until: string | null
+          bio: string | null
           buyer_verified: boolean
           created_at: string
           creator_tier: string
           current_streak: number
+          featured_listing_ids: string[]
           full_name: string | null
           guidelines_accepted: boolean
           guidelines_accepted_at: string | null
@@ -4271,6 +4284,7 @@ export type Database = {
           shipping_cap: number | null
           shop_name: string | null
           shop_name_changes: number
+          social_links: Json
           streaming_badge: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
@@ -4291,6 +4305,7 @@ export type Database = {
         }
         Insert: {
           a11y_settings?: Json
+          accent_color?: string | null
           address_city?: string | null
           address_country?: string | null
           address_line1?: string | null
@@ -4304,12 +4319,15 @@ export type Database = {
           avatar_url?: string | null
           avg_response_minutes?: number | null
           balance_cents?: number
+          banner_url?: string | null
           bid_restricted_reason?: string | null
           bid_restricted_until?: string | null
+          bio?: string | null
           buyer_verified?: boolean
           created_at?: string
           creator_tier?: string
           current_streak?: number
+          featured_listing_ids?: string[]
           full_name?: string | null
           guidelines_accepted?: boolean
           guidelines_accepted_at?: string | null
@@ -4347,6 +4365,7 @@ export type Database = {
           shipping_cap?: number | null
           shop_name?: string | null
           shop_name_changes?: number
+          social_links?: Json
           streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -4367,6 +4386,7 @@ export type Database = {
         }
         Update: {
           a11y_settings?: Json
+          accent_color?: string | null
           address_city?: string | null
           address_country?: string | null
           address_line1?: string | null
@@ -4380,12 +4400,15 @@ export type Database = {
           avatar_url?: string | null
           avg_response_minutes?: number | null
           balance_cents?: number
+          banner_url?: string | null
           bid_restricted_reason?: string | null
           bid_restricted_until?: string | null
+          bio?: string | null
           buyer_verified?: boolean
           created_at?: string
           creator_tier?: string
           current_streak?: number
+          featured_listing_ids?: string[]
           full_name?: string | null
           guidelines_accepted?: boolean
           guidelines_accepted_at?: string | null
@@ -4423,6 +4446,7 @@ export type Database = {
           shipping_cap?: number | null
           shop_name?: string | null
           shop_name_changes?: number
+          social_links?: Json
           streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -7727,14 +7751,20 @@ export type Database = {
       public_profile_by_username: {
         Args: { _username: string }
         Returns: {
+          accent_color: string
           avatar_url: string
+          banner_url: string
+          bio: string
           buyer_verified: boolean
           created_at: string
+          featured_listing_ids: string[]
           id: string
           is_seller: boolean
           phone_verified: boolean
           public_id: string
           seller_status: string
+          shop_name: string
+          social_links: Json
           username: string
         }[]
       }
