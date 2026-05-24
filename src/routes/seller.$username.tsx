@@ -440,31 +440,8 @@ function PublicStore() {
           ))}
         </div>
 
-        {tab === "listings" && (
-          <>
-            {listings.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No active listings.</p>}
-            <div className="grid grid-cols-2 gap-3">
-              {listings.map((l) => {
-                const display = getListingPriceDisplay(l);
-                return (
-                  <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card">
-                    <div className="aspect-square overflow-hidden bg-muted">
-                      {l.image_url ? <img src={l.image_url} alt={l.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
-                    </div>
-                    <div className="p-2">
-                      <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
-                      {display.kind === "offer" ? (
-                        <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
-                      ) : (
-                        <p className="text-xs text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </>
-        )}
+        {tab === "listings" && <StorefrontListingsBrowser listings={listings} />}
+
 
         {tab === "sold" && (
           <>
