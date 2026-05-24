@@ -102,14 +102,13 @@ function PublicStore() {
       const { error } = await supabase.from("follows").insert({ follower_id: user.id, followee_id: seller.id });
       if (error) { toast.error(error.message); return; }
       setIsFollowing(true);
-      setNotifyOnLive(true);
+      setFollowPrefs({ notify_on_live: true, notify_new_listing: true, notify_auction_start: true, notify_promotions: true });
       setFollowers((c) => c + 1);
       await supabase.from("notifications").insert({
         user_id: seller.id, type: "follow",
         body: `@${myProfile.username} started following you`,
         link: `/seller/${myProfile.username}`,
       });
-      // Offer push notifications when following so they actually get the live alerts
       if (pushSupported()) {
         ensurePushSubscribed(user.id).then((r) => {
           if (r.ok) toast.success(`You'll get a ping when @${seller.username} goes live`);
@@ -118,18 +117,6 @@ function PublicStore() {
     }
   }
 
-  async function toggleNotify() {
-    if (!user || !seller || !isFollowing) return;
-    const next = !notifyOnLive;
-    setNotifyOnLive(next);
-    await supabase.from("follows").update({ notify_on_live: next })
-      .eq("follower_id", user.id).eq("followee_id", seller.id);
-    if (next && pushSupported()) {
-      const r = await ensurePushSubscribed(user.id);
-      if (!r.ok) toast.error(r.reason || "Couldn't enable notifications");
-    }
-    toast.success(next ? "Live alerts on" : "Live alerts off");
-  }
 
   async function startMessage() {
     if (!user || !myProfile) { toast.error("Sign in to message"); return; }
