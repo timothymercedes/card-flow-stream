@@ -261,14 +261,13 @@ function PublicStore() {
                       >
                         {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
                       </button>
-                      {isFollowing && (
-                        <button
-                          onClick={toggleNotify}
-                          title={notifyOnLive ? "Live alerts on — tap to mute" : "Live alerts off — tap to enable"}
-                          className={`inline-flex items-center justify-center rounded-full p-1.5 ring-1 ring-border ${notifyOnLive ? "bg-primary/15 text-primary" : "bg-card text-muted-foreground"}`}
-                        >
-                          {notifyOnLive ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
-                        </button>
+                      {isFollowing && user && (
+                        <FollowNotificationPrefs
+                          userId={user.id}
+                          sellerId={seller.id}
+                          initial={followPrefs}
+                          onChange={setFollowPrefs}
+                        />
                       )}
                       <button
                         onClick={startMessage}
