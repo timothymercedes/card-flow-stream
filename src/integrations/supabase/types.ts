@@ -7751,14 +7751,20 @@ export type Database = {
       public_profile_by_username: {
         Args: { _username: string }
         Returns: {
+          accent_color: string
           avatar_url: string
+          banner_url: string
+          bio: string
           buyer_verified: boolean
           created_at: string
+          featured_listing_ids: string[]
           id: string
           is_seller: boolean
           phone_verified: boolean
           public_id: string
           seller_status: string
+          shop_name: string
+          social_links: Json
           username: string
         }[]
       }
