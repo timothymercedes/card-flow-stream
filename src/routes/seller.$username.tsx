@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Star, Package, Store as StoreIcon, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Bell, BellOff, Radio, Share2 } from "lucide-react";
+import { Star, Package, ArrowLeft, Users, BadgeCheck, UserPlus, UserCheck, MessageCircle, Radio, Share2, Instagram, Youtube, Globe2, MessageSquare } from "lucide-react";
 import { ReportDialog } from "@/components/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -14,8 +14,34 @@ import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { UserAvatar } from "@/components/UserAvatar";
+import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowser";
+import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
+import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
 
-export const Route = createFileRoute("/seller/$username")({ component: PublicStore });
+export const Route = createFileRoute("/seller/$username")({
+  head: ({ params }) => {
+    const handle = params.username;
+    const title = `@${handle} on PullBid Live — storefront, live shows & cards`;
+    const description = `Browse cards, auctions, and live streams from @${handle}. Follow for new listings and live alerts on PullBid Live.`;
+    const url = `https://pullbidlive.com/store/${handle}`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "profile" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
+  component: PublicStore,
+});
+
 
 function Stars({ n, size = 14 }: { n: number; size?: number }) {
   return (
