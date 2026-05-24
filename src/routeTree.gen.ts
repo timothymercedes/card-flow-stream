@@ -33,6 +33,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AtusernameRouteImport } from './routes/@$username'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShowsIndexRouteImport } from './routes/shows.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
@@ -198,6 +199,11 @@ const AuthRoute = AuthRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtusernameRoute = AtusernameRouteImport.update({
+  id: '/@$username',
+  path: '/@$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -448,6 +454,7 @@ const ApiPublicHooksDailyBuyerDigestRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -520,6 +527,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -593,6 +601,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -667,6 +676,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/@$username'
     | '/admin'
     | '/auth'
     | '/bookmarks'
@@ -739,6 +749,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/@$username'
     | '/admin'
     | '/auth'
     | '/bookmarks'
@@ -811,6 +822,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/@$username'
     | '/admin'
     | '/auth'
     | '/bookmarks'
@@ -884,6 +896,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AtusernameRoute: typeof AtusernameRoute
   AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BookmarksRoute: typeof BookmarksRoute
@@ -1118,6 +1131,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@$username': {
+      id: '/@$username'
+      path: '/@$username'
+      fullPath: '/@$username'
+      preLoaderRoute: typeof AtusernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1482,6 +1502,7 @@ const ShowsIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AtusernameRoute: AtusernameRoute,
   AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BookmarksRoute: BookmarksRoute,
