@@ -522,7 +522,7 @@ export function CardScanner({
         next.match_label = "Database Match";
         next.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
       } else {
-        next.reference_image = undefined;
+        next.reference_image = matches?.find((m: ScanAlternative) => m.image_url)?.image_url || c?.image_large || c?.image_small || undefined;
         next.overall_confidence = Math.min(next.overall_confidence ?? 0.6, 0.69);
         next.match_label = "Needs confirmation — tap the correct picture before saving";
       }
@@ -566,7 +566,7 @@ export function CardScanner({
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas error");
         ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-        dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.78);
       }
 
       // Show the captured photo immediately while AI runs (Photo Scan Mode)
@@ -820,7 +820,7 @@ export function CardScanner({
     applySuggestedCard(pending.alternatives[nextIndex], nextIndex, "Similar database match");
   }
 
-  const displayImage = pending?.reference_image || pending?.image || "";
+  const displayImage = bestReferenceImage(pending) || captured || pending?.image || "";
   const similarCount = pending?.alternatives?.length ?? 0;
 
   return (
