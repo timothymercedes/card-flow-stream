@@ -50,6 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const { signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
