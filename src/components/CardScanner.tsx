@@ -101,7 +101,11 @@ const LANGUAGES = [
   { v: "ru", l: "Russian" },
 ] as const;
 
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10000) {
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 10000,
+) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -113,7 +117,9 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
 
 function bestReferenceImage(result: ScanResult | null) {
   if (!result) return "";
-  if (result.reference_image && !result.reference_image.startsWith("data:")) return result.reference_image;
+  if (result.reference_image && !result.reference_image.startsWith("data:")) {
+    return result.reference_image;
+  }
   const alt = result.alternatives?.find((a) => a.image_url && !a.image_url.startsWith("data:"));
   if (alt?.image_url) return alt.image_url;
   return result.image && !result.image.startsWith("data:") ? result.image : "";
