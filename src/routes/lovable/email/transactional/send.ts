@@ -94,9 +94,7 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         if (!template) {
           console.error('Template not found in registry', { templateName })
           return Response.json(
-            {
-              error: `Template '${templateName}' not found. Available: ${Object.keys(TEMPLATES).join(', ')}`,
-            },
+            { error: 'Template not found' },
             { status: 404 }
           )
         }
@@ -114,6 +112,29 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             { status: 400 }
           )
         }
+
+        // Authorization: prevent abuse where any authenticated user could send
+        // emails to arbitrary recipients. Allow if:
+        //   - the template defines a fixed `to` (server-controlled), OR
+        //   - the caller is an admin/owner, OR
+        //   - the recipient matches the caller's own verified email.
+        if (!template.to) {
+          const callerEmail = (user.email || '').toLowerCase()
+          const recipLower = effectiveRecipient.toLowerCase()
+          let allowed = callerEmail && callerEmail === recipLower
+          if (!allowed) {
+            const { data: roles } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id)
+            const roleSet = new Set(((roles ?? []) as any[]).map((r) => r.role))
+            allowed = roleSet.has('admin') || roleSet.has('owner')
+          }
+          if (!allowed) {
+            return Response.json({ error: 'Forbidden' }, { status: 403 })
+          }
+        }
+
 
         // 2. Check suppression list (fail-closed: if we can't verify, don't send)
         const { data: suppressed, error: suppressionError } = await supabase
