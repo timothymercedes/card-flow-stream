@@ -528,7 +528,11 @@ export function CardScanner({
         next.match_label = "Database Match";
         next.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
       } else {
-        next.reference_image = matches?.find((m: ScanAlternative) => m.image_url)?.image_url || c?.image_large || c?.image_small || undefined;
+        next.reference_image =
+          matches?.find((m: ScanAlternative) => m.image_url)?.image_url ||
+          c?.image_large ||
+          c?.image_small ||
+          undefined;
         next.overall_confidence = Math.min(next.overall_confidence ?? 0.6, 0.69);
         next.match_label = "Needs confirmation — tap the correct picture before saving";
       }
