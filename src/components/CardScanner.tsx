@@ -242,7 +242,7 @@ export function CardScanner({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const r = await fetch(
+      const r = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/card-price`,
         {
           method: "POST",
@@ -259,6 +259,7 @@ export function CardScanner({
             number: numberReliable ? result.tcg_number : undefined,
           }),
         },
+        9000,
       );
       const j = await r.json();
       const market = Number(j?.price?.market) || 0;
@@ -401,7 +402,7 @@ export function CardScanner({
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const r = await fetch(
+      const r = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
         {
           headers: {
@@ -409,6 +410,7 @@ export function CardScanner({
             Authorization: `Bearer ${token}`,
           },
         },
+        10000,
       );
       const j = await r.json();
       const paramsRecord: Record<string, string> = {};
@@ -417,7 +419,7 @@ export function CardScanner({
         // Fallback: hit the new multi-source aggregator (PokémonTCG + TCGdex + PriceCharting)
         let aggregated: any = null;
         try {
-          const ar = await fetch(
+          const ar = await fetchWithTimeout(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/card-price`,
             {
               method: "POST",
@@ -432,6 +434,7 @@ export function CardScanner({
                 number: numberReliable ? result.tcg_number : undefined,
               }),
             },
+            6000,
           );
           aggregated = await ar.json();
         } catch (e) {
