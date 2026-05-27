@@ -22,8 +22,12 @@ function mapStatus(s: ShippoStatus, hasFirstScan: boolean): string | null {
 
 function verifySignature(rawBody: string, signature: string | null): boolean {
   const secret = process.env.SHIPPO_WEBHOOK_SECRET;
-  // If no secret configured, skip verification (dev/preview). In production, set the secret.
-  if (!secret) return true;
+  // Fail-closed: if no secret is configured, refuse all webhook requests.
+  // This prevents anyone from injecting fake shipping events.
+  if (!secret) {
+    console.error("[shippo-tracking] SHIPPO_WEBHOOK_SECRET not configured — rejecting webhook");
+    return false;
+  }
   if (!signature) return false;
   try {
     const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
