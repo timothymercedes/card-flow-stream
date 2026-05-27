@@ -938,6 +938,7 @@ function Vault() {
   // The scanner already shows a confirm/edit step before calling this.
   async function onScanResult(r: {
     name: string; category: string; trend: string; image: string;
+    reference_image?: string;
     set?: string; year?: string; tcg_number?: string; variant?: string; language?: string;
     estimated_value?: number; condition_prices?: ConditionPrices;
     card_identity_id?: string; image_source?: string; match_score?: number;
@@ -949,17 +950,32 @@ function Vault() {
     const cp: ConditionPrices | null = r.condition_prices || null;
     const tier = r.pricing_tier || (r.estimated_value && r.estimated_value > 0 ? "verified" : "unavailable");
     const baseNm = Number(r.estimated_value) > 0 ? Number(r.estimated_value) : (cp?.NM || 1);
-    // Only assign a numeric estimated_value when we have a verified price.
-    // Estimated / unavailable rows store the range (or nothing) and leave
-    // estimated_value at 0 so totals don't include fabricated numbers.
     const value = tier === "verified" ? priceFor("NM", baseNm, cp) : 0;
     const lang = r.language || language || "en";
+
+    // Prefer the official/reference card image. Never persist a raw camera
+    // frame (data: URL) — the user may have photographed the back of the card.
+    // Fall back to AI image generation, else save null so the card can be
+    // edited later instead of showing a wrong picture.
+    let finalImage: string | null =
+      r.reference_image && !r.reference_image.startsWith("data:") ? r.reference_image : null;
+    if (!finalImage && r.image && !r.image.startsWith("data:")) {
+      finalImage = r.image;
+    }
+    if (!finalImage && r.name && r.name !== "Unknown Card") {
+      try {
+        const { data: img } = await supabase.functions.invoke("generate-card-image", {
+          body: { name: r.name, category: r.category, set: r.set, year: r.year, tcg_number: r.tcg_number },
+        });
+        if (img?.image) finalImage = img.image as string;
+      } catch {/* ignore — better no image than the wrong one */}
+    }
 
     const payload = {
       user_id: user.id,
       name: r.name,
       category: r.category || "Trading Card",
-      image_url: r.image || null,
+      image_url: finalImage,
       back_image_url: null,
       description: r.variant && r.variant !== "Standard" ? `Variant: ${r.variant}` : null,
       estimated_value: value,
