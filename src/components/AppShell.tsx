@@ -45,9 +45,10 @@ const PRIMARY = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const tutorial = useTutorialMode();
-  const { t } = useTranslation();
+  // ...the original useAuth destructure is replaced above; keep state below
+  const [moreOpen, setMoreOpen] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const { signOut } = useAuth();
