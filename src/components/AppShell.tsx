@@ -47,11 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const { user, signOut } = useAuth();
   const tutorial = useTutorialMode();
-  // ...the original useAuth destructure is replaced above; keep state below
-  const [moreOpen, setMoreOpen] = useState(false);
+  const { t } = useTranslation();
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const { signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
