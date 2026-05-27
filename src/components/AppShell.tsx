@@ -146,13 +146,72 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
+            {/* Account dropdown — desktop has a full menu; mobile keeps a simple link to /profile */}
             <Link
               to="/profile"
               aria-label={t("nav.profile", "Profile")}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted ring-1 ring-border hover:bg-accent"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
             >
               <User className="h-4 w-4" aria-hidden="true" />
             </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={t("nav.profile", "Profile")}
+                className="hidden h-8 items-center gap-1 rounded-full bg-muted px-1.5 pr-2 ring-1 ring-border hover:bg-accent lg:inline-flex"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-background">
+                  <User className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="truncate">
+                  {user?.email || t("nav.account", "Account")}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile"><User className="mr-2 h-4 w-4" />{t("nav.profile", "Profile")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/orders"><Package className="mr-2 h-4 w-4" />{t("nav.orders", "Orders")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/bookmarks"><Bookmark className="mr-2 h-4 w-4" />{t("nav.bookmarks", "Bookmarks")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/vault"><Lock className="mr-2 h-4 w-4" />{t("nav.vault", "Vault")}</Link>
+                </DropdownMenuItem>
+                {isSeller && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/store"><Package className="mr-2 h-4 w-4" />{t("nav.sellerHub", "Seller Hub")}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-listings"><Store className="mr-2 h-4 w-4" />{t("nav.listings", "Listings")}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/payouts"><Shield className="mr-2 h-4 w-4" />{t("nav.payouts", "Payouts")}</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/settings"><Settings className="mr-2 h-4 w-4" />{t("nav.settings", "Settings")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Support")}</Link>
+                </DropdownMenuItem>
+                {user && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => { void signOut(); }}>
+                      <LogOut className="mr-2 h-4 w-4" />{t("nav.signOut", "Sign out")}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {/* More — opens sheet (hidden on lg+ where everything is in top nav) */}
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
               <SheetTrigger
