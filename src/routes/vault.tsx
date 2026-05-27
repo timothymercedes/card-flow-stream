@@ -955,12 +955,21 @@ function Vault() {
 
     // Prefer the official/reference card image. Never persist a raw camera
     // frame (data: URL) — the user may have photographed the back of the card.
-    // Fall back to AI image generation, else save null so the card can be
-    // edited later instead of showing a wrong picture.
+    // If the scanner only returned OCR, do a quick catalog image lookup instead
+    // of generating art, so Pokémon cards show the real card front.
     let finalImage: string | null =
       r.reference_image && !r.reference_image.startsWith("data:") ? r.reference_image : null;
     if (!finalImage && r.image && !r.image.startsWith("data:")) {
       finalImage = r.image;
+    }
+    if (!finalImage && r.name && r.name !== "Unknown Card") {
+      const matches = await fetchRealCardMatches({
+        name: r.name,
+        set: r.set,
+        number: r.tcg_number,
+        category: r.category,
+      });
+      finalImage = matches.find((m) => m.image)?.image || null;
     }
     if (!finalImage && r.name && r.name !== "Unknown Card") {
       try {
