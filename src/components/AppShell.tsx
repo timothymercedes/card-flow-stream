@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
-  Menu, Bookmark, ShoppingBag, Shield, Settings, MessageCircleHeart,
+  Menu, Bookmark, ShoppingBag, Shield, Settings, MessageCircleHeart, LogOut, ChevronDown,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 import { AdminAlertBanner } from "@/components/AdminAlertBanner";
 import { AccountHoldBanner } from "@/components/AccountHoldBanner";
