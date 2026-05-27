@@ -101,6 +101,30 @@ const LANGUAGES = [
   { v: "ru", l: "Russian" },
 ] as const;
 
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 10000,
+) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function bestReferenceImage(result: ScanResult | null) {
+  if (!result) return "";
+  if (result.reference_image && !result.reference_image.startsWith("data:")) {
+    return result.reference_image;
+  }
+  const alt = result.alternatives?.find((a) => a.image_url && !a.image_url.startsWith("data:"));
+  if (alt?.image_url) return alt.image_url;
+  return result.image && !result.image.startsWith("data:") ? result.image : "";
+}
+
 type Props = {
   onResult: (r: ScanResult) => void;
   onResults?: (rs: ScanResult[]) => void; // optional batch handler (multi-card)
@@ -224,7 +248,7 @@ export function CardScanner({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const r = await fetch(
+      const r = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/card-price`,
         {
           method: "POST",
@@ -241,6 +265,7 @@ export function CardScanner({
             number: numberReliable ? result.tcg_number : undefined,
           }),
         },
+        9000,
       );
       const j = await r.json();
       const market = Number(j?.price?.market) || 0;
@@ -383,7 +408,7 @@ export function CardScanner({
         data: { session },
       } = await supabase.auth.getSession();
       const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const r = await fetch(
+      const r = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-prices?${params}`,
         {
           headers: {
@@ -391,6 +416,7 @@ export function CardScanner({
             Authorization: `Bearer ${token}`,
           },
         },
+        10000,
       );
       const j = await r.json();
       const paramsRecord: Record<string, string> = {};
@@ -399,7 +425,7 @@ export function CardScanner({
         // Fallback: hit the new multi-source aggregator (PokémonTCG + TCGdex + PriceCharting)
         let aggregated: any = null;
         try {
-          const ar = await fetch(
+          const ar = await fetchWithTimeout(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/card-price`,
             {
               method: "POST",
@@ -414,6 +440,7 @@ export function CardScanner({
                 number: numberReliable ? result.tcg_number : undefined,
               }),
             },
+            6000,
           );
           aggregated = await ar.json();
         } catch (e) {
@@ -501,7 +528,11 @@ export function CardScanner({
         next.match_label = "Database Match";
         next.confidence = { name: 0.98, set: 0.98, year: 0.98, tcg_number: 0.98, variant: 0.9 };
       } else {
-        next.reference_image = undefined;
+        next.reference_image =
+          matches?.find((m: ScanAlternative) => m.image_url)?.image_url ||
+          c?.image_large ||
+          c?.image_small ||
+          undefined;
         next.overall_confidence = Math.min(next.overall_confidence ?? 0.6, 0.69);
         next.match_label = "Needs confirmation — tap the correct picture before saving";
       }
@@ -545,7 +576,7 @@ export function CardScanner({
         const ctx = canvas.getContext("2d");
         if (!ctx) throw new Error("Canvas error");
         ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-        dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        dataUrl = canvas.toDataURL("image/jpeg", 0.78);
       }
 
       // Show the captured photo immediately while AI runs (Photo Scan Mode)
@@ -799,7 +830,7 @@ export function CardScanner({
     applySuggestedCard(pending.alternatives[nextIndex], nextIndex, "Similar database match");
   }
 
-  const displayImage = pending?.reference_image || pending?.image || "";
+  const displayImage = bestReferenceImage(pending) || captured || pending?.image || "";
   const similarCount = pending?.alternatives?.length ?? 0;
 
   return (
