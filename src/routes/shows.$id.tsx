@@ -68,7 +68,11 @@ function ShowDetail() {
       <div className="space-y-4 px-4 py-5">
         <div className="flex items-center gap-2">
           <Link to="/" className="rounded-full bg-muted p-2"><ArrowLeft className="h-4 w-4" /></Link>
-          <h1 className="line-clamp-2 text-lg font-bold">{show.title}</h1>
+          <h1 className="line-clamp-2 flex-1 text-lg font-bold">{show.title}</h1>
+          <ShareButton
+            entity={{ kind: "show", id, title: show.title, seller: show.seller_username, thumbnail: show.banner_url }}
+            variant="icon"
+          />
         </div>
 
         {show.banner_url && (
