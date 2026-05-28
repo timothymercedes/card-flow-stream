@@ -379,7 +379,14 @@ function MyListings() {
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Auction / Bid</button>
                 </div>
-                {hasBids && <p className="mt-1 text-[10px] text-amber-400">Sale type locked — bids already placed.</p>}
+                {hasBids && (
+                  <div className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                    <p className="text-[11px] leading-relaxed text-amber-200">
+                      <span className="font-bold">Bids already placed</span> — this listing is locked as an auction. You cannot switch to Buy Now while bids are active.
+                    </p>
+                  </div>
+                )}
 
                 {saleTypeConfirm && (
                   <div ref={confirmRef} className="mt-2 rounded-lg border border-amber-500/40 bg-amber-950/20 p-3">
