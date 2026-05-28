@@ -5,12 +5,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
-import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
+import { Tag, Trash2, RefreshCw, Pencil, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
+
+const CONDITIONS = [
+  { value: "NM", label: "NM", help: "Near Mint" },
+  { value: "LP", label: "LP", help: "Lightly Played" },
+  { value: "MP", label: "MP", help: "Moderately Played" },
+  { value: "Damaged", label: "DMG", help: "Damaged" },
+] as const;
+type Condition = typeof CONDITIONS[number]["value"];
 
 type Listing = {
   id: string; title: string; description: string | null; image_url: string | null;
@@ -23,6 +31,7 @@ type Listing = {
   shipping_price: number | null;
   reserve_price: number | null;
   category: string | null;
+  condition: Condition | null;
 };
 
 function fmtRemain(iso: string) {
@@ -86,6 +95,7 @@ function MyListings() {
     const startingBid = Number(editing.starting_bid ?? 0);
     if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price or turn on offers");
     if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid");
+    if (!editing.condition) return toast.error("Select a condition (NM, LP, MP, or DMG)");
     const frontErr = validateListingImage(editing.image_url, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
     if (editing.back_image_url) {
@@ -98,6 +108,7 @@ function MyListings() {
       image_url: editing.image_url,
       back_image_url: editing.back_image_url,
       category: editing.category,
+      condition: editing.condition,
       price: !editing.is_auction && fixedPrice > 0 ? fixedPrice : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
@@ -150,6 +161,26 @@ function MyListings() {
           </Link>
         </div>
 
+        {(() => {
+          const missing = items.filter((l) => !l.condition);
+          if (missing.length === 0) return null;
+          return (
+            <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+              <div className="flex-1">
+                <p className="font-bold text-amber-200">Condition required on {missing.length} listing{missing.length === 1 ? "" : "s"}</p>
+                <p className="mt-0.5 text-amber-200/80">All listings must show NM, LP, MP, or DMG. Tap Edit on each card to set it — buyers can't see listings without a condition.</p>
+                <button
+                  onClick={() => setEditing(missing[0])}
+                  className="mt-2 rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold text-black"
+                >
+                  Fix first listing
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="sticky top-0 z-20 -mx-4 mb-3 flex gap-1.5 border-b border-border/60 bg-background/85 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/70">
           {(["active", "expired", "all"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
@@ -184,6 +215,18 @@ function MyListings() {
                     <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
                       {categoryEmoji(l.category)} {categoryLabel(l.category)}
                     </span>
+                  )}
+                  {l.condition ? (
+                    <span className="ml-1 inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      {CONDITIONS.find((c) => c.value === l.condition)?.label ?? l.condition}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setEditing(l)}
+                      className="ml-1 inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-500/40"
+                    >
+                      <AlertTriangle className="h-3 w-3" /> Set condition
+                    </button>
                   )}
                   <p className="text-xs font-bold text-primary">
                     {display.kind === "offer" ? "Make Offer" : display.suffix ? `Bid ${display.label}` : display.label}
@@ -250,6 +293,31 @@ function MyListings() {
                   ))}
                 </select>
               </label>
+
+              <div className="block text-[11px] text-muted-foreground">
+                <span>Condition <span className="text-destructive">*</span></span>
+                <div className="mt-1 grid grid-cols-4 gap-1.5">
+                  {CONDITIONS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => setEditing({ ...editing, condition: c.value })}
+                      title={c.help}
+                      className={`rounded-lg py-2 text-xs font-bold ring-1 transition ${
+                        editing.condition === c.value
+                          ? "bg-primary text-primary-foreground ring-primary"
+                          : "bg-muted text-muted-foreground ring-border/60 hover:bg-card"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                {!editing.condition && (
+                  <p className="mt-1 text-[10px] text-amber-400">Required — pick NM, LP, MP, or DMG before saving.</p>
+                )}
+              </div>
+
 
               {!editing.is_auction && (
                 <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
