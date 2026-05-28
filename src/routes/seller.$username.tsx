@@ -17,6 +17,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowser";
 import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
 import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
+import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/seller/$username")({
   head: ({ params }) => {
@@ -284,13 +285,11 @@ function PublicStore() {
                       </button>
                     </>
                   )}
-                  <button
-                    onClick={shareProfile}
-                    aria-label="Share profile"
-                    className="inline-flex items-center justify-center rounded-full bg-card p-1.5 ring-1 ring-border hover:bg-muted"
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                  </button>
+                  <ShareButton
+                    entity={{ kind: "storefront", username: seller.username, displayName: seller.display_name, avatar: seller.avatar_url }}
+                    variant="icon"
+                    className="!h-7 !w-7 ring-1 ring-border"
+                  />
                   <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
                 </div>
               </div>

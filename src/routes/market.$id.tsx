@@ -18,6 +18,7 @@ import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { MoreFromSeller } from "@/components/MoreFromSeller";
+import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
@@ -292,6 +293,10 @@ function ListingDetail() {
         <h1 className="text-xl font-bold flex items-center gap-2">
           <span className="flex-1">{listing.title}</span>
           <InternationalBadge enabled={listing.ships_internationally} />
+          <ShareButton
+            entity={{ kind: "listing", id: listing.id, title: listing.title, price: listing.buy_now_price ?? listing.current_bid ?? listing.starting_bid, image: listing.image_url }}
+            variant="icon"
+          />
         </h1>
         <div className="mt-1 flex items-center justify-between gap-2">
           <SellerBadge sellerId={listing.seller_id} username={seller?.username} avatarUrl={seller?.avatar_url} />
