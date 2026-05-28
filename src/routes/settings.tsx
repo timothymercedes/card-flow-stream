@@ -74,6 +74,7 @@ function SettingsPage() {
         {section === "notifications" && <NotificationSettings />}
         {section === "privacy" && <ComingSoon label={t("settings.privacy")} />}
         {section === "payment" && <PaymentSection />}
+        {section === "tutorials" && <TutorialsSection />}
       </div>
     </AppShell>
   );
