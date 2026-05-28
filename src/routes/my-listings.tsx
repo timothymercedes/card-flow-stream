@@ -294,6 +294,31 @@ function MyListings() {
                 </select>
               </label>
 
+              <div className="block text-[11px] text-muted-foreground">
+                <span>Condition <span className="text-destructive">*</span></span>
+                <div className="mt-1 grid grid-cols-4 gap-1.5">
+                  {CONDITIONS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => setEditing({ ...editing, condition: c.value })}
+                      title={c.help}
+                      className={`rounded-lg py-2 text-xs font-bold ring-1 transition ${
+                        editing.condition === c.value
+                          ? "bg-primary text-primary-foreground ring-primary"
+                          : "bg-muted text-muted-foreground ring-border/60 hover:bg-card"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                {!editing.condition && (
+                  <p className="mt-1 text-[10px] text-amber-400">Required — pick NM, LP, MP, or DMG before saving.</p>
+                )}
+              </div>
+
+
               {!editing.is_auction && (
                 <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
                   <input type="number" min="0.01" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
