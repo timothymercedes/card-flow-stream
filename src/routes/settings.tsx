@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, Globe, Accessibility as A11yIcon, Store, Bell, ShieldCheck, CreditCard, User as UserIcon, MapPin } from "lucide-react";
+import { ChevronLeft, Globe, Accessibility as A11yIcon, Store, Bell, ShieldCheck, CreditCard, User as UserIcon, MapPin, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { StorefrontBrandingEditor } from "@/components/StorefrontBrandingEditor";
+import { useTour } from "@/components/MascotGuide";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — PullBid Live" }] }),
