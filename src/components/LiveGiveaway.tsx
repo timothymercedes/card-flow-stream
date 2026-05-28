@@ -193,11 +193,11 @@ export function LiveGiveaway({
         winner_username: pick?.username || null,
         drawn_at: new Date().toISOString(),
       }).eq("id", giveawayId);
-      // 🆕 Push the prize into seller's My Store as a $0 paid order ready to ship
+      // 🆕 Push the prize into seller's My PB Store as a $0 paid order ready to ship
       if (pick?.user_id) {
         const { error } = await (supabase.rpc as any)("create_giveaway_order", { _giveaway_id: giveawayId });
         if (error) console.error("create_giveaway_order failed:", error);
-        else toast.success("Prize added to My Store · ready to ship");
+        else toast.success("Prize added to My PB Store · ready to ship");
       }
     }, 3000);
   }

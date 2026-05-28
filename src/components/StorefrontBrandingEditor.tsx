@@ -107,7 +107,7 @@ export function StorefrontBrandingEditor() {
 
       {/* Bio */}
       <div className="space-y-1">
-        <label className="text-xs font-bold">Store bio</label>
+        <label className="text-xs font-bold">PB Store bio</label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
