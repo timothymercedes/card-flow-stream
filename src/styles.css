@@ -363,3 +363,54 @@ html.a11y-reduced-motion *, html.a11y-reduced-motion *::before, html.a11y-reduce
 @media (prefers-reduced-motion: reduce) {
   .ann-marquee-track { animation: none; }
 }
+
+/* ===== Mobile / native shell polish ===== */
+html, body {
+  /* Disable iOS rubber-band overscroll bounce on the document. Scrollable
+     panes opt back in with `overscroll-behavior: contain` where needed. */
+  overscroll-behavior-y: none;
+  /* Smoother font rendering on iOS WKWebView. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Avoid iOS auto-zoom on input focus (paired with min 16px font on inputs). */
+  -webkit-text-size-adjust: 100%;
+       text-size-adjust: 100%;
+}
+body {
+  /* Tap highlight + selection feel native on touch. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+/* Allow text selection inside obvious text surfaces. */
+p, span, h1, h2, h3, h4, h5, h6, li, td, th, pre, code, input, textarea, [contenteditable] {
+  -webkit-touch-callout: default;
+}
+/* Buttons + links: remove flash, eliminate double-tap zoom delay. */
+button, a, [role="button"], [role="tab"], [role="menuitem"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* iOS auto-zooms <input> when font-size < 16px. Force baseline. */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: max(16px, 1rem);
+  }
+}
+/* Ensure scroll containers behave on iOS (momentum + contained bounce). */
+.scroll-y, [data-scroll-y] {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+/* Capacitor keyboard open: lift floating bottom UI above the keyboard.
+   The native keyboard plugin toggles .kb-open on <body>. */
+body.kb-open .pb-bottom-nav,
+body.kb-open [data-bottom-nav] {
+  transform: translateY(100%);
+}
+/* Active-state press feedback for primary CTAs on touch. */
+@media (hover: none) {
+  .btn-press, button:active, [role="button"]:active {
+    transition: transform 80ms ease-out;
+  }
+}
+
