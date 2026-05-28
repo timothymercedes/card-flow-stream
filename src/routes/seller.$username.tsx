@@ -17,6 +17,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowser";
 import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
 import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
+import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/seller/$username")({
   head: ({ params }) => {
