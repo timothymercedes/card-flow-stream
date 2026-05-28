@@ -247,6 +247,9 @@ function LiveDetail() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const endedRef = useRef(false);
+  // Prevents double-submit when users rapidly double-tap a bid button on mobile.
+  // Cleared in placeBidAmount's finally block.
+  const bidInFlightRef = useRef(false);
   const auctionStartLockRef = useRef(false);
   const auctionFinalizingRef = useRef(false);
   const [auctionStartBusy, setAuctionStartBusy] = useState(false);
