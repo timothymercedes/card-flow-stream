@@ -399,10 +399,6 @@ function MyListings() {
                       className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
                   </label>
                   <label className="block text-[11px] text-muted-foreground">Buy Now price (optional, lets buyers skip the auction)
-                    <input type="number" min="0" step="0.01" value={editing.reserve_price ?? ""} onChange={(e) => setEditing({ ...editing, reserve_price: e.target.value === "" ? null : Number(e.target.value) })}
-                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
-                  </label>
-                  <label className="block text-[11px] text-muted-foreground">Buy Now price (optional, lets buyers skip the auction)
                     <input type="number" min="0" step="0.01" value={editing.buy_now_price ?? ""} onChange={(e) => setEditing({ ...editing, buy_now_price: e.target.value === "" ? null : Number(e.target.value) })}
                       className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
                   </label>
