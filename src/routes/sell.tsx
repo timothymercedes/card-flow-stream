@@ -500,6 +500,7 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
+    if (!desc.trim()) return toast.error("Add a description");
     const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
     const backErr = validateListingImage(backImageUrl, { field: "Back photo" });
