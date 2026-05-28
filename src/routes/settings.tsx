@@ -74,6 +74,7 @@ function SettingsPage() {
         {section === "notifications" && <NotificationSettings />}
         {section === "privacy" && <ComingSoon label={t("settings.privacy")} />}
         {section === "payment" && <PaymentSection />}
+        {section === "tutorials" && <TutorialsSection />}
       </div>
     </AppShell>
   );
@@ -199,6 +200,25 @@ function PaymentSection() {
     <div className="rounded-xl bg-card p-4 space-y-2 text-sm">
       <p>Manage saved payment methods at checkout.</p>
       <Link to="/payouts" className="inline-block text-xs font-bold text-primary">Seller payouts →</Link>
+    </div>
+  );
+}
+
+function TutorialsSection() {
+  const { resetAllSeen } = useTour();
+  return (
+    <div className="rounded-xl bg-card p-4 space-y-3 text-sm">
+      <div>
+        <h3 className="font-bold">Tutorials & guided tours</h3>
+        <p className="mt-1 text-xs text-muted-foreground">Replay onboarding mascots and feature walkthroughs you previously dismissed.</p>
+      </div>
+      <button
+        onClick={() => { resetAllSeen(); toast.success("Tutorials reset — they'll appear again as you browse."); }}
+        className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90"
+      >
+        Reset all tutorials
+      </button>
+      <Link to="/tutorials" className="block text-xs font-bold text-primary">Browse all tutorials →</Link>
     </div>
   );
 }
