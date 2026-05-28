@@ -52,6 +52,10 @@ function MyListings() {
   const [saleTypeConfirm, setSaleTypeConfirm] = useState<null | { toAuction: boolean }>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    setSaleTypeConfirm(null);
+  }, [editing?.id]);
+
   async function load() {
     if (!user) return;
     const { data } = await supabase.from("listings")
