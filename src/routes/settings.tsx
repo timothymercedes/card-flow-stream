@@ -18,7 +18,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type Section = "account" | "shipping" | "notifications" | "language" | "privacy" | "payment" | "accessibility" | "seller";
+type Section = "account" | "shipping" | "notifications" | "language" | "privacy" | "payment" | "accessibility" | "seller" | "tutorials";
 
 function SettingsPage() {
   const { user, profile } = useAuth();
