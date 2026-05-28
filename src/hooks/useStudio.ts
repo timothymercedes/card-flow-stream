@@ -900,9 +900,49 @@ export function useStudio(opts: {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   const audioNodesRef = useRef<Map<string, MediaStreamAudioSourceNode>>(new Map());
+  // Mobile-resilience bookkeeping: auto-reconnect across network flaps
+  // (cell ↔ wifi handoff, lock screen, background) instead of ending the
+  // broadcast the first time the WHIP peer connection drops.
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakeLockRef = useRef<any>(null);
+  const intentionalStopRef = useRef(false);
+
+  const releaseWakeLock = useCallback(() => {
+    try { wakeLockRef.current?.release?.(); } catch {/* ignore */}
+    wakeLockRef.current = null;
+  }, []);
+
+  const requestWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) return;
+    try {
+      const wl: any = (navigator as any).wakeLock;
+      if (wl?.request) {
+        wakeLockRef.current = await wl.request("screen");
+        wakeLockRef.current?.addEventListener?.("release", () => {
+          wakeLockRef.current = null;
+        });
+      }
+    } catch {/* unsupported / denied — silent */}
+  }, []);
+
+  const teardownPc = useCallback(() => {
+    try { pcRef.current?.close(); } catch {}
+    pcRef.current = null;
+    const res = whipResRef.current;
+    if (res) {
+      try { fetch(res, { method: "DELETE" }).catch(() => {}); } catch {}
+    }
+    whipResRef.current = null;
+    try { audioCtxRef.current?.close(); } catch {}
+    audioCtxRef.current = null;
+    audioDestRef.current = null;
+    audioNodesRef.current.clear();
+  }, []);
 
   const startPublish = useCallback(async () => {
     if (!whipUrl || !canvasRef.current || pcRef.current) return;
+    intentionalStopRef.current = false;
     try {
       const audioCtx = new AudioContext();
       audioCtxRef.current = audioCtx;
@@ -934,6 +974,28 @@ export function useStudio(opts: {
       pcRef.current = pc;
       composite.getTracks().forEach((t) => pc.addTransceiver(t, { direction: "sendonly" }));
 
+      // Auto-reconnect on transport failure (mobile network flap, sleep, etc).
+      pc.addEventListener("connectionstatechange", () => {
+        if (pcRef.current !== pc) return;
+        const state = pc.connectionState;
+        if (state === "failed" || state === "disconnected" || state === "closed") {
+          if (intentionalStopRef.current) return;
+          teardownPc();
+          setPublishing(false);
+          const attempt = reconnectAttemptsRef.current + 1;
+          reconnectAttemptsRef.current = attempt;
+          if (attempt > 6) {
+            setError("Broadcast disconnected — please tap Go Live to resume.");
+            return;
+          }
+          const delay = Math.min(8000, 500 * 2 ** (attempt - 1));
+          if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = setTimeout(() => { void startPublish(); }, delay);
+        } else if (state === "connected") {
+          reconnectAttemptsRef.current = 0;
+        }
+      });
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
@@ -947,34 +1009,47 @@ export function useStudio(opts: {
       const answer = await r.text();
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
       setPublishing(true);
+      reconnectAttemptsRef.current = 0;
+      void requestWakeLock();
     } catch (e: any) {
       setError(e?.message || "Could not start broadcast");
-      try {
-        pcRef.current?.close();
-      } catch {}
-      pcRef.current = null;
+      teardownPc();
+      setPublishing(false);
     }
-  }, [whipUrl]);
+  }, [whipUrl, teardownPc, requestWakeLock]);
 
   const stopPublish = useCallback(() => {
-    try {
-      pcRef.current?.close();
-    } catch {}
-    pcRef.current = null;
-    const res = whipResRef.current;
-    if (res)
-      try {
-        fetch(res, { method: "DELETE" }).catch(() => {});
-      } catch {}
-    whipResRef.current = null;
-    try {
-      audioCtxRef.current?.close();
-    } catch {}
-    audioCtxRef.current = null;
-    audioDestRef.current = null;
-    audioNodesRef.current.clear();
+    intentionalStopRef.current = true;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    reconnectAttemptsRef.current = 0;
+    teardownPc();
+    releaseWakeLock();
     setPublishing(false);
-  }, []);
+  }, [teardownPc, releaseWakeLock]);
+
+  // Re-acquire wake lock when the tab returns to foreground (browsers drop it on hide).
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible" && publishing) void requestWakeLock();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [publishing, requestWakeLock]);
+
+  // Kick a reconnect immediately when the device comes back online.
+  useEffect(() => {
+    const onOnline = () => {
+      if (intentionalStopRef.current) return;
+      if (!whipUrl || pcRef.current) return;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = setTimeout(() => { void startPublish(); }, 300);
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [whipUrl, startPublish]);
 
   // Auto-publish once we have at least one source + WHIP URL
   useEffect(() => {
