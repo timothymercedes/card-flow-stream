@@ -629,7 +629,7 @@ function SellerHub() {
             <ul className="mt-1 space-y-0.5 text-[11px] text-red-200/90">
               {sellerStanding.payout_hold && <li>• Payouts are temporarily on hold for unshipped orders. Ship or refund pending items to restore.</li>}
               {sellerStanding.visibility_penalty_until && new Date(sellerStanding.visibility_penalty_until) > new Date() && (
-                <li>• Store visibility reduced until {new Date(sellerStanding.visibility_penalty_until).toLocaleDateString()} due to repeated late shipments.</li>
+                <li>• PB Store visibility reduced until {new Date(sellerStanding.visibility_penalty_until).toLocaleDateString()} due to repeated late shipments.</li>
               )}
               {sellerStanding.selling_restricted_until && new Date(sellerStanding.selling_restricted_until) > new Date() && (
                 <li>• Selling temporarily restricted until {new Date(sellerStanding.selling_restricted_until).toLocaleDateString()}.</li>

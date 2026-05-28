@@ -161,7 +161,7 @@ export function AdminUserDossier({
 
         {dossier.storeHistory.length > 0 && (
           <section className="mt-3 border rounded-lg p-3 bg-card">
-            <h4 className="font-semibold text-sm">Store name history</h4>
+            <h4 className="font-semibold text-sm">PB Store name history</h4>
             <ul className="text-xs mt-1 space-y-1">
               {dossier.storeHistory.map((h: any, i: number) => (
                 <li key={i}>
