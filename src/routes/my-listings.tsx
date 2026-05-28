@@ -337,6 +337,32 @@ function MyListings() {
               )}
               {editing.is_auction && (
                 <>
+              <div>
+                <div className="text-[11px] text-muted-foreground mb-1">Sale type</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ ...editing, is_auction: false })}
+                    className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition ${!editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
+                  >Buy Now</button>
+                  <button
+                    type="button"
+                    disabled={hasBids}
+                    onClick={() => setEditing({ ...editing, is_auction: true })}
+                    className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
+                  >Auction / Bid</button>
+                </div>
+                {hasBids && <p className="mt-1 text-[10px] text-amber-400">Sale type locked — bids already placed.</p>}
+              </div>
+
+              {!editing.is_auction && (
+                <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
+                  <input type="number" min="0.01" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
+                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
+                </label>
+              )}
+              {editing.is_auction && (
+                <>
                   <label className="block text-[11px] text-muted-foreground">
                     Starting bid ($) {hasBids && <span className="text-destructive">— locked, bids placed</span>}
                     <input type="number" min="0.01" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
