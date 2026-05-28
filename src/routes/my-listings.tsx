@@ -336,22 +336,68 @@ function MyListings() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditing({ ...editing, is_auction: false, starting_bid: null })}
+                    onClick={() => {
+                      if (editing.is_auction) {
+                        setSaleTypeConfirm({ toAuction: false });
+                      } else {
+                        setEditing({ ...editing, is_auction: false, starting_bid: null });
+                      }
+                    }}
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition ${!editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Buy Now</button>
                   <button
                     type="button"
                     disabled={hasBids}
-                    onClick={() => setEditing({
-                      ...editing,
-                      is_auction: true,
-                      price: null,
-                      auction_ends_at: editing.auction_ends_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-                    })}
+                    onClick={() => {
+                      if (!editing.is_auction) {
+                        setSaleTypeConfirm({ toAuction: true });
+                      } else {
+                        setEditing({
+                          ...editing,
+                          is_auction: true,
+                          price: null,
+                          auction_ends_at: editing.auction_ends_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        });
+                      }
+                    }}
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Auction / Bid</button>
                 </div>
                 {hasBids && <p className="mt-1 text-[10px] text-amber-400">Sale type locked — bids already placed.</p>}
+
+                {saleTypeConfirm && (
+                  <div ref={confirmRef} className="mt-2 rounded-lg border border-amber-500/40 bg-amber-950/20 p-3">
+                    <p className="text-[11px] text-amber-200">
+                      {saleTypeConfirm.toAuction
+                        ? "Switch to Auction? This will clear your Buy Now price and start accepting bids."
+                        : "Switch to Buy Now? This will clear your auction settings and stop accepting bids."}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        className="flex-1 rounded-lg bg-primary py-1.5 text-[11px] font-bold text-primary-foreground"
+                        onClick={() => {
+                          if (saleTypeConfirm.toAuction) {
+                            setEditing({
+                              ...editing,
+                              is_auction: true,
+                              price: null,
+                              auction_ends_at: editing.auction_ends_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                            });
+                          } else {
+                            setEditing({ ...editing, is_auction: false, starting_bid: null, auction_ends_at: null });
+                          }
+                          setSaleTypeConfirm(null);
+                        }}
+                      >Confirm switch</button>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-muted px-3 py-1.5 text-[11px]"
+                        onClick={() => setSaleTypeConfirm(null)}
+                      >Cancel</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {!editing.is_auction && (
