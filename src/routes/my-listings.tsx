@@ -361,12 +361,44 @@ function MyListings() {
               {editing.is_auction && (
                 <>
                   <label className="block text-[11px] text-muted-foreground">
+                    Auction ends <span className="text-destructive">*</span>
+                    {(() => {
+                      const iso = editing.auction_ends_at;
+                      const d = iso ? new Date(iso) : null;
+                      const localVal = d && !isNaN(d.getTime())
+                        ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                        : "";
+                      return (
+                        <input
+                          type="datetime-local"
+                          required
+                          value={localVal}
+                          min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setEditing({ ...editing, auction_ends_at: v ? new Date(v).toISOString() : null });
+                          }}
+                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm"
+                        />
+                      );
+                    })()}
+                    {editing.auction_ends_at && (
+                      <span className="mt-1 block text-[10px] text-muted-foreground">
+                        Ends {new Date(editing.auction_ends_at).toLocaleString()}
+                      </span>
+                    )}
+                  </label>
+                  <label className="block text-[11px] text-muted-foreground">
                     Starting bid ($) {hasBids && <span className="text-destructive">— locked, bids placed</span>}
                     <input type="number" min="0.01" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
                       onChange={(e) => setEditing({ ...editing, starting_bid: e.target.value === "" ? null : Number(e.target.value) })}
                       className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm disabled:opacity-50" />
                   </label>
                   <label className="block text-[11px] text-muted-foreground">Reserve price (optional)
+                    <input type="number" min="0" step="0.01" value={editing.reserve_price ?? ""} onChange={(e) => setEditing({ ...editing, reserve_price: e.target.value === "" ? null : Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
+                  </label>
+                  <label className="block text-[11px] text-muted-foreground">Buy Now price (optional, lets buyers skip the auction)
                     <input type="number" min="0" step="0.01" value={editing.reserve_price ?? ""} onChange={(e) => setEditing({ ...editing, reserve_price: e.target.value === "" ? null : Number(e.target.value) })}
                       className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
                   </label>
