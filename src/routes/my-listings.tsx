@@ -122,13 +122,14 @@ function MyListings() {
       update.starting_bid = Number(editing.starting_bid);
       update.current_bid = Number(editing.starting_bid);
     }
-    // When switching an existing listing to auction, set auction_ends_at if missing
-    if (editing.is_auction && !editing.auction_ends_at) {
-      const days = 3;
-      update.auction_ends_at = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    if (editing.is_auction) {
+      if (!editing.auction_ends_at) return toast.error("Set an auction end date and time");
+      const endsAt = new Date(editing.auction_ends_at);
+      if (isNaN(endsAt.getTime())) return toast.error("Invalid auction end date");
+      if (endsAt.getTime() <= Date.now()) return toast.error("Auction end must be in the future");
+      update.auction_ends_at = endsAt.toISOString();
       update.auction_status = "active";
-    }
-    if (!editing.is_auction) {
+    } else {
       update.auction_ends_at = null;
     }
     const { error } = await supabase.from("listings").update(update).eq("id", editing.id);
@@ -339,7 +340,12 @@ function MyListings() {
                   <button
                     type="button"
                     disabled={hasBids}
-                    onClick={() => setEditing({ ...editing, is_auction: true, price: null })}
+                    onClick={() => setEditing({
+                      ...editing,
+                      is_auction: true,
+                      price: null,
+                      auction_ends_at: editing.auction_ends_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                    })}
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Auction / Bid</button>
                 </div>
@@ -354,6 +360,34 @@ function MyListings() {
               )}
               {editing.is_auction && (
                 <>
+                  <label className="block text-[11px] text-muted-foreground">
+                    Auction ends <span className="text-destructive">*</span>
+                    {(() => {
+                      const iso = editing.auction_ends_at;
+                      const d = iso ? new Date(iso) : null;
+                      const localVal = d && !isNaN(d.getTime())
+                        ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                        : "";
+                      return (
+                        <input
+                          type="datetime-local"
+                          required
+                          value={localVal}
+                          min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setEditing({ ...editing, auction_ends_at: v ? new Date(v).toISOString() : null });
+                          }}
+                          className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm"
+                        />
+                      );
+                    })()}
+                    {editing.auction_ends_at && (
+                      <span className="mt-1 block text-[10px] text-muted-foreground">
+                        Ends {new Date(editing.auction_ends_at).toLocaleString()}
+                      </span>
+                    )}
+                  </label>
                   <label className="block text-[11px] text-muted-foreground">
                     Starting bid ($) {hasBids && <span className="text-destructive">— locked, bids placed</span>}
                     <input type="number" min="0.01" step="0.01" disabled={hasBids} value={editing.starting_bid ?? ""}
