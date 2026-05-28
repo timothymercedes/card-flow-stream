@@ -5,9 +5,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTutorialMode } from "@/lib/tutorialMode";
 
 const LS_PREFIX = "pbl_tour_v3_";
-/** key per (user, tour) so it doesn't repeat across accounts/devices logged-in. */
-function storageKey(uid: string | null | undefined, id: string) {
+/** key per (user, tour). We ALSO write a stable "any" key so dismissals
+ *  survive logout / auth hydration races — previous bug: "Don't show again"
+ *  reappeared because read happened with uid=undefined while write used uid. */
+function userKey(uid: string | null | undefined, id: string) {
   return `${LS_PREFIX}${uid || "guest"}_${id}`;
+}
+function anyKey(id: string) {
+  return `${LS_PREFIX}any_${id}`;
 }
 
 type Ctx = {
@@ -15,25 +20,23 @@ type Ctx = {
   triggerOnce: (id: keyof typeof TOURS) => void;
   markSeen: (id: keyof typeof TOURS) => void;
   hasSeen: (id: keyof typeof TOURS) => boolean;
-  /** Wipe all "don't show again" flags for current user — used by Replay menu. */
+  /** Wipe all "don't show again" flags — used by Settings → Reset tutorials. */
   resetAllSeen: () => void;
 };
 
 const TourCtx = createContext<Ctx>({} as Ctx);
 export function useTour() { return useContext(TourCtx); }
 
-/** Resolve the viewer's audience role for tour gating. */
 function resolveAudience(profile: { is_seller?: boolean } | null): "buyer" | "seller" {
   return profile?.is_seller ? "seller" : "buyer";
 }
-
 function audienceMatches(tour: Tour, role: "buyer" | "seller"): boolean {
   if (tour.audience === "any") return true;
   return tour.audience === role;
 }
 
 export function MascotTourProvider({ children }: { children: ReactNode }) {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const tutorial = useTutorialMode();
   const role = resolveAudience(profile);
   const uid = user?.id;
@@ -44,33 +47,40 @@ export function MascotTourProvider({ children }: { children: ReactNode }) {
 
   const hasSeen = useCallback((id: string) => {
     if (typeof window === "undefined") return false;
-    return !!localStorage.getItem(storageKey(uid, id));
+    return !!localStorage.getItem(userKey(uid, id)) || !!localStorage.getItem(anyKey(id));
   }, [uid]);
 
   const markSeen = useCallback((id: string) => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(storageKey(uid, id), "1");
+    try {
+      localStorage.setItem(userKey(uid, id), "1");
+      localStorage.setItem(anyKey(id), "1");
+    } catch {}
   }, [uid]);
 
   const startTour = useCallback((id: string, force = false) => {
     if (tutorial) return;
+    // CRITICAL: don't decide before auth hydrates, or we read with uid=undefined
+    // and dismissed tours reappear.
+    if (loading) return;
     const tour = TOURS[id]; if (!tour) return;
-    // Audience gate: never show the wrong tour to the wrong user.
     if (!audienceMatches(tour, role)) return;
     if (!force && hasSeen(id)) return;
     setActive(tour); setStep(0); setMinimized(false);
-  }, [hasSeen, role, tutorial]);
+  }, [hasSeen, role, tutorial, loading]);
 
   const triggerOnce = useCallback((id: string) => {
+    if (loading) return;
     if (hasSeen(id)) return;
     startTour(id);
-  }, [hasSeen, startTour]);
+  }, [hasSeen, startTour, loading]);
 
   const resetAllSeen = useCallback(() => {
     if (typeof window === "undefined") return;
-    const prefix = `${LS_PREFIX}${uid || "guest"}_`;
-    Object.keys(localStorage).filter((k) => k.startsWith(prefix)).forEach((k) => localStorage.removeItem(k));
-  }, [uid]);
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(LS_PREFIX))
+      .forEach((k) => localStorage.removeItem(k));
+  }, []);
 
   const close = useCallback((persist: boolean) => {
     if (persist && active) markSeen(active.id);
