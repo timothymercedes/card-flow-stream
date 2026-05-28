@@ -775,7 +775,7 @@ function Sell() {
               <textarea
                 className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none"
                 rows={3}
-                placeholder="Description"
+                placeholder="Description (required)"
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
               />
