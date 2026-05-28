@@ -1,4 +1,19 @@
 User-agent: *
-Disallow: /
+Allow: /
 
-# Private beta — search engines must not index this site until public launch.
+# Restrict crawlers from authenticated/private surfaces
+Disallow: /auth
+Disallow: /reset-password
+Disallow: /onboarding
+Disallow: /settings
+Disallow: /admin
+Disallow: /cart
+Disallow: /orders
+Disallow: /payouts
+Disallow: /messages
+Disallow: /bookmarks
+Disallow: /vault
+Disallow: /api/
+Disallow: /lovable/
+
+Sitemap: https://pullbidlive.com/sitemap.xml
