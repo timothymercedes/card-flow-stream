@@ -240,7 +240,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <HeaderSearch className="min-w-0 flex-1" />
           {isSeller && (
             <Link
-              to="/store"
+              to="/my-listings"
               aria-label="My Store"
               title="My Store"
               className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-primary/15 px-2.5 text-primary ring-1 ring-primary/30"
