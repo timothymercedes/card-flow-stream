@@ -188,7 +188,7 @@ export function UsernamePopover({
                 onClick={() => setOpen(false)}
                 className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground"
               >
-                <Store className="h-3 w-3" /> View Store
+                <Store className="h-3 w-3" /> View PB Store
               </Link>
               <Link
                 to="/messages/$userId"

@@ -270,7 +270,7 @@ function Sell() {
         <div className="px-6 py-16 text-center">
           <h1 className="text-xl font-bold">Claim your shop name</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Pick a unique store name so buyers know who they're purchasing from. You can do this in
+            Pick a unique PB Store name so buyers know who they're purchasing from. You can do this in
             your profile.
           </p>
           <Link
@@ -1454,11 +1454,11 @@ function LiveWizard(p: LiveWizardProps) {
           <div>
             <h2 className="text-base font-bold">Set up Pre-B (optional)</h2>
             <p className="text-xs text-muted-foreground">
-              Pick cards from your Vault to seed the Pre-Bid store. Viewers can bid before you go live.
+              Pick cards from your Vault to seed the Pre-Bid PB Store. Viewers can bid before you go live.
               You can still scan more cards live.
             </p>
             <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] leading-snug text-amber-700 dark:text-amber-300">
-              ⚠️ Heads up: once a card is sold or won — anywhere (Pre-Bid, live auction, or marketplace) — it's automatically removed from your Vault, the Marketplace, and any scheduled Pre-Bid stores. Please double-check before going live to make sure removed cards are no longer listed.
+              ⚠️ Heads up: once a card is sold or won — anywhere (Pre-Bid, live auction, or marketplace) — it's automatically removed from your Vault, the Marketplace, and any scheduled Pre-Bid PB Stores. Please double-check before going live to make sure removed cards are no longer listed.
             </p>
           </div>
 

@@ -95,7 +95,7 @@ export function AdminUserDossier({
             <div className="flex-1 min-w-0">
               <h3 className="font-bold">@{p?.username}</h3>
               {p?.shop_name && (
-                <p className="text-sm text-muted-foreground">Store: {p.shop_name}</p>
+                <p className="text-sm text-muted-foreground">PB Store: {p.shop_name}</p>
               )}
               <p className="text-[10px] font-mono text-muted-foreground mt-1">{userId}</p>
               <div className="flex gap-2 mt-2 flex-wrap text-[10px]">

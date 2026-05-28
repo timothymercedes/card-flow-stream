@@ -5,9 +5,9 @@ import { Construction, Sparkles, Bell, ShoppingBag } from "lucide-react";
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "Store — PullBid Live" },
-      { name: "description", content: "The PullBid Live Store is coming soon — exclusive merch, supplies, and member perks for subscribers." },
-      { property: "og:title", content: "PullBid Live Store — Coming Soon" },
+      { title: "PB Store — PullBid Live" },
+      { name: "description", content: "The PB Store is coming soon — exclusive merch, supplies, and member perks for subscribers." },
+      { property: "og:title", content: "PB Store — Coming Soon" },
       { property: "og:description", content: "Exclusive merch, supplies, and member perks for PullBid Live subscribers." },
     ],
   }),
@@ -29,7 +29,7 @@ function ShopComingSoon() {
           <Sparkles className="h-3 w-3" /> Coming Soon
         </span>
 
-        <h1 className="text-3xl font-black tracking-tight">PullBid Live Store</h1>
+        <h1 className="text-3xl font-black tracking-tight">PB Store</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           We're building an exclusive store for our subscriber community — premium supplies, limited merch, mystery packs, and member-only perks.
         </p>
