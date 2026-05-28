@@ -42,6 +42,7 @@ function SettingsPage() {
     { key: "language", label: t("settings.language"), icon: Globe },
     { key: "accessibility", label: t("settings.accessibility"), icon: A11yIcon },
     { key: "notifications", label: t("settings.notifications"), icon: Bell },
+    { key: "tutorials" as Section, label: t("settings.tutorials", "Tutorials"), icon: Sparkles },
     { key: "privacy", label: t("settings.privacy"), icon: ShieldCheck },
     { key: "payment", label: t("settings.payment"), icon: CreditCard },
     ...(profile?.is_seller ? [{ key: "seller" as Section, label: t("settings.seller"), icon: Store }] : []),
