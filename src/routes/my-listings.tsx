@@ -56,6 +56,18 @@ function MyListings() {
     setSaleTypeConfirm(null);
   }, [editing?.id]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (confirmRef.current && !confirmRef.current.contains(e.target as Node)) {
+        setSaleTypeConfirm(null);
+      }
+    }
+    if (saleTypeConfirm) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [saleTypeConfirm]);
+
   async function load() {
     if (!user) return;
     const { data } = await supabase.from("listings")
