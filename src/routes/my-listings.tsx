@@ -115,11 +115,21 @@ function MyListings() {
       shipping_price: editing.shipping_price != null ? Number(editing.shipping_price) : 0,
       accepts_offers: editing.accepts_offers,
       listing_type: editing.is_auction ? "auction" : fixedPrice > 0 ? "buy_now" : "offer",
+      is_auction: editing.is_auction,
     };
     // Starting bid only editable if no real bids yet
     if (editing.is_auction && !hasBids && editing.starting_bid != null) {
       update.starting_bid = Number(editing.starting_bid);
       update.current_bid = Number(editing.starting_bid);
+    }
+    // When switching an existing listing to auction, set auction_ends_at if missing
+    if (editing.is_auction && !editing.auction_ends_at) {
+      const days = 3;
+      update.auction_ends_at = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      update.auction_status = "active";
+    }
+    if (!editing.is_auction) {
+      update.auction_ends_at = null;
     }
     const { error } = await supabase.from("listings").update(update).eq("id", editing.id);
     if (error) return toast.error(error.message);
@@ -318,6 +328,23 @@ function MyListings() {
                 )}
               </div>
 
+              <div>
+                <div className="text-[11px] text-muted-foreground mb-1">Sale type</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ ...editing, is_auction: false })}
+                    className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition ${!editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
+                  >Buy Now</button>
+                  <button
+                    type="button"
+                    disabled={hasBids}
+                    onClick={() => setEditing({ ...editing, is_auction: true })}
+                    className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
+                  >Auction / Bid</button>
+                </div>
+                {hasBids && <p className="mt-1 text-[10px] text-amber-400">Sale type locked — bids already placed.</p>}
+              </div>
 
               {!editing.is_auction && (
                 <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
