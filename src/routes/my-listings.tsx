@@ -95,6 +95,7 @@ function MyListings() {
     const startingBid = Number(editing.starting_bid ?? 0);
     if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price or turn on offers");
     if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid");
+    if (!editing.condition) return toast.error("Select a condition (NM, LP, MP, or DMG)");
     const frontErr = validateListingImage(editing.image_url, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
     if (editing.back_image_url) {
@@ -107,6 +108,7 @@ function MyListings() {
       image_url: editing.image_url,
       back_image_url: editing.back_image_url,
       category: editing.category,
+      condition: editing.condition,
       price: !editing.is_auction && fixedPrice > 0 ? fixedPrice : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
