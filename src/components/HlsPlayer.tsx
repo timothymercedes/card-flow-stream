@@ -142,9 +142,20 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
     };
 
     const startHls = () => {
+      // Detect weak connections (2g/3g/save-data) and degrade gracefully:
+      // cap bitrate, increase buffer headroom so the player rides out blips.
+      const conn: any = typeof navigator !== "undefined" ? (navigator as any).connection : null;
+      const eff: string = conn?.effectiveType || "";
+      const saveData: boolean = !!conn?.saveData;
+      const isWeak = saveData || eff === "2g" || eff === "slow-2g" || eff === "3g";
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
+        lowLatencyMode: !isWeak, // weak networks: prefer stability over low latency
+        backBufferLength: 30,    // smoother seek/recovery without ballooning memory
+        maxBufferLength: isWeak ? 20 : 12,
+        maxMaxBufferLength: isWeak ? 60 : 30,
+        capLevelToPlayerSize: true,
+        capLevelOnFPSDrop: true,
         // Aggressive retry: tolerate brief network blips
         manifestLoadingMaxRetry: 6,
         manifestLoadingRetryDelay: 500,
