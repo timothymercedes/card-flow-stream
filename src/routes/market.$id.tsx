@@ -18,6 +18,7 @@ import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { MoreFromSeller } from "@/components/MoreFromSeller";
+import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
 
