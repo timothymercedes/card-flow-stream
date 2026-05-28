@@ -215,6 +215,17 @@ function MyListings() {
                     <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
                       {categoryEmoji(l.category)} {categoryLabel(l.category)}
                     </span>
+                  {l.condition ? (
+                    <span className="ml-1 inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      {CONDITIONS.find((c) => c.value === l.condition)?.label ?? l.condition}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setEditing(l)}
+                      className="ml-1 inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-500/40"
+                    >
+                      <AlertTriangle className="h-3 w-3" /> Set condition
+                    </button>
                   )}
                   <p className="text-xs font-bold text-primary">
                     {display.kind === "offer" ? "Make Offer" : display.suffix ? `Bid ${display.label}` : display.label}
