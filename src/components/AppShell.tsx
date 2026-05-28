@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!tutorial && <AdminAlertBanner />}
 
       {/* ========== Header ========== */}
-      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
         {/* Top row — logo + (desktop nav) + actions */}
         <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
           <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="PullBid Live home">
