@@ -852,7 +852,13 @@ function Sell() {
                     label="Buy Now"
                     hint="Set a fixed price buyers can pay instantly."
                     on={enableBuyNow}
-                    set={setEnableBuyNow}
+                    set={(on) => {
+                      setEnableBuyNow(on);
+                      if (on) {
+                        setEnableAuction(false);
+                        setAuctionStart("");
+                      }
+                    }}
                   />
                   {enableBuyNow && (
                     <input
@@ -869,7 +875,13 @@ function Sell() {
                     label="Auction"
                     hint="Buyers place bids. Highest at end-time wins."
                     on={enableAuction}
-                    set={setEnableAuction}
+                    set={(on) => {
+                      setEnableAuction(on);
+                      if (on) {
+                        setEnableBuyNow(false);
+                        setBuyNowPrice("");
+                      }
+                    }}
                   />
                   {enableAuction && (
                     <div className="grid grid-cols-2 gap-2">

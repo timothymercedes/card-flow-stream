@@ -333,13 +333,13 @@ function MyListings() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditing({ ...editing, is_auction: false })}
+                    onClick={() => setEditing({ ...editing, is_auction: false, starting_bid: null })}
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition ${!editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Buy Now</button>
                   <button
                     type="button"
                     disabled={hasBids}
-                    onClick={() => setEditing({ ...editing, is_auction: true })}
+                    onClick={() => setEditing({ ...editing, is_auction: true, price: null })}
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Auction / Bid</button>
                 </div>
