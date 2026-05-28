@@ -468,7 +468,7 @@ function MyListings() {
               </label>
               <div className="flex gap-2 pt-1">
                 <button onClick={saveEdit} className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save</button>
-                <button onClick={() => setEditing(null)} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
+                <button onClick={() => { setSaleTypeConfirm(null); setEditing(null); }} className="rounded-lg bg-muted px-3 py-2 text-sm">Cancel</button>
               </div>
             </div>
           </div>
