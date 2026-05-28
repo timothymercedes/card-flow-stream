@@ -1,5 +1,6 @@
-// Web Push subscribe/unsubscribe helpers.
+// Push subscribe/unsubscribe helpers — web (VAPID) + native (Capacitor APNs/FCM).
 import { supabase } from "@/integrations/supabase/client";
+import { isNative, nativePlatform } from "@/lib/capacitor";
 
 // Public VAPID key — safe to ship in client bundle.
 export const VAPID_PUBLIC_KEY =
@@ -19,6 +20,38 @@ export function pushSupported(): boolean {
 }
 
 export async function ensurePushSubscribed(userId: string): Promise<{ ok: boolean; reason?: string }> {
+  // Native shell: use APNs / FCM via Capacitor.
+  if (isNative()) {
+    try {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const perm = await PushNotifications.requestPermissions();
+      if (perm.receive !== "granted") return { ok: false, reason: "Permission denied" };
+      await new Promise<void>((resolve, reject) => {
+        const okSub = PushNotifications.addListener("registration", async (token) => {
+          const endpoint = `${nativePlatform()}://${token.value}`;
+          await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+          const { error } = await supabase.from("push_subscriptions").insert({
+            user_id: userId, endpoint, p256dh: token.value, auth_key: nativePlatform(),
+          });
+          okSub.then((s) => s.remove());
+          errSub.then((s) => s.remove());
+          if (error) reject(new Error(error.message));
+          else resolve();
+        });
+        const errSub = PushNotifications.addListener("registrationError", (err) => {
+          okSub.then((s) => s.remove());
+          errSub.then((s) => s.remove());
+          reject(new Error(err.error || "Registration error"));
+        });
+        void PushNotifications.register();
+      });
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, reason: e?.message ?? "Native push failed" };
+    }
+  }
+
+  // Web/PWA: VAPID + Service Worker.
   if (!pushSupported()) return { ok: false, reason: "Notifications not supported on this device" };
   const perm = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (perm !== "granted") return { ok: false, reason: "Permission denied" };

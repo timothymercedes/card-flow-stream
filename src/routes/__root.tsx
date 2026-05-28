@@ -15,6 +15,7 @@ import { RealtimeStatusBadge } from "@/components/RealtimeStatusBadge";
 import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
 import { BidAnnouncer } from "@/components/BidAnnouncer";
 import { AuthGateProvider } from "@/hooks/useAuthGate";
+import { CapacitorBootstrap } from "@/components/CapacitorBootstrap";
 
 
 function NotFoundComponent() {
@@ -92,6 +93,7 @@ function RootComponent() {
             <A11yClassSync />
             <TutorialModeBootstrap />
             <PerfMonitorBootstrap />
+            <CapacitorBootstrap />
             <BetaGate>
               <Outlet />
               <LegalGate />
