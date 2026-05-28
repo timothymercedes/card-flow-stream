@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { AppShell } from "@/components/AppShell";
 import { Calendar, Bookmark, BookmarkCheck, Radio, ArrowLeft, Users } from "lucide-react";
+import { ShareButton } from "@/components/ShareButton";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/shows/$id")({ component: ShowDetail });
