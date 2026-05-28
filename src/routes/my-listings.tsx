@@ -5,12 +5,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
-import { Tag, Trash2, RefreshCw, Pencil, Clock } from "lucide-react";
+import { Tag, Trash2, RefreshCw, Pencil, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDisplay";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings });
+
+const CONDITIONS = [
+  { value: "NM", label: "NM", help: "Near Mint" },
+  { value: "LP", label: "LP", help: "Lightly Played" },
+  { value: "MP", label: "MP", help: "Moderately Played" },
+  { value: "Damaged", label: "DMG", help: "Damaged" },
+] as const;
+type Condition = typeof CONDITIONS[number]["value"];
 
 type Listing = {
   id: string; title: string; description: string | null; image_url: string | null;
@@ -23,6 +31,7 @@ type Listing = {
   shipping_price: number | null;
   reserve_price: number | null;
   category: string | null;
+  condition: Condition | null;
 };
 
 function fmtRemain(iso: string) {
