@@ -321,7 +321,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={tab.to}
                 aria-label={t(tab.labelKey)}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
+                className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors active:scale-95 ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
