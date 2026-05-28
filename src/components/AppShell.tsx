@@ -306,7 +306,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ========== Mobile bottom nav ========== */}
       <nav
         aria-label={t("nav.primary", "Primary")}
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+        data-bottom-nav
+        className="pb-bottom-nav fixed bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl transition-transform duration-200 lg:hidden"
       >
         <div
           className="mx-auto grid w-full max-w-2xl"
