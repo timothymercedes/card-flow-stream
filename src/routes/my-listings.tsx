@@ -340,7 +340,12 @@ function MyListings() {
                   <button
                     type="button"
                     disabled={hasBids}
-                    onClick={() => setEditing({ ...editing, is_auction: true, price: null })}
+                    onClick={() => setEditing({
+                      ...editing,
+                      is_auction: true,
+                      price: null,
+                      auction_ends_at: editing.auction_ends_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                    })}
                     className={`rounded-lg px-3 py-2 text-xs font-bold ring-1 transition disabled:opacity-50 ${editing.is_auction ? "bg-primary text-primary-foreground ring-primary" : "bg-card ring-border"}`}
                   >Auction / Bid</button>
                 </div>
