@@ -328,15 +328,6 @@ function MyListings() {
                 )}
               </div>
 
-
-              {!editing.is_auction && (
-                <label className="block text-[11px] text-muted-foreground">Buy Now price ($)
-                  <input type="number" min="0.01" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })}
-                    className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm" />
-                </label>
-              )}
-              {editing.is_auction && (
-                <>
               <div>
                 <div className="text-[11px] text-muted-foreground mb-1">Sale type</div>
                 <div className="grid grid-cols-2 gap-2">
