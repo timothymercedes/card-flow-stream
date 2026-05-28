@@ -49,6 +49,8 @@ function MyListings() {
   const [items, setItems] = useState<Listing[]>([]);
   const [filter, setFilter] = useState<"active" | "expired" | "all">("active");
   const [editing, setEditing] = useState<Listing | null>(null);
+  const [saleTypeConfirm, setSaleTypeConfirm] = useState<null | { toAuction: boolean }>(null);
+  const confirmRef = useRef<HTMLDivElement>(null);
 
   async function load() {
     if (!user) return;
