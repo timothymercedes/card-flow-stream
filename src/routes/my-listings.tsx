@@ -405,10 +405,20 @@ function MyListings() {
                               ...editing,
                               is_auction: true,
                               price: null,
+                              current_bid: null,
                               auction_ends_at: editing.auction_ends_at || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
                             });
                           } else {
-                            setEditing({ ...editing, is_auction: false, starting_bid: null, auction_ends_at: null });
+                            setEditing({
+                              ...editing,
+                              is_auction: false,
+                              price: null,
+                              starting_bid: null,
+                              current_bid: null,
+                              auction_ends_at: null,
+                              reserve_price: null,
+                              buy_now_price: null,
+                            });
                           }
                           setSaleTypeConfirm(null);
                         }}
