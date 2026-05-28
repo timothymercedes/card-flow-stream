@@ -247,6 +247,9 @@ function LiveDetail() {
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const endedRef = useRef(false);
+  // Prevents double-submit when users rapidly double-tap a bid button on mobile.
+  // Cleared in placeBidAmount's finally block.
+  const bidInFlightRef = useRef(false);
   const auctionStartLockRef = useRef(false);
   const auctionFinalizingRef = useRef(false);
   const [auctionStartBusy, setAuctionStartBusy] = useState(false);
@@ -2367,11 +2370,20 @@ function LiveDetail() {
     if (!auctionLive) return toast.error("Auction not running");
     const cur = Number(stream.current_bid || 0);
     if (amount <= cur) return toast.error(`Bid must be > $${cur}`);
+    // Hard guard against rapid double-taps placing two bids at the same amount.
+    if (bidInFlightRef.current) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return toast.error("You're offline — bid not sent");
+    }
+    bidInFlightRef.current = true;
+    // Safety release in case anything below throws before the finally below runs.
+    const releaseTimer = setTimeout(() => { bidInFlightRef.current = false; }, 4000);
     const prevBidder = stream.current_bidder_id;
 
     intlAck.gate(async () => {
       // Atomic server-side bid: locks the row, enforces min increment, applies
       // anti-snipe / sudden-death, writes bid history + audit log.
+      try {
       const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
         _stream_id: id,
         _amount: amount,
@@ -2442,6 +2454,10 @@ function LiveDetail() {
         body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
         link: `/live/${id}`,
       }).then(() => null);
+      } finally {
+        clearTimeout(releaseTimer);
+        bidInFlightRef.current = false;
+      }
     });
   }
 
