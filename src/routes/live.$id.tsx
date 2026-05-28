@@ -2454,6 +2454,10 @@ function LiveDetail() {
         body: `🥇 You're winning "${stream.current_item || stream.title}" at $${amount}`,
         link: `/live/${id}`,
       }).then(() => null);
+      } finally {
+        clearTimeout(releaseTimer);
+        bidInFlightRef.current = false;
+      }
     });
   }
 
