@@ -149,6 +149,8 @@ function MyListings() {
       update.auction_status = "active";
     } else {
       update.auction_ends_at = null;
+      update.starting_bid = null;
+      update.current_bid = null;
     }
     const { error } = await supabase.from("listings").update(update).eq("id", editing.id);
     if (error) return toast.error(error.message);
