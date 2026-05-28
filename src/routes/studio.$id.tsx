@@ -53,11 +53,17 @@ function Studio() {
     (async () => {
       const { data } = await supabase
         .from("live_streams")
-        .select("id, seller_id, title, status, cf_whip_url, cf_playback_hls")
+        .select("id, seller_id, title, status, cf_playback_hls")
         .eq("id", id)
         .maybeSingle();
+      // Cloudflare credentials live in the owner-only credentials table.
+      const { data: creds } = await supabase
+        .from("live_stream_credentials")
+        .select("cf_whip_url")
+        .eq("stream_id", id)
+        .maybeSingle();
       if (!active) return;
-      setStream((data as any) || null);
+      setStream(data ? ({ ...(data as any), cf_whip_url: (creds as any)?.cf_whip_url ?? null }) : null);
       setLoading(false);
     })();
     return () => { active = false; };
