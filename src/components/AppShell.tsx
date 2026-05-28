@@ -238,6 +238,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 pb-2 sm:px-4 lg:hidden">
           <BackButton />
           <HeaderSearch className="min-w-0 flex-1" />
+          {isSeller && (
+            <Link
+              to="/store"
+              aria-label="My Store"
+              title="My Store"
+              className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-primary/15 px-2.5 text-primary ring-1 ring-primary/30"
+            >
+              <Package className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="text-xs font-semibold">My Store</span>
+            </Link>
+          )}
           <Link
             to="/showoff"
             aria-label={t("nav.flexLive")}
@@ -252,10 +263,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Desktop search row */}
         <div className="mx-auto hidden w-full max-w-7xl items-center gap-2 px-4 pb-3 lg:flex">
           <HeaderSearch className="min-w-0 max-w-xl flex-1" />
+          {isSeller && (
+            <Link
+              to="/store"
+              aria-label="My Store"
+              className="ml-auto inline-flex h-8 items-center gap-1 rounded-full bg-primary/15 px-3 text-primary ring-1 ring-primary/30"
+            >
+              <Package className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="text-xs font-semibold">My Store</span>
+            </Link>
+          )}
           <Link
             to="/showoff"
             aria-label={t("nav.flexLive")}
-            className="ml-auto inline-flex h-8 items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-3 text-white shadow-sm"
+            className={`${isSeller ? "" : "ml-auto"} inline-flex h-8 items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-3 text-white shadow-sm`}
           >
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="text-xs font-semibold">{t("nav.flexLive")}</span>
