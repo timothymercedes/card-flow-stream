@@ -500,6 +500,7 @@ function Sell() {
 
   async function createListing() {
     if (!title.trim()) return toast.error("Add a title");
+    if (!desc.trim()) return toast.error("Add a description");
     const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
     const backErr = validateListingImage(backImageUrl, { field: "Back photo" });
@@ -774,7 +775,7 @@ function Sell() {
               <textarea
                 className="w-full resize-none rounded-xl bg-input px-4 py-3 text-sm outline-none"
                 rows={3}
-                placeholder="Description"
+                placeholder="Description (required)"
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
               />
