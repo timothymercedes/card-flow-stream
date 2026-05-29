@@ -37,7 +37,7 @@ workflows:
         BUNDLE_ID: "com.pullbidlive.app"
         # PROFILE_NAME is informational only — signing matches on BUNDLE_ID, not the exact name.
         PROFILE_NAME: "Pull Bid Live App Store Profile"
-        APP_STORE_APPLE_ID: "0000000000"   # <-- replace with your numeric App Store Connect App ID
+        APP_STORE_APPLE_ID: "6774468951"   # numeric App Store Connect App ID
         XCODE_SCHEME: "App"
 
 
