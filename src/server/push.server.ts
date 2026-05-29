@@ -45,7 +45,8 @@ export async function sendPushToUsers(
   category?: NotifyCategory,
 ): Promise<{ sent: number; cleaned: number; skipped: number }> {
   if (userIds.length === 0) return { sent: 0, cleaned: 0, skipped: 0 };
-  if (!(await configure())) return { sent: 0, cleaned: 0, skipped: 0 };
+  const webPushReady = await configure();
+
 
   let allowedIds = userIds;
   let skipped = 0;
