@@ -48,6 +48,12 @@ workflows:
         script: |
           bunx cap add ios || true
           bunx cap sync ios
+      - name: Install CocoaPods (generates App.xcworkspace)
+        script: |
+          cd ios/App
+          pod install --repo-update
+          test -d App.xcworkspace
+
       - name: Drop in Firebase config (GoogleService-Info.plist)
         script: |
           cp ios-config/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
