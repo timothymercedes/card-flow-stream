@@ -46,13 +46,11 @@ workflows:
 
       - name: Add iOS platform & sync
         script: |
-          bunx cap add ios || true
+          bunx cap add ios
           bunx cap sync ios
-      - name: Install CocoaPods (generates App.xcworkspace)
-        script: |
-          cd ios/App
-          pod install --repo-update
-          test -d App.xcworkspace
+          # Capacitor 8 uses Swift Package Manager (no CocoaPods / no .xcworkspace)
+          test -d ios/App/App.xcodeproj
+
 
       - name: Drop in Firebase config (GoogleService-Info.plist)
         script: |
