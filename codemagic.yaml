@@ -103,7 +103,6 @@ workflows:
             --project "ios/App/App.xcodeproj" \
             --scheme "$XCODE_SCHEME"
 
-            --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
