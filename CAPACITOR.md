@@ -24,8 +24,9 @@ via [Capacitor](https://capacitorjs.com).
   swap for `@capacitor/push-notifications` inside the native shell (see below).
 
 ## One-time setup (on your local Mac / PC)
+# 2. Build (validates the project; native shell loads the hosted site)
+bun run build
 
-You **must** run these locally — Lovable's sandbox cannot build native binaries.
 
 ```bash
 # 1. Pull the repo from GitHub (use the GitHub button in Lovable)
