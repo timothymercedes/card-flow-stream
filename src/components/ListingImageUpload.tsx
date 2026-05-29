@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageCompress";
 
 type Props = {
   value: string;
@@ -21,16 +22,20 @@ export function ListingImageUpload({ value, onChange, label = "Photo", className
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
-  async function handleFile(file: File) {
+  async function handleFile(rawFile: File) {
     if (!user) return toast.error("Sign in to upload");
-    if (file.size > 8 * 1024 * 1024) return toast.error("Image must be under 8MB");
+    // Reject only absurdly large originals; we downscale everything below.
+    if (rawFile.size > 40 * 1024 * 1024) return toast.error("Image must be under 40MB");
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      // Downscale + re-encode to JPEG on-device: fast cellular uploads and
+      // guarantees a web-displayable file (iPhone HEIC won't render raw).
+      const file = await compressImage(rawFile, { maxDimension: 1600, quality: 0.82 });
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
       const { error } = await supabase.storage.from("listing-images").upload(path, file, {
         cacheControl: "3600",
         upsert: false,
+        contentType: file.type || "image/jpeg",
       });
       if (error) throw error;
       const { data } = supabase.storage.from("listing-images").getPublicUrl(path);
@@ -42,6 +47,7 @@ export function ListingImageUpload({ value, onChange, label = "Photo", className
       setBusy(false);
     }
   }
+
 
   return (
     <div className={className}>
