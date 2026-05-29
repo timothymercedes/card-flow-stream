@@ -114,8 +114,13 @@ iOS — no additional secret is needed.
 ## App Store / Play Store checklist
 
 - [ ] Bump version in `ios/App/App.xcodeproj` and `android/app/build.gradle`.
-- [ ] Generate app icons + splash from `public/logo.png`
-      (`bunx @capacitor/assets generate --iconBackgroundColor "#0a0a0a"`).
+- [x] App icon + splash source assets are committed under `assets/`
+      (`icon.png` 1024², `splash.png`/`splash-dark.png` 2732², plus adaptive
+      `icon-foreground.png` / `icon-background.png`). Generate the native
+      icon sets with:
+      `bunx @capacitor/assets generate --assetPath assets --iconBackgroundColor "#0a0a0a" --splashBackgroundColor "#0a0a0a"`
+- [x] PWA icons (`/icon-192.png`, `/icon-512.png`, maskable, apple-touch-icon)
+      are generated and wired into `public/manifest.json`.
 - [ ] Privacy policy URL → use `https://pullbidlive.com/legal/privacy`.
 - [ ] App Tracking Transparency: not needed (no third-party tracking SDKs).
 - [ ] Test on iPhone SE (smallest), iPhone 15 Pro Max, Pixel 8, foldable.
