@@ -93,22 +93,32 @@ workflows:
         script: |
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
             --type IOS_APP_STORE \
-            --create
+            --strict-match-identifier \
+            --create \
+            --delete-stale-profiles
           keychain add-certificates
+          test -n "$(find "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit)"
+          security find-identity -v -p codesigning
           cd ios/App
           # use-profiles MUST be the last step before build so nothing rewrites
           # project.pbxproj after the signing settings are applied. Run it from
           # the directory that contains App.xcodeproj so the generated Capacitor
           # project is patched instead of being skipped from the repo root.
-          xcode-project use-profiles --verbose
+          xcode-project use-profiles \
+            --project App.xcodeproj \
+            --archive-method app-store \
+            --code-signing-setup-verbose-logging \
+            --verbose
           xcodebuild -project App.xcodeproj -scheme "$XCODE_SCHEME" -showBuildSettings | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|PROVISIONING_PROFILE_SPECIFIER"
           xcodebuild -project App.xcodeproj -scheme "$XCODE_SCHEME" -showBuildSettings | awk -F'= ' '/PROVISIONING_PROFILE_SPECIFIER =/ && length($2) > 0 { found=1 } END { exit(found ? 0 : 1) }'
       - name: Build & archive .ipa
         script: |
           xcode-project build-ipa \
             --project "ios/App/App.xcodeproj" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --export-options-plist "$HOME/export_options.plist"
 
 
     artifacts:
