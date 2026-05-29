@@ -16,6 +16,7 @@ Keep this in sync with the in-app copy and the marketing site (pullbidlive.com).
 | Marketing URL | https://pullbidlive.com |
 | Privacy Policy URL | https://pullbidlive.com/legal/privacy |
 | Terms URL | https://pullbidlive.com/legal/terms |
+| Account Deletion URL (Play) | https://pullbidlive.com/legal/account-deletion |
 
 ## Subtitle (App Store, 30 char max)
 
@@ -128,7 +129,7 @@ Users can permanently delete their account **in-app**:
 **Settings → Account → Delete account** (type `DELETE` to confirm). This calls
 the `deleteMyAccount` server function, which purges user-scoped data and removes
 the auth account. Provide this same path in the App Store review notes and add
-`https://pullbidlive.com/support` as the Google Play **Account deletion URL**
+`https://pullbidlive.com/legal/account-deletion` as the Google Play **Account deletion URL**
 (Play Console → App content → Data safety → Account deletion).
 
 ## Review notes (paste into App Store Connect "Notes")

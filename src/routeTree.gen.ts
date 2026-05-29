@@ -57,6 +57,7 @@ import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalImportantNoticeRouteImport } from './routes/legal.important-notice'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
+import { Route as LegalAccountDeletionRouteImport } from './routes/legal.account-deletion'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
@@ -325,6 +326,11 @@ const LegalBuyerTermsRoute = LegalBuyerTermsRouteImport.update({
   path: '/legal/buyer-terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalAccountDeletionRoute = LegalAccountDeletionRouteImport.update({
+  id: '/legal/account-deletion',
+  path: '/legal/account-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
@@ -499,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/important-notice': typeof LegalImportantNoticeRoute
@@ -574,6 +581,7 @@ export interface FileRoutesByTo {
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/important-notice': typeof LegalImportantNoticeRoute
@@ -650,6 +658,7 @@ export interface FileRoutesById {
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
+  '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
   '/legal/important-notice': typeof LegalImportantNoticeRoute
@@ -727,6 +736,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/performance'
     | '/email/unsubscribe'
+    | '/legal/account-deletion'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
     | '/legal/important-notice'
@@ -802,6 +812,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/performance'
     | '/email/unsubscribe'
+    | '/legal/account-deletion'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
     | '/legal/important-notice'
@@ -877,6 +888,7 @@ export interface FileRouteTypes {
     | '/admin_/finance'
     | '/admin_/performance'
     | '/email/unsubscribe'
+    | '/legal/account-deletion'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
     | '/legal/important-notice'
@@ -949,6 +961,7 @@ export interface RootRouteChildren {
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
   LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
   LegalImportantNoticeRoute: typeof LegalImportantNoticeRoute
@@ -1326,6 +1339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalBuyerTermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/account-deletion': {
+      id: '/legal/account-deletion'
+      path: '/legal/account-deletion'
+      fullPath: '/legal/account-deletion'
+      preLoaderRoute: typeof LegalAccountDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/email/unsubscribe': {
       id: '/email/unsubscribe'
       path: '/email/unsubscribe'
@@ -1572,6 +1592,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  LegalAccountDeletionRoute: LegalAccountDeletionRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
   LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
   LegalImportantNoticeRoute: LegalImportantNoticeRoute,
