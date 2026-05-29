@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
+import { ensurePushSubscribed, disablePush, pushSupported, getPushStatus } from "@/lib/push";
+import { isNative } from "@/lib/capacitor";
 import { toast } from "sonner";
 
 type Prefs = {
@@ -63,7 +64,10 @@ export function NotificationSettings() {
       }
       setLoading(false);
     })();
-    if (pushSupported() && navigator.serviceWorker?.getRegistration) {
+    if (isNative()) {
+      // Native shell: reflect the OS-level permission as the device push state.
+      getPushStatus().then((s) => setPushSubbed(s === "granted"));
+    } else if (pushSupported() && navigator.serviceWorker?.getRegistration) {
       navigator.serviceWorker.getRegistration().then(async (reg) => {
         const sub = await reg?.pushManager.getSubscription();
         setPushSubbed(!!sub);
@@ -120,13 +124,13 @@ export function NotificationSettings() {
               Push on this device
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {pushSupported()
+              {isNative() || pushSupported()
                 ? "Get instant alerts even when the app isn't open."
                 : "This browser doesn't support push notifications."}
             </p>
           </div>
           <button
-            disabled={pushBusy || !pushSupported()}
+            disabled={pushBusy || !(isNative() || pushSupported())}
             onClick={togglePushDevice}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
               pushSubbed ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
