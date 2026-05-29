@@ -115,6 +115,30 @@ workflows:
           require_env APP_STORE_CONNECT_KEY_IDENTIFIER
           require_env APP_STORE_CONNECT_ISSUER_ID
           require_env CERTIFICATE_PRIVATE_KEY
+          # --- Credential diagnostics (private key stays masked) ---
+          # A 401 NOT_AUTHORIZED almost always means the values stored in the
+          # app_store_credentials group don't match a valid API key. Verify the
+          # Key ID and Issuer ID actually in use match the expected pair:
+          #   Expected KEY ID    : NUD5JWPWV8
+          #   Expected ISSUER ID : 9c17757b-2565-42c8-b52c-add9e4b65302
+          echo "Key ID in use    : $APP_STORE_CONNECT_KEY_IDENTIFIER"
+          echo "Issuer ID in use : $APP_STORE_CONNECT_ISSUER_ID"
+          if [ "$APP_STORE_CONNECT_KEY_IDENTIFIER" != "NUD5JWPWV8" ]; then
+            echo "WARNING: Key ID does not match the expected NUD5JWPWV8 — update the app_store_credentials group."
+          fi
+          if [ "$APP_STORE_CONNECT_ISSUER_ID" != "9c17757b-2565-42c8-b52c-add9e4b65302" ]; then
+            echo "WARNING: Issuer ID does not match the expected value — update the app_store_credentials group."
+          fi
+          # Sanity-check the .p8 private key shape without printing it.
+          case "$APP_STORE_CONNECT_PRIVATE_KEY" in
+            *"BEGIN PRIVATE KEY"*) echo "Private key format: OK (PEM .p8 contents detected)";;
+            *) echo "WARNING: APP_STORE_CONNECT_PRIVATE_KEY does not contain a PEM header — paste the full .p8 file contents (including BEGIN/END lines).";;
+          esac
+          # Fail fast with a clear auth error before any signing work.
+          app-store-connect list-certificates --type IOS_DISTRIBUTION >/dev/null || {
+            echo "App Store Connect authentication FAILED (401). Check Key ID / Issuer ID / private key in the app_store_credentials group."
+            exit 1
+          }
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --platform IOS \
