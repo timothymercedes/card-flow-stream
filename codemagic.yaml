@@ -38,14 +38,15 @@ workflows:
         script: |
           npm install -g bun
           bun install
-      - name: Build web bundle (dist/)
+      - name: Build web bundle (dist/client/)
         script: |
           bun run build
+          test -f dist/client/index.html
 
       - name: Add iOS platform & sync
         script: |
-          npx cap add ios || true
-          npx cap sync ios
+          bunx cap add ios || true
+          bunx cap sync ios
       - name: Drop in Firebase config (GoogleService-Info.plist)
         script: |
           cp ios-config/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
@@ -129,14 +130,15 @@ workflows:
         script: |
           npm install -g bun
           bun install
-      - name: Build web bundle (dist/)
+      - name: Build web bundle (dist/client/)
         script: |
           bun run build
+          test -f dist/client/index.html
 
       - name: Add Android platform & sync
         script: |
-          npx cap add android || true
-          npx cap sync android
+          bunx cap add android || true
+          bunx cap sync android
       - name: Drop in Firebase config (google-services.json)
         script: |
           cp android-config/google-services.json android/app/google-services.json
