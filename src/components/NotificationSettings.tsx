@@ -124,13 +124,13 @@ export function NotificationSettings() {
               Push on this device
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {pushSupported()
+              {isNative() || pushSupported()
                 ? "Get instant alerts even when the app isn't open."
                 : "This browser doesn't support push notifications."}
             </p>
           </div>
           <button
-            disabled={pushBusy || !pushSupported()}
+            disabled={pushBusy || !(isNative() || pushSupported())}
             onClick={togglePushDevice}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
               pushSubbed ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
