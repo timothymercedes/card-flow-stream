@@ -59,6 +59,21 @@ workflows:
           # Capacitor 8 uses Swift Package Manager (no CocoaPods / no .xcworkspace)
           test -d ios/App/App.xcodeproj
 
+      - name: Generate app icons & splash (incl. 1024 App Store icon)
+        script: |
+          bunx @capacitor/assets generate \
+            --assetPath assets \
+            --ios \
+            --iconBackgroundColor "#0a0a0a" \
+            --iconBackgroundColorDark "#0a0a0a" \
+            --splashBackgroundColor "#0a0a0a" \
+            --splashBackgroundColorDark "#0a0a0a"
+          # Verify the required 1024x1024 App Store marketing icon was produced
+          ICONSET=ios/App/App/Assets.xcassets/AppIcon.appiconset
+          test -f "$ICONSET/AppIcon-512@2x.png"
+          test -f "$ICONSET/Contents.json"
+
+
 
       - name: Drop in Firebase config (GoogleService-Info.plist)
         script: |
