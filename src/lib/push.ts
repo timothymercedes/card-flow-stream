@@ -108,6 +108,30 @@ export async function ensurePushSubscribed(userId: string): Promise<{ ok: boolea
 }
 
 export async function disablePush(): Promise<void> {
+  // Native shell: remove the APNs/FCM subscription row for this device.
+  if (isNative()) {
+    try {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      // Best-effort: ask the OS to forget delivered notifications/badge.
+      await PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+      const platform = nativePlatform();
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (userId) {
+        // Native rows are stored as "<platform>://<token>" for this user.
+        await supabase
+          .from("push_subscriptions")
+          .delete()
+          .eq("user_id", userId)
+          .like("endpoint", `${platform}://%`);
+      }
+    } catch {
+      /* swallow — disabling is best-effort */
+    }
+    return;
+  }
+
+  // Web/PWA: unsubscribe the Service Worker push subscription.
   if (!pushSupported()) return;
   const reg = await navigator.serviceWorker.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
