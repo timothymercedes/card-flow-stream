@@ -122,7 +122,7 @@ function Page() {
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <StatCard
             icon={<Smartphone className="h-4 w-4 text-blue-400" />}
             label="iOS"
@@ -145,6 +145,13 @@ function Page() {
             onClick={() => setFilter(filter === "web" ? "all" : "web")}
           />
           <StatCard
+            icon={<AlertTriangle className="h-4 w-4 text-red-400" />}
+            label="Failed"
+            count={stats.failed.length}
+            active={filter === "failed"}
+            onClick={() => setFilter(filter === "failed" ? "all" : "failed")}
+          />
+          <StatCard
             icon={<Bell className="h-4 w-4 text-primary" />}
             label="Total"
             count={rows.length}
@@ -152,6 +159,7 @@ function Page() {
             onClick={() => setFilter("all")}
           />
         </div>
+
 
         {/* Filter pills */}
         <div className="flex flex-wrap gap-2">
