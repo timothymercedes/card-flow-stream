@@ -106,12 +106,30 @@ https://pullbidlive.com/support.
 | Photo Library | Upload existing card images. |
 | Notifications | Alert buyers when followed sellers go live or list. |
 
-## Screenshots needed (capture on device/simulator)
+## Screenshots — ✅ generated
 
-- iPhone 6.7" (15 Pro Max) and 6.5" — 3–5 shots: live auction, marketplace,
-  card detail, vault, seller go-live.
-- iPad 12.9" if iPad is supported (otherwise mark iPhone-only).
-- Android phone + 7"/10" tablet for Play.
+Marketing screenshots (branded background + device frame + caption) are
+generated and saved to `/mnt/documents/store-screenshots/`:
+
+- `ios-6.7/` — 1290×2796 px (iPhone 6.7" / 15 Pro Max). App Store requires at
+  least one 6.7" screenshot to submit. ✅
+- `android-phone/` — 1080×2400 px (Play phone screenshots). ✅
+- Frames: `home.png` (Pull. Bid. Vault.), `live.png` (Watch & win live
+  auctions), `market.png` (Buy & sell the cards you love).
+
+Regenerate any time with `/tmp/frame_shots.py` (reads phone-width captures from
+`/tmp/shots`). For richer marketing shots later, capture device/simulator
+screens with populated live + marketplace data (iPad 12.9" only if iPad is a
+supported destination; otherwise mark the app iPhone-only).
+
+## Account deletion — ✅ App Store 5.1.1(v) compliant
+
+Users can permanently delete their account **in-app**:
+**Settings → Account → Delete account** (type `DELETE` to confirm). This calls
+the `deleteMyAccount` server function, which purges user-scoped data and removes
+the auth account. Provide this same path in the App Store review notes and add
+`https://pullbidlive.com/support` as the Google Play **Account deletion URL**
+(Play Console → App content → Data safety → Account deletion).
 
 ## Review notes (paste into App Store Connect "Notes")
 
@@ -120,4 +138,24 @@ Demo account: provide a test login with buyer + seller roles.
 Live streaming uses Cloudflare Calls (WebRTC). Payments use Stripe Connect in a
 secure in-app browser. Push notifications deliver live-show and order alerts.
 No gambling — auctions are real-purchase commerce with buyer protection.
+Account deletion: Settings → Account → Delete account (in-app, immediate).
 ```
+
+## Submission checklist — TestFlight & Play Internal Testing
+
+Build (Mac, after `bunx cap add ios/android` — see CAPACITOR.md):
+
+1. `bun run build && bunx cap sync`
+2. Drop in `GoogleService-Info.plist` (iOS) / `google-services.json` (Android).
+3. Add Info.plist usage strings + Push + Background Modes capabilities in Xcode.
+4. `bunx @capacitor/assets generate` for native icons/splash.
+
+TestFlight (iOS):
+1. Archive in Xcode → upload to App Store Connect.
+2. Complete Export Compliance (encryption in transit only → standard exemption).
+3. Add internal testers → distribute build → install via TestFlight app.
+
+Play Internal Testing (Android):
+1. `./gradlew bundleRelease` → upload the `.aab` to Play Console.
+2. Create an **Internal testing** track, add tester emails, share the opt-in link.
+3. Complete Data safety + Account deletion URL before promoting to production.
