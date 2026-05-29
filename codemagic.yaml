@@ -126,10 +126,12 @@ workflows:
     scripts:
       - name: Install dependencies
         script: |
-          npm ci || npm install
+          npm install -g bun
+          bun install
       - name: Build web bundle (dist/)
         script: |
-          npm run build
+          bun run build
+
       - name: Add Android platform & sync
         script: |
           npx cap add android || true
