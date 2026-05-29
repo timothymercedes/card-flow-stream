@@ -4472,7 +4472,12 @@ export type Database = {
           auth_key: string
           created_at: string
           endpoint: string
+          failure_count: number
           id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          last_status: string | null
+          last_success_at: string | null
           p256dh: string
           user_id: string
         }
@@ -4480,7 +4485,12 @@ export type Database = {
           auth_key: string
           created_at?: string
           endpoint: string
+          failure_count?: number
           id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_status?: string | null
+          last_success_at?: string | null
           p256dh: string
           user_id: string
         }
@@ -4488,7 +4498,12 @@ export type Database = {
           auth_key?: string
           created_at?: string
           endpoint?: string
+          failure_count?: number
           id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_status?: string | null
+          last_success_at?: string | null
           p256dh?: string
           user_id?: string
         }
