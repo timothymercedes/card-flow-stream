@@ -26,10 +26,10 @@ workflows:
     environment:
       <<: *env_versions
       groups:
-        - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.pullbidlive.app
+        # APP_STORE_CONNECT_* used only for the TestFlight upload + build-number lookup.
+        # CM_CERTIFICATE / CM_CERTIFICATE_PASSWORD / CM_PROVISIONING_PROFILE provide
+        # manual signing with the EXISTING distribution cert + Pullbidliveprofile.
+        - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CM_CERTIFICATE, CM_CERTIFICATE_PASSWORD, CM_PROVISIONING_PROFILE
       vars:
         BUNDLE_ID: "com.pullbidlive.app"
         PROFILE_NAME: "Pullbidliveprofile"
