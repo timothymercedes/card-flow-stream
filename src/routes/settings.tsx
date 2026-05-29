@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { StorefrontBrandingEditor } from "@/components/StorefrontBrandingEditor";
+import { DeleteAccountSection } from "@/components/DeleteAccountSection";
 import { useTour } from "@/components/MascotGuide";
 
 export const Route = createFileRoute("/settings")({
@@ -188,9 +189,12 @@ function SellerSection() {
 function AccountSection() {
   const { user } = useAuth();
   return (
-    <div className="rounded-xl bg-card p-4 space-y-2 text-sm">
-      <p><span className="text-muted-foreground">Email:</span> {user?.email}</p>
-      <Link to="/profile" className="inline-block text-xs font-bold text-primary">Edit profile →</Link>
+    <div className="space-y-4">
+      <div className="rounded-xl bg-card p-4 space-y-2 text-sm">
+        <p><span className="text-muted-foreground">Email:</span> {user?.email}</p>
+        <Link to="/profile" className="inline-block text-xs font-bold text-primary">Edit profile →</Link>
+      </div>
+      <DeleteAccountSection />
     </div>
   );
 }
