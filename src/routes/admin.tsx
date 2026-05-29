@@ -364,6 +364,35 @@ function Admin() {
             </div>
           </div>
         )}
+        {isAdmin && (
+          <div className="rounded-xl bg-card p-3 shadow-[var(--shadow-card)] ring-1 ring-border/60">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-bold">Test push notification</p>
+                <p className="text-[11px] text-muted-foreground">Sends a push to your own devices to verify delivery.</p>
+              </div>
+              <button
+                onClick={async () => {
+                  setSendingTest(true);
+                  try {
+                    const r: any = await sendTestPushFn({ data: {} });
+                    if (r?.ok) toast.success(`Test push sent (${r.sent} device${r.sent === 1 ? "" : "s"})`);
+                    else toast.error(r?.error === "FORBIDDEN" ? "Not allowed" : "Push unavailable");
+                  } catch {
+                    toast.error("Failed to send test push");
+                  } finally {
+                    setSendingTest(false);
+                  }
+                }}
+                disabled={sendingTest}
+                className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+              >
+                {sendingTest ? "Sending…" : "Send test"}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 border-b border-border/60 bg-background/85 backdrop-blur sticky top-0 z-10 -mx-1 px-1 py-1">
           <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
           <button onClick={() => setTab("support")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "support" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
