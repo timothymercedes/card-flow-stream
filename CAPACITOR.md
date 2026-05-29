@@ -1,8 +1,16 @@
 # PullBid Live — Native iOS & Android (Capacitor)
 
 This project ships as a mobile-first PWA **and** as native iOS / Android apps
-via [Capacitor](https://capacitorjs.com). The TanStack client web build under
-`dist/client/` is wrapped into a native shell — no React Native rewrite needed.
+via [Capacitor](https://capacitorjs.com).
+
+> **Important — this is a server-rendered (SSR) app.** The TanStack Start build
+> produces a server worker, **not** a static `index.html`, so there is nothing to
+> bundle offline. The native apps are therefore thin shells that load the hosted
+> web app over the network via `server.url` in `capacitor.config.ts` (defaults to
+> `https://pullbidlive.com`). `capacitor-shell/index.html` is a tiny placeholder
+> shown only while the WebView connects — it exists to satisfy Capacitor's
+> required `webDir`/`index.html`. Override the target with `CAP_SERVER_URL`.
+
 
 ## What's already wired
 
@@ -16,8 +24,9 @@ via [Capacitor](https://capacitorjs.com). The TanStack client web build under
   swap for `@capacitor/push-notifications` inside the native shell (see below).
 
 ## One-time setup (on your local Mac / PC)
+# 2. Build (validates the project; native shell loads the hosted site)
+bun run build
 
-You **must** run these locally — Lovable's sandbox cannot build native binaries.
 
 ```bash
 # 1. Pull the repo from GitHub (use the GitHub button in Lovable)
