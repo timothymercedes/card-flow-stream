@@ -122,24 +122,25 @@ iOS — no additional secret is needed.
 - [x] PWA icons (`/icon-192.png`, `/icon-512.png`, maskable, apple-touch-icon)
       are generated and wired into `public/manifest.json`.
 - [ ] Privacy policy URL → use `https://pullbidlive.com/legal/privacy`.
-- [ ] App Tracking Transparency: not needed (no third-party tracking SDKs).
-- [ ] Test on iPhone SE (smallest), iPhone 15 Pro Max, Pixel 8, foldable.
-- [ ] Verify camera + push + Stripe Connect in TestFlight / Internal Testing
-      **before** production submission.
+## Native push — ✅ DONE (already wired)
 
-## Swapping web push for native push
+`src/lib/push.ts` already branches on `isNative()`:
 
-Inside `src/lib/push.ts`, detect Capacitor and branch:
+- **Native (iOS/Android):** requests permission via
+  `@capacitor/push-notifications`, registers for APNs/FCM, and stores the token
+  in `push_subscriptions` as `ios://<token>` / `android://<token>`.
+- **Web/PWA:** the existing VAPID + Service Worker flow.
+- **Disable:** `disablePush()` removes the native row (and clears delivered
+  notifications) on the shell, or unsubscribes the SW on web.
+- **Tap-through:** `initCapacitor()` listens for
+  `pushNotificationActionPerformed` and deep-links to the notification's
+  `link`/`url`.
 
-```ts
-import { Capacitor } from "@capacitor/core";
+Delivery (FCM HTTP v1) and per-device diagnostics (error reason, last attempt,
+retry status) live in `src/server/fcm.server.ts` + `src/server/push.server.ts`
+and surface in the admin screen at `/admin/push-subscriptions`.
 
-if (Capacitor.isNativePlatform()) {
-  const { PushNotifications } = await import("@capacitor/push-notifications");
-  await PushNotifications.requestPermissions();
-  await PushNotifications.register();
-  // PushNotifications.addListener('registration', token => save to Supabase)
-} else {
+No code changes needed for push — just complete the Xcode/Firebase setup above.
   // existing web-push subscribe flow
 }
 ```
