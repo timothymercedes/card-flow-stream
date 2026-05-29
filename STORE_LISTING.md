@@ -129,7 +129,7 @@ Users can permanently delete their account **in-app**:
 **Settings → Account → Delete account** (type `DELETE` to confirm). This calls
 the `deleteMyAccount` server function, which purges user-scoped data and removes
 the auth account. Provide this same path in the App Store review notes and add
-`https://pullbidlive.com/support` as the Google Play **Account deletion URL**
+`https://pullbidlive.com/legal/account-deletion` as the Google Play **Account deletion URL**
 (Play Console → App content → Data safety → Account deletion).
 
 ## Review notes (paste into App Store Connect "Notes")
