@@ -139,3 +139,27 @@ export const sendTestPush = createServerFn({ method: "POST" })
       return { ok: false as const, error: "PUSH_UNAVAILABLE" as const, sent: 0 };
     }
   });
+
+// Admin-only: list all push subscriptions with platform detection.
+export const listPushSubscriptions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const userId = context.userId;
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "admin" });
+    const { data: isOwner } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "owner" });
+    if (!isAdmin && !isOwner) {
+      return { ok: false as const, error: "FORBIDDEN" as const, rows: [] as any[] };
+    }
+    try {
+      const { data: rows, error } = await supabaseAdmin
+        .from("push_subscriptions")
+        .select("id, user_id, endpoint, p256dh, auth_key, created_at")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return { ok: true as const, rows: (rows || []) as any[], error: null };
+    } catch (err: any) {
+      console.error("listPushSubscriptions failed:", err);
+      return { ok: false as const, error: err?.message ?? "DB_ERROR", rows: [] as any[] };
+    }
+  });
