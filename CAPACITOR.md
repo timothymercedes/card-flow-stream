@@ -71,6 +71,21 @@ For push: enable **Push Notifications** + **Background Modes → Remote
 notifications** in Xcode → Signing & Capabilities. Upload an APNs key in
 App Store Connect.
 
+**Firebase config (already in repo):** the iOS Firebase config lives at
+`ios-config/GoogleService-Info.plist` (project `pullbid-live-c9598`,
+bundle `com.pullbidlive.app`). After `bunx cap add ios`, copy it into the
+native project and add it to the Xcode target:
+
+```bash
+cp ios-config/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+```
+
+Then in Xcode, drag `GoogleService-Info.plist` into the `App` target so it's
+bundled (check "Copy items if needed" + the App target membership). FCM uses
+this to bridge to APNs — no server secret changes needed (`FCM_SERVICE_ACCOUNT`
+already covers the send side).
+
+
 ### Android — `android/app/src/main/AndroidManifest.xml`
 
 Capacitor auto-adds most permissions. Verify these are present:
