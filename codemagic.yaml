@@ -100,7 +100,9 @@ workflows:
       - name: Build & archive .ipa
         script: |
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
+            --project "ios/App/App.xcodeproj" \
+            --scheme "$XCODE_SCHEME"
+
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
