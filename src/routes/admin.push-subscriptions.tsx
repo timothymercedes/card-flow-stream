@@ -1,0 +1,262 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { AppShell } from "@/components/AppShell";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Bell, Smartphone, Globe, ArrowLeft, RefreshCcw } from "lucide-react";
+import { listPushSubscriptions } from "@/server/push.functions";
+
+export const Route = createFileRoute("/admin/push-subscriptions")({
+  head: () => ({ meta: [{ title: "Push Subscriptions — Admin" }] }),
+  component: Page,
+});
+
+type Sub = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth_key: string;
+  created_at: string;
+};
+
+function detectPlatform(endpoint: string): "ios" | "android" | "web" {
+  if (endpoint.startsWith("ios://")) return "ios";
+  if (endpoint.startsWith("android://")) return "android";
+  return "web";
+}
+
+function Page() {
+  const { user, loading: authLoading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [rows, setRows] = useState<Sub[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<"all" | "ios" | "android" | "web">("all");
+
+  const fetchSubs = useServerFn(listPushSubscriptions);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id)
+      .then(({ data }) => {
+        const roles = ((data ?? []) as any[]).map((r) => r.role);
+        setIsAdmin(roles.includes("admin") || roles.includes("owner"));
+      });
+  }, [user, authLoading]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetchSubs();
+      if (res.ok) setRows(res.rows);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isAdmin) load();
+  }, [isAdmin]);
+
+  const stats = useMemo(() => {
+    const ios = rows.filter((r) => detectPlatform(r.endpoint) === "ios");
+    const android = rows.filter((r) => detectPlatform(r.endpoint) === "android");
+    const web = rows.filter((r) => detectPlatform(r.endpoint) === "web");
+    return { ios, android, web };
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return rows;
+    return rows.filter((r) => detectPlatform(r.endpoint) === filter);
+  }, [rows, filter]);
+
+  if (authLoading || isAdmin === null) {
+    return (
+      <AppShell>
+        <div className="p-8 text-center text-sm text-muted-foreground">Loading…</div>
+      </AppShell>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppShell>
+        <div className="p-8 text-center">
+          <h1 className="text-xl font-bold">Admin only</h1>
+          <p className="mt-2 text-sm text-muted-foreground">You need admin access to view push subscriptions.</p>
+          <Link to="/admin" className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Back to Admin</Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Link to="/admin" className="rounded-md p-1.5 hover:bg-muted" aria-label="Back">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <Bell className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-extrabold sm:text-xl">Push Subscriptions</h1>
+          </div>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold hover:bg-muted/70 disabled:opacity-50"
+          >
+            <RefreshCcw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
+
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            icon={<Smartphone className="h-4 w-4 text-blue-400" />}
+            label="iOS"
+            count={stats.ios.length}
+            active={filter === "ios"}
+            onClick={() => setFilter(filter === "ios" ? "all" : "ios")}
+          />
+          <StatCard
+            icon={<Smartphone className="h-4 w-4 text-emerald-400" />}
+            label="Android"
+            count={stats.android.length}
+            active={filter === "android"}
+            onClick={() => setFilter(filter === "android" ? "all" : "android")}
+          />
+          <StatCard
+            icon={<Globe className="h-4 w-4 text-amber-400" />}
+            label="Web"
+            count={stats.web.length}
+            active={filter === "web"}
+            onClick={() => setFilter(filter === "web" ? "all" : "web")}
+          />
+          <StatCard
+            icon={<Bell className="h-4 w-4 text-primary" />}
+            label="Total"
+            count={rows.length}
+            active={filter === "all"}
+            onClick={() => setFilter("all")}
+          />
+        </div>
+
+        {/* Filter pills */}
+        <div className="flex flex-wrap gap-2">
+          {(["all", "ios", "android", "web"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                filter === f
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              }`}
+            >
+              {f === "all" ? "All" : f === "ios" ? "iOS" : f === "android" ? "Android" : "Web"}
+              {f !== "all" && (
+                <span className="ml-1.5 opacity-80">
+                  {f === "ios" ? stats.ios.length : f === "android" ? stats.android.length : stats.web.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Table */}
+        <Card className="overflow-hidden">
+          <div className="max-h-[60vh] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-card text-xs font-bold text-muted-foreground uppercase border-b border-border">
+                <tr>
+                  <th className="text-left p-3">Platform</th>
+                  <th className="text-left p-3">User</th>
+                  <th className="text-left p-3">Endpoint</th>
+                  <th className="text-left p-3">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((sub) => {
+                  const platform = detectPlatform(sub.endpoint);
+                  return (
+                    <tr key={sub.id} className="border-b border-border/40 hover:bg-muted/30 transition">
+                      <td className="p-3">
+                        <PlatformBadge platform={platform} />
+                      </td>
+                      <td className="p-3 font-mono text-xs text-muted-foreground">
+                        {String(sub.user_id).slice(0, 8)}…
+                      </td>
+                      <td className="p-3 font-mono text-xs text-muted-foreground max-w-xs truncate" title={sub.endpoint}>
+                        {sub.endpoint}
+                      </td>
+                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(sub.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">
+                      {loading ? "Loading…" : "No subscriptions found."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    </AppShell>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-xl border p-3 text-left transition ${
+        active
+          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+          : "border-border bg-card hover:bg-muted/50"
+      }`}
+    >
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {icon} {label}
+      </div>
+      <div className="mt-1 text-2xl font-extrabold tabular-nums">{count}</div>
+    </button>
+  );
+}
+
+function PlatformBadge({ platform }: { platform: "ios" | "android" | "web" }) {
+  const variants: Record<typeof platform, { label: string; className: string }> = {
+    ios: { label: "iOS", className: "bg-blue-500/15 text-blue-500 ring-1 ring-blue-500/30" },
+    android: { label: "Android", className: "bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-500/30" },
+    web: { label: "Web", className: "bg-amber-500/15 text-amber-500 ring-1 ring-amber-500/30" },
+  };
+  const v = variants[platform];
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${v.className}`}>
+      {v.label}
+    </span>
+  );
+}
