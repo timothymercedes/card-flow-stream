@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "70828003786",
+    "project_id": "pullbid-live-c9598",
+    "storage_bucket": "pullbid-live-c9598.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70828003786:android:fcc24ffea6d0ff9f247f33",
+        "android_client_info": {
+          "package_name": "com.pullbidlive.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCss2kkaiQE1Fe-GwO3UibGbyfVXlHx7Xw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
