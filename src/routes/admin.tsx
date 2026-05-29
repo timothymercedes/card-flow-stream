@@ -82,6 +82,8 @@ function Admin() {
   const [userResults, setUserResults] = useState<any[]>([]);
   const [signupStats, setSignupStats] = useState<{ total: number; last_24h: number; last_7d: number } | null>(null);
   const [recentSignups, setRecentSignups] = useState<any[]>([]);
+  const [sendingTest, setSendingTest] = useState(false);
+  const sendTestPushFn = useServerFn(sendTestPush);
 
   const isOwner = myRoles.includes("owner");
   const isAdmin = isOwner || myRoles.includes("admin");
