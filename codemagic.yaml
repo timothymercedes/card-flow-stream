@@ -103,7 +103,7 @@ workflows:
           # project is patched instead of being skipped from the repo root.
           xcode-project use-profiles --verbose
           xcodebuild -project App.xcodeproj -scheme "$XCODE_SCHEME" -showBuildSettings | grep -E "PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|PROVISIONING_PROFILE_SPECIFIER"
-          xcodebuild -project App.xcodeproj -scheme "$XCODE_SCHEME" -showBuildSettings | grep -q "PROVISIONING_PROFILE_SPECIFIER ="
+          xcodebuild -project App.xcodeproj -scheme "$XCODE_SCHEME" -showBuildSettings | awk -F'= ' '/PROVISIONING_PROFILE_SPECIFIER =/ && length($2) > 0 { found=1 } END { exit(found ? 0 : 1) }'
       - name: Build & archive .ipa
         script: |
           xcode-project build-ipa \
