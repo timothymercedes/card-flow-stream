@@ -41,6 +41,21 @@ function Cart() {
   }
   useEffect(() => { load(); }, [user]);
 
+  // Re-sync cart when the app returns to the foreground (mobile backgrounding /
+  // tab switch) so paid items clear and new awaiting-payment rows appear.
+  useEffect(() => {
+    if (!user) return;
+    const onVisible = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles")
