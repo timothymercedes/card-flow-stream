@@ -37,7 +37,7 @@ function Page() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [rows, setRows] = useState<Sub[]>([]);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<"all" | "ios" | "android" | "web">("all");
+  const [filter, setFilter] = useState<"all" | "ios" | "android" | "web" | "failed">("all");
 
   const fetchSubs = useServerFn(listPushSubscriptions);
 
