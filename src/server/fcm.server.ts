@@ -106,22 +106,69 @@ async function getAccessToken(sa: ServiceAccount): Promise<string | null> {
   }
 }
 
+export type NativeTokenResult = {
+  token: string;
+  ok: boolean;
+  invalid: boolean;
+  status?: number;
+  /** Short machine-readable reason, e.g. "UNREGISTERED", "QUOTA_EXCEEDED", "HTTP_503". */
+  reason?: string;
+  /** Human-readable detail from the FCM/APNs error response. */
+  detail?: string;
+};
+
+/** Extracts a concise FCM error reason + detail from a v1 API error body. */
+function parseFcmError(status: number, errText: string): { reason: string; detail: string } {
+  let reason = `HTTP_${status}`;
+  let detail = errText.slice(0, 500);
+  try {
+    const json = JSON.parse(errText);
+    const err = json?.error;
+    if (err) {
+      detail = err.message || detail;
+      // FCM v1 surfaces the canonical reason under error.details[].errorCode
+      const fcmDetail = Array.isArray(err.details)
+        ? err.details.find((d: any) => d?.errorCode)
+        : null;
+      reason = fcmDetail?.errorCode || err.status || reason;
+    }
+  } catch {
+    // Non-JSON body — fall back to regex sniffing for known codes.
+    const m = errText.match(/UNREGISTERED|INVALID_ARGUMENT|QUOTA_EXCEEDED|UNAVAILABLE|SENDER_ID_MISMATCH|THIRD_PARTY_AUTH_ERROR/);
+    if (m) reason = m[0];
+  }
+  return { reason, detail };
+}
+
 /**
- * Sends a native push to the given FCM device tokens. Returns the tokens that
- * are no longer valid (UNREGISTERED / INVALID_ARGUMENT) so callers can clean
- * up their subscription rows.
+ * Sends a native push to the given FCM device tokens. Returns aggregate counts,
+ * the tokens that are no longer valid (UNREGISTERED / INVALID_ARGUMENT) so
+ * callers can clean up their subscription rows, and per-token diagnostics
+ * (status, reason, detail) so callers can persist delivery diagnostics.
  */
 export async function sendNativePush(
   tokens: string[],
   payload: NativePayload,
-): Promise<{ sent: number; invalidTokens: string[] }> {
-  const result = { sent: 0, invalidTokens: [] as string[] };
+): Promise<{ sent: number; invalidTokens: string[]; results: NativeTokenResult[] }> {
+  const result = { sent: 0, invalidTokens: [] as string[], results: [] as NativeTokenResult[] };
   if (tokens.length === 0) return result;
 
   const sa = getServiceAccount();
-  if (!sa) return result;
+  if (!sa) {
+    result.results = tokens.map((token) => ({
+      token, ok: false, invalid: false, reason: "FCM_NOT_CONFIGURED",
+      detail: "FCM_SERVICE_ACCOUNT secret is missing or invalid.",
+    }));
+    return result;
+  }
   const accessToken = await getAccessToken(sa);
-  if (!accessToken) return result;
+  if (!accessToken) {
+    result.results = tokens.map((token) => ({
+      token, ok: false, invalid: false, reason: "FCM_AUTH_FAILED",
+      detail: "Could not obtain an FCM OAuth access token.",
+    }));
+    return result;
+  }
 
   const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
@@ -161,19 +208,26 @@ export async function sendNativePush(
         });
         if (res.ok) {
           result.sent++;
+          result.results.push({ token, ok: true, invalid: false, status: res.status });
         } else {
           const errText = await res.text();
-          if (res.status === 404 || /UNREGISTERED|INVALID_ARGUMENT/.test(errText)) {
+          const { reason, detail } = parseFcmError(res.status, errText);
+          const invalid = res.status === 404 || /UNREGISTERED|INVALID_ARGUMENT/.test(`${reason} ${errText}`);
+          if (invalid) {
             result.invalidTokens.push(token);
           } else {
-            console.warn("FCM send failed:", res.status, errText);
+            console.warn("FCM send failed:", res.status, reason, detail);
           }
+          result.results.push({ token, ok: false, invalid, status: res.status, reason, detail });
         }
       } catch (e) {
-        console.warn("FCM send error:", (e as Error)?.message);
+        const detail = (e as Error)?.message || "Network error";
+        console.warn("FCM send error:", detail);
+        result.results.push({ token, ok: false, invalid: false, reason: "NETWORK_ERROR", detail });
       }
     }),
   );
 
   return result;
 }
+

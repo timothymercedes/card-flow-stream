@@ -153,7 +153,7 @@ export const listPushSubscriptions = createServerFn({ method: "GET" })
     try {
       const { data: rows, error } = await supabaseAdmin
         .from("push_subscriptions")
-        .select("id, user_id, endpoint, p256dh, auth_key, created_at")
+        .select("id, user_id, endpoint, p256dh, auth_key, created_at, last_attempt_at, last_success_at, last_status, last_error, failure_count")
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;

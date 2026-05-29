@@ -74,6 +74,14 @@ export async function sendPushToUsers(
 
   let sent = 0, cleaned = 0;
 
+  const nowIso = new Date().toISOString();
+  const failureCountByEndpoint = new Map<string, number>(
+    all.map((s: any) => [String(s.endpoint), Number(s.failure_count) || 0]),
+  );
+  const successEndpoints: string[] = [];
+  // endpoint -> { reason, detail } for non-fatal failures we want to record.
+  const failedDiag = new Map<string, { reason: string; detail: string }>();
+
   await Promise.all(webSubs.map(async (s) => {
     try {
       await webpushMod.sendNotification(
@@ -81,10 +89,16 @@ export async function sendPushToUsers(
         JSON.stringify(payload),
       );
       sent++;
+      successEndpoints.push(s.endpoint);
     } catch (e: any) {
       if (e?.statusCode === 404 || e?.statusCode === 410) {
         await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
         cleaned++;
+      } else {
+        failedDiag.set(s.endpoint, {
+          reason: e?.statusCode ? `HTTP_${e.statusCode}` : "WEBPUSH_ERROR",
+          detail: String(e?.body || e?.message || "Web push failed").slice(0, 500),
+        });
       }
     }
   }));
@@ -96,11 +110,25 @@ export async function sendPushToUsers(
       const token = String(s.endpoint).replace(/^(ios|android):\/\//, "");
       if (token) tokenToEndpoint.set(token, s.endpoint);
     }
-    const { sent: nativeSent, invalidTokens } = await sendNativePush(
+    const { sent: nativeSent, invalidTokens, results } = await sendNativePush(
       Array.from(tokenToEndpoint.keys()),
       payload,
     );
     sent += nativeSent;
+
+    for (const r of results) {
+      const ep = tokenToEndpoint.get(r.token);
+      if (!ep) continue;
+      if (r.ok) {
+        successEndpoints.push(ep);
+      } else if (!r.invalid) {
+        failedDiag.set(ep, {
+          reason: r.reason || (r.status ? `HTTP_${r.status}` : "FCM_ERROR"),
+          detail: r.detail || "Native push failed",
+        });
+      }
+    }
+
     if (invalidTokens.length) {
       const staleEndpoints = invalidTokens
         .map((t) => tokenToEndpoint.get(t))
@@ -112,7 +140,39 @@ export async function sendPushToUsers(
     }
   }
 
-  return { sent, cleaned, skipped };
+  // ---- Persist delivery diagnostics (best-effort) ----
+  try {
+    if (successEndpoints.length) {
+      await supabaseAdmin
+        .from("push_subscriptions")
+        .update({
+          last_attempt_at: nowIso,
+          last_success_at: nowIso,
+          last_status: "success",
+          last_error: null,
+          failure_count: 0,
+        })
+        .in("endpoint", successEndpoints);
+    }
+    if (failedDiag.size) {
+      await Promise.all(
+        Array.from(failedDiag.entries()).map(([endpoint, diag]) =>
+          supabaseAdmin
+            .from("push_subscriptions")
+            .update({
+              last_attempt_at: nowIso,
+              last_status: "failed",
+              last_error: `${diag.reason}: ${diag.detail}`.slice(0, 600),
+              failure_count: (failureCountByEndpoint.get(endpoint) || 0) + 1,
+            })
+            .eq("endpoint", endpoint),
+        ),
+      );
+    }
+  } catch (e) {
+    console.warn("Failed to persist push diagnostics:", (e as Error)?.message);
+  }
 
   return { sent, cleaned, skipped };
 }
+
