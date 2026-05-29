@@ -9,7 +9,13 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "cap:add:ios": "bunx cap add ios",
+    "cap:add:android": "bunx cap add android",
+    "cap:sync": "bun run build && bunx cap sync",
+    "cap:assets": "bunx @capacitor/assets generate --assetPath assets --iconBackgroundColor \"#0a0a0a\" --splashBackgroundColor \"#0a0a0a\"",
+    "cap:ios": "bun run build && bunx cap sync ios && bunx cap open ios",
+    "cap:android": "bun run build && bunx cap sync android && bunx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
