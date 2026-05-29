@@ -282,3 +282,29 @@ function PlatformBadge({ platform }: { platform: "ios" | "android" | "web" }) {
     </span>
   );
 }
+
+function DeliveryBadge({ status, failureCount }: { status: string | null; failureCount: number }) {
+  if (!status) {
+    return <span className="text-xs text-muted-foreground">Not attempted</span>;
+  }
+  if (status === "success") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500 ring-1 ring-emerald-500/30">
+        Delivered
+      </span>
+    );
+  }
+  // failed
+  const willRetry = failureCount < 5;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-500 ring-1 ring-red-500/30">
+        Failed{failureCount > 0 ? ` ×${failureCount}` : ""}
+      </span>
+      <span className={`text-[10px] font-semibold ${willRetry ? "text-amber-500" : "text-muted-foreground"}`}>
+        {willRetry ? "Will retry next send" : "Retries exhausted"}
+      </span>
+    </div>
+  );
+}
+
