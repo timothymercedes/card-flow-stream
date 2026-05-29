@@ -108,11 +108,6 @@ export async function ensurePushSubscribed(userId: string): Promise<{ ok: boolea
 }
 
 export async function disablePush(): Promise<void> {
-  if (!pushSupported()) return;
-  const reg = await navigator.serviceWorker.getRegistration();
-  const sub = await reg?.pushManager.getSubscription();
-  if (sub) {
-export async function disablePush(): Promise<void> {
   // Native shell: remove the APNs/FCM subscription row for this device.
   if (isNative()) {
     try {
