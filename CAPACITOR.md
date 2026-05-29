@@ -1,8 +1,8 @@
 # PullBid Live — Native iOS & Android (Capacitor)
 
 This project ships as a mobile-first PWA **and** as native iOS / Android apps
-via [Capacitor](https://capacitorjs.com). The web build under `dist/` is wrapped
-into a native shell — no React Native rewrite needed.
+via [Capacitor](https://capacitorjs.com). The TanStack client web build under
+`dist/client/` is wrapped into a native shell — no React Native rewrite needed.
 
 ## What's already wired
 
