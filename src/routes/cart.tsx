@@ -284,31 +284,51 @@ function Cart() {
         </div>
 
         {checkoutSeller && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={() => setCheckoutSeller(null)}>
-            <div className="relative w-full max-w-md rounded-t-2xl bg-card p-4 sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setCheckoutSeller(null)} className="absolute right-3 top-3 rounded-full bg-muted p-1.5"><X className="h-4 w-4" /></button>
-              <h2 className="mb-3 text-lg font-bold">Checkout</h2>
-              {(sellerCountries[checkoutSeller] || "US") !== buyerCountry && (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center"
+            onClick={() => setCheckoutSeller(null)}
+          >
+            <div
+              className="relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-card sm:max-h-[88dvh] sm:rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-3">
+                <h2 className="text-lg font-bold">Checkout</h2>
+                <button
+                  onClick={() => setCheckoutSeller(null)}
+                  className="rounded-full bg-muted p-2"
+                  aria-label="Close checkout"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain px-4 pt-3"
+                style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))", WebkitOverflowScrolling: "touch" }}
+              >
+                {(sellerCountries[checkoutSeller] || "US") !== buyerCountry && (
+                  <div className="mb-3">
+                    <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountries[checkoutSeller] || "US"} variant="full" />
+                  </div>
+                )}
                 <div className="mb-3">
-                  <IntlWarningBanner buyerCountry={buyerCountry} sellerCountry={sellerCountries[checkoutSeller] || "US"} variant="full" />
+                  <InsuranceOption
+                    orderIds={checkoutOrderIds}
+                    subtotalCents={Math.round(checkoutSubtotal * 100)}
+                    onChange={(fee) => setInsuranceFeeCents(fee)}
+                  />
                 </div>
-              )}
-              <div className="mb-3">
-                <InsuranceOption
+                <StripeCheckout
+                  sellerId={checkoutSeller}
+                  subtotalCents={Math.round(checkoutSubtotal * 100) + insuranceFeeCents}
                   orderIds={checkoutOrderIds}
-                  subtotalCents={Math.round(checkoutSubtotal * 100)}
-                  onChange={(fee) => setInsuranceFeeCents(fee)}
+                  onSuccess={() => { setInsuranceFeeCents(0); handlePaymentSuccess(checkoutSeller); }}
                 />
               </div>
-              <StripeCheckout
-                sellerId={checkoutSeller}
-                subtotalCents={Math.round(checkoutSubtotal * 100) + insuranceFeeCents}
-                orderIds={checkoutOrderIds}
-                onSuccess={() => { setInsuranceFeeCents(0); handlePaymentSuccess(checkoutSeller); }}
-              />
             </div>
           </div>
         )}
+
       </div>
     </AppShell>
   );
