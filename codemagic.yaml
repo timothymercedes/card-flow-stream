@@ -102,10 +102,10 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
         submit_to_testflight: true
         beta_groups:
           - "Internal Testers"
+
 
   # ------------------------------------------------------------------ #
   #  Android  ->  Google Play Internal Testing                         #
