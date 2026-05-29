@@ -5,7 +5,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  *
  * Two modes:
  *  - Local build (App Store / Play Store submission): leave `server` unset
- *    so the native app loads the bundled `dist/` web build offline-first.
+ *    so the native app loads the bundled TanStack client build offline-first.
  *  - Live-reload dev: set CAP_SERVER_URL=https://<your-lovable-preview>.lovable.app
  *    before running `bunx cap sync` to point the native shell at the hosted preview.
  *
@@ -16,7 +16,7 @@ const serverUrl = process.env.CAP_SERVER_URL;
 const config: CapacitorConfig = {
   appId: "com.pullbidlive.app",
   appName: "PullBid Live",
-  webDir: "dist",
+  webDir: "dist/client",
   ...(serverUrl
     ? {
         server: {
