@@ -26,10 +26,10 @@ workflows:
     environment:
       <<: *env_versions
       groups:
-        - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.pullbidlive.app
+        # APP_STORE_CONNECT_* used only for the TestFlight upload + build-number lookup.
+        # CM_CERTIFICATE / CM_CERTIFICATE_PASSWORD / CM_PROVISIONING_PROFILE provide
+        # manual signing with the EXISTING distribution cert + Pullbidliveprofile.
+        - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CM_CERTIFICATE, CM_CERTIFICATE_PASSWORD, CM_PROVISIONING_PROFILE
       vars:
         BUNDLE_ID: "com.pullbidlive.app"
         PROFILE_NAME: "Pullbidliveprofile"
@@ -93,9 +93,9 @@ workflows:
           cd ios/App
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
           agvtool new-version -all $(($LATEST + 1))
-      - name: Set up code signing (App Store Connect API key)
+      - name: Set up code signing (manual — existing cert + profile)
         script: |
-          echo "Using PullBid Live Codemagic signing config v5: App Store profile '$PROFILE_NAME' for $BUNDLE_ID"
+          echo "Using PullBid Live manual signing config v6: App Store profile '$PROFILE_NAME' for $BUNDLE_ID"
           require_env() {
             name="$1"
             eval "value=\${$name:-}"
@@ -104,17 +104,22 @@ workflows:
               exit 1
             fi
           }
-          require_env APP_STORE_CONNECT_PRIVATE_KEY
-          require_env APP_STORE_CONNECT_KEY_IDENTIFIER
-          require_env APP_STORE_CONNECT_ISSUER_ID
-          require_env CERTIFICATE_PRIVATE_KEY
+          # Manual signing uses the EXISTING distribution certificate (.p12) and the
+          # EXISTING Pullbidliveprofile provisioning profile — no CERTIFICATE_PRIVATE_KEY,
+          # and nothing is created on Apple's side.
+          require_env CM_CERTIFICATE
+          require_env CM_CERTIFICATE_PASSWORD
+          require_env CM_PROVISIONING_PROFILE
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --platform IOS \
-            --type IOS_APP_STORE \
-            --strict-match-identifier \
-            --create
-          keychain add-certificates
+          # Decode and install the distribution certificate (.p12 = cert + private key)
+          echo "$CM_CERTIFICATE" | base64 --decode > /tmp/distribution_certificate.p12
+          keychain add-certificates \
+            --certificate /tmp/distribution_certificate.p12 \
+            --certificate-password "$CM_CERTIFICATE_PASSWORD"
+          # Decode and install the provisioning profile
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_DIR"
+          echo "$CM_PROVISIONING_PROFILE" | base64 --decode > "$PROFILES_DIR/Pullbidliveprofile.mobileprovision"
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
           test -n "$(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit 2>/dev/null)"
           echo "Installed provisioning profiles:"
