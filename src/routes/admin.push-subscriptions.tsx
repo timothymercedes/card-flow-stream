@@ -25,7 +25,6 @@ type Sub = {
   last_error: string | null;
   failure_count: number;
 };
-};
 
 function detectPlatform(endpoint: string): "ios" | "android" | "web" {
   if (endpoint.startsWith("ios://")) return "ios";
