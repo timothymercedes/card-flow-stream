@@ -98,7 +98,18 @@ Capacitor auto-adds most permissions. Verify these are present:
 <uses-feature android:name="android.hardware.camera" android:required="false" />
 ```
 
-For push: add `google-services.json` from Firebase to `android/app/`.
+**Firebase config (Android):** in the same Firebase project
+(`pullbid-live-c9598`), add an **Android app** with package
+`com.pullbidlive.app`, download its `google-services.json`, and place it in the
+repo at `android-config/google-services.json` (mirrors the iOS file). After
+`bunx cap add android`, copy it into the native project:
+
+```bash
+cp android-config/google-services.json android/app/google-services.json
+```
+
+FCM delivery for Android uses the same `FCM_SERVICE_ACCOUNT` server secret as
+iOS — no additional secret is needed.
 
 ## App Store / Play Store checklist
 
