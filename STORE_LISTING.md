@@ -16,6 +16,7 @@ Keep this in sync with the in-app copy and the marketing site (pullbidlive.com).
 | Marketing URL | https://pullbidlive.com |
 | Privacy Policy URL | https://pullbidlive.com/legal/privacy |
 | Terms URL | https://pullbidlive.com/legal/terms |
+| Account Deletion URL (Play) | https://pullbidlive.com/legal/account-deletion |
 
 ## Subtitle (App Store, 30 char max)
 
