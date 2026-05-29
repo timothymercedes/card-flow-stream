@@ -58,8 +58,14 @@ export async function sendPushToUsers(
     if (allowedIds.length === 0) return { sent: 0, cleaned: 0, skipped };
   }
 
-  const { data: subs } = await supabaseAdmin.from("push_subscriptions").select("*").in("user_id", allowedIds);
-  if (!subs?.length) return { sent: 0, cleaned: 0, skipped };
+  const { data: allSubs } = await supabaseAdmin.from("push_subscriptions").select("*").in("user_id", allowedIds);
+  // Native endpoints (ios://token, android://token) require APNs/FCM delivery,
+  // not Web Push — filter them out so we don't error on invalid endpoint URLs.
+  const subs = (allSubs || []).filter(
+    (s: any) => typeof s.endpoint === "string" && /^https?:\/\//.test(s.endpoint),
+  );
+  if (!subs.length) return { sent: 0, cleaned: 0, skipped };
+
 
   let sent = 0, cleaned = 0;
   await Promise.all(subs.map(async (s) => {

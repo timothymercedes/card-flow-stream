@@ -83,7 +83,24 @@ export async function initCapacitor(): Promise<void> {
   } catch (e) {
     console.warn("[capacitor] app listener failed", e);
   }
+
+  // Deep-link when a native push notification is tapped. The payload's
+  // `link`/`url` (set by our notification senders) routes to the right screen.
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+      const data = (action?.notification?.data ?? {}) as Record<string, string>;
+      const target = data.link || data.url;
+      if (target && typeof target === "string" && target.startsWith("/")) {
+        // Defer to next tick so the web view is ready to navigate.
+        setTimeout(() => { window.location.href = target; }, 0);
+      }
+    });
+  } catch (e) {
+    console.warn("[capacitor] push tap listener failed", e);
+  }
 }
+
 
 /**
  * Native share via Capacitor when available, falling back to navigator.share,
