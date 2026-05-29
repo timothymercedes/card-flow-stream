@@ -181,6 +181,9 @@ function Page() {
                   <th className="text-left p-3">Platform</th>
                   <th className="text-left p-3">User</th>
                   <th className="text-left p-3">Endpoint</th>
+                  <th className="text-left p-3">Delivery</th>
+                  <th className="text-left p-3">Last attempt</th>
+                  <th className="text-left p-3">Error reason</th>
                   <th className="text-left p-3">Created</th>
                 </tr>
               </thead>
@@ -198,6 +201,21 @@ function Page() {
                       <td className="p-3 font-mono text-xs text-muted-foreground max-w-xs truncate" title={sub.endpoint}>
                         {sub.endpoint}
                       </td>
+                      <td className="p-3">
+                        <DeliveryBadge status={sub.last_status} failureCount={sub.failure_count} />
+                      </td>
+                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {sub.last_attempt_at ? new Date(sub.last_attempt_at).toLocaleString() : "—"}
+                      </td>
+                      <td className="p-3 text-xs max-w-xs">
+                        {sub.last_status === "failed" && sub.last_error ? (
+                          <span className="text-red-400 line-clamp-2 break-words" title={sub.last_error}>
+                            {sub.last_error}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(sub.created_at).toLocaleString()}
                       </td>
@@ -206,11 +224,12 @@ function Page() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-sm text-muted-foreground">
                       {loading ? "Loading…" : "No subscriptions found."}
                     </td>
                   </tr>
                 )}
+
               </tbody>
             </table>
           </div>
