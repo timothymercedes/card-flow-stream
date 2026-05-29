@@ -94,8 +94,17 @@ workflows:
           agvtool new-version -all $(($LATEST + 1))
       - name: Set up code signing (App Store Connect API key)
         script: |
-          echo "Using PullBid Live Codemagic signing config v3: app_store ios_signing"
+          echo "Using PullBid Live Codemagic signing config v4: App Store profile for $BUNDLE_ID"
+          test -n "$APP_STORE_CONNECT_PRIVATE_KEY"
+          test -n "$APP_STORE_CONNECT_KEY_IDENTIFIER"
+          test -n "$APP_STORE_CONNECT_ISSUER_ID"
+          test -n "$CERTIFICATE_PRIVATE_KEY"
           keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
+            --type IOS_APP_STORE \
+            --strict-match-identifier \
+            --create
           keychain add-certificates
           test -n "$(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit 2>/dev/null)"
           security find-identity -v -p codesigning
