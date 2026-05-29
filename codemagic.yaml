@@ -1,0 +1,190 @@
+# Codemagic CI/CD — PullBid Live (no Mac required)
+#
+# Builds the TanStack web app, wraps it with Capacitor, compiles signed
+# native binaries on Codemagic's macOS/Linux runners, and ships them to
+# TestFlight (iOS) and Google Play Internal Testing (Android).
+#
+# The native ios/ and android/ folders are NOT committed to git — they are
+# generated fresh in CI by `npx cap add`, then patched (permissions,
+# capabilities, Firebase configs, signing) before building.
+
+definitions:
+  env_versions: &env_versions
+    node: 20
+    xcode: latest
+    cocoapods: default
+
+workflows:
+  # ------------------------------------------------------------------ #
+  #  iOS  ->  TestFlight                                                #
+  # ------------------------------------------------------------------ #
+  ios-testflight:
+    name: PullBid Live — iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      <<: *env_versions
+      groups:
+        - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY
+      vars:
+        BUNDLE_ID: "com.pullbidlive.app"
+        APP_STORE_APPLE_ID: "0000000000"   # <-- replace with your numeric App Store Connect App ID
+        XCODE_SCHEME: "App"
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci || npm install
+      - name: Build web bundle (dist/)
+        script: |
+          npm run build
+      - name: Add iOS platform & sync
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
+      - name: Drop in Firebase config (GoogleService-Info.plist)
+        script: |
+          cp ios-config/GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+      - name: Inject Info.plist permission strings
+        script: |
+          PLIST=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'PullBid Live uses your camera to scan cards and stream live.'" "$PLIST" || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'PullBid Live uses your camera to scan cards and stream live.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'PullBid Live uses your microphone for live audio during streams.'" "$PLIST" || \
+          /usr/libexec/PlistBuddy -c "Set :NSMicrophoneUsageDescription 'PullBid Live uses your microphone for live audio during streams.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'PullBid Live needs photo access to upload card images.'" "$PLIST" || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'PullBid Live needs photo access to upload card images.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'PullBid Live saves shared cards to your photo library.'" "$PLIST" || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'PullBid Live saves shared cards to your photo library.'" "$PLIST"
+      - name: Add Push + Background Modes entitlements
+        script: |
+          ENT=ios/App/App/App.entitlements
+          if [ ! -f "$ENT" ]; then
+            cat > "$ENT" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>aps-environment</key>
+            <string>production</string>
+          </dict>
+          </plist>
+          PLIST
+          fi
+          # remote-notification background mode
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" ios/App/App/Info.plist 2>/dev/null || true
+      - name: Set up code signing (App Store Connect API key)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd ios/App
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          agvtool new-version -all $(($LATEST + 1))
+      - name: Build & archive .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers"
+
+  # ------------------------------------------------------------------ #
+  #  Android  ->  Google Play Internal Testing                         #
+  # ------------------------------------------------------------------ #
+  android-internal:
+    name: PullBid Live — Android (Play Internal)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      <<: *env_versions
+      groups:
+        - google_play_credentials    # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        - keystore_credentials       # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+      vars:
+        PACKAGE_NAME: "com.pullbidlive.app"
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci || npm install
+      - name: Build web bundle (dist/)
+        script: |
+          npm run build
+      - name: Add Android platform & sync
+        script: |
+          npx cap add android || true
+          npx cap sync android
+      - name: Drop in Firebase config (google-services.json)
+        script: |
+          cp android-config/google-services.json android/app/google-services.json
+      - name: Decode keystore
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+      - name: Configure signing
+        script: |
+          cat >> android/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=/tmp/keystore.jks
+          EOF
+          # Wire signingConfig into build.gradle if not already present
+          GRADLE=android/app/build.gradle
+          if ! grep -q "key.properties" "$GRADLE"; then
+            python3 - "$GRADLE" <<'PY'
+          import sys, re
+          p = sys.argv[1]
+          s = open(p).read()
+          header = (
+            'def keystoreProperties = new Properties()\n'
+            'def keystorePropertiesFile = rootProject.file("key.properties")\n'
+            'if (keystorePropertiesFile.exists()) {\n'
+            '    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n'
+            '}\n\n'
+          )
+          s = header + s
+          signing = (
+            '    signingConfigs {\n'
+            '        release {\n'
+            '            keyAlias keystoreProperties["keyAlias"]\n'
+            '            keyPassword keystoreProperties["keyPassword"]\n'
+            '            storeFile keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null\n'
+            '            storePassword keystoreProperties["storePassword"]\n'
+            '        }\n'
+            '    }\n'
+          )
+          s = re.sub(r'(buildTypes\s*\{)', signing + r'\1', s, count=1)
+          s = re.sub(r'(release\s*\{)', r'\1\n            signingConfig signingConfigs.release', s, count=1)
+          open(p, "w").write(s)
+          print("Patched build.gradle signing config")
+          PY
+          fi
+      - name: Set version code from build number
+        script: |
+          cd android
+          sed -i "s/versionCode .*/versionCode $(($PROJECT_BUILD_NUMBER + 1))/" app/build.gradle || true
+      - name: Build signed .aab
+        script: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false
