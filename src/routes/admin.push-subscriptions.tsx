@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Bell, Smartphone, Globe, ArrowLeft, RefreshCcw } from "lucide-react";
+import { Bell, Smartphone, Globe, ArrowLeft, RefreshCcw, AlertTriangle } from "lucide-react";
 import { listPushSubscriptions } from "@/server/push.functions";
 
 export const Route = createFileRoute("/admin/push-subscriptions")({
