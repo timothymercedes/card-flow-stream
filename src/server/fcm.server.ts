@@ -135,10 +135,21 @@ export async function sendNativePush(
             ...(payload.url ? { url: payload.url, link: payload.url } : {}),
             ...(payload.tag ? { tag: payload.tag } : {}),
           },
-          android: { priority: "high" },
-          apns: {
-            payload: { aps: { sound: "default", "content-available": 1 } },
+          android: {
+            priority: "high",
+            notification: { sound: "default", default_vibrate_timings: true },
           },
+          apns: {
+            headers: { "apns-priority": "10", "apns-push-type": "alert" },
+            payload: {
+              aps: {
+                sound: "default",
+                badge: 1,
+                "mutable-content": 1,
+              },
+            },
+          },
+
         };
         const res = await fetch(endpoint, {
           method: "POST",
