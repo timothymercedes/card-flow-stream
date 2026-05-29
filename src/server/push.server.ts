@@ -3,6 +3,8 @@
 // in the Cloudflare Workers SSR runtime. We lazy-load it inside try/catch so
 // that environments without it simply no-op instead of crashing the server fn.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendNativePush } from "./fcm.server";
+
 
 let configured = false;
 let webpushMod: any = null;
@@ -43,7 +45,8 @@ export async function sendPushToUsers(
   category?: NotifyCategory,
 ): Promise<{ sent: number; cleaned: number; skipped: number }> {
   if (userIds.length === 0) return { sent: 0, cleaned: 0, skipped: 0 };
-  if (!(await configure())) return { sent: 0, cleaned: 0, skipped: 0 };
+  const webPushReady = await configure();
+
 
   let allowedIds = userIds;
   let skipped = 0;
@@ -57,18 +60,21 @@ export async function sendPushToUsers(
     allowedIds = Array.from(allowed);
     if (allowedIds.length === 0) return { sent: 0, cleaned: 0, skipped };
   }
-
   const { data: allSubs } = await supabaseAdmin.from("push_subscriptions").select("*").in("user_id", allowedIds);
-  // Native endpoints (ios://token, android://token) require APNs/FCM delivery,
-  // not Web Push — filter them out so we don't error on invalid endpoint URLs.
-  const subs = (allSubs || []).filter(
-    (s: any) => typeof s.endpoint === "string" && /^https?:\/\//.test(s.endpoint),
-  );
-  if (!subs.length) return { sent: 0, cleaned: 0, skipped };
+  const all = allSubs || [];
 
+  // Web Push endpoints are real https URLs; native endpoints are stored as
+  // "ios://<token>" / "android://<token>" and go through FCM instead.
+  const webSubs = webPushReady
+    ? all.filter((s: any) => typeof s.endpoint === "string" && /^https?:\/\//.test(s.endpoint))
+    : [];
+  const nativeSubs = all.filter(
+    (s: any) => typeof s.endpoint === "string" && /^(ios|android):\/\//.test(s.endpoint),
+  );
 
   let sent = 0, cleaned = 0;
-  await Promise.all(subs.map(async (s) => {
+
+  await Promise.all(webSubs.map(async (s) => {
     try {
       await webpushMod.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth_key } },
@@ -82,5 +88,31 @@ export async function sendPushToUsers(
       }
     }
   }));
+
+  // Native (FCM) delivery for iOS/Android tokens.
+  if (nativeSubs.length) {
+    const tokenToEndpoint = new Map<string, string>();
+    for (const s of nativeSubs) {
+      const token = String(s.endpoint).replace(/^(ios|android):\/\//, "");
+      if (token) tokenToEndpoint.set(token, s.endpoint);
+    }
+    const { sent: nativeSent, invalidTokens } = await sendNativePush(
+      Array.from(tokenToEndpoint.keys()),
+      payload,
+    );
+    sent += nativeSent;
+    if (invalidTokens.length) {
+      const staleEndpoints = invalidTokens
+        .map((t) => tokenToEndpoint.get(t))
+        .filter((e): e is string => Boolean(e));
+      if (staleEndpoints.length) {
+        await supabaseAdmin.from("push_subscriptions").delete().in("endpoint", staleEndpoints);
+        cleaned += staleEndpoints.length;
+      }
+    }
+  }
+
+  return { sent, cleaned, skipped };
+
   return { sent, cleaned, skipped };
 }
