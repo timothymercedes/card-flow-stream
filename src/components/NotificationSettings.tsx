@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
+import { ensurePushSubscribed, disablePush, pushSupported, getPushStatus } from "@/lib/push";
+import { isNative } from "@/lib/capacitor";
 import { toast } from "sonner";
 
 type Prefs = {
