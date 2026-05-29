@@ -3,6 +3,8 @@
 // in the Cloudflare Workers SSR runtime. We lazy-load it inside try/catch so
 // that environments without it simply no-op instead of crashing the server fn.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendNativePush } from "./fcm.server";
+
 
 let configured = false;
 let webpushMod: any = null;
