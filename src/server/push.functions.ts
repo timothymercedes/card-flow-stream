@@ -109,3 +109,33 @@ export const notifyGoingLive = createServerFn({ method: "POST" })
       return { sent: 0, cleaned: 0, error: "PUSH_UNAVAILABLE" as const };
     }
   });
+
+// Admin-only: send a test push notification to the calling admin's own devices.
+// Lets admins verify the end-to-end push pipeline (web + native FCM) without
+// needing a real DM, order, or live event to trigger one.
+export const sendTestPush = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({
+    title: z.string().min(1).max(120).optional(),
+    body: z.string().min(1).max(300).optional(),
+  }).parse(input ?? {}))
+  .handler(async ({ data, context }) => {
+    const userId = context.userId;
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "admin" });
+    const { data: isOwner } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "owner" });
+    if (!isAdmin && !isOwner) {
+      return { ok: false as const, error: "FORBIDDEN" as const, sent: 0 };
+    }
+    try {
+      const result = await sendPushToUsers([userId], {
+        title: data.title || "PullBidLive test 🔔",
+        body: data.body || "If you can read this, push notifications are working.",
+        url: "/",
+        tag: "admin-test",
+      });
+      return { ok: true as const, ...result };
+    } catch (err) {
+      console.error("sendTestPush failed:", err);
+      return { ok: false as const, error: "PUSH_UNAVAILABLE" as const, sent: 0 };
+    }
+  });
