@@ -124,7 +124,10 @@ workflows:
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
           test -n "$(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit 2>/dev/null)"
           echo "Installed provisioning profiles:"
-          FOUND_EXPECTED_PROFILE=0
+          # We do NOT require an exact profile name. Whatever App Store profile
+          # `app-store-connect fetch-signing-files` installs for $BUNDLE_ID is
+          # accepted — we only verify a profile matching the bundle id exists.
+          FOUND_MATCHING_PROFILE=0
           while IFS= read -r profile; do
             decoded_profile="$(mktemp)"
             security cms -D -i "$profile" > "$decoded_profile"
@@ -133,12 +136,13 @@ workflows:
             profile_app_id="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$decoded_profile" 2>/dev/null || true)"
             rm -f "$decoded_profile"
             echo "- ${profile_name:-unknown} (${profile_uuid:-unknown}) ${profile_app_id:-unknown} :: $profile"
-            if [ "$profile_name" = "$PROFILE_NAME" ]; then
-              FOUND_EXPECTED_PROFILE=1
-            fi
+            # application-identifier is "<TEAMID>.com.pullbidlive.app" — match on the bundle id suffix.
+            case "$profile_app_id" in
+              *".$BUNDLE_ID") FOUND_MATCHING_PROFILE=1 ;;
+            esac
           done < <(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print 2>/dev/null)
-          if [ "$FOUND_EXPECTED_PROFILE" != "1" ]; then
-            echo "Did not detect expected App Store provisioning profile named '$PROFILE_NAME' for $BUNDLE_ID"
+          if [ "$FOUND_MATCHING_PROFILE" != "1" ]; then
+            echo "Did not detect any provisioning profile matching bundle id '$BUNDLE_ID'"
             exit 1
           fi
           PROFILE_ARGS=()
