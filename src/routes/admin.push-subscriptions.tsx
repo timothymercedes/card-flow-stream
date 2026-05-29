@@ -160,6 +160,8 @@ function Page() {
           />
         </div>
 
+        {/* Filter pills */}
+        <div className="flex flex-wrap gap-2">
           {(["all", "ios", "android", "web", "failed"] as const).map((f) => (
             <button
               key={f}
@@ -178,10 +180,8 @@ function Page() {
               )}
             </button>
           ))}
-
-            </button>
-          ))}
         </div>
+
 
         {/* Table */}
         <Card className="overflow-hidden">
