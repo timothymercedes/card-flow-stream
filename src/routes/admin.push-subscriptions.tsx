@@ -160,10 +160,7 @@ function Page() {
           />
         </div>
 
-
-        {/* Filter pills */}
-        <div className="flex flex-wrap gap-2">
-          {(["all", "ios", "android", "web"] as const).map((f) => (
+          {(["all", "ios", "android", "web", "failed"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -173,12 +170,15 @@ function Page() {
                   : "bg-muted text-muted-foreground hover:bg-muted/70"
               }`}
             >
-              {f === "all" ? "All" : f === "ios" ? "iOS" : f === "android" ? "Android" : "Web"}
+              {f === "all" ? "All" : f === "ios" ? "iOS" : f === "android" ? "Android" : f === "web" ? "Web" : "Failed"}
               {f !== "all" && (
                 <span className="ml-1.5 opacity-80">
-                  {f === "ios" ? stats.ios.length : f === "android" ? stats.android.length : stats.web.length}
+                  {f === "ios" ? stats.ios.length : f === "android" ? stats.android.length : f === "web" ? stats.web.length : stats.failed.length}
                 </span>
               )}
+            </button>
+          ))}
+
             </button>
           ))}
         </div>
