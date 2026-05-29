@@ -98,7 +98,7 @@ workflows:
           agvtool new-version -all $(($LATEST + 1))
       - name: Set up code signing (App Store Connect API key)
         script: |
-          echo "Using PullBid Live auto-signing config v7: App Store profile '$PROFILE_NAME' for $BUNDLE_ID"
+          echo "Using PullBid Live auto-signing config v8: matching any App Store profile for $BUNDLE_ID"
           require_env() {
             name="$1"
             eval "value=\${$name:-}"
