@@ -27,6 +27,9 @@ workflows:
       <<: *env_versions
       groups:
         - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.pullbidlive.app
       vars:
         BUNDLE_ID: "com.pullbidlive.app"
         APP_STORE_APPLE_ID: "0000000000"   # <-- replace with your numeric App Store Connect App ID
@@ -91,15 +94,10 @@ workflows:
           agvtool new-version -all $(($LATEST + 1))
       - name: Set up code signing (App Store Connect API key)
         script: |
+          echo "Using PullBid Live Codemagic signing config v3: app_store ios_signing"
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --platform IOS \
-            --type IOS_APP_STORE \
-            --strict-match-identifier \
-            --create \
-            --delete-stale-profiles
           keychain add-certificates
-          test -n "$(find "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit)"
+          test -n "$(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit 2>/dev/null)"
           security find-identity -v -p codesigning
           cd ios/App
           # use-profiles MUST be the last step before build so nothing rewrites
@@ -108,6 +106,8 @@ workflows:
           # project is patched instead of being skipped from the repo root.
           xcode-project use-profiles \
             --project App.xcodeproj \
+            --profile "$HOME/Library/MobileDevice/Provisioning Profiles/*.mobileprovision" \
+            --profile "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/*.mobileprovision" \
             --archive-method app-store \
             --code-signing-setup-verbose-logging \
             --verbose
