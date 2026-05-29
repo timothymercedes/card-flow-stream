@@ -38,10 +38,11 @@ workflows:
         script: |
           npm install -g bun
           bun install
-      - name: Build web bundle (dist/client/)
+      - name: Build web bundle (SSR, hosted shell)
         script: |
           bun run build
-          test -f dist/client/index.html
+          test -f capacitor-shell/index.html
+
 
       - name: Add iOS platform & sync
         script: |
