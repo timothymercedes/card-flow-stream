@@ -12,7 +12,6 @@ export const Route = createFileRoute("/admin/push-subscriptions")({
   head: () => ({ meta: [{ title: "Push Subscriptions — Admin" }] }),
   component: Page,
 });
-
 type Sub = {
   id: string;
   user_id: string;
@@ -20,6 +19,12 @@ type Sub = {
   p256dh: string;
   auth_key: string;
   created_at: string;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_status: string | null;
+  last_error: string | null;
+  failure_count: number;
+};
 };
 
 function detectPlatform(endpoint: string): "ios" | "android" | "web" {
