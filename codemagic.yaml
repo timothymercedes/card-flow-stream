@@ -135,6 +135,10 @@ workflows:
             echo "Did not detect expected App Store provisioning profile named '$PROFILE_NAME' for $BUNDLE_ID"
             exit 1
           fi
+          PROFILE_ARGS=()
+          while IFS= read -r profile; do
+            PROFILE_ARGS+=(--profile "$profile")
+          done < <(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print 2>/dev/null)
           security find-identity -v -p codesigning
           cd ios/App
           # use-profiles MUST be the last step before build so nothing rewrites
@@ -143,8 +147,7 @@ workflows:
           # project is patched instead of being skipped from the repo root.
           xcode-project use-profiles \
             --project App.xcodeproj \
-            --profile "$HOME/Library/MobileDevice/Provisioning Profiles/*.mobileprovision" \
-            --profile "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/*.mobileprovision" \
+            "${PROFILE_ARGS[@]}" \
             --archive-method app-store \
             --code-signing-setup-verbose-logging \
             --verbose
