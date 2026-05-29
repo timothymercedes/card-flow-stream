@@ -5,7 +5,6 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Bell, Smartphone, Globe, ArrowLeft, RefreshCcw } from "lucide-react";
 import { listPushSubscriptions } from "@/server/push.functions";
 
