@@ -62,6 +62,7 @@ import { Route as AdminPerformanceRouteImport } from './routes/admin_.performanc
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
+import { Route as AdminPushSubscriptionsRouteImport } from './routes/admin.push-subscriptions'
 import { Route as AdminInsuranceClaimsRouteImport } from './routes/admin.insurance-claims'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
@@ -349,6 +350,11 @@ const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
   path: '/recovery',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPushSubscriptionsRoute = AdminPushSubscriptionsRouteImport.update({
+  id: '/push-subscriptions',
+  path: '/push-subscriptions',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInsuranceClaimsRoute = AdminInsuranceClaimsRouteImport.update({
   id: '/insurance-claims',
   path: '/insurance-claims',
@@ -487,6 +493,7 @@ export interface FileRoutesByFullPath {
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
+  '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -561,6 +568,7 @@ export interface FileRoutesByTo {
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
+  '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
@@ -636,6 +644,7 @@ export interface FileRoutesById {
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
+  '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
@@ -712,6 +721,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/vault'
     | '/admin/insurance-claims'
+    | '/admin/push-subscriptions'
     | '/admin/recovery'
     | '/admin/shipping-health'
     | '/admin/finance'
@@ -786,6 +796,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/vault'
     | '/admin/insurance-claims'
+    | '/admin/push-subscriptions'
     | '/admin/recovery'
     | '/admin/shipping-health'
     | '/admin/finance'
@@ -860,6 +871,7 @@ export interface FileRouteTypes {
     | '/tutorials'
     | '/vault'
     | '/admin/insurance-claims'
+    | '/admin/push-subscriptions'
     | '/admin/recovery'
     | '/admin/shipping-health'
     | '/admin_/finance'
@@ -1349,6 +1361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRecoveryRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/push-subscriptions': {
+      id: '/admin/push-subscriptions'
+      path: '/push-subscriptions'
+      fullPath: '/admin/push-subscriptions'
+      preLoaderRoute: typeof AdminPushSubscriptionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/insurance-claims': {
       id: '/admin/insurance-claims'
       path: '/insurance-claims'
@@ -1487,12 +1506,14 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminInsuranceClaimsRoute: typeof AdminInsuranceClaimsRoute
+  AdminPushSubscriptionsRoute: typeof AdminPushSubscriptionsRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
   AdminShippingHealthRoute: typeof AdminShippingHealthRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminInsuranceClaimsRoute: AdminInsuranceClaimsRoute,
+  AdminPushSubscriptionsRoute: AdminPushSubscriptionsRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
   AdminShippingHealthRoute: AdminShippingHealthRoute,
 }
@@ -1594,3 +1615,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
