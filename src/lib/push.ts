@@ -19,6 +19,31 @@ export function pushSupported(): boolean {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
+export type PushStatus = "granted" | "denied" | "default" | "unsupported";
+
+/**
+ * Current push permission status — native-aware. On the iOS/Android shell this
+ * reads the OS permission via Capacitor; on web it reads the Notification API.
+ */
+export async function getPushStatus(): Promise<PushStatus> {
+  if (isNative()) {
+    try {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const perm = await PushNotifications.checkPermissions();
+      if (perm.receive === "granted") return "granted";
+      if (perm.receive === "denied") return "denied";
+      return "default"; // 'prompt' | 'prompt-with-rationale'
+    } catch {
+      return "unsupported";
+    }
+  }
+  if (!pushSupported()) return "unsupported";
+  const perm = Notification.permission;
+  if (perm === "granted") return "granted";
+  if (perm === "denied") return "denied";
+  return "default";
+}
+
 export async function ensurePushSubscribed(userId: string): Promise<{ ok: boolean; reason?: string }> {
   // Native shell: use APNs / FCM via Capacitor.
   if (isNative()) {
