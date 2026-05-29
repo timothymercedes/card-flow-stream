@@ -64,7 +64,10 @@ export function NotificationSettings() {
       }
       setLoading(false);
     })();
-    if (pushSupported() && navigator.serviceWorker?.getRegistration) {
+    if (isNative()) {
+      // Native shell: reflect the OS-level permission as the device push state.
+      getPushStatus().then((s) => setPushSubbed(s === "granted"));
+    } else if (pushSupported() && navigator.serviceWorker?.getRegistration) {
       navigator.serviceWorker.getRegistration().then(async (reg) => {
         const sub = await reg?.pushManager.getSubscription();
         setPushSubbed(!!sub);
