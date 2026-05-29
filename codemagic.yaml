@@ -24,12 +24,18 @@ workflows:
     max_build_duration: 60
     environment:
       <<: *env_versions
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.pullbidlive.app
+      integrations:
+        app_store_connect: app_store_credentials   # name of the Codemagic App Store Connect integration
       groups:
         - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY
       vars:
         BUNDLE_ID: "com.pullbidlive.app"
         APP_STORE_APPLE_ID: "0000000000"   # <-- replace with your numeric App Store Connect App ID
         XCODE_SCHEME: "App"
+
     scripts:
       - name: Install dependencies
         script: |
@@ -96,10 +102,10 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
         submit_to_testflight: true
         beta_groups:
           - "Internal Testers"
+
 
   # ------------------------------------------------------------------ #
   #  Android  ->  Google Play Internal Testing                         #
