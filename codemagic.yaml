@@ -32,6 +32,7 @@ workflows:
         bundle_identifier: com.pullbidlive.app
       vars:
         BUNDLE_ID: "com.pullbidlive.app"
+        PROFILE_NAME: "Pullbidliveprofile"
         APP_STORE_APPLE_ID: "0000000000"   # <-- replace with your numeric App Store Connect App ID
         XCODE_SCHEME: "App"
 
@@ -94,11 +95,19 @@ workflows:
           agvtool new-version -all $(($LATEST + 1))
       - name: Set up code signing (App Store Connect API key)
         script: |
-          echo "Using PullBid Live Codemagic signing config v4: App Store profile for $BUNDLE_ID"
-          test -n "$APP_STORE_CONNECT_PRIVATE_KEY"
-          test -n "$APP_STORE_CONNECT_KEY_IDENTIFIER"
-          test -n "$APP_STORE_CONNECT_ISSUER_ID"
-          test -n "$CERTIFICATE_PRIVATE_KEY"
+          echo "Using PullBid Live Codemagic signing config v5: App Store profile '$PROFILE_NAME' for $BUNDLE_ID"
+          require_env() {
+            name="$1"
+            eval "value=\${$name:-}"
+            if [ -z "$value" ]; then
+              echo "Missing required environment variable: $name"
+              exit 1
+            fi
+          }
+          require_env APP_STORE_CONNECT_PRIVATE_KEY
+          require_env APP_STORE_CONNECT_KEY_IDENTIFIER
+          require_env APP_STORE_CONNECT_ISSUER_ID
+          require_env CERTIFICATE_PRIVATE_KEY
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --platform IOS \
@@ -106,7 +115,26 @@ workflows:
             --strict-match-identifier \
             --create
           keychain add-certificates
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
           test -n "$(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print -quit 2>/dev/null)"
+          echo "Installed provisioning profiles:"
+          FOUND_EXPECTED_PROFILE=0
+          while IFS= read -r profile; do
+            decoded_profile="$(mktemp)"
+            security cms -D -i "$profile" > "$decoded_profile"
+            profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$decoded_profile" 2>/dev/null || true)"
+            profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$decoded_profile" 2>/dev/null || true)"
+            profile_app_id="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$decoded_profile" 2>/dev/null || true)"
+            rm -f "$decoded_profile"
+            echo "- ${profile_name:-unknown} (${profile_uuid:-unknown}) ${profile_app_id:-unknown} :: $profile"
+            if [ "$profile_name" = "$PROFILE_NAME" ]; then
+              FOUND_EXPECTED_PROFILE=1
+            fi
+          done < <(find "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" -name '*.mobileprovision' -print 2>/dev/null)
+          if [ "$FOUND_EXPECTED_PROFILE" != "1" ]; then
+            echo "Did not detect expected App Store provisioning profile named '$PROFILE_NAME' for $BUNDLE_ID"
+            exit 1
+          fi
           security find-identity -v -p codesigning
           cd ios/App
           # use-profiles MUST be the last step before build so nothing rewrites
