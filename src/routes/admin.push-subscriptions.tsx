@@ -69,13 +69,16 @@ function Page() {
     const ios = rows.filter((r) => detectPlatform(r.endpoint) === "ios");
     const android = rows.filter((r) => detectPlatform(r.endpoint) === "android");
     const web = rows.filter((r) => detectPlatform(r.endpoint) === "web");
-    return { ios, android, web };
+    const failed = rows.filter((r) => r.last_status === "failed");
+    return { ios, android, web, failed };
   }, [rows]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return rows;
+    if (filter === "failed") return rows.filter((r) => r.last_status === "failed");
     return rows.filter((r) => detectPlatform(r.endpoint) === filter);
   }, [rows, filter]);
+
 
   if (authLoading || isAdmin === null) {
     return (
