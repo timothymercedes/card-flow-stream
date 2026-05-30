@@ -238,8 +238,12 @@ workflows:
       # Android-only env: just Node. Do NOT pull in the shared *env_versions
       # anchor, which carries Mac-specific xcode/cocoapods settings.
       node: 22
-      groups:
-        - keystore_credentials       # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+      # Reference the keystore uploaded under Code Signing Identities
+      # (reference name "keystore_credentials"). Codemagic decrypts it and
+      # exposes CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS,
+      # CM_KEY_PASSWORD automatically — no Environment Variable Group needed.
+      android_signing:
+        - keystore_credentials
       vars:
         PACKAGE_NAME: "com.pullbidlive.app"
     scripts:
