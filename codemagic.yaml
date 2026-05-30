@@ -268,74 +268,56 @@ workflows:
         script: |
           # Codemagic already decrypted the uploaded keystore to $CM_KEYSTORE_PATH
           # and set CM_KEYSTORE_PASSWORD / CM_KEY_ALIAS / CM_KEY_PASSWORD.
-          cat >> android/key.properties <<EOF
+          require_env() {
+            name="$1"
+            eval "value=\${$name:-}"
+            if [ -z "$value" ]; then
+              echo "Missing required environment variable: $name"
+              exit 1
+            fi
+          }
+          require_env CM_KEYSTORE_PATH
+          require_env CM_KEYSTORE_PASSWORD
+          require_env CM_KEY_ALIAS
+          require_env CM_KEY_PASSWORD
+
+          cat > android/key.properties <<EOF
           storePassword=$CM_KEYSTORE_PASSWORD
           keyPassword=$CM_KEY_PASSWORD
           keyAlias=$CM_KEY_ALIAS
           storeFile=$CM_KEYSTORE_PATH
           EOF
-          # Wire signingConfig into build.gradle if not already present
+
+          # Configure release signing with a standalone top-level android { } block.
+          # This avoids fragile in-place patching of the generated Capacitor Gradle
+          # file and keeps signingConfig inside buildTypes.release, where AGP expects it.
           GRADLE=android/app/build.gradle
-          if ! grep -q "key.properties" "$GRADLE"; then
-            python3 - "$GRADLE" <<'PY'
-          import sys, re
-          p = sys.argv[1]
-          s = open(p).read()
+          if ! grep -q "PullBid Live Codemagic release signing" "$GRADLE"; then
+            cat >> "$GRADLE" <<'EOF'
 
-          # 1) Load key.properties at the top of the file.
-          header = (
-            'def keystoreProperties = new Properties()\n'
-            'def keystorePropertiesFile = rootProject.file("key.properties")\n'
-            'if (keystorePropertiesFile.exists()) {\n'
-            '    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n'
-            '}\n\n'
-          )
-          s = header + s
+          // PullBid Live Codemagic release signing
+          def pullbidReleaseKeystoreProperties = new Properties()
+          def pullbidReleaseKeystorePropertiesFile = rootProject.file("key.properties")
+          if (pullbidReleaseKeystorePropertiesFile.exists()) {
+              pullbidReleaseKeystoreProperties.load(new FileInputStream(pullbidReleaseKeystorePropertiesFile))
+          }
 
-          # 2) Insert a signingConfigs { release { ... } } block immediately
-          #    before the buildTypes block (inside the android { } block).
-          signing = (
-            '    signingConfigs {\n'
-            '        release {\n'
-            '            keyAlias keystoreProperties["keyAlias"]\n'
-            '            keyPassword keystoreProperties["keyPassword"]\n'
-            '            storeFile keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null\n'
-            '            storePassword keystoreProperties["storePassword"]\n'
-            '        }\n'
-            '    }\n'
-          )
-          if 'signingConfigs' not in s:
-              s = re.sub(r'(\n\s*buildTypes\s*\{)', '\n' + signing + r'\1', s, count=1)
-
-          # 3) Reference the release signing config from INSIDE buildTypes only.
-          #    Locate the buildTypes block, then add the signingConfig line to its
-          #    release { } child. This avoids touching signingConfigs.release.
-          def patch_buildtypes(text):
-              m = re.search(r'buildTypes\s*\{', text)
-              if not m:
-                  return text
-              # find matching brace for buildTypes block
-              start = m.end()
-              depth = 1
-              i = start
-              while i < len(text) and depth > 0:
-                  if text[i] == '{':
-                      depth += 1
-                  elif text[i] == '}':
-                      depth -= 1
-                  i += 1
-              block = text[start:i]
-              if 'signingConfig ' not in block:
-                  block = re.sub(
-                      r'(release\s*\{)',
-                      r'\1\n            signingConfig signingConfigs.release',
-                      block, count=1)
-              return text[:start] + block + text[i:]
-
-          s = patch_buildtypes(s)
-          open(p, "w").write(s)
-          print("Patched build.gradle signing config")
-          PY
+          android {
+              signingConfigs {
+                  release {
+                      keyAlias = pullbidReleaseKeystoreProperties["keyAlias"]
+                      keyPassword = pullbidReleaseKeystoreProperties["keyPassword"]
+                      storeFile = pullbidReleaseKeystoreProperties["storeFile"] ? file(pullbidReleaseKeystoreProperties["storeFile"]) : null
+                      storePassword = pullbidReleaseKeystoreProperties["storePassword"]
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig = signingConfigs.release
+                  }
+              }
+          }
+          EOF
           fi
 
       - name: Set version code from build number
