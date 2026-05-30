@@ -288,35 +288,27 @@ workflows:
           storeFile=$CM_KEYSTORE_PATH
           EOF
 
-          # Configure release signing with a standalone top-level android { } block.
-          # This avoids fragile in-place patching of the generated Capacitor Gradle
-          # file and keeps signingConfig inside buildTypes.release, where AGP expects it.
+          # Configure release signing through the Android Gradle extension directly.
+          # Do not inject signingConfig() into a nested Gradle block; AGP expects the
+          # release BuildType's signingConfig property to receive a SigningConfig object.
           GRADLE=android/app/build.gradle
-          if ! grep -q "PullBid Live Codemagic release signing" "$GRADLE"; then
+          if ! grep -q "PullBid Live Codemagic release signing v2" "$GRADLE"; then
             cat >> "$GRADLE" <<'EOF'
 
-          // PullBid Live Codemagic release signing
+          // PullBid Live Codemagic release signing v2
           def pullbidReleaseKeystoreProperties = new Properties()
           def pullbidReleaseKeystorePropertiesFile = rootProject.file("key.properties")
           if (pullbidReleaseKeystorePropertiesFile.exists()) {
               pullbidReleaseKeystoreProperties.load(new FileInputStream(pullbidReleaseKeystorePropertiesFile))
           }
 
-          android {
-              signingConfigs {
-                  release {
-                      keyAlias = pullbidReleaseKeystoreProperties["keyAlias"]
-                      keyPassword = pullbidReleaseKeystoreProperties["keyPassword"]
-                      storeFile = pullbidReleaseKeystoreProperties["storeFile"] ? file(pullbidReleaseKeystoreProperties["storeFile"]) : null
-                      storePassword = pullbidReleaseKeystoreProperties["storePassword"]
-                  }
-              }
-              buildTypes {
-                  release {
-                      signingConfig = signingConfigs.release
-                  }
-              }
-          }
+          def pullbidReleaseSigningConfig = android.signingConfigs.findByName("release") ?: android.signingConfigs.create("release")
+          pullbidReleaseSigningConfig.keyAlias = pullbidReleaseKeystoreProperties["keyAlias"]
+          pullbidReleaseSigningConfig.keyPassword = pullbidReleaseKeystoreProperties["keyPassword"]
+          pullbidReleaseSigningConfig.storeFile = pullbidReleaseKeystoreProperties["storeFile"] ? file(pullbidReleaseKeystoreProperties["storeFile"]) : null
+          pullbidReleaseSigningConfig.storePassword = pullbidReleaseKeystoreProperties["storePassword"]
+
+          android.buildTypes.getByName("release").signingConfig = pullbidReleaseSigningConfig
           EOF
           fi
 
