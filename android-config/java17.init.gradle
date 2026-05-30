@@ -5,6 +5,12 @@
 // which fails with "invalid source release: 21". Applying this init script
 // pins every project (app + capacitor-android + plugins) to Java 17 after
 // evaluation, without editing the generated android/ Gradle files.
+//
+// NOTE: init scripts run on Gradle's own classpath, which does NOT include
+// the Android or Kotlin Gradle plugin classes. Referencing
+// `org.jetbrains.kotlin.gradle.tasks.KotlinCompile` directly throws
+// "Could not get unknown property 'org'". Match tasks by class name string
+// and configure Kotlin options reflectively instead.
 allprojects {
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
@@ -15,14 +21,23 @@ allprojects {
                 }
             }
         }
-        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
+
+        // Pin Java compilation to 17.
         project.tasks.withType(JavaCompile).configureEach {
             sourceCompatibility = JavaVersion.VERSION_17.toString()
             targetCompatibility = JavaVersion.VERSION_17.toString()
+        }
+
+        // Pin Kotlin compilation to 17 without importing Kotlin plugin classes.
+        project.tasks.configureEach { task ->
+            if (task.class.name.contains('KotlinCompile')) {
+                try {
+                    def kotlinOptions = task.kotlinOptions
+                    kotlinOptions.jvmTarget = '17'
+                } catch (Exception ignored) {
+                    // Task doesn't expose kotlinOptions; skip.
+                }
+            }
         }
     }
 }
