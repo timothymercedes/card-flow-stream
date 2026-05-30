@@ -295,6 +295,7 @@ workflows:
           cd android
           chmod +x ./gradlew
           ./gradlew bundleRelease \
+            --init-script ../android-config/java17.init.gradle \
             -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
             -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
