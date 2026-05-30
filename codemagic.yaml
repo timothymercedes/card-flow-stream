@@ -239,7 +239,6 @@ workflows:
       # anchor, which carries Mac-specific xcode/cocoapods settings.
       node: 22
       groups:
-        - google_play_credentials    # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         - keystore_credentials       # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
       vars:
         PACKAGE_NAME: "com.pullbidlive.app"
@@ -315,8 +314,11 @@ workflows:
     artifacts:
       - android/app/build/outputs/**/*.aab
       - android/app/build/outputs/**/mapping.txt
-    publishing:
-      google_play:
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
-        submit_as_draft: false
+    # Publishing to Google Play is disabled until GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    # is configured in the google_play_credentials group. Re-enable by adding:
+    #   - google_play_credentials to environment.groups above
+    #   publishing:
+    #     google_play:
+    #       credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    #       track: internal
+    #       submit_as_draft: false
