@@ -1,4 +1,5 @@
 # Codemagic CI/CD — PullBid Live (no Mac required)
+# android-internal runs on Linux only (no env_versions / Xcode inheritance).
 #
 # Builds the TanStack web app, wraps it with Capacitor, compiles signed
 # native binaries on Codemagic's macOS/Linux runners, and ships them to
