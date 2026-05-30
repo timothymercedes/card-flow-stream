@@ -230,10 +230,14 @@ workflows:
   # ------------------------------------------------------------------ #
   android-internal:
     name: PullBid Live — Android (Play Internal)
-    instance_type: linux_x2
+    # Linux runner only — no Mac/Xcode needed for Android. `linux` is the
+    # standard instance type available on Codemagic's current billing plan.
+    instance_type: linux
     max_build_duration: 60
     environment:
-      <<: *env_versions
+      # Android-only env: just Node. Do NOT pull in the shared *env_versions
+      # anchor, which carries Mac-specific xcode/cocoapods settings.
+      node: 22
       groups:
         - google_play_credentials    # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         - keystore_credentials       # CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
