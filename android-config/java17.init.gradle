@@ -1,0 +1,28 @@
+// Gradle init script: force Java 17 across all Android modules.
+//
+// Codemagic's Linux runner uses JDK 17, but Capacitor 8 modules default to
+// Java 21 (sourceCompatibility / targetCompatibility / kotlin jvmTarget),
+// which fails with "invalid source release: 21". Applying this init script
+// pins every project (app + capacitor-android + plugins) to Java 17 after
+// evaluation, without editing the generated android/ Gradle files.
+allprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "17"
+            }
+        }
+        project.tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = JavaVersion.VERSION_17.toString()
+            targetCompatibility = JavaVersion.VERSION_17.toString()
+        }
+    }
+}

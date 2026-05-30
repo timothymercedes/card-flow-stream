@@ -261,44 +261,9 @@ workflows:
         script: |
           bunx cap add android || true
           bunx cap sync android
-      - name: Force Java 17 across all Android modules
-        script: |
-          # Codemagic's Linux runner uses JDK 17, but Capacitor 8 modules default
-          # to Java 21 (sourceCompatibility/targetCompatibility/kotlin jvmTarget),
-          # which fails with "invalid source release: 21". Pin everything to 17 by
-          # appending an allprojects block to android/build.gradle so it overrides
-          # every subproject (app + capacitor-android + plugins) after evaluation.
-          GRADLE=android/build.gradle
-          test -f "$GRADLE"
-          # Remove any prior injected block so re-runs stay idempotent.
-          sed -i '/\/\/ >>> LOVABLE JAVA17 START/,/\/\/ <<< LOVABLE JAVA17 END/d' "$GRADLE"
-          cat >> "$GRADLE" <<'GRADLE_EOF'
-
-// >>> LOVABLE JAVA17 START
-allprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
-            }
-        }
-        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-        project.tasks.withType(JavaCompile).configureEach {
-            sourceCompatibility = JavaVersion.VERSION_17.toString()
-            targetCompatibility = JavaVersion.VERSION_17.toString()
-        }
-    }
-}
-// <<< LOVABLE JAVA17 END
-GRADLE_EOF
-          echo "Pinned Android Java/Kotlin toolchain to 17."
+      # Java 17 is enforced via android-config/java17.init.gradle, passed to
+      # gradlew with --init-script in the "Build signed .aab" step below. No
+      # Gradle code is inlined in this YAML file.
       - name: Drop in Firebase config (google-services.json)
         script: |
           cp android-config/google-services.json android/app/google-services.json
@@ -330,6 +295,7 @@ GRADLE_EOF
           cd android
           chmod +x ./gradlew
           ./gradlew bundleRelease \
+            --init-script ../android-config/java17.init.gradle \
             -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
             -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
