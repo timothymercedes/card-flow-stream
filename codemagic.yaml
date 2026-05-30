@@ -264,16 +264,15 @@ workflows:
       - name: Drop in Firebase config (google-services.json)
         script: |
           cp android-config/google-services.json android/app/google-services.json
-      - name: Decode keystore
-        script: |
-          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
       - name: Configure signing
         script: |
+          # Codemagic already decrypted the uploaded keystore to $CM_KEYSTORE_PATH
+          # and set CM_KEYSTORE_PASSWORD / CM_KEY_ALIAS / CM_KEY_PASSWORD.
           cat >> android/key.properties <<EOF
           storePassword=$CM_KEYSTORE_PASSWORD
           keyPassword=$CM_KEY_PASSWORD
           keyAlias=$CM_KEY_ALIAS
-          storeFile=/tmp/keystore.jks
+          storeFile=$CM_KEYSTORE_PATH
           EOF
           # Wire signingConfig into build.gradle if not already present
           GRADLE=android/app/build.gradle
