@@ -264,7 +264,7 @@ workflows:
       - name: Drop in Firebase config (google-services.json)
         script: |
           cp android-config/google-services.json android/app/google-services.json
-      - name: Configure signing
+      - name: Verify Android signing identity
         script: |
           # Codemagic already decrypted the uploaded keystore to $CM_KEYSTORE_PATH
           # and set CM_KEYSTORE_PASSWORD / CM_KEY_ALIAS / CM_KEY_PASSWORD.
@@ -280,37 +280,8 @@ workflows:
           require_env CM_KEYSTORE_PASSWORD
           require_env CM_KEY_ALIAS
           require_env CM_KEY_PASSWORD
-
-          cat > android/key.properties <<EOF
-          storePassword=$CM_KEYSTORE_PASSWORD
-          keyPassword=$CM_KEY_PASSWORD
-          keyAlias=$CM_KEY_ALIAS
-          storeFile=$CM_KEYSTORE_PATH
-          EOF
-
-          # Configure release signing through the Android Gradle extension directly.
-          # Do not inject signingConfig() into a nested Gradle block; AGP expects the
-          # release BuildType's signingConfig property to receive a SigningConfig object.
-          GRADLE=android/app/build.gradle
-          if ! grep -q "PullBid Live Codemagic release signing v2" "$GRADLE"; then
-            cat >> "$GRADLE" <<'EOF'
-
-          // PullBid Live Codemagic release signing v2
-          def pullbidReleaseKeystoreProperties = new Properties()
-          def pullbidReleaseKeystorePropertiesFile = rootProject.file("key.properties")
-          if (pullbidReleaseKeystorePropertiesFile.exists()) {
-              pullbidReleaseKeystoreProperties.load(new FileInputStream(pullbidReleaseKeystorePropertiesFile))
-          }
-
-          def pullbidReleaseSigningConfig = android.signingConfigs.findByName("release") ?: android.signingConfigs.create("release")
-          pullbidReleaseSigningConfig.keyAlias = pullbidReleaseKeystoreProperties["keyAlias"]
-          pullbidReleaseSigningConfig.keyPassword = pullbidReleaseKeystoreProperties["keyPassword"]
-          pullbidReleaseSigningConfig.storeFile = pullbidReleaseKeystoreProperties["storeFile"] ? file(pullbidReleaseKeystoreProperties["storeFile"]) : null
-          pullbidReleaseSigningConfig.storePassword = pullbidReleaseKeystoreProperties["storePassword"]
-
-          android.buildTypes.getByName("release").signingConfig = pullbidReleaseSigningConfig
-          EOF
-          fi
+          test -f "$CM_KEYSTORE_PATH"
+          echo "Using Codemagic Android signing identity: $CM_KEY_ALIAS"
 
       - name: Set version code from build number
         script: |
@@ -320,7 +291,11 @@ workflows:
         script: |
           cd android
           chmod +x ./gradlew
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file="$CM_KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password="$CM_KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$CM_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$CM_KEY_PASSWORD"
     artifacts:
       - android/app/build/outputs/**/*.aab
       - android/app/build/outputs/**/mapping.txt
