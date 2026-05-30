@@ -281,6 +281,8 @@ workflows:
           import sys, re
           p = sys.argv[1]
           s = open(p).read()
+
+          # 1) Load key.properties at the top of the file.
           header = (
             'def keystoreProperties = new Properties()\n'
             'def keystorePropertiesFile = rootProject.file("key.properties")\n'
@@ -289,6 +291,9 @@ workflows:
             '}\n\n'
           )
           s = header + s
+
+          # 2) Insert a signingConfigs { release { ... } } block immediately
+          #    before the buildTypes block (inside the android { } block).
           signing = (
             '    signingConfigs {\n'
             '        release {\n'
@@ -299,12 +304,40 @@ workflows:
             '        }\n'
             '    }\n'
           )
-          s = re.sub(r'(buildTypes\s*\{)', signing + r'\1', s, count=1)
-          s = re.sub(r'(release\s*\{)', r'\1\n            signingConfig signingConfigs.release', s, count=1)
+          if 'signingConfigs' not in s:
+              s = re.sub(r'(\n\s*buildTypes\s*\{)', '\n' + signing + r'\1', s, count=1)
+
+          # 3) Reference the release signing config from INSIDE buildTypes only.
+          #    Locate the buildTypes block, then add the signingConfig line to its
+          #    release { } child. This avoids touching signingConfigs.release.
+          def patch_buildtypes(text):
+              m = re.search(r'buildTypes\s*\{', text)
+              if not m:
+                  return text
+              # find matching brace for buildTypes block
+              start = m.end()
+              depth = 1
+              i = start
+              while i < len(text) and depth > 0:
+                  if text[i] == '{':
+                      depth += 1
+                  elif text[i] == '}':
+                      depth -= 1
+                  i += 1
+              block = text[start:i]
+              if 'signingConfig ' not in block:
+                  block = re.sub(
+                      r'(release\s*\{)',
+                      r'\1\n            signingConfig signingConfigs.release',
+                      block, count=1)
+              return text[:start] + block + text[i:]
+
+          s = patch_buildtypes(s)
           open(p, "w").write(s)
           print("Patched build.gradle signing config")
           PY
           fi
+
       - name: Set version code from build number
         script: |
           cd android
