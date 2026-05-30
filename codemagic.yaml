@@ -231,9 +231,8 @@ workflows:
   # ------------------------------------------------------------------ #
   android-internal:
     name: PullBid Live — Android (Play Internal)
-    # Linux runner only — no Mac/Xcode needed for Android. `linux` is the
-    # standard instance type available on Codemagic's current billing plan.
-    instance_type: linux
+    # Android runs on Codemagic's default Linux runner for the current plan.
+    # Do not set instance_type, machine, runner, or inherit Mac/Xcode settings.
     max_build_duration: 60
     environment:
       # Android-only env: just Node. Do NOT pull in the shared *env_versions
