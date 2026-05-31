@@ -2102,30 +2102,18 @@ function Vault() {
         </div>
       )}
 
-      {/* Visual card matcher — tap the correct card image */}
+      {/* Visual card matcher — tap the correct card image, or enter manually */}
       {matchingCard && (
         <CardMatchPicker
           uploadedImage={matchingCard.original_image_url || matchingCard.image_url || undefined}
           card={{ name: matchingCard.name, tcg_set: matchingCard.tcg_set, tcg_number: matchingCard.tcg_number, category: matchingCard.category }}
           fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
           onSelect={(m) => applyMatch(matchingCard, m)}
+          onManualSave={(f) => applyManual(matchingCard, f)}
           onClose={() => setMatchingCard(null)}
         />
       )}
 
-      {/* Bulk match mode — step through the whole review queue */}
-      {bulkMatch && (
-        <BulkMatchMode
-          cards={reviewCards as unknown as BulkCard[]}
-          fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
-          onApply={(c, m) => applyMatch(cards.find((x) => x.id === c.id) || (c as unknown as Card), m)}
-          uploadedImageFor={(c) => {
-            const full = cards.find((x) => x.id === c.id);
-            return full ? (full.original_image_url || full.image_url || displayImage(full) || undefined) : undefined;
-          }}
-          onClose={() => setBulkMatch(false)}
-        />
-      )}
 
       {/* Edit modal */}
       {editing && (
