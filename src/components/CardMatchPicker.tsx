@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Loader2, Check, ImageOff } from "lucide-react";
+import { X, Search, Loader2, Check, ImageOff, PencilLine } from "lucide-react";
 
 // A possible catalog match. Structurally compatible with the Vault `Alt` type.
 export type MatchOption = {
@@ -16,7 +16,20 @@ export type MatchOption = {
   tcgPrices?: any;
 };
 
+// Free-form manual entry for collectors who know exactly what card they have.
+export type ManualCardEntry = {
+  name: string;
+  set?: string;
+  number?: string;
+  year?: string;
+  condition?: string;
+  notes?: string;
+};
+
 type FetchOpts = { name?: string; set?: string; number?: string; category?: string };
+
+const CONDITIONS = ["NM", "LP", "MP", "Damaged"] as const;
+
 
 /**
  * Visual card-matching modal. Shows the uploaded card at the top and a grid of
