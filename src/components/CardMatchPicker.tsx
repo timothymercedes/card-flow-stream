@@ -22,6 +22,9 @@ export type ManualCardEntry = {
   set?: string;
   number?: string;
   year?: string;
+  category?: string;
+  rarity?: string;
+  variant?: string;
   condition?: string;
   notes?: string;
 };
