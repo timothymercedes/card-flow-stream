@@ -336,6 +336,8 @@ Deno.serve(async (req) => {
     // cross-price (a Japanese card must not get an English market value).
     const languageName = normalizeLanguageName(body?.language);
     const isEnglish = languageName === "English";
+    const langCode = String(body?.language || "en").toLowerCase();
+    const incomingIdentityId = body?.identity_id ? String(body.identity_id) : null;
     // game routing: accept either an explicit `game` id or a scanner `category`
     // string. When provided and non-Pokémon, we route through the matching
     // catalog adapters instead of defaulting to PokémonTCG.
