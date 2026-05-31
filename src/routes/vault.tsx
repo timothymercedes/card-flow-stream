@@ -157,6 +157,16 @@ function Vault() {
     return Number(card.estimated_value || 0) > 0;
   }
 
+  // Per-card gain vs. what the owner paid (only when a purchase price exists).
+  function cardGain(card: Card): number | null {
+    if (card.purchase_price == null) return null;
+    const paid = Number(card.purchase_price);
+    if (Number.isNaN(paid)) return null;
+    return Number(card.estimated_value || 0) - paid;
+  }
+
+
+
   // Match confidence tier → colour (Green ≥90%, Yellow 70-89%, Red <70%).
   function confidenceTier(score?: number | null) {
     const s = Number(score || 0);
@@ -804,6 +814,13 @@ function Vault() {
     [cards]
   );
 
+  // Total amount the owner actually paid (purchase cost) and overall profit/loss.
+  const totalPurchase = useMemo(
+    () => cards.reduce((s, c) => s + (c.purchase_price != null ? Number(c.purchase_price) : 0), 0),
+    [cards]
+  );
+  const totalProfit = useMemo(() => totalValue - totalPurchase, [totalValue, totalPurchase]);
+
   // Review-queue breakdown shown at the top of the Vault.
   const reviewSummary = useMemo(() => ({
     needsReview: cards.filter((c) => c.needs_review).length,
@@ -813,15 +830,8 @@ function Vault() {
     incorrectPrices: cards.filter((c) => c.incorrect_price_reported).length,
   }), [cards]);
 
-  // Vault accuracy: share of cards that are fully identified, verified-priced,
-  // imaged and not flagged for review.
-  const vaultAccuracy = useMemo(() => {
-    if (cards.length === 0) return 100;
-    const good = cards.filter((c) =>
-      isSafePriced(c) && isCompleteIdentity(c) && !c.needs_review && !c.incorrect_price_reported && hasImage(c)
-    ).length;
-    return Math.round((good / cards.length) * 100);
-  }, [cards]);
+
+
 
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1436,24 +1446,29 @@ function Vault() {
           </div>
         </div>
         <div className="mb-3"><WatchTutorial routePath="/vault" label="How vaults work" /></div>
-        {/* Total value (owner only) */}
+        {/* Totals (owner only) */}
         <div className="mb-3 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/25 via-accent/15 to-card p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-start justify-between gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
-              <p className="mt-1 text-4xl font-bold tracking-tight">${totalValue.toFixed(2)}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} tracked</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">${totalValue.toFixed(2)}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""}</p>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Vault Accuracy</p>
-              <p className={`mt-1 text-3xl font-bold tracking-tight ${vaultAccuracy >= 90 ? "text-emerald-500" : vaultAccuracy >= 70 ? "text-yellow-500" : "text-red-500"}`}>{vaultAccuracy}%</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">verified & complete</p>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Purchase Cost</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">${totalPurchase.toFixed(2)}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">what you paid</p>
             </div>
-          </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/20">
-            <div className={`h-full rounded-full transition-all ${vaultAccuracy >= 90 ? "bg-emerald-500" : vaultAccuracy >= 70 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${vaultAccuracy}%` }} />
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Profit / Loss</p>
+              <p className={`mt-1 text-2xl font-bold tracking-tight sm:text-4xl ${totalProfit >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                {totalProfit >= 0 ? "+" : "-"}${Math.abs(totalProfit).toFixed(2)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">vs. market value</p>
+            </div>
           </div>
         </div>
+
 
         {/* Review queue summary */}
         {reviewCards.length > 0 && (
@@ -1723,8 +1738,15 @@ function Vault() {
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
                   {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
-                  {isSafePriced(c) && (
-                    <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                  {Number(c.estimated_value || 0) > 0 && (
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                      {cardGain(c) != null && (
+                        <p className={`text-[10px] font-semibold ${cardGain(c)! >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                          {cardGain(c)! >= 0 ? "+" : "-"}${Math.abs(cardGain(c)!).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </button>
               );
@@ -1757,12 +1779,19 @@ function Vault() {
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
                     {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Choose Correct Card</span>}
-                    {isSafePriced(c) && (
-                      <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                    {Number(c.estimated_value || 0) > 0 && (
+                      <div className="mt-0.5 flex items-baseline gap-1.5">
+                        <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                        {cardGain(c) != null && (
+                          <span className={`text-[10px] font-semibold ${cardGain(c)! >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                            {cardGain(c)! >= 0 ? "+" : "-"}${Math.abs(cardGain(c)!).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
-                {viewMode === "small" && isSafePriced(c) && (
+                {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
                   <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                 )}
               </button>
