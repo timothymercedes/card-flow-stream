@@ -126,7 +126,9 @@ function Vault() {
   }
 
   function isCompleteIdentity(card: Partial<Card>) {
-    return !!(card.name && card.tcg_set && card.tcg_number && card.tcg_year && (card.rarity || card.variant));
+    // A value may only be assigned once the exact card version is identified:
+    // name, set, card number, year, rarity AND variant must all be present.
+    return !!(card.name && card.tcg_set && card.tcg_number && card.tcg_year && card.rarity && card.variant);
   }
 
   function isSafePriced(card: Card) {
