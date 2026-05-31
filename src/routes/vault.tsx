@@ -741,6 +741,7 @@ function Vault() {
           body: {
             name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined,
             year: c.tcg_year || undefined, category: c.category || undefined, game: categoryToGameId(c.category),
+            language: c.language || parseLanguage(c.description),
             variant: c.variant || parseVariant(c.description).finish, skip_cache: true,
           },
         });
