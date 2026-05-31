@@ -190,8 +190,9 @@ function pickJustTcgVariant(card: any, variantHint: string | null, wantLang = "E
 // the matched product identifiers for the card-page "Market Source" panel.
 async function fetchJustTcgQuote(
   gameId: string,
-  q: { name: string; set?: string | null; number?: string | null; variant?: string | null },
+  q: { name: string; set?: string | null; number?: string | null; variant?: string | null; language?: string | null },
 ): Promise<PriceQuote | null> {
+  const wantLang = normalizeLanguageName(q.language);
   const apiKey = Deno.env.get("JUSTTCG_API_KEY");
   const slug = JUSTTCG_GAME[gameId];
   if (!apiKey || !slug || !q.name) return null;
