@@ -1730,6 +1730,7 @@ function Vault() {
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
                   {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-black/40 ${confidenceTier(c.confidence_score).dot}`} />
                   {cv.edition === "1st Edition" ? (
                     <span className="absolute bottom-1.5 left-1.5 rounded-md border border-yellow-300/80 bg-black/85 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
