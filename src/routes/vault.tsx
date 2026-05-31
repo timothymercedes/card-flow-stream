@@ -26,7 +26,7 @@ type Card = {
   tcg_number?: string | null; tcg_set?: string | null; tcg_year?: string | null;
   condition?: Condition | null;
   condition_prices?: ConditionPrices | null;
-  visibility?: Visibility | null;
+  visibility?: Visibility | null; language?: string | null;
   market_price?: number | null;
   is_graded?: boolean | null; grader?: string | null; grade?: string | null;
   grading_cert?: string | null; graded_price?: number | null;
