@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Search, Loader2, Check, ImageOff, PencilLine } from "lucide-react";
 
 // A possible catalog match. Structurally compatible with the Vault `Alt` type.
