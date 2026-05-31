@@ -744,15 +744,16 @@ function Vault() {
 
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q
+    let base = q
       ? cards.filter((c) =>
           [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
             .filter(Boolean)
             .some((f) => String(f).toLowerCase().includes(q))
         )
       : cards;
+    if (reviewOnly) base = base.filter((c) => reviewCards.some((r) => r.id === c.id));
     return [...base].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-  }, [cards, query]);
+  }, [cards, query, reviewOnly, reviewCards]);
 
   // Predictive suggestions for the search box (from existing vault metadata)
   const suggestions = useMemo(() => {
