@@ -200,6 +200,8 @@ function Vault() {
     if (error) toast.error("Could not report price");
     else toast.success("Thanks — flagged for review");
   }
+
+  function conditionPricesFromMarket(price?: number): ConditionPrices | null {
     const nm = Number(price) || 0;
     if (!nm) return null;
     return {
