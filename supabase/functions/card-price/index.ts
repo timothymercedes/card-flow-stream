@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
     // unavailable: no reliable data anywhere → never fabricate a number
     const market = aggregated.market;
     const candidateMarkets: number[] = topCandidates
-      .map((c) => quoteFromCardForSource(c)?.market)
+      .map((c) => quoteFromCardForSource(c, variant)?.market)
       .filter((n): n is number => typeof n === "number" && n > 0);
 
     let pricingTier: "verified" | "estimated" | "unavailable" = "unavailable";
