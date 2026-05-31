@@ -12,6 +12,7 @@ import { AgreementModal } from "@/components/AgreementModal";
 import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
+import { authDiagnostic } from "@/lib/authDiagnostics";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
@@ -93,7 +94,7 @@ function Auth() {
     setLoading(true);
     const redirectUri = window.location.origin + returnTo;
     const isNativeShell = !!(window as any).Capacitor?.isNativePlatform?.();
-    console.log("[auth-oauth] start", { provider, redirectUri, isNativeShell, ua: navigator.userAgent });
+    authDiagnostic("auth-oauth", "start", { provider, redirectUri, isNativeShell, ua: navigator.userAgent });
 
     // 1) Native in-app sheet (no browser, never leaves the app) when available.
     if (isNativeShell) {
@@ -102,11 +103,12 @@ function Auth() {
         const ok = await nativeSignIn(provider);
         if (ok) {
           setLoading(false);
+          authDiagnostic("auth-oauth", "native sign-in succeeded", { provider, returnTo });
           window.location.replace(returnTo);
           return;
         }
       } catch (e: any) {
-        console.warn("[auth-oauth] native sign-in failed, falling back to browser", e?.message);
+        authDiagnostic("auth-oauth", "native sign-in failed, falling back to browser", { provider, error: e?.message }, "warn");
         if (e?.message && /cancel/i.test(e.message)) {
           setLoading(false);
           return; // user dismissed the native sheet — don't bounce to browser
@@ -116,10 +118,25 @@ function Auth() {
     }
 
     // 2) Fallback: Lovable broker browser flow (+ Universal/App Link return).
+    if (isNativeShell) {
+      try {
+        const { Browser } = await import("@capacitor/browser");
+        const url = new URL("/~oauth/initiate", window.location.origin);
+        url.searchParams.set("provider", provider);
+        url.searchParams.set("redirect_uri", redirectUri);
+        url.searchParams.set("state", crypto.randomUUID?.() ?? String(Date.now()));
+        authDiagnostic("auth-oauth", "opening broker in native browser modal", { provider, url: url.toString(), redirectUri });
+        await Browser.open({ url: url.toString(), presentationStyle: "fullscreen", toolbarColor: "#0a0a0a" });
+        setLoading(false);
+        return;
+      } catch (e: any) {
+        authDiagnostic("auth-oauth", "native browser modal failed, using web redirect", { provider, error: e?.message }, "warn");
+      }
+    }
     const result = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: redirectUri,
     });
-    console.log("[auth-oauth] signInWithOAuth result", { redirected: (result as any)?.redirected, error: (result as any)?.error?.message });
+    authDiagnostic("auth-oauth", "signInWithOAuth result", { redirected: (result as any)?.redirected, error: (result as any)?.error?.message });
     setLoading(false);
     if (result.error) toast.error(result.error.message || "Sign-in failed");
     else if (!result.redirected) window.location.replace(returnTo);
