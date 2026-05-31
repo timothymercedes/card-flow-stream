@@ -261,6 +261,26 @@ function jsonResp(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+// Run a side-effect (audit insert) WITHOUT blocking the HTTP response. The
+// card_scans write is pure telemetry — keeping it off the critical path shaves
+// a full DB round-trip off every scan's perceived latency. Uses the platform's
+// waitUntil so the task still completes after the response is flushed.
+function background(p: Promise<unknown>) {
+  try {
+    const wu = (globalThis as any)?.EdgeRuntime?.waitUntil;
+    if (typeof wu === "function") { wu(p.catch(() => {})); return; }
+  } catch { /* fall through */ }
+  // Fallback: detach so an unhandled rejection never crashes the worker.
+  p.catch(() => {});
+}
+
+// Rough byte size of a base64 data URL payload (for profiling oversized images).
+function dataUrlBytes(s: string): number {
+  const i = s.indexOf(",");
+  const b64 = i >= 0 ? s.slice(i + 1) : s;
+  return Math.floor((b64.length * 3) / 4);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const t0 = Date.now();
