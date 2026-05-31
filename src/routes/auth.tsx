@@ -13,6 +13,7 @@ import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
 import { beginSocialSignIn } from "@/lib/socialAuthFlow";
+import { AuthPathBanner } from "@/components/AuthPathBanner";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
@@ -283,6 +284,8 @@ function Auth() {
       <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
         <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
       </div>
+
+      <AuthPathBanner />
 
       <div className="space-y-2">
         <button type="button" disabled={loading} onClick={passkeyLogin} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/15 py-3 text-sm font-semibold text-primary border border-primary/30 disabled:opacity-60">
