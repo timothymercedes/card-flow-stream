@@ -90,7 +90,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'PullBid Live needs photo access to upload card images.'" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'PullBid Live saves shared cards to your photo library.'" "$PLIST" || \
           /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'PullBid Live saves shared cards to your photo library.'" "$PLIST"
-      - name: Add Push + Background Modes entitlements
+      - name: Add Push + Associated Domains entitlements
         script: |
           ENT=ios/App/App/App.entitlements
           if [ ! -f "$ENT" ]; then
@@ -105,9 +105,17 @@ workflows:
           </plist>
           PLIST
           fi
+          # Associated Domains — lets iOS route Universal Links (incl. the OAuth
+          # return URL) from Safari/SFSafariViewController back into the app.
+          /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.associated-domains" "$ENT" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains array" "$ENT"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:0 string applinks:pullbidlive.com" "$ENT"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:1 string applinks:www.pullbidlive.com" "$ENT"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:2 string webcredentials:pullbidlive.com" "$ENT"
           # remote-notification background mode
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" ios/App/App/Info.plist 2>/dev/null || true
+
       - name: Increment build number
         script: |
           cd ios/App
