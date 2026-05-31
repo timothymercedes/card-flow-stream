@@ -65,6 +65,8 @@ import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as AdminPushSubscriptionsRouteImport } from './routes/admin.push-subscriptions'
 import { Route as AdminInsuranceClaimsRouteImport } from './routes/admin.insurance-claims'
+import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
+import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
@@ -368,6 +370,18 @@ const AdminInsuranceClaimsRoute = AdminInsuranceClaimsRouteImport.update({
   path: '/insurance-claims',
   getParentRoute: () => AdminRoute,
 } as any)
+const DotwellKnownAssetlinksDotjsonRoute =
+  DotwellKnownAssetlinksDotjsonRouteImport.update({
+    id: '/.well-known/assetlinks.json',
+    path: '/.well-known/assetlinks.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownAppleAppSiteAssociationRoute =
+  DotwellKnownAppleAppSiteAssociationRouteImport.update({
+    id: '/.well-known/apple-app-site-association',
+    path: '/.well-known/apple-app-site-association',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -510,6 +524,8 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
+  '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -588,6 +604,8 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
+  '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -667,6 +685,8 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
+  '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -747,6 +767,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/.well-known/apple-app-site-association'
+    | '/.well-known/assetlinks.json'
     | '/admin/insurance-claims'
     | '/admin/push-subscriptions'
     | '/admin/recovery'
@@ -825,6 +847,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/.well-known/apple-app-site-association'
+    | '/.well-known/assetlinks.json'
     | '/admin/insurance-claims'
     | '/admin/push-subscriptions'
     | '/admin/recovery'
@@ -903,6 +927,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/tutorials'
     | '/vault'
+    | '/.well-known/apple-app-site-association'
+    | '/.well-known/assetlinks.json'
     | '/admin/insurance-claims'
     | '/admin/push-subscriptions'
     | '/admin/recovery'
@@ -982,6 +1008,8 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
+  DotwellKnownAppleAppSiteAssociationRoute: typeof DotwellKnownAppleAppSiteAssociationRoute
+  DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
@@ -1421,6 +1449,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInsuranceClaimsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/.well-known/assetlinks.json': {
+      id: '/.well-known/assetlinks.json'
+      path: '/.well-known/assetlinks.json'
+      fullPath: '/.well-known/assetlinks.json'
+      preLoaderRoute: typeof DotwellKnownAssetlinksDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/apple-app-site-association': {
+      id: '/.well-known/apple-app-site-association'
+      path: '/.well-known/apple-app-site-association'
+      fullPath: '/.well-known/apple-app-site-association'
+      preLoaderRoute: typeof DotwellKnownAppleAppSiteAssociationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shows/$id/edit': {
       id: '/shows/$id/edit'
       path: '/edit'
@@ -1629,6 +1671,9 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
+  DotwellKnownAppleAppSiteAssociationRoute:
+    DotwellKnownAppleAppSiteAssociationRoute,
+  DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
