@@ -287,6 +287,11 @@ workflows:
         script: |
           npm install -g bun
           bun install
+      - name: Verify native auth env vars (fail fast)
+        script: |
+          # Android native Google sheet needs VITE_GOOGLE_WEB_CLIENT_ID; Apple /
+          # reversed iOS scheme are iOS-only and only reported here.
+          node scripts/verify-auth-env.mjs android
       - name: Build web bundle (SSR, hosted shell)
         script: |
           bun run build
