@@ -505,9 +505,9 @@ function Vault() {
       const match = matches.find((m) => m.image);
       const catalogImg = match?.image || null;
       let aiImg = c.ai_image_url || null;
-      // Force generates AI images for legacy cards; normal background mode only
-      // generates when a catalog/reference image is unavailable.
-      if ((force || !catalogImg) && c.name) {
+      // Generate AI images for every legacy card that does not already have one;
+      // keep catalog/user photos in the gallery as secondary references.
+      if ((force || !aiImg) && c.name) {
         try {
           const { data: gen } = await supabase.functions.invoke("generate-card-image", {
             body: { name: c.name, category: c.category || undefined, set: c.tcg_set || undefined, year: c.tcg_year || undefined, tcg_number: c.tcg_number || undefined },
