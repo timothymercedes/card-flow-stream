@@ -784,6 +784,7 @@ export type Database = {
       }
       card_identities: {
         Row: {
+          ai_reference_image_url: string | null
           category: string
           created_at: string
           external_ids: Json
@@ -795,18 +796,24 @@ export type Database = {
           image_url: string | null
           is_rookie: boolean
           language: string | null
+          last_price_sync: string | null
           manufacturer: string | null
+          market_value_cents: number | null
           name: string
           number: string | null
           player: string | null
+          price_currency: string
+          price_source: string | null
           set_code: string | null
           set_name: string | null
           team: string | null
           updated_at: string
           variant: string | null
+          verification_status: string
           year: number | null
         }
         Insert: {
+          ai_reference_image_url?: string | null
           category: string
           created_at?: string
           external_ids?: Json
@@ -818,18 +825,24 @@ export type Database = {
           image_url?: string | null
           is_rookie?: boolean
           language?: string | null
+          last_price_sync?: string | null
           manufacturer?: string | null
+          market_value_cents?: number | null
           name: string
           number?: string | null
           player?: string | null
+          price_currency?: string
+          price_source?: string | null
           set_code?: string | null
           set_name?: string | null
           team?: string | null
           updated_at?: string
           variant?: string | null
+          verification_status?: string
           year?: number | null
         }
         Update: {
+          ai_reference_image_url?: string | null
           category?: string
           created_at?: string
           external_ids?: Json
@@ -841,15 +854,20 @@ export type Database = {
           image_url?: string | null
           is_rookie?: boolean
           language?: string | null
+          last_price_sync?: string | null
           manufacturer?: string | null
+          market_value_cents?: number | null
           name?: string
           number?: string | null
           player?: string | null
+          price_currency?: string
+          price_source?: string | null
           set_code?: string | null
           set_name?: string | null
           team?: string | null
           updated_at?: string
           variant?: string | null
+          verification_status?: string
           year?: number | null
         }
         Relationships: []
