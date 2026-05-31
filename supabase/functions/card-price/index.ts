@@ -110,6 +110,55 @@ function cacheKey(card_id: string, name: string, set: string, number: string) {
   return `q:${name.toLowerCase()}|${set.toLowerCase()}|${number.toLowerCase()}`;
 }
 
+// AI-estimated market value — LAST-RESORT fallback only, used when no real
+// catalog/sold source returned a price. Always clearly labeled downstream so
+// the UI can flag it as an estimate (never as verified market data).
+async function estimatePriceWithAI(q: {
+  name: string; set?: string | null; number?: string | null;
+  category?: string | null; variant?: string | null; year?: string | null;
+}): Promise<{ market: number; low: number; high: number } | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey || !q.name) return null;
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a trading-card and collectibles market appraiser covering Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Dragon Ball, Flesh and Blood, Weiss Schwarz, Digimon, sports cards, and other collectibles. Estimate the current RAW Near-Mint USD market value based on recent sold prices you know of. Return STRICT JSON only: {\"market\": number, \"low\": number, \"high\": number}. All values > 0. low/high should bracket realistic recent sold prices. If totally unknown, give your single best guess, never 0.",
+          },
+          {
+            role: "user",
+            content: `Estimate the recent sold market value (USD, raw NM) for this card:\nName: ${q.name}\nCategory: ${q.category || "unknown"}\nSet: ${q.set || "unknown"}\nNumber: ${q.number || "unknown"}\nYear: ${q.year || "unknown"}\nVariant: ${q.variant || "standard"}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 80,
+      }),
+    });
+    if (!resp.ok) return null;
+    const j = await resp.json();
+    const parsed = JSON.parse(j.choices?.[0]?.message?.content || "{}");
+    const market = Number(parsed.market);
+    if (!isFinite(market) || market <= 0) return null;
+    const low = Number(parsed.low) > 0 ? Number(parsed.low) : Math.round(market * 0.7 * 100) / 100;
+    const high = Number(parsed.high) > 0 ? Number(parsed.high) : Math.round(market * 1.4 * 100) / 100;
+    return {
+      market: Math.round(market * 100) / 100,
+      low: Math.round(Math.min(low, market) * 100) / 100,
+      high: Math.round(Math.max(high, market) * 100) / 100,
+    };
+  } catch (e) {
+    console.warn("[card-price] AI estimate failed:", (e as Error)?.message);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const t0 = Date.now();
