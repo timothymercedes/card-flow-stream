@@ -72,7 +72,7 @@ function Vault() {
   });
   const [viewMenu, setViewMenu] = useState(false);
   useEffect(() => { try { localStorage.setItem("pbl_vault_view", viewMode); } catch {} }, [viewMode]);
-  useEffect(() => { setImgKey(null); }, [actionFor?.id]);
+  useEffect(() => { setImgKey(null); setAdvanced(false); }, [actionFor?.id]);
   const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const LANGUAGES = [
