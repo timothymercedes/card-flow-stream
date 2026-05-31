@@ -242,7 +242,10 @@ async function enrichPokemonImage(name: string, num?: string, set?: string): Pro
     }
     const q = encodeURIComponent(parts.join(" "));
     const url = `https://api.pokemontcg.io/v2/cards?q=${q}&pageSize=5`;
-    const r = await fetch(url);
+    // Bound the upstream call so a slow/hanging Pokémon API never stalls the scan.
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 2500);
+    const r = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(to));
     if (!r.ok) return "";
     const j = await r.json();
     const list = Array.isArray(j?.data) ? j.data : [];
@@ -261,6 +264,26 @@ function jsonResp(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+// Run a side-effect (audit insert) WITHOUT blocking the HTTP response. The
+// card_scans write is pure telemetry — keeping it off the critical path shaves
+// a full DB round-trip off every scan's perceived latency. Uses the platform's
+// waitUntil so the task still completes after the response is flushed.
+function background(p: PromiseLike<unknown>) {
+  // Supabase query builders are thenables, not real Promises — wrap so .catch exists.
+  const safe = Promise.resolve(p).catch(() => {});
+  try {
+    const wu = (globalThis as any)?.EdgeRuntime?.waitUntil;
+    if (typeof wu === "function") { wu(safe); return; }
+  } catch { /* fall through — task still runs detached */ }
+}
+
+// Rough byte size of a base64 data URL payload (for profiling oversized images).
+function dataUrlBytes(s: string): number {
+  const i = s.indexOf(",");
+  const b64 = i >= 0 ? s.slice(i + 1) : s;
+  return Math.floor((b64.length * 3) / 4);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const t0 = Date.now();
@@ -271,17 +294,23 @@ Deno.serve(async (req) => {
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-  // Authenticate caller via JWT in Authorization header
+  // Authenticate caller via JWT in Authorization header.
+  // Parse the request body CONCURRENTLY with auth so the JSON parse of a large
+  // base64 image doesn't serialise behind the getUser() round-trip.
   const authHeader = req.headers.get("Authorization") || "";
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
-  const { data: u } = await userClient.auth.getUser();
+  const [{ data: u }, body] = await Promise.all([
+    userClient.auth.getUser(),
+    req.json().catch(() => ({} as any)),
+  ]);
   const userId = u?.user?.id;
   if (!userId) {
     return jsonResp({ error: "Sign in to scan cards" }, 401);
   }
+  const t_auth = Date.now() - t0;
 
   // Rate limit (uses service role; RPC is locked to service_role grant)
   const { data: limit, error: rlErr } = await admin.rpc("rate_limit_card_scan", { _user_id: userId });
@@ -294,19 +323,19 @@ Deno.serve(async (req) => {
       : reason === "day_limit"
       ? `Daily scan limit reached (${(limit as any).limit}/day).`
       : "Too many scans. Slow down and try again.";
-    await admin.from("card_scans").insert({
+    background(admin.from("card_scans").insert({
       user_id: userId, status: "rate_limited", error_message: reason, multi: false,
-    });
+    }) as unknown as Promise<unknown>);
     return jsonResp({ error: msg, code: "rate_limited" }, 429);
   }
 
-  let body: any = {};
-  try { body = await req.json(); } catch {}
   const { image, language, multi, source } = body || {};
   if (!image) return jsonResp({ error: "Missing image" }, 400);
+  const imgBytes = typeof image === "string" ? dataUrlBytes(image) : 0;
 
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) return jsonResp({ error: "AI service is not configured" }, 500);
+
 
   // ─── STAGE 1 — Tiny language + game detect (skipped if caller already specified language, or multi-card) ───
   // Goal: when the seller didn't pick a language, do a ~700ms pre-pass so Stage 2 gets a language-specific
@@ -319,6 +348,7 @@ Deno.serve(async (req) => {
   // language from the card text itself. Vault scans keep the pre-pass for max
   // accuracy where a couple hundred ms matters less than getting it right.
   const isLiveScan = typeof source === "string" && /^live/i.test(source);
+  const tStage1Start = Date.now();
   if (!multi && !detectedLanguage && !isLiveScan) {
     try {
       const stage1 = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -348,6 +378,7 @@ Deno.serve(async (req) => {
       console.warn("[scan-card] stage1 detect failed:", (e as Error)?.message);
     }
   }
+  const t_stage1 = isLiveScan || multi || (language && LANG_MAP[language]) ? 0 : Date.now() - tStage1Start;
 
   const langName = detectedLanguage && LANG_MAP[detectedLanguage] ? LANG_MAP[detectedLanguage] : null;
   const langHint = langName
@@ -362,6 +393,7 @@ Deno.serve(async (req) => {
     ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
     : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
 
+  const tStage2Start = Date.now();
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -382,7 +414,7 @@ Deno.serve(async (req) => {
         max_tokens: multi ? 2560 : 900,
       }),
     });
-
+    const t_stage2 = Date.now() - tStage2Start;
 
     if (!resp.ok) {
       const text = await resp.text();
@@ -391,10 +423,10 @@ Deno.serve(async (req) => {
         : resp.status === 402
         ? "AI credits exhausted. Please contact support."
         : "AI scan failed. Try again with better lighting.";
-      await admin.from("card_scans").insert({
+      background(admin.from("card_scans").insert({
         user_id: userId, status: "error", error_message: text.slice(0, 500),
         multi: !!multi, language, source, duration_ms: Date.now() - t0,
-      });
+      }) as unknown as Promise<unknown>);
       return jsonResp({ error: friendly, code: "ai_error" }, resp.status === 429 ? 429 : 502);
     }
 
@@ -411,12 +443,15 @@ Deno.serve(async (req) => {
       const arr = Array.isArray(parsed?.cards) ? parsed.cards : Array.isArray(parsed) ? parsed : [];
       const cards = arr.map((c: any) => normalizeCard(c, detectedLanguage || language));
       const top = cards[0];
-      await admin.from("card_scans").insert({
+      console.log("[scan-card] profile", JSON.stringify({
+        mode: "multi", img_kb: Math.round(imgBytes / 1024), t_auth, t_stage1, t_stage2, total: Date.now() - t0,
+      }));
+      background(admin.from("card_scans").insert({
         user_id: userId, status: cards.length > 0 ? "ok" : "no_cards",
         multi: true, language, source, cards_detected: cards.length,
         top_name: top?.name, top_set: top?.set, top_value: top?.estimated_value,
         duration_ms: Date.now() - t0,
-      });
+      }) as unknown as Promise<unknown>);
       return jsonResp({ cards, ocr_raw: parsed });
     }
 
@@ -426,21 +461,24 @@ Deno.serve(async (req) => {
     // CARD BACK GUARD: never register the reverse of a card as an identity/image.
     // Ask the collector to rescan the FRONT so we don't store a back as the card.
     if ((out as any).is_card_back) {
-      await admin.from("card_scans").insert({
+      background(admin.from("card_scans").insert({
         user_id: userId, status: "card_back",
         multi: false, language, source, cards_detected: 0,
         duration_ms: Date.now() - t0,
-      });
+      }) as unknown as Promise<unknown>);
       return jsonResp({ error: "That looks like the back of the card. Please scan the FRONT (name + artwork) so we can identify it.", code: "card_back" }, 422);
     }
 
     // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is
     // visual. Language-aware: the free Pokémon TCG API serves ENGLISH artwork
     // only, so skip enrichment for non-English cards to avoid showing a wrong
-    // language image — keep the collector's own photo instead.
+    // language image — keep the collector's own photo instead. Bounded by a
+    // per-call timeout (in enrichPokemonImage) so a slow upstream never stalls
+    // the scan response.
     const isPokemon = /pok[eé]mon/i.test(out.category);
     const outLang = String(out.language || "").toLowerCase();
     const isEnglishCard = !outLang || /^(en|eng|english)$/.test(outLang);
+    const tEnrichStart = Date.now();
     if (isPokemon && isEnglishCard && out.alternatives.length > 0) {
       const enriched = await Promise.all(
         out.alternatives.map(async (a) => {
@@ -451,19 +489,24 @@ Deno.serve(async (req) => {
       );
       out.alternatives = enriched;
     }
+    const t_enrich = Date.now() - tEnrichStart;
 
-    await admin.from("card_scans").insert({
+    console.log("[scan-card] profile", JSON.stringify({
+      mode: "single", img_kb: Math.round(imgBytes / 1024), live: isLiveScan,
+      t_auth, t_stage1, t_stage2, t_enrich, total: Date.now() - t0,
+    }));
+    background(admin.from("card_scans").insert({
       user_id: userId, status: "ok",
       multi: false, language, source, cards_detected: 1,
       top_name: out.name, top_set: out.set, top_value: out.estimated_value,
       duration_ms: Date.now() - t0,
-    });
+    }) as unknown as Promise<unknown>);
     return jsonResp(out);
   } catch (e) {
-    await admin.from("card_scans").insert({
+    background(admin.from("card_scans").insert({
       user_id: userId, status: "error", error_message: String(e).slice(0, 500),
       multi: !!multi, language, source, duration_ms: Date.now() - t0,
-    });
+    }) as unknown as Promise<unknown>);
     return jsonResp({ error: "Scan failed unexpectedly. Please try again." }, 500);
   }
 });
