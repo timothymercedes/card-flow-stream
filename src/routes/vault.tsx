@@ -157,6 +157,19 @@ function Vault() {
     return Number(card.estimated_value || 0) > 0;
   }
 
+  // A card the collector has explicitly confirmed (chose a match in the picker
+  // or entered it manually) is permanently trusted. Manual confirmation always
+  // overrides AI uncertainty — we never put it back into review or auto-reprice
+  // it unless the user changes it again.
+  function isUserVerified(card: Card) {
+    return !!(
+      card.price_locked ||
+      card.confirmed_by ||
+      card.price_source === "user_confirmed" ||
+      card.price_source === "manual_entry"
+    );
+  }
+
   // Per-card gain vs. what the owner paid (only when a purchase price exists).
   function cardGain(card: Card): number | null {
     if (card.purchase_price == null) return null;
@@ -630,7 +643,8 @@ function Vault() {
   // exact structured identity is known; otherwise cards are flagged for review.
   async function enrichPrices(list: Card[], force = false) {
     const targets = list.filter((c) => {
-      if (c.price_locked) return false;
+      // Never re-price or re-flag a card the user has explicitly confirmed.
+      if (c.price_locked || isUserVerified(c)) return false;
       if (force) return !!(c.name || c.tcg_number || c.tcg_set);
       const stale = !c.price_source || !c.price_updated_at;
       return stale && !!(c.name || c.tcg_number || c.tcg_set);
@@ -795,6 +809,9 @@ function Vault() {
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      // The user explicitly confirmed this match — close the picker so they
+      // land back on the (now-verified) card with no lingering "Fix" prompt.
+      setMatchingCard(null);
       toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — needs a price source", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not update card", { id: tId });
@@ -831,6 +848,7 @@ function Vault() {
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      setMatchingCard(null);
       toast.success("Card saved", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not save card", { id: tId });
@@ -843,7 +861,7 @@ function Vault() {
     () => cards.filter((c) =>
       // Cards the user already confirmed (or that are price-locked via manual
       // entry / override) are settled forever — never surface them again.
-      !c.confirmed_by && !c.price_locked && (
+      !isUserVerified(c) && (
         c.needs_review ||
         !isSafePriced(c) ||
         needsOfficialCardImage(c.image_url) ||
@@ -1758,7 +1776,7 @@ function Vault() {
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
-                  {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
+                  {c.needs_review && !isUserVerified(c) && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
                   {Number(c.estimated_value || 0) > 0 && (
                     <div className="flex-shrink-0 text-right">
                       <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
@@ -1786,7 +1804,7 @@ function Vault() {
                       Unlimited
                     </span>
                   )}
-                  {viewMode === "small" && c.needs_review && (
+                  {viewMode === "small" && c.needs_review && !isUserVerified(c) && (
                     <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-md bg-amber-500/95 px-1.5 py-1 text-[9px] font-bold text-white active:scale-95">
                       <ImageIcon className="h-3 w-3" /> Fix card
                     </span>
@@ -1799,7 +1817,7 @@ function Vault() {
                     <p className="text-[10px] text-muted-foreground">
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
-                    {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Choose Correct Card</span>}
+                    {c.needs_review && !isUserVerified(c) && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Choose Correct Card</span>}
                     {Number(c.estimated_value || 0) > 0 && (
                       <div className="mt-0.5 flex items-baseline gap-1.5">
                         <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
@@ -1885,7 +1903,7 @@ function Vault() {
             </div>
 
 
-            {actionFor.needs_review && (
+            {actionFor.needs_review && !isUserVerified(actionFor) && (
               <div className="space-y-2 rounded-xl bg-amber-500/10 p-3 ring-1 ring-amber-500/25">
                 <div className="flex items-start gap-2 text-amber-500">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1911,8 +1929,10 @@ function Vault() {
                     Refresh
                   </button>
                 </div>
-                {isSafePriced(actionFor) ? (
+                {isSafePriced(actionFor) || (isUserVerified(actionFor) && Number(actionFor.estimated_value || 0) > 0) ? (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
+                ) : isUserVerified(actionFor) ? (
+                  <p className="text-base font-bold text-muted-foreground">No price yet</p>
                 ) : <p className="text-base font-bold text-amber-500">Tap "Choose Correct Card"</p>}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
