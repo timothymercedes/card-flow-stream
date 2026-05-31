@@ -420,6 +420,19 @@ Deno.serve(async (req) => {
     }));
     for (const s of settled) if (s) quotes.push(s);
 
+    // JustTCG — real, variant-aware TCGplayer pricing (primary trusted source).
+    sourcesTried.push("justtcg");
+    try {
+      const jt = await fetchJustTcgQuote(game.id, {
+        name: q.name, set: q.set, number: q.number, variant,
+      });
+      if (jt) quotes.push(jt);
+      else sourcesFailed.push("justtcg");
+    } catch (e) {
+      console.warn("[card-price] justtcg threw", (e as Error)?.message);
+      sourcesFailed.push("justtcg");
+    }
+
     const aggregated = aggregatePrices(quotes);
 
     // Confidence = identity match × pricing coverage × source agreement.
