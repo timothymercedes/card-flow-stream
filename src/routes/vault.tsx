@@ -1476,29 +1476,9 @@ function Vault() {
         </div>
 
 
-        {/* Review queue summary */}
-        {reviewCards.length > 0 && (
-          <div className="mb-3 rounded-2xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-bold">Review Queue</p>
-              <button onClick={() => setBulkMatch(true)} className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-500"><Layers className="h-3 w-3" /> Fix all</button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {([
-                ["Needs Review", reviewSummary.needsReview, "text-amber-500"],
-                ["Missing Images", reviewSummary.missingImages, "text-sky-400"],
-                ["Low Confidence", reviewSummary.lowConfidence, "text-red-500"],
-                ["Missing Metadata", reviewSummary.missingMetadata, "text-yellow-500"],
-                ["Incorrect Prices", reviewSummary.incorrectPrices, "text-red-400"],
-              ] as const).map(([label, val, cls]) => (
-                <div key={label} className="rounded-lg bg-muted/40 p-2 text-center">
-                  <p className={`text-xl font-bold ${cls}`}>{val}</p>
-                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Review Queue removed — unsure cards are fixed inline via a simple
+            "Choose Correct Card" popup, and confident scans save automatically. */}
+
 
 
         {/* Vault sharing (one setting for the whole vault) */}
