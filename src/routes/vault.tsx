@@ -1781,23 +1781,41 @@ function Vault() {
               <button onClick={() => setActionFor(null)} aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
 
+            {/* Price verification + confidence badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              {(() => { const b = priceBadge(actionFor); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${b.cls}`}><ShieldCheck className="h-3 w-3" /> {b.label}</span>; })()}
+              {(() => { const t = confidenceTier(actionFor.confidence_score); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${t.chip}`}><span className={`h-2 w-2 rounded-full ${t.dot}`} /> {t.label} {t.pct}%</span>; })()}
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
-                <div className="relative">
-                  {displayImage(actionFor)
-                    ? <img src={displayImage(actionFor)} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
-                    : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
-                  {parseVariant(actionFor.description).edition === "1st Edition" ? (
-                    <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
-                      1st Edition
-                    </span>
-                  ) : (
-                    <span className="absolute bottom-2 left-2 rounded-md border border-white/30 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white/90 shadow-lg">
-                      Unlimited
-                    </span>
-                  )}
-                </div>
+                {(() => {
+                  const opts = imageOptions(actionFor);
+                  const sel = opts.find((o) => o.key === imgKey) || opts[0];
+                  const url = sel?.url || displayImage(actionFor);
+                  return (
+                    <>
+                      <div className="mb-1 flex flex-wrap gap-1">
+                        {opts.length > 1 ? opts.map((o) => (
+                          <button key={o.key} type="button" onClick={() => setImgKey(o.key)}
+                            className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${ (sel?.key === o.key) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                            {o.label}
+                          </button>
+                        )) : <p className="text-[10px] uppercase text-muted-foreground">Front</p>}
+                      </div>
+                      <div className="relative">
+                        {url
+                          ? <img src={url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                          : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+                        {parseVariant(actionFor.description).edition === "1st Edition" ? (
+                          <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">1st Edition</span>
+                        ) : (
+                          <span className="absolute bottom-2 left-2 rounded-md border border-white/30 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white/90 shadow-lg">Unlimited</span>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Back</p>
@@ -1806,6 +1824,7 @@ function Vault() {
                   : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-center text-[10px] text-muted-foreground">No back photo<br/>(needed to sell)</div>}
               </div>
             </div>
+
 
             {actionFor.needs_review && (
               <div className="flex gap-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500 ring-1 ring-amber-500/25">
