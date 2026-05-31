@@ -28,7 +28,7 @@ function flatLine(value: number, days: number): Point[] {
   ];
 }
 
-function normalizePoint(p: Point): Point {
+function normalizePoint(p: { captured_at: string; market_price: number | null }): Point {
   return { captured_at: p.captured_at, market_price: Number(p.market_price) || 0 };
 }
 
