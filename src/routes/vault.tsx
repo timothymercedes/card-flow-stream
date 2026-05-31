@@ -774,8 +774,12 @@ function Vault() {
         price_range_low: null,
         price_range_high: null,
         confidence_score: 0.97,
-        needs_review: !hasPrice,
-        review_reason: hasPrice ? null : "Confirmed match but no market price available yet.",
+        // User explicitly confirmed this card — lock it permanently so it never
+        // re-enters any review state and we never ask them to fix it again.
+        needs_review: false,
+        review_reason: null,
+        confirmed_by: user?.id ?? null,
+        price_locked: true,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
