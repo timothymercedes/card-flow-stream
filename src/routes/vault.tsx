@@ -800,6 +800,8 @@ function Vault() {
         estimated_value: newValue,
         market_price: Number(variantPrice) || null,
         condition_prices: cp as any,
+        // Save the actual catalog card ID so pricing + history always resolve.
+        card_identity_id: m.id || card.card_identity_id || null,
         price_source: "user_confirmed",
         price_confidence: hasPrice ? "high" : "low",
         price_is_ai: false,
@@ -807,12 +809,13 @@ function Vault() {
         price_range_low: null,
         price_range_high: null,
         confidence_score: 0.97,
-        // User explicitly confirmed this card — lock it permanently so it never
-        // re-enters any review state and we never ask them to fix it again.
+        // User explicitly confirmed this card — identity is locked and never
+        // re-enters review. If a price was found we lock it too; if not, we
+        // leave it unlocked so the "Retry pricing" button can fill it in.
         needs_review: false,
-        review_reason: null,
+        review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
         confirmed_by: user?.id ?? null,
-        price_locked: true,
+        price_locked: hasPrice,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
@@ -831,7 +834,7 @@ function Vault() {
       // The user explicitly confirmed this match — close the picker so they
       // land back on the (now-verified) card with no lingering "Fix" prompt.
       setMatchingCard(null);
-      toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — needs a price source", { id: tId });
+      toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — tap Retry pricing for market value", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not update card", { id: tId });
     }
