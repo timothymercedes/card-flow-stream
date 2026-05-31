@@ -1664,6 +1664,11 @@ function Vault() {
           </div>
         </div>
 
+        {/* Vault growth over time (owner only) */}
+        {user?.id && <VaultGrowthChart userId={user.id} liveValue={totalValue} />}
+
+
+
         {/* Pricing diagnostics — makes missing-value issues easy to spot */}
         <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
