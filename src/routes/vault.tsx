@@ -423,6 +423,8 @@ function Vault() {
     backfillMissingImages(list);
     // Re-price cards that look stuck at the $0.50 floor (no real market data captured).
     backfillMissingPrices(list);
+    // Retroactively enrich pricing (source, confidence, timestamp) for cards missing a source.
+    enrichPrices(list);
   }
 
   async function backfillMissingPrices(list: Card[]) {
