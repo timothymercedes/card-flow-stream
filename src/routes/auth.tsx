@@ -91,9 +91,13 @@ function Auth() {
 
   async function oauth(provider: "google" | "apple") {
     setLoading(true);
+    const redirectUri = window.location.origin + returnTo;
+    const isNativeShell = !!(window as any).Capacitor?.isNativePlatform?.();
+    console.log("[auth-oauth] start", { provider, redirectUri, isNativeShell, ua: navigator.userAgent });
     const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin + returnTo,
+      redirect_uri: redirectUri,
     });
+    console.log("[auth-oauth] signInWithOAuth result", { redirected: (result as any)?.redirected, error: (result as any)?.error?.message });
     setLoading(false);
     if (result.error) toast.error(result.error.message || "Sign-in failed");
     else if (!result.redirected) window.location.replace(returnTo);
