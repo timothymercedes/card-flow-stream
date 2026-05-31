@@ -242,7 +242,10 @@ async function enrichPokemonImage(name: string, num?: string, set?: string): Pro
     }
     const q = encodeURIComponent(parts.join(" "));
     const url = `https://api.pokemontcg.io/v2/cards?q=${q}&pageSize=5`;
-    const r = await fetch(url);
+    // Bound the upstream call so a slow/hanging Pokémon API never stalls the scan.
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 2500);
+    const r = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(to));
     if (!r.ok) return "";
     const j = await r.json();
     const list = Array.isArray(j?.data) ? j.data : [];
