@@ -463,14 +463,30 @@ function Vault() {
     if (updated > 0) toast.success(`Updated values on ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
-  async function backfillMissingImages(list: Card[]) {
+  // Backfills card images for existing inventory. First tries to match an
+  // official catalog image; if none is found, generates AI artwork so every
+  // supported category ends up with an image. `force` widens the batch size.
+  async function backfillMissingImages(list: Card[], force = false) {
     const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
-    if (!missing.length) return;
+    if (!missing.length) {
+      if (force) toast.info("All cards already have images");
+      return;
+    }
+    if (force) { setEnriching(true); toast.info(`Generating images for ${missing.length} card${missing.length > 1 ? "s" : ""}…`); }
     let updated = 0;
-    for (const c of missing.slice(0, 25)) {
+    for (const c of missing.slice(0, force ? 200 : 25)) {
       const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const match = matches.find((m) => m.image);
-      const img = match?.image;
+      let img = match?.image;
+      // AI fallback so every supported category gets an image, even without a catalog hit.
+      if (!img && c.name) {
+        try {
+          const { data: gen } = await supabase.functions.invoke("generate-card-image", {
+            body: { name: c.name, category: c.category || undefined, set: c.tcg_set || undefined, year: c.tcg_year || undefined, tcg_number: c.tcg_number || undefined },
+          });
+          if (gen?.image) img = gen.image;
+        } catch { /* ignore */ }
+      }
       if (!img) continue;
       const cp = conditionPricesFromMarket(match?.price) || c.condition_prices || null;
       const newValue = cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
@@ -492,6 +508,7 @@ function Vault() {
         setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch, condition_prices: cp } : prev));
       }
     }
+    if (force) setEnriching(false);
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
