@@ -111,7 +111,9 @@ export function CardMatchPicker({
         condition: mf.condition || undefined,
         notes: mf.notes?.trim() || undefined,
       });
-      onClose();
+      // Do NOT close here — onManualSave (parent) decides what happens next:
+      // it may auto-apply a match, re-open this picker with fresh matches, or
+      // close after persisting. Closing here would race against that.
     } finally {
       setSavingManual(false);
     }
