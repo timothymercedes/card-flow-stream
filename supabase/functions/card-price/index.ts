@@ -327,10 +327,29 @@ Deno.serve(async (req) => {
     let pricingTier: "verified" | "estimated" | "unavailable" = "unavailable";
     let priceRange: { low: number; high: number } | null = null;
     let tierReason = "";
+    let priceIsAI = false;
 
     const trustedSources = quotes.filter((qq) =>
       ["tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
     ).length;
+
+    // AI fallback: ONLY when no real source, no similar-card comp, and no stale
+    // cache produced a price. AI never overrides real sold-market data.
+    let aiPrice: { market: number; low: number; high: number } | null = null;
+    const noRealData =
+      !(market && market > 0) &&
+      candidateMarkets.length === 0 &&
+      !(staleCachePayload?.price?.market);
+    if (noRealData && (q.name || name)) {
+      aiPrice = await estimatePriceWithAI({
+        name: q.name || name,
+        set: q.set || set,
+        number: q.number || number,
+        category: body?.category || game.id,
+        variant,
+        year,
+      });
+    }
 
     if (market && market > 0 && bestScore >= 80 && trustedSources >= 1 && !(staleCachePayload && (aggregated.market == null))) {
       pricingTier = "verified";
@@ -352,10 +371,37 @@ Deno.serve(async (req) => {
         high: Math.round(Math.max(hi, lo * 1.1) * 100) / 100,
       };
       tierReason = `Estimated from ${candidateMarkets.length} similar card${candidateMarkets.length === 1 ? "" : "s"} — no exact match yet.`;
+    } else if (aiPrice) {
+      pricingTier = "estimated";
+      priceIsAI = true;
+      priceRange = { low: aiPrice.low, high: aiPrice.high };
+      tierReason = "AI-estimated value — no real sold-market data was found for this card. Verify or set the price manually.";
     } else {
       pricingTier = "unavailable";
       tierReason = "No reliable market data. Set price manually or check recent sold listings.";
     }
+
+    const finalPrice = priceIsAI && aiPrice
+      ? { market: aiPrice.market, low: aiPrice.low, mid: null as number | null, high: aiPrice.high, currency: "USD" }
+      : {
+          market: aggregated.market,
+          low: aggregated.low,
+          mid: aggregated.mid,
+          high: aggregated.high,
+          currency: aggregated.currency,
+        };
+
+    const primarySource = priceIsAI ? "ai_estimate" : aggregated.primary_source;
+    const finalConfidence = priceIsAI ? Math.min(confidence, 0.35) : confidence;
+    const priceConfidence: "high" | "medium" | "low" = priceIsAI
+      ? "low"
+      : pricingTier === "verified" && finalConfidence >= 0.75
+        ? "high"
+        : pricingTier === "verified"
+          ? "medium"
+          : pricingTier === "estimated" && finalConfidence >= 0.55
+            ? "medium"
+            : "low";
 
     let payload: any = {
       game: game.id,
@@ -381,22 +427,18 @@ Deno.serve(async (req) => {
       })),
       official_image_url: officialImage,
       image_source: imageSource,
-      price: {
-        market: aggregated.market,
-        low: aggregated.low,
-        mid: aggregated.mid,
-        high: aggregated.high,
-        currency: aggregated.currency,
-      },
+      price: finalPrice,
       pricing_tier: pricingTier,
       price_range: priceRange,
       tier_reason: tierReason,
-      confidence,
+      price_is_ai: priceIsAI,
+      price_confidence: priceConfidence,
+      confidence: finalConfidence,
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
       sources_skipped: sourcesSkipped,
-      primary_source: aggregated.primary_source,
+      primary_source: primarySource,
       cached: false,
       stale: false,
       duration_ms: Date.now() - t0,
