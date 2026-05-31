@@ -40,6 +40,12 @@ export interface PriceQuote {
   currency: string;
   url?: string | null;
   raw?: unknown;
+  // The specific TCGplayer printing/variant this quote was taken from
+  // (e.g. "holofoil", "reverseHolofoil", "normal"). Used downstream to
+  // verify the price belongs to the same variant as the identified card.
+  variant_used?: string | null;
+  // External product identifiers for the card-page "Market Source" display.
+  product_id?: string | null;
 }
 
 // --- circuit breaker ---------------------------------------------------------
