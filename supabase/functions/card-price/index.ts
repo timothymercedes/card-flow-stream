@@ -423,7 +423,7 @@ Deno.serve(async (req) => {
         image_url: c.image_large || c.image_small || null,
         image_source: c.source,
         match_score: scoreCard(c, { name, number, set, variant, year }),
-        market: quoteFromCardForSource(c)?.market ?? null,
+        market: quoteFromCardForSource(c, variant)?.market ?? null,
       })),
       official_image_url: officialImage,
       image_source: imageSource,
