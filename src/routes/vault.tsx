@@ -1899,7 +1899,7 @@ function Vault() {
             </div>
 
 
-            {actionFor.needs_review && (
+            {actionFor.needs_review && !isUserVerified(actionFor) && (
               <div className="space-y-2 rounded-xl bg-amber-500/10 p-3 ring-1 ring-amber-500/25">
                 <div className="flex items-start gap-2 text-amber-500">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
