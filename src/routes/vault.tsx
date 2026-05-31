@@ -861,10 +861,32 @@ function Vault() {
         },
       });
       const market = Number(data?.price?.market) || 0;
+      const suspicious = !!data?.price_suspicious;
       if (market <= 0) {
         await supabase.from("vault_cards").update({ review_reason: "Market value unavailable — try again later.", price_updated_at: new Date().toISOString() } as never).eq("id", card.id);
         setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, price_updated_at: new Date().toISOString() } : c)));
         toast.error("Market value still unavailable", { id: tId });
+        return;
+      }
+      const marketSource = data?.market_source || null;
+      if (suspicious) {
+        // The fetched value disagrees sharply with comps/recent sales — never
+        // lock a bogus number. Flag for review and surface the reason instead.
+        const patch: any = {
+          market_price: market, estimated_value: 0, condition_prices: null,
+          price_tier: "estimated", price_confidence: "low", price_is_ai: false,
+          price_source: data?.primary_source || null,
+          price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
+          price_locked: false, needs_review: true,
+          review_reason: data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.",
+          pricing_details: { market_source: marketSource, suspicious: true, reference_value: data?.reference_value ?? null },
+          price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
+        };
+        const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+        if (error) throw error;
+        setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+        setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+        toast.warning("Value looks wrong — flagged for re-sync", { id: tId });
         return;
       }
       const mult = langMult(card.language || parseLanguage(card.description));
@@ -875,6 +897,8 @@ function Vault() {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: true,
+        price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
+        pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null },
         needs_review: false, review_reason: null,
         price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
       };
