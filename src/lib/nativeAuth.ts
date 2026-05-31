@@ -60,6 +60,18 @@ function makeNonce(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -85,7 +97,8 @@ export async function nativeSignIn(provider: "google" | "apple"): Promise<boolea
   await ensureInit();
   const { SocialLogin } = await import("@capgo/capacitor-social-login");
 
-  // Apple requires a hashed nonce; Google accepts a raw nonce passed through.
+  // Native Google/Apple SDKs put the SHA-256 nonce digest in the ID token.
+  // Supabase receives the raw nonce and verifies it against that digest.
   const rawNonce = makeNonce();
   const hashedNonce = await sha256Hex(rawNonce);
 
@@ -94,7 +107,7 @@ export async function nativeSignIn(provider: "google" | "apple"): Promise<boolea
     provider,
     options:
       provider === "google"
-        ? { scopes: ["email", "profile"], nonce: rawNonce, style: "bottom", filterByAuthorizedAccounts: false, autoSelectEnabled: false, forcePrompt: true }
+        ? { scopes: ["email", "profile"], nonce: hashedNonce, style: "bottom", filterByAuthorizedAccounts: false, autoSelectEnabled: false, forcePrompt: true }
         : { scopes: ["email", "name"], nonce: hashedNonce, useBroadcastChannel: nativePlatform() === "android" },
   } as any);
 
@@ -104,6 +117,15 @@ export async function nativeSignIn(provider: "google" | "apple"): Promise<boolea
     authDiagnostic("native-auth", "no idToken returned", { provider, responseKeys: Object.keys(res?.result ?? {}) }, "warn");
     throw new Error("Native sign-in did not return an identity token");
   }
+  const payload = decodeJwtPayload(idToken);
+  authDiagnostic("native-auth", "idToken received", {
+    provider,
+    aud: payload?.aud,
+    azp: payload?.azp,
+    iss: payload?.iss,
+    hasNonce: !!payload?.nonce,
+    expectedGoogleAudience: provider === "google" ? GOOGLE_WEB_CLIENT_ID : undefined,
+  });
 
   const { error } = await supabase.auth.signInWithIdToken({
     provider,
