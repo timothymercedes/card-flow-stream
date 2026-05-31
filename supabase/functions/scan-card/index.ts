@@ -287,7 +287,12 @@ Deno.serve(async (req) => {
   // trying to read script it didn't expect.
   let detectedLanguage: string | null = language && LANG_MAP[language] ? language : null;
   let detectedGameHint: string | null = null;
-  if (!multi && !detectedLanguage) {
+  // Live/auction scans prioritise speed (target < 2s): skip the Stage-1 pre-pass
+  // entirely so we make a single AI round-trip. Stage-2 still detects the
+  // language from the card text itself. Vault scans keep the pre-pass for max
+  // accuracy where a couple hundred ms matters less than getting it right.
+  const isLiveScan = typeof source === "string" && /^live/i.test(source);
+  if (!multi && !detectedLanguage && !isLiveScan) {
     try {
       const stage1 = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

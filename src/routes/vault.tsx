@@ -2287,6 +2287,20 @@ function Vault() {
               </div>
             )}
 
+            {/* Low-confidence price warning — shown whenever a value is assigned
+                but the card is not safely/user-verified, so collectors never
+                silently trust a possibly-wrong number. */}
+            {Number(actionFor.estimated_value || 0) > 0 &&
+              !isSafePriced(actionFor) &&
+              !isUserVerified(actionFor) && (
+                <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-[12px] font-medium text-amber-600 ring-1 ring-amber-500/30 dark:text-amber-400">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>⚠ Price may be inaccurate. Please verify with TCGPlayer.</span>
+                </div>
+              )}
+
+
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 {(() => {
