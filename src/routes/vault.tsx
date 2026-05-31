@@ -973,10 +973,23 @@ function Vault() {
     [cards]
   );
 
+  // A card counts toward vault value if it's verified-priced OR a user-confirmed
+  // card that now has a real value (so manual corrections are always included).
+  const hasMarketValue = (c: Card) => isSafePriced(c) || (isUserVerified(c) && Number(c.estimated_value || 0) > 0);
+
   const totalValue = useMemo(
-    () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
+    () => cards.reduce((s, c) => s + (hasMarketValue(c) ? Number(c.estimated_value || 0) : 0), 0),
     [cards]
   );
+
+  // Pricing diagnostics shown at the top of the vault.
+  const pricingDiagnostics = useMemo(() => {
+    const total = cards.length;
+    const withValue = cards.filter(hasMarketValue).length;
+    const awaiting = cards.filter((c) => !hasMarketValue(c) && !c.price_updated_at && !isUserVerified(c)).length;
+    const missing = total - withValue - awaiting;
+    return { total, withValue, missing: Math.max(0, missing), awaiting };
+  }, [cards]);
 
   // Total amount the owner actually paid (purchase cost) and overall profit/loss.
   const totalPurchase = useMemo(
