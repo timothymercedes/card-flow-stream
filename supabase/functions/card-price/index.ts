@@ -27,10 +27,10 @@ function pricingProvidersSkipped(active: { id: string }[]) {
 
 // Per-source extractor used when we resolved a card via the game's catalog
 // adapter. Avoids defaulting to Pokémon/TCGplayer for non-Pokémon cards.
-function quoteFromCardForSource(card: NormalizedCard): PriceQuote | null {
+function quoteFromCardForSource(card: NormalizedCard, desiredVariant?: string | null): PriceQuote | null {
   switch (card.source) {
-    case "tcg_api": return tcgplayerQuoteFromCard(card);
-    case "tcgdex": return tcgplayerQuoteFromCard(card); // tcgdex returns pokemon shape
+    case "tcg_api": return tcgplayerQuoteFromCard(card, desiredVariant);
+    case "tcgdex": return tcgplayerQuoteFromCard(card, desiredVariant); // tcgdex returns pokemon shape
     case "ygoprodeck": return ygoQuoteFromCard(card);
     case "scryfall": return scryfallQuoteFromCard(card);
     case "tcg_prices": return tcgPricesQuoteFromCard(card);
@@ -110,7 +110,130 @@ function cacheKey(card_id: string, name: string, set: string, number: string) {
   return `q:${name.toLowerCase()}|${set.toLowerCase()}|${number.toLowerCase()}`;
 }
 
-// AI-estimated market value — LAST-RESORT fallback only, used when no real
+// JustTCG game slugs. JustTCG covers live TCGplayer pricing (incl. variants)
+// for these games; others fall through to the standard provider chain.
+const JUSTTCG_GAME: Record<string, string> = {
+  pokemon: "pokemon",
+  mtg: "magic-the-gathering",
+  yugioh: "yugioh",
+  onepiece: "one-piece-card-game",
+  lorcana: "disney-lorcana",
+};
+
+function jtFirstNumber(v: string | null | undefined) {
+  return String(v || "").split("/")[0].trim().replace(/^0+(\d)/, "$1").toLowerCase();
+}
+
+// Pick the JustTCG variant whose printing matches the desired variant; if no
+// hint, prefer the premium printing (holo/reverse) and Near-Mint condition,
+// falling back to the highest-priced variant. This is what produces the
+// correct ~$34 Clefairy holo value instead of a $0.75 base-normal price.
+function pickJustTcgVariant(card: any, variantHint: string | null) {
+  const hint = String(variantHint || "").toLowerCase();
+  const all = (card?.variants || []).filter(
+    (v: any) => Number(v?.price) > 0 && (v?.language || "English") === "English",
+  );
+  if (!all.length) return null;
+  const nm = all.filter((v: any) => v.condition === "Near Mint");
+  const pool = nm.length ? nm : all;
+  const wantReverse = /reverse/.test(hint);
+  const wantHolo = !wantReverse && /(holo|foil|ultra|secret|illustration|alt art|full art|rainbow)/.test(hint);
+  const wantNormal = /\bnon ?holo\b|^normal$/.test(hint);
+  let pick =
+    wantReverse ? pool.find((v: any) => /reverse/i.test(v.printing)) :
+    wantHolo ? pool.find((v: any) => /holo/i.test(v.printing) && !/reverse/i.test(v.printing)) :
+    wantNormal ? pool.find((v: any) => /normal/i.test(v.printing)) :
+    null;
+  if (!pick) pick = pool.slice().sort((a: any, b: any) => (b.price || 0) - (a.price || 0))[0];
+  return pick || null;
+}
+
+// Real TCGplayer-backed pricing via JustTCG. Returns a high-trust quote plus
+// the matched product identifiers for the card-page "Market Source" panel.
+async function fetchJustTcgQuote(
+  gameId: string,
+  q: { name: string; set?: string | null; number?: string | null; variant?: string | null },
+): Promise<PriceQuote | null> {
+  const apiKey = Deno.env.get("JUSTTCG_API_KEY");
+  const slug = JUSTTCG_GAME[gameId];
+  if (!apiKey || !slug || !q.name) return null;
+  const cleanName = q.name.replace(/"/g, "").trim();
+  const cleanSet = String(q.set || "").replace(/"/g, "").trim();
+  const cleanNumber = jtFirstNumber(q.number);
+  const queries: string[] = [];
+  if (cleanName && cleanSet && cleanNumber) queries.push(`${cleanName} ${cleanSet} ${cleanNumber}`);
+  if (cleanName && cleanNumber) queries.push(`${cleanName} ${cleanNumber}`);
+  if (cleanName && cleanSet) queries.push(`${cleanName} ${cleanSet}`);
+  if (cleanName) queries.push(cleanName);
+
+  const seen = new Set<string>();
+  const candidates: any[] = [];
+  for (const query of queries) {
+    try {
+      const url = `https://api.justtcg.com/v1/cards?game=${slug}&q=${encodeURIComponent(query)}&limit=20`;
+      const r = await fetch(url, { headers: { "X-API-Key": apiKey, "User-Agent": "PullBidLive/1.0" } });
+      if (!r.ok) continue;
+      const j = await r.json();
+      for (const c of j?.data || []) {
+        if (!c?.id || seen.has(c.id)) continue;
+        seen.add(c.id);
+        candidates.push(c);
+      }
+      if (candidates.length >= 20) break;
+    } catch (e) {
+      console.warn("[card-price][justtcg] fetch error:", (e as Error)?.message);
+    }
+  }
+  if (!candidates.length) return null;
+
+  const tName = cleanName.toLowerCase();
+  const tSet = cleanSet.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  function score(c: any) {
+    let s = 0;
+    const cn = String(c.name || "").toLowerCase();
+    const cnum = jtFirstNumber(c.number);
+    const cset = String(c.set_name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (cleanNumber && cnum === cleanNumber) s += 50;
+    else if (cleanNumber && String(c.number || "").includes(cleanNumber)) s += 15;
+    if (cn === tName) s += 25;
+    else if (cn.startsWith(tName)) s += 12;
+    else if (cn.includes(tName) || tName.includes(cn)) s += 6;
+    if (tSet && (cset === tSet || cset.includes(tSet) || tSet.includes(cset))) s += 20;
+    if ((c.variants || []).some((v: any) => Number(v.price) > 0)) s += 3;
+    return s;
+  }
+  const ranked = candidates
+    .map((c) => ({ c, s: score(c), v: pickJustTcgVariant(c, q.variant ?? null) }))
+    .filter((x) => x.v && Number(x.v.price) > 0)
+    .sort((a, b) => b.s - a.s);
+  if (!ranked.length) return null;
+  const top = ranked[0];
+  // Require a minimally plausible match before trusting the price.
+  if (top.s < 25) return null;
+
+  const conds: Record<string, number> = {};
+  for (const v of (top.c.variants || [])) {
+    if (v.printing === top.v.printing && (v.language || "English") === "English" && Number(v.price) > 0) {
+      conds[v.condition] = Number(v.price);
+    }
+  }
+  const market = Number(conds["Near Mint"] ?? top.v.price);
+  const vals = Object.values(conds);
+  return {
+    source: "justtcg",
+    market,
+    low: vals.length ? Math.min(...vals) : market,
+    mid: conds["Lightly Played"] ?? market,
+    high: market,
+    currency: "USD",
+    url: top.c?.tcgplayerId ? `https://www.tcgplayer.com/product/${top.c.tcgplayerId}` : null,
+    variant_used: top.v.printing ?? null,
+    product_id: top.c?.tcgplayerId ? String(top.c.tcgplayerId) : (top.c?.id ?? null),
+    raw: { justtcg_id: top.c?.id, tcgplayerId: top.c?.tcgplayerId, printing: top.v.printing, conditions: conds, match_score: top.s },
+  };
+}
+
+
 // catalog/sold source returned a price. Always clearly labeled downstream so
 // the UI can flag it as an estimate (never as verified market data).
 async function estimatePriceWithAI(q: {
@@ -274,7 +397,7 @@ Deno.serve(async (req) => {
     const quotes: PriceQuote[] = [];
     // Game-specific quote from the resolved card.
     if (card) {
-      const direct = quoteFromCardForSource(card);
+      const direct = quoteFromCardForSource(card, variant);
       if (direct) quotes.push(direct);
     }
     // Cross-cutting providers — skip the Pokémon-only tcgplayerProvider for
@@ -296,6 +419,19 @@ Deno.serve(async (req) => {
       }
     }));
     for (const s of settled) if (s) quotes.push(s);
+
+    // JustTCG — real, variant-aware TCGplayer pricing (primary trusted source).
+    sourcesTried.push("justtcg");
+    try {
+      const jt = await fetchJustTcgQuote(game.id, {
+        name: q.name, set: q.set, number: q.number, variant,
+      });
+      if (jt) quotes.push(jt);
+      else sourcesFailed.push("justtcg");
+    } catch (e) {
+      console.warn("[card-price] justtcg threw", (e as Error)?.message);
+      sourcesFailed.push("justtcg");
+    }
 
     const aggregated = aggregatePrices(quotes);
 
@@ -321,7 +457,7 @@ Deno.serve(async (req) => {
     // unavailable: no reliable data anywhere → never fabricate a number
     const market = aggregated.market;
     const candidateMarkets: number[] = topCandidates
-      .map((c) => quoteFromCardForSource(c)?.market)
+      .map((c) => quoteFromCardForSource(c, variant)?.market)
       .filter((n): n is number => typeof n === "number" && n > 0);
 
     let pricingTier: "verified" | "estimated" | "unavailable" = "unavailable";
@@ -330,7 +466,7 @@ Deno.serve(async (req) => {
     let priceIsAI = false;
 
     const trustedSources = quotes.filter((qq) =>
-      ["tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
+      ["justtcg", "tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
     ).length;
 
     // AI fallback: ONLY when no real source, no similar-card comp, and no stale
@@ -403,6 +539,62 @@ Deno.serve(async (req) => {
             ? "medium"
             : "low";
 
+    // ---- Pricing verification / suspicious-value detection -----------------
+    // Cross-check the chosen market value against (a) similar-card comps and
+    // (b) recent logged sold prices for this card. A value that is wildly
+    // below the reference (e.g. $0.75 when comps sit at $30–$50) almost always
+    // means the wrong product/variant record was matched. Flag it so the UI
+    // can mark the card for re-sync instead of trusting a bogus number.
+    const chosenQuote =
+      quotes.find((qq) => qq.source === "justtcg" && qq.product_id) ||
+      quotes.find((qq) => qq.product_id) ||
+      (card ? quoteFromCardForSource(card, variant) : null);
+    const chosenMarket = (finalPrice as any).market as number | null;
+    const refValues: number[] = [...candidateMarkets];
+    try {
+      const histKey = card?.id || `${name}|${set}|${number}`.toLowerCase();
+      const { data: hist } = await admin.from("card_price_history")
+        .select("market_price")
+        .eq("card_key", histKey)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      for (const h of hist || []) {
+        const v = Number((h as any).market_price);
+        if (isFinite(v) && v > 0) refValues.push(v);
+      }
+    } catch (_e) { /* history is best-effort */ }
+    const sortedRef = refValues.filter((v) => v > 0).sort((a, b) => a - b);
+    const refMedian = sortedRef.length
+      ? sortedRef[Math.floor(sortedRef.length / 2)]
+      : null;
+    let priceSuspicious = false;
+    let needsResync = false;
+    let suspiciousReason: string | null = null;
+    if (
+      !priceIsAI &&
+      chosenMarket != null && chosenMarket > 0 &&
+      refMedian != null && refMedian >= 5 &&
+      chosenMarket < refMedian * 0.4
+    ) {
+      priceSuspicious = true;
+      needsResync = true;
+      suspiciousReason =
+        `Assigned value $${chosenMarket.toFixed(2)} is far below the reference ` +
+        `~$${refMedian.toFixed(2)} from ${sortedRef.length} comps/recent sales — ` +
+        `likely a wrong product or variant match. Flagged for re-sync.`;
+    }
+
+    // External identifiers + last sync for the card-page "Market Source" panel.
+    const pcQuote = quotes.find((qq) => qq.source === "pricecharting");
+    const marketSource = {
+      tcgplayer_product_id: chosenQuote?.product_id ?? null,
+      tcgplayer_url: chosenQuote?.url ?? null,
+      pricecharting_product_id: pcQuote?.product_id ?? null,
+      pricecharting_url: pcQuote?.url ?? null,
+      variant_used: chosenQuote?.variant_used ?? variant ?? null,
+      last_sync: new Date().toISOString(),
+    };
+
     let payload: any = {
       game: game.id,
       card: card ? {
@@ -423,17 +615,22 @@ Deno.serve(async (req) => {
         image_url: c.image_large || c.image_small || null,
         image_source: c.source,
         match_score: scoreCard(c, { name, number, set, variant, year }),
-        market: quoteFromCardForSource(c)?.market ?? null,
+        market: quoteFromCardForSource(c, variant)?.market ?? null,
       })),
       official_image_url: officialImage,
       image_source: imageSource,
       price: finalPrice,
-      pricing_tier: pricingTier,
+      pricing_tier: priceSuspicious ? "estimated" : pricingTier,
       price_range: priceRange,
-      tier_reason: tierReason,
+      tier_reason: priceSuspicious ? suspiciousReason : tierReason,
+      price_suspicious: priceSuspicious,
+      needs_resync: needsResync,
+      suspicious_reason: suspiciousReason,
+      reference_value: refMedian,
+      market_source: marketSource,
       price_is_ai: priceIsAI,
-      price_confidence: priceConfidence,
-      confidence: finalConfidence,
+      price_confidence: priceSuspicious ? "low" : priceConfidence,
+      confidence: priceSuspicious ? Math.min(finalConfidence, 0.3) : finalConfidence,
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,

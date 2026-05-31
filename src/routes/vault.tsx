@@ -47,6 +47,7 @@ type Card = {
   purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
   confirmed_by?: string | null;
   card_identity_id?: string | null; enrichment_status?: string | null;
+  pricing_details?: Record<string, unknown> | null; price_source_url?: string | null;
 };
 
 function Vault() {
@@ -678,20 +679,24 @@ function Vault() {
           variant: data?.candidates?.[0]?.variant || c.variant || parseVariant(c.description).finish,
         };
         const confidenceScore = Number(data?.confidence || 0);
-        const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
+        const suspicious = !!data?.price_suspicious;
+        const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && !suspicious && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
         const reviewReason = verified
           ? null
-          : !isCompleteIdentity(identity)
-            ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
-            : data?.tier_reason || "Needs review before assigning market value.";
+          : suspicious
+            ? (data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.")
+            : !isCompleteIdentity(identity)
+              ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
+              : data?.tier_reason || "Needs review before assigning market value.";
         const patch: any = {
           market_price: market,
           estimated_value: verified ? market : 0,
           condition_prices: verified ? conditionPricesFromMarket(market) : null,
           price_source: data?.primary_source || null,
+          price_source_url: data?.market_source?.tcgplayer_url || data?.market_source?.pricecharting_url || null,
           price_confidence: data?.price_confidence || null,
           price_is_ai: !!data?.price_is_ai,
-          price_tier: data?.pricing_tier || "unavailable",
+          price_tier: suspicious ? "estimated" : (data?.pricing_tier || "unavailable"),
           price_range_low: data?.price_range?.low ?? null,
           price_range_high: data?.price_range?.high ?? null,
           price_updated_at: new Date().toISOString(),
@@ -700,6 +705,7 @@ function Vault() {
           confidence_score: confidenceScore || null,
           needs_review: !verified,
           review_reason: reviewReason,
+          pricing_details: { market_source: data?.market_source || null, suspicious, reference_value: data?.reference_value ?? null },
           identification_details: { pricing: data, identity },
           name: identity.name,
           tcg_set: identity.tcg_set || null,
@@ -856,10 +862,32 @@ function Vault() {
         },
       });
       const market = Number(data?.price?.market) || 0;
+      const suspicious = !!data?.price_suspicious;
       if (market <= 0) {
         await supabase.from("vault_cards").update({ review_reason: "Market value unavailable — try again later.", price_updated_at: new Date().toISOString() } as never).eq("id", card.id);
         setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, price_updated_at: new Date().toISOString() } : c)));
         toast.error("Market value still unavailable", { id: tId });
+        return;
+      }
+      const marketSource = data?.market_source || null;
+      if (suspicious) {
+        // The fetched value disagrees sharply with comps/recent sales — never
+        // lock a bogus number. Flag for review and surface the reason instead.
+        const patch: any = {
+          market_price: market, estimated_value: 0, condition_prices: null,
+          price_tier: "estimated", price_confidence: "low", price_is_ai: false,
+          price_source: data?.primary_source || null,
+          price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
+          price_locked: false, needs_review: true,
+          review_reason: data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.",
+          pricing_details: { market_source: marketSource, suspicious: true, reference_value: data?.reference_value ?? null },
+          price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
+        };
+        const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+        if (error) throw error;
+        setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+        setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+        toast.warning("Value looks wrong — flagged for re-sync", { id: tId });
         return;
       }
       const mult = langMult(card.language || parseLanguage(card.description));
@@ -870,6 +898,8 @@ function Vault() {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: true,
+        price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
+        pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null },
         needs_review: false, review_reason: null,
         price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
       };
@@ -2179,6 +2209,54 @@ function Vault() {
                   </div>
                 </div>
             )})()}
+
+            {/* Market Source */}
+            {(() => {
+              const ms = (actionFor.pricing_details as any)?.market_source || null;
+              const suspicious = !!(actionFor.pricing_details as any)?.suspicious;
+              const tcgId = ms?.tcgplayer_product_id || null;
+              const pcId = ms?.pricecharting_product_id || null;
+              const lastSync = ms?.last_sync || actionFor.price_updated_at || null;
+              const Row = ({ ok, label }: { ok: boolean; label: string }) => (
+                <div className="flex items-center gap-1.5">
+                  {ok ? <ShieldCheck className="h-3 w-3 text-emerald-500" /> : <X className="h-3 w-3 text-muted-foreground" />}
+                  <span className={ok ? "font-semibold text-foreground" : "text-muted-foreground"}>{label}</span>
+                </div>
+              );
+              return (
+                <div className="rounded-lg bg-muted/40 p-2">
+                  <p className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"><DollarSign className="h-3 w-3" /> Market Source</p>
+                  {suspicious && (
+                    <div className="mb-2 flex items-start gap-1.5 rounded-md bg-amber-500/10 p-1.5 text-[10px] text-amber-600">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>{(actionFor.review_reason) || "Value flagged as suspicious — re-sync recommended."}</span>
+                    </div>
+                  )}
+                  <div className="grid gap-1 text-[11px]">
+                    <Row ok={!!tcgId} label={tcgId ? `TCGPlayer ID: ${tcgId}` : "TCGPlayer ID: —"} />
+                    <Row ok={!!pcId} label={pcId ? `PriceCharting ID: ${pcId}` : "PriceCharting ID: —"} />
+                    <div className="flex items-center gap-1.5">
+                      <History className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Last Sync: {lastSync ? new Date(lastSync).toLocaleString() : "—"}</span>
+                    </div>
+                    {ms?.variant_used && (
+                      <div className="flex items-center gap-1.5">
+                        <Layers className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Variant: {ms.variant_used}</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => retryPricing(actionFor)}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground transition active:scale-[0.98]"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Refresh Market Data
+                  </button>
+                </div>
+              );
+            })()}
+
+
 
             {/* Audit trail */}
             {(() => {
