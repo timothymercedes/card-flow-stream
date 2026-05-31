@@ -639,8 +639,18 @@ Deno.serve(async (req) => {
       last_sync: new Date().toISOString(),
     };
 
+    // Did a trusted market source actually return data in the requested language?
+    const jtQuote = quotes.find((qq) => qq.source === "justtcg");
+    const languageMatched = !!(jtQuote && normalizeLanguageName((jtQuote.raw as any)?.language) === languageName);
+    // Non-English requested but we could not confirm language-specific market
+    // data → tell the UI to flag it rather than passing off another printing.
+    const languageUnconfirmed = !isEnglish && !languageMatched;
+
     let payload: any = {
       game: game.id,
+      language: languageName,
+      language_matched: languageMatched,
+      language_unconfirmed: languageUnconfirmed,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
         rarity: card.rarity, year: card.year,
