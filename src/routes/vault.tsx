@@ -354,34 +354,99 @@ function Vault() {
 
   // Look up the real card image + similar printings, routing by detected game.
   // Falls back silently if the card isn't in any DB.
+  // Merge two match lists, de-duplicating by id and (name+number) so the same
+  // card from different sources doesn't appear twice. Keeps the first (higher
+  // priority) instance but fills missing image/price from later instances.
+  function mergeMatches(...lists: Alt[][]): Alt[] {
+    const out: Alt[] = [];
+    const seen = new Map<string, Alt>();
+    const keyOf = (m: Alt) =>
+      `${cleanSearchText(m.name).toLowerCase()}|${cardNumberBase(m.number).toLowerCase()}|${cleanSearchText(m.set).toLowerCase()}`;
+    for (const list of lists) {
+      for (const m of list) {
+        if (!m?.id) continue;
+        const key = keyOf(m);
+        const existing = seen.get(m.id) || seen.get(key);
+        if (existing) {
+          if (!existing.image && m.image) existing.image = m.image;
+          if (!(existing.price && existing.price > 0) && m.price && m.price > 0) existing.price = m.price;
+          continue;
+        }
+        seen.set(m.id, m);
+        seen.set(key, m);
+        out.push(m);
+      }
+    }
+    return out;
+  }
+
+  // Internal system catalog — searches the FULL card database (local
+  // pokemon_cards cache + per-game adapters) via the card-catalog edge
+  // function. This guarantees any card the scanner has previously identified
+  // (including brand-new sets not yet in the public pokemontcg.io API, e.g.
+  // "Mega Evolution Promo") shows up in the correction search.
+  async function fetchCatalogMatches(opts: { name?: string; set?: string; number?: string; category?: string }): Promise<Alt[]> {
+    const name = cleanSearchText(opts.name);
+    const set = cleanSearchText(opts.set);
+    const number = cardNumberBase(opts.number);
+    if (!name && !number) return [];
+    const gameId = categoryToGameId(opts.category) || "pokemon";
+    try {
+      const { data, error } = await supabase.functions.invoke("card-catalog", {
+        body: { name: name || undefined, set: set || undefined, number: number || undefined, game: gameId, limit: 20 },
+      });
+      if (error) return [];
+      const candidates: any[] = (data as any)?.candidates || [];
+      return candidates.map((c: any) => ({
+        id: String(c.id),
+        name: c.name,
+        set: c.set_name || c.set_code || undefined,
+        number: c.number || undefined,
+        image: c.image_large || c.image_small || undefined,
+        price: undefined,
+        year: c.year ? String(c.year) : undefined,
+        category: opts.category || gameId,
+        tcgPrices: c.raw?.tcgplayer?.prices,
+      })) as Alt[];
+    } catch {
+      return [];
+    }
+  }
+
   async function fetchRealCardMatches(opts: { name?: string; set?: string; number?: string; category?: string }) {
+    // Always search the internal system catalog first — it covers the full
+    // database, including newly-scanned/promo sets the public APIs lack.
+    const catalog = await fetchCatalogMatches(opts);
+
     const csvGame = detectTcgCsvGame(opts.category, opts.name, opts.set);
     if (csvGame) {
       const csv = await fetchTcgCsvMatches(csvGame, opts);
-      if (csv.length) return csv;
+      const merged = mergeMatches(catalog, csv);
+      if (merged.length) return merged;
     }
     const game = detectGame(opts.category, opts.name, opts.set);
-    if (game === "mtg") return fetchMtgMatches(opts);
-    if (game === "yugioh") return fetchYugiohMatches(opts);
+    if (game === "mtg") return mergeMatches(catalog, await fetchMtgMatches(opts));
+    if (game === "yugioh") return mergeMatches(catalog, await fetchYugiohMatches(opts));
     const safeName = cleanSearchText(opts.name).replace(/"/g, "");
     const safeSet = cleanSearchText(opts.set).replace(/"/g, "");
     const safeNumber = cardNumberBase(opts.number).replace(/"/g, "");
-    if (!safeName && !safeSet && !safeNumber) return [] as Alt[];
+    if (!safeName && !safeSet && !safeNumber) return catalog;
     if (game === "unknown" && safeName) {
       const pkmn = await fetchPokemonMatches(safeName, safeSet, safeNumber);
-      if (pkmn.length) return pkmn;
+      const mergedPkmn = mergeMatches(catalog, pkmn);
+      if (mergedPkmn.length) return mergedPkmn;
       const mtg = await fetchMtgMatches(opts);
-      if (mtg.length) return mtg;
+      if (mtg.length) return mergeMatches(catalog, mtg);
       const ygo = await fetchYugiohMatches(opts);
-      if (ygo.length) return ygo;
+      if (ygo.length) return mergeMatches(catalog, ygo);
       // Last resort: try every TCGCSV game by name
       for (const g of ["One Piece", "Lorcana", "Dragon Ball Super Fusion", "Star Wars Unlimited", "Flesh and Blood"]) {
         const r = await fetchTcgCsvMatches(g, opts);
-        if (r.length) return r;
+        if (r.length) return mergeMatches(catalog, r);
       }
-      return [];
+      return catalog;
     }
-    return fetchPokemonMatches(safeName, safeSet, safeNumber);
+    return mergeMatches(catalog, await fetchPokemonMatches(safeName, safeSet, safeNumber));
   }
 
   async function fetchPokemonMatches(safeName: string, safeSet: string, safeNumber: string): Promise<Alt[]> {
