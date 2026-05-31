@@ -112,9 +112,29 @@ function Vault() {
   function needsOfficialCardImage(url?: string | null) {
     if (!url) return true;
     const u = url.toLowerCase();
-    // Never replace a user's actual scan/upload with a guessed catalog image.
-    // Bad OCR on a card number can otherwise swap the photo to the wrong card.
     return u.includes("images.unsplash.com") || u.includes("generate-card-image");
+  }
+
+  function looksLikeUserUpload(url?: string | null) {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.startsWith("data:") || u.includes("vault-images") || u.includes("storage") || u.includes("blob:");
+  }
+
+  function displayImage(card: Card) {
+    return card.ai_image_url || card.image_url || card.original_image_url || "";
+  }
+
+  function isCompleteIdentity(card: Partial<Card>) {
+    return !!(card.name && card.tcg_set && card.tcg_number && card.tcg_year && (card.rarity || card.variant));
+  }
+
+  function isSafePriced(card: Card) {
+    if (card.needs_review && !card.price_locked) return false;
+    if (card.price_confidence === "low" && !card.price_locked) return false;
+    if (card.price_tier && card.price_tier !== "verified" && !card.price_locked) return false;
+    if (!isCompleteIdentity(card) && !card.price_locked) return false;
+    return Number(card.estimated_value || 0) > 0;
   }
 
   function conditionPricesFromMarket(price?: number): ConditionPrices | null {
