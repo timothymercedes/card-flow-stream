@@ -47,6 +47,12 @@ workflows:
         script: |
           npm install -g bun
           bun install
+      - name: Verify native auth env vars (fail fast)
+        script: |
+          # Fails the build if any var required for the native auth sheet is
+          # missing/empty, and prints exactly which auth path each provider
+          # will use. Prevents shipping a build that silently uses browser OAuth.
+          node scripts/verify-auth-env.mjs ios
       - name: Build web bundle (SSR, hosted shell)
         script: |
           bun run build
@@ -281,6 +287,11 @@ workflows:
         script: |
           npm install -g bun
           bun install
+      - name: Verify native auth env vars (fail fast)
+        script: |
+          # Android native Google sheet needs VITE_GOOGLE_WEB_CLIENT_ID; Apple /
+          # reversed iOS scheme are iOS-only and only reported here.
+          node scripts/verify-auth-env.mjs android
       - name: Build web bundle (SSR, hosted shell)
         script: |
           bun run build
