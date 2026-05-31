@@ -291,7 +291,7 @@ async function estimatePriceWithAI(q: {
           {
             role: "system",
             content:
-              "You are a trading-card and collectibles market appraiser covering Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Dragon Ball, Flesh and Blood, Weiss Schwarz, Digimon, sports cards, and other collectibles. Estimate the current RAW Near-Mint USD market value based on recent sold prices you know of. Return STRICT JSON only: {\"market\": number, \"low\": number, \"high\": number}. All values > 0. low/high should bracket realistic recent sold prices. If totally unknown, give your single best guess, never 0.",
+              "You are a trading-card and collectibles market appraiser covering Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Dragon Ball, Flesh and Blood, Weiss Schwarz, Digimon, sports cards, and other collectibles. Estimate the current RAW Near-Mint USD market value based on recent sold prices you know of. CRITICAL: price the SPECIFIC LANGUAGE printing requested — English, Japanese, Chinese, Korean, etc. often have very different market values, so never substitute another language's value. Return STRICT JSON only: {\"market\": number, \"low\": number, \"high\": number}. All values > 0. low/high should bracket realistic recent sold prices. If totally unknown, give your single best guess, never 0.",
           },
           {
             role: "user",
