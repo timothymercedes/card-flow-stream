@@ -56,6 +56,46 @@ function Vault() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
   const propagatePrice = useServerFn(propagateIdentityPrice);
+  const resolveMaster = useServerFn(resolveMasterIdentity);
+
+  // Ensure a vault card is registered into the master identity DB and linked.
+  // Best-effort: never blocks the main write. Used by manual add / correction /
+  // language + variant changes so every card self-registers without the engine.
+  async function ensureMasterIdentity(cardId: string, info: {
+    category?: string | null; name?: string | null; tcg_set?: string | null;
+    tcg_number?: string | null; tcg_year?: string | null; variant?: string | null;
+    language?: string | null; rarity?: string | null; image_url?: string | null;
+    card_identity_id?: string | null; confidence_score?: number | null;
+  }) {
+    try {
+      if (!info.name) return null;
+      const yr = info.tcg_year ? parseInt(String(info.tcg_year), 10) : null;
+      const res: any = await resolveMaster({
+        data: {
+          vaultCardId: cardId,
+          category: info.category || "other",
+          name: info.name,
+          set_name: info.tcg_set || null,
+          number: info.tcg_number || null,
+          year: Number.isFinite(yr as number) ? (yr as number) : null,
+          variant: info.variant || null,
+          language: info.language || "en",
+          rarity: info.rarity || null,
+          image_url: info.image_url || null,
+          image_source: "user",
+          confidence_score: info.confidence_score ?? null,
+          provider_keys: info.card_identity_id ? [info.card_identity_id] : [],
+        },
+      });
+      if (res?.identityId) {
+        setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, master_identity_id: res.identityId } : c)));
+      }
+      return res?.identityId ?? null;
+    } catch (e) {
+      console.error("ensureMasterIdentity failed", e);
+      return null;
+    }
+  }
   const [cards, setCards] = useState<Card[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [scanning, setScanning] = useState(false);
