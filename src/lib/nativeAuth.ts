@@ -33,6 +33,30 @@ export function nativeAuthAvailable(provider: "google" | "apple"): boolean {
   return false;
 }
 
+/**
+ * Human-readable summary of which sign-in path each provider will take in the
+ * current runtime. Used by the on-device auth diagnostic banner so testers can
+ * confirm (in dev/TestFlight) whether the NATIVE sheet or the BROWSER fallback
+ * will be used — without reading logs.
+ */
+export function describeAuthPaths() {
+  const native = isNative();
+  const platform = nativePlatform();
+  const google = nativeAuthAvailable("google");
+  const apple = nativeAuthAvailable("apple");
+  return {
+    native,
+    platform,
+    google: { native: google, path: google ? "native sheet" : native ? "browser fallback" : "browser OAuth" },
+    apple: { native: apple, path: apple ? "native sheet" : native ? "browser fallback" : "browser OAuth" },
+    ids: {
+      googleWeb: !!GOOGLE_WEB_CLIENT_ID,
+      googleIos: !!GOOGLE_IOS_CLIENT_ID,
+      appleServices: !!APPLE_SERVICES_ID,
+    },
+  };
+}
+
 async function ensureInit() {
   if (initialized) return;
   const { SocialLogin } = await import("@capgo/capacitor-social-login");
