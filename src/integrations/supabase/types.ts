@@ -6615,6 +6615,9 @@ export type Database = {
           price_tier: string | null
           price_updated_at: string | null
           pricing_details: Json
+          purchase_date: string | null
+          purchase_price: number | null
+          purchased_from: string | null
           rarity: string | null
           recent_sales_avg: number | null
           review_reason: string | null
@@ -6686,6 +6689,9 @@ export type Database = {
           price_tier?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
+          purchase_date?: string | null
+          purchase_price?: number | null
+          purchased_from?: string | null
           rarity?: string | null
           recent_sales_avg?: number | null
           review_reason?: string | null
@@ -6757,6 +6763,9 @@ export type Database = {
           price_tier?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
+          purchase_date?: string | null
+          purchase_price?: number | null
+          purchased_from?: string | null
           rarity?: string | null
           recent_sales_avg?: number | null
           review_reason?: string | null
