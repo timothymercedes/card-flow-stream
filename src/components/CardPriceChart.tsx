@@ -5,14 +5,16 @@ import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 type Point = { captured_at: string; market_price: number };
-type Props = { name: string; tcgSet?: string | null; tcgNumber?: string | null; currentValue?: number | null };
+type Props = { name: string; tcgSet?: string | null; tcgNumber?: string | null; currentValue?: number | null; cardIdentityId?: string | null };
 
-type RangeKey = "7D" | "30D" | "90D" | "1Y";
+type RangeKey = "7D" | "30D" | "90D" | "6M" | "1Y" | "ALL";
 const RANGES: { key: RangeKey; label: string; days: number }[] = [
   { key: "7D", label: "7D", days: 7 },
   { key: "30D", label: "30D", days: 30 },
   { key: "90D", label: "90D", days: 90 },
+  { key: "6M", label: "6M", days: 183 },
   { key: "1Y", label: "1Y", days: 365 },
+  { key: "ALL", label: "All", days: 3650 },
 ];
 
 function keyOf(name: string, set?: string | null, number?: string | null) {
@@ -26,7 +28,7 @@ function flatLine(value: number, days: number): Point[] {
   ];
 }
 
-export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue }: Props) {
+export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue, cardIdentityId }: Props) {
   const [allPoints, setAllPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,21 +37,21 @@ export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue }: Props)
 
   const load = async () => {
     setLoading(true);
-    const key = keyOf(name, tcgSet, tcgNumber);
+    const keys = Array.from(new Set([keyOf(name, tcgSet, tcgNumber), cardIdentityId].filter(Boolean) as string[]));
     // Pull up to 1 year so range switching is instant (no refetch).
     const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 366).toISOString();
     const { data } = await supabase
       .from("card_price_history")
       .select("captured_at, market_price")
-      .eq("card_key", key)
+      .in("card_key", keys)
       .gte("captured_at", since)
       .order("captured_at", { ascending: true })
-      .limit(800);
+      .limit(2500);
     setAllPoints((data || []).filter((p: any) => p.market_price != null) as Point[]);
     setLoading(false);
   };
 
-  useEffect(() => { setAutoRefreshed(false); load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber]);
+  useEffect(() => { setAutoRefreshed(false); load(); /* eslint-disable-next-line */ }, [name, tcgSet, tcgNumber, cardIdentityId]);
 
   const refresh = async (opts?: { silent?: boolean }) => {
     setRefreshing(true);
