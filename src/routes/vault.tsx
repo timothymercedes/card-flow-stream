@@ -2062,7 +2062,16 @@ function Vault() {
                 {isSafePriced(actionFor) || (isUserVerified(actionFor) && Number(actionFor.estimated_value || 0) > 0) ? (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
                 ) : isUserVerified(actionFor) ? (
-                  <p className="text-base font-bold text-muted-foreground">No price yet</p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-amber-500">Market value unavailable</p>
+                    <button
+                      type="button"
+                      onClick={() => retryPricing(actionFor)}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground active:scale-95"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Retry pricing
+                    </button>
+                  </div>
                 ) : <p className="text-base font-bold text-amber-500">Tap "Choose Correct Card"</p>}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
