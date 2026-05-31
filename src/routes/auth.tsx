@@ -50,18 +50,27 @@ function Auth() {
   const [tosOk, setTosOk] = useState(false);
   const [guidelinesOk, setGuidelinesOk] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaUnavailable, setCaptchaUnavailable] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
   async function ensureCaptcha(action: string): Promise<boolean> {
+    // If the challenge could not load/complete (e.g. domain not allowed or
+    // network blocked), don't trap the user — allow them to proceed.
     if (!captchaToken) {
+      if (captchaUnavailable) return true;
       toast.error("Please complete the verification challenge");
       return false;
     }
-    const v = await verifyTurnstile({ data: { token: captchaToken, action } });
-    if (!v.success && v.error !== "turnstile_not_configured") {
-      toast.error("Verification failed, please retry");
-      setCaptchaToken(null);
-      return false;
+    try {
+      const v = await verifyTurnstile({ data: { token: captchaToken, action } });
+      if (!v.success && v.error !== "turnstile_not_configured") {
+        toast.error("Verification failed, please retry");
+        setCaptchaToken(null);
+        return false;
+      }
+    } catch {
+      // Backend verification unreachable — fail open so login isn't blocked.
+      return true;
     }
     return true;
   }
@@ -249,10 +258,12 @@ function Auth() {
         )}
         <Turnstile
           action={mode === "forgot" ? "password_reset" : mode}
-          onVerify={setCaptchaToken}
+          onVerify={(t) => { setCaptchaToken(t); setCaptchaUnavailable(false); }}
           onExpire={() => setCaptchaToken(null)}
+          onUnavailable={() => setCaptchaUnavailable(true)}
           className="flex justify-center"
         />
+
         <button disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Buyer Terms & Sign Up"}
         </button>
