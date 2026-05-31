@@ -242,7 +242,7 @@ async function fetchJustTcgQuote(
     return s;
   }
   const ranked = candidates
-    .map((c) => ({ c, s: score(c), v: pickJustTcgVariant(c, q.variant ?? null) }))
+    .map((c) => ({ c, s: score(c), v: pickJustTcgVariant(c, q.variant ?? null, wantLang) }))
     .filter((x) => x.v && Number(x.v.price) > 0)
     .sort((a, b) => b.s - a.s);
   if (!ranked.length) return null;
