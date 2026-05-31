@@ -765,6 +765,12 @@ function Vault() {
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
         identification_details: { confirmed_match: m },
+        incorrect_price_reported: false,
+        incorrect_price_reported_at: null,
+        match_history: [
+          ...(Array.isArray(card.match_history) ? card.match_history : []),
+          { from: card.name || "Unknown", to: m.name || card.name || "Unknown", by: "User", at: new Date().toISOString() },
+        ],
       };
       const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
       if (error) throw error;
