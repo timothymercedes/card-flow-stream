@@ -232,6 +232,21 @@ function Auth() {
             </label>
           </div>
         )}
+        {mode === "forgot" && !resetSent && (
+          <p className="text-center text-[12px] text-muted-foreground">
+            Enter your account email and we'll send a secure password reset link.
+          </p>
+        )}
+        {mode === "forgot" && resetSent && (
+          <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-[12px] text-foreground">
+            <p className="font-semibold text-primary">Check your inbox</p>
+            <p className="mt-1 text-muted-foreground">
+              If an account exists for <strong>{email}</strong>, you'll receive a
+              reset link within a few minutes. Be sure to check your spam or
+              promotions folder. The link expires after 1 hour.
+            </p>
+          </div>
+        )}
         <Turnstile
           action={mode === "forgot" ? "password_reset" : mode}
           onVerify={setCaptchaToken}
