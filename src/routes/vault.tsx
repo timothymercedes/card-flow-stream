@@ -55,6 +55,7 @@ type Card = {
 function Vault() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
+  const propagatePrice = useServerFn(propagateIdentityPrice);
   const [cards, setCards] = useState<Card[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [scanning, setScanning] = useState(false);
