@@ -157,6 +157,16 @@ function Vault() {
     return Number(card.estimated_value || 0) > 0;
   }
 
+  // Per-card gain vs. what the owner paid (only when a purchase price exists).
+  function cardGain(card: Card): number | null {
+    if (card.purchase_price == null) return null;
+    const paid = Number(card.purchase_price);
+    if (Number.isNaN(paid)) return null;
+    return Number(card.estimated_value || 0) - paid;
+  }
+
+
+
   // Match confidence tier → colour (Green ≥90%, Yellow 70-89%, Red <70%).
   function confidenceTier(score?: number | null) {
     const s = Number(score || 0);
