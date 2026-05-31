@@ -726,8 +726,9 @@ Deno.serve(async (req) => {
       });
     }
     if (quotes.length && (card?.id || name)) {
+      const histLangSuffix = isEnglish ? "" : `|lang:${languageName.toLowerCase()}`;
       const rows = quotes.map((q) => ({
-        card_key: card?.id || `${name}|${set}|${number}`.toLowerCase(),
+        card_key: (card?.id || `${name}|${set}|${number}`.toLowerCase()) + histLangSuffix,
         name: card?.name || name,
         tcg_set: card?.set_name || set || null,
         tcg_number: card?.number || number || null,
