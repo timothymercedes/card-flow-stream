@@ -1925,8 +1925,10 @@ function Vault() {
                     Refresh
                   </button>
                 </div>
-                {isSafePriced(actionFor) ? (
+                {isSafePriced(actionFor) || (isUserVerified(actionFor) && Number(actionFor.estimated_value || 0) > 0) ? (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
+                ) : isUserVerified(actionFor) ? (
+                  <p className="text-base font-bold text-muted-foreground">No price yet</p>
                 ) : <p className="text-base font-bold text-amber-500">Tap "Choose Correct Card"</p>}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
