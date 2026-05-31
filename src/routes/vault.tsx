@@ -818,7 +818,9 @@ function Vault() {
         }
       } catch {/* ignore */}
     }
+    const originalUpload = looksLikeUserUpload(imageUrl) ? imageUrl : null;
     let finalImage = imageUrl;
+    let generatedImage: string | null = null;
     const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2, category: cat || undefined });
     if (matches.length) {
       const best = matches[0];
@@ -840,14 +842,24 @@ function Vault() {
         const { data: img } = await supabase.functions.invoke("generate-card-image", {
           body: { name: finalName, category: cat, set: setName2, year: year2, tcg_number: num2 },
         });
-        if (img?.image) finalImage = img.image;
+          if (img?.image) { finalImage = img.image; generatedImage = img.image; }
       } catch {/* ignore */}
     }
     const variantLabel = `${edition} · ${finish}`;
     const fullDesc = [description?.trim(), `Variant: ${variantLabel}`].filter(Boolean).join("\n");
+    const completeIdentity = !!(finalName && setName2 && num2 && year2 && (matches[0]?.category || cat));
+    if (!completeIdentity) value = 0;
     const { data: inserted, error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
+      original_image_url: originalUpload,
+      ai_image_url: generatedImage,
+      image_source: generatedImage ? "ai_generated" : matches[0]?.image ? "catalog" : null,
+      image_gallery: [
+        finalImage ? { url: finalImage, type: generatedImage ? "ai_generated" : "catalog", primary: true } : null,
+        originalUpload ? { url: originalUpload, type: "user_upload", primary: false } : null,
+        backImageUrl ? { url: backImageUrl, type: "user_back", primary: false } : null,
+      ].filter(Boolean),
       description: fullDesc || null,
       estimated_value: value,
       condition_prices: cp as any,
@@ -855,8 +867,13 @@ function Vault() {
       tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
       language,
+      rarity: matches[0]?.category ? null : null,
+      variant: variantLabel,
+      confidence_score: completeIdentity ? 0.75 : 0.35,
+      needs_review: !completeIdentity,
+      review_reason: completeIdentity ? null : "Missing exact set, card number, year, rarity, or variant.",
       last_valued_at: new Date().toISOString(),
-    }).select().single();
+    } as never).select().single();
     if (error) return toast.error(error.message);
     const wantSell = sellAfterSave;
     resetForm(); setShowAdd(false);
