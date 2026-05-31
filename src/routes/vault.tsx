@@ -1791,7 +1791,7 @@ function Vault() {
                     )}
                   </div>
                 )}
-                {viewMode === "small" && isSafePriced(c) && (
+                {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
                   <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                 )}
               </button>
