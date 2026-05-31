@@ -26,7 +26,7 @@ type Card = {
   tcg_number?: string | null; tcg_set?: string | null; tcg_year?: string | null;
   condition?: Condition | null;
   condition_prices?: ConditionPrices | null;
-  visibility?: Visibility | null;
+  visibility?: Visibility | null; language?: string | null;
   market_price?: number | null;
   is_graded?: boolean | null; grader?: string | null; grade?: string | null;
   grading_cert?: string | null; graded_price?: number | null;
@@ -126,7 +126,9 @@ function Vault() {
   }
 
   function isCompleteIdentity(card: Partial<Card>) {
-    return !!(card.name && card.tcg_set && card.tcg_number && card.tcg_year && (card.rarity || card.variant));
+    // A value may only be assigned once the exact card version is identified:
+    // name, set, card number, year, rarity AND variant must all be present.
+    return !!(card.name && card.tcg_set && card.tcg_number && card.tcg_year && card.rarity && card.variant);
   }
 
   function isSafePriced(card: Card) {
@@ -1611,6 +1613,43 @@ function Vault() {
                 </div>
               </div>
             )}
+
+            {/* Structured card identity — every required field */}
+            {(() => {
+              const fields: [string, string | null | undefined][] = [
+                ["Card Name", actionFor.name],
+                ["Category / Game", actionFor.category],
+                ["Set Name", actionFor.tcg_set],
+                ["Card Number", actionFor.tcg_number],
+                ["Year", actionFor.tcg_year],
+                ["Rarity", actionFor.rarity],
+                ["Variant", actionFor.variant],
+                ["Language", (actionFor.language || parseLanguage(actionFor.description) || "").toUpperCase()],
+                ["Condition", actionFor.condition],
+                ["Grading Co.", actionFor.is_graded ? actionFor.grader : "—"],
+                ["Grade", actionFor.is_graded ? actionFor.grade : "—"],
+                ["Price Source", actionFor.price_source || (actionFor.price_is_ai ? "AI estimate" : "—")],
+                ["Last Updated", actionFor.price_updated_at ? new Date(actionFor.price_updated_at).toLocaleString() : "—"],
+                ["Confidence", actionFor.confidence_score != null ? `${Math.round(Number(actionFor.confidence_score) * 100)}%` : "—"],
+              ];
+              return (
+                <div className="rounded-lg bg-muted/40 p-2">
+                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Card Details</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                    {fields.map(([label, value]) => {
+                      const missing = !value || value === "—";
+                      return (
+                        <div key={label} className="flex flex-col">
+                          <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
+                          <span className={missing ? "font-medium text-amber-500" : "font-semibold text-foreground"}>
+                            {missing ? "Missing" : value}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+            )})()}
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
