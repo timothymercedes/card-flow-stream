@@ -124,14 +124,52 @@ function jtFirstNumber(v: string | null | undefined) {
   return String(v || "").split("/")[0].trim().replace(/^0+(\d)/, "$1").toLowerCase();
 }
 
+// Map our internal language codes (en/jp/zh/...) to the canonical English
+// language NAME JustTCG (and most price sources) use. Critical for pulling
+// the correct language-specific market value — a Japanese card must never be
+// priced from an English product record and vice versa.
+const LANG_CODE_TO_NAME: Record<string, string> = {
+  en: "English", jp: "Japanese", ja: "Japanese", kr: "Korean", ko: "Korean",
+  zh: "Chinese", "zh-cn": "Chinese", "zh-tw": "Chinese", cn: "Chinese",
+  de: "German", fr: "French", es: "Spanish", it: "Italian", pt: "Portuguese", ru: "Russian",
+};
+function normalizeLanguageName(input: string | null | undefined): string {
+  const raw = String(input || "").trim();
+  if (!raw) return "English";
+  const lower = raw.toLowerCase();
+  if (LANG_CODE_TO_NAME[lower]) return LANG_CODE_TO_NAME[lower];
+  // Already a full name (e.g. "Japanese", "Chinese (Traditional)")
+  if (/japan/.test(lower)) return "Japanese";
+  if (/korea/.test(lower)) return "Korean";
+  if (/chin|中文|mandarin/.test(lower)) return "Chinese";
+  if (/germ|deutsch/.test(lower)) return "German";
+  if (/fren|français/.test(lower)) return "French";
+  if (/span|español/.test(lower)) return "Spanish";
+  if (/ital/.test(lower)) return "Italian";
+  if (/portug/.test(lower)) return "Portuguese";
+  if (/russ/.test(lower)) return "Russian";
+  if (/engl/.test(lower)) return "English";
+  // Unknown — capitalize first letter as a best effort
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+// True when a JustTCG variant's language matches the requested language.
+// English requests also accept variants with no language tag (most cards).
+function variantLangMatches(v: any, wantLang: string): boolean {
+  const vl = String(v?.language || "").trim();
+  if (wantLang === "English") return !vl || /engl/i.test(vl);
+  return vl.toLowerCase() === wantLang.toLowerCase();
+}
+
 // Pick the JustTCG variant whose printing matches the desired variant; if no
 // hint, prefer the premium printing (holo/reverse) and Near-Mint condition,
 // falling back to the highest-priced variant. This is what produces the
 // correct ~$34 Clefairy holo value instead of a $0.75 base-normal price.
-function pickJustTcgVariant(card: any, variantHint: string | null) {
+// `wantLang` is the canonical language NAME — we ONLY consider variants in
+// that language so we never cross-price languages.
+function pickJustTcgVariant(card: any, variantHint: string | null, wantLang = "English") {
   const hint = String(variantHint || "").toLowerCase();
   const all = (card?.variants || []).filter(
-    (v: any) => Number(v?.price) > 0 && (v?.language || "English") === "English",
+    (v: any) => Number(v?.price) > 0 && variantLangMatches(v, wantLang),
   );
   if (!all.length) return null;
   const nm = all.filter((v: any) => v.condition === "Near Mint");
