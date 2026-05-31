@@ -133,10 +133,16 @@ function Vault() {
   }
 
   function isSafePriced(card: Card) {
-    if (card.needs_review && !card.price_locked) return false;
-    if (card.price_confidence === "low" && !card.price_locked) return false;
-    if (card.price_tier && card.price_tier !== "verified" && !card.price_locked) return false;
-    if (!isCompleteIdentity(card) && !card.price_locked) return false;
+    // Manual override (locked) is always trusted.
+    if (card.price_locked) return Number(card.estimated_value || 0) > 0;
+    // Otherwise the card must be verified: not flagged for review, not low
+    // confidence, and explicitly priced through a verified tier. The "verified"
+    // tier is only set after exact structured identity is confirmed (either by
+    // auto-enrichment or a user-confirmed visual match), so we trust it here.
+    if (card.needs_review) return false;
+    if (card.price_confidence === "low") return false;
+    if (card.price_tier && card.price_tier !== "verified") return false;
+    if (!card.price_tier) return false;
     return Number(card.estimated_value || 0) > 0;
   }
 
