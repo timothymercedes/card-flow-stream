@@ -68,32 +68,37 @@ function scoreCard(
     else if (a.startsWith(b) || b.startsWith(a)) s += 28;
     else if (a.includes(b) || b.includes(a)) s += 16;
   }
-  // Collector number (20)
+  // Collector number (30) — the single strongest disambiguator between two
+  // cards that share a name. Weighted above the name so set/number wins over
+  // a name-only match.
   if (q.number) {
     const cn = String(c.number || "").split("/")[0].trim().replace(/^0+(\d)/, "$1");
     const qn = String(q.number).split("/")[0].trim().replace(/^0+(\d)/, "$1");
-    if (cn && cn === qn) s += 20;
-    else if (cn && qn && (cn.startsWith(qn) || qn.startsWith(cn))) s += 8;
+    if (cn && cn === qn) s += 30;
+    else if (cn && qn && (cn.startsWith(qn) || qn.startsWith(cn))) s += 10;
+    else if (cn && qn) s -= 10; // both have numbers but they differ → wrong printing
   }
-  // Set (20)
+  // Set (22)
   if (q.set) {
     const a = norm(c.set_name), b = norm(q.set);
-    if (a === b) s += 20;
-    else if (a.includes(b) || b.includes(a)) s += 10;
+    if (a === b) s += 22;
+    else if (a.includes(b) || b.includes(a)) s += 11;
   }
   // Year (10)
   if (q.year && c.year) {
     if (String(c.year) === String(q.year)) s += 10;
     else if (Math.abs(Number(c.year) - Number(q.year)) <= 1) s += 4;
   }
-  // Variant / parallel tokens (10, with penalty for mismatch)
+  // Variant / parallel tokens (12, with stronger penalty for mismatch). Variant
+  // is value-defining (Full Art / IR / SIR / Promo / Stamped, etc.) so a
+  // candidate that lacks the variant the OCR clearly saw is heavily penalized.
   const ocrTokens = tokensOf(`${q.variant || ""} ${q.name || ""}`);
   const cardTokens = tokensOf(`${c.name} ${c.rarity || ""} ${(c.variants || []).join(" ")}`);
   if (ocrTokens.size) {
     let matched = 0;
     for (const t of ocrTokens) if (cardTokens.has(t)) matched++;
-    if (matched) s += Math.min(10, matched * 4);
-    else s -= 8; // OCR saw "holo/rookie/refractor" but candidate has none → penalize
+    if (matched) s += Math.min(12, matched * 5);
+    else s -= 12; // OCR saw "full art/holo/refractor" but candidate has none → penalize
   }
   if (c.image_small || c.image_large) s += 2;
   return s;
@@ -380,6 +385,7 @@ Deno.serve(async (req) => {
     const catalogTried: string[] = [];
     let bestScore = 0;
     let topCandidates: NormalizedCard[] = [];
+    let ambiguousDuplicateSet = false;
     if (card_id && game.id === "pokemon") {
       const { data: row } = await admin.from("pokemon_cards")
         .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
@@ -420,6 +426,23 @@ Deno.serve(async (req) => {
         card = ranked[0].c;
         bestScore = ranked[0].s;
         topCandidates = ranked.slice(0, 3).map((r) => r.c);
+        // Set-disambiguation guard: if the top two are same-name candidates from
+        // DIFFERENT sets and the query gave us no number to tell them apart,
+        // never treat this as a confident pick. Cap the score so pricing stays
+        // "estimated" and the duplicate sets surface for the user to choose.
+        const normName = (s: string | null | undefined) =>
+          String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        const top = ranked[0], second = ranked[1];
+        const numberKnown = !!String(number || "").trim();
+        if (
+          second &&
+          normName(top.c.name) === normName(second.c.name) &&
+          normName(top.c.set_name) !== normName(second.c.set_name) &&
+          !numberKnown
+        ) {
+          bestScore = Math.min(bestScore, 55); // below the 80 "verified" gate
+          ambiguousDuplicateSet = true;
+        }
       }
     }
 
@@ -677,9 +700,14 @@ Deno.serve(async (req) => {
       official_image_url: officialImage,
       image_source: imageSource,
       price: finalPrice,
-      pricing_tier: priceSuspicious ? "estimated" : pricingTier,
+      pricing_tier: (priceSuspicious || ambiguousDuplicateSet) ? "estimated" : pricingTier,
       price_range: priceRange,
-      tier_reason: priceSuspicious ? suspiciousReason : tierReason,
+      ambiguous_duplicate_set: ambiguousDuplicateSet,
+      tier_reason: priceSuspicious
+        ? suspiciousReason
+        : ambiguousDuplicateSet
+          ? "Multiple cards share this name across different sets — pick the correct set/number to verify the value."
+          : tierReason,
       price_suspicious: priceSuspicious,
       needs_resync: needsResync,
       suspicious_reason: suspiciousReason,

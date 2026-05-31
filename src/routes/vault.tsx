@@ -802,17 +802,26 @@ function Vault() {
         const confidenceScore = Number(data?.confidence || 0);
         const suspicious = !!data?.price_suspicious;
         const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && !suspicious && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
+        // An identified card should NEVER silently end at $0. When we have any
+        // real/estimated/AI market value that isn't flagged as suspicious, store
+        // it so the card shows an estimate (clearly badged) instead of nothing.
+        // Suspicious values are still withheld — those mean a wrong product match.
+        const hasUsableValue = market > 0 && !suspicious;
+        const storedValue = hasUsableValue ? market : 0;
+        const variantMissing = !identity.variant;
         const reviewReason = verified
           ? null
           : suspicious
             ? (data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.")
-            : !isCompleteIdentity(identity)
-              ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
-              : data?.tier_reason || "Needs review before assigning market value.";
+            : variantMissing
+              ? "Variant not detected — confirm the variant (Full Art, IR, SIR, Promo, Stamped, etc.) to verify this value."
+              : !isCompleteIdentity(identity)
+                ? "Estimated value shown — confirm exact set, card number, year, and rarity to verify it."
+                : data?.tier_reason || "Estimated value shown — confirm the card to verify it.";
         const patch: any = {
           market_price: market,
-          estimated_value: verified ? market : 0,
-          condition_prices: verified ? conditionPricesFromMarket(market) : null,
+          estimated_value: storedValue,
+          condition_prices: storedValue > 0 ? conditionPricesFromMarket(storedValue) : null,
           price_source: data?.primary_source || null,
           price_source_url: data?.market_source?.tcgplayer_url || data?.market_source?.pricecharting_url || null,
           price_confidence: data?.price_confidence || null,
