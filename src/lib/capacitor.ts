@@ -42,11 +42,21 @@ function paramsFromCallback(url: URL) {
   return params;
 }
 
+function safeCallbackReturnTo(raw: string) {
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return "/";
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return raw.startsWith("/") ? raw : "/";
+  }
+}
+
 async function completeOAuthCallback(url: URL, fallbackPath: string) {
   const params = paramsFromCallback(url);
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
-  const returnTo = params.get("returnTo") || fallbackPath || "/";
+  const returnTo = safeCallbackReturnTo(params.get("returnTo") || fallbackPath || "/");
   authDiagnostic("auth-deeplink", "OAuth callback parsed", {
     path: fallbackPath,
     returnTo,
