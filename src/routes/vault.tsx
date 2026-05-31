@@ -801,7 +801,24 @@ function Vault() {
     [cards]
   );
 
-  const filteredCards = useMemo(() => {
+  // Review-queue breakdown shown at the top of the Vault.
+  const reviewSummary = useMemo(() => ({
+    needsReview: cards.filter((c) => c.needs_review).length,
+    missingImages: cards.filter((c) => needsOfficialCardImage(c.image_url) && !c.ai_image_url).length,
+    lowConfidence: cards.filter((c) => Number(c.confidence_score || 0) < 0.7).length,
+    missingMetadata: cards.filter((c) => !c.tcg_set || !c.tcg_number || !c.tcg_year || !c.rarity || !c.variant).length,
+    incorrectPrices: cards.filter((c) => c.incorrect_price_reported).length,
+  }), [cards]);
+
+  // Vault accuracy: share of cards that are fully identified, verified-priced,
+  // imaged and not flagged for review.
+  const vaultAccuracy = useMemo(() => {
+    if (cards.length === 0) return 100;
+    const good = cards.filter((c) =>
+      isSafePriced(c) && isCompleteIdentity(c) && !c.needs_review && !c.incorrect_price_reported && hasImage(c)
+    ).length;
+    return Math.round((good / cards.length) * 100);
+  }, [cards]);
     const q = query.trim().toLowerCase();
     let base = q
       ? cards.filter((c) =>
