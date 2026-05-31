@@ -45,6 +45,7 @@ type Card = {
   incorrect_price_reported?: boolean | null; incorrect_price_reported_at?: string | null;
   wrong_match_reported_at?: string | null;
   purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
+  confirmed_by?: string | null;
 };
 
 function Vault() {
