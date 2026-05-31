@@ -1016,7 +1016,7 @@ function Vault() {
         confidence_score: 1,
         needs_review: false,
         review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
-        confirmed_by: user?.id ?? null,
+        confirmed_by: confirmedByValue("manual"),
         // Only lock the price if we actually found one; otherwise leave it open
         // so "Retry pricing" can fill it in later.
         price_locked: hasPrice,
@@ -2432,7 +2432,7 @@ function Vault() {
               </div>
             )}
 
-            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} />
+            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} cardIdentityId={actionFor.card_identity_id} />
 
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
