@@ -1966,41 +1966,6 @@ function Vault() {
             )}
 
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-muted/40 p-2">
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
-                  <button
-                    type="button"
-                    onClick={() => { const v = parseVariant(actionFor.description); updateVariant(actionFor, v.edition, v.finish); }}
-                    className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground hover:bg-muted/80"
-                  >
-                    Refresh
-                  </button>
-                </div>
-                {isSafePriced(actionFor) ? (
-                  <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
-                ) : <p className="text-base font-bold text-amber-500">Review needed</p>}
-              </div>
-              <div className="rounded-lg bg-muted/40 p-2">
-                <p className="text-[9px] uppercase text-muted-foreground">Condition (tap to update)</p>
-                <div className="mt-1 grid grid-cols-4 gap-1">
-                  {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => updateCondition(actionFor, c)}
-                      className={`rounded-md px-1.5 py-1 text-[11px] font-bold ${actionFor.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-                {actionFor.condition_prices && (
-                  <p className="mt-1 text-[9px] text-muted-foreground">Market value auto-updates from TCG condition prices</p>
-                )}
-              </div>
-            </div>
 
             {/* Language, Edition & Finish (auto-repricing) */}
             {(() => {
