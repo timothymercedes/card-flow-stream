@@ -1883,6 +1883,21 @@ function Vault() {
               </div>
             </div>
 
+            {/* Purchase Information — private to the owner only */}
+            <PurchaseInfoPanel
+              cardId={actionFor.id}
+              marketValue={isSafePriced(actionFor) ? Number(actionFor.estimated_value || 0) : 0}
+              initial={{
+                purchase_price: actionFor.purchase_price,
+                purchase_date: actionFor.purchase_date,
+                purchased_from: actionFor.purchased_from,
+              }}
+              onSaved={(patch) => {
+                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
+                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
+              }}
+            />
+
             {/* Advanced Details toggle */}
             <button
               type="button"
