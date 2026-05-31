@@ -1440,6 +1440,14 @@ function Vault() {
     const k = String(code || "en").toLowerCase();
     return LANG_MULT[k] ?? 1.0;
   }
+  // When the backend already returned a price for the exact language printing
+  // (language_matched), the value is correct as-is — do NOT scale it again with
+  // the rough multiplier. The multiplier is only a fallback approximation when
+  // no real language-specific market record was found.
+  function effectiveLangMult(code: string | null | undefined, pricePayload: any) {
+    if (pricePayload?.language_matched) return 1.0;
+    return langMult(code);
+  }
 
   // Parse "Variant: <Edition> · <Finish>" out of a description
   function parseVariant(desc?: string | null): { edition: Edition; finish: Finish } {
