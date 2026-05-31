@@ -1009,8 +1009,9 @@ function Vault() {
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
       // Price belongs to the card: push the new value to every other owner.
-      if (identityId) {
-        propagatePrice({ data: { identityId, marketPrice: priced, source: "user_confirmed", verified: true } })
+      // Propagation keys off the provider/market key (working pricing path).
+      if (providerKey) {
+        propagatePrice({ data: { identityId: providerKey, marketPrice: priced, source: "user_confirmed", verified: true } })
           .then((r: any) => { if (r?.updated > 1) toast.message(`Updated ${r.updated} collections owning this card`); })
           .catch(() => {});
       }
