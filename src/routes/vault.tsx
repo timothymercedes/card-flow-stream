@@ -1750,7 +1750,7 @@ function Vault() {
                     <p className="text-[10px] text-muted-foreground">
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
-                    {c.needs_review && <p className="mt-0.5 text-[10px] font-bold text-amber-500">Needs Review</p>}
+                    {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Choose Correct Card</span>}
                     {isSafePriced(c) && (
                       <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                     )}
