@@ -899,6 +899,8 @@ function Vault() {
         condition_prices: cp as any,
         // Save the actual catalog card ID so pricing + history always resolve.
         card_identity_id: m.id || card.card_identity_id || null,
+        // Master identity UUID (card-info source of truth) from the price engine.
+        master_identity_id: pricePayload?.master_identity_id || card.master_identity_id || null,
         price_source: pricePayload?.primary_source || "user_confirmed",
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         price_confidence: hasPrice ? "high" : "low",
