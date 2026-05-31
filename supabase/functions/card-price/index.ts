@@ -467,7 +467,7 @@ Deno.serve(async (req) => {
     sourcesTried.push("justtcg");
     try {
       const jt = await fetchJustTcgQuote(game.id, {
-        name: q.name, set: q.set, number: q.number, variant,
+        name: q.name, set: q.set, number: q.number, variant, language: languageName,
       });
       if (jt) quotes.push(jt);
       else sourcesFailed.push("justtcg");
