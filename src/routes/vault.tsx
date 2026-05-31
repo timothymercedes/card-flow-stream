@@ -1512,6 +1512,33 @@ function Vault() {
               );
             })()}
 
+            {/* Accurate pricing: source, timestamp, manual override, per-grade values */}
+            <CardPricingPanel
+              card={{
+                id: actionFor.id,
+                name: actionFor.name,
+                category: actionFor.category,
+                tcg_set: actionFor.tcg_set,
+                tcg_number: actionFor.tcg_number,
+                tcg_year: actionFor.tcg_year,
+                estimated_value: actionFor.estimated_value,
+                market_price: actionFor.market_price,
+                price_source: actionFor.price_source,
+                price_updated_at: actionFor.price_updated_at,
+                price_confidence: actionFor.price_confidence,
+                price_is_ai: actionFor.price_is_ai,
+                price_locked: actionFor.price_locked,
+                custom_price: actionFor.custom_price,
+                grade_values: actionFor.grade_values,
+                is_sealed: actionFor.is_sealed ?? undefined,
+              }}
+              userId={user?.id || ""}
+              onSaved={(patch) => {
+                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
+                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
+              }}
+            />
+
             {/* Graded card pricing */}
             <GradedCardPanel
               cardId={actionFor.id}
