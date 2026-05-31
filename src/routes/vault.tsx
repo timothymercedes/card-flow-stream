@@ -1245,7 +1245,7 @@ function Vault() {
             <p className="text-xs text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} · scan, value, list</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Refresh all"}</button>
+            <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
           </div>
@@ -1492,14 +1492,15 @@ function Vault() {
               return (
                 <button key={c.id} onClick={() => setActionFor(c)} className="flex items-center gap-3 overflow-hidden rounded-xl bg-card p-2 text-left active:scale-[0.99]">
                   <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                    {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
-                  {Number(c.estimated_value || 0) > 0 && (
+                  {c.needs_review && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-500">Needs Review</span>}
+                  {isSafePriced(c) && (
                     <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                   )}
                 </button>
@@ -1508,7 +1509,7 @@ function Vault() {
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
-                  {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                   {cv.edition === "1st Edition" ? (
                     <span className="absolute bottom-1.5 left-1.5 rounded-md border border-yellow-300/80 bg-black/85 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
@@ -1526,12 +1527,13 @@ function Vault() {
                     <p className="text-[10px] text-muted-foreground">
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
-                    {Number(c.estimated_value || 0) > 0 && (
+                    {c.needs_review && <p className="mt-0.5 text-[10px] font-bold text-amber-500">Needs Review</p>}
+                    {isSafePriced(c) && (
                       <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                     )}
                   </div>
                 )}
-                {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
+                {viewMode === "small" && isSafePriced(c) && (
                   <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                 )}
               </button>
