@@ -40,9 +40,9 @@ Deno.serve(async (req) => {
       return { ok: r.ok, status: r.status, txt, json };
     }
 
-    // Try the fast image model first, then fall back to the newer preview name.
+    // Try valid Gemini image models (chat-completions image shape) in order.
     const models = [
-      "google/gemini-2.5-flash-image-preview",
+      "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image-preview",
     ];
     let dataUrl: string | null = null;
