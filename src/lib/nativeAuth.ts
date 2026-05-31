@@ -82,7 +82,8 @@ export async function nativeSignIn(provider: "google" | "apple"): Promise<boolea
       provider === "google"
         ? { scopes: ["email", "profile"], nonce: rawNonce }
         : { scopes: ["email", "name"], nonce: hashedNonce },
-  });
+  } as any);
+
 
   const idToken: string | undefined = res?.result?.idToken;
   if (!idToken) {
