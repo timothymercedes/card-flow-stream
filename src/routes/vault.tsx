@@ -1060,13 +1060,14 @@ function Vault() {
             year: f.year || card.tcg_year || undefined,
             category: f.category || card.category || undefined,
             game: categoryToGameId(f.category || card.category),
+            language: f.language || card.language || parseLanguage(card.description),
             variant: f.variant || card.variant || undefined,
             skip_cache: true,
           },
         });
         const mk = Number(pd?.price?.market) || 0;
         if (mk > 0 && !pd?.price_suspicious) {
-          const mult = langMult(card.language || parseLanguage(card.description));
+          const mult = effectiveLangMult(f.language || card.language || parseLanguage(card.description), pd);
           marketPrice = mk * mult;
           conditionPrices = conditionPricesFromMarket(marketPrice);
           estimatedValue = conditionPrices
