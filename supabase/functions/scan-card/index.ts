@@ -291,17 +291,23 @@ Deno.serve(async (req) => {
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-  // Authenticate caller via JWT in Authorization header
+  // Authenticate caller via JWT in Authorization header.
+  // Parse the request body CONCURRENTLY with auth so the JSON parse of a large
+  // base64 image doesn't serialise behind the getUser() round-trip.
   const authHeader = req.headers.get("Authorization") || "";
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
-  const { data: u } = await userClient.auth.getUser();
+  const [{ data: u }, body] = await Promise.all([
+    userClient.auth.getUser(),
+    req.json().catch(() => ({} as any)),
+  ]);
   const userId = u?.user?.id;
   if (!userId) {
     return jsonResp({ error: "Sign in to scan cards" }, 401);
   }
+  const t_auth = Date.now() - t0;
 
   // Rate limit (uses service role; RPC is locked to service_role grant)
   const { data: limit, error: rlErr } = await admin.rpc("rate_limit_card_scan", { _user_id: userId });
@@ -314,19 +320,19 @@ Deno.serve(async (req) => {
       : reason === "day_limit"
       ? `Daily scan limit reached (${(limit as any).limit}/day).`
       : "Too many scans. Slow down and try again.";
-    await admin.from("card_scans").insert({
+    background(admin.from("card_scans").insert({
       user_id: userId, status: "rate_limited", error_message: reason, multi: false,
-    });
+    }) as unknown as Promise<unknown>);
     return jsonResp({ error: msg, code: "rate_limited" }, 429);
   }
 
-  let body: any = {};
-  try { body = await req.json(); } catch {}
   const { image, language, multi, source } = body || {};
   if (!image) return jsonResp({ error: "Missing image" }, 400);
+  const imgBytes = typeof image === "string" ? dataUrlBytes(image) : 0;
 
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) return jsonResp({ error: "AI service is not configured" }, 500);
+
 
   // ─── STAGE 1 — Tiny language + game detect (skipped if caller already specified language, or multi-card) ───
   // Goal: when the seller didn't pick a language, do a ~700ms pre-pass so Stage 2 gets a language-specific
