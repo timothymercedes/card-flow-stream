@@ -268,7 +268,7 @@ async function fetchJustTcgQuote(
     url: top.c?.tcgplayerId ? `https://www.tcgplayer.com/product/${top.c.tcgplayerId}` : null,
     variant_used: top.v.printing ?? null,
     product_id: top.c?.tcgplayerId ? String(top.c.tcgplayerId) : (top.c?.id ?? null),
-    raw: { justtcg_id: top.c?.id, tcgplayerId: top.c?.tcgplayerId, printing: top.v.printing, conditions: conds, match_score: top.s },
+    raw: { justtcg_id: top.c?.id, tcgplayerId: top.c?.tcgplayerId, printing: top.v.printing, language: wantLang, conditions: conds, match_score: top.s },
   };
 }
 
