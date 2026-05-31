@@ -164,6 +164,7 @@ export async function upsertIdentity(input: CardIdentityInput): Promise<string |
         team: input.team ?? null,
         grade: input.grade ?? "raw",
         grading_company: input.grading_company ?? null,
+        language: normalizeLangCode(input.language),
         image_url: input.image_url ?? null,
         image_source: input.image_source ?? null,
         external_ids: input.external_ids ?? {},
