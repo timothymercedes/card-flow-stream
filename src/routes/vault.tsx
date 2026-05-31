@@ -805,10 +805,14 @@ function Vault() {
   // unverified pricing / missing AI card image.
   const reviewCards = useMemo(
     () => cards.filter((c) =>
-      c.needs_review ||
-      !isSafePriced(c) ||
-      needsOfficialCardImage(c.image_url) ||
-      !c.tcg_set || !c.tcg_number || !c.tcg_year
+      // Cards the user already confirmed (or that are price-locked via manual
+      // entry / override) are settled forever — never surface them again.
+      !c.confirmed_by && !c.price_locked && (
+        c.needs_review ||
+        !isSafePriced(c) ||
+        needsOfficialCardImage(c.image_url) ||
+        !c.tcg_set || !c.tcg_number || !c.tcg_year
+      )
     ),
     [cards]
   );
