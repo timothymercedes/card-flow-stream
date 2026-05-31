@@ -489,11 +489,10 @@ function Vault() {
     if (updated > 0) toast.success(`Updated values on ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
-  // Backfills card images for existing inventory. First tries to match an
-  // official catalog image; if none is found, generates AI artwork so every
-  // supported category ends up with an image. `force` widens the batch size.
+  // Backfills display images for existing inventory while preserving the user's
+  // original upload as secondary proof/sale media.
   async function backfillMissingImages(list: Card[], force = false) {
-    const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
+    const missing = list.filter((c) => (force || needsOfficialCardImage(c.image_url) || !c.ai_image_url) && (c.name || c.tcg_number || c.tcg_set));
     if (!missing.length) {
       if (force) toast.info("All cards already have images");
       return;
@@ -501,23 +500,35 @@ function Vault() {
     if (force) { setEnriching(true); toast.info(`Generating images for ${missing.length} card${missing.length > 1 ? "s" : ""}…`); }
     let updated = 0;
     for (const c of missing.slice(0, force ? 200 : 25)) {
+      const original = c.original_image_url || (looksLikeUserUpload(c.image_url) ? c.image_url : null);
       const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const match = matches.find((m) => m.image);
-      let img = match?.image;
-      // AI fallback so every supported category gets an image, even without a catalog hit.
-      if (!img && c.name) {
+      const catalogImg = match?.image || null;
+      let aiImg = c.ai_image_url || null;
+      // Force generates AI images for legacy cards; normal background mode only
+      // generates when a catalog/reference image is unavailable.
+      if ((force || !catalogImg) && c.name) {
         try {
           const { data: gen } = await supabase.functions.invoke("generate-card-image", {
             body: { name: c.name, category: c.category || undefined, set: c.tcg_set || undefined, year: c.tcg_year || undefined, tcg_number: c.tcg_number || undefined },
           });
-          if (gen?.image) img = gen.image;
+          if (gen?.image) aiImg = gen.image;
         } catch { /* ignore */ }
       }
+      const img = aiImg || catalogImg;
       if (!img) continue;
       const cp = conditionPricesFromMarket(match?.price) || c.condition_prices || null;
-      const newValue = cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
+      const newValue = isSafePriced(c) && cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
       const patch = {
         image_url: img,
+        original_image_url: original,
+        ai_image_url: aiImg,
+        image_source: aiImg ? "ai_generated" : "catalog",
+        image_gallery: [
+          { url: img, type: aiImg ? "ai_generated" : "catalog", primary: true },
+          original ? { url: original, type: "user_upload", primary: false } : null,
+          c.back_image_url ? { url: c.back_image_url, type: "user_back", primary: false } : null,
+        ].filter(Boolean),
         name: match?.name || c.name,
         tcg_set: match?.set || c.tcg_set,
         tcg_number: match?.number || c.tcg_number,
@@ -525,9 +536,9 @@ function Vault() {
         category: match?.category || c.category || "Pokémon",
         condition_prices: cp as any,
         estimated_value: newValue,
-        last_valued_at: new Date().toISOString(),
+        last_rescan_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", c.id);
       if (!error) {
         updated++;
         setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch, condition_prices: cp } : x)));
@@ -538,9 +549,8 @@ function Vault() {
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
-  // Retroactive pricing enrichment: re-price existing cards using real sold-market data
-  // (AI fallback handled server-side), recording source, confidence and timestamp.
-  // Respects manual locks. `force` re-prices everything; otherwise only cards missing a source.
+  // Retroactive rescan + pricing enrichment. It only assigns Vault value after
+  // exact structured identity is known; otherwise cards are flagged for review.
   async function enrichPrices(list: Card[], force = false) {
     const targets = list.filter((c) => {
       if (c.price_locked) return false;
@@ -559,21 +569,55 @@ function Vault() {
         const { data, error } = await supabase.functions.invoke("card-price", {
           body: {
             name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined,
-            year: c.tcg_year || undefined, category: c.category || undefined, skip_cache: true,
+            year: c.tcg_year || undefined, category: c.category || undefined, game: categoryToGameId(c.category),
+            variant: c.variant || parseVariant(c.description).finish, skip_cache: true,
           },
         });
         if (error) continue;
         const market = Number(data?.price?.market) || 0;
-        if (!market) continue;
+        const matched = data?.card || null;
+        const identity = {
+          name: matched?.name || c.name,
+          tcg_set: matched?.set_name || c.tcg_set,
+          tcg_number: matched?.number || c.tcg_number,
+          tcg_year: matched?.year || c.tcg_year,
+          rarity: matched?.rarity || c.rarity,
+          variant: data?.candidates?.[0]?.variant || c.variant || parseVariant(c.description).finish,
+        };
+        const confidenceScore = Number(data?.confidence || 0);
+        const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
+        const reviewReason = verified
+          ? null
+          : !isCompleteIdentity(identity)
+            ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
+            : data?.tier_reason || "Needs review before assigning market value.";
         const patch: any = {
           market_price: market,
-          estimated_value: market,
+          estimated_value: verified ? market : 0,
+          condition_prices: verified ? conditionPricesFromMarket(market) : null,
           price_source: data?.primary_source || null,
           price_confidence: data?.price_confidence || null,
           price_is_ai: !!data?.price_is_ai,
+          price_tier: data?.pricing_tier || "unavailable",
+          price_range_low: data?.price_range?.low ?? null,
+          price_range_high: data?.price_range?.high ?? null,
           price_updated_at: new Date().toISOString(),
+          last_valued_at: new Date().toISOString(),
+          last_rescan_at: new Date().toISOString(),
+          confidence_score: confidenceScore || null,
+          needs_review: !verified,
+          review_reason: reviewReason,
+          identification_details: { pricing: data, identity },
+          name: identity.name,
+          tcg_set: identity.tcg_set || null,
+          tcg_number: identity.tcg_number || null,
+          tcg_year: identity.tcg_year || null,
+          rarity: identity.rarity || null,
+          variant: identity.variant || null,
+          image_url: data?.official_image_url || c.ai_image_url || c.image_url,
+          image_source: data?.official_image_url ? data?.image_source || "catalog" : c.image_source,
         };
-        const { error: upErr } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+        const { error: upErr } = await supabase.from("vault_cards").update(patch as never).eq("id", c.id);
         if (upErr) continue;
         updated++;
         setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
