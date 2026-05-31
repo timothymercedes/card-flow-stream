@@ -64,11 +64,11 @@ export async function computeFingerprint(input: MasterIdentityInput): Promise<st
     norm(input.set_code || input.set_name),
     norm(input.number),
     input.year ?? "",
-    "", // manufacturer (parity with edge fingerprint slot order)
+    norm(input.manufacturer),
     norm(input.variant),
-    "", // player
-    "raw", // grade default
-    "", // grading company
+    norm(input.player),
+    norm(input.grade) || "raw",
+    norm(input.grading_company),
   ];
   const lang = normalizeLangCode(input.language);
   if (lang !== "en") segs.push(`lang_${lang}`);
