@@ -42,9 +42,27 @@ export interface CardIdentityInput {
   team?: string | null;                // sports
   grade?: string | null;               // "raw" | "psa_10" | "bgs_9_5" | ...
   grading_company?: string | null;     // "PSA" | "BGS" | "SGC" | "CGC"
+  language?: string | null;            // "en" | "jp" | "zh" | "ko" | ... — part of identity
   image_url?: string | null;
   image_source?: string | null;
   external_ids?: Record<string, string | number | null | undefined>;
+}
+
+// Normalize any language label/code to a short canonical code so the same
+// printing always fingerprints the same way (English is the implicit default).
+export function normalizeLangCode(lang: string | null | undefined): string {
+  const l = String(lang || "").trim().toLowerCase();
+  if (!l) return "en";
+  if (/^(en|eng|english)$/.test(l)) return "en";
+  if (/^(jp|ja|jpn|japanese)$/.test(l)) return "jp";
+  if (/^(zh|cn|chi|chinese|zh-hans|zh-hant)$/.test(l)) return "zh";
+  if (/^(ko|kr|kor|korean)$/.test(l)) return "ko";
+  if (/^(fr|fra|fre|french)$/.test(l)) return "fr";
+  if (/^(de|deu|ger|german)$/.test(l)) return "de";
+  if (/^(es|spa|spanish)$/.test(l)) return "es";
+  if (/^(it|ita|italian)$/.test(l)) return "it";
+  if (/^(pt|por|portuguese)$/.test(l)) return "pt";
+  return l.slice(0, 4);
 }
 
 // ---- Normalization --------------------------------------------------------
@@ -57,9 +75,12 @@ const norm = (s: string | null | undefined) =>
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-/** Deterministic fingerprint — same identity always hashes the same. */
+/** Deterministic fingerprint — same identity always hashes the same.
+ *  Language is part of identity: a Japanese card and its English print are
+ *  two different records. English keeps its legacy hash (no language segment)
+ *  for backward compatibility; non-English printings append a lang segment. */
 export async function computeFingerprint(input: CardIdentityInput): Promise<string> {
-  const parts = [
+  const segs = [
     input.category,
     norm(input.name),
     norm(input.set_code || input.set_name),
@@ -70,7 +91,10 @@ export async function computeFingerprint(input: CardIdentityInput): Promise<stri
     norm(input.player),
     norm(input.grade) || "raw",
     norm(input.grading_company),
-  ].join("|");
+  ];
+  const lang = normalizeLangCode(input.language);
+  if (lang !== "en") segs.push(`lang_${lang}`);
+  const parts = segs.join("|");
   const buf = new TextEncoder().encode(parts);
   const hash = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(hash))
@@ -140,6 +164,7 @@ export async function upsertIdentity(input: CardIdentityInput): Promise<string |
         team: input.team ?? null,
         grade: input.grade ?? "raw",
         grading_company: input.grading_company ?? null,
+        language: normalizeLangCode(input.language),
         image_url: input.image_url ?? null,
         image_source: input.image_source ?? null,
         external_ids: input.external_ids ?? {},
@@ -158,6 +183,35 @@ export async function upsertIdentity(input: CardIdentityInput): Promise<string |
     return null;
   }
 }
+
+// ---- Master price write ---------------------------------------------------
+export interface IdentityPriceInput {
+  identity_id: string;
+  market_cents: number;
+  source?: string | null;
+  currency?: string;
+  verification_status?: "verified" | "estimated" | "unverified";
+}
+
+/** Persist the canonical market value on the master card record. The card —
+ *  not the user — owns this price, so every owner reads the same number. */
+export async function setIdentityMarketPrice(p: IdentityPriceInput): Promise<void> {
+  try {
+    if (!p.identity_id || !Number.isFinite(p.market_cents) || p.market_cents <= 0) return;
+    await admin().from("card_identities").update({
+      market_value_cents: Math.round(p.market_cents),
+      price_currency: p.currency ?? "USD",
+      price_source: p.source ?? null,
+      last_price_sync: new Date().toISOString(),
+      verification_status: p.verification_status ?? "estimated",
+      updated_at: new Date().toISOString(),
+    }).eq("id", p.identity_id);
+  } catch (err) {
+    console.warn("[identity] price update failed", (err as Error).message);
+  }
+}
+
+
 
 // ---- Observation log ------------------------------------------------------
 export interface PriceObservationInput {

@@ -19,6 +19,7 @@ import {
 } from "../_shared/cards/sources.ts";
 import { enabledProviders, pricingProviders } from "../_shared/cards/providers.ts";
 import { resolveGame, categoryToGameId, type Game } from "../_shared/cards/games.ts";
+import { upsertIdentity, setIdentityMarketPrice, recordObservation } from "../_shared/cards/identity.ts";
 
 function pricingProvidersSkipped(active: { id: string }[]) {
   const activeIds = new Set(active.map((p) => p.id));
@@ -335,6 +336,8 @@ Deno.serve(async (req) => {
     // cross-price (a Japanese card must not get an English market value).
     const languageName = normalizeLanguageName(body?.language);
     const isEnglish = languageName === "English";
+    const langCode = String(body?.language || "en").toLowerCase();
+    const incomingIdentityId = body?.identity_id ? String(body.identity_id) : null;
     // game routing: accept either an explicit `game` id or a scanner `category`
     // string. When provided and non-Pokémon, we route through the matching
     // catalog adapters instead of defaulting to PokémonTCG.
@@ -713,6 +716,53 @@ Deno.serve(async (req) => {
         confidence: Math.min(confidence, 0.5),
       };
     }
+
+    // 3.5) Master card identity — the card (not the user) owns its price.
+    // Resolve/insert the canonical record and persist the market value so a
+    // future scan of the SAME card reuses it instead of re-pricing.
+    let identityId: string | null = incomingIdentityId;
+    try {
+      const resolvedId = await upsertIdentity({
+        category: (game.id as any),
+        name: card?.name || name,
+        set_name: card?.set_name || set || null,
+        set_code: card?.set_code || null,
+        number: card?.number || number || null,
+        year: card?.year ? Number(card.year) : (year ? Number(year) : null),
+        variant: variant || null,
+        language: langCode,
+        image_url: officialImage,
+        image_source: imageSource,
+        external_ids: {
+          ...(card?.source_ids || {}),
+          ...(marketSource.tcgplayer_product_id ? { tcgplayer: String(marketSource.tcgplayer_product_id) } : {}),
+          ...(marketSource.pricecharting_product_id ? { pricecharting: String(marketSource.pricecharting_product_id) } : {}),
+        },
+      });
+      identityId = resolvedId || incomingIdentityId;
+      const mkt = (payload.price as any)?.market as number | null;
+      if (identityId && typeof mkt === "number" && mkt > 0) {
+        const verification = payload.pricing_tier === "verified"
+          ? "verified"
+          : (payload.price_is_ai ? "unverified" : "estimated");
+        await setIdentityMarketPrice({
+          identity_id: identityId,
+          market_cents: Math.round(mkt * 100),
+          source: payload.primary_source || null,
+          verification_status: verification as any,
+        });
+        await recordObservation({
+          identity_id: identityId,
+          source: payload.primary_source || "aggregate",
+          price_cents: Math.round(mkt * 100),
+        });
+      }
+    } catch (e) {
+      console.warn("[card-price] identity persist failed", (e as Error)?.message);
+    }
+    payload.identity_id = identityId;
+
+
 
     // 4) Cache and history (fire-and-forget)
     if (card?.id || name) {

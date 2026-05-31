@@ -1,87 +1,68 @@
-# Social, Sharing, Guest Access & Onboarding Overhaul
 
-This is a large request. Shipping it as one change would break things and bury bugs. Below is a 5-phase plan, ordered by impact. Each phase is independently shippable — approve and I'll start with Phase 1, or tell me to re-order.
+# Master Card Vault Architecture
 
----
+The database already contains the right tables — they just aren't wired into one coherent flow. This plan turns `card_identities` into the true source of truth and makes pricing belong to the card, not the user.
 
-## Phase 1 — Sharing infrastructure (foundation)
+## What already exists (reuse, don't rebuild)
+- `card_identities` — master record (name, set, number, variant, rarity, year, **language**, image_url, fingerprint, external_ids/product IDs).
+- `card_images` — multiple images per identity (official + uploads).
+- `price_observations` + `card_price_history` — historical pricing.
+- `vault_cards.card_identity_id` — the link from a user's card to the master record.
+- `refresh-vault-values` cron hook + `card-price` edge function — pricing engine.
 
-Build one reusable share system used everywhere.
+## The gaps causing the "no workflow / no linkage" complaints
+1. Scans don't reliably resolve to (or create) a master `card_identities` row, so the same card gets rediscovered and `card_identity_id` stays empty.
+2. Daily sync iterates `vault_cards` per-user instead of per-identity → duplicate API calls, and one user's refresh doesn't update other owners.
+3. Charts read user-scoped history keys instead of the identity's shared history.
+4. Master record has no `market_value`, `last_price_sync`, or `verification_status` columns, so there's no canonical stored price.
 
-- New `<ShareButton entity={...} />` component with a sheet/popover containing:
-  - **Copy Link** (with toast confirmation)
-  - **SMS** (`sms:` deeplink)
-  - **WhatsApp** (`https://wa.me/?text=`)
-  - **Facebook** (`sharer.php`)
-  - **X/Twitter** (`twitter.com/intent/tweet`)
-  - **Discord** (copy formatted link — Discord has no web share intent)
-  - **Instagram** (copy link — IG has no web intent)
-  - Native `navigator.share()` first on mobile when available
-- New helper `buildShareUrl(entity)` returning canonical `https://pullbidlive.com/...` URLs per entity type.
-- Wire into: storefronts, profiles, market listings, live streams, auctions, clips, posts/stories, sold listings, upcoming events, vault showcases.
+## Plan
 
-## Phase 2 — Public/guest access
+### 1. Extend the master table (migration)
+Add to `card_identities`: `market_value_cents int`, `price_currency text default 'USD'`, `price_source text`, `last_price_sync timestamptz`, `verification_status text default 'unverified'` (verified / estimated / unverified), `ai_reference_image_url text`. Keep `external_ids` for product IDs. Index `last_price_sync`.
 
-Currently the site is gated and `robots.txt` blocks all crawlers. Open it up.
+### 2. Identity-first scanner workflow
+Create a single resolver server fn `resolveCardIdentity` (used by scan apply + manual correction):
+```text
+AI identifies language, set, number, variant, name (AI never prices)
+        → build fingerprint (canonical key, includes language)
+        → SELECT card_identities WHERE fingerprint = ?
+   exists → reuse identity: image, language, market_value, history
+   missing → card-catalog lookup → INSERT card_identities (+ card_images)
+        → return identity_id
+vault_cards.card_identity_id = identity_id   (always linked)
+```
+Language is part of the fingerprint, so JP/CN/EN are separate identities with their own image + price. The vault renders `card_images`/identity image, never an English image for a foreign card.
 
-- Update `public/robots.txt` → `Allow: /` + sitemap reference.
-- Audit route guards: allow guests on market, storefronts, profiles, live (view-only), streams, auctions (view-only), public posts/stories, shared links, search.
-- Replace forced auth redirects with an **"Auth required" modal** triggered only on: bid, chat, buy, sell, follow, post, claim giveaway, create offer.
-- New `useAuthGate()` wrapper for action handlers (project already has a stub — extend it).
-- Sitemap: emit entries for public storefronts, listings, live streams, profiles.
+### 3. Pricing belongs to the card
+- `card-price` keyed by `identity_id`. On refresh it writes `market_value_cents`/`last_price_sync`/`verification_status` on the identity and appends `price_observations` + `card_price_history`.
+- After an identity's price updates, **propagate** to every `vault_cards` row with that `card_identity_id` (estimated_value, market_price, price_updated_at) in one update.
 
-## Phase 3 — SEO + OG previews
+### 4. Daily global sync (one run, deduped)
+Rewrite `refresh-vault-values` cron to iterate **distinct `card_identities` owned by at least one vault card** and not synced in 24h → refresh each once → propagate to all owners → snapshot vault values. Schedule 2:00 AM via pg_cron. No per-user duplication.
 
-So shared links actually look good on FB/Discord/X/iMessage.
+### 5. Manual refresh = card-level
+"Refresh price" calls the identity refresh. If `last_price_sync` < a few minutes ago, return the stored value (no duplicate API hit). All owners get the update automatically. UI shows: `Market Value · Source: TCGPlayer · Last checked: 2h ago` + small "Prices update automatically every 24 hours."
 
-- Per-route `head()` with `title`, `description`, `og:*`, `twitter:*` on: listings, storefronts, profiles, live streams, posts, clips.
-- Dynamic `og:image`: use listing/profile/stream cover image from loader data; fallback to a branded default.
-- JSON-LD: `Product` for listings, `Person`/`Organization` for stores, `Event` for upcoming lives, `VideoObject` for clips.
-- "Live now" badge in OG title when stream is live.
+### 6. Confidence display (always show a price)
+- `verified` → `✓ Verified`.
+- otherwise → `⚠ Price may be inaccurate. Verify with TCGPlayer.`
+Never blank.
 
-## Phase 4 — Onboarding fixes
+### 7. History-backed charts
+`CardPriceChart` reads `card_price_history`/`price_observations` for the card's `identity_id` with ranges 7D/30D/90D/6M/1Y/All. `VaultGrowthChart` stays on `vault_value_snapshots`.
 
-- **Fix "Don't show again" bug**: persist dismissals to `profiles.tutorial_dismissed` (jsonb) instead of/in addition to localStorage so it survives device/browser changes. Migration + update `useTutorialMode` + tour components.
-- Add **Settings → Reset tutorials** button.
-- Rebuild onboarding content to cover current systems: storefronts, sharing, offers, shipping, payouts, live auctions, subscriptions, stories, vault listing flow, buyer protection.
-- Remove dead walkthroughs referencing removed features.
+## Technical notes
+- New migration for the `card_identities` columns + index.
+- New `src/lib/cardIdentity.functions.ts` (`resolveCardIdentity`, `refreshIdentityPrice`) used by vault apply/correction/refresh paths.
+- `card-price` edge function updated to accept/return `identity_id` and write identity price + history.
+- `refresh-vault-values` hook rewritten to be identity-driven + propagating.
+- Fingerprint helper must include language so languages stay distinct.
 
-## Phase 5 — Social & live-engagement features (scoped)
-
-This list is large; I'll implement in this order and stop for re-prioritization after each group. Tell me which groups to keep/cut:
-
-**5a — Social basics (small):**
-- Repost/share-to-feed action
-- Reactions on posts/clips
-- Follow activity feed tab
-- Trending/discover page enhancements
-
-**5b — Stream interactivity (medium):**
-- Live emoji reactions (floating)
-- Viewer polls
-- Hype meter
-- Top supporter badges
-- Countdown overlays
-- Community goals bar
-
-**5c — Creator/loyalty (medium):**
-- Stream loyalty points/streaks
-- Collectible achievements (extend existing XP/badge system)
-- Pinned collections / profile showcases
-- Featured clips section
-
-**5d — Advanced (large, may defer):**
-- Raid/host another streamer
-- Giveaway wheel
-- Animated milestone alerts
-- Stories/status posts (if not already implemented)
-
----
-
-## Open questions before I start
-
-1. **Guest access scope**: confirm OK to fully unblock `robots.txt` and let search engines index the site now (you're in private beta per current robots.txt).
-2. **Phase 5 priority**: which of 5a–5d matters most? I'd recommend 5a + 5b first.
-3. **OG images**: OK to auto-generate branded fallback images, or do you want a designer-made template?
-
-I'll start on **Phase 1 (Sharing) + Phase 2 (Guest access) + Phase 4 "Don't show again" bug** in the first pass since those unblock the most user-visible issues — confirm and I'll go.
+## Suggested build order
+1. Migration (master columns).
+2. Identity resolver + scan/correction linkage.
+3. `card-price` identity write + propagation.
+4. Daily cron rewrite + 2AM schedule.
+5. Manual refresh (card-level) + confidence UI.
+6. Charts on identity history.
