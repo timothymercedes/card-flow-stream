@@ -501,6 +501,10 @@ function Vault() {
     return Math.round(baseUnlimitedNonHolo * editionPremium(ed) * finishPremium(fin) * 100) / 100;
   }
 
+  function confirmedByValue(kind: "auto" | "manual" = "manual") {
+    return kind;
+  }
+
   function applyAlternative(alt: Alt, ed: Edition = edition, fin: Finish = finish) {
     setName(alt.name);
     if (alt.set) setTcgSet(alt.set);
@@ -754,29 +758,33 @@ function Vault() {
       const langCode = card.language || parseLanguage(card.description);
       const mult = langMult(langCode);
       let raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      let pricePayload: any = null;
       // The catalog match may not carry an embedded price (common for newer
       // sets and non-Pokémon games). Fetch a live market value immediately so a
       // confirmed card never ends up locked at $0 (this was the Clefairy bug).
-      if (raw == null || Number(raw) <= 0) {
-        try {
-          const { data: pd } = await supabase.functions.invoke("card-price", {
-            body: {
-              name: m.name || card.name, set: m.set || card.tcg_set || undefined,
-              number: m.number || card.tcg_number || undefined,
-              year: m.year || card.tcg_year || undefined,
-              category: m.category || card.category || undefined,
-              game: categoryToGameId(m.category || card.category),
-              variant: card.variant || v.finish, skip_cache: true,
-            },
-          });
-          const mk = Number(pd?.price?.market) || 0;
-          if (mk > 0) raw = mk;
-        } catch { /* fall through to "market value unavailable" */ }
-      }
+      // Always re-price the exact selected catalog ID; embedded search prices
+      // can be stale/wrong variant records (e.g. Clefairy #94 showing $0.75).
+      try {
+        const { data: pd } = await supabase.functions.invoke("card-price", {
+          body: {
+            card_id: m.id && !String(m.id).startsWith("csv-") ? m.id : undefined,
+            name: m.name || card.name, set: m.set || card.tcg_set || undefined,
+            number: m.number || card.tcg_number || undefined,
+            year: m.year || card.tcg_year || undefined,
+            category: m.category || card.category || undefined,
+            game: categoryToGameId(m.category || card.category),
+            variant: card.variant || v.finish, skip_cache: true,
+          },
+        });
+        pricePayload = pd || null;
+        const mk = Number(pd?.price?.market) || 0;
+        if (mk > 0 && !pd?.price_suspicious) raw = mk;
+      } catch { /* fall through to embedded price / unavailable */ }
       const variantPrice = raw != null ? Number(raw) * mult : raw;
       const cp = conditionPricesFromMarket(variantPrice);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || Number(variantPrice) || 0, cp) : 0;
       const hasPrice = newValue > 0;
+      const marketSource = pricePayload?.market_source || null;
 
       // Prefer the real catalog image; generate AI art only if there is none.
       let primaryImg = m.image || null;
@@ -810,24 +818,28 @@ function Vault() {
         condition_prices: cp as any,
         // Save the actual catalog card ID so pricing + history always resolve.
         card_identity_id: m.id || card.card_identity_id || null,
-        price_source: "user_confirmed",
+        price_source: pricePayload?.primary_source || "user_confirmed",
+        price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         price_confidence: hasPrice ? "high" : "low",
         price_is_ai: false,
         price_tier: hasPrice ? "verified" : "unavailable",
-        price_range_low: null,
-        price_range_high: null,
+        price_range_low: pricePayload?.price_range?.low ?? null,
+        price_range_high: pricePayload?.price_range?.high ?? null,
         confidence_score: 0.97,
         // User explicitly confirmed this card — identity is locked and never
         // re-enters review. If a price was found we lock it too; if not, we
         // leave it unlocked so the "Retry pricing" button can fill it in.
         needs_review: false,
         review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
-        confirmed_by: user?.id ?? null,
-        price_locked: hasPrice,
+        confirmed_by: confirmedByValue("manual"),
+        // Confirming the identity is not a manual price override. Keep market
+        // pricing refreshable so vault totals and charts keep moving over time.
+        price_locked: false,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
-        identification_details: { confirmed_match: m },
+        pricing_details: { market_source: marketSource, suspicious: !!pricePayload?.price_suspicious, reference_value: pricePayload?.reference_value ?? null },
+        identification_details: { confirmed_match: m, pricing: pricePayload },
         incorrect_price_reported: false,
         incorrect_price_reported_at: null,
         match_history: [
@@ -897,7 +909,7 @@ function Vault() {
       const patch: any = {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
-        price_source: "user_confirmed", price_locked: true,
+        price_source: "user_confirmed", price_locked: false,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null },
         needs_review: false, review_reason: null,
@@ -1006,10 +1018,10 @@ function Vault() {
         confidence_score: 1,
         needs_review: false,
         review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
-        confirmed_by: user?.id ?? null,
+        confirmed_by: confirmedByValue("manual"),
         // Only lock the price if we actually found one; otherwise leave it open
         // so "Retry pricing" can fill it in later.
-        price_locked: hasPrice,
+        price_locked: false,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
@@ -2422,7 +2434,7 @@ function Vault() {
               </div>
             )}
 
-            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} />
+            <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} cardIdentityId={actionFor.card_identity_id} />
 
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">

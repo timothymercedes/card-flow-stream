@@ -28,6 +28,10 @@ function flatLine(value: number, days: number): Point[] {
   ];
 }
 
+function normalizePoint(p: { captured_at: string; market_price: number | null }): Point {
+  return { captured_at: p.captured_at, market_price: Number(p.market_price) || 0 };
+}
+
 export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue, cardIdentityId }: Props) {
   const [allPoints, setAllPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,8 +42,8 @@ export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue, cardIden
   const load = async () => {
     setLoading(true);
     const keys = Array.from(new Set([keyOf(name, tcgSet, tcgNumber), cardIdentityId].filter(Boolean) as string[]));
-    // Pull up to 1 year so range switching is instant (no refetch).
-    const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 366).toISOString();
+    // Pull all stored history so "All" and corrected-card history do not look blank.
+    const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 3650).toISOString();
     const { data } = await supabase
       .from("card_price_history")
       .select("captured_at, market_price")
@@ -47,7 +51,28 @@ export function CardPriceChart({ name, tcgSet, tcgNumber, currentValue, cardIden
       .gte("captured_at", since)
       .order("captured_at", { ascending: true })
       .limit(2500);
-    setAllPoints((data || []).filter((p: any) => p.market_price != null) as Point[]);
+    const directPoints = (data || []).filter((p: any) => p.market_price != null).map(normalizePoint) as Point[];
+    if (directPoints.length >= 2 || !name) {
+      setAllPoints(directPoints);
+      setLoading(false);
+      return;
+    }
+
+    // Older snapshots were keyed inconsistently by provider/card id. If the
+    // exact key has fewer than two points, fall back to the card's metadata so
+    // corrected matches still show previous values instead of a blank chart.
+    let q = supabase
+      .from("card_price_history")
+      .select("captured_at, market_price")
+      .ilike("name", name)
+      .gte("captured_at", since)
+      .order("captured_at", { ascending: true })
+      .limit(2500);
+    if (tcgSet) q = q.ilike("tcg_set", `%${tcgSet}%`);
+    if (tcgNumber) q = q.eq("tcg_number", tcgNumber);
+    const { data: fallback } = await q;
+    const fallbackPoints = (fallback || []).filter((p: any) => p.market_price != null).map(normalizePoint) as Point[];
+    setAllPoints(fallbackPoints.length > directPoints.length ? fallbackPoints : directPoints);
     setLoading(false);
   };
 
