@@ -7177,6 +7177,7 @@ export type Database = {
           total: number
         }[]
       }
+      admin_identity_health: { Args: never; Returns: Json }
       admin_list_audit_logs: {
         Args: { _action_filter?: string; _limit?: number }
         Returns: {
