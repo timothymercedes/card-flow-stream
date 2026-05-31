@@ -1479,6 +1479,13 @@ function Vault() {
       last_valued_at: new Date().toISOString(),
     } as never).select().single();
     if (error) return toast.error(error.message);
+    if (inserted) {
+      void ensureMasterIdentity((inserted as Card).id, {
+        category: cat, name: finalName, tcg_set: setName2, tcg_number: num2,
+        tcg_year: year2, variant: variantLabel, language, rarity: null,
+        image_url: finalImage, confidence_score: completeIdentity ? 0.75 : 0.35,
+      });
+    }
     const wantSell = sellAfterSave;
     resetForm(); setShowAdd(false);
     load();
