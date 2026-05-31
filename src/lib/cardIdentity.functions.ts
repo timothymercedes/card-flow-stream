@@ -26,6 +26,14 @@ export const resolveMasterIdentity = createServerFn({ method: "POST" })
         variant: z.string().max(128).optional().nullable(),
         language: z.string().max(32).optional().nullable(),
         rarity: z.string().max(128).optional().nullable(),
+        // Sports/graded identity fields — included in the fingerprint so manual
+        // entries resolve to the SAME master row as a live scan of the card.
+        manufacturer: z.string().max(128).optional().nullable(),
+        player: z.string().max(128).optional().nullable(),
+        team: z.string().max(128).optional().nullable(),
+        grade: z.string().max(64).optional().nullable(),
+        grading_company: z.string().max(64).optional().nullable(),
+        is_rookie: z.boolean().optional(),
         image_url: z.string().max(2048).optional().nullable(),
         image_source: z.string().max(64).optional().nullable(),
         confidence_score: z.number().min(0).max(1).optional().nullable(),

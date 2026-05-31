@@ -14,6 +14,14 @@ export interface MasterIdentityInput {
   set_code?: string | null;
   number?: string | null;
   year?: number | null;
+  // Sports/graded identity fields — MUST be part of the fingerprint so a card
+  // scanned live and the same card entered manually resolve to ONE master row.
+  manufacturer?: string | null;
+  player?: string | null;
+  grade?: string | null;
+  grading_company?: string | null;
+  is_rookie?: boolean;
+  team?: string | null;
   variant?: string | null;
   language?: string | null;
   rarity?: string | null;
@@ -56,11 +64,11 @@ export async function computeFingerprint(input: MasterIdentityInput): Promise<st
     norm(input.set_code || input.set_name),
     norm(input.number),
     input.year ?? "",
-    "", // manufacturer (parity with edge fingerprint slot order)
+    norm(input.manufacturer),
     norm(input.variant),
-    "", // player
-    "raw", // grade default
-    "", // grading company
+    norm(input.player),
+    norm(input.grade) || "raw",
+    norm(input.grading_company),
   ];
   const lang = normalizeLangCode(input.language);
   if (lang !== "en") segs.push(`lang_${lang}`);
@@ -134,6 +142,12 @@ export async function resolveOrCreateMasterIdentity(input: MasterIdentityInput):
       set_code: input.set_code ?? null,
       number: input.number ?? null,
       year: input.year ?? null,
+      manufacturer: input.manufacturer ?? null,
+      player: input.player ?? null,
+      team: input.team ?? null,
+      grade: input.grade ?? "raw",
+      grading_company: input.grading_company ?? null,
+      is_rookie: input.is_rookie ?? false,
       variant: input.variant ?? null,
       language: normalizeLangCode(input.language),
       rarity: input.rarity ?? null,
