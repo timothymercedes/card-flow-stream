@@ -9,10 +9,10 @@
  */
 import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Mail, X } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { beginSocialSignIn } from "@/lib/socialAuthFlow";
 
 export function AuthGateModal({
   open,
@@ -37,16 +37,8 @@ export function AuthGateModal({
 
   async function oauth(provider: "google" | "apple") {
     try {
-      const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: returnTo,
-      });
-      if (result.error) {
-        toast.error(result.error.message || `${provider} sign-in failed`);
-        return;
-      }
-      // If !redirected, lovable already set the session — close and let the
-      // page re-render with the now-signed-in user.
-      if (!result.redirected) onClose();
+      const result = await beginSocialSignIn(provider, returnTo);
+      if (result.status === "completed") onClose();
     } catch (e: any) {
       toast.error(e?.message || "Sign-in failed");
     }

@@ -33,7 +33,59 @@ const APP_LINK_HOSTS = new Set([
   "card-flow-stream.lovable.app",
 ]);
 
-function routeNativeUrl(rawUrl?: string | null) {
+function paramsFromCallback(url: URL) {
+  const params = new URLSearchParams(url.search);
+  if (url.hash) {
+    const hash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+    new URLSearchParams(hash).forEach((value, key) => params.set(key, value));
+  }
+  return params;
+}
+
+function safeCallbackReturnTo(raw: string) {
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return "/";
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return raw.startsWith("/") ? raw : "/";
+  }
+}
+
+async function completeOAuthCallback(url: URL, fallbackPath: string) {
+  const params = paramsFromCallback(url);
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+  const returnTo = safeCallbackReturnTo(params.get("returnTo") || fallbackPath || "/");
+  authDiagnostic("auth-deeplink", "OAuth callback parsed", {
+    path: fallbackPath,
+    returnTo,
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken,
+    error: params.get("error") || undefined,
+    state: params.get("state") || undefined,
+  });
+  if (accessToken && refreshToken) {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { clearNativeOAuthState, readNativeOAuthState } = await import("@/lib/socialAuthFlow");
+    const expectedState = readNativeOAuthState()?.state;
+    const callbackState = params.get("state");
+    if (expectedState && callbackState && expectedState !== callbackState) {
+      authDiagnostic("auth-deeplink", "OAuth state mismatch", { expectedState, callbackState }, "error");
+      return returnTo;
+    }
+    const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    if (error) {
+      authDiagnostic("auth-deeplink", "setSession failed", { error: error.message }, "error");
+      return returnTo;
+    }
+    clearNativeOAuthState();
+    authDiagnostic("auth-deeplink", "authentication completion confirmed", { returnTo });
+  }
+  return returnTo;
+}
+
+async function routeNativeUrl(rawUrl?: string | null) {
   authDiagnostic("auth-deeplink", "appUrlOpen received", { url: rawUrl });
   if (!rawUrl || typeof window === "undefined") return;
   try {
@@ -49,7 +101,10 @@ function routeNativeUrl(rawUrl?: string | null) {
     const target = isCustomScheme
       ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}${url.search}${url.hash}`
       : `${url.pathname}${url.search}${url.hash}`;
-    const next = target && target !== "" ? target : "/";
+    const callbackPath = isCustomScheme ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}` : url.pathname;
+    const next = callbackPath.startsWith("/auth/callback")
+      ? await completeOAuthCallback(url, callbackPath)
+      : target && target !== "" ? target : "/";
     authDiagnostic("auth-deeplink", "routing WebView", { next });
     import("@capacitor/browser")
       .then(({ Browser }) => Browser.close().catch(() => undefined))

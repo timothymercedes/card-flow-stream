@@ -119,13 +119,21 @@ workflows:
           # remote-notification background mode
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" ios/App/App/Info.plist 2>/dev/null || true
+          # Custom OAuth callback scheme used by the native broker fallback.
+          P=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$P" 2>/dev/null || true
+          IDX=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$P" 2>/dev/null | grep -c "Dict" || echo 0)
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX dict" "$P"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLName string com.pullbidlive.app.oauth" "$P"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes array" "$P"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes:0 string pullbidlive" "$P"
           # Google native Sign-In needs the reversed iOS client ID as a URL scheme.
           # Set GOOGLE_IOS_REVERSED_CLIENT_ID in Codemagic env (e.g. com.googleusercontent.apps.XXXX).
           if [ -n "$GOOGLE_IOS_REVERSED_CLIENT_ID" ]; then
-            P=ios/App/App/Info.plist
             /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$P" 2>/dev/null || true
             IDX=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$P" 2>/dev/null | grep -c "Dict" || echo 0)
             /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX dict" "$P"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLName string google" "$P"
             /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes array" "$P"
             /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes:0 string $GOOGLE_IOS_REVERSED_CLIENT_ID" "$P"
           fi
@@ -310,6 +318,29 @@ workflows:
           PY
           else
             echo "App Links intent-filter already present."
+          fi
+          if ! grep -q 'android:scheme="pullbidlive"' "$MANIFEST"; then
+            python3 - "$MANIFEST" <<'PY'
+          import sys
+          path = sys.argv[1]
+          src = open(path).read()
+          if 'android:launchMode=' not in src:
+              src = src.replace('android:name=".MainActivity"', 'android:name=".MainActivity"\n            android:launchMode="singleTask"', 1)
+          block = (
+              '            <intent-filter>\n'
+              '                <action android:name="android.intent.action.VIEW" />\n'
+              '                <category android:name="android.intent.category.DEFAULT" />\n'
+              '                <category android:name="android.intent.category.BROWSABLE" />\n'
+              '                <data android:scheme="pullbidlive" android:host="auth" android:pathPrefix="/callback" />\n'
+              '            </intent-filter>\n'
+          )
+          idx = src.index('</activity>')
+          src = src[:idx] + block + src[idx:]
+          open(path, 'w').write(src)
+          print('Custom OAuth callback scheme injected.')
+          PY
+          else
+            echo "Custom OAuth callback scheme already present."
           fi
 
       # Java 17 is enforced via android-config/java17.init.gradle, passed to

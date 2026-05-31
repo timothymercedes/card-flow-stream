@@ -12,7 +12,7 @@ import { AgreementModal } from "@/components/AgreementModal";
 import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
-import { authDiagnostic } from "@/lib/authDiagnostics";
+import { beginSocialSignIn } from "@/lib/socialAuthFlow";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
@@ -92,54 +92,14 @@ function Auth() {
 
   async function oauth(provider: "google" | "apple") {
     setLoading(true);
-    const redirectUri = window.location.origin + returnTo;
-    const isNativeShell = !!(window as any).Capacitor?.isNativePlatform?.();
-    authDiagnostic("auth-oauth", "start", { provider, redirectUri, isNativeShell, ua: navigator.userAgent });
-
-    // 1) Native in-app sheet (no browser, never leaves the app) when available.
-    if (isNativeShell) {
-      try {
-        const { nativeSignIn } = await import("@/lib/nativeAuth");
-        const ok = await nativeSignIn(provider);
-        if (ok) {
-          setLoading(false);
-          authDiagnostic("auth-oauth", "native sign-in succeeded", { provider, returnTo });
-          window.location.replace(returnTo);
-          return;
-        }
-      } catch (e: any) {
-        authDiagnostic("auth-oauth", "native sign-in failed, falling back to browser", { provider, error: e?.message }, "warn");
-        if (e?.message && /cancel/i.test(e.message)) {
-          setLoading(false);
-          return; // user dismissed the native sheet — don't bounce to browser
-        }
-        // otherwise fall through to the broker browser flow below
-      }
+    try {
+      const result = await beginSocialSignIn(provider, returnTo);
+      setLoading(false);
+      if (result.status === "completed") window.location.replace(result.returnTo);
+    } catch (e: any) {
+      setLoading(false);
+      toast.error(e?.message || "Sign-in failed");
     }
-
-    // 2) Fallback: Lovable broker browser flow (+ Universal/App Link return).
-    if (isNativeShell) {
-      try {
-        const { Browser } = await import("@capacitor/browser");
-        const url = new URL("/~oauth/initiate", window.location.origin);
-        url.searchParams.set("provider", provider);
-        url.searchParams.set("redirect_uri", redirectUri);
-        url.searchParams.set("state", crypto.randomUUID?.() ?? String(Date.now()));
-        authDiagnostic("auth-oauth", "opening broker in native browser modal", { provider, url: url.toString(), redirectUri });
-        await Browser.open({ url: url.toString(), presentationStyle: "fullscreen", toolbarColor: "#0a0a0a" });
-        setLoading(false);
-        return;
-      } catch (e: any) {
-        authDiagnostic("auth-oauth", "native browser modal failed, using web redirect", { provider, error: e?.message }, "warn");
-      }
-    }
-    const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: redirectUri,
-    });
-    authDiagnostic("auth-oauth", "signInWithOAuth result", { redirected: (result as any)?.redirected, error: (result as any)?.error?.message });
-    setLoading(false);
-    if (result.error) toast.error(result.error.message || "Sign-in failed");
-    else if (!result.redirected) window.location.replace(returnTo);
   }
 
   async function passkeyLogin() {
