@@ -80,8 +80,7 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
           const today = new Date().toISOString().slice(0, 10);
           const { data: allCards } = await supabaseAdmin
             .from("vault_cards")
-            .select("user_id,estimated_value,purchase_price,status")
-            .neq("status", "sold");
+            .select("user_id,estimated_value,purchase_price");
           const agg = new Map<string, { value: number; cost: number; count: number }>();
           for (const c of allCards || []) {
             if (!c.user_id) continue;
