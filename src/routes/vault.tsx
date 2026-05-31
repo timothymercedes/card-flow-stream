@@ -847,10 +847,13 @@ function Vault() {
             year: m.year || card.tcg_year || undefined,
             category: m.category || card.category || undefined,
             game: categoryToGameId(m.category || card.category),
+            language: langCode,
             variant: card.variant || v.finish, skip_cache: true,
           },
         });
         pricePayload = pd || null;
+        // Real language-specific market value → use it as-is (no multiplier).
+        mult = effectiveLangMult(langCode, pricePayload);
         const mk = Number(pd?.price?.market) || 0;
         if (mk > 0 && !pd?.price_suspicious) raw = mk;
       } catch { /* fall through to embedded price / unavailable */ }
