@@ -11,8 +11,7 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
 import { PurchaseInfoPanel } from "@/components/PurchaseInfoPanel";
-import { CardMatchPicker, type MatchOption } from "@/components/CardMatchPicker";
-import { BulkMatchMode, type BulkCard } from "@/components/BulkMatchMode";
+import { CardMatchPicker, type MatchOption, type ManualCardEntry } from "@/components/CardMatchPicker";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { validateListingImage } from "@/lib/listingDisplay";
 
@@ -45,6 +44,7 @@ type Card = {
   incorrect_price_reported?: boolean | null; incorrect_price_reported_at?: string | null;
   wrong_match_reported_at?: string | null;
   purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
+  confirmed_by?: string | null;
 };
 
 function Vault() {
@@ -774,8 +774,12 @@ function Vault() {
         price_range_low: null,
         price_range_high: null,
         confidence_score: 0.97,
-        needs_review: !hasPrice,
-        review_reason: hasPrice ? null : "Confirmed match but no market price available yet.",
+        // User explicitly confirmed this card — lock it permanently so it never
+        // re-enters any review state and we never ask them to fix it again.
+        needs_review: false,
+        review_reason: null,
+        confirmed_by: user?.id ?? null,
+        price_locked: true,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
@@ -797,14 +801,54 @@ function Vault() {
     }
   }
 
+  // Manual entry fallback — when a collector knows exactly what card they have
+  // and AI / search can't find it. Saves permanently and clears review state.
+  async function applyManual(card: Card, f: ManualCardEntry) {
+    const tId = toast.loading("Saving card…");
+    try {
+      const patch: any = {
+        name: f.name || card.name,
+        tcg_set: f.set || card.tcg_set,
+        tcg_number: f.number || card.tcg_number,
+        tcg_year: f.year || card.tcg_year,
+        condition: (f.condition as Condition) || card.condition || "NM",
+        description: f.notes ? f.notes : card.description,
+        price_source: "manual_entry",
+        confidence_score: 1,
+        needs_review: false,
+        review_reason: null,
+        confirmed_by: user?.id ?? null,
+        price_locked: true,
+        last_rescan_at: new Date().toISOString(),
+        incorrect_price_reported: false,
+        incorrect_price_reported_at: null,
+        match_history: [
+          ...(Array.isArray(card.match_history) ? card.match_history : []),
+          { from: card.name || "Unknown", to: f.name || card.name || "Unknown", by: "Manual", at: new Date().toISOString() },
+        ],
+      };
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+      setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      toast.success("Card saved", { id: tId });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save card", { id: tId });
+    }
+  }
+
   // Cards that belong in the review queue: low confidence / missing metadata /
   // unverified pricing / missing AI card image.
   const reviewCards = useMemo(
     () => cards.filter((c) =>
-      c.needs_review ||
-      !isSafePriced(c) ||
-      needsOfficialCardImage(c.image_url) ||
-      !c.tcg_set || !c.tcg_number || !c.tcg_year
+      // Cards the user already confirmed (or that are price-locked via manual
+      // entry / override) are settled forever — never surface them again.
+      !c.confirmed_by && !c.price_locked && (
+        c.needs_review ||
+        !isSafePriced(c) ||
+        needsOfficialCardImage(c.image_url) ||
+        !c.tcg_set || !c.tcg_number || !c.tcg_year
+      )
     ),
     [cards]
   );
@@ -1436,11 +1480,8 @@ function Vault() {
             <p className="text-xs text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} · scan, value, list</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setReviewOnly((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition active:scale-[0.98] ${reviewOnly ? "bg-amber-500 text-white ring-amber-500" : "bg-card/60 ring-border/60 hover:bg-card"}`}><AlertTriangle className="h-3.5 w-3.5" /> Review{reviewCards.length ? ` (${reviewCards.length})` : ""}</button>
-            {reviewCards.length > 0 && (
-              <button onClick={() => setBulkMatch(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Layers className="h-3.5 w-3.5" /> Bulk match</button>
-            )}
             <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
+
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
           </div>
@@ -1470,29 +1511,9 @@ function Vault() {
         </div>
 
 
-        {/* Review queue summary */}
-        {reviewCards.length > 0 && (
-          <div className="mb-3 rounded-2xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-bold">Review Queue</p>
-              <button onClick={() => setBulkMatch(true)} className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-500"><Layers className="h-3 w-3" /> Fix all</button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {([
-                ["Needs Review", reviewSummary.needsReview, "text-amber-500"],
-                ["Missing Images", reviewSummary.missingImages, "text-sky-400"],
-                ["Low Confidence", reviewSummary.lowConfidence, "text-red-500"],
-                ["Missing Metadata", reviewSummary.missingMetadata, "text-yellow-500"],
-                ["Incorrect Prices", reviewSummary.incorrectPrices, "text-red-400"],
-              ] as const).map(([label, val, cls]) => (
-                <div key={label} className="rounded-lg bg-muted/40 p-2 text-center">
-                  <p className={`text-xl font-bold ${cls}`}>{val}</p>
-                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Review Queue removed — unsure cards are fixed inline via a simple
+            "Choose Correct Card" popup, and confident scans save automatically. */}
+
 
 
         {/* Vault sharing (one setting for the whole vault) */}
@@ -2116,30 +2137,18 @@ function Vault() {
         </div>
       )}
 
-      {/* Visual card matcher — tap the correct card image */}
+      {/* Visual card matcher — tap the correct card image, or enter manually */}
       {matchingCard && (
         <CardMatchPicker
           uploadedImage={matchingCard.original_image_url || matchingCard.image_url || undefined}
           card={{ name: matchingCard.name, tcg_set: matchingCard.tcg_set, tcg_number: matchingCard.tcg_number, category: matchingCard.category }}
           fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
           onSelect={(m) => applyMatch(matchingCard, m)}
+          onManualSave={(f) => applyManual(matchingCard, f)}
           onClose={() => setMatchingCard(null)}
         />
       )}
 
-      {/* Bulk match mode — step through the whole review queue */}
-      {bulkMatch && (
-        <BulkMatchMode
-          cards={reviewCards as unknown as BulkCard[]}
-          fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
-          onApply={(c, m) => applyMatch(cards.find((x) => x.id === c.id) || (c as unknown as Card), m)}
-          uploadedImageFor={(c) => {
-            const full = cards.find((x) => x.id === c.id);
-            return full ? (full.original_image_url || full.image_url || displayImage(full) || undefined) : undefined;
-          }}
-          onClose={() => setBulkMatch(false)}
-        />
-      )}
 
       {/* Edit modal */}
       {editing && (
