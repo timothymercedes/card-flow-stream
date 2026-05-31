@@ -63,7 +63,9 @@ async function fpEdge(i) {
   return sha16(segs.join("|"));
 }
 
-// SERVER impl — currently hardcodes the manufacturer/player/grade slots empty.
+// SERVER impl — now mirrors the edge impl exactly (manufacturer/player/grade
+// are part of the fingerprint), so live scans and manual entries of the same
+// card resolve to ONE master identity.
 async function fpServer(i) {
   const segs = [
     i.category,
@@ -71,11 +73,11 @@ async function fpServer(i) {
     norm(i.set_code || i.set_name),
     norm(i.number),
     i.year ?? "",
-    "", // manufacturer
+    norm(i.manufacturer),
     norm(i.variant),
-    "", // player
-    "raw", // grade
-    "", // grading company
+    norm(i.player),
+    norm(i.grade) || "raw",
+    norm(i.grading_company),
   ];
   const lang = normalizeLangCode(i.language);
   if (lang !== "en") segs.push(`lang_${lang}`);
