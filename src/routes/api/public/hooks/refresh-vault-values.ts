@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { categoryToGameId } from "@/lib/scannerGame";
 
 export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
   server: {
@@ -11,14 +12,15 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
         if (!cronSecret || !provided || provided !== cronSecret) {
           return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
         }
-        const apiKey = process.env.LOVABLE_API_KEY;
-        if (!apiKey) return new Response(JSON.stringify({ error: "missing key" }), { status: 500 });
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = process.env.SUPABASE_URL;
+        if (!serviceKey || !supabaseUrl) return new Response(JSON.stringify({ error: "missing backend config" }), { status: 500 });
 
         // Pull cards needing refresh (not valued in last 20h)
         const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
         const { data: cards, error } = await supabaseAdmin
           .from("vault_cards")
-          .select("id,name,category,estimated_value,last_valued_at")
+          .select("id,name,category,tcg_set,tcg_number,tcg_year,variant,rarity,estimated_value,last_valued_at,price_locked")
           .or(`last_valued_at.is.null,last_valued_at.lt.${cutoff}`)
           .limit(100);
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
@@ -26,25 +28,46 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
         let updated = 0;
         for (const c of cards || []) {
           try {
-            const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            if (c.price_locked) continue;
+            const resp = await fetch(`${supabaseUrl}/functions/v1/card-price`, {
               method: "POST",
-              headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+              headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
-                messages: [
-                  { role: "system", content: "TCG appraiser. Return JSON {\"estimated_value\": number} — current USD market value." },
-                  { role: "user", content: `Card: ${c.name}${c.category ? ` (${c.category})` : ""}. Current value?` },
-                ],
-                response_format: { type: "json_object" },
+                name: c.name,
+                set: c.tcg_set || undefined,
+                number: c.tcg_number || undefined,
+                year: c.tcg_year || undefined,
+                category: c.category || undefined,
+                game: categoryToGameId(c.category),
+                variant: c.variant || undefined,
+                skip_cache: true,
               }),
             });
             if (!resp.ok) continue;
             const data = await resp.json();
-            const parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
-            const v = Number(parsed.estimated_value);
-            if (!isFinite(v) || v <= 0) continue;
+            const v = Number(data?.price?.market) || 0;
+            const card = data?.card || {};
+            const complete = !!(card.name && card.set_name && card.number && card.year && (card.rarity || c.rarity || c.variant));
+            const safe = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && v > 0 && complete;
             await supabaseAdmin.from("vault_cards").update({
-              estimated_value: v, last_valued_at: new Date().toISOString(),
+              estimated_value: safe ? v : 0,
+              market_price: v || null,
+              price_source: data?.primary_source || null,
+              price_confidence: data?.price_confidence || "low",
+              price_is_ai: !!data?.price_is_ai,
+              price_tier: data?.pricing_tier || "unavailable",
+              price_updated_at: new Date().toISOString(),
+              last_valued_at: new Date().toISOString(),
+              last_rescan_at: new Date().toISOString(),
+              confidence_score: Number(data?.confidence || 0) || null,
+              needs_review: !safe,
+              review_reason: safe ? null : data?.tier_reason || "Needs exact identity confirmation before value is assigned.",
+              name: card.name || c.name,
+              tcg_set: card.set_name || c.tcg_set,
+              tcg_number: card.number || c.tcg_number,
+              tcg_year: card.year || c.tcg_year,
+              rarity: card.rarity || c.rarity,
+              identification_details: { pricing: data },
             }).eq("id", c.id);
             updated++;
           } catch {/* skip */}

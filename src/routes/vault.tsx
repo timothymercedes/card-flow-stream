@@ -3,8 +3,9 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
@@ -33,6 +34,11 @@ type Card = {
   price_confidence?: string | null; price_is_ai?: boolean | null;
   price_locked?: boolean | null; custom_price?: number | null;
   grade_values?: Record<string, number> | null; is_sealed?: boolean | null;
+  price_tier?: string | null; price_range_low?: number | null; price_range_high?: number | null;
+  rarity?: string | null; variant?: string | null; image_source?: string | null;
+  original_image_url?: string | null; ai_image_url?: string | null; image_gallery?: unknown[] | null;
+  confidence_score?: number | null; needs_review?: boolean | null; review_reason?: string | null;
+  identification_details?: Record<string, unknown> | null; last_rescan_at?: string | null;
 };
 
 function Vault() {
@@ -106,9 +112,29 @@ function Vault() {
   function needsOfficialCardImage(url?: string | null) {
     if (!url) return true;
     const u = url.toLowerCase();
-    // Never replace a user's actual scan/upload with a guessed catalog image.
-    // Bad OCR on a card number can otherwise swap the photo to the wrong card.
     return u.includes("images.unsplash.com") || u.includes("generate-card-image");
+  }
+
+  function looksLikeUserUpload(url?: string | null) {
+    if (!url) return false;
+    const u = url.toLowerCase();
+    return u.startsWith("data:") || u.includes("vault-images") || u.includes("storage") || u.includes("blob:");
+  }
+
+  function displayImage(card: Card) {
+    return card.ai_image_url || card.image_url || card.original_image_url || "";
+  }
+
+  function isCompleteIdentity(card: Partial<Card>) {
+    return !!(card.name && card.tcg_set && card.tcg_number && card.tcg_year && (card.rarity || card.variant));
+  }
+
+  function isSafePriced(card: Card) {
+    if (card.needs_review && !card.price_locked) return false;
+    if (card.price_confidence === "low" && !card.price_locked) return false;
+    if (card.price_tier && card.price_tier !== "verified" && !card.price_locked) return false;
+    if (!isCompleteIdentity(card) && !card.price_locked) return false;
+    return Number(card.estimated_value || 0) > 0;
   }
 
   function conditionPricesFromMarket(price?: number): ConditionPrices | null {
@@ -463,11 +489,10 @@ function Vault() {
     if (updated > 0) toast.success(`Updated values on ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
-  // Backfills card images for existing inventory. First tries to match an
-  // official catalog image; if none is found, generates AI artwork so every
-  // supported category ends up with an image. `force` widens the batch size.
+  // Backfills display images for existing inventory while preserving the user's
+  // original upload as secondary proof/sale media.
   async function backfillMissingImages(list: Card[], force = false) {
-    const missing = list.filter((c) => needsOfficialCardImage(c.image_url) && (c.name || c.tcg_number || c.tcg_set));
+    const missing = list.filter((c) => (force || needsOfficialCardImage(c.image_url) || !c.ai_image_url) && (c.name || c.tcg_number || c.tcg_set));
     if (!missing.length) {
       if (force) toast.info("All cards already have images");
       return;
@@ -475,23 +500,35 @@ function Vault() {
     if (force) { setEnriching(true); toast.info(`Generating images for ${missing.length} card${missing.length > 1 ? "s" : ""}…`); }
     let updated = 0;
     for (const c of missing.slice(0, force ? 200 : 25)) {
+      const original = c.original_image_url || (looksLikeUserUpload(c.image_url) ? c.image_url : null);
       const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const match = matches.find((m) => m.image);
-      let img = match?.image;
-      // AI fallback so every supported category gets an image, even without a catalog hit.
-      if (!img && c.name) {
+      const catalogImg = match?.image || null;
+      let aiImg = c.ai_image_url || null;
+      // Generate AI images for every legacy card that does not already have one;
+      // keep catalog/user photos in the gallery as secondary references.
+      if ((force || !aiImg) && c.name) {
         try {
           const { data: gen } = await supabase.functions.invoke("generate-card-image", {
             body: { name: c.name, category: c.category || undefined, set: c.tcg_set || undefined, year: c.tcg_year || undefined, tcg_number: c.tcg_number || undefined },
           });
-          if (gen?.image) img = gen.image;
+          if (gen?.image) aiImg = gen.image;
         } catch { /* ignore */ }
       }
+      const img = aiImg || catalogImg;
       if (!img) continue;
       const cp = conditionPricesFromMarket(match?.price) || c.condition_prices || null;
-      const newValue = cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
+      const newValue = isSafePriced(c) && cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
       const patch = {
         image_url: img,
+        original_image_url: original,
+        ai_image_url: aiImg,
+        image_source: aiImg ? "ai_generated" : "catalog",
+        image_gallery: [
+          { url: img, type: aiImg ? "ai_generated" : "catalog", primary: true },
+          original ? { url: original, type: "user_upload", primary: false } : null,
+          c.back_image_url ? { url: c.back_image_url, type: "user_back", primary: false } : null,
+        ].filter(Boolean),
         name: match?.name || c.name,
         tcg_set: match?.set || c.tcg_set,
         tcg_number: match?.number || c.tcg_number,
@@ -499,9 +536,9 @@ function Vault() {
         category: match?.category || c.category || "Pokémon",
         condition_prices: cp as any,
         estimated_value: newValue,
-        last_valued_at: new Date().toISOString(),
+        last_rescan_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", c.id);
       if (!error) {
         updated++;
         setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch, condition_prices: cp } : x)));
@@ -512,9 +549,8 @@ function Vault() {
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
   }
 
-  // Retroactive pricing enrichment: re-price existing cards using real sold-market data
-  // (AI fallback handled server-side), recording source, confidence and timestamp.
-  // Respects manual locks. `force` re-prices everything; otherwise only cards missing a source.
+  // Retroactive rescan + pricing enrichment. It only assigns Vault value after
+  // exact structured identity is known; otherwise cards are flagged for review.
   async function enrichPrices(list: Card[], force = false) {
     const targets = list.filter((c) => {
       if (c.price_locked) return false;
@@ -533,21 +569,55 @@ function Vault() {
         const { data, error } = await supabase.functions.invoke("card-price", {
           body: {
             name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined,
-            year: c.tcg_year || undefined, category: c.category || undefined, skip_cache: true,
+            year: c.tcg_year || undefined, category: c.category || undefined, game: categoryToGameId(c.category),
+            variant: c.variant || parseVariant(c.description).finish, skip_cache: true,
           },
         });
         if (error) continue;
         const market = Number(data?.price?.market) || 0;
-        if (!market) continue;
+        const matched = data?.card || null;
+        const identity = {
+          name: matched?.name || c.name,
+          tcg_set: matched?.set_name || c.tcg_set,
+          tcg_number: matched?.number || c.tcg_number,
+          tcg_year: matched?.year || c.tcg_year,
+          rarity: matched?.rarity || c.rarity,
+          variant: data?.candidates?.[0]?.variant || c.variant || parseVariant(c.description).finish,
+        };
+        const confidenceScore = Number(data?.confidence || 0);
+        const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
+        const reviewReason = verified
+          ? null
+          : !isCompleteIdentity(identity)
+            ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
+            : data?.tier_reason || "Needs review before assigning market value.";
         const patch: any = {
           market_price: market,
-          estimated_value: market,
+          estimated_value: verified ? market : 0,
+          condition_prices: verified ? conditionPricesFromMarket(market) : null,
           price_source: data?.primary_source || null,
           price_confidence: data?.price_confidence || null,
           price_is_ai: !!data?.price_is_ai,
+          price_tier: data?.pricing_tier || "unavailable",
+          price_range_low: data?.price_range?.low ?? null,
+          price_range_high: data?.price_range?.high ?? null,
           price_updated_at: new Date().toISOString(),
+          last_valued_at: new Date().toISOString(),
+          last_rescan_at: new Date().toISOString(),
+          confidence_score: confidenceScore || null,
+          needs_review: !verified,
+          review_reason: reviewReason,
+          identification_details: { pricing: data, identity },
+          name: identity.name,
+          tcg_set: identity.tcg_set || null,
+          tcg_number: identity.tcg_number || null,
+          tcg_year: identity.tcg_year || null,
+          rarity: identity.rarity || null,
+          variant: identity.variant || null,
+          image_url: data?.official_image_url || c.ai_image_url || c.image_url,
+          image_source: data?.official_image_url ? data?.image_source || "catalog" : c.image_source,
         };
-        const { error: upErr } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+        const { error: upErr } = await supabase.from("vault_cards").update(patch as never).eq("id", c.id);
         if (upErr) continue;
         updated++;
         setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
@@ -569,8 +639,24 @@ function Vault() {
     else toast.success(v === "private" ? "Vault is private" : `Vault visible to ${v}`);
   }
 
+  async function markWrongMatch(card: Card) {
+    const patch = {
+      needs_review: true,
+      review_reason: "Wrong match reported by user. Confirm exact card before assigning value.",
+      wrong_match_reported_at: new Date().toISOString(),
+      estimated_value: 0,
+      price_tier: "unavailable",
+      price_confidence: "low",
+    };
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+    if (error) { toast.error(error.message); return; }
+    setCards((prev) => prev.map((c) => c.id === card.id ? { ...c, ...patch } : c));
+    setActionFor((prev) => prev && prev.id === card.id ? { ...prev, ...patch } : prev);
+    toast.success("Marked for review — value removed until corrected");
+  }
+
   const totalValue = useMemo(
-    () => cards.reduce((s, c) => s + Number(c.estimated_value || 0), 0),
+    () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
     [cards]
   );
 
@@ -732,7 +818,9 @@ function Vault() {
         }
       } catch {/* ignore */}
     }
+    const originalUpload = looksLikeUserUpload(imageUrl) ? imageUrl : null;
     let finalImage = imageUrl;
+    let generatedImage: string | null = null;
     const matches = await fetchRealCardMatches({ name: finalName, set: setName2, number: num2, category: cat || undefined });
     if (matches.length) {
       const best = matches[0];
@@ -754,14 +842,24 @@ function Vault() {
         const { data: img } = await supabase.functions.invoke("generate-card-image", {
           body: { name: finalName, category: cat, set: setName2, year: year2, tcg_number: num2 },
         });
-        if (img?.image) finalImage = img.image;
+          if (img?.image) { finalImage = img.image; generatedImage = img.image; }
       } catch {/* ignore */}
     }
     const variantLabel = `${edition} · ${finish}`;
     const fullDesc = [description?.trim(), `Variant: ${variantLabel}`].filter(Boolean).join("\n");
+    const completeIdentity = !!(finalName && setName2 && num2 && year2 && (matches[0]?.category || cat));
+    if (!completeIdentity) value = 0;
     const { data: inserted, error } = await supabase.from("vault_cards").insert({
       user_id: user!.id, name: finalName, category: cat || "Trading Card",
       image_url: finalImage || null, back_image_url: backImageUrl || null,
+      original_image_url: originalUpload,
+      ai_image_url: generatedImage,
+      image_source: generatedImage ? "ai_generated" : matches[0]?.image ? "catalog" : null,
+      image_gallery: [
+        finalImage ? { url: finalImage, type: generatedImage ? "ai_generated" : "catalog", primary: true } : null,
+        originalUpload ? { url: originalUpload, type: "user_upload", primary: false } : null,
+        backImageUrl ? { url: backImageUrl, type: "user_back", primary: false } : null,
+      ].filter(Boolean),
       description: fullDesc || null,
       estimated_value: value,
       condition_prices: cp as any,
@@ -769,8 +867,13 @@ function Vault() {
       tcg_number: num2 || null, tcg_set: setName2 || null, tcg_year: year2 || null,
       condition,
       language,
+      rarity: matches[0]?.category ? null : null,
+      variant: variantLabel,
+      confidence_score: completeIdentity ? 0.75 : 0.35,
+      needs_review: !completeIdentity,
+      review_reason: completeIdentity ? null : "Missing exact set, card number, year, rarity, or variant.",
       last_valued_at: new Date().toISOString(),
-    }).select().single();
+    } as never).select().single();
     if (error) return toast.error(error.message);
     const wantSell = sellAfterSave;
     resetForm(); setShowAdd(false);
@@ -1159,7 +1262,7 @@ function Vault() {
             <p className="text-xs text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} · scan, value, list</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Refresh all"}</button>
+            <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
           </div>
@@ -1406,14 +1509,15 @@ function Vault() {
               return (
                 <button key={c.id} onClick={() => setActionFor(c)} className="flex items-center gap-3 overflow-hidden rounded-xl bg-card p-2 text-left active:scale-[0.99]">
                   <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                    {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
-                  {Number(c.estimated_value || 0) > 0 && (
+                  {c.needs_review && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-500">Needs Review</span>}
+                  {isSafePriced(c) && (
                     <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                   )}
                 </button>
@@ -1422,7 +1526,7 @@ function Vault() {
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
-                  {c.image_url ? <img src={c.image_url} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                   {cv.edition === "1st Edition" ? (
                     <span className="absolute bottom-1.5 left-1.5 rounded-md border border-yellow-300/80 bg-black/85 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
@@ -1440,12 +1544,13 @@ function Vault() {
                     <p className="text-[10px] text-muted-foreground">
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
-                    {Number(c.estimated_value || 0) > 0 && (
+                    {c.needs_review && <p className="mt-0.5 text-[10px] font-bold text-amber-500">Needs Review</p>}
+                    {isSafePriced(c) && (
                       <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                     )}
                   </div>
                 )}
-                {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
+                {viewMode === "small" && isSafePriced(c) && (
                   <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                 )}
               </button>
@@ -1475,8 +1580,8 @@ function Vault() {
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
                 <div className="relative">
-                  {actionFor.image_url
-                    ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                  {displayImage(actionFor)
+                    ? <img src={displayImage(actionFor)} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
                     : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
                   {parseVariant(actionFor.description).edition === "1st Edition" ? (
                     <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
@@ -1497,6 +1602,16 @@ function Vault() {
               </div>
             </div>
 
+            {actionFor.needs_review && (
+              <div className="flex gap-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500 ring-1 ring-amber-500/25">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-bold">Needs Review</p>
+                  <p>{actionFor.review_reason || "Confirm the exact card before assigning market value."}</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
                 <div className="flex items-center justify-between gap-1">
@@ -1509,9 +1624,9 @@ function Vault() {
                     Refresh
                   </button>
                 </div>
-                {Number(actionFor.estimated_value || 0) > 0 && (
+                {isSafePriced(actionFor) ? (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
-                )}
+                ) : <p className="text-base font-bold text-amber-500">Review needed</p>}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
                 <p className="text-[9px] uppercase text-muted-foreground">Condition (tap to update)</p>
@@ -1599,6 +1714,7 @@ function Vault() {
                 custom_price: actionFor.custom_price,
                 grade_values: actionFor.grade_values,
                 is_sealed: actionFor.is_sealed ?? undefined,
+                needs_review: actionFor.needs_review,
               }}
               userId={user?.id || ""}
               onSaved={(patch) => {
@@ -1636,6 +1752,9 @@ function Vault() {
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
+            </button>
+            <button onClick={() => markWrongMatch(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
+              <AlertTriangle className="h-4 w-4" /> Wrong Match
             </button>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">

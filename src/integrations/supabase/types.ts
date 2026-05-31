@@ -6559,6 +6559,7 @@ export type Database = {
       }
       vault_cards: {
         Row: {
+          ai_image_url: string | null
           ai_suggested_at: string | null
           ai_suggestion: Json | null
           back_image_url: string | null
@@ -6566,6 +6567,7 @@ export type Database = {
           category: string | null
           condition: Database["public"]["Enums"]["card_condition"] | null
           condition_prices: Json | null
+          confidence_score: number | null
           confirmed_by: string | null
           created_at: string
           custom_price: number | null
@@ -6579,6 +6581,8 @@ export type Database = {
           grader: string | null
           grading_cert: string | null
           id: string
+          identification_details: Json
+          image_gallery: Json
           image_source: string | null
           image_url: string | null
           is_demo: boolean
@@ -6586,12 +6590,15 @@ export type Database = {
           is_sealed: boolean
           is_sold: boolean
           language: string | null
+          last_rescan_at: string | null
           last_sold_price: number | null
           last_valued_at: string | null
           listed_listing_id: string | null
           market_price: number | null
           match_score: number | null
           name: string
+          needs_review: boolean
+          original_image_url: string | null
           price: number | null
           price_confidence: string | null
           price_high: number | null
@@ -6607,6 +6614,7 @@ export type Database = {
           pricing_details: Json
           rarity: string | null
           recent_sales_avg: number | null
+          review_reason: string | null
           sold_at: string | null
           sold_stream_id: string | null
           status: string
@@ -6616,8 +6624,10 @@ export type Database = {
           user_id: string
           variant: string | null
           visibility: string
+          wrong_match_reported_at: string | null
         }
         Insert: {
+          ai_image_url?: string | null
           ai_suggested_at?: string | null
           ai_suggestion?: Json | null
           back_image_url?: string | null
@@ -6625,6 +6635,7 @@ export type Database = {
           category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
+          confidence_score?: number | null
           confirmed_by?: string | null
           created_at?: string
           custom_price?: number | null
@@ -6638,6 +6649,8 @@ export type Database = {
           grader?: string | null
           grading_cert?: string | null
           id?: string
+          identification_details?: Json
+          image_gallery?: Json
           image_source?: string | null
           image_url?: string | null
           is_demo?: boolean
@@ -6645,12 +6658,15 @@ export type Database = {
           is_sealed?: boolean
           is_sold?: boolean
           language?: string | null
+          last_rescan_at?: string | null
           last_sold_price?: number | null
           last_valued_at?: string | null
           listed_listing_id?: string | null
           market_price?: number | null
           match_score?: number | null
           name: string
+          needs_review?: boolean
+          original_image_url?: string | null
           price?: number | null
           price_confidence?: string | null
           price_high?: number | null
@@ -6666,6 +6682,7 @@ export type Database = {
           pricing_details?: Json
           rarity?: string | null
           recent_sales_avg?: number | null
+          review_reason?: string | null
           sold_at?: string | null
           sold_stream_id?: string | null
           status?: string
@@ -6675,8 +6692,10 @@ export type Database = {
           user_id: string
           variant?: string | null
           visibility?: string
+          wrong_match_reported_at?: string | null
         }
         Update: {
+          ai_image_url?: string | null
           ai_suggested_at?: string | null
           ai_suggestion?: Json | null
           back_image_url?: string | null
@@ -6684,6 +6703,7 @@ export type Database = {
           category?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
+          confidence_score?: number | null
           confirmed_by?: string | null
           created_at?: string
           custom_price?: number | null
@@ -6697,6 +6717,8 @@ export type Database = {
           grader?: string | null
           grading_cert?: string | null
           id?: string
+          identification_details?: Json
+          image_gallery?: Json
           image_source?: string | null
           image_url?: string | null
           is_demo?: boolean
@@ -6704,12 +6726,15 @@ export type Database = {
           is_sealed?: boolean
           is_sold?: boolean
           language?: string | null
+          last_rescan_at?: string | null
           last_sold_price?: number | null
           last_valued_at?: string | null
           listed_listing_id?: string | null
           market_price?: number | null
           match_score?: number | null
           name?: string
+          needs_review?: boolean
+          original_image_url?: string | null
           price?: number | null
           price_confidence?: string | null
           price_high?: number | null
@@ -6725,6 +6750,7 @@ export type Database = {
           pricing_details?: Json
           rarity?: string | null
           recent_sales_avg?: number | null
+          review_reason?: string | null
           sold_at?: string | null
           sold_stream_id?: string | null
           status?: string
@@ -6734,6 +6760,7 @@ export type Database = {
           user_id?: string
           variant?: string | null
           visibility?: string
+          wrong_match_reported_at?: string | null
         }
         Relationships: [
           {
