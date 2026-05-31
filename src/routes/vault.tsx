@@ -1815,9 +1815,17 @@ function Vault() {
     // Retry up to 3 times on transient failure so we never silently drop a scan.
     let lastErr: any = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { error } = await supabase.from("vault_cards").insert(payload);
+      const { data: insScan, error } = await supabase.from("vault_cards").insert(payload).select("id").single();
       if (!error) {
         toast.success(`✅ ${r.name} saved to vault`);
+        if (insScan) {
+          void ensureMasterIdentity((insScan as { id: string }).id, {
+            category: r.category, name: r.name, tcg_set: r.set, tcg_number: r.tcg_number,
+            tcg_year: r.year ? String(r.year) : null, variant: r.variant, language: lang,
+            image_url: finalImage, card_identity_id: r.card_identity_id, match_score_confidence: undefined,
+            confidence_score: typeof r.match_score === "number" ? Math.min(r.match_score / 100, 1) : null,
+          } as any);
+        }
         load();
         return;
       }
