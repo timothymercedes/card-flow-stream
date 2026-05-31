@@ -385,6 +385,7 @@ Deno.serve(async (req) => {
     const catalogTried: string[] = [];
     let bestScore = 0;
     let topCandidates: NormalizedCard[] = [];
+    let ambiguousDuplicateSet = false;
     if (card_id && game.id === "pokemon") {
       const { data: row } = await admin.from("pokemon_cards")
         .select("id,name,set_name,set_code,number,rarity,year,image_small,image_large,raw,source_ids")
