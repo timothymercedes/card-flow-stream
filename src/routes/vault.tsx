@@ -3,8 +3,9 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
@@ -33,6 +34,11 @@ type Card = {
   price_confidence?: string | null; price_is_ai?: boolean | null;
   price_locked?: boolean | null; custom_price?: number | null;
   grade_values?: Record<string, number> | null; is_sealed?: boolean | null;
+  price_tier?: string | null; price_range_low?: number | null; price_range_high?: number | null;
+  rarity?: string | null; variant?: string | null; image_source?: string | null;
+  original_image_url?: string | null; ai_image_url?: string | null; image_gallery?: unknown[] | null;
+  confidence_score?: number | null; needs_review?: boolean | null; review_reason?: string | null;
+  identification_details?: Record<string, unknown> | null; last_rescan_at?: string | null;
 };
 
 function Vault() {
