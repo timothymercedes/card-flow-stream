@@ -1725,6 +1725,12 @@ function Vault() {
       };
       const { error } = await supabase.from("vault_cards").update(patch).eq("id", editing.id);
       if (error) { toast.error(error.message, { id: t }); return; }
+      void ensureMasterIdentity(editing.id, {
+        category: editing.category, name: editing.name, tcg_set: patch.tcg_set,
+        tcg_number: patch.tcg_number, tcg_year: patch.tcg_year, variant: editing.variant,
+        language: parseLanguage(editing.description), rarity: editing.rarity,
+        image_url: patch.image_url, card_identity_id: editing.card_identity_id, confidence_score: 0.9,
+      });
       toast.success(`Verified • $${Number(newValue).toFixed(2)}`, { id: t });
       setEditing({ ...editing, ...patch });
       load();
