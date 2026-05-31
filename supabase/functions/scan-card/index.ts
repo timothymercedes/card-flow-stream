@@ -114,7 +114,7 @@ CONFIDENCE & CLOSEST MATCHES — CRITICAL FOR COLLECTOR TRUST:
 - If the card's language, variant, or stamp is ambiguous, prefer LOW confidence + alternatives over a confident wrong guess.
 
 Return STRICT JSON matching this schema:
-${CARD_SCHEMA_TEXT.replace('"alternatives"', '"alternatives"')}
+${CARD_SCHEMA_TEXT}
 PLUS an "alternatives" array (see above) when confidence is low.`;
 
 const SYSTEM_MULTI = `You are an EXPERT trading card and collectible identifier. The image may contain MULTIPLE cards laid out together — they may be from DIFFERENT games (mixed Pokémon + MTG + Yu-Gi-Oh + One Piece + Lorcana + Sports etc.). DETECT EACH CARD SEPARATELY, identify its game, and read it with the same accuracy as a single-card scan.
