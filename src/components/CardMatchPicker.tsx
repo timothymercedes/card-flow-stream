@@ -42,19 +42,50 @@ export function CardMatchPicker({
   card,
   fetchMatches,
   onSelect,
+  onManualSave,
   onClose,
 }: {
   uploadedImage?: string | null;
   card: { name?: string | null; tcg_set?: string | null; tcg_number?: string | null; category?: string | null };
   fetchMatches: (opts: FetchOpts) => Promise<MatchOption[]>;
   onSelect: (match: MatchOption) => Promise<void> | void;
+  onManualSave?: (entry: ManualCardEntry) => Promise<void> | void;
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState<MatchOption[]>([]);
   const [query, setQuery] = useState(card.name || "");
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const [manual, setManual] = useState(false);
+  const [savingManual, setSavingManual] = useState(false);
+  const [mf, setMf] = useState<ManualCardEntry>({
+    name: card.name || "",
+    set: card.tcg_set || "",
+    number: card.tcg_number || "",
+    year: "",
+    condition: "NM",
+    notes: "",
+  });
   const ranInitial = useRef(false);
+
+  async function saveManual() {
+    if (!onManualSave || !mf.name.trim()) return;
+    setSavingManual(true);
+    try {
+      await onManualSave({
+        name: mf.name.trim(),
+        set: mf.set?.trim() || undefined,
+        number: mf.number?.trim() || undefined,
+        year: mf.year?.trim() || undefined,
+        condition: mf.condition || undefined,
+        notes: mf.notes?.trim() || undefined,
+      });
+      onClose();
+    } finally {
+      setSavingManual(false);
+    }
+  }
+
 
   async function run(opts: FetchOpts) {
     setLoading(true);
