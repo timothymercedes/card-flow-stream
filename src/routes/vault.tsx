@@ -916,7 +916,7 @@ function Vault() {
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
-        pricing_details: { market_source: marketSource, suspicious: !!pricePayload?.price_suspicious, reference_value: pricePayload?.reference_value ?? null },
+        pricing_details: { market_source: marketSource, suspicious: !!pricePayload?.price_suspicious, reference_value: pricePayload?.reference_value ?? null, language: langCode, language_matched: !!pricePayload?.language_matched, language_unconfirmed: !!pricePayload?.language_unconfirmed },
         identification_details: { confirmed_match: m, pricing: pricePayload },
         incorrect_price_reported: false,
         incorrect_price_reported_at: null,
