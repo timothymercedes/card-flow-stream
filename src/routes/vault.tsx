@@ -857,7 +857,7 @@ function Vault() {
     () => cards.filter((c) =>
       // Cards the user already confirmed (or that are price-locked via manual
       // entry / override) are settled forever — never surface them again.
-      !c.confirmed_by && !c.price_locked && (
+      !isUserVerified(c) && (
         c.needs_review ||
         !isSafePriced(c) ||
         needsOfficialCardImage(c.image_url) ||
