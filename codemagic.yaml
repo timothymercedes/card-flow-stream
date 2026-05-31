@@ -324,6 +324,8 @@ workflows:
           import sys
           path = sys.argv[1]
           src = open(path).read()
+          if 'android:launchMode=' not in src:
+              src = src.replace('android:name=".MainActivity"', 'android:name=".MainActivity"\n            android:launchMode="singleTask"', 1)
           block = (
               '            <intent-filter>\n'
               '                <action android:name="android.intent.action.VIEW" />\n'
