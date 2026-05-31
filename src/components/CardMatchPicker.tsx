@@ -143,7 +143,7 @@ export function CardMatchPicker({
       number: card.tcg_number || undefined,
       category: card.category || undefined,
     });
-    ranInitial.current = true;
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card.name, card.tcg_set, card.tcg_number, card.category]);
 
