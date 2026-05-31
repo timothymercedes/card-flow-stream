@@ -112,9 +112,23 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:0 string applinks:pullbidlive.com" "$ENT"
           /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:1 string applinks:www.pullbidlive.com" "$ENT"
           /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:2 string webcredentials:pullbidlive.com" "$ENT"
+          # Sign In with Apple capability — required for the native Apple sheet.
+          /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.applesignin" "$ENT" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.applesignin array" "$ENT"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.developer.applesignin:0 string Default" "$ENT"
           # remote-notification background mode
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" ios/App/App/Info.plist 2>/dev/null || true
+          # Google native Sign-In needs the reversed iOS client ID as a URL scheme.
+          # Set GOOGLE_IOS_REVERSED_CLIENT_ID in Codemagic env (e.g. com.googleusercontent.apps.XXXX).
+          if [ -n "$GOOGLE_IOS_REVERSED_CLIENT_ID" ]; then
+            P=ios/App/App/Info.plist
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$P" 2>/dev/null || true
+            IDX=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$P" 2>/dev/null | grep -c "Dict" || echo 0)
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX dict" "$P"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes array" "$P"
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes:0 string $GOOGLE_IOS_REVERSED_CLIENT_ID" "$P"
+          fi
 
       - name: Increment build number
         script: |
