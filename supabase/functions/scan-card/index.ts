@@ -268,13 +268,13 @@ function jsonResp(body: unknown, status = 200) {
 // card_scans write is pure telemetry — keeping it off the critical path shaves
 // a full DB round-trip off every scan's perceived latency. Uses the platform's
 // waitUntil so the task still completes after the response is flushed.
-function background(p: Promise<unknown>) {
+function background(p: PromiseLike<unknown>) {
+  // Supabase query builders are thenables, not real Promises — wrap so .catch exists.
+  const safe = Promise.resolve(p).catch(() => {});
   try {
     const wu = (globalThis as any)?.EdgeRuntime?.waitUntil;
-    if (typeof wu === "function") { wu(p.catch(() => {})); return; }
-  } catch { /* fall through */ }
-  // Fallback: detach so an unhandled rejection never crashes the worker.
-  p.catch(() => {});
+    if (typeof wu === "function") { wu(safe); return; }
+  } catch { /* fall through — task still runs detached */ }
 }
 
 // Rough byte size of a base64 data URL payload (for profiling oversized images).
