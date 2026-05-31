@@ -1888,6 +1888,17 @@ function Vault() {
         </div>
       )}
 
+      {/* Visual card matcher — tap the correct card image */}
+      {matchingCard && (
+        <CardMatchPicker
+          uploadedImage={matchingCard.original_image_url || matchingCard.image_url || undefined}
+          card={{ name: matchingCard.name, tcg_set: matchingCard.tcg_set, tcg_number: matchingCard.tcg_number, category: matchingCard.category }}
+          fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
+          onSelect={(m) => applyMatch(matchingCard, m)}
+          onClose={() => setMatchingCard(null)}
+        />
+      )}
+
       {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/70 p-4" onClick={() => setEditing(null)}>
