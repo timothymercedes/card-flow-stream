@@ -700,9 +700,14 @@ Deno.serve(async (req) => {
       official_image_url: officialImage,
       image_source: imageSource,
       price: finalPrice,
-      pricing_tier: priceSuspicious ? "estimated" : pricingTier,
+      pricing_tier: (priceSuspicious || ambiguousDuplicateSet) ? "estimated" : pricingTier,
       price_range: priceRange,
-      tier_reason: priceSuspicious ? suspiciousReason : tierReason,
+      ambiguous_duplicate_set: ambiguousDuplicateSet,
+      tier_reason: priceSuspicious
+        ? suspiciousReason
+        : ambiguousDuplicateSet
+          ? "Multiple cards share this name across different sets — pick the correct set/number to verify the value."
+          : tierReason,
       price_suspicious: priceSuspicious,
       needs_resync: needsResync,
       suspicious_reason: suspiciousReason,
