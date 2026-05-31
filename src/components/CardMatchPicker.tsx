@@ -132,17 +132,20 @@ export function CardMatchPicker({
     }
   }
 
+  // Run the initial search, and re-run whenever the parent swaps in new card
+  // details (e.g. after manual entry finds several possible matches). Always
+  // drop back to the visual grid so the user can tap the correct card.
   useEffect(() => {
-    if (ranInitial.current) return;
-    ranInitial.current = true;
+    setManual(false);
     run({
       name: card.name || undefined,
       set: card.tcg_set || undefined,
       number: card.tcg_number || undefined,
       category: card.category || undefined,
     });
+    ranInitial.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [card.name, card.tcg_set, card.tcg_number, card.category]);
 
   async function pick(m: MatchOption) {
     setApplyingId(m.id);
