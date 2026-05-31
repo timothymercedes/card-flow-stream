@@ -37,9 +37,9 @@ const PRIMARY = [
   { to: "/", labelKey: "nav.home", icon: Home, mobile: true },
   { to: "/live", labelKey: "nav.live", icon: Radio, mobile: true },
   { to: "/market", labelKey: "nav.market", icon: Store, mobile: true },
-  { to: "/shop", labelKey: "nav.shop", icon: ShoppingBag, mobile: true },
+  { to: "/vault", labelKey: "nav.vault", icon: Lock, mobile: true },
+  { to: "/shop", labelKey: "nav.shop", icon: ShoppingBag, mobile: false },
   { to: "/feed", labelKey: "nav.feed", icon: Newspaper, mobile: false },
-  { to: "/vault", labelKey: "nav.vault", icon: Lock, mobile: false },
   { to: "/messages", labelKey: "nav.chat", icon: MessageCircle, mobile: false },
 ] as const;
 
