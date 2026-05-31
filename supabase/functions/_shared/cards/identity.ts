@@ -42,9 +42,27 @@ export interface CardIdentityInput {
   team?: string | null;                // sports
   grade?: string | null;               // "raw" | "psa_10" | "bgs_9_5" | ...
   grading_company?: string | null;     // "PSA" | "BGS" | "SGC" | "CGC"
+  language?: string | null;            // "en" | "jp" | "zh" | "ko" | ... — part of identity
   image_url?: string | null;
   image_source?: string | null;
   external_ids?: Record<string, string | number | null | undefined>;
+}
+
+// Normalize any language label/code to a short canonical code so the same
+// printing always fingerprints the same way (English is the implicit default).
+export function normalizeLangCode(lang: string | null | undefined): string {
+  const l = String(lang || "").trim().toLowerCase();
+  if (!l) return "en";
+  if (/^(en|eng|english)$/.test(l)) return "en";
+  if (/^(jp|ja|jpn|japanese)$/.test(l)) return "jp";
+  if (/^(zh|cn|chi|chinese|zh-hans|zh-hant)$/.test(l)) return "zh";
+  if (/^(ko|kr|kor|korean)$/.test(l)) return "ko";
+  if (/^(fr|fra|fre|french)$/.test(l)) return "fr";
+  if (/^(de|deu|ger|german)$/.test(l)) return "de";
+  if (/^(es|spa|spanish)$/.test(l)) return "es";
+  if (/^(it|ita|italian)$/.test(l)) return "it";
+  if (/^(pt|por|portuguese)$/.test(l)) return "pt";
+  return l.slice(0, 4);
 }
 
 // ---- Normalization --------------------------------------------------------
