@@ -989,10 +989,12 @@ function Vault() {
       const priced = market * mult;
       const cp = conditionPricesFromMarket(priced);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
+      const identityId = data?.identity_id || card.card_identity_id || null;
       const patch: any = {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: false,
+        card_identity_id: identityId,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null, language: langCode, language_matched: !!data?.language_matched, language_unconfirmed: !!data?.language_unconfirmed },
         needs_review: false, review_reason: null,
@@ -1002,6 +1004,12 @@ function Vault() {
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      // Price belongs to the card: push the new value to every other owner.
+      if (identityId) {
+        propagatePrice({ data: { identityId, marketPrice: priced, source: "user_confirmed", verified: true } })
+          .then((r: any) => { if (r?.updated > 1) toast.message(`Updated ${r.updated} collections owning this card`); })
+          .catch(() => {});
+      }
       toast.success(`Updated • $${newValue.toFixed(2)}`, { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not fetch price", { id: tId });
