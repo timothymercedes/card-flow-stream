@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
@@ -59,6 +59,7 @@ function Vault() {
   const [reviewOnly, setReviewOnly] = useState(false);
   const [bulkMatch, setBulkMatch] = useState(false);
   const [imgKey, setImgKey] = useState<string | null>(null);
+  const [advanced, setAdvanced] = useState(false);
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
   const [enriching, setEnriching] = useState(false);
@@ -71,7 +72,7 @@ function Vault() {
   });
   const [viewMenu, setViewMenu] = useState(false);
   useEffect(() => { try { localStorage.setItem("pbl_vault_view", viewMode); } catch {} }, [viewMode]);
-  useEffect(() => { setImgKey(null); }, [actionFor?.id]);
+  useEffect(() => { setImgKey(null); setAdvanced(false); }, [actionFor?.id]);
   const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const LANGUAGES = [
@@ -1720,7 +1721,7 @@ function Vault() {
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
-                  {c.needs_review && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-500">Needs Review</span>}
+                  {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
                   {isSafePriced(c) && (
                     <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                   )}
@@ -1741,6 +1742,11 @@ function Vault() {
                       Unlimited
                     </span>
                   )}
+                  {viewMode === "small" && c.needs_review && (
+                    <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-md bg-amber-500/95 px-1.5 py-1 text-[9px] font-bold text-white active:scale-95">
+                      <ImageIcon className="h-3 w-3" /> Fix card
+                    </span>
+                  )}
                 </div>
                 {viewMode !== "small" && (
                   <div className="p-2">
@@ -1749,7 +1755,7 @@ function Vault() {
                     <p className="text-[10px] text-muted-foreground">
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
-                    {c.needs_review && <p className="mt-0.5 text-[10px] font-bold text-amber-500">Needs Review</p>}
+                    {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Choose Correct Card</span>}
                     {isSafePriced(c) && (
                       <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                     )}
@@ -1781,11 +1787,13 @@ function Vault() {
               <button onClick={() => setActionFor(null)} aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
 
-            {/* Price verification + confidence badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              {(() => { const b = priceBadge(actionFor); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${b.cls}`}><ShieldCheck className="h-3 w-3" /> {b.label}</span>; })()}
-              {(() => { const t = confidenceTier(actionFor.confidence_score); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${t.chip}`}><span className={`h-2 w-2 rounded-full ${t.dot}`} /> {t.label} {t.pct}%</span>; })()}
-            </div>
+            {/* Price verification + confidence badges (advanced only) */}
+            {advanced && (
+              <div className="flex flex-wrap items-center gap-2">
+                {(() => { const b = priceBadge(actionFor); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${b.cls}`}><ShieldCheck className="h-3 w-3" /> {b.label}</span>; })()}
+                {(() => { const t = confidenceTier(actionFor.confidence_score); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${t.chip}`}><span className={`h-2 w-2 rounded-full ${t.dot}`} /> {t.label} {t.pct}%</span>; })()}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -1827,15 +1835,63 @@ function Vault() {
 
 
             {actionFor.needs_review && (
-              <div className="flex gap-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500 ring-1 ring-amber-500/25">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <p className="font-bold">Needs Review</p>
-                  <p>{actionFor.review_reason || "Confirm the exact card before assigning market value."}</p>
+              <div className="space-y-2 rounded-xl bg-amber-500/10 p-3 ring-1 ring-amber-500/25">
+                <div className="flex items-start gap-2 text-amber-500">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-sm font-bold">Is this your card?</p>
                 </div>
+                <p className="text-xs text-muted-foreground">Tap below and pick the correct card — we'll fill in the details and value automatically.</p>
+                <button onClick={() => openMatchPicker(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 py-2.5 text-sm font-bold text-white active:scale-[0.99]">
+                  <ImageIcon className="h-4 w-4" /> Choose Correct Card
+                </button>
               </div>
             )}
 
+            {/* Value + condition (consumer-friendly, always visible) */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-lg bg-muted/40 p-2">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[9px] uppercase text-muted-foreground">Market value</p>
+                  <button
+                    type="button"
+                    onClick={() => { const v = parseVariant(actionFor.description); updateVariant(actionFor, v.edition, v.finish); }}
+                    className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground hover:bg-muted/80"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                {isSafePriced(actionFor) ? (
+                  <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
+                ) : <p className="text-base font-bold text-amber-500">Tap "Choose Correct Card"</p>}
+              </div>
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[9px] uppercase text-muted-foreground">Condition (tap to update)</p>
+                <div className="mt-1 grid grid-cols-4 gap-1">
+                  {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => updateCondition(actionFor, c)}
+                      className={`rounded-md px-1.5 py-1 text-[11px] font-bold ${actionFor.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced Details toggle */}
+            <button
+              type="button"
+              onClick={() => setAdvanced((v) => !v)}
+              className="flex w-full items-center justify-between rounded-lg bg-muted/40 px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted/60"
+            >
+              <span>Advanced details</span>
+              {advanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+
+            {advanced && (<>
             {/* Structured card identity — every required field */}
             {(() => {
               const fields: [string, string | null | undefined][] = [
@@ -1915,41 +1971,6 @@ function Vault() {
             )}
 
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-muted/40 p-2">
-                <div className="flex items-center justify-between gap-1">
-                  <p className="text-[9px] uppercase text-muted-foreground">Estimated value</p>
-                  <button
-                    type="button"
-                    onClick={() => { const v = parseVariant(actionFor.description); updateVariant(actionFor, v.edition, v.finish); }}
-                    className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-foreground hover:bg-muted/80"
-                  >
-                    Refresh
-                  </button>
-                </div>
-                {isSafePriced(actionFor) ? (
-                  <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
-                ) : <p className="text-base font-bold text-amber-500">Review needed</p>}
-              </div>
-              <div className="rounded-lg bg-muted/40 p-2">
-                <p className="text-[9px] uppercase text-muted-foreground">Condition (tap to update)</p>
-                <div className="mt-1 grid grid-cols-4 gap-1">
-                  {(["NM", "LP", "MP", "Damaged"] as const).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => updateCondition(actionFor, c)}
-                      className={`rounded-md px-1.5 py-1 text-[11px] font-bold ${actionFor.condition === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-                {actionFor.condition_prices && (
-                  <p className="mt-1 text-[9px] text-muted-foreground">Market value auto-updates from TCG condition prices</p>
-                )}
-              </div>
-            </div>
 
             {/* Language, Edition & Finish (auto-repricing) */}
             {(() => {
@@ -2043,6 +2064,11 @@ function Vault() {
               }}
             />
 
+            <button onClick={() => reportIncorrectPrice(actionFor)} disabled={!!actionFor.incorrect_price_reported} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-bold text-muted-foreground disabled:opacity-60">
+              <Flag className="h-4 w-4" /> {actionFor.incorrect_price_reported ? "Price reported" : "Report incorrect price"}
+            </button>
+            </>)}
+
             {actionFor.description && (
               <div className="rounded-lg bg-muted/40 p-2 text-xs">
                 <p className="text-[9px] uppercase text-muted-foreground">Description</p>
@@ -2057,10 +2083,7 @@ function Vault() {
               <Tag className="h-4 w-4" /> Sell this card
             </button>
             <button onClick={() => { openMatchPicker(actionFor); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
-              <AlertTriangle className="h-4 w-4" /> Wrong match — pick correct card
-            </button>
-            <button onClick={() => reportIncorrectPrice(actionFor)} disabled={!!actionFor.incorrect_price_reported} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-bold text-muted-foreground disabled:opacity-60">
-              <Flag className="h-4 w-4" /> {actionFor.incorrect_price_reported ? "Price reported" : "Report incorrect price"}
+              <ImageIcon className="h-4 w-4" /> Wrong card? Choose the correct one
             </button>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
