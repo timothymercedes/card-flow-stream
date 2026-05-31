@@ -41,6 +41,9 @@ type Card = {
   original_image_url?: string | null; ai_image_url?: string | null; image_gallery?: unknown[] | null;
   confidence_score?: number | null; needs_review?: boolean | null; review_reason?: string | null;
   identification_details?: Record<string, unknown> | null; last_rescan_at?: string | null;
+  created_at?: string | null; match_history?: { from?: string; to?: string; by?: string; at?: string }[] | null;
+  incorrect_price_reported?: boolean | null; incorrect_price_reported_at?: string | null;
+  wrong_match_reported_at?: string | null;
 };
 
 function Vault() {
