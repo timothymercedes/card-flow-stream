@@ -819,6 +819,8 @@ function Vault() {
     ).length;
     return Math.round((good / cards.length) * 100);
   }, [cards]);
+
+  const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
     let base = q
       ? cards.filter((c) =>
