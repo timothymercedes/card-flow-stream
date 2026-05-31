@@ -466,7 +466,7 @@ Deno.serve(async (req) => {
     let priceIsAI = false;
 
     const trustedSources = quotes.filter((qq) =>
-      ["tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
+      ["justtcg", "tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
     ).length;
 
     // AI fallback: ONLY when no real source, no similar-card comp, and no stale
