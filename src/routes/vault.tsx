@@ -678,20 +678,24 @@ function Vault() {
           variant: data?.candidates?.[0]?.variant || c.variant || parseVariant(c.description).finish,
         };
         const confidenceScore = Number(data?.confidence || 0);
-        const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
+        const suspicious = !!data?.price_suspicious;
+        const verified = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && !suspicious && market > 0 && isCompleteIdentity(identity) && confidenceScore >= 0.7;
         const reviewReason = verified
           ? null
-          : !isCompleteIdentity(identity)
-            ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
-            : data?.tier_reason || "Needs review before assigning market value.";
+          : suspicious
+            ? (data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.")
+            : !isCompleteIdentity(identity)
+              ? "Needs exact set, card number, year, rarity, and variant before value can be assigned."
+              : data?.tier_reason || "Needs review before assigning market value.";
         const patch: any = {
           market_price: market,
           estimated_value: verified ? market : 0,
           condition_prices: verified ? conditionPricesFromMarket(market) : null,
           price_source: data?.primary_source || null,
+          price_source_url: data?.market_source?.tcgplayer_url || data?.market_source?.pricecharting_url || null,
           price_confidence: data?.price_confidence || null,
           price_is_ai: !!data?.price_is_ai,
-          price_tier: data?.pricing_tier || "unavailable",
+          price_tier: suspicious ? "estimated" : (data?.pricing_tier || "unavailable"),
           price_range_low: data?.price_range?.low ?? null,
           price_range_high: data?.price_range?.high ?? null,
           price_updated_at: new Date().toISOString(),
@@ -700,6 +704,7 @@ function Vault() {
           confidence_score: confidenceScore || null,
           needs_review: !verified,
           review_reason: reviewReason,
+          pricing_details: { market_source: data?.market_source || null, suspicious, reference_value: data?.reference_value ?? null },
           identification_details: { pricing: data, identity },
           name: identity.name,
           tcg_set: identity.tcg_set || null,
