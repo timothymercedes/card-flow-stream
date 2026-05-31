@@ -345,6 +345,7 @@ Deno.serve(async (req) => {
   // language from the card text itself. Vault scans keep the pre-pass for max
   // accuracy where a couple hundred ms matters less than getting it right.
   const isLiveScan = typeof source === "string" && /^live/i.test(source);
+  const tStage1Start = Date.now();
   if (!multi && !detectedLanguage && !isLiveScan) {
     try {
       const stage1 = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -374,6 +375,7 @@ Deno.serve(async (req) => {
       console.warn("[scan-card] stage1 detect failed:", (e as Error)?.message);
     }
   }
+  const t_stage1 = isLiveScan || multi || (language && LANG_MAP[language]) ? 0 : Date.now() - tStage1Start;
 
   const langName = detectedLanguage && LANG_MAP[detectedLanguage] ? LANG_MAP[detectedLanguage] : null;
   const langHint = langName
