@@ -48,20 +48,25 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
             const v = Number(data?.price?.market) || 0;
             const card = data?.card || {};
             const complete = !!(card.name && card.set_name && card.number && card.year && (card.rarity || c.rarity || c.variant));
-            const safe = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && v > 0 && complete;
+            const suspicious = !!data?.price_suspicious;
+            const safe = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && v > 0 && complete && !suspicious;
+            // Store the best available value (verified, estimated, or AI) so an
+            // identified card never resets to $0. Only suspicious values — which
+            // indicate a wrong product/variant match — are withheld.
+            const storedValue = v > 0 && !suspicious ? v : 0;
             await supabaseAdmin.from("vault_cards").update({
-              estimated_value: safe ? v : 0,
+              estimated_value: storedValue,
               market_price: v || null,
               price_source: data?.primary_source || null,
               price_confidence: data?.price_confidence || "low",
               price_is_ai: !!data?.price_is_ai,
-              price_tier: data?.pricing_tier || "unavailable",
+              price_tier: suspicious ? "estimated" : (data?.pricing_tier || "unavailable"),
               price_updated_at: new Date().toISOString(),
               last_valued_at: new Date().toISOString(),
               last_rescan_at: new Date().toISOString(),
               confidence_score: Number(data?.confidence || 0) || null,
               needs_review: !safe,
-              review_reason: safe ? null : data?.tier_reason || "Needs exact identity confirmation before value is assigned.",
+              review_reason: safe ? null : suspicious ? (data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.") : !card.variant && !c.variant ? "Variant not detected — confirm the variant to verify this value." : data?.tier_reason || "Estimated value shown — confirm the card to verify it.",
               name: card.name || c.name,
               tcg_set: card.set_name || c.tcg_set,
               tcg_number: card.number || c.tcg_number,
