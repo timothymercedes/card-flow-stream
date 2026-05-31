@@ -27,10 +27,10 @@ function pricingProvidersSkipped(active: { id: string }[]) {
 
 // Per-source extractor used when we resolved a card via the game's catalog
 // adapter. Avoids defaulting to Pokémon/TCGplayer for non-Pokémon cards.
-function quoteFromCardForSource(card: NormalizedCard): PriceQuote | null {
+function quoteFromCardForSource(card: NormalizedCard, desiredVariant?: string | null): PriceQuote | null {
   switch (card.source) {
-    case "tcg_api": return tcgplayerQuoteFromCard(card);
-    case "tcgdex": return tcgplayerQuoteFromCard(card); // tcgdex returns pokemon shape
+    case "tcg_api": return tcgplayerQuoteFromCard(card, desiredVariant);
+    case "tcgdex": return tcgplayerQuoteFromCard(card, desiredVariant); // tcgdex returns pokemon shape
     case "ygoprodeck": return ygoQuoteFromCard(card);
     case "scryfall": return scryfallQuoteFromCard(card);
     case "tcg_prices": return tcgPricesQuoteFromCard(card);
