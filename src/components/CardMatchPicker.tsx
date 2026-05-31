@@ -264,10 +264,10 @@ export function CardMatchPicker({
         ) : (
           /* Manual entry form */
           <form
-            onSubmit={(e) => { e.preventDefault(); saveManual(); }}
+            onSubmit={(e) => { e.preventDefault(); findManual(); }}
             className="space-y-2"
           >
-            <p className="text-[11px] text-muted-foreground">Enter your card's details. Only the name is required.</p>
+            <p className="text-[11px] text-muted-foreground">Enter anything you know — we'll search the card databases and show you image matches to tap.</p>
             <input
               value={mf.name}
               onChange={(e) => setMf((p) => ({ ...p, name: e.target.value }))}
@@ -279,24 +279,33 @@ export function CardMatchPicker({
               <input value={mf.set} onChange={(e) => setMf((p) => ({ ...p, set: e.target.value }))} placeholder="Set" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
               <input value={mf.number} onChange={(e) => setMf((p) => ({ ...p, number: e.target.value }))} placeholder="Card number" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
               <input value={mf.year} onChange={(e) => setMf((p) => ({ ...p, year: e.target.value }))} placeholder="Year" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <input value={mf.category} onChange={(e) => setMf((p) => ({ ...p, category: e.target.value }))} placeholder="Game / Category" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <input value={mf.rarity} onChange={(e) => setMf((p) => ({ ...p, rarity: e.target.value }))} placeholder="Rarity (optional)" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <input value={mf.variant} onChange={(e) => setMf((p) => ({ ...p, variant: e.target.value }))} placeholder="Variant / stamp (optional)" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+            </div>
+            <div className="flex items-center gap-2">
               <select value={mf.condition} onChange={(e) => setMf((p) => ({ ...p, condition: e.target.value }))} className="rounded-lg bg-input px-3 py-2 text-sm outline-none">
                 {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
+              <input
+                value={mf.notes}
+                onChange={(e) => setMf((p) => ({ ...p, notes: e.target.value }))}
+                placeholder="Notes (optional)"
+                className="flex-1 rounded-lg bg-input px-3 py-2 text-sm outline-none"
+              />
             </div>
-            <textarea
-              value={mf.notes}
-              onChange={(e) => setMf((p) => ({ ...p, notes: e.target.value }))}
-              placeholder="Notes (optional)"
-              rows={2}
-              className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
-            />
+            <button type="submit" disabled={(!mf.name.trim() && !mf.number?.trim()) || searchingManual} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
+              {searchingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Find this card
+            </button>
             <div className="flex gap-2">
               <button type="button" onClick={() => setManual(false)} className="flex-1 rounded-lg bg-muted py-2.5 text-sm font-semibold text-muted-foreground">
                 Back to search
               </button>
-              <button type="submit" disabled={!mf.name.trim() || savingManual} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
-                {savingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save card
-              </button>
+              {onManualSave && (
+                <button type="button" onClick={saveManual} disabled={!mf.name.trim() || savingManual} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-semibold text-muted-foreground disabled:opacity-50">
+                  {savingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save as entered
+                </button>
+              )}
             </div>
           </form>
         )}
