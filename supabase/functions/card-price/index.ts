@@ -110,6 +110,55 @@ function cacheKey(card_id: string, name: string, set: string, number: string) {
   return `q:${name.toLowerCase()}|${set.toLowerCase()}|${number.toLowerCase()}`;
 }
 
+// AI-estimated market value — LAST-RESORT fallback only, used when no real
+// catalog/sold source returned a price. Always clearly labeled downstream so
+// the UI can flag it as an estimate (never as verified market data).
+async function estimatePriceWithAI(q: {
+  name: string; set?: string | null; number?: string | null;
+  category?: string | null; variant?: string | null; year?: string | null;
+}): Promise<{ market: number; low: number; high: number } | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey || !q.name) return null;
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a trading-card and collectibles market appraiser covering Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Dragon Ball, Flesh and Blood, Weiss Schwarz, Digimon, sports cards, and other collectibles. Estimate the current RAW Near-Mint USD market value based on recent sold prices you know of. Return STRICT JSON only: {\"market\": number, \"low\": number, \"high\": number}. All values > 0. low/high should bracket realistic recent sold prices. If totally unknown, give your single best guess, never 0.",
+          },
+          {
+            role: "user",
+            content: `Estimate the recent sold market value (USD, raw NM) for this card:\nName: ${q.name}\nCategory: ${q.category || "unknown"}\nSet: ${q.set || "unknown"}\nNumber: ${q.number || "unknown"}\nYear: ${q.year || "unknown"}\nVariant: ${q.variant || "standard"}`,
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 80,
+      }),
+    });
+    if (!resp.ok) return null;
+    const j = await resp.json();
+    const parsed = JSON.parse(j.choices?.[0]?.message?.content || "{}");
+    const market = Number(parsed.market);
+    if (!isFinite(market) || market <= 0) return null;
+    const low = Number(parsed.low) > 0 ? Number(parsed.low) : Math.round(market * 0.7 * 100) / 100;
+    const high = Number(parsed.high) > 0 ? Number(parsed.high) : Math.round(market * 1.4 * 100) / 100;
+    return {
+      market: Math.round(market * 100) / 100,
+      low: Math.round(Math.min(low, market) * 100) / 100,
+      high: Math.round(Math.max(high, market) * 100) / 100,
+    };
+  } catch (e) {
+    console.warn("[card-price] AI estimate failed:", (e as Error)?.message);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const t0 = Date.now();
@@ -278,10 +327,29 @@ Deno.serve(async (req) => {
     let pricingTier: "verified" | "estimated" | "unavailable" = "unavailable";
     let priceRange: { low: number; high: number } | null = null;
     let tierReason = "";
+    let priceIsAI = false;
 
     const trustedSources = quotes.filter((qq) =>
       ["tcg_api", "scryfall", "ygoprodeck", "tcg_prices", "tcgdex", "pricecharting", "psa", "ebay_sold"].includes(qq.source),
     ).length;
+
+    // AI fallback: ONLY when no real source, no similar-card comp, and no stale
+    // cache produced a price. AI never overrides real sold-market data.
+    let aiPrice: { market: number; low: number; high: number } | null = null;
+    const noRealData =
+      !(market && market > 0) &&
+      candidateMarkets.length === 0 &&
+      !(staleCachePayload?.price?.market);
+    if (noRealData && (q.name || name)) {
+      aiPrice = await estimatePriceWithAI({
+        name: q.name || name,
+        set: q.set || set,
+        number: q.number || number,
+        category: body?.category || game.id,
+        variant,
+        year,
+      });
+    }
 
     if (market && market > 0 && bestScore >= 80 && trustedSources >= 1 && !(staleCachePayload && (aggregated.market == null))) {
       pricingTier = "verified";
@@ -303,10 +371,37 @@ Deno.serve(async (req) => {
         high: Math.round(Math.max(hi, lo * 1.1) * 100) / 100,
       };
       tierReason = `Estimated from ${candidateMarkets.length} similar card${candidateMarkets.length === 1 ? "" : "s"} — no exact match yet.`;
+    } else if (aiPrice) {
+      pricingTier = "estimated";
+      priceIsAI = true;
+      priceRange = { low: aiPrice.low, high: aiPrice.high };
+      tierReason = "AI-estimated value — no real sold-market data was found for this card. Verify or set the price manually.";
     } else {
       pricingTier = "unavailable";
       tierReason = "No reliable market data. Set price manually or check recent sold listings.";
     }
+
+    const finalPrice = priceIsAI && aiPrice
+      ? { market: aiPrice.market, low: aiPrice.low, mid: null as number | null, high: aiPrice.high, currency: "USD" }
+      : {
+          market: aggregated.market,
+          low: aggregated.low,
+          mid: aggregated.mid,
+          high: aggregated.high,
+          currency: aggregated.currency,
+        };
+
+    const primarySource = priceIsAI ? "ai_estimate" : aggregated.primary_source;
+    const finalConfidence = priceIsAI ? Math.min(confidence, 0.35) : confidence;
+    const priceConfidence: "high" | "medium" | "low" = priceIsAI
+      ? "low"
+      : pricingTier === "verified" && finalConfidence >= 0.75
+        ? "high"
+        : pricingTier === "verified"
+          ? "medium"
+          : pricingTier === "estimated" && finalConfidence >= 0.55
+            ? "medium"
+            : "low";
 
     let payload: any = {
       game: game.id,
@@ -332,22 +427,18 @@ Deno.serve(async (req) => {
       })),
       official_image_url: officialImage,
       image_source: imageSource,
-      price: {
-        market: aggregated.market,
-        low: aggregated.low,
-        mid: aggregated.mid,
-        high: aggregated.high,
-        currency: aggregated.currency,
-      },
+      price: finalPrice,
       pricing_tier: pricingTier,
       price_range: priceRange,
       tier_reason: tierReason,
-      confidence,
+      price_is_ai: priceIsAI,
+      price_confidence: priceConfidence,
+      confidence: finalConfidence,
       sources: aggregated.sources,
       sources_tried: sourcesTried,
       sources_failed: sourcesFailed,
       sources_skipped: sourcesSkipped,
-      primary_source: aggregated.primary_source,
+      primary_source: primarySource,
       cached: false,
       stale: false,
       duration_ms: Date.now() - t0,
