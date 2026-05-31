@@ -25,6 +25,32 @@ export function nativePlatform(): "ios" | "android" | "web" {
   return p === "ios" || p === "android" ? p : "web";
 }
 
+const APP_LINK_HOSTS = new Set([
+  "pullbidlive.com",
+  "www.pullbidlive.com",
+  "card-flow-stream.lovable.app",
+]);
+
+function routeNativeUrl(rawUrl?: string | null) {
+  if (!rawUrl || typeof window === "undefined") return;
+  try {
+    const url = new URL(rawUrl);
+    const isAppLink = url.protocol === "https:" && APP_LINK_HOSTS.has(url.hostname);
+    const isCustomScheme = url.protocol === "pullbidlive:" || url.protocol === "com.pullbidlive.app:";
+    if (!isAppLink && !isCustomScheme) return;
+
+    const target = isCustomScheme
+      ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}${url.search}${url.hash}`
+      : `${url.pathname}${url.search}${url.hash}`;
+    const next = target && target !== "" ? target : "/";
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.location.href = next;
+    }
+  } catch (e) {
+    console.warn("[capacitor] deep link parse failed", e);
+  }
+}
+
 /**
  * Configure status bar, splash, keyboard, hardware back, and app lifecycle.
  * Idempotent — calling twice is a no-op.
@@ -72,6 +98,9 @@ export async function initCapacitor(): Promise<void> {
 
   try {
     const { App } = await import("@capacitor/app");
+    App.addListener("appUrlOpen", ({ url }) => {
+      routeNativeUrl(url);
+    });
     // Hardware back on Android: pop history, or exit on root.
     App.addListener("backButton", ({ canGoBack }) => {
       if (canGoBack) {
