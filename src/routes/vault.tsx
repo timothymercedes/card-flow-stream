@@ -982,7 +982,7 @@ function Vault() {
         toast.warning("Value looks wrong — flagged for re-sync", { id: tId });
         return;
       }
-      const mult = langMult(card.language || parseLanguage(card.description));
+      const mult = effectiveLangMult(langCode, data);
       const priced = market * mult;
       const cp = conditionPricesFromMarket(priced);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
@@ -991,7 +991,7 @@ function Vault() {
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: false,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
-        pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null },
+        pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null, language: langCode, language_matched: !!data?.language_matched, language_unconfirmed: !!data?.language_unconfirmed },
         needs_review: false, review_reason: null,
         price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
       };
