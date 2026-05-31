@@ -72,7 +72,38 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
             updated++;
           } catch {/* skip */}
         }
-        return new Response(JSON.stringify({ ok: true, updated, scanned: cards?.length || 0 }), { headers: { "Content-Type": "application/json" } });
+
+        // Record a daily vault-value snapshot per user so the growth chart
+        // accrues history even for users who don't open the app.
+        let snapshots = 0;
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const { data: allCards } = await supabaseAdmin
+            .from("vault_cards")
+            .select("user_id,estimated_value,purchase_price,status")
+            .neq("status", "sold");
+          const agg = new Map<string, { value: number; cost: number; count: number }>();
+          for (const c of allCards || []) {
+            if (!c.user_id) continue;
+            const a = agg.get(c.user_id) || { value: 0, cost: 0, count: 0 };
+            a.value += Number(c.estimated_value || 0);
+            a.cost += Number(c.purchase_price || 0);
+            a.count += 1;
+            agg.set(c.user_id, a);
+          }
+          const rows = Array.from(agg.entries()).map(([user_id, a]) => ({
+            user_id, snapshot_date: today, total_value: a.value, total_cost: a.cost, card_count: a.count,
+          }));
+          if (rows.length) {
+            const { error: snapErr } = await supabaseAdmin
+              .from("vault_value_snapshots")
+              .upsert(rows, { onConflict: "user_id,snapshot_date" });
+            if (!snapErr) snapshots = rows.length;
+          }
+        } catch {/* snapshots are best-effort */}
+
+        return new Response(JSON.stringify({ ok: true, updated, scanned: cards?.length || 0, snapshots }), { headers: { "Content-Type": "application/json" } });
+
       },
     },
   },
