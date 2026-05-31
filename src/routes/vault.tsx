@@ -9,6 +9,7 @@ import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
+import { VaultGrowthChart } from "@/components/VaultGrowthChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
 import { PurchaseInfoPanel } from "@/components/PurchaseInfoPanel";
 import { CardMatchPicker, type MatchOption, type ManualCardEntry } from "@/components/CardMatchPicker";
@@ -998,6 +999,26 @@ function Vault() {
   );
   const totalProfit = useMemo(() => totalValue - totalPurchase, [totalValue, totalPurchase]);
 
+  // Record one vault-value snapshot per day so the growth chart accrues history
+  // even on days the daily cron didn't run for this user. Owner-only (RLS).
+  useEffect(() => {
+    if (!user?.id) return;
+    if (cards.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const flag = `pbl_vault_snapshot_${user.id}_${today}`;
+    try { if (localStorage.getItem(flag)) return; } catch {}
+    (async () => {
+      const { error } = await supabase
+        .from("vault_value_snapshots")
+        .upsert(
+          { user_id: user.id, snapshot_date: today, total_value: totalValue, total_cost: totalPurchase, card_count: cards.length },
+          { onConflict: "user_id,snapshot_date" }
+        );
+      if (!error) { try { localStorage.setItem(flag, "1"); } catch {} }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, cards.length, totalValue, totalPurchase]);
+
   // Review-queue breakdown shown at the top of the Vault.
   const reviewSummary = useMemo(() => ({
     needsReview: cards.filter((c) => c.needs_review).length,
@@ -1642,6 +1663,11 @@ function Vault() {
             </div>
           </div>
         </div>
+
+        {/* Vault growth over time (owner only) */}
+        {user?.id && <VaultGrowthChart userId={user.id} liveValue={totalValue} />}
+
+
 
         {/* Pricing diagnostics — makes missing-value issues easy to spot */}
         <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
