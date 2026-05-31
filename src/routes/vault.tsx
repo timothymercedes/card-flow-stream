@@ -809,6 +809,9 @@ function Vault() {
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      // The user explicitly confirmed this match — close the picker so they
+      // land back on the (now-verified) card with no lingering "Fix" prompt.
+      setMatchingCard(null);
       toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — needs a price source", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not update card", { id: tId });
