@@ -298,6 +298,7 @@ export async function fetchPriceCharting(
       high: all.length ? Math.max(...all) : null,
       currency: "USD",
       url: j.id ? `https://www.pricecharting.com/game/${j.id}` : null,
+      product_id: j.id ? String(j.id) : null,
       raw: j,
     };
   } catch {
