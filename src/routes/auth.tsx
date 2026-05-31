@@ -108,7 +108,7 @@ function Auth() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (mode === "forgot") {
-      if (!email) return toast.error("Enter your email");
+      if (!email) return toast.error("Enter your email address");
       if (!(await ensureCaptcha("password_reset"))) return;
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -116,8 +116,18 @@ function Auth() {
       });
       setLoading(false);
       setCaptchaToken(null);
-      if (error) toast.error(error.message);
-      else { toast.success("Reset link sent — check your email"); setMode("signin"); }
+      // Rate-limit is the only error worth surfacing. For "user not found" Supabase
+      // returns no error (privacy-preserving), so we always show success otherwise.
+      if (error && /rate|too many|limit/i.test(error.message)) {
+        toast.error("Too many attempts. Please wait a minute and try again.");
+        return;
+      }
+      if (error && !/not found|no user/i.test(error.message)) {
+        toast.error(error.message);
+        return;
+      }
+      setResetSent(true);
+      toast.success("If an account exists for that email, a reset link is on its way.");
       return;
     }
     if (mode === "signup") {
