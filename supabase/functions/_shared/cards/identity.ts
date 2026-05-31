@@ -184,6 +184,35 @@ export async function upsertIdentity(input: CardIdentityInput): Promise<string |
   }
 }
 
+// ---- Master price write ---------------------------------------------------
+export interface IdentityPriceInput {
+  identity_id: string;
+  market_cents: number;
+  source?: string | null;
+  currency?: string;
+  verification_status?: "verified" | "estimated" | "unverified";
+}
+
+/** Persist the canonical market value on the master card record. The card —
+ *  not the user — owns this price, so every owner reads the same number. */
+export async function setIdentityMarketPrice(p: IdentityPriceInput): Promise<void> {
+  try {
+    if (!p.identity_id || !Number.isFinite(p.market_cents) || p.market_cents <= 0) return;
+    await admin().from("card_identities").update({
+      market_value_cents: Math.round(p.market_cents),
+      price_currency: p.currency ?? "USD",
+      price_source: p.source ?? null,
+      last_price_sync: new Date().toISOString(),
+      verification_status: p.verification_status ?? "estimated",
+      updated_at: new Date().toISOString(),
+    }).eq("id", p.identity_id);
+  } catch (err) {
+    console.warn("[identity] price update failed", (err as Error).message);
+  }
+}
+
+
+
 // ---- Observation log ------------------------------------------------------
 export interface PriceObservationInput {
   identity_id: string;
