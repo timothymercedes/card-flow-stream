@@ -50,6 +50,7 @@ function Auth() {
   const [tosOk, setTosOk] = useState(false);
   const [guidelinesOk, setGuidelinesOk] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   async function ensureCaptcha(action: string): Promise<boolean> {
     if (!captchaToken) {
@@ -108,7 +109,7 @@ function Auth() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (mode === "forgot") {
-      if (!email) return toast.error("Enter your email");
+      if (!email) return toast.error("Enter your email address");
       if (!(await ensureCaptcha("password_reset"))) return;
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -116,8 +117,18 @@ function Auth() {
       });
       setLoading(false);
       setCaptchaToken(null);
-      if (error) toast.error(error.message);
-      else { toast.success("Reset link sent — check your email"); setMode("signin"); }
+      // Rate-limit is the only error worth surfacing. For "user not found" Supabase
+      // returns no error (privacy-preserving), so we always show success otherwise.
+      if (error && /rate|too many|limit/i.test(error.message)) {
+        toast.error("Too many attempts. Please wait a minute and try again.");
+        return;
+      }
+      if (error && !/not found|no user/i.test(error.message)) {
+        toast.error(error.message);
+        return;
+      }
+      setResetSent(true);
+      toast.success("If an account exists for that email, a reset link is on its way.");
       return;
     }
     if (mode === "signup") {
@@ -219,6 +230,21 @@ function Auth() {
               <input type="checkbox" checked={guidelinesOk} onChange={(e) => setGuidelinesOk(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
               <span>I agree to follow the <a href="/legal/community-guidelines" target="_blank" className="text-primary underline">Community Guidelines</a>.</span>
             </label>
+          </div>
+        )}
+        {mode === "forgot" && !resetSent && (
+          <p className="text-center text-[12px] text-muted-foreground">
+            Enter your account email and we'll send a secure password reset link.
+          </p>
+        )}
+        {mode === "forgot" && resetSent && (
+          <div className="rounded-xl border border-primary/30 bg-primary/10 p-3 text-[12px] text-foreground">
+            <p className="font-semibold text-primary">Check your inbox</p>
+            <p className="mt-1 text-muted-foreground">
+              If an account exists for <strong>{email}</strong>, you'll receive a
+              reset link within a few minutes. Be sure to check your spam or
+              promotions folder. The link expires after 1 hour.
+            </p>
           </div>
         )}
         <Turnstile
