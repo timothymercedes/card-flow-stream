@@ -2210,6 +2210,54 @@ function Vault() {
                 </div>
             )})()}
 
+            {/* Market Source */}
+            {(() => {
+              const ms = (actionFor.pricing_details as any)?.market_source || null;
+              const suspicious = !!(actionFor.pricing_details as any)?.suspicious;
+              const tcgId = ms?.tcgplayer_product_id || null;
+              const pcId = ms?.pricecharting_product_id || null;
+              const lastSync = ms?.last_sync || actionFor.price_updated_at || null;
+              const Row = ({ ok, label }: { ok: boolean; label: string }) => (
+                <div className="flex items-center gap-1.5">
+                  {ok ? <ShieldCheck className="h-3 w-3 text-emerald-500" /> : <X className="h-3 w-3 text-muted-foreground" />}
+                  <span className={ok ? "font-semibold text-foreground" : "text-muted-foreground"}>{label}</span>
+                </div>
+              );
+              return (
+                <div className="rounded-lg bg-muted/40 p-2">
+                  <p className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"><DollarSign className="h-3 w-3" /> Market Source</p>
+                  {suspicious && (
+                    <div className="mb-2 flex items-start gap-1.5 rounded-md bg-amber-500/10 p-1.5 text-[10px] text-amber-600">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>{(actionFor.review_reason) || "Value flagged as suspicious — re-sync recommended."}</span>
+                    </div>
+                  )}
+                  <div className="grid gap-1 text-[11px]">
+                    <Row ok={!!tcgId} label={tcgId ? `TCGPlayer ID: ${tcgId}` : "TCGPlayer ID: —"} />
+                    <Row ok={!!pcId} label={pcId ? `PriceCharting ID: ${pcId}` : "PriceCharting ID: —"} />
+                    <div className="flex items-center gap-1.5">
+                      <History className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Last Sync: {lastSync ? new Date(lastSync).toLocaleString() : "—"}</span>
+                    </div>
+                    {ms?.variant_used && (
+                      <div className="flex items-center gap-1.5">
+                        <Layers className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Variant: {ms.variant_used}</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => retryPricing(actionFor)}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground transition active:scale-[0.98]"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Refresh Market Data
+                  </button>
+                </div>
+              );
+            })()}
+
+
+
             {/* Audit trail */}
             {(() => {
               const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
