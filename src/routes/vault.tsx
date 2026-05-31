@@ -9,6 +9,7 @@ import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
+import { VaultGrowthChart } from "@/components/VaultGrowthChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
 import { PurchaseInfoPanel } from "@/components/PurchaseInfoPanel";
 import { CardMatchPicker, type MatchOption, type ManualCardEntry } from "@/components/CardMatchPicker";
