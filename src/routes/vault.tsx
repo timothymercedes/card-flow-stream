@@ -48,7 +48,7 @@ type Card = {
   wrong_match_reported_at?: string | null;
   purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
   confirmed_by?: string | null;
-  card_identity_id?: string | null; enrichment_status?: string | null;
+  card_identity_id?: string | null; master_identity_id?: string | null; enrichment_status?: string | null;
   pricing_details?: Record<string, unknown> | null; price_source_url?: string | null;
 };
 
