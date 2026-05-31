@@ -40,7 +40,7 @@ function routeNativeUrl(rawUrl?: string | null) {
     if (!isAppLink && !isCustomScheme) return;
 
     const target = isCustomScheme
-      ? `${url.pathname || "/"}${url.search}${url.hash}`
+      ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}${url.search}${url.hash}`
       : `${url.pathname}${url.search}${url.hash}`;
     const next = target && target !== "" ? target : "/";
     if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
