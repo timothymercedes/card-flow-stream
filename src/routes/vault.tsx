@@ -1738,8 +1738,15 @@ function Vault() {
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
                   {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
-                  {isSafePriced(c) && (
-                    <p className="flex-shrink-0 text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                  {Number(c.estimated_value || 0) > 0 && (
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                      {cardGain(c) != null && (
+                        <p className={`text-[10px] font-semibold ${cardGain(c)! >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                          {cardGain(c)! >= 0 ? "+" : "-"}${Math.abs(cardGain(c)!).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </button>
               );
