@@ -952,7 +952,39 @@ function Vault() {
         return;
       }
 
-      // 4) Nothing found anywhere → persist exactly what the collector entered.
+      // 4) Nothing found in any catalog → still try a live pricing lookup so a
+      // manually-entered card isn't permanently stuck at $0. Manual entry must
+      // trigger pricing, never bypass it.
+      let marketPrice: number | null = null;
+      let conditionPrices: any = null;
+      let estimatedValue = 0;
+      let priceSourceUrl: string | null = null;
+      try {
+        const { data: pd } = await supabase.functions.invoke("card-price", {
+          body: {
+            name: f.name || card.name,
+            set: f.set || card.tcg_set || undefined,
+            number: f.number || card.tcg_number || undefined,
+            year: f.year || card.tcg_year || undefined,
+            category: f.category || card.category || undefined,
+            game: categoryToGameId(f.category || card.category),
+            variant: f.variant || card.variant || undefined,
+            skip_cache: true,
+          },
+        });
+        const mk = Number(pd?.price?.market) || 0;
+        if (mk > 0 && !pd?.price_suspicious) {
+          const mult = langMult(card.language || parseLanguage(card.description));
+          marketPrice = mk * mult;
+          conditionPrices = conditionPricesFromMarket(marketPrice);
+          estimatedValue = conditionPrices
+            ? priceFor(((f.condition as Condition) || card.condition || "NM") as Condition, Number(conditionPrices.NM) || marketPrice, conditionPrices)
+            : marketPrice;
+          priceSourceUrl = pd?.market_source?.tcgplayer_url || pd?.market_source?.pricecharting_url || null;
+        }
+      } catch { /* leave unpriced — user can tap Retry pricing */ }
+
+      const hasPrice = estimatedValue > 0;
       const patch: any = {
         name: f.name || card.name,
         category: f.category || card.category || "Trading Card",
@@ -963,12 +995,23 @@ function Vault() {
         variant: f.variant || card.variant,
         condition: (f.condition as Condition) || card.condition || "NM",
         description: f.notes ? f.notes : card.description,
-        price_source: "manual_entry",
+        estimated_value: estimatedValue,
+        market_price: marketPrice,
+        condition_prices: conditionPrices,
+        price_source: hasPrice ? "manual_entry_priced" : "manual_entry",
+        price_source_url: priceSourceUrl,
+        price_confidence: hasPrice ? "high" : "low",
+        price_is_ai: false,
+        price_tier: hasPrice ? "verified" : "unavailable",
         confidence_score: 1,
         needs_review: false,
-        review_reason: null,
+        review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
         confirmed_by: user?.id ?? null,
-        price_locked: true,
+        // Only lock the price if we actually found one; otherwise leave it open
+        // so "Retry pricing" can fill it in later.
+        price_locked: hasPrice,
+        price_updated_at: new Date().toISOString(),
+        last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
         incorrect_price_reported: false,
         incorrect_price_reported_at: null,
@@ -982,7 +1025,7 @@ function Vault() {
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
       setMatchingCard(null);
-      toast.success("Card saved", { id: tId });
+      toast.success(hasPrice ? `Card saved • $${estimatedValue.toFixed(2)}` : "Card saved — tap Retry pricing for market value", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not save card", { id: tId });
     }
