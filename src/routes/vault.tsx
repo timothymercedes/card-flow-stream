@@ -974,6 +974,14 @@ function Vault() {
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      if (!patch.master_identity_id) {
+        void ensureMasterIdentity(card.id, {
+          category: patch.category, name: patch.name, tcg_set: patch.tcg_set,
+          tcg_number: patch.tcg_number, tcg_year: patch.tcg_year, variant: card.variant,
+          language: langCode, rarity: patch.rarity, image_url: patch.image_url,
+          card_identity_id: patch.card_identity_id, confidence_score: 0.97,
+        });
+      }
       // The user explicitly confirmed this match — close the picker so they
       // land back on the (now-verified) card with no lingering "Fix" prompt.
       setMatchingCard(null);
