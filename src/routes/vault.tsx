@@ -1800,7 +1800,7 @@ function Vault() {
                       Unlimited
                     </span>
                   )}
-                  {viewMode === "small" && c.needs_review && (
+                  {viewMode === "small" && c.needs_review && !isUserVerified(c) && (
                     <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-md bg-amber-500/95 px-1.5 py-1 text-[9px] font-bold text-white active:scale-95">
                       <ImageIcon className="h-3 w-3" /> Fix card
                     </span>
