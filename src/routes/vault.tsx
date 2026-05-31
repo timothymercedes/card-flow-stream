@@ -11,6 +11,7 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
 import { CardPricingPanel } from "@/components/CardPricingPanel";
+import { CardMatchPicker, type MatchOption } from "@/components/CardMatchPicker";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { validateListingImage } from "@/lib/listingDisplay";
 
@@ -50,6 +51,8 @@ function Vault() {
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
+  const [matchingCard, setMatchingCard] = useState<Card | null>(null);
+  const [reviewOnly, setReviewOnly] = useState(false);
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
   const [enriching, setEnriching] = useState(false);
@@ -132,10 +135,16 @@ function Vault() {
   }
 
   function isSafePriced(card: Card) {
-    if (card.needs_review && !card.price_locked) return false;
-    if (card.price_confidence === "low" && !card.price_locked) return false;
-    if (card.price_tier && card.price_tier !== "verified" && !card.price_locked) return false;
-    if (!isCompleteIdentity(card) && !card.price_locked) return false;
+    // Manual override (locked) is always trusted.
+    if (card.price_locked) return Number(card.estimated_value || 0) > 0;
+    // Otherwise the card must be verified: not flagged for review, not low
+    // confidence, and explicitly priced through a verified tier. The "verified"
+    // tier is only set after exact structured identity is confirmed (either by
+    // auto-enrichment or a user-confirmed visual match), so we trust it here.
+    if (card.needs_review) return false;
+    if (card.price_confidence === "low") return false;
+    if (card.price_tier && card.price_tier !== "verified") return false;
+    if (!card.price_tier) return false;
     return Number(card.estimated_value || 0) > 0;
   }
 
@@ -641,21 +650,92 @@ function Vault() {
     else toast.success(v === "private" ? "Vault is private" : `Vault visible to ${v}`);
   }
 
-  async function markWrongMatch(card: Card) {
-    const patch = {
-      needs_review: true,
-      review_reason: "Wrong match reported by user. Confirm exact card before assigning value.",
-      wrong_match_reported_at: new Date().toISOString(),
-      estimated_value: 0,
-      price_tier: "unavailable",
-      price_confidence: "low",
-    };
-    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
-    if (error) { toast.error(error.message); return; }
-    setCards((prev) => prev.map((c) => c.id === card.id ? { ...c, ...patch } : c));
-    setActionFor((prev) => prev && prev.id === card.id ? { ...prev, ...patch } : prev);
-    toast.success("Marked for review — value removed until corrected");
+  // "Wrong Match" / "Fix match" → open the visual matcher instead of forcing
+  // the user to type metadata. They simply tap the correct card image.
+  function openMatchPicker(card: Card) {
+    setMatchingCard(card);
   }
+
+  // Apply a user-confirmed visual match: update metadata, re-price, refresh the
+  // card image, clear the Needs-Review flag and recalculate the vault total.
+  async function applyMatch(card: Card, m: MatchOption) {
+    const tId = toast.loading("Updating card…");
+    try {
+      const original = card.original_image_url || (looksLikeUserUpload(card.image_url) ? card.image_url : null);
+      const v = parseVariant(card.description);
+      const langCode = card.language || parseLanguage(card.description);
+      const mult = langMult(langCode);
+      const raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      const variantPrice = raw != null ? Number(raw) * mult : raw;
+      const cp = conditionPricesFromMarket(variantPrice);
+      const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || Number(variantPrice) || 0, cp) : 0;
+      const hasPrice = newValue > 0;
+
+      // Prefer the real catalog image; generate AI art only if there is none.
+      let primaryImg = m.image || null;
+      if (!primaryImg && m.name) {
+        try {
+          const { data: gen } = await supabase.functions.invoke("generate-card-image", {
+            body: { name: m.name, category: m.category || card.category, set: m.set, year: m.year, tcg_number: m.number },
+          });
+          if (gen?.image) primaryImg = gen.image;
+        } catch { /* ignore */ }
+      }
+
+      const patch: any = {
+        name: m.name || card.name,
+        category: m.category || card.category || "Trading Card",
+        tcg_set: m.set || card.tcg_set,
+        tcg_number: m.number || card.tcg_number,
+        tcg_year: m.year || card.tcg_year,
+        rarity: m.rarity || card.rarity,
+        image_url: primaryImg || card.image_url,
+        ai_image_url: primaryImg || card.ai_image_url,
+        original_image_url: original,
+        image_source: m.image ? "catalog" : primaryImg ? "ai_generated" : card.image_source,
+        image_gallery: [
+          primaryImg ? { url: primaryImg, type: m.image ? "catalog" : "ai_generated", primary: true } : null,
+          original ? { url: original, type: "user_upload", primary: false } : null,
+          card.back_image_url ? { url: card.back_image_url, type: "user_back", primary: false } : null,
+        ].filter(Boolean),
+        estimated_value: newValue,
+        market_price: Number(variantPrice) || null,
+        condition_prices: cp as any,
+        price_source: "user_confirmed",
+        price_confidence: hasPrice ? "high" : "low",
+        price_is_ai: false,
+        price_tier: hasPrice ? "verified" : "unavailable",
+        price_range_low: null,
+        price_range_high: null,
+        confidence_score: 0.97,
+        needs_review: !hasPrice,
+        review_reason: hasPrice ? null : "Confirmed match but no market price available yet.",
+        price_updated_at: new Date().toISOString(),
+        last_valued_at: new Date().toISOString(),
+        last_rescan_at: new Date().toISOString(),
+        identification_details: { confirmed_match: m },
+      };
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+      setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — needs a price source", { id: tId });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update card", { id: tId });
+    }
+  }
+
+  // Cards that belong in the review queue: low confidence / missing metadata /
+  // unverified pricing / missing AI card image.
+  const reviewCards = useMemo(
+    () => cards.filter((c) =>
+      c.needs_review ||
+      !isSafePriced(c) ||
+      needsOfficialCardImage(c.image_url) ||
+      !c.tcg_set || !c.tcg_number || !c.tcg_year
+    ),
+    [cards]
+  );
 
   const totalValue = useMemo(
     () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
@@ -664,15 +744,16 @@ function Vault() {
 
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = q
+    let base = q
       ? cards.filter((c) =>
           [c.name, c.tcg_set, c.tcg_year, c.tcg_number, c.category]
             .filter(Boolean)
             .some((f) => String(f).toLowerCase().includes(q))
         )
       : cards;
+    if (reviewOnly) base = base.filter((c) => reviewCards.some((r) => r.id === c.id));
     return [...base].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-  }, [cards, query]);
+  }, [cards, query, reviewOnly, reviewCards]);
 
   // Predictive suggestions for the search box (from existing vault metadata)
   const suggestions = useMemo(() => {
@@ -1264,6 +1345,7 @@ function Vault() {
             <p className="text-xs text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} · scan, value, list</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setReviewOnly((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition active:scale-[0.98] ${reviewOnly ? "bg-amber-500 text-white ring-amber-500" : "bg-card/60 ring-border/60 hover:bg-card"}`}><AlertTriangle className="h-3.5 w-3.5" /> Review{reviewCards.length ? ` (${reviewCards.length})` : ""}</button>
             <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
@@ -1792,8 +1874,8 @@ function Vault() {
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
             </button>
-            <button onClick={() => markWrongMatch(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
-              <AlertTriangle className="h-4 w-4" /> Wrong Match
+            <button onClick={() => { openMatchPicker(actionFor); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
+              <AlertTriangle className="h-4 w-4" /> Wrong match — pick correct card
             </button>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
@@ -1805,6 +1887,17 @@ function Vault() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Visual card matcher — tap the correct card image */}
+      {matchingCard && (
+        <CardMatchPicker
+          uploadedImage={matchingCard.original_image_url || matchingCard.image_url || undefined}
+          card={{ name: matchingCard.name, tcg_set: matchingCard.tcg_set, tcg_number: matchingCard.tcg_number, category: matchingCard.category }}
+          fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
+          onSelect={(m) => applyMatch(matchingCard, m)}
+          onClose={() => setMatchingCard(null)}
+        />
       )}
 
       {/* Edit modal */}
