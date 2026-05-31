@@ -1714,6 +1714,7 @@ function Vault() {
                   <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                     {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                   </div>
+                  <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${confidenceTier(c.confidence_score).dot}`} />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
