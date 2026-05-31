@@ -1436,10 +1436,47 @@ function Vault() {
         <div className="mb-3"><WatchTutorial routePath="/vault" label="How vaults work" /></div>
         {/* Total value (owner only) */}
         <div className="mb-3 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/25 via-accent/15 to-card p-5 shadow-[var(--shadow-card)]">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight">${totalValue.toFixed(2)}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} tracked</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
+              <p className="mt-1 text-4xl font-bold tracking-tight">${totalValue.toFixed(2)}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} tracked</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Vault Accuracy</p>
+              <p className={`mt-1 text-3xl font-bold tracking-tight ${vaultAccuracy >= 90 ? "text-emerald-500" : vaultAccuracy >= 70 ? "text-yellow-500" : "text-red-500"}`}>{vaultAccuracy}%</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">verified & complete</p>
+            </div>
+          </div>
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/20">
+            <div className={`h-full rounded-full transition-all ${vaultAccuracy >= 90 ? "bg-emerald-500" : vaultAccuracy >= 70 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${vaultAccuracy}%` }} />
+          </div>
         </div>
+
+        {/* Review queue summary */}
+        {reviewCards.length > 0 && (
+          <div className="mb-3 rounded-2xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-bold">Review Queue</p>
+              <button onClick={() => setBulkMatch(true)} className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-500"><Layers className="h-3 w-3" /> Fix all</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {([
+                ["Needs Review", reviewSummary.needsReview, "text-amber-500"],
+                ["Missing Images", reviewSummary.missingImages, "text-sky-400"],
+                ["Low Confidence", reviewSummary.lowConfidence, "text-red-500"],
+                ["Missing Metadata", reviewSummary.missingMetadata, "text-yellow-500"],
+                ["Incorrect Prices", reviewSummary.incorrectPrices, "text-red-400"],
+              ] as const).map(([label, val, cls]) => (
+                <div key={label} className="rounded-lg bg-muted/40 p-2 text-center">
+                  <p className={`text-xl font-bold ${cls}`}>{val}</p>
+                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         {/* Vault sharing (one setting for the whole vault) */}
         <div className="mb-4 rounded-xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
