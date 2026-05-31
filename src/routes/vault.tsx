@@ -832,7 +832,9 @@ function Vault() {
         needs_review: false,
         review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
         confirmed_by: confirmedByValue("manual"),
-        price_locked: hasPrice,
+        // Confirming the identity is not a manual price override. Keep market
+        // pricing refreshable so vault totals and charts keep moving over time.
+        price_locked: false,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
@@ -907,7 +909,7 @@ function Vault() {
       const patch: any = {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
-        price_source: "user_confirmed", price_locked: true,
+        price_source: "user_confirmed", price_locked: false,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null },
         needs_review: false, review_reason: null,
@@ -1019,7 +1021,7 @@ function Vault() {
         confirmed_by: confirmedByValue("manual"),
         // Only lock the price if we actually found one; otherwise leave it open
         // so "Retry pricing" can fill it in later.
-        price_locked: hasPrice,
+        price_locked: false,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
