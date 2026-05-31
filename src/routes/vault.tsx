@@ -1830,12 +1830,15 @@ function Vault() {
 
 
             {actionFor.needs_review && (
-              <div className="flex gap-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500 ring-1 ring-amber-500/25">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <p className="font-bold">Needs Review</p>
-                  <p>{actionFor.review_reason || "Confirm the exact card before assigning market value."}</p>
+              <div className="space-y-2 rounded-xl bg-amber-500/10 p-3 ring-1 ring-amber-500/25">
+                <div className="flex items-start gap-2 text-amber-500">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-sm font-bold">Is this your card?</p>
                 </div>
+                <p className="text-xs text-muted-foreground">Tap below and pick the correct card — we'll fill in the details and value automatically.</p>
+                <button onClick={() => openMatchPicker(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 py-2.5 text-sm font-bold text-white active:scale-[0.99]">
+                  <ImageIcon className="h-4 w-4" /> Choose Correct Card
+                </button>
               </div>
             )}
 
