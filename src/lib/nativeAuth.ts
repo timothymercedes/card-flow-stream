@@ -16,6 +16,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isNative, nativePlatform } from "@/lib/capacitor";
+import { authDiagnostic } from "@/lib/authDiagnostics";
 
 const GOOGLE_WEB_CLIENT_ID = import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID as string | undefined;
 const GOOGLE_IOS_CLIENT_ID = import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID as string | undefined;
@@ -26,8 +27,9 @@ let initialized = false;
 /** True only when the native shell AND the relevant client IDs are configured. */
 export function nativeAuthAvailable(provider: "google" | "apple"): boolean {
   if (!isNative()) return false;
-  if (provider === "google") return !!GOOGLE_WEB_CLIENT_ID;
-  if (provider === "apple") return !!(APPLE_SERVICES_ID || nativePlatform() === "ios");
+  const platform = nativePlatform();
+  if (provider === "google") return platform === "ios" ? !!GOOGLE_WEB_CLIENT_ID && !!GOOGLE_IOS_CLIENT_ID : !!GOOGLE_WEB_CLIENT_ID;
+  if (provider === "apple") return platform === "ios" || !!APPLE_SERVICES_ID;
   return false;
 }
 
@@ -39,9 +41,15 @@ async function ensureInit() {
       ? {
           webClientId: GOOGLE_WEB_CLIENT_ID,
           iOSClientId: GOOGLE_IOS_CLIENT_ID,
+          iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
+          mode: "online",
         }
       : undefined,
-    apple: APPLE_SERVICES_ID ? { clientId: APPLE_SERVICES_ID } : undefined,
+    apple: {
+      clientId: APPLE_SERVICES_ID || "com.pullbidlive.app",
+      redirectUrl: APPLE_SERVICES_ID ? "https://pullbidlive.com/auth" : "",
+      useBroadcastChannel: nativePlatform() === "android",
+    },
   });
   initialized = true;
 }
@@ -65,7 +73,13 @@ async function sha256Hex(input: string): Promise<string> {
  */
 export async function nativeSignIn(provider: "google" | "apple"): Promise<boolean> {
   if (!nativeAuthAvailable(provider)) {
-    console.log("[native-auth] unavailable, falling back to browser flow", { provider });
+    authDiagnostic("native-auth", "unavailable, falling back to browser flow", {
+      provider,
+      platform: nativePlatform(),
+      hasGoogleWebClientId: !!GOOGLE_WEB_CLIENT_ID,
+      hasGoogleIosClientId: !!GOOGLE_IOS_CLIENT_ID,
+      hasAppleServicesId: !!APPLE_SERVICES_ID,
+    });
     return false;
   }
   await ensureInit();
@@ -75,19 +89,19 @@ export async function nativeSignIn(provider: "google" | "apple"): Promise<boolea
   const rawNonce = makeNonce();
   const hashedNonce = await sha256Hex(rawNonce);
 
-  console.log("[native-auth] launching native sheet", { provider });
+  authDiagnostic("native-auth", "launching native sheet", { provider, platform: nativePlatform() });
   const res: any = await SocialLogin.login({
     provider,
     options:
       provider === "google"
-        ? { scopes: ["email", "profile"], nonce: rawNonce }
-        : { scopes: ["email", "name"], nonce: hashedNonce },
+        ? { scopes: ["email", "profile"], nonce: rawNonce, style: "bottom", filterByAuthorizedAccounts: false, autoSelectEnabled: false, forcePrompt: true }
+        : { scopes: ["email", "name"], nonce: hashedNonce, useBroadcastChannel: nativePlatform() === "android" },
   } as any);
 
 
   const idToken: string | undefined = res?.result?.idToken;
   if (!idToken) {
-    console.warn("[native-auth] no idToken returned", res);
+    authDiagnostic("native-auth", "no idToken returned", { provider, responseKeys: Object.keys(res?.result ?? {}) }, "warn");
     throw new Error("Native sign-in did not return an identity token");
   }
 
@@ -95,11 +109,12 @@ export async function nativeSignIn(provider: "google" | "apple"): Promise<boolea
     provider,
     token: idToken,
     nonce: provider === "google" ? rawNonce : undefined,
+    access_token: res?.result?.accessToken?.token,
   });
   if (error) {
-    console.error("[native-auth] signInWithIdToken failed", error.message);
+    authDiagnostic("native-auth", "signInWithIdToken failed", { provider, error: error.message }, "error");
     throw error;
   }
-  console.log("[native-auth] session established for", provider);
+  authDiagnostic("native-auth", "session established", { provider });
   return true;
 }
