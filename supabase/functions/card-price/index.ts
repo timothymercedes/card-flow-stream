@@ -456,6 +456,7 @@ Deno.serve(async (req) => {
       last_sync: new Date().toISOString(),
     };
 
+    let payload: any = {
       game: game.id,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
