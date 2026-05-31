@@ -1772,7 +1772,7 @@ function Vault() {
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
-                  {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
+                  {c.needs_review && !isUserVerified(c) && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="flex flex-shrink-0 items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Fix</span>}
                   {Number(c.estimated_value || 0) > 0 && (
                     <div className="flex-shrink-0 text-right">
                       <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
