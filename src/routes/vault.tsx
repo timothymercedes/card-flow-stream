@@ -1873,6 +1873,48 @@ function Vault() {
                 </div>
             )})()}
 
+            {/* Audit trail */}
+            {(() => {
+              const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
+              const rows: [string, string][] = [
+                ["Date Added", fmt(actionFor.created_at)],
+                ["Last Identified", fmt(actionFor.last_rescan_at)],
+                ["Last Repriced", fmt(actionFor.price_updated_at)],
+                ["Price Source", actionFor.price_source || (actionFor.price_is_ai ? "AI estimate" : "—")],
+                ["Last Price Refresh", fmt(actionFor.price_updated_at)],
+                ["Confidence Score", actionFor.confidence_score != null ? `${Math.round(Number(actionFor.confidence_score) * 100)}%` : "—"],
+              ];
+              return (
+                <div className="rounded-lg bg-muted/40 p-2">
+                  <p className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"><History className="h-3 w-3" /> Audit Trail</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                    {rows.map(([label, value]) => (
+                      <div key={label} className="flex flex-col">
+                        <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
+                        <span className="font-semibold text-foreground">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Match history */}
+            {Array.isArray(actionFor.match_history) && actionFor.match_history.length > 0 && (
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Match History</p>
+                <div className="space-y-1.5">
+                  {[...actionFor.match_history].reverse().map((h, i) => (
+                    <div key={i} className="text-[11px]">
+                      <p className="font-semibold text-foreground">{h.from || "Unknown"} → {h.to || "Unknown"}</p>
+                      <p className="text-[9px] text-muted-foreground">Corrected by {h.by || "AI"} · {h.at ? new Date(h.at).toLocaleString() : "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
                 <div className="flex items-center justify-between gap-1">
