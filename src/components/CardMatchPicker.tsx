@@ -73,7 +73,7 @@ export function CardMatchPicker({
     condition: "NM",
     notes: "",
   });
-  const ranInitial = useRef(false);
+  
 
   // Primary manual path: use the entered details to SEARCH card databases and
   // show image choices — manual entry is a recovery tool that helps AI find the
