@@ -804,6 +804,13 @@ function Vault() {
     [cards]
   );
 
+  // Total amount the owner actually paid (purchase cost) and overall profit/loss.
+  const totalPurchase = useMemo(
+    () => cards.reduce((s, c) => s + (c.purchase_price != null ? Number(c.purchase_price) : 0), 0),
+    [cards]
+  );
+  const totalProfit = useMemo(() => totalValue - totalPurchase, [totalValue, totalPurchase]);
+
   // Review-queue breakdown shown at the top of the Vault.
   const reviewSummary = useMemo(() => ({
     needsReview: cards.filter((c) => c.needs_review).length,
