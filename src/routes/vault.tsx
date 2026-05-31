@@ -1443,24 +1443,29 @@ function Vault() {
           </div>
         </div>
         <div className="mb-3"><WatchTutorial routePath="/vault" label="How vaults work" /></div>
-        {/* Total value (owner only) */}
+        {/* Totals (owner only) */}
         <div className="mb-3 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/25 via-accent/15 to-card p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-start justify-between gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
-              <p className="mt-1 text-4xl font-bold tracking-tight">${totalValue.toFixed(2)}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} tracked</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">${totalValue.toFixed(2)}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""}</p>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Vault Accuracy</p>
-              <p className={`mt-1 text-3xl font-bold tracking-tight ${vaultAccuracy >= 90 ? "text-emerald-500" : vaultAccuracy >= 70 ? "text-yellow-500" : "text-red-500"}`}>{vaultAccuracy}%</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">verified & complete</p>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Purchase Cost</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">${totalPurchase.toFixed(2)}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">what you paid</p>
             </div>
-          </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/20">
-            <div className={`h-full rounded-full transition-all ${vaultAccuracy >= 90 ? "bg-emerald-500" : vaultAccuracy >= 70 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${vaultAccuracy}%` }} />
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Profit / Loss</p>
+              <p className={`mt-1 text-2xl font-bold tracking-tight sm:text-4xl ${totalProfit >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                {totalProfit >= 0 ? "+" : "-"}${Math.abs(totalProfit).toFixed(2)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">vs. market value</p>
+            </div>
           </div>
         </div>
+
 
         {/* Review queue summary */}
         {reviewCards.length > 0 && (
