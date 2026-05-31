@@ -881,6 +881,7 @@ function Vault() {
         tcg_number: m.number || card.tcg_number,
         tcg_year: m.year || card.tcg_year,
         rarity: m.rarity || card.rarity,
+        language: langCode,
         image_url: primaryImg || card.image_url,
         ai_image_url: primaryImg || card.ai_image_url,
         original_image_url: original,
