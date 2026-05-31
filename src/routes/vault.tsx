@@ -1782,11 +1782,13 @@ function Vault() {
               <button onClick={() => setActionFor(null)} aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
 
-            {/* Price verification + confidence badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              {(() => { const b = priceBadge(actionFor); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${b.cls}`}><ShieldCheck className="h-3 w-3" /> {b.label}</span>; })()}
-              {(() => { const t = confidenceTier(actionFor.confidence_score); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${t.chip}`}><span className={`h-2 w-2 rounded-full ${t.dot}`} /> {t.label} {t.pct}%</span>; })()}
-            </div>
+            {/* Price verification + confidence badges (advanced only) */}
+            {advanced && (
+              <div className="flex flex-wrap items-center gap-2">
+                {(() => { const b = priceBadge(actionFor); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${b.cls}`}><ShieldCheck className="h-3 w-3" /> {b.label}</span>; })()}
+                {(() => { const t = confidenceTier(actionFor.confidence_score); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${t.chip}`}><span className={`h-2 w-2 rounded-full ${t.dot}`} /> {t.label} {t.pct}%</span>; })()}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               <div>
