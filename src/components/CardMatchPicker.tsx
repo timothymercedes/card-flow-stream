@@ -61,16 +61,41 @@ export function CardMatchPicker({
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [savingManual, setSavingManual] = useState(false);
+  const [searchingManual, setSearchingManual] = useState(false);
   const [mf, setMf] = useState<ManualCardEntry>({
     name: card.name || "",
     set: card.tcg_set || "",
     number: card.tcg_number || "",
     year: "",
+    category: card.category || "",
+    rarity: "",
+    variant: "",
     condition: "NM",
     notes: "",
   });
   const ranInitial = useRef(false);
 
+  // Primary manual path: use the entered details to SEARCH card databases and
+  // show image choices — manual entry is a recovery tool that helps AI find the
+  // correct card, not a way to create an unverified record.
+  async function findManual() {
+    if (!mf.name.trim() && !mf.number?.trim()) return;
+    setSearchingManual(true);
+    try {
+      await run({
+        name: mf.name.trim() || undefined,
+        set: mf.set?.trim() || undefined,
+        number: mf.number?.trim() || undefined,
+        category: mf.category?.trim() || card.category || undefined,
+      });
+      setManual(false); // flip back to the visual match grid
+    } finally {
+      setSearchingManual(false);
+    }
+  }
+
+  // Fallback only: persist exactly what the collector typed when no database
+  // match exists. onManualSave still attempts one more identification pass.
   async function saveManual() {
     if (!onManualSave || !mf.name.trim()) return;
     setSavingManual(true);
@@ -80,6 +105,9 @@ export function CardMatchPicker({
         set: mf.set?.trim() || undefined,
         number: mf.number?.trim() || undefined,
         year: mf.year?.trim() || undefined,
+        category: mf.category?.trim() || undefined,
+        rarity: mf.rarity?.trim() || undefined,
+        variant: mf.variant?.trim() || undefined,
         condition: mf.condition || undefined,
         notes: mf.notes?.trim() || undefined,
       });
