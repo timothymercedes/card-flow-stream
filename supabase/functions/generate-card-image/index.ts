@@ -40,11 +40,10 @@ Deno.serve(async (req) => {
       return { ok: r.ok, status: r.status, txt, json };
     }
 
-    // Try valid image models in order; fall back across providers for reliability.
+    // Try valid Gemini image models (chat-completions image shape) in order.
     const models = [
       "google/gemini-2.5-flash-image",
       "google/gemini-3.1-flash-image-preview",
-      "openai/gpt-image-1-mini",
     ];
     let dataUrl: string | null = null;
     let lastErr = "";
