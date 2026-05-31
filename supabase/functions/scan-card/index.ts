@@ -106,8 +106,16 @@ Return ONLY what is visible on the card:
 
 If a field is unreadable, return "" and set that field confidence under 0.4. Never guess a specific printing from memory. The database will do the exact match after this.
 
+CONFIDENCE & CLOSEST MATCHES — CRITICAL FOR COLLECTOR TRUST:
+- Be HONEST about uncertainty. If you are not sure of the exact printing, set "overall_confidence" below 0.7 rather than forcing a single answer.
+- When you are NOT highly confident (overall_confidence < 0.85), ALSO return an "alternatives" array of up to 3 plausible OTHER identifications the card could be (different set/number/variant/language). Order them most-to-least likely. Each alternative MUST match this shape:
+  { "name": string, "set": string, "year": string, "tcg_number": string, "variant": string, "rarity": string }
+- Alternatives let the collector pick the correct card instead of trusting a wrong guess. If you ARE highly confident, return an empty "alternatives" array.
+- If the card's language, variant, or stamp is ambiguous, prefer LOW confidence + alternatives over a confident wrong guess.
+
 Return STRICT JSON matching this schema:
-${CARD_SCHEMA_TEXT}`;
+${CARD_SCHEMA_TEXT.replace('"alternatives"', '"alternatives"')}
+PLUS an "alternatives" array (see above) when confidence is low.`;
 
 const SYSTEM_MULTI = `You are an EXPERT trading card and collectible identifier. The image may contain MULTIPLE cards laid out together — they may be from DIFFERENT games (mixed Pokémon + MTG + Yu-Gi-Oh + One Piece + Lorcana + Sports etc.). DETECT EACH CARD SEPARATELY, identify its game, and read it with the same accuracy as a single-card scan.
 
