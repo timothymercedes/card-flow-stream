@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
     const quotes: PriceQuote[] = [];
     // Game-specific quote from the resolved card.
     if (card) {
-      const direct = quoteFromCardForSource(card);
+      const direct = quoteFromCardForSource(card, variant);
       if (direct) quotes.push(direct);
     }
     // Cross-cutting providers — skip the Pokémon-only tcgplayerProvider for
