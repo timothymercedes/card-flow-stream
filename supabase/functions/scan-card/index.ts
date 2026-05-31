@@ -50,6 +50,7 @@ const CARD_SCHEMA_TEXT = `{
     "manufacturer": string      // Sports (Topps, Panini, etc.)
   },
   "bbox": { "x": number, "y": number, "w": number, "h": number },
+  "is_card_back": boolean,  // true ONLY if this is the BACK/reverse of a card (logo/pattern, no name/art/stats)
   "confidence": { "name": number, "set": number, "year": number, "tcg_number": number, "variant": number },
   "overall_confidence": number
 }`;
