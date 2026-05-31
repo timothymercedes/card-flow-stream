@@ -1563,8 +1563,8 @@ function Vault() {
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
                 <div className="relative">
-                  {actionFor.image_url
-                    ? <img src={actionFor.image_url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                  {displayImage(actionFor)
+                    ? <img src={displayImage(actionFor)} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
                     : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
                   {parseVariant(actionFor.description).edition === "1st Edition" ? (
                     <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
@@ -1585,6 +1585,16 @@ function Vault() {
               </div>
             </div>
 
+            {actionFor.needs_review && (
+              <div className="flex gap-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500 ring-1 ring-amber-500/25">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-bold">Needs Review</p>
+                  <p>{actionFor.review_reason || "Confirm the exact card before assigning market value."}</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
                 <div className="flex items-center justify-between gap-1">
@@ -1597,9 +1607,9 @@ function Vault() {
                     Refresh
                   </button>
                 </div>
-                {Number(actionFor.estimated_value || 0) > 0 && (
+                {isSafePriced(actionFor) ? (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
-                )}
+                ) : <p className="text-base font-bold text-amber-500">Review needed</p>}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">
                 <p className="text-[9px] uppercase text-muted-foreground">Condition (tap to update)</p>
@@ -1687,6 +1697,7 @@ function Vault() {
                 custom_price: actionFor.custom_price,
                 grade_values: actionFor.grade_values,
                 is_sealed: actionFor.is_sealed ?? undefined,
+                needs_review: actionFor.needs_review,
               }}
               userId={user?.id || ""}
               onSaved={(patch) => {
@@ -1724,6 +1735,9 @@ function Vault() {
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
+            </button>
+            <button onClick={() => markWrongMatch(actionFor)} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
+              <AlertTriangle className="h-4 w-4" /> Wrong Match
             </button>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
