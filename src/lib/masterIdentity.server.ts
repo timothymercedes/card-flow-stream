@@ -109,7 +109,7 @@ export async function resolveOrCreateMasterIdentity(input: MasterIdentityInput):
     if (existing.confidence_score == null && input.confidence_score != null) {
       patch.confidence_score = input.confidence_score;
     }
-    const mergedIds = { ...(existing.external_ids ?? {}), ...(input.external_ids ?? {}) };
+    const mergedIds = { ...(((existing.external_ids ?? {}) as Record<string, unknown>)), ...(input.external_ids ?? {}) };
     if (Object.keys(mergedIds).length > Object.keys(existing.external_ids ?? {}).length) {
       patch.external_ids = mergedIds;
     }
