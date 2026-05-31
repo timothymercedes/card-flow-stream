@@ -50,6 +50,7 @@ function Auth() {
   const [tosOk, setTosOk] = useState(false);
   const [guidelinesOk, setGuidelinesOk] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   async function ensureCaptcha(action: string): Promise<boolean> {
     if (!captchaToken) {
