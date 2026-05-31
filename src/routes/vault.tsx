@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
@@ -12,6 +12,7 @@ import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
 import { CardPricingPanel } from "@/components/CardPricingPanel";
 import { CardMatchPicker, type MatchOption } from "@/components/CardMatchPicker";
+import { BulkMatchMode, type BulkCard } from "@/components/BulkMatchMode";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { validateListingImage } from "@/lib/listingDisplay";
 
@@ -40,6 +41,9 @@ type Card = {
   original_image_url?: string | null; ai_image_url?: string | null; image_gallery?: unknown[] | null;
   confidence_score?: number | null; needs_review?: boolean | null; review_reason?: string | null;
   identification_details?: Record<string, unknown> | null; last_rescan_at?: string | null;
+  created_at?: string | null; match_history?: { from?: string; to?: string; by?: string; at?: string }[] | null;
+  incorrect_price_reported?: boolean | null; incorrect_price_reported_at?: string | null;
+  wrong_match_reported_at?: string | null;
 };
 
 function Vault() {
@@ -53,6 +57,8 @@ function Vault() {
   const [actionFor, setActionFor] = useState<Card | null>(null);
   const [matchingCard, setMatchingCard] = useState<Card | null>(null);
   const [reviewOnly, setReviewOnly] = useState(false);
+  const [bulkMatch, setBulkMatch] = useState(false);
+  const [imgKey, setImgKey] = useState<string | null>(null);
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
   const [enriching, setEnriching] = useState(false);
@@ -65,6 +71,7 @@ function Vault() {
   });
   const [viewMenu, setViewMenu] = useState(false);
   useEffect(() => { try { localStorage.setItem("pbl_vault_view", viewMode); } catch {} }, [viewMode]);
+  useEffect(() => { setImgKey(null); }, [actionFor?.id]);
   const recognitionRef = (typeof window !== "undefined" ? (window as any) : {}) as any;
 
   const LANGUAGES = [
@@ -146,6 +153,53 @@ function Vault() {
     if (card.price_tier && card.price_tier !== "verified") return false;
     if (!card.price_tier) return false;
     return Number(card.estimated_value || 0) > 0;
+  }
+
+  // Match confidence tier → colour (Green ≥90%, Yellow 70-89%, Red <70%).
+  function confidenceTier(score?: number | null) {
+    const s = Number(score || 0);
+    const pct = Math.round(s * 100);
+    if (s >= 0.9) return { label: "High", pct, dot: "bg-emerald-500", text: "text-emerald-500", chip: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/30" };
+    if (s >= 0.7) return { label: "Medium", pct, dot: "bg-yellow-500", text: "text-yellow-500", chip: "bg-yellow-500/15 text-yellow-500 ring-yellow-500/30" };
+    return { label: "Low", pct, dot: "bg-red-500", text: "text-red-500", chip: "bg-red-500/15 text-red-500 ring-red-500/30" };
+  }
+
+  // Price verification badge: User Override → Needs Review → Verified → Estimated.
+  function priceBadge(card: Card) {
+    if (card.price_locked) return { label: "User Override", cls: "bg-sky-500/15 text-sky-400 ring-sky-500/30" };
+    if (card.needs_review) return { label: "Needs Review", cls: "bg-amber-500/15 text-amber-500 ring-amber-500/30" };
+    if (card.price_tier === "verified") return { label: "Verified Price", cls: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/30" };
+    return { label: "Estimated Price", cls: "bg-muted text-muted-foreground ring-border/60" };
+  }
+
+  function hasImage(card: Card) {
+    return !!card.ai_image_url || !needsOfficialCardImage(card.image_url);
+  }
+
+  // Available image variants for the toggle (Original / AI Enhanced / Catalog).
+  function imageOptions(card: Card): { key: string; label: string; url: string }[] {
+    const gallery = Array.isArray(card.image_gallery) ? (card.image_gallery as { url?: string; type?: string }[]) : [];
+    const byType = (t: string) => gallery.find((g) => g?.type === t)?.url || null;
+    const original = byType("user_upload") || card.original_image_url || (looksLikeUserUpload(card.image_url) ? card.image_url : null);
+    const ai = byType("ai_generated") || (card.image_source === "ai_generated" ? card.ai_image_url : null);
+    const catalog = byType("catalog") || (card.image_source === "catalog" ? (card.image_url || card.ai_image_url) : null);
+    const out: { key: string; label: string; url: string }[] = [];
+    if (catalog) out.push({ key: "catalog", label: "Catalog", url: catalog });
+    if (ai) out.push({ key: "ai", label: "AI Enhanced", url: ai });
+    if (original) out.push({ key: "original", label: "Original", url: original });
+    // Fallback so there is always at least one option.
+    if (out.length === 0 && displayImage(card)) out.push({ key: "default", label: "Photo", url: displayImage(card) });
+    return out;
+  }
+
+  // Flag a card's reported market price as incorrect (feeds the review summary).
+  async function reportIncorrectPrice(card: Card) {
+    const patch = { incorrect_price_reported: true, incorrect_price_reported_at: new Date().toISOString(), needs_review: true } as any;
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+    if (error) toast.error("Could not report price");
+    else toast.success("Thanks — flagged for review");
   }
 
   function conditionPricesFromMarket(price?: number): ConditionPrices | null {
@@ -714,6 +768,12 @@ function Vault() {
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
         identification_details: { confirmed_match: m },
+        incorrect_price_reported: false,
+        incorrect_price_reported_at: null,
+        match_history: [
+          ...(Array.isArray(card.match_history) ? card.match_history : []),
+          { from: card.name || "Unknown", to: m.name || card.name || "Unknown", by: "User", at: new Date().toISOString() },
+        ],
       };
       const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
       if (error) throw error;
@@ -741,6 +801,25 @@ function Vault() {
     () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
     [cards]
   );
+
+  // Review-queue breakdown shown at the top of the Vault.
+  const reviewSummary = useMemo(() => ({
+    needsReview: cards.filter((c) => c.needs_review).length,
+    missingImages: cards.filter((c) => needsOfficialCardImage(c.image_url) && !c.ai_image_url).length,
+    lowConfidence: cards.filter((c) => Number(c.confidence_score || 0) < 0.7).length,
+    missingMetadata: cards.filter((c) => !c.tcg_set || !c.tcg_number || !c.tcg_year || !c.rarity || !c.variant).length,
+    incorrectPrices: cards.filter((c) => c.incorrect_price_reported).length,
+  }), [cards]);
+
+  // Vault accuracy: share of cards that are fully identified, verified-priced,
+  // imaged and not flagged for review.
+  const vaultAccuracy = useMemo(() => {
+    if (cards.length === 0) return 100;
+    const good = cards.filter((c) =>
+      isSafePriced(c) && isCompleteIdentity(c) && !c.needs_review && !c.incorrect_price_reported && hasImage(c)
+    ).length;
+    return Math.round((good / cards.length) * 100);
+  }, [cards]);
 
   const filteredCards = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -1346,6 +1425,9 @@ function Vault() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => setReviewOnly((v) => !v)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition active:scale-[0.98] ${reviewOnly ? "bg-amber-500 text-white ring-amber-500" : "bg-card/60 ring-border/60 hover:bg-card"}`}><AlertTriangle className="h-3.5 w-3.5" /> Review{reviewCards.length ? ` (${reviewCards.length})` : ""}</button>
+            {reviewCards.length > 0 && (
+              <button onClick={() => setBulkMatch(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Layers className="h-3.5 w-3.5" /> Bulk match</button>
+            )}
             <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
@@ -1354,10 +1436,47 @@ function Vault() {
         <div className="mb-3"><WatchTutorial routePath="/vault" label="How vaults work" /></div>
         {/* Total value (owner only) */}
         <div className="mb-3 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/25 via-accent/15 to-card p-5 shadow-[var(--shadow-card)]">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
-          <p className="mt-1 text-4xl font-bold tracking-tight">${totalValue.toFixed(2)}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} tracked</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
+              <p className="mt-1 text-4xl font-bold tracking-tight">${totalValue.toFixed(2)}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} tracked</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Vault Accuracy</p>
+              <p className={`mt-1 text-3xl font-bold tracking-tight ${vaultAccuracy >= 90 ? "text-emerald-500" : vaultAccuracy >= 70 ? "text-yellow-500" : "text-red-500"}`}>{vaultAccuracy}%</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">verified & complete</p>
+            </div>
+          </div>
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/20">
+            <div className={`h-full rounded-full transition-all ${vaultAccuracy >= 90 ? "bg-emerald-500" : vaultAccuracy >= 70 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${vaultAccuracy}%` }} />
+          </div>
         </div>
+
+        {/* Review queue summary */}
+        {reviewCards.length > 0 && (
+          <div className="mb-3 rounded-2xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-bold">Review Queue</p>
+              <button onClick={() => setBulkMatch(true)} className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-500"><Layers className="h-3 w-3" /> Fix all</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {([
+                ["Needs Review", reviewSummary.needsReview, "text-amber-500"],
+                ["Missing Images", reviewSummary.missingImages, "text-sky-400"],
+                ["Low Confidence", reviewSummary.lowConfidence, "text-red-500"],
+                ["Missing Metadata", reviewSummary.missingMetadata, "text-yellow-500"],
+                ["Incorrect Prices", reviewSummary.incorrectPrices, "text-red-400"],
+              ] as const).map(([label, val, cls]) => (
+                <div key={label} className="rounded-lg bg-muted/40 p-2 text-center">
+                  <p className={`text-xl font-bold ${cls}`}>{val}</p>
+                  <p className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
 
         {/* Vault sharing (one setting for the whole vault) */}
         <div className="mb-4 rounded-xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
@@ -1595,6 +1714,7 @@ function Vault() {
                   <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
                     {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
                   </div>
+                  <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${confidenceTier(c.confidence_score).dot}`} />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
@@ -1611,6 +1731,7 @@ function Vault() {
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
                   {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-black/40 ${confidenceTier(c.confidence_score).dot}`} />
                   {cv.edition === "1st Edition" ? (
                     <span className="absolute bottom-1.5 left-1.5 rounded-md border border-yellow-300/80 bg-black/85 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
                       1st Edition
@@ -1660,23 +1781,41 @@ function Vault() {
               <button onClick={() => setActionFor(null)} aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
 
+            {/* Price verification + confidence badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              {(() => { const b = priceBadge(actionFor); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${b.cls}`}><ShieldCheck className="h-3 w-3" /> {b.label}</span>; })()}
+              {(() => { const t = confidenceTier(actionFor.confidence_score); return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${t.chip}`}><span className={`h-2 w-2 rounded-full ${t.dot}`} /> {t.label} {t.pct}%</span>; })()}
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="mb-1 text-[10px] uppercase text-muted-foreground">Front</p>
-                <div className="relative">
-                  {displayImage(actionFor)
-                    ? <img src={displayImage(actionFor)} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
-                    : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
-                  {parseVariant(actionFor.description).edition === "1st Edition" ? (
-                    <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">
-                      1st Edition
-                    </span>
-                  ) : (
-                    <span className="absolute bottom-2 left-2 rounded-md border border-white/30 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white/90 shadow-lg">
-                      Unlimited
-                    </span>
-                  )}
-                </div>
+                {(() => {
+                  const opts = imageOptions(actionFor);
+                  const sel = opts.find((o) => o.key === imgKey) || opts[0];
+                  const url = sel?.url || displayImage(actionFor);
+                  return (
+                    <>
+                      <div className="mb-1 flex flex-wrap gap-1">
+                        {opts.length > 1 ? opts.map((o) => (
+                          <button key={o.key} type="button" onClick={() => setImgKey(o.key)}
+                            className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${ (sel?.key === o.key) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                            {o.label}
+                          </button>
+                        )) : <p className="text-[10px] uppercase text-muted-foreground">Front</p>}
+                      </div>
+                      <div className="relative">
+                        {url
+                          ? <img src={url} className="aspect-[3/4] w-full rounded-lg object-cover" alt={actionFor.name} />
+                          : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">No photo</div>}
+                        {parseVariant(actionFor.description).edition === "1st Edition" ? (
+                          <span className="absolute bottom-2 left-2 rounded-md border border-yellow-300/80 bg-black/85 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-lg">1st Edition</span>
+                        ) : (
+                          <span className="absolute bottom-2 left-2 rounded-md border border-white/30 bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white/90 shadow-lg">Unlimited</span>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               <div>
                 <p className="mb-1 text-[10px] uppercase text-muted-foreground">Back</p>
@@ -1685,6 +1824,7 @@ function Vault() {
                   : <div className="flex aspect-[3/4] w-full items-center justify-center rounded-lg bg-muted text-center text-[10px] text-muted-foreground">No back photo<br/>(needed to sell)</div>}
               </div>
             </div>
+
 
             {actionFor.needs_review && (
               <div className="flex gap-2 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-500 ring-1 ring-amber-500/25">
@@ -1732,6 +1872,48 @@ function Vault() {
                   </div>
                 </div>
             )})()}
+
+            {/* Audit trail */}
+            {(() => {
+              const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
+              const rows: [string, string][] = [
+                ["Date Added", fmt(actionFor.created_at)],
+                ["Last Identified", fmt(actionFor.last_rescan_at)],
+                ["Last Repriced", fmt(actionFor.price_updated_at)],
+                ["Price Source", actionFor.price_source || (actionFor.price_is_ai ? "AI estimate" : "—")],
+                ["Last Price Refresh", fmt(actionFor.price_updated_at)],
+                ["Confidence Score", actionFor.confidence_score != null ? `${Math.round(Number(actionFor.confidence_score) * 100)}%` : "—"],
+              ];
+              return (
+                <div className="rounded-lg bg-muted/40 p-2">
+                  <p className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"><History className="h-3 w-3" /> Audit Trail</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                    {rows.map(([label, value]) => (
+                      <div key={label} className="flex flex-col">
+                        <span className="text-[9px] uppercase text-muted-foreground">{label}</span>
+                        <span className="font-semibold text-foreground">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Match history */}
+            {Array.isArray(actionFor.match_history) && actionFor.match_history.length > 0 && (
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">Match History</p>
+                <div className="space-y-1.5">
+                  {[...actionFor.match_history].reverse().map((h, i) => (
+                    <div key={i} className="text-[11px]">
+                      <p className="font-semibold text-foreground">{h.from || "Unknown"} → {h.to || "Unknown"}</p>
+                      <p className="text-[9px] text-muted-foreground">Corrected by {h.by || "AI"} · {h.at ? new Date(h.at).toLocaleString() : "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-lg bg-muted/40 p-2">
@@ -1877,6 +2059,9 @@ function Vault() {
             <button onClick={() => { openMatchPicker(actionFor); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
               <AlertTriangle className="h-4 w-4" /> Wrong match — pick correct card
             </button>
+            <button onClick={() => reportIncorrectPrice(actionFor)} disabled={!!actionFor.incorrect_price_reported} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-bold text-muted-foreground disabled:opacity-60">
+              <Flag className="h-4 w-4" /> {actionFor.incorrect_price_reported ? "Price reported" : "Report incorrect price"}
+            </button>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
                 <Pencil className="h-4 w-4" /> Edit
@@ -1897,6 +2082,20 @@ function Vault() {
           fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
           onSelect={(m) => applyMatch(matchingCard, m)}
           onClose={() => setMatchingCard(null)}
+        />
+      )}
+
+      {/* Bulk match mode — step through the whole review queue */}
+      {bulkMatch && (
+        <BulkMatchMode
+          cards={reviewCards as unknown as BulkCard[]}
+          fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
+          onApply={(c, m) => applyMatch(cards.find((x) => x.id === c.id) || (c as unknown as Card), m)}
+          uploadedImageFor={(c) => {
+            const full = cards.find((x) => x.id === c.id);
+            return full ? (full.original_image_url || full.image_url || displayImage(full) || undefined) : undefined;
+          }}
+          onClose={() => setBulkMatch(false)}
         />
       )}
 

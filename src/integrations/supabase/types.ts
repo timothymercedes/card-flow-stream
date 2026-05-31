@@ -6585,6 +6585,8 @@ export type Database = {
           image_gallery: Json
           image_source: string | null
           image_url: string | null
+          incorrect_price_reported: boolean
+          incorrect_price_reported_at: string | null
           is_demo: boolean
           is_graded: boolean
           is_sealed: boolean
@@ -6595,6 +6597,7 @@ export type Database = {
           last_valued_at: string | null
           listed_listing_id: string | null
           market_price: number | null
+          match_history: Json
           match_score: number | null
           name: string
           needs_review: boolean
@@ -6653,6 +6656,8 @@ export type Database = {
           image_gallery?: Json
           image_source?: string | null
           image_url?: string | null
+          incorrect_price_reported?: boolean
+          incorrect_price_reported_at?: string | null
           is_demo?: boolean
           is_graded?: boolean
           is_sealed?: boolean
@@ -6663,6 +6668,7 @@ export type Database = {
           last_valued_at?: string | null
           listed_listing_id?: string | null
           market_price?: number | null
+          match_history?: Json
           match_score?: number | null
           name: string
           needs_review?: boolean
@@ -6721,6 +6727,8 @@ export type Database = {
           image_gallery?: Json
           image_source?: string | null
           image_url?: string | null
+          incorrect_price_reported?: boolean
+          incorrect_price_reported_at?: string | null
           is_demo?: boolean
           is_graded?: boolean
           is_sealed?: boolean
@@ -6731,6 +6739,7 @@ export type Database = {
           last_valued_at?: string | null
           listed_listing_id?: string | null
           market_price?: number | null
+          match_history?: Json
           match_score?: number | null
           name?: string
           needs_review?: boolean
