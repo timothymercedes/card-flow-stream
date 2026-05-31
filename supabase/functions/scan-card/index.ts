@@ -390,6 +390,7 @@ Deno.serve(async (req) => {
     ? "Detect EVERY trading card visible in this image and identify each one. Return JSON exactly matching {\"cards\":[...]}."
     : "Identify this trading card. Pay closest attention to the set symbol, the printed card number, and the copyright year. Return JSON exactly matching the schema.";
 
+  const tStage2Start = Date.now();
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -410,7 +411,7 @@ Deno.serve(async (req) => {
         max_tokens: multi ? 2560 : 900,
       }),
     });
-
+    const t_stage2 = Date.now() - tStage2Start;
 
     if (!resp.ok) {
       const text = await resp.text();
@@ -419,10 +420,10 @@ Deno.serve(async (req) => {
         : resp.status === 402
         ? "AI credits exhausted. Please contact support."
         : "AI scan failed. Try again with better lighting.";
-      await admin.from("card_scans").insert({
+      background(admin.from("card_scans").insert({
         user_id: userId, status: "error", error_message: text.slice(0, 500),
         multi: !!multi, language, source, duration_ms: Date.now() - t0,
-      });
+      }) as unknown as Promise<unknown>);
       return jsonResp({ error: friendly, code: "ai_error" }, resp.status === 429 ? 429 : 502);
     }
 
@@ -439,12 +440,15 @@ Deno.serve(async (req) => {
       const arr = Array.isArray(parsed?.cards) ? parsed.cards : Array.isArray(parsed) ? parsed : [];
       const cards = arr.map((c: any) => normalizeCard(c, detectedLanguage || language));
       const top = cards[0];
-      await admin.from("card_scans").insert({
+      console.log("[scan-card] profile", JSON.stringify({
+        mode: "multi", img_kb: Math.round(imgBytes / 1024), t_auth, t_stage1, t_stage2, total: Date.now() - t0,
+      }));
+      background(admin.from("card_scans").insert({
         user_id: userId, status: cards.length > 0 ? "ok" : "no_cards",
         multi: true, language, source, cards_detected: cards.length,
         top_name: top?.name, top_set: top?.set, top_value: top?.estimated_value,
         duration_ms: Date.now() - t0,
-      });
+      }) as unknown as Promise<unknown>);
       return jsonResp({ cards, ocr_raw: parsed });
     }
 
@@ -454,21 +458,24 @@ Deno.serve(async (req) => {
     // CARD BACK GUARD: never register the reverse of a card as an identity/image.
     // Ask the collector to rescan the FRONT so we don't store a back as the card.
     if ((out as any).is_card_back) {
-      await admin.from("card_scans").insert({
+      background(admin.from("card_scans").insert({
         user_id: userId, status: "card_back",
         multi: false, language, source, cards_detected: 0,
         duration_ms: Date.now() - t0,
-      });
+      }) as unknown as Promise<unknown>);
       return jsonResp({ error: "That looks like the back of the card. Please scan the FRONT (name + artwork) so we can identify it.", code: "card_back" }, 422);
     }
 
     // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is
     // visual. Language-aware: the free Pokémon TCG API serves ENGLISH artwork
     // only, so skip enrichment for non-English cards to avoid showing a wrong
-    // language image — keep the collector's own photo instead.
+    // language image — keep the collector's own photo instead. Bounded by a
+    // per-call timeout (in enrichPokemonImage) so a slow upstream never stalls
+    // the scan response.
     const isPokemon = /pok[eé]mon/i.test(out.category);
     const outLang = String(out.language || "").toLowerCase();
     const isEnglishCard = !outLang || /^(en|eng|english)$/.test(outLang);
+    const tEnrichStart = Date.now();
     if (isPokemon && isEnglishCard && out.alternatives.length > 0) {
       const enriched = await Promise.all(
         out.alternatives.map(async (a) => {
@@ -479,19 +486,24 @@ Deno.serve(async (req) => {
       );
       out.alternatives = enriched;
     }
+    const t_enrich = Date.now() - tEnrichStart;
 
-    await admin.from("card_scans").insert({
+    console.log("[scan-card] profile", JSON.stringify({
+      mode: "single", img_kb: Math.round(imgBytes / 1024), live: isLiveScan,
+      t_auth, t_stage1, t_stage2, t_enrich, total: Date.now() - t0,
+    }));
+    background(admin.from("card_scans").insert({
       user_id: userId, status: "ok",
       multi: false, language, source, cards_detected: 1,
       top_name: out.name, top_set: out.set, top_value: out.estimated_value,
       duration_ms: Date.now() - t0,
-    });
+    }) as unknown as Promise<unknown>);
     return jsonResp(out);
   } catch (e) {
-    await admin.from("card_scans").insert({
+    background(admin.from("card_scans").insert({
       user_id: userId, status: "error", error_message: String(e).slice(0, 500),
       multi: !!multi, language, source, duration_ms: Date.now() - t0,
-    });
+    }) as unknown as Promise<unknown>);
     return jsonResp({ error: "Scan failed unexpectedly. Please try again." }, 500);
   }
 });
