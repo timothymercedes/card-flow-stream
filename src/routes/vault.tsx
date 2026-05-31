@@ -989,12 +989,16 @@ function Vault() {
       const priced = market * mult;
       const cp = conditionPricesFromMarket(priced);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
-      const identityId = data?.identity_id || card.card_identity_id || null;
+      // master_identity_id = card-info source of truth (UUID).
+      // card_identity_id = provider/market key (drives pricing + propagation).
+      const masterId = data?.master_identity_id || card.master_identity_id || null;
+      const providerKey = data?.provider_key || card.card_identity_id || null;
       const patch: any = {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: false,
-        card_identity_id: identityId,
+        card_identity_id: providerKey,
+        master_identity_id: masterId,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null, language: langCode, language_matched: !!data?.language_matched, language_unconfirmed: !!data?.language_unconfirmed },
         needs_review: false, review_reason: null,
