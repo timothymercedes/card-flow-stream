@@ -802,6 +802,42 @@ function Vault() {
     }
   }
 
+  // Manual entry fallback — when a collector knows exactly what card they have
+  // and AI / search can't find it. Saves permanently and clears review state.
+  async function applyManual(card: Card, f: ManualCardEntry) {
+    const tId = toast.loading("Saving card…");
+    try {
+      const patch: any = {
+        name: f.name || card.name,
+        tcg_set: f.set || card.tcg_set,
+        tcg_number: f.number || card.tcg_number,
+        tcg_year: f.year || card.tcg_year,
+        condition: (f.condition as Condition) || card.condition || "NM",
+        description: f.notes ? f.notes : card.description,
+        price_source: "manual_entry",
+        confidence_score: 1,
+        needs_review: false,
+        review_reason: null,
+        confirmed_by: user?.id ?? null,
+        price_locked: true,
+        last_rescan_at: new Date().toISOString(),
+        incorrect_price_reported: false,
+        incorrect_price_reported_at: null,
+        match_history: [
+          ...(Array.isArray(card.match_history) ? card.match_history : []),
+          { from: card.name || "Unknown", to: f.name || card.name || "Unknown", by: "Manual", at: new Date().toISOString() },
+        ],
+      };
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+      setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      toast.success("Card saved", { id: tId });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save card", { id: tId });
+    }
+  }
+
   // Cards that belong in the review queue: low confidence / missing metadata /
   // unverified pricing / missing AI card image.
   const reviewCards = useMemo(
