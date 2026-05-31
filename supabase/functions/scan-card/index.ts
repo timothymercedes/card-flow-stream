@@ -423,9 +423,25 @@ Deno.serve(async (req) => {
     const out = normalizeCard(parsed, detectedLanguage || language);
     (out as any).ocr_raw = parsed;
 
-    // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is visual.
+    // CARD BACK GUARD: never register the reverse of a card as an identity/image.
+    // Ask the collector to rescan the FRONT so we don't store a back as the card.
+    if ((out as any).is_card_back) {
+      await admin.from("card_scans").insert({
+        user_id: userId, status: "card_back",
+        multi: false, language, source, cards_detected: 0,
+        duration_ms: Date.now() - t0,
+      });
+      return jsonResp({ error: "That looks like the back of the card. Please scan the FRONT (name + artwork) so we can identify it.", code: "card_back" }, 422);
+    }
+
+    // Enrich alternative images for Pokémon cards so the "Did you mean?" sheet is
+    // visual. Language-aware: the free Pokémon TCG API serves ENGLISH artwork
+    // only, so skip enrichment for non-English cards to avoid showing a wrong
+    // language image — keep the collector's own photo instead.
     const isPokemon = /pok[eé]mon/i.test(out.category);
-    if (isPokemon && out.alternatives.length > 0) {
+    const outLang = String(out.language || "").toLowerCase();
+    const isEnglishCard = !outLang || /^(en|eng|english)$/.test(outLang);
+    if (isPokemon && isEnglishCard && out.alternatives.length > 0) {
       const enriched = await Promise.all(
         out.alternatives.map(async (a) => {
           if (a.image_url) return a;
