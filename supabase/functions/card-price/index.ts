@@ -295,7 +295,7 @@ async function estimatePriceWithAI(q: {
           },
           {
             role: "user",
-            content: `Estimate the recent sold market value (USD, raw NM) for this card:\nName: ${q.name}\nCategory: ${q.category || "unknown"}\nSet: ${q.set || "unknown"}\nNumber: ${q.number || "unknown"}\nYear: ${q.year || "unknown"}\nVariant: ${q.variant || "standard"}`,
+            content: `Estimate the recent sold market value (USD, raw NM) for this card:\nName: ${q.name}\nLanguage: ${q.language || "English"}\nCategory: ${q.category || "unknown"}\nSet: ${q.set || "unknown"}\nNumber: ${q.number || "unknown"}\nYear: ${q.year || "unknown"}\nVariant: ${q.variant || "standard"}`,
           },
         ],
         response_format: { type: "json_object" },
