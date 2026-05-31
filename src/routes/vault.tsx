@@ -1779,8 +1779,15 @@ function Vault() {
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
                     </p>
                     {c.needs_review && <span onClick={(e) => { e.stopPropagation(); openMatchPicker(c); }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white active:scale-95"><ImageIcon className="h-3 w-3" /> Choose Correct Card</span>}
-                    {isSafePriced(c) && (
-                      <p className="mt-0.5 text-xs font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                    {Number(c.estimated_value || 0) > 0 && (
+                      <div className="mt-0.5 flex items-baseline gap-1.5">
+                        <p className="text-sm font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
+                        {cardGain(c) != null && (
+                          <span className={`text-[10px] font-semibold ${cardGain(c)! >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                            {cardGain(c)! >= 0 ? "+" : "-"}${Math.abs(cardGain(c)!).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
