@@ -19,6 +19,7 @@ import {
 } from "../_shared/cards/sources.ts";
 import { enabledProviders, pricingProviders } from "../_shared/cards/providers.ts";
 import { resolveGame, categoryToGameId, type Game } from "../_shared/cards/games.ts";
+import { upsertIdentity, setIdentityMarketPrice, recordObservation } from "../_shared/cards/identity.ts";
 
 function pricingProvidersSkipped(active: { id: string }[]) {
   const activeIds = new Set(active.map((p) => p.id));
