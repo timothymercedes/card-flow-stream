@@ -152,7 +152,7 @@ function PublicStore() {
       (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
       supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
       supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
-      supabase.from("vault_cards").select("*").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
+      supabase.from("vault_cards").select("id,user_id,name,image_url,category,tcg_set,tcg_number,tcg_year,condition,estimated_value,visibility,created_at").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
     ]);
     setListings((l.data || []).filter(isPublicListingVisible));
     setSoldOrders(o.data || []);

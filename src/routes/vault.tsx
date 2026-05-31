@@ -10,7 +10,7 @@ const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ d
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
-import { CardPricingPanel } from "@/components/CardPricingPanel";
+import { PurchaseInfoPanel } from "@/components/PurchaseInfoPanel";
 import { CardMatchPicker, type MatchOption } from "@/components/CardMatchPicker";
 import { BulkMatchMode, type BulkCard } from "@/components/BulkMatchMode";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
@@ -44,6 +44,7 @@ type Card = {
   created_at?: string | null; match_history?: { from?: string; to?: string; by?: string; at?: string }[] | null;
   incorrect_price_reported?: boolean | null; incorrect_price_reported_at?: string | null;
   wrong_match_reported_at?: string | null;
+  purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
 };
 
 function Vault() {
@@ -1881,6 +1882,21 @@ function Vault() {
               </div>
             </div>
 
+            {/* Purchase Information — private to the owner only */}
+            <PurchaseInfoPanel
+              cardId={actionFor.id}
+              marketValue={isSafePriced(actionFor) ? Number(actionFor.estimated_value || 0) : 0}
+              initial={{
+                purchase_price: actionFor.purchase_price,
+                purchase_date: actionFor.purchase_date,
+                purchased_from: actionFor.purchased_from,
+              }}
+              onSaved={(patch) => {
+                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
+                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
+              }}
+            />
+
             {/* Advanced Details toggle */}
             <button
               type="button"
@@ -2019,33 +2035,7 @@ function Vault() {
               );
             })()}
 
-            {/* Accurate pricing: source, timestamp, manual override, per-grade values */}
-            <CardPricingPanel
-              card={{
-                id: actionFor.id,
-                name: actionFor.name,
-                category: actionFor.category,
-                tcg_set: actionFor.tcg_set,
-                tcg_number: actionFor.tcg_number,
-                tcg_year: actionFor.tcg_year,
-                estimated_value: actionFor.estimated_value,
-                market_price: actionFor.market_price,
-                price_source: actionFor.price_source,
-                price_updated_at: actionFor.price_updated_at,
-                price_confidence: actionFor.price_confidence,
-                price_is_ai: actionFor.price_is_ai,
-                price_locked: actionFor.price_locked,
-                custom_price: actionFor.custom_price,
-                grade_values: actionFor.grade_values,
-                is_sealed: actionFor.is_sealed ?? undefined,
-                needs_review: actionFor.needs_review,
-              }}
-              userId={user?.id || ""}
-              onSaved={(patch) => {
-                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
-                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
-              }}
-            />
+            {/* (Manual Value Override removed — replaced by Purchase Information above) */}
 
             {/* Graded card pricing */}
             <GradedCardPanel
