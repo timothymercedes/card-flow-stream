@@ -4200,6 +4200,56 @@ export type Database = {
           },
         ]
       }
+      price_reports: {
+        Row: {
+          card_name: string
+          category: string | null
+          created_at: string
+          id: string
+          price_source: string | null
+          reason: string | null
+          shown_value: number | null
+          status: string
+          suggested_value: number | null
+          user_id: string
+          vault_card_id: string
+        }
+        Insert: {
+          card_name: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          price_source?: string | null
+          reason?: string | null
+          shown_value?: number | null
+          status?: string
+          suggested_value?: number | null
+          user_id: string
+          vault_card_id: string
+        }
+        Update: {
+          card_name?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          price_source?: string | null
+          reason?: string | null
+          shown_value?: number | null
+          status?: string
+          suggested_value?: number | null
+          user_id?: string
+          vault_card_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_reports_vault_card_id_fkey"
+            columns: ["vault_card_id"]
+            isOneToOne: false
+            referencedRelation: "vault_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processed_webhook_events: {
         Row: {
           event_id: string
@@ -6509,6 +6559,8 @@ export type Database = {
       }
       vault_cards: {
         Row: {
+          ai_suggested_at: string | null
+          ai_suggestion: Json | null
           back_image_url: string | null
           card_identity_id: string | null
           category: string | null
@@ -6519,8 +6571,10 @@ export type Database = {
           custom_price: number | null
           custom_price_source: string | null
           description: string | null
+          enrichment_status: string
           estimated_value: number | null
           grade: string | null
+          grade_values: Json
           graded_price: number | null
           grader: string | null
           grading_cert: string | null
@@ -6529,6 +6583,7 @@ export type Database = {
           image_url: string | null
           is_demo: boolean
           is_graded: boolean
+          is_sealed: boolean
           is_sold: boolean
           language: string | null
           last_sold_price: number | null
@@ -6538,7 +6593,9 @@ export type Database = {
           match_score: number | null
           name: string
           price: number | null
+          price_confidence: string | null
           price_high: number | null
+          price_is_ai: boolean
           price_locked: boolean
           price_low: number | null
           price_range_high: number | null
@@ -6548,6 +6605,7 @@ export type Database = {
           price_tier: string | null
           price_updated_at: string | null
           pricing_details: Json
+          rarity: string | null
           recent_sales_avg: number | null
           sold_at: string | null
           sold_stream_id: string | null
@@ -6556,9 +6614,12 @@ export type Database = {
           tcg_set: string | null
           tcg_year: string | null
           user_id: string
+          variant: string | null
           visibility: string
         }
         Insert: {
+          ai_suggested_at?: string | null
+          ai_suggestion?: Json | null
           back_image_url?: string | null
           card_identity_id?: string | null
           category?: string | null
@@ -6569,8 +6630,10 @@ export type Database = {
           custom_price?: number | null
           custom_price_source?: string | null
           description?: string | null
+          enrichment_status?: string
           estimated_value?: number | null
           grade?: string | null
+          grade_values?: Json
           graded_price?: number | null
           grader?: string | null
           grading_cert?: string | null
@@ -6579,6 +6642,7 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_graded?: boolean
+          is_sealed?: boolean
           is_sold?: boolean
           language?: string | null
           last_sold_price?: number | null
@@ -6588,7 +6652,9 @@ export type Database = {
           match_score?: number | null
           name: string
           price?: number | null
+          price_confidence?: string | null
           price_high?: number | null
+          price_is_ai?: boolean
           price_locked?: boolean
           price_low?: number | null
           price_range_high?: number | null
@@ -6598,6 +6664,7 @@ export type Database = {
           price_tier?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
+          rarity?: string | null
           recent_sales_avg?: number | null
           sold_at?: string | null
           sold_stream_id?: string | null
@@ -6606,9 +6673,12 @@ export type Database = {
           tcg_set?: string | null
           tcg_year?: string | null
           user_id: string
+          variant?: string | null
           visibility?: string
         }
         Update: {
+          ai_suggested_at?: string | null
+          ai_suggestion?: Json | null
           back_image_url?: string | null
           card_identity_id?: string | null
           category?: string | null
@@ -6619,8 +6689,10 @@ export type Database = {
           custom_price?: number | null
           custom_price_source?: string | null
           description?: string | null
+          enrichment_status?: string
           estimated_value?: number | null
           grade?: string | null
+          grade_values?: Json
           graded_price?: number | null
           grader?: string | null
           grading_cert?: string | null
@@ -6629,6 +6701,7 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_graded?: boolean
+          is_sealed?: boolean
           is_sold?: boolean
           language?: string | null
           last_sold_price?: number | null
@@ -6638,7 +6711,9 @@ export type Database = {
           match_score?: number | null
           name?: string
           price?: number | null
+          price_confidence?: string | null
           price_high?: number | null
+          price_is_ai?: boolean
           price_locked?: boolean
           price_low?: number | null
           price_range_high?: number | null
@@ -6648,6 +6723,7 @@ export type Database = {
           price_tier?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
+          rarity?: string | null
           recent_sales_avg?: number | null
           sold_at?: string | null
           sold_stream_id?: string | null
@@ -6656,6 +6732,7 @@ export type Database = {
           tcg_set?: string | null
           tcg_year?: string | null
           user_id?: string
+          variant?: string | null
           visibility?: string
         }
         Relationships: [
