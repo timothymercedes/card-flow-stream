@@ -403,7 +403,59 @@ Deno.serve(async (req) => {
             ? "medium"
             : "low";
 
-    let payload: any = {
+    // ---- Pricing verification / suspicious-value detection -----------------
+    // Cross-check the chosen market value against (a) similar-card comps and
+    // (b) recent logged sold prices for this card. A value that is wildly
+    // below the reference (e.g. $0.75 when comps sit at $30–$50) almost always
+    // means the wrong product/variant record was matched. Flag it so the UI
+    // can mark the card for re-sync instead of trusting a bogus number.
+    const chosenQuote = card ? quoteFromCardForSource(card, variant) : null;
+    const chosenMarket = (finalPrice as any).market as number | null;
+    const refValues: number[] = [...candidateMarkets];
+    try {
+      const histKey = card?.id || `${name}|${set}|${number}`.toLowerCase();
+      const { data: hist } = await admin.from("card_price_history")
+        .select("market_price")
+        .eq("card_key", histKey)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      for (const h of hist || []) {
+        const v = Number((h as any).market_price);
+        if (isFinite(v) && v > 0) refValues.push(v);
+      }
+    } catch (_e) { /* history is best-effort */ }
+    const sortedRef = refValues.filter((v) => v > 0).sort((a, b) => a - b);
+    const refMedian = sortedRef.length
+      ? sortedRef[Math.floor(sortedRef.length / 2)]
+      : null;
+    let priceSuspicious = false;
+    let needsResync = false;
+    let suspiciousReason: string | null = null;
+    if (
+      !priceIsAI &&
+      chosenMarket != null && chosenMarket > 0 &&
+      refMedian != null && refMedian >= 5 &&
+      chosenMarket < refMedian * 0.4
+    ) {
+      priceSuspicious = true;
+      needsResync = true;
+      suspiciousReason =
+        `Assigned value $${chosenMarket.toFixed(2)} is far below the reference ` +
+        `~$${refMedian.toFixed(2)} from ${sortedRef.length} comps/recent sales — ` +
+        `likely a wrong product or variant match. Flagged for re-sync.`;
+    }
+
+    // External identifiers + last sync for the card-page "Market Source" panel.
+    const pcQuote = quotes.find((qq) => qq.source === "pricecharting");
+    const marketSource = {
+      tcgplayer_product_id: chosenQuote?.product_id ?? null,
+      tcgplayer_url: chosenQuote?.url ?? null,
+      pricecharting_product_id: pcQuote?.product_id ?? null,
+      pricecharting_url: pcQuote?.url ?? null,
+      variant_used: chosenQuote?.variant_used ?? variant ?? null,
+      last_sync: new Date().toISOString(),
+    };
+
       game: game.id,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
