@@ -639,8 +639,24 @@ function Vault() {
     else toast.success(v === "private" ? "Vault is private" : `Vault visible to ${v}`);
   }
 
+  async function markWrongMatch(card: Card) {
+    const patch = {
+      needs_review: true,
+      review_reason: "Wrong match reported by user. Confirm exact card before assigning value.",
+      wrong_match_reported_at: new Date().toISOString(),
+      estimated_value: 0,
+      price_tier: "unavailable",
+      price_confidence: "low",
+    };
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+    if (error) { toast.error(error.message); return; }
+    setCards((prev) => prev.map((c) => c.id === card.id ? { ...c, ...patch } : c));
+    setActionFor((prev) => prev && prev.id === card.id ? { ...prev, ...patch } : prev);
+    toast.success("Marked for review — value removed until corrected");
+  }
+
   const totalValue = useMemo(
-    () => cards.reduce((s, c) => s + Number(c.estimated_value || 0), 0),
+    () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
     [cards]
   );
 
