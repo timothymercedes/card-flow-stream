@@ -150,73 +150,126 @@ export function CardMatchPicker({
           </div>
         )}
 
-        {/* Search */}
-        <form
-          onSubmit={(e) => { e.preventDefault(); run({ name: query.trim() || undefined, category: card.category || undefined }); }}
-          className="flex items-center gap-2"
-        >
-          <div className="flex flex-1 items-center gap-2 rounded-lg bg-input px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name (any language)…"
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </div>
-          <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">
-            Search
-          </button>
-        </form>
-
-        {/* Matches */}
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Finding matches…
-          </div>
-        ) : matches.length === 0 ? (
-          <div className="flex flex-col items-center gap-1 py-10 text-center text-sm text-muted-foreground">
-            <ImageOff className="h-6 w-6" />
-            <p>No matches found. Try a different search term.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {matches.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => pick(m)}
-                disabled={!!applyingId}
-                className="group overflow-hidden rounded-xl bg-muted/40 text-left ring-1 ring-border/60 transition hover:ring-primary active:scale-[0.98] disabled:opacity-60"
-              >
-                <div className="relative aspect-[3/4] bg-muted">
-                  {m.image ? (
-                    <img src={m.image} alt={m.name} loading="lazy" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">No image</div>
-                  )}
-                  {applyingId === m.id && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <Loader2 className="h-5 w-5 animate-spin text-white" />
-                    </div>
-                  )}
-                  <div className="absolute right-1 top-1 rounded-full bg-primary p-1 opacity-0 transition group-hover:opacity-100">
-                    <Check className="h-3 w-3 text-primary-foreground" />
-                  </div>
-                </div>
-                <div className="p-1.5">
-                  <p className="line-clamp-1 text-[11px] font-semibold">{m.name}</p>
-                  <p className="line-clamp-1 text-[9px] text-muted-foreground">
-                    {[m.set, m.number && `#${m.number}`, m.year].filter(Boolean).join(" • ") || "—"}
-                  </p>
-                  {m.rarity && <p className="line-clamp-1 text-[9px] text-muted-foreground">{m.rarity}</p>}
-                  {typeof m.price === "number" && m.price > 0 && (
-                    <p className="text-[11px] font-bold text-primary">${m.price.toFixed(2)}</p>
-                  )}
-                </div>
+        {!manual ? (
+          <>
+            {/* Search */}
+            <form
+              onSubmit={(e) => { e.preventDefault(); run({ name: query.trim() || undefined, category: card.category || undefined }); }}
+              className="flex items-center gap-2"
+            >
+              <div className="flex flex-1 items-center gap-2 rounded-lg bg-input px-3 py-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by name (any language)…"
+                  className="w-full bg-transparent text-sm outline-none"
+                />
+              </div>
+              <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">
+                Search
               </button>
-            ))}
-          </div>
+            </form>
+
+            {/* Matches */}
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Finding matches…
+              </div>
+            ) : matches.length === 0 ? (
+              <div className="flex flex-col items-center gap-1 py-10 text-center text-sm text-muted-foreground">
+                <ImageOff className="h-6 w-6" />
+                <p>No matches found. Try a different search term.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {matches.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => pick(m)}
+                    disabled={!!applyingId}
+                    className="group overflow-hidden rounded-xl bg-muted/40 text-left ring-1 ring-border/60 transition hover:ring-primary active:scale-[0.98] disabled:opacity-60"
+                  >
+                    <div className="relative aspect-[3/4] bg-muted">
+                      {m.image ? (
+                        <img src={m.image} alt={m.name} loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">No image</div>
+                      )}
+                      {applyingId === m.id && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                          <Loader2 className="h-5 w-5 animate-spin text-white" />
+                        </div>
+                      )}
+                      <div className="absolute right-1 top-1 rounded-full bg-primary p-1 opacity-0 transition group-hover:opacity-100">
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                    </div>
+                    <div className="p-1.5">
+                      <p className="line-clamp-1 text-[11px] font-semibold">{m.name}</p>
+                      <p className="line-clamp-1 text-[9px] text-muted-foreground">
+                        {[m.set, m.number && `#${m.number}`, m.year].filter(Boolean).join(" • ") || "—"}
+                      </p>
+                      {m.rarity && <p className="line-clamp-1 text-[9px] text-muted-foreground">{m.rarity}</p>}
+                      {typeof m.price === "number" && m.price > 0 && (
+                        <p className="text-[11px] font-bold text-primary">${m.price.toFixed(2)}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Manual entry escape hatch — only when AI / search can't help */}
+            {onManualSave && (
+              <button
+                onClick={() => setManual(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted/70"
+              >
+                <PencilLine className="h-4 w-4" /> Can't find your card? Enter it manually
+              </button>
+            )}
+          </>
+        ) : (
+          /* Manual entry form */
+          <form
+            onSubmit={(e) => { e.preventDefault(); saveManual(); }}
+            className="space-y-2"
+          >
+            <p className="text-[11px] text-muted-foreground">Enter your card's details. Only the name is required.</p>
+            <input
+              value={mf.name}
+              onChange={(e) => setMf((p) => ({ ...p, name: e.target.value }))}
+              placeholder="Card name *"
+              className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input value={mf.set} onChange={(e) => setMf((p) => ({ ...p, set: e.target.value }))} placeholder="Set" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <input value={mf.number} onChange={(e) => setMf((p) => ({ ...p, number: e.target.value }))} placeholder="Card number" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <input value={mf.year} onChange={(e) => setMf((p) => ({ ...p, year: e.target.value }))} placeholder="Year" className="rounded-lg bg-input px-3 py-2 text-sm outline-none" />
+              <select value={mf.condition} onChange={(e) => setMf((p) => ({ ...p, condition: e.target.value }))} className="rounded-lg bg-input px-3 py-2 text-sm outline-none">
+                {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <textarea
+              value={mf.notes}
+              onChange={(e) => setMf((p) => ({ ...p, notes: e.target.value }))}
+              placeholder="Notes (optional)"
+              rows={2}
+              className="w-full rounded-lg bg-input px-3 py-2 text-sm outline-none"
+            />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setManual(false)} className="flex-1 rounded-lg bg-muted py-2.5 text-sm font-semibold text-muted-foreground">
+                Back to search
+              </button>
+              <button type="submit" disabled={!mf.name.trim() || savingManual} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
+                {savingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save card
+              </button>
+            </div>
+          </form>
         )}
+
       </div>
     </div>
   );
