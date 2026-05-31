@@ -96,6 +96,12 @@ Return ONLY what is visible on the card:
 - set name or set code ONLY if you can read it; otherwise empty string
 - detected language and obvious finish/variant if visible
 - For "variant" field, ALWAYS combine edition + finish as: "<Edition> · <Finish>" where Edition is "1st Edition" (only if the "1st Edition" / "Edition 1" / "第1版" / "1版" stamp is clearly visible) or "Unlimited" otherwise; and Finish is "Holo" / "Foil" (foil artwork/character or full foil treatment), "Reverse Holo" / "Etched" (foil background/non-artwork), or "Non-Holo" / "Non-Foil" (no foil). Sports examples: "Refractor", "Prizm", "Auto", "Patch". Example: "Unlimited · Holo" or "1st Edition · Non-Holo".
+- VALUE-AFFECTING SYMBOLS, STAMPS, SIGNATURES & PREMIUM VARIANTS — CRITICAL: a card with one of these is a DIFFERENT, often FAR more valuable card than the plain version. If you see ANY of the following, APPEND it to the "variant" string after the finish (e.g. "Unlimited · Holo · Pokémon Center Stamp", "1st Edition · Holo · Prerelease Stamp"). Detect across ALL games (Pokémon, One Piece, Yu-Gi-Oh!, Magic, Sports, Lorcana, Dragon Ball, Digimon, etc.):
+  Stamps/seals: Pokémon Center stamp, Staff stamp, Prerelease stamp, Championship/Event stamp, Winner stamp, League stamp, Regional/Nationals/Worlds stamp, Promo stamp.
+  Symbols/editions: Gold Star symbol, 1st Edition symbol, Shadowless, Reverse Holo, Error/Misprint.
+  Signatures: Signed card / autograph, on-card or sticker auto, artist signature.
+  Premium/rarities: Serialized/numbered (read the "xx/yy" serial), Parallel, Alternate Art, Manga Rare, Secret Rare, Showcase, Convention/Special-Event exclusive.
+  Only report markings you can actually SEE. Never invent a stamp. If none present, do not append anything.
 - For "game_specific", fill ONLY the fields relevant to the detected category and visible on the card. Leave others as empty string.
 
 If a field is unreadable, return "" and set that field confidence under 0.4. Never guess a specific printing from memory. The database will do the exact match after this.

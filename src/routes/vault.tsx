@@ -818,16 +818,56 @@ function Vault() {
     }
   }
 
-  // Manual entry fallback — when a collector knows exactly what card they have
-  // and AI / search can't find it. Saves permanently and clears review state.
+  // Manual entry is a RECOVERY tool, not a separate vault system. Before we
+  // ever persist an unverified record, run one more identification pass against
+  // the card databases using whatever the collector typed. If a single
+  // confident match exists, replace the manual record with the verified card
+  // (official image, metadata, pricing). Otherwise fall back to saving exactly
+  // what they entered.
   async function applyManual(card: Card, f: ManualCardEntry) {
-    const tId = toast.loading("Saving card…");
+    const tId = toast.loading("Searching card databases…");
     try {
+      // 1) Try to identify the card from the entered details.
+      let matches: MatchOption[] = [];
+      try {
+        matches = (await fetchRealCardMatches({
+          name: f.name || card.name || undefined,
+          set: f.set || card.tcg_set || undefined,
+          number: f.number || card.tcg_number || undefined,
+          category: f.category || card.category || undefined,
+        })) as MatchOption[];
+      } catch { matches = []; }
+
+      // 2) Single confident match → auto-apply the verified card.
+      if (matches.length === 1) {
+        toast.dismiss(tId);
+        await applyMatch(card, matches[0]);
+        return;
+      }
+      // 3) Multiple matches → let the user tap the correct card image.
+      if (matches.length > 1) {
+        toast.dismiss(tId);
+        toast.message("Found possible matches — tap the correct card");
+        // Seed the picker with the entered details so the grid is pre-populated.
+        setMatchingCard({
+          ...card,
+          name: f.name || card.name,
+          tcg_set: f.set || card.tcg_set,
+          tcg_number: f.number || card.tcg_number,
+          category: f.category || card.category,
+        } as Card);
+        return;
+      }
+
+      // 4) Nothing found anywhere → persist exactly what the collector entered.
       const patch: any = {
         name: f.name || card.name,
+        category: f.category || card.category || "Trading Card",
         tcg_set: f.set || card.tcg_set,
         tcg_number: f.number || card.tcg_number,
         tcg_year: f.year || card.tcg_year,
+        rarity: f.rarity || card.rarity,
+        variant: f.variant || card.variant,
         condition: (f.condition as Condition) || card.condition || "NM",
         description: f.notes ? f.notes : card.description,
         price_source: "manual_entry",
@@ -2179,6 +2219,14 @@ function Vault() {
               <button onClick={() => setEditing(null)}><X className="h-4 w-4" /></button>
             </div>
             {editing.image_url && <img src={editing.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
+            {/* Re-open the visual matcher for ANY saved card — even verified ones —
+                so the user can fix a wrong image / set / rarity / variant / price. */}
+            <button
+              onClick={() => { const c = editing; setEditing(null); openMatchPicker(c); }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary/15 py-2.5 text-sm font-bold text-primary transition hover:bg-primary/25"
+            >
+              <ImageIcon className="h-4 w-4" /> Find correct card / change match
+            </button>
             <label className="block">
               <span className="text-[10px] text-muted-foreground">Change image</span>
               <input type="file" accept="image/*" onChange={(e) => handleFile(e, (v) => setEditing({ ...editing, image_url: v }))} className="block w-full text-xs" />
