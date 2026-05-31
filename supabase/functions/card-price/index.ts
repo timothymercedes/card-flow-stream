@@ -545,7 +545,10 @@ Deno.serve(async (req) => {
     // below the reference (e.g. $0.75 when comps sit at $30–$50) almost always
     // means the wrong product/variant record was matched. Flag it so the UI
     // can mark the card for re-sync instead of trusting a bogus number.
-    const chosenQuote = card ? quoteFromCardForSource(card, variant) : null;
+    const chosenQuote =
+      quotes.find((qq) => qq.source === "justtcg" && qq.product_id) ||
+      quotes.find((qq) => qq.product_id) ||
+      (card ? quoteFromCardForSource(card, variant) : null);
     const chosenMarket = (finalPrice as any).market as number | null;
     const refValues: number[] = [...candidateMarkets];
     try {
