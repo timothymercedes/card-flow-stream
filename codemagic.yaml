@@ -269,6 +269,35 @@ workflows:
         script: |
           bunx cap add android || true
           bunx cap sync android
+      - name: Inject App Links intent-filter (deep-link return)
+        script: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          # Lets Android verify domain ownership (via /.well-known/assetlinks.json)
+          # and route App Links (incl. the OAuth return URL) back into the app.
+          if ! grep -q 'android:host="pullbidlive.com"' "$MANIFEST"; then
+            python3 - "$MANIFEST" <<'PY'
+          import sys
+          path = sys.argv[1]
+          src = open(path).read()
+          block = (
+              '            <intent-filter android:autoVerify="true">\n'
+              '                <action android:name="android.intent.action.VIEW" />\n'
+              '                <category android:name="android.intent.category.DEFAULT" />\n'
+              '                <category android:name="android.intent.category.BROWSABLE" />\n'
+              '                <data android:scheme="https" android:host="pullbidlive.com" />\n'
+              '                <data android:scheme="https" android:host="www.pullbidlive.com" />\n'
+              '            </intent-filter>\n'
+          )
+          # Insert before the first closing </activity> (the main launcher activity).
+          idx = src.index('</activity>')
+          src = src[:idx] + block + src[idx:]
+          open(path, 'w').write(src)
+          print('App Links intent-filter injected.')
+          PY
+          else
+            echo "App Links intent-filter already present."
+          fi
+
       # Java 17 is enforced via android-config/java17.init.gradle, passed to
       # gradlew with --init-script in the "Build signed .aab" step below. No
       # Gradle code is inlined in this YAML file.
