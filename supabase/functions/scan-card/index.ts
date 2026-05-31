@@ -59,6 +59,8 @@ const BBOX_INSTRUCTION = `\n\nALSO RETURN A TIGHT BOUNDING BOX around the card i
 
 const SYSTEM_SINGLE = `You read trading card and collectible photos for a marketplace scanner. Be FAST and literal.
 
+STEP 0 — CARD FRONT vs BACK: If the image shows the BACK of a card (a generic logo/pattern with NO card name, artwork, stats, or number — e.g. the blue Pokémon back, the Magic "deckmaster" back, a Yu-Gi-Oh! brown back), set "is_card_back": true, leave the identification fields empty/low-confidence, and STOP. Only identify cards shown FACE-UP. Otherwise set "is_card_back": false.
+
 STEP 1 — DETECT THE GAME / CATEGORY first. Set "category" to EXACTLY ONE of:
   ${SUPPORTED_GAMES.join(", ")}
 Use visual cues:
