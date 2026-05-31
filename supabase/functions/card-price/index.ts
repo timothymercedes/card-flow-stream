@@ -527,6 +527,7 @@ Deno.serve(async (req) => {
         category: body?.category || game.id,
         variant,
         year,
+        language: languageName,
       });
     }
 
