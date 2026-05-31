@@ -28,6 +28,10 @@ type Card = {
   market_price?: number | null;
   is_graded?: boolean | null; grader?: string | null; grade?: string | null;
   grading_cert?: string | null; graded_price?: number | null;
+  price_source?: string | null; price_updated_at?: string | null;
+  price_confidence?: string | null; price_is_ai?: boolean | null;
+  price_locked?: boolean | null; custom_price?: number | null;
+  grade_values?: Record<string, number> | null; is_sealed?: boolean | null;
 };
 
 function Vault() {
