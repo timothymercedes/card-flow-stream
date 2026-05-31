@@ -491,6 +491,52 @@ function Vault() {
     }
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
   }
+
+  // Retroactive pricing enrichment: re-price existing cards using real sold-market data
+  // (AI fallback handled server-side), recording source, confidence and timestamp.
+  // Respects manual locks. `force` re-prices everything; otherwise only cards missing a source.
+  async function enrichPrices(list: Card[], force = false) {
+    const targets = list.filter((c) => {
+      if (c.price_locked) return false;
+      if (force) return !!(c.name || c.tcg_number || c.tcg_set);
+      const stale = !c.price_source || !c.price_updated_at;
+      return stale && !!(c.name || c.tcg_number || c.tcg_set);
+    });
+    if (!targets.length) {
+      if (force) toast.info("Prices are already up to date");
+      return;
+    }
+    if (force) { setEnriching(true); toast.info(`Refreshing ${targets.length} card${targets.length > 1 ? "s" : ""}…`); }
+    let updated = 0;
+    for (const c of targets.slice(0, force ? 200 : 25)) {
+      try {
+        const { data, error } = await supabase.functions.invoke("card-price", {
+          body: {
+            name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined,
+            year: c.tcg_year || undefined, category: c.category || undefined, skip_cache: true,
+          },
+        });
+        if (error) continue;
+        const market = Number(data?.price?.market) || 0;
+        if (!market) continue;
+        const patch: any = {
+          market_price: market,
+          estimated_value: market,
+          price_source: data?.primary_source || null,
+          price_confidence: data?.price_confidence || null,
+          price_is_ai: !!data?.price_is_ai,
+          price_updated_at: new Date().toISOString(),
+        };
+        const { error: upErr } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+        if (upErr) continue;
+        updated++;
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
+        setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch } : prev));
+      } catch { /* keep going */ }
+    }
+    if (force) setEnriching(false);
+    if (updated > 0) toast.success(`Repriced ${updated} card${updated > 1 ? "s" : ""}`);
+  }
   useEffect(() => { load(); }, [user]);
 
   async function updateVaultVisibility(v: Visibility) {
