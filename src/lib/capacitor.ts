@@ -32,17 +32,23 @@ const APP_LINK_HOSTS = new Set([
 ]);
 
 function routeNativeUrl(rawUrl?: string | null) {
+  console.log("[auth-deeplink] appUrlOpen received:", rawUrl);
   if (!rawUrl || typeof window === "undefined") return;
   try {
     const url = new URL(rawUrl);
     const isAppLink = url.protocol === "https:" && APP_LINK_HOSTS.has(url.hostname);
     const isCustomScheme = url.protocol === "pullbidlive:" || url.protocol === "com.pullbidlive.app:";
-    if (!isAppLink && !isCustomScheme) return;
+    console.log("[auth-deeplink] parsed", { host: url.hostname, path: url.pathname, hasHash: !!url.hash, isAppLink, isCustomScheme });
+    if (!isAppLink && !isCustomScheme) {
+      console.warn("[auth-deeplink] URL not recognized as app/custom link — ignoring");
+      return;
+    }
 
     const target = isCustomScheme
       ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}${url.search}${url.hash}`
       : `${url.pathname}${url.search}${url.hash}`;
     const next = target && target !== "" ? target : "/";
+    console.log("[auth-deeplink] routing WebView to:", next);
     if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
       window.location.href = next;
     }
