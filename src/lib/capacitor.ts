@@ -48,6 +48,7 @@ function routeNativeUrl(rawUrl?: string | null) {
       ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}${url.search}${url.hash}`
       : `${url.pathname}${url.search}${url.hash}`;
     const next = target && target !== "" ? target : "/";
+    console.log("[auth-deeplink] routing WebView to:", next);
     if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
       window.location.href = next;
     }
