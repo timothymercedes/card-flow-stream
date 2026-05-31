@@ -319,6 +319,7 @@ export interface AggregatedPrice {
 
 // Source weights — higher = more trusted in the weighted median.
 const SOURCE_WEIGHTS: Record<string, number> = {
+  justtcg: 4,
   tcg_api: 3,
   scryfall: 3,
   ygoprodeck: 2,
