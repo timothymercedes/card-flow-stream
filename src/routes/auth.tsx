@@ -284,6 +284,8 @@ function Auth() {
         <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
       </div>
 
+      <AuthPathBanner />
+
       <div className="space-y-2">
         <button type="button" disabled={loading} onClick={passkeyLogin} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/15 py-3 text-sm font-semibold text-primary border border-primary/30 disabled:opacity-60">
           <Fingerprint className="h-4 w-4" /> Sign in with Face ID / Passkey
