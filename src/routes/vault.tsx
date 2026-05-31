@@ -830,7 +830,7 @@ function Vault() {
       const original = card.original_image_url || (looksLikeUserUpload(card.image_url) ? card.image_url : null);
       const v = parseVariant(card.description);
       const langCode = card.language || parseLanguage(card.description);
-      const mult = langMult(langCode);
+      let mult = langMult(langCode);
       let raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
       let pricePayload: any = null;
       // The catalog match may not carry an embedded price (common for newer
