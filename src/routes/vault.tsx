@@ -2085,6 +2085,20 @@ function Vault() {
         />
       )}
 
+      {/* Bulk match mode — step through the whole review queue */}
+      {bulkMatch && (
+        <BulkMatchMode
+          cards={reviewCards as unknown as BulkCard[]}
+          fetchMatches={(opts) => fetchRealCardMatches(opts) as Promise<MatchOption[]>}
+          onApply={(c, m) => applyMatch(cards.find((x) => x.id === c.id) || (c as unknown as Card), m)}
+          uploadedImageFor={(c) => {
+            const full = cards.find((x) => x.id === c.id);
+            return full ? (full.original_image_url || full.image_url || displayImage(full) || undefined) : undefined;
+          }}
+          onClose={() => setBulkMatch(false)}
+        />
+      )}
+
       {/* Edit modal */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/70 p-4" onClick={() => setEditing(null)}>
