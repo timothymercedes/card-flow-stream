@@ -1025,7 +1025,7 @@ function Vault() {
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
       setMatchingCard(null);
-      toast.success("Card saved", { id: tId });
+      toast.success(hasPrice ? `Card saved • $${estimatedValue.toFixed(2)}` : "Card saved — tap Retry pricing for market value", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not save card", { id: tId });
     }
