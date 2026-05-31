@@ -643,7 +643,8 @@ function Vault() {
   // exact structured identity is known; otherwise cards are flagged for review.
   async function enrichPrices(list: Card[], force = false) {
     const targets = list.filter((c) => {
-      if (c.price_locked) return false;
+      // Never re-price or re-flag a card the user has explicitly confirmed.
+      if (c.price_locked || isUserVerified(c)) return false;
       if (force) return !!(c.name || c.tcg_number || c.tcg_set);
       const stale = !c.price_source || !c.price_updated_at;
       return stale && !!(c.name || c.tcg_number || c.tcg_set);
