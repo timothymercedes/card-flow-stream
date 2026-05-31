@@ -32,6 +32,7 @@ export type PricingCard = {
   custom_price?: number | null;
   grade_values?: GradeValues | null;
   is_sealed?: boolean;
+  needs_review?: boolean | null;
 };
 
 function timeAgo(iso?: string | null) {
@@ -104,8 +105,22 @@ export function CardPricingPanel({
       });
       if (error) throw error;
       const market = Number(data?.price?.market) || 0;
-      if (!market) {
-        toast.error("No market value found — set a manual value below");
+      const safe = data?.pricing_tier === "verified" && data?.price_confidence !== "low" && !data?.price_is_ai && market > 0;
+      if (!safe) {
+        const patch = {
+          market_price: market || null,
+          estimated_value: 0,
+          price_source: data?.primary_source || null,
+          price_confidence: data?.price_confidence || "low",
+          price_is_ai: !!data?.price_is_ai,
+          price_updated_at: new Date().toISOString(),
+          needs_review: true,
+          review_reason: data?.tier_reason || "Confirm the exact card before assigning market value.",
+        };
+        const { error: upErr } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+        if (upErr) throw upErr;
+        onSaved(patch as never);
+        toast.error("Marked for review — no safe market value found");
         return;
       }
       const patch: Partial<PricingCard> & { estimated_value?: number } = {
