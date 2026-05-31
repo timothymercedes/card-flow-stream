@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
-import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag, Image as ImageIcon, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { categoryToGameId } from "@/lib/scannerGame";
 const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ default: m.CardScanner })));
@@ -45,6 +45,7 @@ type Card = {
   wrong_match_reported_at?: string | null;
   purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
   confirmed_by?: string | null;
+  card_identity_id?: string | null; enrichment_status?: string | null;
 };
 
 function Vault() {
@@ -745,7 +746,26 @@ function Vault() {
       const v = parseVariant(card.description);
       const langCode = card.language || parseLanguage(card.description);
       const mult = langMult(langCode);
-      const raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      let raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      // The catalog match may not carry an embedded price (common for newer
+      // sets and non-Pokémon games). Fetch a live market value immediately so a
+      // confirmed card never ends up locked at $0 (this was the Clefairy bug).
+      if (raw == null || Number(raw) <= 0) {
+        try {
+          const { data: pd } = await supabase.functions.invoke("card-price", {
+            body: {
+              name: m.name || card.name, set: m.set || card.tcg_set || undefined,
+              number: m.number || card.tcg_number || undefined,
+              year: m.year || card.tcg_year || undefined,
+              category: m.category || card.category || undefined,
+              game: categoryToGameId(m.category || card.category),
+              variant: card.variant || v.finish, skip_cache: true,
+            },
+          });
+          const mk = Number(pd?.price?.market) || 0;
+          if (mk > 0) raw = mk;
+        } catch { /* fall through to "market value unavailable" */ }
+      }
       const variantPrice = raw != null ? Number(raw) * mult : raw;
       const cp = conditionPricesFromMarket(variantPrice);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || Number(variantPrice) || 0, cp) : 0;
@@ -781,6 +801,8 @@ function Vault() {
         estimated_value: newValue,
         market_price: Number(variantPrice) || null,
         condition_prices: cp as any,
+        // Save the actual catalog card ID so pricing + history always resolve.
+        card_identity_id: m.id || card.card_identity_id || null,
         price_source: "user_confirmed",
         price_confidence: hasPrice ? "high" : "low",
         price_is_ai: false,
@@ -788,12 +810,13 @@ function Vault() {
         price_range_low: null,
         price_range_high: null,
         confidence_score: 0.97,
-        // User explicitly confirmed this card — lock it permanently so it never
-        // re-enters any review state and we never ask them to fix it again.
+        // User explicitly confirmed this card — identity is locked and never
+        // re-enters review. If a price was found we lock it too; if not, we
+        // leave it unlocked so the "Retry pricing" button can fill it in.
         needs_review: false,
-        review_reason: null,
+        review_reason: hasPrice ? null : "Market value unavailable — tap Retry pricing.",
         confirmed_by: user?.id ?? null,
-        price_locked: true,
+        price_locked: hasPrice,
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
@@ -812,13 +835,52 @@ function Vault() {
       // The user explicitly confirmed this match — close the picker so they
       // land back on the (now-verified) card with no lingering "Fix" prompt.
       setMatchingCard(null);
-      toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — needs a price source", { id: tId });
+      toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — tap Retry pricing for market value", { id: tId });
     } catch (e: any) {
       toast.error(e?.message || "Could not update card", { id: tId });
     }
   }
 
-  // Manual entry is a RECOVERY tool, not a separate vault system. Before we
+  // Re-fetch a live market value for a single confirmed card on demand. Used by
+  // the "Retry pricing" button so a card is never silently left without a value.
+  async function retryPricing(card: Card) {
+    const tId = toast.loading("Fetching market value…");
+    try {
+      const v = parseVariant(card.description);
+      const { data } = await supabase.functions.invoke("card-price", {
+        body: {
+          name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined,
+          year: card.tcg_year || undefined, category: card.category || undefined,
+          game: categoryToGameId(card.category), variant: card.variant || v.finish, skip_cache: true,
+        },
+      });
+      const market = Number(data?.price?.market) || 0;
+      if (market <= 0) {
+        await supabase.from("vault_cards").update({ review_reason: "Market value unavailable — try again later.", price_updated_at: new Date().toISOString() } as never).eq("id", card.id);
+        setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, price_updated_at: new Date().toISOString() } : c)));
+        toast.error("Market value still unavailable", { id: tId });
+        return;
+      }
+      const mult = langMult(card.language || parseLanguage(card.description));
+      const priced = market * mult;
+      const cp = conditionPricesFromMarket(priced);
+      const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
+      const patch: any = {
+        estimated_value: newValue, market_price: priced, condition_prices: cp,
+        price_tier: "verified", price_confidence: "high", price_is_ai: false,
+        price_source: "user_confirmed", price_locked: true,
+        needs_review: false, review_reason: null,
+        price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+      setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      toast.success(`Updated • $${newValue.toFixed(2)}`, { id: tId });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not fetch price", { id: tId });
+    }
+  }
   // ever persist an unverified record, run one more identification pass against
   // the card databases using whatever the collector typed. If a single
   // confident match exists, replace the manual record with the verified card
@@ -911,10 +973,23 @@ function Vault() {
     [cards]
   );
 
+  // A card counts toward vault value if it's verified-priced OR a user-confirmed
+  // card that now has a real value (so manual corrections are always included).
+  const hasMarketValue = (c: Card) => isSafePriced(c) || (isUserVerified(c) && Number(c.estimated_value || 0) > 0);
+
   const totalValue = useMemo(
-    () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
+    () => cards.reduce((s, c) => s + (hasMarketValue(c) ? Number(c.estimated_value || 0) : 0), 0),
     [cards]
   );
+
+  // Pricing diagnostics shown at the top of the vault.
+  const pricingDiagnostics = useMemo(() => {
+    const total = cards.length;
+    const withValue = cards.filter(hasMarketValue).length;
+    const awaiting = cards.filter((c) => !hasMarketValue(c) && !c.price_updated_at && !isUserVerified(c)).length;
+    const missing = total - withValue - awaiting;
+    return { total, withValue, missing: Math.max(0, missing), awaiting };
+  }, [cards]);
 
   // Total amount the owner actually paid (purchase cost) and overall profit/loss.
   const totalPurchase = useMemo(
@@ -1568,6 +1643,21 @@ function Vault() {
           </div>
         </div>
 
+        {/* Pricing diagnostics — makes missing-value issues easy to spot */}
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { l: "Total Cards", v: pricingDiagnostics.total, cls: "text-foreground" },
+            { l: "Priced", v: pricingDiagnostics.withValue, cls: "text-emerald-500" },
+            { l: "Missing Values", v: pricingDiagnostics.missing, cls: pricingDiagnostics.missing > 0 ? "text-amber-500" : "text-muted-foreground" },
+            { l: "Awaiting Sync", v: pricingDiagnostics.awaiting, cls: pricingDiagnostics.awaiting > 0 ? "text-sky-400" : "text-muted-foreground" },
+          ].map((d) => (
+            <div key={d.l} className="rounded-xl border border-border/60 bg-card p-3 text-center shadow-[var(--shadow-card)]">
+              <p className={`text-xl font-bold ${d.cls}`}>{d.v}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{d.l}</p>
+            </div>
+          ))}
+        </div>
+
 
         {/* Review Queue removed — unsure cards are fixed inline via a simple
             "Choose Correct Card" popup, and confident scans save automatically. */}
@@ -1972,7 +2062,16 @@ function Vault() {
                 {isSafePriced(actionFor) || (isUserVerified(actionFor) && Number(actionFor.estimated_value || 0) > 0) ? (
                   <p className="text-base font-bold text-primary">${Number(actionFor.estimated_value).toFixed(2)}</p>
                 ) : isUserVerified(actionFor) ? (
-                  <p className="text-base font-bold text-muted-foreground">No price yet</p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-amber-500">Market value unavailable</p>
+                    <button
+                      type="button"
+                      onClick={() => retryPricing(actionFor)}
+                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground active:scale-95"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Retry pricing
+                    </button>
+                  </div>
                 ) : <p className="text-base font-bold text-amber-500">Tap "Choose Correct Card"</p>}
               </div>
               <div className="rounded-lg bg-muted/40 p-2">

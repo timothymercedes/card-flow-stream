@@ -6818,6 +6818,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_value_snapshots: {
+        Row: {
+          card_count: number
+          created_at: string
+          id: string
+          snapshot_date: string
+          total_cost: number
+          total_value: number
+          user_id: string
+        }
+        Insert: {
+          card_count?: number
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+          total_cost?: number
+          total_value?: number
+          user_id: string
+        }
+        Update: {
+          card_count?: number
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+          total_cost?: number
+          total_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       webauthn_credentials: {
         Row: {
           counter: number
