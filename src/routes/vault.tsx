@@ -944,11 +944,13 @@ function Vault() {
     const tId = toast.loading("Fetching market value…");
     try {
       const v = parseVariant(card.description);
+      const langCode = card.language || parseLanguage(card.description);
       const { data } = await supabase.functions.invoke("card-price", {
         body: {
           name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined,
           year: card.tcg_year || undefined, category: card.category || undefined,
-          game: categoryToGameId(card.category), variant: card.variant || v.finish, skip_cache: true,
+          game: categoryToGameId(card.category), language: langCode,
+          variant: card.variant || v.finish, skip_cache: true,
         },
       });
       const market = Number(data?.price?.market) || 0;
