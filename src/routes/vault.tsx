@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { propagateIdentityPrice } from "@/lib/cardIdentity.functions";
+import { propagateIdentityPrice, resolveMasterIdentity } from "@/lib/cardIdentity.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag, Image as ImageIcon, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
