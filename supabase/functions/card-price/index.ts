@@ -717,6 +717,53 @@ Deno.serve(async (req) => {
       };
     }
 
+    // 3.5) Master card identity — the card (not the user) owns its price.
+    // Resolve/insert the canonical record and persist the market value so a
+    // future scan of the SAME card reuses it instead of re-pricing.
+    let identityId: string | null = incomingIdentityId;
+    try {
+      const resolvedId = await upsertIdentity({
+        category: (game.id as any),
+        name: card?.name || name,
+        set_name: card?.set_name || set || null,
+        set_code: card?.set_code || null,
+        number: card?.number || number || null,
+        year: card?.year ? Number(card.year) : (year ? Number(year) : null),
+        variant: variant || null,
+        language: langCode,
+        image_url: officialImage,
+        image_source: imageSource,
+        external_ids: {
+          ...(card?.source_ids || {}),
+          ...(marketSource.tcgplayer_product_id ? { tcgplayer: String(marketSource.tcgplayer_product_id) } : {}),
+          ...(marketSource.pricecharting_product_id ? { pricecharting: String(marketSource.pricecharting_product_id) } : {}),
+        },
+      });
+      identityId = resolvedId || incomingIdentityId;
+      const mkt = (payload.price as any)?.market as number | null;
+      if (identityId && typeof mkt === "number" && mkt > 0) {
+        const verification = payload.pricing_tier === "verified"
+          ? "verified"
+          : (payload.price_is_ai ? "unverified" : "estimated");
+        await setIdentityMarketPrice({
+          identity_id: identityId,
+          market_cents: Math.round(mkt * 100),
+          source: payload.primary_source || null,
+          verification_status: verification as any,
+        });
+        await recordObservation({
+          identity_id: identityId,
+          source: payload.primary_source || "aggregate",
+          price_cents: Math.round(mkt * 100),
+        });
+      }
+    } catch (e) {
+      console.warn("[card-price] identity persist failed", (e as Error)?.message);
+    }
+    payload.identity_id = identityId;
+
+
+
     // 4) Cache and history (fire-and-forget)
     if (card?.id || name) {
       admin.from("card_price_cache").upsert({
