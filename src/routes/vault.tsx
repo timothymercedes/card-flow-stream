@@ -157,6 +157,19 @@ function Vault() {
     return Number(card.estimated_value || 0) > 0;
   }
 
+  // A card the collector has explicitly confirmed (chose a match in the picker
+  // or entered it manually) is permanently trusted. Manual confirmation always
+  // overrides AI uncertainty — we never put it back into review or auto-reprice
+  // it unless the user changes it again.
+  function isUserVerified(card: Card) {
+    return !!(
+      card.price_locked ||
+      card.confirmed_by ||
+      card.price_source === "user_confirmed" ||
+      card.price_source === "manual_entry"
+    );
+  }
+
   // Per-card gain vs. what the owner paid (only when a purchase price exists).
   function cardGain(card: Card): number | null {
     if (card.purchase_price == null) return null;
