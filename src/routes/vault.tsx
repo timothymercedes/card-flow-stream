@@ -450,11 +450,19 @@ function Vault() {
   }
 
   async function fetchPokemonMatches(safeName: string, safeSet: string, safeNumber: string): Promise<Alt[]> {
+    // Build a wildcard token query so partial names match (e.g. "Mega Lucario"
+    // or "Lucario EX" both find "Mega Lucario ex"). pokemontcg.io Lucene treats
+    // each `name:token*` as an AND term across the card name.
+    const nameWild = safeName
+      ? safeName.split(/\s+/).filter(Boolean).map((w) => `name:*${w}*`).join(" ")
+      : "";
     const queries = [
+      [nameWild, safeNumber && `number:"${safeNumber}"`].filter(Boolean).join(" "),
       [safeName && `name:"${safeName}"`, safeNumber && `number:"${safeNumber}"`].filter(Boolean).join(" "),
       [safeNumber && `number:"${safeNumber}"`, safeSet && `set.name:"${safeSet}"`].filter(Boolean).join(" "),
-      [safeName && `name:"${safeName}"`, safeSet && `set.name:"${safeSet}"`].filter(Boolean).join(" "),
-      [safeName && `name:"${safeName}"`].filter(Boolean).join(" "),
+      [nameWild, safeSet && `set.name:"${safeSet}"`].filter(Boolean).join(" "),
+      [nameWild].filter(Boolean).join(" "),
+      [safeNumber && `number:"${safeNumber}"`].filter(Boolean).join(" "),
     ].filter(Boolean);
     try {
       const rows: any[] = [];
