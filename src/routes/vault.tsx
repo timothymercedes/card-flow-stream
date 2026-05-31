@@ -9,6 +9,7 @@ const CardScanner = lazy(() => import("@/components/CardScanner").then(m => ({ d
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
+import { CardPricingPanel } from "@/components/CardPricingPanel";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { validateListingImage } from "@/lib/listingDisplay";
 
@@ -28,6 +29,10 @@ type Card = {
   market_price?: number | null;
   is_graded?: boolean | null; grader?: string | null; grade?: string | null;
   grading_cert?: string | null; graded_price?: number | null;
+  price_source?: string | null; price_updated_at?: string | null;
+  price_confidence?: string | null; price_is_ai?: boolean | null;
+  price_locked?: boolean | null; custom_price?: number | null;
+  grade_values?: Record<string, number> | null; is_sealed?: boolean | null;
 };
 
 function Vault() {
@@ -41,6 +46,7 @@ function Vault() {
   const [actionFor, setActionFor] = useState<Card | null>(null);
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [query, setQuery] = useState("");
   const [showSuggest, setShowSuggest] = useState(false);
   const [listening, setListening] = useState(false);
@@ -417,6 +423,8 @@ function Vault() {
     backfillMissingImages(list);
     // Re-price cards that look stuck at the $0.50 floor (no real market data captured).
     backfillMissingPrices(list);
+    // Retroactively enrich pricing (source, confidence, timestamp) for cards missing a source.
+    enrichPrices(list);
   }
 
   async function backfillMissingPrices(list: Card[]) {
@@ -485,6 +493,52 @@ function Vault() {
       }
     }
     if (updated > 0) toast.success(`Added images to ${updated} card${updated > 1 ? "s" : ""}`);
+  }
+
+  // Retroactive pricing enrichment: re-price existing cards using real sold-market data
+  // (AI fallback handled server-side), recording source, confidence and timestamp.
+  // Respects manual locks. `force` re-prices everything; otherwise only cards missing a source.
+  async function enrichPrices(list: Card[], force = false) {
+    const targets = list.filter((c) => {
+      if (c.price_locked) return false;
+      if (force) return !!(c.name || c.tcg_number || c.tcg_set);
+      const stale = !c.price_source || !c.price_updated_at;
+      return stale && !!(c.name || c.tcg_number || c.tcg_set);
+    });
+    if (!targets.length) {
+      if (force) toast.info("Prices are already up to date");
+      return;
+    }
+    if (force) { setEnriching(true); toast.info(`Refreshing ${targets.length} card${targets.length > 1 ? "s" : ""}…`); }
+    let updated = 0;
+    for (const c of targets.slice(0, force ? 200 : 25)) {
+      try {
+        const { data, error } = await supabase.functions.invoke("card-price", {
+          body: {
+            name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined,
+            year: c.tcg_year || undefined, category: c.category || undefined, skip_cache: true,
+          },
+        });
+        if (error) continue;
+        const market = Number(data?.price?.market) || 0;
+        if (!market) continue;
+        const patch: any = {
+          market_price: market,
+          estimated_value: market,
+          price_source: data?.primary_source || null,
+          price_confidence: data?.price_confidence || null,
+          price_is_ai: !!data?.price_is_ai,
+          price_updated_at: new Date().toISOString(),
+        };
+        const { error: upErr } = await supabase.from("vault_cards").update(patch).eq("id", c.id);
+        if (upErr) continue;
+        updated++;
+        setCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, ...patch } : x)));
+        setActionFor((prev) => (prev && prev.id === c.id ? { ...prev, ...patch } : prev));
+      } catch { /* keep going */ }
+    }
+    if (force) setEnriching(false);
+    if (updated > 0) toast.success(`Repriced ${updated} card${updated > 1 ? "s" : ""}`);
   }
   useEffect(() => { load(); }, [user]);
 
@@ -1088,6 +1142,7 @@ function Vault() {
             <p className="text-xs text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} · scan, value, list</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => enrichPrices(cards, true)} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Pricing…" : "Refresh prices"}</button>
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
           </div>
@@ -1507,6 +1562,33 @@ function Vault() {
                 </div>
               );
             })()}
+
+            {/* Accurate pricing: source, timestamp, manual override, per-grade values */}
+            <CardPricingPanel
+              card={{
+                id: actionFor.id,
+                name: actionFor.name,
+                category: actionFor.category,
+                tcg_set: actionFor.tcg_set,
+                tcg_number: actionFor.tcg_number,
+                tcg_year: actionFor.tcg_year,
+                estimated_value: actionFor.estimated_value,
+                market_price: actionFor.market_price,
+                price_source: actionFor.price_source,
+                price_updated_at: actionFor.price_updated_at,
+                price_confidence: actionFor.price_confidence,
+                price_is_ai: actionFor.price_is_ai,
+                price_locked: actionFor.price_locked,
+                custom_price: actionFor.custom_price,
+                grade_values: actionFor.grade_values,
+                is_sealed: actionFor.is_sealed ?? undefined,
+              }}
+              userId={user?.id || ""}
+              onSaved={(patch) => {
+                setCards((prev) => prev.map((c) => c.id === actionFor!.id ? { ...c, ...(patch as any) } : c));
+                setActionFor((prev) => prev ? { ...prev, ...(patch as any) } : prev);
+              }}
+            />
 
             {/* Graded card pricing */}
             <GradedCardPanel

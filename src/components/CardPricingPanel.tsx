@@ -31,7 +31,7 @@ export type PricingCard = {
   price_locked?: boolean | null;
   custom_price?: number | null;
   grade_values?: GradeValues | null;
-  is_sealed?: boolean | null;
+  is_sealed?: boolean;
 };
 
 function timeAgo(iso?: string | null) {
@@ -117,7 +117,7 @@ export function CardPricingPanel({
       };
       // Respect a manual lock; otherwise refresh the headline value + totals.
       if (!card.price_locked) patch.estimated_value = market;
-      const { error: upErr } = await supabase.from("vault_cards").update(patch).eq("id", card.id);
+      const { error: upErr } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
       if (upErr) throw upErr;
       onSaved(patch);
       toast.success(data?.price_is_ai ? "Updated with AI estimate" : "Price refreshed");
@@ -145,7 +145,7 @@ export function CardPricingPanel({
         price_updated_at: new Date().toISOString(),
         estimated_value: val,
       };
-      const { error } = await supabase.from("vault_cards").update(patch).eq("id", card.id);
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
       if (error) throw error;
       onSaved(patch);
       toast.success("Manual value saved");
@@ -161,7 +161,7 @@ export function CardPricingPanel({
       price_locked: false,
       custom_price: null,
     };
-    const { error } = await supabase.from("vault_cards").update(patch).eq("id", card.id);
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
     if (error) { toast.error(error.message); return; }
     setOverride("");
     onSaved(patch);
@@ -215,7 +215,7 @@ export function CardPricingPanel({
       price_updated_at: new Date().toISOString(),
       estimated_value: val,
     };
-    const { error } = await supabase.from("vault_cards").update(patch).eq("id", card.id);
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
     if (error) { toast.error(error.message); return; }
     onSaved(patch);
     toast.success(`Vault value set from ${TIERS.find((t) => t.key === tier)?.label}`);
