@@ -252,7 +252,7 @@ async function fetchJustTcgQuote(
 
   const conds: Record<string, number> = {};
   for (const v of (top.c.variants || [])) {
-    if (v.printing === top.v.printing && (v.language || "English") === "English" && Number(v.price) > 0) {
+    if (v.printing === top.v.printing && variantLangMatches(v, wantLang) && Number(v.price) > 0) {
       conds[v.condition] = Number(v.price);
     }
   }
