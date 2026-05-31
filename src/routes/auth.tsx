@@ -13,6 +13,7 @@ import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
 import { beginSocialSignIn } from "@/lib/socialAuthFlow";
+import { AuthPathBanner } from "@/components/AuthPathBanner";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
