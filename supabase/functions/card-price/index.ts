@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const key = `${game.id}|${cacheKey(card_id, name, set, number)}`;
+    const key = `${game.id}|lang:${languageName.toLowerCase()}|${cacheKey(card_id, name, set, number)}`;
 
     // 1) Cache lookup — keep stale row around to use as fallback if all live providers fail.
     let staleCachePayload: any = null;
