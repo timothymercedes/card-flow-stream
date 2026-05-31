@@ -650,21 +650,92 @@ function Vault() {
     else toast.success(v === "private" ? "Vault is private" : `Vault visible to ${v}`);
   }
 
-  async function markWrongMatch(card: Card) {
-    const patch = {
-      needs_review: true,
-      review_reason: "Wrong match reported by user. Confirm exact card before assigning value.",
-      wrong_match_reported_at: new Date().toISOString(),
-      estimated_value: 0,
-      price_tier: "unavailable",
-      price_confidence: "low",
-    };
-    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
-    if (error) { toast.error(error.message); return; }
-    setCards((prev) => prev.map((c) => c.id === card.id ? { ...c, ...patch } : c));
-    setActionFor((prev) => prev && prev.id === card.id ? { ...prev, ...patch } : prev);
-    toast.success("Marked for review — value removed until corrected");
+  // "Wrong Match" / "Fix match" → open the visual matcher instead of forcing
+  // the user to type metadata. They simply tap the correct card image.
+  function openMatchPicker(card: Card) {
+    setMatchingCard(card);
   }
+
+  // Apply a user-confirmed visual match: update metadata, re-price, refresh the
+  // card image, clear the Needs-Review flag and recalculate the vault total.
+  async function applyMatch(card: Card, m: MatchOption) {
+    const tId = toast.loading("Updating card…");
+    try {
+      const original = card.original_image_url || (looksLikeUserUpload(card.image_url) ? card.image_url : null);
+      const v = parseVariant(card.description);
+      const langCode = card.language || parseLanguage(card.description);
+      const mult = langMult(langCode);
+      const raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      const variantPrice = raw != null ? Number(raw) * mult : raw;
+      const cp = conditionPricesFromMarket(variantPrice);
+      const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || Number(variantPrice) || 0, cp) : 0;
+      const hasPrice = newValue > 0;
+
+      // Prefer the real catalog image; generate AI art only if there is none.
+      let primaryImg = m.image || null;
+      if (!primaryImg && m.name) {
+        try {
+          const { data: gen } = await supabase.functions.invoke("generate-card-image", {
+            body: { name: m.name, category: m.category || card.category, set: m.set, year: m.year, tcg_number: m.number },
+          });
+          if (gen?.image) primaryImg = gen.image;
+        } catch { /* ignore */ }
+      }
+
+      const patch: any = {
+        name: m.name || card.name,
+        category: m.category || card.category || "Trading Card",
+        tcg_set: m.set || card.tcg_set,
+        tcg_number: m.number || card.tcg_number,
+        tcg_year: m.year || card.tcg_year,
+        rarity: m.rarity || card.rarity,
+        image_url: primaryImg || card.image_url,
+        ai_image_url: primaryImg || card.ai_image_url,
+        original_image_url: original,
+        image_source: m.image ? "catalog" : primaryImg ? "ai_generated" : card.image_source,
+        image_gallery: [
+          primaryImg ? { url: primaryImg, type: m.image ? "catalog" : "ai_generated", primary: true } : null,
+          original ? { url: original, type: "user_upload", primary: false } : null,
+          card.back_image_url ? { url: card.back_image_url, type: "user_back", primary: false } : null,
+        ].filter(Boolean),
+        estimated_value: newValue,
+        market_price: Number(variantPrice) || null,
+        condition_prices: cp as any,
+        price_source: "user_confirmed",
+        price_confidence: hasPrice ? "high" : "low",
+        price_is_ai: false,
+        price_tier: hasPrice ? "verified" : "unavailable",
+        price_range_low: null,
+        price_range_high: null,
+        confidence_score: 0.97,
+        needs_review: !hasPrice,
+        review_reason: hasPrice ? null : "Confirmed match but no market price available yet.",
+        price_updated_at: new Date().toISOString(),
+        last_valued_at: new Date().toISOString(),
+        last_rescan_at: new Date().toISOString(),
+        identification_details: { confirmed_match: m },
+      };
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+      setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      toast.success(hasPrice ? `Matched • $${newValue.toFixed(2)}` : "Matched — needs a price source", { id: tId });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update card", { id: tId });
+    }
+  }
+
+  // Cards that belong in the review queue: low confidence / missing metadata /
+  // unverified pricing / missing AI card image.
+  const reviewCards = useMemo(
+    () => cards.filter((c) =>
+      c.needs_review ||
+      !isSafePriced(c) ||
+      needsOfficialCardImage(c.image_url) ||
+      !c.tcg_set || !c.tcg_number || !c.tcg_year
+    ),
+    [cards]
+  );
 
   const totalValue = useMemo(
     () => cards.reduce((s, c) => s + (isSafePriced(c) ? Number(c.estimated_value || 0) : 0), 0),
