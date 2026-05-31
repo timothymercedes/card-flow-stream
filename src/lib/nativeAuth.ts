@@ -28,7 +28,7 @@ let initialized = false;
 export function nativeAuthAvailable(provider: "google" | "apple"): boolean {
   if (!isNative()) return false;
   const platform = nativePlatform();
-  if (provider === "google") return platform === "ios" ? !!GOOGLE_IOS_CLIENT_ID : !!GOOGLE_WEB_CLIENT_ID;
+  if (provider === "google") return platform === "ios" ? !!GOOGLE_WEB_CLIENT_ID && !!GOOGLE_IOS_CLIENT_ID : !!GOOGLE_WEB_CLIENT_ID;
   if (provider === "apple") return platform === "ios" || !!APPLE_SERVICES_ID;
   return false;
 }
