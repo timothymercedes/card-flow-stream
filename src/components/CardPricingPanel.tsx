@@ -31,7 +31,7 @@ export type PricingCard = {
   price_locked?: boolean | null;
   custom_price?: number | null;
   grade_values?: GradeValues | null;
-  is_sealed?: boolean | null;
+  is_sealed?: boolean;
 };
 
 function timeAgo(iso?: string | null) {
