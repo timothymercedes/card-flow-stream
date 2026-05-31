@@ -741,6 +741,7 @@ function Vault() {
           body: {
             name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined,
             year: c.tcg_year || undefined, category: c.category || undefined, game: categoryToGameId(c.category),
+            language: c.language || parseLanguage(c.description),
             variant: c.variant || parseVariant(c.description).finish, skip_cache: true,
           },
         });
@@ -829,7 +830,7 @@ function Vault() {
       const original = card.original_image_url || (looksLikeUserUpload(card.image_url) ? card.image_url : null);
       const v = parseVariant(card.description);
       const langCode = card.language || parseLanguage(card.description);
-      const mult = langMult(langCode);
+      let mult = langMult(langCode);
       let raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
       let pricePayload: any = null;
       // The catalog match may not carry an embedded price (common for newer
@@ -846,10 +847,13 @@ function Vault() {
             year: m.year || card.tcg_year || undefined,
             category: m.category || card.category || undefined,
             game: categoryToGameId(m.category || card.category),
+            language: langCode,
             variant: card.variant || v.finish, skip_cache: true,
           },
         });
         pricePayload = pd || null;
+        // Real language-specific market value → use it as-is (no multiplier).
+        mult = effectiveLangMult(langCode, pricePayload);
         const mk = Number(pd?.price?.market) || 0;
         if (mk > 0 && !pd?.price_suspicious) raw = mk;
       } catch { /* fall through to embedded price / unavailable */ }
@@ -877,6 +881,7 @@ function Vault() {
         tcg_number: m.number || card.tcg_number,
         tcg_year: m.year || card.tcg_year,
         rarity: m.rarity || card.rarity,
+        language: langCode,
         image_url: primaryImg || card.image_url,
         ai_image_url: primaryImg || card.ai_image_url,
         original_image_url: original,
@@ -911,7 +916,7 @@ function Vault() {
         price_updated_at: new Date().toISOString(),
         last_valued_at: new Date().toISOString(),
         last_rescan_at: new Date().toISOString(),
-        pricing_details: { market_source: marketSource, suspicious: !!pricePayload?.price_suspicious, reference_value: pricePayload?.reference_value ?? null },
+        pricing_details: { market_source: marketSource, suspicious: !!pricePayload?.price_suspicious, reference_value: pricePayload?.reference_value ?? null, language: langCode, language_matched: !!pricePayload?.language_matched, language_unconfirmed: !!pricePayload?.language_unconfirmed },
         identification_details: { confirmed_match: m, pricing: pricePayload },
         incorrect_price_reported: false,
         incorrect_price_reported_at: null,
@@ -939,11 +944,13 @@ function Vault() {
     const tId = toast.loading("Fetching market value…");
     try {
       const v = parseVariant(card.description);
+      const langCode = card.language || parseLanguage(card.description);
       const { data } = await supabase.functions.invoke("card-price", {
         body: {
           name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined,
           year: card.tcg_year || undefined, category: card.category || undefined,
-          game: categoryToGameId(card.category), variant: card.variant || v.finish, skip_cache: true,
+          game: categoryToGameId(card.category), language: langCode,
+          variant: card.variant || v.finish, skip_cache: true,
         },
       });
       const market = Number(data?.price?.market) || 0;
@@ -975,7 +982,7 @@ function Vault() {
         toast.warning("Value looks wrong — flagged for re-sync", { id: tId });
         return;
       }
-      const mult = langMult(card.language || parseLanguage(card.description));
+      const mult = effectiveLangMult(langCode, data);
       const priced = market * mult;
       const cp = conditionPricesFromMarket(priced);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
@@ -984,7 +991,7 @@ function Vault() {
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: false,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
-        pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null },
+        pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null, language: langCode, language_matched: !!data?.language_matched, language_unconfirmed: !!data?.language_unconfirmed },
         needs_review: false, review_reason: null,
         price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
       };
@@ -1053,13 +1060,14 @@ function Vault() {
             year: f.year || card.tcg_year || undefined,
             category: f.category || card.category || undefined,
             game: categoryToGameId(f.category || card.category),
+            language: card.language || parseLanguage(card.description),
             variant: f.variant || card.variant || undefined,
             skip_cache: true,
           },
         });
         const mk = Number(pd?.price?.market) || 0;
         if (mk > 0 && !pd?.price_suspicious) {
-          const mult = langMult(card.language || parseLanguage(card.description));
+          const mult = effectiveLangMult(card.language || parseLanguage(card.description), pd);
           marketPrice = mk * mult;
           conditionPrices = conditionPricesFromMarket(marketPrice);
           estimatedValue = conditionPrices
@@ -1439,6 +1447,14 @@ function Vault() {
   function langMult(code?: string | null) {
     const k = String(code || "en").toLowerCase();
     return LANG_MULT[k] ?? 1.0;
+  }
+  // When the backend already returned a price for the exact language printing
+  // (language_matched), the value is correct as-is — do NOT scale it again with
+  // the rough multiplier. The multiplier is only a fallback approximation when
+  // no real language-specific market record was found.
+  function effectiveLangMult(code: string | null | undefined, pricePayload: any) {
+    if (pricePayload?.language_matched) return 1.0;
+    return langMult(code);
   }
 
   // Parse "Variant: <Edition> · <Finish>" out of a description

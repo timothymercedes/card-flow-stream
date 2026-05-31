@@ -124,14 +124,52 @@ function jtFirstNumber(v: string | null | undefined) {
   return String(v || "").split("/")[0].trim().replace(/^0+(\d)/, "$1").toLowerCase();
 }
 
+// Map our internal language codes (en/jp/zh/...) to the canonical English
+// language NAME JustTCG (and most price sources) use. Critical for pulling
+// the correct language-specific market value — a Japanese card must never be
+// priced from an English product record and vice versa.
+const LANG_CODE_TO_NAME: Record<string, string> = {
+  en: "English", jp: "Japanese", ja: "Japanese", kr: "Korean", ko: "Korean",
+  zh: "Chinese", "zh-cn": "Chinese", "zh-tw": "Chinese", cn: "Chinese",
+  de: "German", fr: "French", es: "Spanish", it: "Italian", pt: "Portuguese", ru: "Russian",
+};
+function normalizeLanguageName(input: string | null | undefined): string {
+  const raw = String(input || "").trim();
+  if (!raw) return "English";
+  const lower = raw.toLowerCase();
+  if (LANG_CODE_TO_NAME[lower]) return LANG_CODE_TO_NAME[lower];
+  // Already a full name (e.g. "Japanese", "Chinese (Traditional)")
+  if (/japan/.test(lower)) return "Japanese";
+  if (/korea/.test(lower)) return "Korean";
+  if (/chin|中文|mandarin/.test(lower)) return "Chinese";
+  if (/germ|deutsch/.test(lower)) return "German";
+  if (/fren|français/.test(lower)) return "French";
+  if (/span|español/.test(lower)) return "Spanish";
+  if (/ital/.test(lower)) return "Italian";
+  if (/portug/.test(lower)) return "Portuguese";
+  if (/russ/.test(lower)) return "Russian";
+  if (/engl/.test(lower)) return "English";
+  // Unknown — capitalize first letter as a best effort
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+// True when a JustTCG variant's language matches the requested language.
+// English requests also accept variants with no language tag (most cards).
+function variantLangMatches(v: any, wantLang: string): boolean {
+  const vl = String(v?.language || "").trim();
+  if (wantLang === "English") return !vl || /engl/i.test(vl);
+  return vl.toLowerCase() === wantLang.toLowerCase();
+}
+
 // Pick the JustTCG variant whose printing matches the desired variant; if no
 // hint, prefer the premium printing (holo/reverse) and Near-Mint condition,
 // falling back to the highest-priced variant. This is what produces the
 // correct ~$34 Clefairy holo value instead of a $0.75 base-normal price.
-function pickJustTcgVariant(card: any, variantHint: string | null) {
+// `wantLang` is the canonical language NAME — we ONLY consider variants in
+// that language so we never cross-price languages.
+function pickJustTcgVariant(card: any, variantHint: string | null, wantLang = "English") {
   const hint = String(variantHint || "").toLowerCase();
   const all = (card?.variants || []).filter(
-    (v: any) => Number(v?.price) > 0 && (v?.language || "English") === "English",
+    (v: any) => Number(v?.price) > 0 && variantLangMatches(v, wantLang),
   );
   if (!all.length) return null;
   const nm = all.filter((v: any) => v.condition === "Near Mint");
@@ -152,8 +190,9 @@ function pickJustTcgVariant(card: any, variantHint: string | null) {
 // the matched product identifiers for the card-page "Market Source" panel.
 async function fetchJustTcgQuote(
   gameId: string,
-  q: { name: string; set?: string | null; number?: string | null; variant?: string | null },
+  q: { name: string; set?: string | null; number?: string | null; variant?: string | null; language?: string | null },
 ): Promise<PriceQuote | null> {
+  const wantLang = normalizeLanguageName(q.language);
   const apiKey = Deno.env.get("JUSTTCG_API_KEY");
   const slug = JUSTTCG_GAME[gameId];
   if (!apiKey || !slug || !q.name) return null;
@@ -203,7 +242,7 @@ async function fetchJustTcgQuote(
     return s;
   }
   const ranked = candidates
-    .map((c) => ({ c, s: score(c), v: pickJustTcgVariant(c, q.variant ?? null) }))
+    .map((c) => ({ c, s: score(c), v: pickJustTcgVariant(c, q.variant ?? null, wantLang) }))
     .filter((x) => x.v && Number(x.v.price) > 0)
     .sort((a, b) => b.s - a.s);
   if (!ranked.length) return null;
@@ -213,7 +252,7 @@ async function fetchJustTcgQuote(
 
   const conds: Record<string, number> = {};
   for (const v of (top.c.variants || [])) {
-    if (v.printing === top.v.printing && (v.language || "English") === "English" && Number(v.price) > 0) {
+    if (v.printing === top.v.printing && variantLangMatches(v, wantLang) && Number(v.price) > 0) {
       conds[v.condition] = Number(v.price);
     }
   }
@@ -229,7 +268,7 @@ async function fetchJustTcgQuote(
     url: top.c?.tcgplayerId ? `https://www.tcgplayer.com/product/${top.c.tcgplayerId}` : null,
     variant_used: top.v.printing ?? null,
     product_id: top.c?.tcgplayerId ? String(top.c.tcgplayerId) : (top.c?.id ?? null),
-    raw: { justtcg_id: top.c?.id, tcgplayerId: top.c?.tcgplayerId, printing: top.v.printing, conditions: conds, match_score: top.s },
+    raw: { justtcg_id: top.c?.id, tcgplayerId: top.c?.tcgplayerId, printing: top.v.printing, language: wantLang, conditions: conds, match_score: top.s },
   };
 }
 
@@ -238,7 +277,7 @@ async function fetchJustTcgQuote(
 // the UI can flag it as an estimate (never as verified market data).
 async function estimatePriceWithAI(q: {
   name: string; set?: string | null; number?: string | null;
-  category?: string | null; variant?: string | null; year?: string | null;
+  category?: string | null; variant?: string | null; year?: string | null; language?: string | null;
 }): Promise<{ market: number; low: number; high: number } | null> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey || !q.name) return null;
@@ -252,11 +291,11 @@ async function estimatePriceWithAI(q: {
           {
             role: "system",
             content:
-              "You are a trading-card and collectibles market appraiser covering Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Dragon Ball, Flesh and Blood, Weiss Schwarz, Digimon, sports cards, and other collectibles. Estimate the current RAW Near-Mint USD market value based on recent sold prices you know of. Return STRICT JSON only: {\"market\": number, \"low\": number, \"high\": number}. All values > 0. low/high should bracket realistic recent sold prices. If totally unknown, give your single best guess, never 0.",
+              "You are a trading-card and collectibles market appraiser covering Pokémon, Magic, Yu-Gi-Oh!, One Piece, Lorcana, Dragon Ball, Flesh and Blood, Weiss Schwarz, Digimon, sports cards, and other collectibles. Estimate the current RAW Near-Mint USD market value based on recent sold prices you know of. CRITICAL: price the SPECIFIC LANGUAGE printing requested — English, Japanese, Chinese, Korean, etc. often have very different market values, so never substitute another language's value. Return STRICT JSON only: {\"market\": number, \"low\": number, \"high\": number}. All values > 0. low/high should bracket realistic recent sold prices. If totally unknown, give your single best guess, never 0.",
           },
           {
             role: "user",
-            content: `Estimate the recent sold market value (USD, raw NM) for this card:\nName: ${q.name}\nCategory: ${q.category || "unknown"}\nSet: ${q.set || "unknown"}\nNumber: ${q.number || "unknown"}\nYear: ${q.year || "unknown"}\nVariant: ${q.variant || "standard"}`,
+            content: `Estimate the recent sold market value (USD, raw NM) for this card:\nName: ${q.name}\nLanguage: ${q.language || "English"}\nCategory: ${q.category || "unknown"}\nSet: ${q.set || "unknown"}\nNumber: ${q.number || "unknown"}\nYear: ${q.year || "unknown"}\nVariant: ${q.variant || "standard"}`,
           },
         ],
         response_format: { type: "json_object" },
@@ -292,6 +331,10 @@ Deno.serve(async (req) => {
     const set = String(body?.set || "").trim();
     const number = String(body?.number || "").trim();
     const skipCache = !!body?.skip_cache;
+    // Language: pull pricing for the CORRECT language printing only. We never
+    // cross-price (a Japanese card must not get an English market value).
+    const languageName = normalizeLanguageName(body?.language);
+    const isEnglish = languageName === "English";
     // game routing: accept either an explicit `game` id or a scanner `category`
     // string. When provided and non-Pokémon, we route through the matching
     // catalog adapters instead of defaulting to PokémonTCG.
@@ -309,7 +352,7 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const key = `${game.id}|${cacheKey(card_id, name, set, number)}`;
+    const key = `${game.id}|lang:${languageName.toLowerCase()}|${cacheKey(card_id, name, set, number)}`;
 
     // 1) Cache lookup — keep stale row around to use as fallback if all live providers fail.
     let staleCachePayload: any = null;
@@ -424,7 +467,7 @@ Deno.serve(async (req) => {
     sourcesTried.push("justtcg");
     try {
       const jt = await fetchJustTcgQuote(game.id, {
-        name: q.name, set: q.set, number: q.number, variant,
+        name: q.name, set: q.set, number: q.number, variant, language: languageName,
       });
       if (jt) quotes.push(jt);
       else sourcesFailed.push("justtcg");
@@ -484,6 +527,7 @@ Deno.serve(async (req) => {
         category: body?.category || game.id,
         variant,
         year,
+        language: languageName,
       });
     }
 
@@ -595,8 +639,18 @@ Deno.serve(async (req) => {
       last_sync: new Date().toISOString(),
     };
 
+    // Did a trusted market source actually return data in the requested language?
+    const jtQuote = quotes.find((qq) => qq.source === "justtcg");
+    const languageMatched = !!(jtQuote && normalizeLanguageName((jtQuote.raw as any)?.language) === languageName);
+    // Non-English requested but we could not confirm language-specific market
+    // data → tell the UI to flag it rather than passing off another printing.
+    const languageUnconfirmed = !isEnglish && !languageMatched;
+
     let payload: any = {
       game: game.id,
+      language: languageName,
+      language_matched: languageMatched,
+      language_unconfirmed: languageUnconfirmed,
       card: card ? {
         id: card.id, name: card.name, set_name: card.set_name, number: card.number,
         rarity: card.rarity, year: card.year,
@@ -672,8 +726,9 @@ Deno.serve(async (req) => {
       });
     }
     if (quotes.length && (card?.id || name)) {
+      const histLangSuffix = isEnglish ? "" : `|lang:${languageName.toLowerCase()}`;
       const rows = quotes.map((q) => ({
-        card_key: card?.id || `${name}|${set}|${number}`.toLowerCase(),
+        card_key: (card?.id || `${name}|${set}|${number}`.toLowerCase()) + histLangSuffix,
         name: card?.name || name,
         tcg_set: card?.set_name || set || null,
         tcg_number: card?.number || number || null,
