@@ -1667,6 +1667,12 @@ function Vault() {
     const { error, data } = await supabase.from("vault_cards").update(patch).eq("id", editing.id).select("id").single();
     if (!data && !error) return toast.error("Save did not update this card. Please reopen the vault and try again.");
     if (error) return toast.error(error.message);
+    void ensureMasterIdentity(editing.id, {
+      category: editing.category, name: editing.name, tcg_set: editing.tcg_set,
+      tcg_number: editing.tcg_number, tcg_year: editing.tcg_year, variant: editing.variant,
+      language: editing.language || parseLanguage(editing.description), rarity: editing.rarity,
+      image_url: editing.image_url, card_identity_id: editing.card_identity_id,
+    });
     toast.success("Saved");
     setEditing(null);
     load();
