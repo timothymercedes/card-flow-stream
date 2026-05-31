@@ -75,9 +75,12 @@ const norm = (s: string | null | undefined) =>
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
 
-/** Deterministic fingerprint — same identity always hashes the same. */
+/** Deterministic fingerprint — same identity always hashes the same.
+ *  Language is part of identity: a Japanese card and its English print are
+ *  two different records. English keeps its legacy hash (no language segment)
+ *  for backward compatibility; non-English printings append a lang segment. */
 export async function computeFingerprint(input: CardIdentityInput): Promise<string> {
-  const parts = [
+  const segs = [
     input.category,
     norm(input.name),
     norm(input.set_code || input.set_name),
@@ -88,7 +91,10 @@ export async function computeFingerprint(input: CardIdentityInput): Promise<stri
     norm(input.player),
     norm(input.grade) || "raw",
     norm(input.grading_company),
-  ].join("|");
+  ];
+  const lang = normalizeLangCode(input.language);
+  if (lang !== "en") segs.push(`lang_${lang}`);
+  const parts = segs.join("|");
   const buf = new TextEncoder().encode(parts);
   const hash = await crypto.subtle.digest("SHA-256", buf);
   return Array.from(new Uint8Array(hash))
