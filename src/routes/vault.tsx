@@ -1643,6 +1643,21 @@ function Vault() {
           </div>
         </div>
 
+        {/* Pricing diagnostics — makes missing-value issues easy to spot */}
+        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { l: "Total Cards", v: pricingDiagnostics.total, cls: "text-foreground" },
+            { l: "Priced", v: pricingDiagnostics.withValue, cls: "text-emerald-500" },
+            { l: "Missing Values", v: pricingDiagnostics.missing, cls: pricingDiagnostics.missing > 0 ? "text-amber-500" : "text-muted-foreground" },
+            { l: "Awaiting Sync", v: pricingDiagnostics.awaiting, cls: pricingDiagnostics.awaiting > 0 ? "text-sky-400" : "text-muted-foreground" },
+          ].map((d) => (
+            <div key={d.l} className="rounded-xl border border-border/60 bg-card p-3 text-center shadow-[var(--shadow-card)]">
+              <p className={`text-xl font-bold ${d.cls}`}>{d.v}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{d.l}</p>
+            </div>
+          ))}
+        </div>
+
 
         {/* Review Queue removed — unsure cards are fixed inline via a simple
             "Choose Correct Card" popup, and confident scans save automatically. */}
