@@ -841,7 +841,46 @@ function Vault() {
     }
   }
 
-  // Manual entry is a RECOVERY tool, not a separate vault system. Before we
+  // Re-fetch a live market value for a single confirmed card on demand. Used by
+  // the "Retry pricing" button so a card is never silently left without a value.
+  async function retryPricing(card: Card) {
+    const tId = toast.loading("Fetching market value…");
+    try {
+      const v = parseVariant(card.description);
+      const { data } = await supabase.functions.invoke("card-price", {
+        body: {
+          name: card.name, set: card.tcg_set || undefined, number: card.tcg_number || undefined,
+          year: card.tcg_year || undefined, category: card.category || undefined,
+          game: categoryToGameId(card.category), variant: card.variant || v.finish, skip_cache: true,
+        },
+      });
+      const market = Number(data?.price?.market) || 0;
+      if (market <= 0) {
+        await supabase.from("vault_cards").update({ review_reason: "Market value unavailable — try again later.", price_updated_at: new Date().toISOString() } as never).eq("id", card.id);
+        setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, price_updated_at: new Date().toISOString() } : c)));
+        toast.error("Market value still unavailable", { id: tId });
+        return;
+      }
+      const mult = langMult(card.language || parseLanguage(card.description));
+      const priced = market * mult;
+      const cp = conditionPricesFromMarket(priced);
+      const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
+      const patch: any = {
+        estimated_value: newValue, market_price: priced, condition_prices: cp,
+        price_tier: "verified", price_confidence: "high", price_is_ai: false,
+        price_source: "user_confirmed", price_locked: true,
+        needs_review: false, review_reason: null,
+        price_updated_at: new Date().toISOString(), last_valued_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+      setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      toast.success(`Updated • $${newValue.toFixed(2)}`, { id: tId });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not fetch price", { id: tId });
+    }
+  }
   // ever persist an unverified record, run one more identification pass against
   // the card databases using whatever the collector typed. If a single
   // confident match exists, replace the manual record with the verified card
