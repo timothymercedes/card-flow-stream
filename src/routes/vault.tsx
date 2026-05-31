@@ -11,6 +11,7 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { CardPriceChart } from "@/components/CardPriceChart";
 import { GradedCardPanel } from "@/components/GradedCardPanel";
 import { CardPricingPanel } from "@/components/CardPricingPanel";
+import { CardMatchPicker, type MatchOption } from "@/components/CardMatchPicker";
 import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { validateListingImage } from "@/lib/listingDisplay";
 
