@@ -186,6 +186,19 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
       bbox = { x, y, w, h };
     }
   }
+  // ─── Confidence gating ────────────────────────────────────────────────
+  // Flag scans the collector should verify instead of silently trusting a
+  // possibly-wrong guess. Drives the "Needs Review / Choose Correct Card" UI.
+  const weakField =
+    perField.name < 0.5 || perField.set < 0.45 || perField.tcg_number < 0.45;
+  const lowOverall = overall < 0.7;
+  const needs_review = lowOverall || weakField;
+  let review_reason: string | null = null;
+  if (needs_review) {
+    if (perField.name < 0.5) review_reason = "Card name unclear — confirm the correct card.";
+    else if (perField.set < 0.45 || perField.tcg_number < 0.45) review_reason = "Set/number unclear — confirm the exact printing.";
+    else review_reason = "Low confidence match — confirm the card, language, and variant.";
+  }
   return {
     name: parsed?.name || "Unknown Card",
     category: parsed?.category || "Trading Card",
@@ -199,6 +212,8 @@ function normalizeCard(parsed: any, fallbackLang?: string) {
     bbox,
     confidence: perField,
     overall_confidence: overall,
+    needs_review,
+    review_reason,
     match_label: overall >= 0.9 ? `${Math.round(overall * 100)}% Match` : overall >= 0.7 ? `Likely Match (${Math.round(overall * 100)}%)` : "Possible Match",
     estimated_value: 0,
     condition_prices: {
