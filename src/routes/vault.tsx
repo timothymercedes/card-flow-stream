@@ -2078,10 +2078,7 @@ function Vault() {
               <Tag className="h-4 w-4" /> Sell this card
             </button>
             <button onClick={() => { openMatchPicker(actionFor); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
-              <AlertTriangle className="h-4 w-4" /> Wrong match — pick correct card
-            </button>
-            <button onClick={() => reportIncorrectPrice(actionFor)} disabled={!!actionFor.incorrect_price_reported} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-bold text-muted-foreground disabled:opacity-60">
-              <Flag className="h-4 w-4" /> {actionFor.incorrect_price_reported ? "Price reported" : "Report incorrect price"}
+              <ImageIcon className="h-4 w-4" /> Wrong card? Choose the correct one
             </button>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
