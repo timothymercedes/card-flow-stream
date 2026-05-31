@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { propagateIdentityPrice } from "@/lib/cardIdentity.functions";
+import { propagateIdentityPrice, resolveMasterIdentity } from "@/lib/cardIdentity.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag, Image as ImageIcon, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
@@ -48,7 +48,7 @@ type Card = {
   wrong_match_reported_at?: string | null;
   purchase_price?: number | null; purchase_date?: string | null; purchased_from?: string | null;
   confirmed_by?: string | null;
-  card_identity_id?: string | null; enrichment_status?: string | null;
+  card_identity_id?: string | null; master_identity_id?: string | null; enrichment_status?: string | null;
   pricing_details?: Record<string, unknown> | null; price_source_url?: string | null;
 };
 
@@ -56,6 +56,46 @@ function Vault() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
   const propagatePrice = useServerFn(propagateIdentityPrice);
+  const resolveMaster = useServerFn(resolveMasterIdentity);
+
+  // Ensure a vault card is registered into the master identity DB and linked.
+  // Best-effort: never blocks the main write. Used by manual add / correction /
+  // language + variant changes so every card self-registers without the engine.
+  async function ensureMasterIdentity(cardId: string, info: {
+    category?: string | null; name?: string | null; tcg_set?: string | null;
+    tcg_number?: string | null; tcg_year?: string | null; variant?: string | null;
+    language?: string | null; rarity?: string | null; image_url?: string | null;
+    card_identity_id?: string | null; confidence_score?: number | null;
+  }) {
+    try {
+      if (!info.name) return null;
+      const yr = info.tcg_year ? parseInt(String(info.tcg_year), 10) : null;
+      const res: any = await resolveMaster({
+        data: {
+          vaultCardId: cardId,
+          category: info.category || "other",
+          name: info.name,
+          set_name: info.tcg_set || null,
+          number: info.tcg_number || null,
+          year: Number.isFinite(yr as number) ? (yr as number) : null,
+          variant: info.variant || null,
+          language: info.language || "en",
+          rarity: info.rarity || null,
+          image_url: info.image_url || null,
+          image_source: "user",
+          confidence_score: info.confidence_score ?? null,
+          provider_keys: info.card_identity_id ? [info.card_identity_id] : [],
+        },
+      });
+      if (res?.identityId) {
+        setCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, master_identity_id: res.identityId } : c)));
+      }
+      return res?.identityId ?? null;
+    } catch (e) {
+      console.error("ensureMasterIdentity failed", e);
+      return null;
+    }
+  }
   const [cards, setCards] = useState<Card[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -899,6 +939,8 @@ function Vault() {
         condition_prices: cp as any,
         // Save the actual catalog card ID so pricing + history always resolve.
         card_identity_id: m.id || card.card_identity_id || null,
+        // Master identity UUID (card-info source of truth) from the price engine.
+        master_identity_id: pricePayload?.master_identity_id || card.master_identity_id || null,
         price_source: pricePayload?.primary_source || "user_confirmed",
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         price_confidence: hasPrice ? "high" : "low",
@@ -932,6 +974,14 @@ function Vault() {
       if (error) throw error;
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+      if (!patch.master_identity_id) {
+        void ensureMasterIdentity(card.id, {
+          category: patch.category, name: patch.name, tcg_set: patch.tcg_set,
+          tcg_number: patch.tcg_number, tcg_year: patch.tcg_year, variant: card.variant,
+          language: langCode, rarity: patch.rarity, image_url: patch.image_url,
+          card_identity_id: patch.card_identity_id, confidence_score: 0.97,
+        });
+      }
       // The user explicitly confirmed this match — close the picker so they
       // land back on the (now-verified) card with no lingering "Fix" prompt.
       setMatchingCard(null);
@@ -989,12 +1039,16 @@ function Vault() {
       const priced = market * mult;
       const cp = conditionPricesFromMarket(priced);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || priced, cp) : priced;
-      const identityId = data?.identity_id || card.card_identity_id || null;
+      // master_identity_id = card-info source of truth (UUID).
+      // card_identity_id = provider/market key (drives pricing + propagation).
+      const masterId = data?.master_identity_id || card.master_identity_id || null;
+      const providerKey = data?.provider_key || card.card_identity_id || null;
       const patch: any = {
         estimated_value: newValue, market_price: priced, condition_prices: cp,
         price_tier: "verified", price_confidence: "high", price_is_ai: false,
         price_source: "user_confirmed", price_locked: false,
-        card_identity_id: identityId,
+        card_identity_id: providerKey,
+        master_identity_id: masterId,
         price_source_url: marketSource?.tcgplayer_url || marketSource?.pricecharting_url || null,
         pricing_details: { market_source: marketSource, suspicious: false, reference_value: data?.reference_value ?? null, language: langCode, language_matched: !!data?.language_matched, language_unconfirmed: !!data?.language_unconfirmed },
         needs_review: false, review_reason: null,
@@ -1005,8 +1059,9 @@ function Vault() {
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
       setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
       // Price belongs to the card: push the new value to every other owner.
-      if (identityId) {
-        propagatePrice({ data: { identityId, marketPrice: priced, source: "user_confirmed", verified: true } })
+      // Propagation keys off the provider/market key (working pricing path).
+      if (providerKey) {
+        propagatePrice({ data: { identityId: providerKey, marketPrice: priced, source: "user_confirmed", verified: true } })
           .then((r: any) => { if (r?.updated > 1) toast.message(`Updated ${r.updated} collections owning this card`); })
           .catch(() => {});
       }
@@ -1424,6 +1479,13 @@ function Vault() {
       last_valued_at: new Date().toISOString(),
     } as never).select().single();
     if (error) return toast.error(error.message);
+    if (inserted) {
+      void ensureMasterIdentity((inserted as Card).id, {
+        category: cat, name: finalName, tcg_set: setName2, tcg_number: num2,
+        tcg_year: year2, variant: variantLabel, language, rarity: null,
+        image_url: finalImage, confidence_score: completeIdentity ? 0.75 : 0.35,
+      });
+    }
     const wantSell = sellAfterSave;
     resetForm(); setShowAdd(false);
     load();
@@ -1605,6 +1667,12 @@ function Vault() {
     const { error, data } = await supabase.from("vault_cards").update(patch).eq("id", editing.id).select("id").single();
     if (!data && !error) return toast.error("Save did not update this card. Please reopen the vault and try again.");
     if (error) return toast.error(error.message);
+    void ensureMasterIdentity(editing.id, {
+      category: editing.category, name: editing.name, tcg_set: editing.tcg_set,
+      tcg_number: editing.tcg_number, tcg_year: editing.tcg_year, variant: editing.variant,
+      language: editing.language || parseLanguage(editing.description), rarity: editing.rarity,
+      image_url: editing.image_url, card_identity_id: editing.card_identity_id,
+    });
     toast.success("Saved");
     setEditing(null);
     load();
@@ -1657,6 +1725,12 @@ function Vault() {
       };
       const { error } = await supabase.from("vault_cards").update(patch).eq("id", editing.id);
       if (error) { toast.error(error.message, { id: t }); return; }
+      void ensureMasterIdentity(editing.id, {
+        category: editing.category, name: editing.name, tcg_set: patch.tcg_set,
+        tcg_number: patch.tcg_number, tcg_year: patch.tcg_year, variant: editing.variant,
+        language: parseLanguage(editing.description), rarity: editing.rarity,
+        image_url: patch.image_url, card_identity_id: editing.card_identity_id, confidence_score: 0.9,
+      });
       toast.success(`Verified • $${Number(newValue).toFixed(2)}`, { id: t });
       setEditing({ ...editing, ...patch });
       load();
@@ -1741,9 +1815,17 @@ function Vault() {
     // Retry up to 3 times on transient failure so we never silently drop a scan.
     let lastErr: any = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { error } = await supabase.from("vault_cards").insert(payload);
+      const { data: insScan, error } = await supabase.from("vault_cards").insert(payload).select("id").single();
       if (!error) {
         toast.success(`✅ ${r.name} saved to vault`);
+        if (insScan) {
+          void ensureMasterIdentity((insScan as { id: string }).id, {
+            category: r.category, name: r.name, tcg_set: r.set, tcg_number: r.tcg_number,
+            tcg_year: r.year ? String(r.year) : null, variant: r.variant, language: lang,
+            image_url: finalImage, card_identity_id: r.card_identity_id, match_score_confidence: undefined,
+            confidence_score: typeof r.match_score === "number" ? Math.min(r.match_score / 100, 1) : null,
+          } as any);
+        }
         load();
         return;
       }

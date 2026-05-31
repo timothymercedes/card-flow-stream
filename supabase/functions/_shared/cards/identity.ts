@@ -43,9 +43,13 @@ export interface CardIdentityInput {
   grade?: string | null;               // "raw" | "psa_10" | "bgs_9_5" | ...
   grading_company?: string | null;     // "PSA" | "BGS" | "SGC" | "CGC"
   language?: string | null;            // "en" | "jp" | "zh" | "ko" | ... — part of identity
+  rarity?: string | null;              // "Rare Holo" | "Secret Rare" | ...
   image_url?: string | null;
   image_source?: string | null;
   external_ids?: Record<string, string | number | null | undefined>;
+  provider_keys?: (string | null | undefined)[]; // market-data keys e.g. "base1-4", "tcgp:One Piece:501997"
+  confidence_score?: number | null;    // 0..1 match confidence
+  verification_status?: "verified" | "estimated" | "unverified";
 }
 
 // Normalize any language label/code to a short canonical code so the same
@@ -120,30 +124,56 @@ function admin(): SupabaseClient {
  * external_ids fields). Otherwise inserts a new row.
  */
 export async function upsertIdentity(input: CardIdentityInput): Promise<string | null> {
+  const cleanKeys = (input.provider_keys ?? [])
+    .map((k) => (k == null ? "" : String(k).trim()))
+    .filter((k) => k.length > 0);
   try {
     const fingerprint = await computeFingerprint(input);
     const sb = admin();
+    console.log("[identity] upsert start", JSON.stringify({
+      fingerprint,
+      name: input.name,
+      category: input.category,
+      set: input.set_code || input.set_name,
+      number: input.number,
+      language: normalizeLangCode(input.language),
+      variant: input.variant,
+      provider_keys: cleanKeys,
+    }));
 
     // Try fetch first (cheap; avoids unnecessary writes)
-    const { data: existing } = await sb
+    const { data: existing, error: selErr } = await sb
       .from("card_identities")
-      .select("id, image_url, external_ids")
+      .select("id, image_url, external_ids, provider_keys, rarity, confidence_score")
       .eq("fingerprint", fingerprint)
       .maybeSingle();
 
+    if (selErr) {
+      console.warn("[identity] select failed", selErr.message, selErr.details ?? "");
+    }
+
     if (existing) {
+      console.log("[identity] resolved existing", existing.id);
       // Patch in newly-available fields without overwriting good data
       const patch: Record<string, unknown> = {};
       if (!existing.image_url && input.image_url) {
         patch.image_url = input.image_url;
         patch.image_source = input.image_source ?? "provider";
       }
+      if (!existing.rarity && input.rarity) patch.rarity = input.rarity;
+      if (existing.confidence_score == null && input.confidence_score != null) {
+        patch.confidence_score = input.confidence_score;
+      }
       const mergedIds = { ...(existing.external_ids ?? {}), ...(input.external_ids ?? {}) };
       if (Object.keys(mergedIds).length > Object.keys(existing.external_ids ?? {}).length) {
         patch.external_ids = mergedIds;
       }
+      const existingKeys: string[] = Array.isArray(existing.provider_keys) ? existing.provider_keys : [];
+      const mergedKeys = Array.from(new Set([...existingKeys, ...cleanKeys]));
+      if (mergedKeys.length > existingKeys.length) patch.provider_keys = mergedKeys;
       if (Object.keys(patch).length > 0) {
-        await sb.from("card_identities").update(patch).eq("id", existing.id);
+        const { error: updErr } = await sb.from("card_identities").update(patch).eq("id", existing.id);
+        if (updErr) console.warn("[identity] patch failed", updErr.message);
       }
       return existing.id as string;
     }
@@ -165,18 +195,23 @@ export async function upsertIdentity(input: CardIdentityInput): Promise<string |
         grade: input.grade ?? "raw",
         grading_company: input.grading_company ?? null,
         language: normalizeLangCode(input.language),
+        rarity: input.rarity ?? null,
         image_url: input.image_url ?? null,
         image_source: input.image_source ?? null,
         external_ids: input.external_ids ?? {},
+        provider_keys: cleanKeys,
+        confidence_score: input.confidence_score ?? null,
+        verification_status: input.verification_status ?? "unverified",
         fingerprint,
       })
       .select("id")
       .single();
 
     if (error) {
-      console.warn("[identity] upsert failed", error.message);
+      console.warn("[identity] insert failed", error.message, error.details ?? "", error.hint ?? "");
       return null;
     }
+    console.log("[identity] created new", inserted?.id);
     return inserted?.id ?? null;
   } catch (err) {
     console.warn("[identity] upsert error", (err as Error).message);
