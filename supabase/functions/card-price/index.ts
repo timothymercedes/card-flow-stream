@@ -331,6 +331,10 @@ Deno.serve(async (req) => {
     const set = String(body?.set || "").trim();
     const number = String(body?.number || "").trim();
     const skipCache = !!body?.skip_cache;
+    // Language: pull pricing for the CORRECT language printing only. We never
+    // cross-price (a Japanese card must not get an English market value).
+    const languageName = normalizeLanguageName(body?.language);
+    const isEnglish = languageName === "English";
     // game routing: accept either an explicit `game` id or a scanner `category`
     // string. When provided and non-Pokémon, we route through the matching
     // catalog adapters instead of defaulting to PokémonTCG.
