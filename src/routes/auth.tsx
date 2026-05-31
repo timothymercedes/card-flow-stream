@@ -94,6 +94,28 @@ function Auth() {
     const redirectUri = window.location.origin + returnTo;
     const isNativeShell = !!(window as any).Capacitor?.isNativePlatform?.();
     console.log("[auth-oauth] start", { provider, redirectUri, isNativeShell, ua: navigator.userAgent });
+
+    // 1) Native in-app sheet (no browser, never leaves the app) when available.
+    if (isNativeShell) {
+      try {
+        const { nativeSignIn } = await import("@/lib/nativeAuth");
+        const ok = await nativeSignIn(provider);
+        if (ok) {
+          setLoading(false);
+          window.location.replace(returnTo);
+          return;
+        }
+      } catch (e: any) {
+        console.warn("[auth-oauth] native sign-in failed, falling back to browser", e?.message);
+        if (e?.message && /cancel/i.test(e.message)) {
+          setLoading(false);
+          return; // user dismissed the native sheet — don't bounce to browser
+        }
+        // otherwise fall through to the broker browser flow below
+      }
+    }
+
+    // 2) Fallback: Lovable broker browser flow (+ Universal/App Link return).
     const result = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: redirectUri,
     });
