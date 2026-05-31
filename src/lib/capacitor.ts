@@ -7,6 +7,8 @@
  * of the web bundle.
  */
 
+import { authDiagnostic } from "@/lib/authDiagnostics";
+
 let cachedNative: boolean | null = null;
 
 export function isNative(): boolean {
@@ -32,15 +34,15 @@ const APP_LINK_HOSTS = new Set([
 ]);
 
 function routeNativeUrl(rawUrl?: string | null) {
-  console.log("[auth-deeplink] appUrlOpen received:", rawUrl);
+  authDiagnostic("auth-deeplink", "appUrlOpen received", { url: rawUrl });
   if (!rawUrl || typeof window === "undefined") return;
   try {
     const url = new URL(rawUrl);
     const isAppLink = url.protocol === "https:" && APP_LINK_HOSTS.has(url.hostname);
     const isCustomScheme = url.protocol === "pullbidlive:" || url.protocol === "com.pullbidlive.app:";
-    console.log("[auth-deeplink] parsed", { host: url.hostname, path: url.pathname, hasHash: !!url.hash, isAppLink, isCustomScheme });
+    authDiagnostic("auth-deeplink", "parsed", { host: url.hostname, path: url.pathname, hasHash: !!url.hash, isAppLink, isCustomScheme });
     if (!isAppLink && !isCustomScheme) {
-      console.warn("[auth-deeplink] URL not recognized as app/custom link — ignoring");
+      authDiagnostic("auth-deeplink", "URL not recognized as app/custom link — ignoring", undefined, "warn");
       return;
     }
 
@@ -48,7 +50,10 @@ function routeNativeUrl(rawUrl?: string | null) {
       ? `${url.hostname ? `/${url.hostname}` : ""}${url.pathname || ""}${url.search}${url.hash}`
       : `${url.pathname}${url.search}${url.hash}`;
     const next = target && target !== "" ? target : "/";
-    console.log("[auth-deeplink] routing WebView to:", next);
+    authDiagnostic("auth-deeplink", "routing WebView", { next });
+    import("@capacitor/browser")
+      .then(({ Browser }) => Browser.close().catch(() => undefined))
+      .catch(() => undefined);
     if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
       window.location.href = next;
     }
@@ -104,6 +109,8 @@ export async function initCapacitor(): Promise<void> {
 
   try {
     const { App } = await import("@capacitor/app");
+    const launch = await App.getLaunchUrl();
+    if (launch?.url) routeNativeUrl(launch.url);
     App.addListener("appUrlOpen", ({ url }) => {
       routeNativeUrl(url);
     });
