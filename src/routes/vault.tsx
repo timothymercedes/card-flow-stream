@@ -51,6 +51,8 @@ function Vault() {
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
+  const [matchingCard, setMatchingCard] = useState<Card | null>(null);
+  const [reviewOnly, setReviewOnly] = useState(false);
   const [vaultVisibility, setVaultVisibility] = useState<Visibility>("private");
   const [savingVis, setSavingVis] = useState(false);
   const [enriching, setEnriching] = useState(false);
