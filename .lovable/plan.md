@@ -66,3 +66,18 @@ Never blank.
 4. Daily cron rewrite + 2AM schedule.
 5. Manual refresh (card-level) + confidence UI.
 6. Charts on identity history.
+
+## Status (completed)
+- Master columns migration: DONE
+- Identity resolver + scan/correction linkage: DONE
+- card-price identity write + propagation: DONE
+- Confidence UI (Verified / Estimated / Needs Review badge, source, last updated): DONE (already in vault.tsx)
+- Charts on identity history: DONE (CardPriceChart reads card_identity_id key)
+- Daily cron: consolidated to single job `daily-vault-revalue` @ 02:00 calling
+  /api/public/hooks/refresh-vault-values (does pricing + propagation + snapshots).
+  Removed broken/duplicate jobs (daily-refresh-prices no-auth, refresh-vault-values-daily no-secret).
+
+## Action required
+The nightly job authenticates with CRON_SECRET. The schedule sends:
+  661e36ee54a822b9beb7424c032924dd13ffc2b4a93a563059609b8d5f9f0d58
+CRON_SECRET must be set to this EXACT value, then republish so the server route picks it up.
