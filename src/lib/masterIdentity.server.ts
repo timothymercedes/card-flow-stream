@@ -14,6 +14,14 @@ export interface MasterIdentityInput {
   set_code?: string | null;
   number?: string | null;
   year?: number | null;
+  // Sports/graded identity fields — MUST be part of the fingerprint so a card
+  // scanned live and the same card entered manually resolve to ONE master row.
+  manufacturer?: string | null;
+  player?: string | null;
+  grade?: string | null;
+  grading_company?: string | null;
+  is_rookie?: boolean;
+  team?: string | null;
   variant?: string | null;
   language?: string | null;
   rarity?: string | null;
