@@ -57,7 +57,13 @@ async function completeOAuthCallback(url: URL, fallbackPath: string) {
   });
   if (accessToken && refreshToken) {
     const { supabase } = await import("@/integrations/supabase/client");
-    const { clearNativeOAuthState } = await import("@/lib/socialAuthFlow");
+    const { clearNativeOAuthState, readNativeOAuthState } = await import("@/lib/socialAuthFlow");
+    const expectedState = readNativeOAuthState()?.state;
+    const callbackState = params.get("state");
+    if (expectedState && callbackState && expectedState !== callbackState) {
+      authDiagnostic("auth-deeplink", "OAuth state mismatch", { expectedState, callbackState }, "error");
+      return returnTo;
+    }
     const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     if (error) {
       authDiagnostic("auth-deeplink", "setSession failed", { error: error.message }, "error");
