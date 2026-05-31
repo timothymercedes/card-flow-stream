@@ -745,7 +745,26 @@ function Vault() {
       const v = parseVariant(card.description);
       const langCode = card.language || parseLanguage(card.description);
       const mult = langMult(langCode);
-      const raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      let raw = priceFromVariant(m.tcgPrices, v.edition, v.finish) ?? m.price;
+      // The catalog match may not carry an embedded price (common for newer
+      // sets and non-Pokémon games). Fetch a live market value immediately so a
+      // confirmed card never ends up locked at $0 (this was the Clefairy bug).
+      if (raw == null || Number(raw) <= 0) {
+        try {
+          const { data: pd } = await supabase.functions.invoke("card-price", {
+            body: {
+              name: m.name || card.name, set: m.set || card.tcg_set || undefined,
+              number: m.number || card.tcg_number || undefined,
+              year: m.year || card.tcg_year || undefined,
+              category: m.category || card.category || undefined,
+              game: categoryToGameId(m.category || card.category),
+              variant: card.variant || v.finish, skip_cache: true,
+            },
+          });
+          const mk = Number(pd?.price?.market) || 0;
+          if (mk > 0) raw = mk;
+        } catch { /* fall through to "market value unavailable" */ }
+      }
       const variantPrice = raw != null ? Number(raw) * mult : raw;
       const cp = conditionPricesFromMarket(variantPrice);
       const newValue = cp ? priceFor((card.condition || "NM") as Condition, Number(cp.NM) || Number(variantPrice) || 0, cp) : 0;
