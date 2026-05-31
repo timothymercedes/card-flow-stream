@@ -2059,6 +2059,11 @@ function Vault() {
               }}
             />
 
+            <button onClick={() => reportIncorrectPrice(actionFor)} disabled={!!actionFor.incorrect_price_reported} className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm font-bold text-muted-foreground disabled:opacity-60">
+              <Flag className="h-4 w-4" /> {actionFor.incorrect_price_reported ? "Price reported" : "Report incorrect price"}
+            </button>
+            </>)}
+
             {actionFor.description && (
               <div className="rounded-lg bg-muted/40 p-2 text-xs">
                 <p className="text-[9px] uppercase text-muted-foreground">Description</p>
