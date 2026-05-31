@@ -154,7 +154,52 @@ function Vault() {
     return Number(card.estimated_value || 0) > 0;
   }
 
-  function conditionPricesFromMarket(price?: number): ConditionPrices | null {
+  // Match confidence tier → colour (Green ≥90%, Yellow 70-89%, Red <70%).
+  function confidenceTier(score?: number | null) {
+    const s = Number(score || 0);
+    const pct = Math.round(s * 100);
+    if (s >= 0.9) return { label: "High", pct, dot: "bg-emerald-500", text: "text-emerald-500", chip: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/30" };
+    if (s >= 0.7) return { label: "Medium", pct, dot: "bg-yellow-500", text: "text-yellow-500", chip: "bg-yellow-500/15 text-yellow-500 ring-yellow-500/30" };
+    return { label: "Low", pct, dot: "bg-red-500", text: "text-red-500", chip: "bg-red-500/15 text-red-500 ring-red-500/30" };
+  }
+
+  // Price verification badge: User Override → Needs Review → Verified → Estimated.
+  function priceBadge(card: Card) {
+    if (card.price_locked) return { label: "User Override", cls: "bg-sky-500/15 text-sky-400 ring-sky-500/30" };
+    if (card.needs_review) return { label: "Needs Review", cls: "bg-amber-500/15 text-amber-500 ring-amber-500/30" };
+    if (card.price_tier === "verified") return { label: "Verified Price", cls: "bg-emerald-500/15 text-emerald-500 ring-emerald-500/30" };
+    return { label: "Estimated Price", cls: "bg-muted text-muted-foreground ring-border/60" };
+  }
+
+  function hasImage(card: Card) {
+    return !!card.ai_image_url || !needsOfficialCardImage(card.image_url);
+  }
+
+  // Available image variants for the toggle (Original / AI Enhanced / Catalog).
+  function imageOptions(card: Card): { key: string; label: string; url: string }[] {
+    const gallery = Array.isArray(card.image_gallery) ? (card.image_gallery as { url?: string; type?: string }[]) : [];
+    const byType = (t: string) => gallery.find((g) => g?.type === t)?.url || null;
+    const original = byType("user_upload") || card.original_image_url || (looksLikeUserUpload(card.image_url) ? card.image_url : null);
+    const ai = byType("ai_generated") || (card.image_source === "ai_generated" ? card.ai_image_url : null);
+    const catalog = byType("catalog") || (card.image_source === "catalog" ? (card.image_url || card.ai_image_url) : null);
+    const out: { key: string; label: string; url: string }[] = [];
+    if (catalog) out.push({ key: "catalog", label: "Catalog", url: catalog });
+    if (ai) out.push({ key: "ai", label: "AI Enhanced", url: ai });
+    if (original) out.push({ key: "original", label: "Original", url: original });
+    // Fallback so there is always at least one option.
+    if (out.length === 0 && displayImage(card)) out.push({ key: "default", label: "Photo", url: displayImage(card) });
+    return out;
+  }
+
+  // Flag a card's reported market price as incorrect (feeds the review summary).
+  async function reportIncorrectPrice(card: Card) {
+    const patch = { incorrect_price_reported: true, incorrect_price_reported_at: new Date().toISOString(), needs_review: true } as any;
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+    if (error) toast.error("Could not report price");
+    else toast.success("Thanks — flagged for review");
+  }
     const nm = Number(price) || 0;
     if (!nm) return null;
     return {
