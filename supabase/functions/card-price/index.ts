@@ -717,11 +717,24 @@ Deno.serve(async (req) => {
       };
     }
 
-    // 3.5) Master card identity — the card (not the user) owns its price.
-    // Resolve/insert the canonical record and persist the market value so a
-    // future scan of the SAME card reuses it instead of re-pricing.
+    // 3.5) Master card identity — the card (not the user) owns its identity and
+    // price. Resolve/insert the canonical record (source of truth for card
+    // INFORMATION) and persist the market value. Provider keys remain the
+    // market-data lookup keys; the master UUID is the card-info source of truth.
+    const providerKey = card?.id || null;
     let identityId: string | null = incomingIdentityId;
     try {
+      const providerKeys = [
+        providerKey,
+        marketSource.tcgplayer_product_id ? `tcgplayer:${marketSource.tcgplayer_product_id}` : null,
+        marketSource.pricecharting_product_id ? `pricecharting:${marketSource.pricecharting_product_id}` : null,
+      ].filter(Boolean) as string[];
+      const verificationStatus = payload.pricing_tier === "verified"
+        ? "verified"
+        : (payload.price_is_ai ? "unverified" : "estimated");
+      console.log("[card-price] resolving master identity", JSON.stringify({
+        name: card?.name || name, provider_key: providerKey, language: langCode,
+      }));
       const resolvedId = await upsertIdentity({
         category: (game.id as any),
         name: card?.name || name,
@@ -731,8 +744,12 @@ Deno.serve(async (req) => {
         year: card?.year ? Number(card.year) : (year ? Number(year) : null),
         variant: variant || null,
         language: langCode,
+        rarity: (card as any)?.rarity || null,
         image_url: officialImage,
         image_source: imageSource,
+        confidence_score: typeof payload.confidence === "number" ? payload.confidence : null,
+        verification_status: verificationStatus as any,
+        provider_keys: providerKeys,
         external_ids: {
           ...(card?.source_ids || {}),
           ...(marketSource.tcgplayer_product_id ? { tcgplayer: String(marketSource.tcgplayer_product_id) } : {}),
@@ -740,16 +757,14 @@ Deno.serve(async (req) => {
         },
       });
       identityId = resolvedId || incomingIdentityId;
+      console.log("[card-price] master identity resolved", identityId);
       const mkt = (payload.price as any)?.market as number | null;
       if (identityId && typeof mkt === "number" && mkt > 0) {
-        const verification = payload.pricing_tier === "verified"
-          ? "verified"
-          : (payload.price_is_ai ? "unverified" : "estimated");
         await setIdentityMarketPrice({
           identity_id: identityId,
           market_cents: Math.round(mkt * 100),
           source: payload.primary_source || null,
-          verification_status: verification as any,
+          verification_status: verificationStatus as any,
         });
         await recordObservation({
           identity_id: identityId,
@@ -760,6 +775,10 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.warn("[card-price] identity persist failed", (e as Error)?.message);
     }
+    // master_identity_id = card-info source of truth (UUID);
+    // provider_key / identity_id kept for the working pricing + back-compat paths.
+    payload.master_identity_id = identityId;
+    payload.provider_key = providerKey;
     payload.identity_id = identityId;
 
 
