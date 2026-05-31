@@ -43,9 +43,13 @@ export interface CardIdentityInput {
   grade?: string | null;               // "raw" | "psa_10" | "bgs_9_5" | ...
   grading_company?: string | null;     // "PSA" | "BGS" | "SGC" | "CGC"
   language?: string | null;            // "en" | "jp" | "zh" | "ko" | ... — part of identity
+  rarity?: string | null;              // "Rare Holo" | "Secret Rare" | ...
   image_url?: string | null;
   image_source?: string | null;
   external_ids?: Record<string, string | number | null | undefined>;
+  provider_keys?: (string | null | undefined)[]; // market-data keys e.g. "base1-4", "tcgp:One Piece:501997"
+  confidence_score?: number | null;    // 0..1 match confidence
+  verification_status?: "verified" | "estimated" | "unverified";
 }
 
 // Normalize any language label/code to a short canonical code so the same
