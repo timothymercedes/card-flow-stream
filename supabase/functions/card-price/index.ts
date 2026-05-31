@@ -277,7 +277,7 @@ async function fetchJustTcgQuote(
 // the UI can flag it as an estimate (never as verified market data).
 async function estimatePriceWithAI(q: {
   name: string; set?: string | null; number?: string | null;
-  category?: string | null; variant?: string | null; year?: string | null;
+  category?: string | null; variant?: string | null; year?: string | null; language?: string | null;
 }): Promise<{ market: number; low: number; high: number } | null> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey || !q.name) return null;
