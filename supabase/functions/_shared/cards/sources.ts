@@ -201,20 +201,59 @@ export async function searchTcgdex(
 }
 
 // --- price extractors -------------------------------------------------------
-export function tcgplayerQuoteFromCard(card: NormalizedCard): PriceQuote | null {
+
+// Map a free-form variant string (from OCR / card identity) to the TCGplayer
+// printing keys used in the PokémonTCG price payload.
+function preferredTcgVariants(desired?: string | null): string[] {
+  const d = String(desired || "").toLowerCase();
+  if (/1st|first edition/.test(d)) return ["1stEditionHolofoil", "1stEditionNormal", "holofoil", "normal"];
+  if (/reverse/.test(d)) return ["reverseHolofoil", "holofoil", "normal"];
+  if (/holo|foil/.test(d)) return ["holofoil", "reverseHolofoil", "1stEditionHolofoil", "unlimitedHolofoil", "normal"];
+  // Unknown variant: prefer the premium printing order. Collectors most often
+  // own holo/reverse printings; defaulting to "normal" first is what produced
+  // the Clefairy $0.75 bug (a holo card priced from its base-normal printing).
+  return ["holofoil", "reverseHolofoil", "1stEditionHolofoil", "unlimitedHolofoil", "normal"];
+}
+
+function tcgProductId(raw: any): string | null {
+  // PokémonTCG bundles a tcgplayer URL like
+  // https://prices.pokemontcg.io/tcgplayer/<id> — the trailing segment is the
+  // catalog id we can surface as the product identifier.
+  const url = String(raw?.tcgplayer?.url || "");
+  const m = url.match(/tcgplayer\/([^/?#]+)/);
+  return m?.[1] ?? raw?.id ?? null;
+}
+
+export function tcgplayerQuoteFromCard(card: NormalizedCard, desiredVariant?: string | null): PriceQuote | null {
   const raw = card.raw as any;
   const prices = raw?.tcgplayer?.prices;
   if (!prices) return null;
-  const variants = ["holofoil", "normal", "reverseHolofoil", "1stEditionHolofoil", "unlimitedHolofoil"];
-  let market = null, low = null, mid = null, high = null;
-  for (const v of variants) {
+  const order = preferredTcgVariants(desiredVariant);
+  let market = null, low = null, mid = null, high = null, variantUsed: string | null = null;
+  for (const v of order) {
     const p = prices[v];
     if (!p) continue;
-    market ??= p.market ?? null;
-    low ??= p.low ?? null;
-    mid ??= p.mid ?? null;
-    high ??= p.high ?? null;
-    if (market) break;
+    if (p.market != null || p.mid != null || p.low != null || p.high != null) {
+      market = p.market ?? null;
+      low = p.low ?? null;
+      mid = p.mid ?? null;
+      high = p.high ?? null;
+      variantUsed = v;
+      break;
+    }
+  }
+  // Fallback: if the preferred order produced nothing, take whatever exists.
+  if (variantUsed == null) {
+    for (const v of Object.keys(prices)) {
+      const p = prices[v];
+      if (!p) continue;
+      market ??= p.market ?? null;
+      low ??= p.low ?? null;
+      mid ??= p.mid ?? null;
+      high ??= p.high ?? null;
+      variantUsed = v;
+      if (market) break;
+    }
   }
   if (market == null && low == null && mid == null && high == null) return null;
   return {
@@ -222,9 +261,12 @@ export function tcgplayerQuoteFromCard(card: NormalizedCard): PriceQuote | null 
     market, low, mid, high,
     currency: "USD",
     url: raw?.tcgplayer?.url ?? null,
+    variant_used: variantUsed,
+    product_id: tcgProductId(raw),
     raw: prices,
   };
 }
+
 
 export async function fetchPriceCharting(
   q: { name: string; set?: string | null; number?: string | null },
