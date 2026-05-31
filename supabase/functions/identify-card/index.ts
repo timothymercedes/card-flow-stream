@@ -30,6 +30,8 @@ Given a card name, photo description, or partial info, return STRICT JSON with t
 
 CRITICAL: "set" and "year" must ALWAYS be filled with your best guess based on the card name and category — never leave them blank. If multiple printings exist, pick the most iconic/original one.
 
+VALUE-AFFECTING SYMBOLS, STAMPS, SIGNATURES & PREMIUM VARIANTS — CRITICAL: if the query mentions or describes any special marking, you MUST price the MARKED version, NOT the plain card — these often carry a massive premium (sometimes 5x–100x the base card). Treat each as a distinct card. This includes: Pokémon Center stamps, Staff stamps, Prerelease stamps, Championship/Event/Winner/League/Regional/Nationals/Worlds stamps, Promo stamps, Gold Star symbols, 1st Edition, Shadowless, Reverse Holo, Error cards, Misprints, signed cards/autographs, artist signatures, serialized/numbered cards, parallels, Alternate Arts, Manga Rares, Secret Rares, Showcase variants, and convention/special-event exclusives — across Pokémon, One Piece, Yu-Gi-Oh!, Magic, Sports, Lorcana, Dragon Ball, Digimon and all categories. Reflect the marking in the "set"/"name" context and set "estimated_value" to the marked card's true market value.
+
 Always provide best-guess numeric values — never null, never zero. If totally unknown, estimate $1 NM and scale conditions.`;
 
 Deno.serve(async (req) => {
