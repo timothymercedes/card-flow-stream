@@ -786,6 +786,7 @@ export type Database = {
         Row: {
           ai_reference_image_url: string | null
           category: string
+          confidence_score: number | null
           created_at: string
           external_ids: Json
           fingerprint: string
@@ -801,9 +802,12 @@ export type Database = {
           market_value_cents: number | null
           name: string
           number: string | null
+          owner_count: number
           player: string | null
           price_currency: string
           price_source: string | null
+          provider_keys: string[]
+          rarity: string | null
           set_code: string | null
           set_name: string | null
           team: string | null
@@ -815,6 +819,7 @@ export type Database = {
         Insert: {
           ai_reference_image_url?: string | null
           category: string
+          confidence_score?: number | null
           created_at?: string
           external_ids?: Json
           fingerprint: string
@@ -830,9 +835,12 @@ export type Database = {
           market_value_cents?: number | null
           name: string
           number?: string | null
+          owner_count?: number
           player?: string | null
           price_currency?: string
           price_source?: string | null
+          provider_keys?: string[]
+          rarity?: string | null
           set_code?: string | null
           set_name?: string | null
           team?: string | null
@@ -844,6 +852,7 @@ export type Database = {
         Update: {
           ai_reference_image_url?: string | null
           category?: string
+          confidence_score?: number | null
           created_at?: string
           external_ids?: Json
           fingerprint?: string
@@ -859,9 +868,12 @@ export type Database = {
           market_value_cents?: number | null
           name?: string
           number?: string | null
+          owner_count?: number
           player?: string | null
           price_currency?: string
           price_source?: string | null
+          provider_keys?: string[]
+          rarity?: string | null
           set_code?: string | null
           set_name?: string | null
           team?: string | null
@@ -6615,6 +6627,7 @@ export type Database = {
           last_valued_at: string | null
           listed_listing_id: string | null
           market_price: number | null
+          master_identity_id: string | null
           match_history: Json
           match_score: number | null
           name: string
@@ -6689,6 +6702,7 @@ export type Database = {
           last_valued_at?: string | null
           listed_listing_id?: string | null
           market_price?: number | null
+          master_identity_id?: string | null
           match_history?: Json
           match_score?: number | null
           name: string
@@ -6763,6 +6777,7 @@ export type Database = {
           last_valued_at?: string | null
           listed_listing_id?: string | null
           market_price?: number | null
+          master_identity_id?: string | null
           match_history?: Json
           match_score?: number | null
           name?: string
@@ -6799,6 +6814,13 @@ export type Database = {
           wrong_match_reported_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vault_cards_master_identity_id_fkey"
+            columns: ["master_identity_id"]
+            isOneToOne: false
+            referencedRelation: "card_identities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vault_cards_user_id_fkey"
             columns: ["user_id"]
