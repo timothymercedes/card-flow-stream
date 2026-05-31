@@ -2,6 +2,58 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { resolveOrCreateMasterIdentity } from "@/lib/masterIdentity.server";
+
+/**
+ * Resolve or create the master card identity for a manually-entered or
+ * corrected vault card, then link the vault card to the master UUID.
+ *
+ * Master identity = card INFORMATION (source of truth). The working pricing
+ * engine (provider keys) is untouched: this only fills master_identity_id.
+ */
+export const resolveMasterIdentity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        vaultCardId: z.string().uuid().optional().nullable(),
+        category: z.string().min(1).max(64),
+        name: z.string().min(1).max(256),
+        set_name: z.string().max(256).optional().nullable(),
+        set_code: z.string().max(64).optional().nullable(),
+        number: z.string().max(64).optional().nullable(),
+        year: z.number().int().min(1800).max(3000).optional().nullable(),
+        variant: z.string().max(128).optional().nullable(),
+        language: z.string().max(32).optional().nullable(),
+        rarity: z.string().max(128).optional().nullable(),
+        image_url: z.string().max(2048).optional().nullable(),
+        image_source: z.string().max(64).optional().nullable(),
+        confidence_score: z.number().min(0).max(1).optional().nullable(),
+        provider_keys: z.array(z.string().max(256)).max(20).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { vaultCardId, ...identity } = data;
+    const res = await resolveOrCreateMasterIdentity(identity);
+    if (!res.identityId) {
+      return { identityId: null, created: false, linked: false };
+    }
+    let linked = false;
+    if (vaultCardId) {
+      // Scope the update to the authenticated owner so a user can only relink
+      // their own vault cards.
+      const { error } = await supabaseAdmin
+        .from("vault_cards")
+        .update({ master_identity_id: res.identityId } as never)
+        .eq("id", vaultCardId)
+        .eq("user_id", context.userId);
+      if (error) console.error("[resolveMasterIdentity] link failed", error.message);
+      else linked = true;
+    }
+    return { identityId: res.identityId, created: res.created, linked };
+  });
+
 
 /**
  * Price belongs to the CARD, not the user. When one owner refreshes a card's
