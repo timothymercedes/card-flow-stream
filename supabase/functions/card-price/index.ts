@@ -425,6 +425,23 @@ Deno.serve(async (req) => {
         card = ranked[0].c;
         bestScore = ranked[0].s;
         topCandidates = ranked.slice(0, 3).map((r) => r.c);
+        // Set-disambiguation guard: if the top two are same-name candidates from
+        // DIFFERENT sets and the query gave us no number to tell them apart,
+        // never treat this as a confident pick. Cap the score so pricing stays
+        // "estimated" and the duplicate sets surface for the user to choose.
+        const normName = (s: string | null | undefined) =>
+          String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        const top = ranked[0], second = ranked[1];
+        const numberKnown = !!String(number || "").trim();
+        if (
+          second &&
+          normName(top.c.name) === normName(second.c.name) &&
+          normName(top.c.set_name) !== normName(second.c.set_name) &&
+          !numberKnown
+        ) {
+          bestScore = Math.min(bestScore, 55); // below the 80 "verified" gate
+          ambiguousDuplicateSet = true;
+        }
       }
     }
 
