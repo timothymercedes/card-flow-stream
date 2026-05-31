@@ -2219,6 +2219,14 @@ function Vault() {
               <button onClick={() => setEditing(null)}><X className="h-4 w-4" /></button>
             </div>
             {editing.image_url && <img src={editing.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}
+            {/* Re-open the visual matcher for ANY saved card — even verified ones —
+                so the user can fix a wrong image / set / rarity / variant / price. */}
+            <button
+              onClick={() => { const c = editing; setEditing(null); openMatchPicker(c); }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary/15 py-2.5 text-sm font-bold text-primary transition hover:bg-primary/25"
+            >
+              <ImageIcon className="h-4 w-4" /> Find correct card / change match
+            </button>
             <label className="block">
               <span className="text-[10px] text-muted-foreground">Change image</span>
               <input type="file" accept="image/*" onChange={(e) => handleFile(e, (v) => setEditing({ ...editing, image_url: v }))} className="block w-full text-xs" />
