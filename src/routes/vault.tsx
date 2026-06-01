@@ -668,6 +668,10 @@ function Vault() {
 
   async function backfillMissingPrices(list: Card[]) {
     const stale = list.filter((c) => {
+      // A user-confirmed card is permanently linked to its chosen identity. Never
+      // re-derive its price from the live recommendation list (matches[0]) — that
+      // is exactly the "confirmed card still behaves like a suggestion" bug.
+      if (isUserVerified(c)) return false;
       const v = Number(c.estimated_value || 0);
       const cp = c.condition_prices as any;
       const cpEmpty = !cp || ((Number(cp.NM) || 0) === 0 && (Number(cp.LP) || 0) === 0);
