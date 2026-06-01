@@ -11,7 +11,7 @@
 
 definitions:
   env_versions: &env_versions
-    node: 22
+    node: v22.14.0
 
     xcode: latest
     cocoapods: default
