@@ -709,7 +709,13 @@ function Vault() {
   // Backfills display images for existing inventory while preserving the user's
   // original upload as secondary proof/sale media.
   async function backfillMissingImages(list: Card[], force = false) {
-    const missing = list.filter((c) => (force || needsOfficialCardImage(c.image_url) || !c.ai_image_url) && (c.name || c.tcg_number || c.tcg_set));
+    const missing = list.filter((c) => {
+      // A user-confirmed card owns its image, identity and price. Never re-match
+      // it against the live recommendation list — that re-introduces suggestion
+      // data (wrong image/set/number) onto a card the collector already locked.
+      if (!force && isUserVerified(c)) return false;
+      return (force || needsOfficialCardImage(c.image_url) || !c.ai_image_url) && (c.name || c.tcg_number || c.tcg_set);
+    });
     if (!missing.length) {
       if (force) toast.info("All cards already have images");
       return;
