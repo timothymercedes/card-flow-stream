@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
         const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
         const { data: cards, error } = await supabaseAdmin
           .from("vault_cards")
-          .select("id,name,category,tcg_set,tcg_number,tcg_year,variant,rarity,estimated_value,last_valued_at,price_locked")
+          .select("id,name,category,tcg_set,tcg_number,tcg_year,variant,rarity,estimated_value,last_valued_at,price_locked,confirmed_by,price_source,card_identity_id")
           .or(`last_valued_at.is.null,last_valued_at.lt.${cutoff}`)
           .limit(100);
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
