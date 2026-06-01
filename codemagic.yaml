@@ -11,7 +11,7 @@
 
 definitions:
   env_versions: &env_versions
-    node: 22
+    node: v22.14.0
 
     xcode: latest
     cocoapods: default
@@ -273,7 +273,7 @@ workflows:
     environment:
       # Android-only env: just Node. Do NOT pull in the shared *env_versions
       # anchor, which carries Mac-specific xcode/cocoapods settings.
-      node: 22
+      node: v22.14.0
       # Reference the keystore uploaded under Code Signing Identities
       # (reference name "keystore_credentials"). Codemagic decrypts it and
       # exposes CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS,
