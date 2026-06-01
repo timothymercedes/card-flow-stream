@@ -34,6 +34,7 @@ workflows:
         # build-number lookup, and the TestFlight upload). CERTIFICATE_PRIVATE_KEY
         # is the RSA key Codemagic uses to create/fetch the distribution cert.
         - app_store_credentials      # APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID, CERTIFICATE_PRIVATE_KEY
+        - native_auth                # VITE_GOOGLE_WEB_CLIENT_ID (+ iOS: VITE_GOOGLE_IOS_CLIENT_ID, GOOGLE_IOS_REVERSED_CLIENT_ID, VITE_APPLE_SERVICES_ID)
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.pullbidlive.app
@@ -281,6 +282,8 @@ workflows:
       # (reference name "keystore_credentials"). Codemagic decrypts it and
       # exposes CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS,
       # CM_KEY_PASSWORD automatically — no Environment Variable Group needed.
+      groups:
+        - native_auth                # VITE_GOOGLE_WEB_CLIENT_ID (Android native Google sheet)
       android_signing:
         - keystore_credentials
       vars:
