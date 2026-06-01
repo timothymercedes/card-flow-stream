@@ -29,10 +29,18 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
         for (const c of cards || []) {
           try {
             if (c.price_locked) continue;
+            // A user-confirmed card is permanently bound to its chosen master
+            // identity. The daily sync may refresh its MARKET VALUE, but must
+            // never re-identify it, overwrite its name/set/number/rarity, or push
+            // it back into review based on a fresh recommendation match.
+            const confirmed = !!c.confirmed_by || c.price_source === "user_confirmed" || c.price_source === "manual_entry";
             const resp = await fetch(`${supabaseUrl}/functions/v1/card-price`, {
               method: "POST",
               headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
               body: JSON.stringify({
+                // Lock the lookup to the confirmed catalog identity when we have
+                // one, so the value tracks the SAME card the user confirmed.
+                card_id: confirmed && c.card_identity_id && !String(c.card_identity_id).startsWith("csv-") ? c.card_identity_id : undefined,
                 name: c.name,
                 set: c.tcg_set || undefined,
                 number: c.tcg_number || undefined,
@@ -54,10 +62,11 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
             // identified card never resets to $0. Only suspicious values — which
             // indicate a wrong product/variant match — are withheld.
             const storedValue = v > 0 && !suspicious ? v : 0;
-            await supabaseAdmin.from("vault_cards").update({
+            // Base patch: price-only fields, always applied.
+            const patch: Record<string, unknown> = {
               estimated_value: storedValue,
               market_price: v || null,
-              price_source: data?.primary_source || null,
+              price_source: confirmed ? c.price_source : (data?.primary_source || null),
               price_confidence: data?.price_confidence || "low",
               price_is_ai: !!data?.price_is_ai,
               price_tier: suspicious ? "estimated" : (data?.pricing_tier || "unavailable"),
@@ -65,15 +74,29 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
               last_valued_at: new Date().toISOString(),
               last_rescan_at: new Date().toISOString(),
               confidence_score: Number(data?.confidence || 0) || null,
-              needs_review: !safe,
-              review_reason: safe ? null : suspicious ? (data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.") : !card.variant && !c.variant ? "Variant not detected — confirm the variant to verify this value." : data?.tier_reason || "Estimated value shown — confirm the card to verify it.",
-              name: card.name || c.name,
-              tcg_set: card.set_name || c.tcg_set,
-              tcg_number: card.number || c.tcg_number,
-              tcg_year: card.year || c.tcg_year,
-              rarity: card.rarity || c.rarity,
               identification_details: { pricing: data },
-            }).eq("id", c.id);
+            };
+            if (!confirmed) {
+              // Only unconfirmed (suggestion-stage) cards may be re-identified and
+              // re-flagged for review by the daily sync.
+              patch.needs_review = !safe;
+              patch.review_reason = safe ? null : suspicious ? (data?.suspicious_reason || "Market value looks wrong — flagged for re-sync.") : !card.variant && !c.variant ? "Variant not detected — confirm the variant to verify this value." : data?.tier_reason || "Estimated value shown — confirm the card to verify it.";
+              patch.name = card.name || c.name;
+              patch.tcg_set = card.set_name || c.tcg_set;
+              patch.tcg_number = card.number || c.tcg_number;
+              patch.tcg_year = card.year || c.tcg_year;
+              patch.rarity = card.rarity || c.rarity;
+            } else {
+              // Confirmed card stays verified; never reset to $0 over a transient
+              // empty/suspicious lookup — keep the last known value instead.
+              patch.needs_review = false;
+              patch.confidence_score = 0.97;
+              if (storedValue <= 0) {
+                patch.estimated_value = c.estimated_value;
+                patch.price_tier = "verified";
+              }
+            }
+            await supabaseAdmin.from("vault_cards").update(patch).eq("id", c.id);
             updated++;
           } catch {/* skip */}
         }
