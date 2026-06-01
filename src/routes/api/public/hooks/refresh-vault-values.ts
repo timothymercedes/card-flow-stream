@@ -96,7 +96,7 @@ export const Route = createFileRoute("/api/public/hooks/refresh-vault-values")({
                 patch.price_tier = "verified";
               }
             }
-            await supabaseAdmin.from("vault_cards").update(patch).eq("id", c.id);
+            await supabaseAdmin.from("vault_cards").update(patch as never).eq("id", c.id);
             updated++;
           } catch {/* skip */}
         }
