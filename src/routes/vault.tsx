@@ -668,6 +668,10 @@ function Vault() {
 
   async function backfillMissingPrices(list: Card[]) {
     const stale = list.filter((c) => {
+      // A user-confirmed card is permanently linked to its chosen identity. Never
+      // re-derive its price from the live recommendation list (matches[0]) — that
+      // is exactly the "confirmed card still behaves like a suggestion" bug.
+      if (isUserVerified(c)) return false;
       const v = Number(c.estimated_value || 0);
       const cp = c.condition_prices as any;
       const cpEmpty = !cp || ((Number(cp.NM) || 0) === 0 && (Number(cp.LP) || 0) === 0);
@@ -705,7 +709,13 @@ function Vault() {
   // Backfills display images for existing inventory while preserving the user's
   // original upload as secondary proof/sale media.
   async function backfillMissingImages(list: Card[], force = false) {
-    const missing = list.filter((c) => (force || needsOfficialCardImage(c.image_url) || !c.ai_image_url) && (c.name || c.tcg_number || c.tcg_set));
+    const missing = list.filter((c) => {
+      // A user-confirmed card owns its image, identity and price. Never re-match
+      // it against the live recommendation list — that re-introduces suggestion
+      // data (wrong image/set/number) onto a card the collector already locked.
+      if (!force && isUserVerified(c)) return false;
+      return (force || needsOfficialCardImage(c.image_url) || !c.ai_image_url) && (c.name || c.tcg_number || c.tcg_set);
+    });
     if (!missing.length) {
       if (force) toast.info("All cards already have images");
       return;
@@ -714,7 +724,10 @@ function Vault() {
     let updated = 0;
     for (const c of missing.slice(0, force ? 200 : 25)) {
       const original = c.original_image_url || (looksLikeUserUpload(c.image_url) ? c.image_url : null);
-      const matches = await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
+      const confirmed = isUserVerified(c);
+      // For a confirmed card we NEVER pull identity/price from the recommendation
+      // list — we only generate a display image keyed on its own locked identity.
+      const matches = confirmed ? [] : await fetchRealCardMatches({ name: c.name, set: c.tcg_set || undefined, number: c.tcg_number || undefined, category: c.category || undefined });
       const match = matches.find((m) => m.image);
       const catalogImg = match?.image || null;
       let aiImg = c.ai_image_url || null;
@@ -730,8 +743,8 @@ function Vault() {
       }
       const img = aiImg || catalogImg;
       if (!img) continue;
-      const cp = conditionPricesFromMarket(match?.price) || c.condition_prices || null;
-      const newValue = isSafePriced(c) && cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
+      const cp = !confirmed ? (conditionPricesFromMarket(match?.price) || c.condition_prices || null) : (c.condition_prices || null);
+      const newValue = !confirmed && isSafePriced(c) && cp ? priceFor((c.condition || "NM") as Condition, Number(cp.NM) || Number(match?.price) || 0, cp) : c.estimated_value;
       const patch = {
         image_url: img,
         original_image_url: original,
@@ -742,11 +755,13 @@ function Vault() {
           original ? { url: original, type: "user_upload", primary: false } : null,
           c.back_image_url ? { url: c.back_image_url, type: "user_back", primary: false } : null,
         ].filter(Boolean),
-        name: match?.name || c.name,
-        tcg_set: match?.set || c.tcg_set,
-        tcg_number: match?.number || c.tcg_number,
-        tcg_year: match?.year || c.tcg_year,
-        category: match?.category || c.category || "Pokémon",
+        // Identity stays locked for confirmed cards — only suggestions may be
+        // re-derived from the catalog match.
+        name: confirmed ? c.name : (match?.name || c.name),
+        tcg_set: confirmed ? c.tcg_set : (match?.set || c.tcg_set),
+        tcg_number: confirmed ? c.tcg_number : (match?.number || c.tcg_number),
+        tcg_year: confirmed ? c.tcg_year : (match?.year || c.tcg_year),
+        category: confirmed ? c.category : (match?.category || c.category || "Pokémon"),
         condition_prices: cp as any,
         estimated_value: newValue,
         last_rescan_at: new Date().toISOString(),
