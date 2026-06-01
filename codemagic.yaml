@@ -11,7 +11,10 @@
 
 definitions:
   env_versions: &env_versions
-    node: v22.14.0
+    # Use Codemagic's supported Node stream instead of pinning an exact patch.
+    # Exact pins like v22.14.0 can fail during the build-machine setup step
+    # when that patch is unavailable on the selected image/version manager.
+    node: latest
 
     xcode: latest
     cocoapods: default
@@ -273,7 +276,7 @@ workflows:
     environment:
       # Android-only env: just Node. Do NOT pull in the shared *env_versions
       # anchor, which carries Mac-specific xcode/cocoapods settings.
-      node: v22.14.0
+      node: latest
       # Reference the keystore uploaded under Code Signing Identities
       # (reference name "keystore_credentials"). Codemagic decrypts it and
       # exposes CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS,
