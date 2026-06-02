@@ -47,6 +47,7 @@ const PRIMARY = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
+  const nav = useNavigate();
   const { user, profile, signOut } = useAuth();
   const tutorial = useTutorialMode();
   const { t } = useTranslation();
@@ -54,6 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [cartCount, setCartCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   useEffect(() => {
     if (tutorial) { setIsSeller(true); setCartCount(2); return; }
