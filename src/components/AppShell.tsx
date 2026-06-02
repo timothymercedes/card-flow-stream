@@ -221,7 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {user && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => { void signOut(); }}>
+                    <DropdownMenuItem onSelect={() => { setSignOutOpen(true); }}>
                       <LogOut className="mr-2 h-4 w-4" />{t("nav.signOut", "Sign out")}
                     </DropdownMenuItem>
                   </>
