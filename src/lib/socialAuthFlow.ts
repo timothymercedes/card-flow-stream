@@ -1,6 +1,7 @@
 import { lovable } from "@/integrations/lovable";
 import { authDiagnostic } from "@/lib/authDiagnostics";
 import { isNative } from "@/lib/capacitor";
+import { nativeAuthAvailable } from "@/lib/nativeAuth";
 
 type SocialProvider = "google" | "apple";
 
