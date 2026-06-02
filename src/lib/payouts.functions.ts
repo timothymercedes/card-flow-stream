@@ -199,6 +199,47 @@ export const getSellerPayableFn = createServerFn({ method: "GET" })
 // Alias kept in sync with the component import name.
 export const requestPayoutFn = requestPayout;
 
+// Admin-only: override a seller's instant-release percentage and/or freeze state.
+export const adminOverrideTrustFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        instantPct: z.number().int().min(0).max(100).nullable().optional(),
+        frozen: z.boolean().optional(),
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId: adminId } = context;
+    const { data: role } = await supabaseAdmin.rpc("has_role" as any, { _user_id: adminId, _role: "admin" });
+    const { data: ownerRole } = await supabaseAdmin.rpc("has_role" as any, { _user_id: adminId, _role: "owner" });
+    if (!role && !ownerRole) throw new Error("Admin only");
+
+    const patch: Record<string, any> = { user_id: data.userId, updated_at: new Date().toISOString() };
+    if (data.instantPct !== undefined) patch.manual_override_pct = data.instantPct;
+    if (data.frozen !== undefined) patch.frozen = data.frozen;
+
+    const { error } = await supabaseAdmin
+      .from("seller_trust" as any)
+      .upsert(patch, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("admin_action_log" as any)
+      .insert({
+        admin_id: adminId,
+        action: "override_seller_trust",
+        target_id: data.userId,
+        notes: data.reason,
+      } as any)
+      .then(() => null, () => null);
+
+    return { ok: true };
+  });
+
 export const getSellerShippingAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
