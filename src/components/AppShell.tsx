@@ -46,12 +46,13 @@ const PRIMARY = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const tutorial = useTutorialMode();
   const { t } = useTranslation();
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
     if (tutorial) { setIsSeller(true); setCartCount(2); return; }
