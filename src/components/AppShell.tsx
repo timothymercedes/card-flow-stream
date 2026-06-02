@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, Bookmark, ShoppingBag, Shield, Settings, MessageCircleHeart, LogOut, ChevronDown,
+  Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Users, Crown, Grid3x3,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
