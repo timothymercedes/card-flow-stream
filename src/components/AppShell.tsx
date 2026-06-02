@@ -353,56 +353,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-/* ----------- More sheet ----------- */
-function MoreSheet({
-  onNavigate,
-  isSeller,
-  cartCount,
-}: {
-  onNavigate: () => void;
-  isSeller: boolean;
-  cartCount: number;
-}) {
-  const { t } = useTranslation();
+/* ----------- Shared sheet menu renderer ----------- */
+type MenuItem = { to?: string; onClick?: () => void; icon: any; label: string; badge?: number };
+type MenuSection = { title: string; items: MenuItem[] };
 
-  const sections: { title: string; items: { to?: string; onClick?: () => void; icon: any; label: string; badge?: number }[] }[] = [
-    {
-      title: t("nav.shop", "Shop"),
-      items: [
-        { to: "/cart", icon: ShoppingBag, label: t("nav.cart", "Cart"), badge: cartCount || undefined },
-        { to: "/bookmarks", icon: Bookmark, label: t("nav.bookmarks", "Bookmarks") },
-        { to: "/orders", icon: Package, label: t("nav.orders", "Orders") },
-      ],
-    },
-    {
-      title: t("nav.social", "Social"),
-      items: [
-        { to: "/feed", icon: Newspaper, label: t("nav.feed", "Feed") },
-        { to: "/messages", icon: MessageCircle, label: t("nav.chat", "Messages") },
-        { to: "/quests", icon: Sparkles, label: t("nav.quests", "Quests") },
-      ],
-    },
-    ...(isSeller
-      ? [{
-          title: t("nav.seller", "Seller"),
-          items: [
-            { to: "/store", icon: Package, label: t("nav.sellerHub", "Seller Hub") },
-            { to: "/my-listings", icon: Store, label: t("nav.listings", "Listings") },
-            { to: "/payouts", icon: Shield, label: t("nav.payouts", "Payouts") },
-          ],
-        }]
-      : []),
-    {
-      title: t("nav.account", "Account"),
-      items: [
-        { to: "/settings", icon: Settings, label: t("nav.settings", "Settings") },
-        { to: "/settings", icon: Shield, label: t("nav.security", "Security") },
-        { to: "/support", icon: MessageCircleHeart, label: t("nav.support", "Support") },
-        { onClick: () => { openFeedback(); onNavigate(); }, icon: MessageCircleHeart, label: t("nav.feedback", "Send feedback") },
-      ],
-    },
-  ];
-
+function SheetMenu({ sections, onNavigate }: { sections: MenuSection[]; onNavigate: () => void }) {
   return (
     <div className="mt-2 space-y-5">
       {sections.map((s) => (
@@ -438,10 +393,102 @@ function MoreSheet({
           </div>
         </div>
       ))}
-      <div className="flex items-center justify-between px-1 pt-2">
-        <span className="text-xs text-muted-foreground">{t("nav.language", "Language")}</span>
-        <LanguageToggle />
-      </div>
     </div>
   );
 }
+
+/* ----------- Account sheet (top-right avatar menu) ----------- */
+function AccountSheet({
+  onNavigate,
+  email,
+  signedIn,
+  onSignOut,
+}: {
+  onNavigate: () => void;
+  email: string | null;
+  signedIn: boolean;
+  onSignOut: () => void;
+}) {
+  const { t } = useTranslation();
+
+  const sections: MenuSection[] = [
+    {
+      title: t("nav.account", "Account"),
+      items: [
+        { to: "/profile", icon: User, label: t("nav.profile", "Profile") },
+        { to: "/orders", icon: Package, label: t("nav.orders", "Orders") },
+        { to: "/payouts", icon: TrendingUp, label: t("nav.sales", "Sales") },
+        { to: "/settings", icon: Bell, label: t("nav.notifications", "Notifications") },
+        { to: "/payouts", icon: Wallet, label: t("nav.wallet", "Wallet") },
+      ],
+    },
+    {
+      title: t("nav.support", "Support"),
+      items: [
+        { to: "/settings", icon: Settings, label: t("nav.settings", "Settings") },
+        { to: "/support", icon: MessageCircleHeart, label: t("nav.help", "Help") },
+        { onClick: () => { openFeedback(); onNavigate(); }, icon: MessageCircleHeart, label: t("nav.feedback", "Send feedback") },
+        ...(signedIn ? [{ onClick: () => { onSignOut(); onNavigate(); }, icon: LogOut, label: t("nav.signOut", "Sign out") }] : []),
+      ],
+    },
+  ];
+
+  return (
+    <>
+      {email && (
+        <div className="mt-2 truncate px-1 text-sm text-muted-foreground">{email}</div>
+      )}
+      <SheetMenu sections={sections} onNavigate={onNavigate} />
+      <div className="flex items-center justify-between px-1 pt-4">
+        <span className="text-xs text-muted-foreground">{t("nav.language", "Language")}</span>
+        <LanguageToggle />
+      </div>
+    </>
+  );
+}
+
+/* ----------- Platform sheet (bottom "More" tab) ----------- */
+function PlatformSheet({
+  onNavigate,
+  isSeller,
+}: {
+  onNavigate: () => void;
+  isSeller: boolean;
+}) {
+  const { t } = useTranslation();
+
+  const sections: MenuSection[] = [
+    ...(isSeller
+      ? [{
+          title: t("nav.seller", "Seller"),
+          items: [
+            { to: "/store", icon: Package, label: t("nav.sellerHub", "Seller Hub") },
+            { to: "/my-listings", icon: Store, label: t("nav.myStore", "My Store") },
+            { to: "/shows", icon: CalendarDays, label: t("nav.futureShows", "My Future Shows") },
+            { to: "/obs-hub", icon: Video, label: t("nav.liveTools", "Live Tools") },
+            { to: "/seller/shipping-analytics", icon: BarChart3, label: t("nav.analytics", "Analytics") },
+          ],
+        } as MenuSection]
+      : []),
+    {
+      title: t("nav.tools", "Tools"),
+      items: [
+        { to: "/vault", icon: Lock, label: t("nav.vaultTools", "Vault Tools") },
+        { to: "/showoff", icon: Sparkles, label: t("nav.creator", "Creator Features") },
+        { to: "/quests", icon: Gift, label: t("nav.referrals", "Referrals & Rewards") },
+        { to: "/settings", icon: Crown, label: t("nav.memberships", "Memberships") },
+      ],
+    },
+    {
+      title: t("nav.explore", "Explore"),
+      items: [
+        { to: "/live", icon: Radio, label: t("nav.live", "Live") },
+        { to: "/feed", icon: Newspaper, label: t("nav.feed", "Feed") },
+        { to: "/messages", icon: MessageCircle, label: t("nav.chat", "Messages") },
+      ],
+    },
+  ];
+
+  return <SheetMenu sections={sections} onNavigate={onNavigate} />;
+}
+
