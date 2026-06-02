@@ -1,7 +1,7 @@
 import { lovable } from "@/integrations/lovable";
 import { authDiagnostic } from "@/lib/authDiagnostics";
 import { isNative } from "@/lib/capacitor";
-import { nativeAuthAvailable } from "@/lib/nativeAuth";
+import { loadNativeAuthRuntimeConfig, nativeAuthAvailable } from "@/lib/nativeAuth";
 
 type SocialProvider = "google" | "apple";
 
@@ -36,6 +36,7 @@ export async function beginSocialSignIn(provider: SocialProvider, returnTo: stri
   });
 
   if (isNativeShell) {
+    await loadNativeAuthRuntimeConfig();
     // When a native account sheet is available for this provider, it is the ONLY
     // acceptable path. We must never fall back to the in-app browser
     // (SFSafariViewController), which shows URL/share/refresh/back/close chrome
