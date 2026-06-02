@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getDefaultProvider, getInsuranceProvider } from "./insurance/index";
+import { getDefaultProvider, getInsuranceProvider } from "@/server/insurance/index";
 
 // ---------- Quote ----------
 export const quoteInsurance = createServerFn({ method: "POST" })
