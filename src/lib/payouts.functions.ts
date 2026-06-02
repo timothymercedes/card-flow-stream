@@ -92,6 +92,154 @@ export const adminReleasePayout = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Seller trust profile — drives instant-payout percentage and freeze state.
+export const getSellerTrustFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { data } = await supabaseAdmin
+      .from("seller_trust" as any)
+      .select("completed_deliveries, tier, instant_release_pct, manual_override_pct, frozen")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return {
+      completed_deliveries: Number((data as any)?.completed_deliveries ?? 0),
+      tier: ((data as any)?.tier ?? "new") as string,
+      instant_release_pct: Number((data as any)?.instant_release_pct ?? 0),
+      manual_override_pct:
+        (data as any)?.manual_override_pct == null ? null : Number((data as any).manual_override_pct),
+      frozen: !!(data as any)?.frozen,
+    };
+  });
+
+// Full payable breakdown for a seller, netting locks / in-flight payouts / holds.
+export const getSellerPayableFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+
+    const [{ data: bal }, { data: trust }, { data: locks }, { data: inflight }, { data: hold }, { data: pendingRows }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("v_seller_available_balance" as any)
+          .select("available_cents")
+          .eq("seller_id", userId)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("seller_trust" as any)
+          .select("tier, instant_release_pct, manual_override_pct, frozen")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("payout_locks" as any)
+          .select("amount_cents")
+          .eq("user_id", userId)
+          .is("released_at", null),
+        supabaseAdmin
+          .from("payout_requests" as any)
+          .select("amount_cents, status")
+          .eq("user_id", userId)
+          .in("status", ["requested", "processing"]),
+        supabaseAdmin
+          .from("account_holds" as any)
+          .select("balance_owed_cents")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .maybeSingle(),
+        supabaseAdmin
+          .from("orders")
+          .select("seller_payout_amount, payout_eligible_at, refunded_amount, payout_paid_amount_cents")
+          .eq("seller_id", userId)
+          .eq("payment_status", "paid")
+          .is("payout_paid_at", null),
+      ]);
+
+    const available_cents = Number((bal as any)?.available_cents ?? 0);
+
+    let pending_cents = 0;
+    for (const o of (pendingRows as any[]) ?? []) {
+      const refunded = Number(o.refunded_amount ?? 0);
+      const eligibleAt = o.payout_eligible_at ? new Date(o.payout_eligible_at as string) : null;
+      const isPending = !eligibleAt || eligibleAt.getTime() > Date.now();
+      if (!isPending || refunded > 0) continue;
+      const owed = Math.max(
+        0,
+        Math.round(Number(o.seller_payout_amount ?? 0) * 100) - (o.payout_paid_amount_cents ?? 0),
+      );
+      pending_cents += owed;
+    }
+
+    const locked_cents = ((locks as any[]) ?? []).reduce((s, l) => s + Number(l.amount_cents ?? 0), 0);
+    const in_flight_cents = ((inflight as any[]) ?? []).reduce((s, p) => s + Number(p.amount_cents ?? 0), 0);
+    const owed_cents = Number((hold as any)?.balance_owed_cents ?? 0);
+
+    const frozen = !!(trust as any)?.frozen;
+    const instant_pct =
+      (trust as any)?.manual_override_pct == null
+        ? Number((trust as any)?.instant_release_pct ?? 0)
+        : Number((trust as any).manual_override_pct);
+
+    const payable_cents = frozen
+      ? 0
+      : Math.max(0, available_cents - locked_cents - in_flight_cents - owed_cents);
+
+    return {
+      available_cents,
+      pending_cents,
+      locked_cents,
+      in_flight_cents,
+      owed_cents,
+      payable_cents,
+      instant_pct,
+      tier: ((trust as any)?.tier ?? "new") as string,
+      frozen,
+    };
+  });
+
+// Alias kept in sync with the component import name.
+export const requestPayoutFn = requestPayout;
+
+// Admin-only: override a seller's instant-release percentage and/or freeze state.
+export const adminOverrideTrustFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        instantPct: z.number().int().min(0).max(100).nullable().optional(),
+        frozen: z.boolean().optional(),
+        reason: z.string().trim().min(3).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId: adminId } = context;
+    const { data: role } = await supabaseAdmin.rpc("has_role" as any, { _user_id: adminId, _role: "admin" });
+    const { data: ownerRole } = await supabaseAdmin.rpc("has_role" as any, { _user_id: adminId, _role: "owner" });
+    if (!role && !ownerRole) throw new Error("Admin only");
+
+    const patch: Record<string, any> = { user_id: data.userId, updated_at: new Date().toISOString() };
+    if (data.instantPct !== undefined) patch.manual_override_pct = data.instantPct;
+    if (data.frozen !== undefined) patch.frozen = data.frozen;
+
+    const { error } = await supabaseAdmin
+      .from("seller_trust" as any)
+      .upsert(patch, { onConflict: "user_id" });
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("admin_action_log" as any)
+      .insert({
+        admin_id: adminId,
+        action: "override_seller_trust",
+        target_id: data.userId,
+        notes: data.reason,
+      } as any)
+      .then(() => null, () => null);
+
+    return { ok: true };
+  });
+
 export const getSellerShippingAnalytics = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
