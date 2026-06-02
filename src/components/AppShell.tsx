@@ -172,7 +172,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onNavigate={() => setAccountOpen(false)}
                   email={user?.email ?? null}
                   signedIn={!!user}
-                  onSignOut={() => { void signOut(); }}
+                  onSignOut={() => { setAccountOpen(false); setSignOutOpen(true); }}
                 />
               </SheetContent>
             </Sheet>
