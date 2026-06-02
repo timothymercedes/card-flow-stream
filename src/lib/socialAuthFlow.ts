@@ -1,6 +1,7 @@
 import { lovable } from "@/integrations/lovable";
 import { authDiagnostic } from "@/lib/authDiagnostics";
 import { isNative } from "@/lib/capacitor";
+import { nativeAuthAvailable } from "@/lib/nativeAuth";
 
 type SocialProvider = "google" | "apple";
 
@@ -35,6 +36,12 @@ export async function beginSocialSignIn(provider: SocialProvider, returnTo: stri
   });
 
   if (isNativeShell) {
+    // When a native account sheet is available for this provider, it is the ONLY
+    // acceptable path. We must never fall back to the in-app browser
+    // (SFSafariViewController), which shows URL/share/refresh/back/close chrome
+    // and breaks the native app experience. If the native sheet fails, surface
+    // the error and keep the user inside the app shell.
+    const hasNative = nativeAuthAvailable(provider);
     try {
       const { nativeSignIn } = await import("@/lib/nativeAuth");
       const ok = await nativeSignIn(provider);
@@ -43,10 +50,24 @@ export async function beginSocialSignIn(provider: SocialProvider, returnTo: stri
         return { status: "completed" as const, returnTo: normalizedReturnTo };
       }
     } catch (e: any) {
-      authDiagnostic("auth-oauth", "native sign-in failed, opening broker fallback", { provider, error: e?.message }, "warn");
       if (e?.message && /cancel/i.test(e.message)) return { status: "cancelled" as const, returnTo: normalizedReturnTo };
+      if (hasNative) {
+        // Native is configured but failed — do NOT open the in-app browser.
+        authDiagnostic("auth-oauth", "native sign-in failed (no browser fallback)", { provider, error: e?.message }, "error");
+        throw e instanceof Error ? e : new Error("Native sign-in failed");
+      }
+      authDiagnostic("auth-oauth", "native sign-in failed, opening broker fallback", { provider, error: e?.message }, "warn");
     }
 
+    if (hasNative) {
+      // nativeSignIn returned false despite native being available — treat as
+      // an unavailable account sheet rather than degrading to the browser.
+      authDiagnostic("auth-oauth", "native sheet unavailable (no browser fallback)", { provider }, "error");
+      throw new Error("Native sign-in is unavailable. Please try again.");
+    }
+
+    // Native account sheet not configured for this provider/platform — use the
+    // broker in a native auth session as a last resort.
     const state = crypto.randomUUID?.() ?? String(Date.now());
     const redirectUri = nativeRedirectUri(normalizedReturnTo);
     window.localStorage.setItem(NATIVE_OAUTH_STATE_KEY, JSON.stringify({ state, provider, returnTo: normalizedReturnTo, ts: Date.now() }));
@@ -64,6 +85,7 @@ export async function beginSocialSignIn(provider: SocialProvider, returnTo: stri
     await Browser.open({ url: url.toString(), presentationStyle: "fullscreen", toolbarColor: "#0a0a0a" });
     return { status: "pending-redirect" as const, returnTo: normalizedReturnTo };
   }
+
 
   const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: webRedirectUri });
   authDiagnostic("auth-oauth", "web broker result", {
