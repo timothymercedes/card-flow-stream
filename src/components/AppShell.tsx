@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
