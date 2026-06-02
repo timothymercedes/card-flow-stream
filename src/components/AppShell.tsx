@@ -148,21 +148,43 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
-            {/* Account dropdown — desktop has a full menu; mobile keeps a simple link to /profile */}
-            <Link
-              to="/profile"
-              aria-label={t("nav.profile", "Profile")}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
-            >
-              <User className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            {/* Account menu — mobile opens a sheet, desktop opens a dropdown.
+                Trigger is the user's avatar/profile icon (replaces old hamburger). */}
+            <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
+              <SheetTrigger
+                aria-label={t("nav.account", "Account")}
+                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
+              >
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-4 w-4" aria-hidden="true" />
+                )}
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>{t("nav.account", "Account")}</SheetTitle>
+                </SheetHeader>
+                <AccountSheet
+                  onNavigate={() => setAccountOpen(false)}
+                  email={user?.email ?? null}
+                  signedIn={!!user}
+                  onSignOut={() => { void signOut(); }}
+                />
+              </SheetContent>
+            </Sheet>
+
             <DropdownMenu>
               <DropdownMenuTrigger
-                aria-label={t("nav.profile", "Profile")}
+                aria-label={t("nav.account", "Account")}
                 className="hidden h-8 items-center gap-1 rounded-full bg-muted px-1.5 pr-2 ring-1 ring-border hover:bg-accent lg:inline-flex"
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-background">
-                  <User className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-background">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               </DropdownMenuTrigger>
@@ -178,31 +200,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link to="/orders"><Package className="mr-2 h-4 w-4" />{t("nav.orders", "Orders")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/bookmarks"><Bookmark className="mr-2 h-4 w-4" />{t("nav.bookmarks", "Bookmarks")}</Link>
+                  <Link to="/payouts"><TrendingUp className="mr-2 h-4 w-4" />{t("nav.sales", "Sales")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/vault"><Lock className="mr-2 h-4 w-4" />{t("nav.vault", "Vault")}</Link>
+                  <Link to="/settings"><Bell className="mr-2 h-4 w-4" />{t("nav.notifications", "Notifications")}</Link>
                 </DropdownMenuItem>
-                {isSeller && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/store"><Package className="mr-2 h-4 w-4" />{t("nav.sellerHub", "Seller Hub")}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/my-listings"><Store className="mr-2 h-4 w-4" />{t("nav.listings", "Listings")}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/payouts"><Shield className="mr-2 h-4 w-4" />{t("nav.payouts", "Payouts")}</Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <DropdownMenuItem asChild>
+                  <Link to="/payouts"><Wallet className="mr-2 h-4 w-4" />{t("nav.wallet", "Wallet")}</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/settings"><Settings className="mr-2 h-4 w-4" />{t("nav.settings", "Settings")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Support")}</Link>
+                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Help")}</Link>
                 </DropdownMenuItem>
                 {user && (
                   <>
@@ -214,22 +225,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            {/* More — opens sheet (hidden on lg+ where everything is in top nav) */}
+
+            {/* Platform features — opens sheet from the bottom "More" tab (mobile) */}
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-              <SheetTrigger
-                aria-label={t("nav.more", "More")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
-              >
-                <Menu className="h-4 w-4" aria-hidden="true" />
-              </SheetTrigger>
               <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>{t("nav.more", "More")}</SheetTitle>
+                  <SheetTitle>{t("nav.explore", "Explore")}</SheetTitle>
                 </SheetHeader>
-                <MoreSheet
+                <PlatformSheet
                   onNavigate={() => setMoreOpen(false)}
                   isSeller={isSeller}
-                  cartCount={cartCount}
                 />
               </SheetContent>
             </Sheet>
