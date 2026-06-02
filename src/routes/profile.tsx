@@ -6,7 +6,7 @@ import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, F
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
-import { startPasskeyRegistration, finishPasskeyRegistration } from "@/server/passkeys.functions";
+import { startPasskeyRegistration, finishPasskeyRegistration } from "@/lib/passkeys.functions";
 import { ensurePushSubscribed, disablePush, pushSupported } from "@/lib/push";
 import { AgreementModal } from "@/components/AgreementModal";
 import { LiveNowPill } from "@/components/ReturnToLiveBadge";
