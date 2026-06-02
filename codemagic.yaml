@@ -138,15 +138,38 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes array" "$P"
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes:0 string pullbidlive" "$P"
           # Google native Sign-In needs the reversed iOS client ID as a URL scheme.
-          # Set GOOGLE_IOS_REVERSED_CLIENT_ID in Codemagic env (e.g. com.googleusercontent.apps.XXXX).
-          if [ -n "$GOOGLE_IOS_REVERSED_CLIENT_ID" ]; then
-            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$P" 2>/dev/null || true
-            IDX=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$P" 2>/dev/null | grep -c "Dict" || echo 0)
-            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX dict" "$P"
-            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLName string google" "$P"
-            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes array" "$P"
-            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes:0 string $GOOGLE_IOS_REVERSED_CLIENT_ID" "$P"
+          # Without it the GoogleSignIn SDK throws an uncaught NSException
+          # ("Your app is missing support for the following URL schemes: ...")
+          # and the app crashes the instant the user taps "Continue with Google".
+          #
+          # Prefer an explicit GOOGLE_IOS_REVERSED_CLIENT_ID env var, but if it is
+          # not set, derive it automatically from VITE_GOOGLE_IOS_CLIENT_ID:
+          #   1234-abcd.apps.googleusercontent.com  ->  com.googleusercontent.apps.1234-abcd
+          REVERSED="$GOOGLE_IOS_REVERSED_CLIENT_ID"
+          if [ -z "$REVERSED" ] && [ -n "$VITE_GOOGLE_IOS_CLIENT_ID" ]; then
+            BASE="${VITE_GOOGLE_IOS_CLIENT_ID%.apps.googleusercontent.com}"
+            if [ "$BASE" != "$VITE_GOOGLE_IOS_CLIENT_ID" ]; then
+              REVERSED="com.googleusercontent.apps.$BASE"
+            fi
           fi
+          if [ -z "$REVERSED" ]; then
+            echo "FATAL: Cannot register Google reversed-client-ID URL scheme." >&2
+            echo "Set GOOGLE_IOS_REVERSED_CLIENT_ID (com.googleusercontent.apps.XXXX)" >&2
+            echo "or VITE_GOOGLE_IOS_CLIENT_ID (XXXX.apps.googleusercontent.com) in Codemagic." >&2
+            echo "Shipping without it makes Google Sign-In crash the app on tap." >&2
+            exit 1
+          fi
+          case "$REVERSED" in
+            com.googleusercontent.apps.*) ;;
+            *) echo "FATAL: reversed client ID '$REVERSED' must start with com.googleusercontent.apps." >&2; exit 1 ;;
+          esac
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$P" 2>/dev/null || true
+          IDX=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$P" 2>/dev/null | grep -c "Dict" || echo 0)
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX dict" "$P"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLName string google" "$P"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes array" "$P"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:$IDX:CFBundleURLSchemes:0 string $REVERSED" "$P"
+          echo "Registered Google reversed-client-ID URL scheme: $REVERSED"
 
       - name: Increment build number
         script: |
