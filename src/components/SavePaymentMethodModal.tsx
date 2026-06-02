@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { X, CreditCard, ShieldCheck, Loader2 } from "lucide-react";
 import { createSetupIntent, syncSetupIntentResult } from "@/lib/buyerPayments.functions";
-import { getStripePublishableKey } from "@/server/stripe-connect.functions";
+import { getStripePublishableKey } from "@/lib/stripe-connect.functions";
 
 let _stripePromise: Promise<Stripe | null> | null = null;
 async function getStripeJs() {

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendEmail } from "./email.server";
+import { sendEmail } from "@/server/email.server";
 import { sortRatesCheapestFirst, pickRecommendedRate } from "@/lib/shippingPresets";
 import { getStripe } from "@/lib/stripe.server";
 import { z } from "zod";

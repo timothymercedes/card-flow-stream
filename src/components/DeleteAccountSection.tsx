@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { deleteMyAccount } from "@/server/account.functions";
+import { deleteMyAccount } from "@/lib/account.functions";
 
 export function DeleteAccountSection() {
   const navigate = useNavigate();

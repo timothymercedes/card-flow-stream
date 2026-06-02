@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { estimateShippoRates } from "@/server/shippo.functions";
+import { estimateShippoRates } from "@/lib/shippo.functions";
 import { Truck, Globe2, Loader2 } from "lucide-react";
 import { SHIPPING_PRESETS, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { estimateShippingAndImportFees } from "@/lib/shippingEstimate";

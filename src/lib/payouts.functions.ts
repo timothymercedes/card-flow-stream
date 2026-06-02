@@ -1,93 +1,105 @@
+// Payout server functions — gates against v_seller_available_balance and
+// allocates payouts back to orders FIFO on success.
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { z } from "zod";
 
-export const requestPayoutFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ amountCents: z.number().int().positive().max(10_000_000) }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: row, error } = await supabase.rpc("request_payout" as any, {
-      _amount_cents: data.amountCents,
-    });
-    if (error) throw new Error(error.message);
-    return row;
-  });
-
-export const recordShippingAdjustmentFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z.object({
-      orderId: z.string().uuid().optional(),
-      type: z.enum(["reissue_label", "weight_change", "service_upgrade", "correction"]),
-      costCents: z.number().int().min(0).max(10_000),
-      notes: z.string().max(500).optional(),
-    }).parse(d),
-  )
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: row, error } = await supabase.rpc("record_shipping_adjustment" as any, {
-      _order_id: data.orderId ?? null,
-      _type: data.type,
-      _cost_cents: data.costCents,
-      _notes: data.notes ?? null,
-    });
-    if (error) throw new Error(error.message);
-    return row;
-  });
-
-export const getSellerPayableFn = createServerFn({ method: "POST" })
+export const getAvailableBalance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data, error } = await supabase.rpc("compute_seller_payable" as any, { _user_id: userId });
-    if (error) throw new Error(error.message);
-    const row = Array.isArray(data) ? data[0] : data;
-    return row as {
-      available_cents: number;
-      pending_cents: number;
-      locked_cents: number;
-      in_flight_cents: number;
-      owed_cents: number;
-      payable_cents: number;
-      instant_pct: number;
-      tier: "new" | "bronze" | "silver" | "gold" | "platinum";
-      frozen: boolean;
+    const { userId } = context;
+
+    const { data: bal } = await supabaseAdmin
+      .from("v_seller_available_balance" as any)
+      .select("available_cents, eligible_orders")
+      .eq("seller_id", userId)
+      .maybeSingle();
+
+    // Pending (held) = paid orders without payout_eligible_at yet, minus refunds
+    const { data: pending } = await supabaseAdmin
+      .from("orders")
+      .select("seller_payout_amount, payout_eligible_at, refunded_amount, payout_paid_amount_cents")
+      .eq("seller_id", userId)
+      .eq("payment_status", "paid")
+      .is("payout_paid_at", null);
+
+    let pendingCents = 0;
+    for (const o of pending ?? []) {
+      const refunded = Number(o.refunded_amount ?? 0);
+      const eligibleAt = o.payout_eligible_at ? new Date(o.payout_eligible_at as string) : null;
+      const isPending = !eligibleAt || eligibleAt.getTime() > Date.now();
+      if (!isPending || refunded > 0) continue;
+      const owed = Math.max(0, Math.round(Number(o.seller_payout_amount ?? 0) * 100) - (o.payout_paid_amount_cents ?? 0));
+      pendingCents += owed;
+    }
+
+    const { data: holds } = await supabaseAdmin
+      .from("account_holds").select("id, reason").eq("user_id", userId).eq("status", "active");
+
+    return {
+      availableCents: Number((bal as any)?.available_cents ?? 0),
+      pendingCents,
+      eligibleOrders: Number((bal as any)?.eligible_orders ?? 0),
+      activeHolds: holds ?? [],
     };
   });
 
-export const getSellerTrustFn = createServerFn({ method: "POST" })
+export const requestPayout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    await supabase.rpc("recalc_seller_trust" as any, { _user_id: userId });
-    const { data, error } = await supabase
-      .from("seller_trust" as any)
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+  .inputValidator((d) => z.object({ amountCents: z.number().int().min(100) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    // DB trigger assert_payout_within_available_balance will throw if invalid
+    const { data: row, error } = await supabaseAdmin
+      .from("payout_requests")
+      .insert({ user_id: userId, amount_cents: data.amountCents, status: "requested" } as any)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
-    return data as any;
+    return { payoutRequestId: row.id };
   });
 
-export const adminOverrideTrustFn = createServerFn({ method: "POST" })
+// Admin-only: manually release payout eligibility for an order
+export const adminReleasePayout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
-    z.object({
-      userId: z.string().uuid(),
-      instantPct: z.number().int().min(0).max(100).nullable(),
-      frozen: z.boolean().optional(),
-      reason: z.string().min(1).max(500),
-    }).parse(d),
-  )
+  .inputValidator((d) => z.object({ orderId: z.string().uuid(), reason: z.string().min(3).max(500) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const { data: row, error } = await supabase.rpc("admin_override_trust" as any, {
-      _user_id: data.userId,
-      _instant_pct: data.instantPct,
-      _frozen: data.frozen ?? null,
-      _reason: data.reason,
-    });
+    const { userId } = context;
+    const { data: role } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "admin" });
+    const { data: ownerRole } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "owner" });
+    if (!role && !ownerRole) throw new Error("Admin only");
+
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({ payout_eligible_at: new Date().toISOString() } as any)
+      .eq("id", data.orderId);
     if (error) throw new Error(error.message);
-    return row;
+
+    await supabaseAdmin.from("admin_action_log" as any).insert({
+      admin_id: userId,
+      action: "release_payout",
+      target_id: data.orderId,
+      notes: data.reason,
+    } as any).then(() => null, () => null);
+
+    await supabaseAdmin.from("shipment_events").insert({
+      order_id: data.orderId,
+      source: "admin_manual_release",
+      message: `Payout released by admin: ${data.reason}`,
+    } as any);
+
+    return { ok: true };
+  });
+
+export const getSellerShippingAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { data } = await supabaseAdmin
+      .from("mv_seller_shipping_analytics" as any)
+      .select("*")
+      .eq("seller_id", userId)
+      .maybeSingle();
+    return { analytics: data ?? null };
   });

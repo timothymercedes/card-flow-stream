@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   createStreamPromotionPaymentIntent,
   getStripePublishableKey,
-} from "@/server/stripe-connect.functions";
+} from "@/lib/stripe-connect.functions";
 import { Flame, X } from "lucide-react";
 import { toast } from "sonner";
 

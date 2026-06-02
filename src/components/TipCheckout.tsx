@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useServerFn } from "@tanstack/react-start";
-import { createStreamTipPaymentIntent, getStripePublishableKey } from "@/server/stripe-connect.functions";
+import { createStreamTipPaymentIntent, getStripePublishableKey } from "@/lib/stripe-connect.functions";
 import { Loader2, X, Gift } from "lucide-react";
 import { toast } from "sonner";
 

@@ -7,7 +7,7 @@ import {
   getMyConnectStatus,
   createConnectLoginLink,
   createConnectUpdateLink,
-} from "@/server/stripe-connect.functions";
+} from "@/lib/stripe-connect.functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

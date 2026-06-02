@@ -13,7 +13,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { toast } from "sonner";
-import { getShippoRates, buyShippoLabel } from "@/server/shippo.functions";
+import { getShippoRates, buyShippoLabel } from "@/lib/shippo.functions";
 import { SHIPPING_PRESETS, suggestPreset, type ShippingPresetKey } from "@/lib/shippingPresets";
 import { OrderCancellation } from "@/components/OrderCancellation";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
