@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { startAuthentication } from "@simplewebauthn/browser";
-import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@/server/passkeys.functions";
+import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@/lib/passkeys.functions";
 import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { AgreementModal } from "@/components/AgreementModal";
