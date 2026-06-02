@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { describeAuthPaths } from "@/lib/nativeAuth";
+import { describeAuthPaths, loadNativeAuthRuntimeConfig } from "@/lib/nativeAuth";
 
 /**
  * On-device diagnostic banner showing which authentication path Google/Apple
@@ -11,11 +11,18 @@ export function AuthPathBanner() {
   const [info, setInfo] = useState<ReturnType<typeof describeAuthPaths> | null>(null);
 
   useEffect(() => {
+    let alive = true;
     try {
       setInfo(describeAuthPaths());
+      loadNativeAuthRuntimeConfig().finally(() => {
+        if (alive) setInfo(describeAuthPaths());
+      });
     } catch {
       setInfo(null);
     }
+    return () => {
+      alive = false;
+    };
   }, []);
 
   if (!info) return null;
@@ -48,6 +55,9 @@ export function AuthPathBanner() {
           {info.ids.googleIos ? "✓" : "✗"} · apple {info.ids.appleServices ? "✓" : "✗"}
         </p>
       )}
+      <p className="mt-1 text-muted-foreground">
+        rev {info.rev} · sources: web {info.sources.googleWebClientId} · ios {info.sources.googleIosClientId} · apple {info.sources.appleServicesId}
+      </p>
     </div>
   );
 }
