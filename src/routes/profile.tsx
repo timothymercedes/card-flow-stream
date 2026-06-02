@@ -572,7 +572,7 @@ function Profile() {
               <Link to="/legal/seller-agreement" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Seller Agreement</Link>
             </div>
           </div>
-          <button onClick={async () => { await signOut(); nav({ to: "/" }); }} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
+          <button onClick={() => setSignOutOpen(true)} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
             <LogOut className="h-5 w-5 text-destructive" />
             <p className="text-sm font-semibold">Sign Out</p>
           </button>
