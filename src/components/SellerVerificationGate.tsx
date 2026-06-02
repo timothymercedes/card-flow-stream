@@ -8,7 +8,7 @@ import { useTutorialMode } from "@/lib/tutorialMode";
 import {
   createConnectOnboardingLink,
   syncConnectAccountStatus,
-} from "@/server/stripe-connect.functions";
+} from "@/lib/stripe-connect.functions";
 import { toast } from "sonner";
 
 /**

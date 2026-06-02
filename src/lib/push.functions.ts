@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sendPushToUsers } from "./push.server";
-import { sendEmail } from "./email.server";
+import { sendPushToUsers } from "@/server/push.server";
+import { sendEmail } from "@/server/email.server";
 
 // Notify all followers of the seller, AND any users who bookmarked one of the
 // seller's upcoming scheduled shows, that the seller just went live.

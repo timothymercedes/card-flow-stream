@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
 import { SellerVerificationGate } from "@/components/SellerVerificationGate";
-import { getSellerShippingAnalytics, getAvailableBalance } from "@/server/payouts.functions";
+import { getSellerShippingAnalytics, getAvailableBalance } from "@/lib/payouts.functions";
 import { Card } from "@/components/ui/card";
 import { Truck, Package, Clock, AlertTriangle, DollarSign, TimerReset } from "lucide-react";
 

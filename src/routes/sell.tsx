@@ -40,7 +40,7 @@ type VaultPick = {
   buy_now_price?: string;
   voice_trigger?: string;
 };
-import { notifyGoingLive } from "@/server/push.functions";
+import { notifyGoingLive } from "@/lib/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";

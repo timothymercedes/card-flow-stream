@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { adminReleasePayout } from "@/server/payouts.functions";
+import { adminReleasePayout } from "@/lib/payouts.functions";
 
 export const Route = createFileRoute("/admin/shipping-health")({
   head: () => ({ meta: [{ title: "Shipping health — Admin" }] }),

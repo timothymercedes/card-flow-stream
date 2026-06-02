@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Shield, Check, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { quoteInsurance, attachInsuranceAtCheckout } from "@/server/insurance.functions";
+import { quoteInsurance, attachInsuranceAtCheckout } from "@/lib/insurance.functions";
 import { toast } from "sonner";
 
 interface Props {

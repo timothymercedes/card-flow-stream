@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useServerFn } from "@tanstack/react-start";
-import { createMarketplacePaymentIntent, getStripePublishableKey } from "@/server/stripe-connect.functions";
+import { createMarketplacePaymentIntent, getStripePublishableKey } from "@/lib/stripe-connect.functions";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { Loader2 } from "lucide-react";

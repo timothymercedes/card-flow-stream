@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { AppShell } from "@/components/AppShell";
-import { adminListClaims, adminDecideClaim, getEvidenceSignedUrl } from "@/server/insurance.functions";
+import { adminListClaims, adminDecideClaim, getEvidenceSignedUrl } from "@/lib/insurance.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Shield, AlertTriangle, Loader2 } from "lucide-react";
