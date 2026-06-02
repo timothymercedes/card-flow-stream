@@ -47,6 +47,7 @@ function Profile() {
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [listRows, setListRows] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
