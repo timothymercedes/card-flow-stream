@@ -352,6 +352,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </nav>
+      <SignOutDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={async () => {
+          await signOut();
+          nav({ to: "/auth" });
+        }}
+      />
     </div>
   );
 }
