@@ -1,7 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
-  Menu, Bookmark, ShoppingBag, Shield, Settings, MessageCircleHeart, LogOut, ChevronDown,
+  Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
+  Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,12 +46,13 @@ const PRIMARY = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const tutorial = useTutorialMode();
   const { t } = useTranslation();
   const [isSeller, setIsSeller] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
     if (tutorial) { setIsSeller(true); setCartCount(2); return; }
@@ -146,21 +148,43 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
-            {/* Account dropdown — desktop has a full menu; mobile keeps a simple link to /profile */}
-            <Link
-              to="/profile"
-              aria-label={t("nav.profile", "Profile")}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
-            >
-              <User className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            {/* Account menu — mobile opens a sheet, desktop opens a dropdown.
+                Trigger is the user's avatar/profile icon (replaces old hamburger). */}
+            <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
+              <SheetTrigger
+                aria-label={t("nav.account", "Account")}
+                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
+              >
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-4 w-4" aria-hidden="true" />
+                )}
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>{t("nav.account", "Account")}</SheetTitle>
+                </SheetHeader>
+                <AccountSheet
+                  onNavigate={() => setAccountOpen(false)}
+                  email={user?.email ?? null}
+                  signedIn={!!user}
+                  onSignOut={() => { void signOut(); }}
+                />
+              </SheetContent>
+            </Sheet>
+
             <DropdownMenu>
               <DropdownMenuTrigger
-                aria-label={t("nav.profile", "Profile")}
+                aria-label={t("nav.account", "Account")}
                 className="hidden h-8 items-center gap-1 rounded-full bg-muted px-1.5 pr-2 ring-1 ring-border hover:bg-accent lg:inline-flex"
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-background">
-                  <User className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-background">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               </DropdownMenuTrigger>
@@ -176,31 +200,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link to="/orders"><Package className="mr-2 h-4 w-4" />{t("nav.orders", "Orders")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/bookmarks"><Bookmark className="mr-2 h-4 w-4" />{t("nav.bookmarks", "Bookmarks")}</Link>
+                  <Link to="/payouts"><TrendingUp className="mr-2 h-4 w-4" />{t("nav.sales", "Sales")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/vault"><Lock className="mr-2 h-4 w-4" />{t("nav.vault", "Vault")}</Link>
+                  <Link to="/settings"><Bell className="mr-2 h-4 w-4" />{t("nav.notifications", "Notifications")}</Link>
                 </DropdownMenuItem>
-                {isSeller && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/store"><Package className="mr-2 h-4 w-4" />{t("nav.sellerHub", "Seller Hub")}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/my-listings"><Store className="mr-2 h-4 w-4" />{t("nav.listings", "Listings")}</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/payouts"><Shield className="mr-2 h-4 w-4" />{t("nav.payouts", "Payouts")}</Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <DropdownMenuItem asChild>
+                  <Link to="/payouts"><Wallet className="mr-2 h-4 w-4" />{t("nav.wallet", "Wallet")}</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/settings"><Settings className="mr-2 h-4 w-4" />{t("nav.settings", "Settings")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Support")}</Link>
+                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Help")}</Link>
                 </DropdownMenuItem>
                 {user && (
                   <>
@@ -212,22 +225,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            {/* More — opens sheet (hidden on lg+ where everything is in top nav) */}
+
+            {/* Platform features — opens sheet from the bottom "More" tab (mobile) */}
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-              <SheetTrigger
-                aria-label={t("nav.more", "More")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
-              >
-                <Menu className="h-4 w-4" aria-hidden="true" />
-              </SheetTrigger>
               <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>{t("nav.more", "More")}</SheetTitle>
+                  <SheetTitle>{t("nav.explore", "Explore")}</SheetTitle>
                 </SheetHeader>
-                <MoreSheet
+                <PlatformSheet
                   onNavigate={() => setMoreOpen(false)}
                   isSeller={isSeller}
-                  cartCount={cartCount}
                 />
               </SheetContent>
             </Sheet>
@@ -346,56 +353,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-/* ----------- More sheet ----------- */
-function MoreSheet({
-  onNavigate,
-  isSeller,
-  cartCount,
-}: {
-  onNavigate: () => void;
-  isSeller: boolean;
-  cartCount: number;
-}) {
-  const { t } = useTranslation();
+/* ----------- Shared sheet menu renderer ----------- */
+type MenuItem = { to?: string; onClick?: () => void; icon: any; label: string; badge?: number };
+type MenuSection = { title: string; items: MenuItem[] };
 
-  const sections: { title: string; items: { to?: string; onClick?: () => void; icon: any; label: string; badge?: number }[] }[] = [
-    {
-      title: t("nav.shop", "Shop"),
-      items: [
-        { to: "/cart", icon: ShoppingBag, label: t("nav.cart", "Cart"), badge: cartCount || undefined },
-        { to: "/bookmarks", icon: Bookmark, label: t("nav.bookmarks", "Bookmarks") },
-        { to: "/orders", icon: Package, label: t("nav.orders", "Orders") },
-      ],
-    },
-    {
-      title: t("nav.social", "Social"),
-      items: [
-        { to: "/feed", icon: Newspaper, label: t("nav.feed", "Feed") },
-        { to: "/messages", icon: MessageCircle, label: t("nav.chat", "Messages") },
-        { to: "/quests", icon: Sparkles, label: t("nav.quests", "Quests") },
-      ],
-    },
-    ...(isSeller
-      ? [{
-          title: t("nav.seller", "Seller"),
-          items: [
-            { to: "/store", icon: Package, label: t("nav.sellerHub", "Seller Hub") },
-            { to: "/my-listings", icon: Store, label: t("nav.listings", "Listings") },
-            { to: "/payouts", icon: Shield, label: t("nav.payouts", "Payouts") },
-          ],
-        }]
-      : []),
-    {
-      title: t("nav.account", "Account"),
-      items: [
-        { to: "/settings", icon: Settings, label: t("nav.settings", "Settings") },
-        { to: "/settings", icon: Shield, label: t("nav.security", "Security") },
-        { to: "/support", icon: MessageCircleHeart, label: t("nav.support", "Support") },
-        { onClick: () => { openFeedback(); onNavigate(); }, icon: MessageCircleHeart, label: t("nav.feedback", "Send feedback") },
-      ],
-    },
-  ];
-
+function SheetMenu({ sections, onNavigate }: { sections: MenuSection[]; onNavigate: () => void }) {
   return (
     <div className="mt-2 space-y-5">
       {sections.map((s) => (
@@ -431,10 +393,102 @@ function MoreSheet({
           </div>
         </div>
       ))}
-      <div className="flex items-center justify-between px-1 pt-2">
-        <span className="text-xs text-muted-foreground">{t("nav.language", "Language")}</span>
-        <LanguageToggle />
-      </div>
     </div>
   );
 }
+
+/* ----------- Account sheet (top-right avatar menu) ----------- */
+function AccountSheet({
+  onNavigate,
+  email,
+  signedIn,
+  onSignOut,
+}: {
+  onNavigate: () => void;
+  email: string | null;
+  signedIn: boolean;
+  onSignOut: () => void;
+}) {
+  const { t } = useTranslation();
+
+  const sections: MenuSection[] = [
+    {
+      title: t("nav.account", "Account"),
+      items: [
+        { to: "/profile", icon: User, label: t("nav.profile", "Profile") },
+        { to: "/orders", icon: Package, label: t("nav.orders", "Orders") },
+        { to: "/payouts", icon: TrendingUp, label: t("nav.sales", "Sales") },
+        { to: "/settings", icon: Bell, label: t("nav.notifications", "Notifications") },
+        { to: "/payouts", icon: Wallet, label: t("nav.wallet", "Wallet") },
+      ],
+    },
+    {
+      title: t("nav.support", "Support"),
+      items: [
+        { to: "/settings", icon: Settings, label: t("nav.settings", "Settings") },
+        { to: "/support", icon: MessageCircleHeart, label: t("nav.help", "Help") },
+        { onClick: () => { openFeedback(); onNavigate(); }, icon: MessageCircleHeart, label: t("nav.feedback", "Send feedback") },
+        ...(signedIn ? [{ onClick: () => { onSignOut(); onNavigate(); }, icon: LogOut, label: t("nav.signOut", "Sign out") }] : []),
+      ],
+    },
+  ];
+
+  return (
+    <>
+      {email && (
+        <div className="mt-2 truncate px-1 text-sm text-muted-foreground">{email}</div>
+      )}
+      <SheetMenu sections={sections} onNavigate={onNavigate} />
+      <div className="flex items-center justify-between px-1 pt-4">
+        <span className="text-xs text-muted-foreground">{t("nav.language", "Language")}</span>
+        <LanguageToggle />
+      </div>
+    </>
+  );
+}
+
+/* ----------- Platform sheet (bottom "More" tab) ----------- */
+function PlatformSheet({
+  onNavigate,
+  isSeller,
+}: {
+  onNavigate: () => void;
+  isSeller: boolean;
+}) {
+  const { t } = useTranslation();
+
+  const sections: MenuSection[] = [
+    ...(isSeller
+      ? [{
+          title: t("nav.seller", "Seller"),
+          items: [
+            { to: "/store", icon: Package, label: t("nav.sellerHub", "Seller Hub") },
+            { to: "/my-listings", icon: Store, label: t("nav.myStore", "My Store") },
+            { to: "/shows", icon: CalendarDays, label: t("nav.futureShows", "My Future Shows") },
+            { to: "/obs-hub", icon: Video, label: t("nav.liveTools", "Live Tools") },
+            { to: "/seller/shipping-analytics", icon: BarChart3, label: t("nav.analytics", "Analytics") },
+          ],
+        } as MenuSection]
+      : []),
+    {
+      title: t("nav.tools", "Tools"),
+      items: [
+        { to: "/vault", icon: Lock, label: t("nav.vaultTools", "Vault Tools") },
+        { to: "/showoff", icon: Sparkles, label: t("nav.creator", "Creator Features") },
+        { to: "/quests", icon: Gift, label: t("nav.referrals", "Referrals & Rewards") },
+        { to: "/settings", icon: Crown, label: t("nav.memberships", "Memberships") },
+      ],
+    },
+    {
+      title: t("nav.explore", "Explore"),
+      items: [
+        { to: "/live", icon: Radio, label: t("nav.live", "Live") },
+        { to: "/feed", icon: Newspaper, label: t("nav.feed", "Feed") },
+        { to: "/messages", icon: MessageCircle, label: t("nav.chat", "Messages") },
+      ],
+    },
+  ];
+
+  return <SheetMenu sections={sections} onNavigate={onNavigate} />;
+}
+
