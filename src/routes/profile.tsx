@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote, Star, ExternalLink, MessageSquare, LifeBuoy } from "lucide-react";
+import { SignOutDialog } from "@/components/SignOutDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
