@@ -31,6 +31,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { SignOutDialog } from "@/components/SignOutDialog";
 import logo from "@/assets/logo.png";
 
 // Primary nav — shown on desktop top bar AND in mobile bottom bar (trimmed)
