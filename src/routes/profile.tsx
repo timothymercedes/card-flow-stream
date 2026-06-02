@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { LogOut, Radio, Tag, Package, Store as StoreIcon, ShieldCheck, Upload, Fingerprint, Phone, CheckCircle2, Bell, BellOff, Banknote, Star, ExternalLink, MessageSquare, LifeBuoy } from "lucide-react";
+import { SignOutDialog } from "@/components/SignOutDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -46,6 +47,7 @@ function Profile() {
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
   const [listRows, setListRows] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -570,7 +572,7 @@ function Profile() {
               <Link to="/legal/seller-agreement" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Seller Agreement</Link>
             </div>
           </div>
-          <button onClick={async () => { await signOut(); nav({ to: "/" }); }} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
+          <button onClick={() => setSignOutOpen(true)} className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left">
             <LogOut className="h-5 w-5 text-destructive" />
             <p className="text-sm font-semibold">Sign Out</p>
           </button>
@@ -646,6 +648,14 @@ function Profile() {
           Full document: <a href="/legal/seller-agreement" target="_blank" className="text-primary underline">Seller Agreement</a>
         </p>
       </AgreementModal>
+      <SignOutDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={async () => {
+          await signOut();
+          nav({ to: "/auth" });
+        }}
+      />
     </AppShell>
   );
 }

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
@@ -31,6 +31,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { SignOutDialog } from "@/components/SignOutDialog";
 import logo from "@/assets/logo.png";
 
 // Primary nav — shown on desktop top bar AND in mobile bottom bar (trimmed)
@@ -46,6 +47,7 @@ const PRIMARY = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation();
+  const nav = useNavigate();
   const { user, profile, signOut } = useAuth();
   const tutorial = useTutorialMode();
   const { t } = useTranslation();
@@ -53,6 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [cartCount, setCartCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
 
   useEffect(() => {
     if (tutorial) { setIsSeller(true); setCartCount(2); return; }
@@ -169,7 +172,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onNavigate={() => setAccountOpen(false)}
                   email={user?.email ?? null}
                   signedIn={!!user}
-                  onSignOut={() => { void signOut(); }}
+                  onSignOut={() => { setAccountOpen(false); setSignOutOpen(true); }}
                 />
               </SheetContent>
             </Sheet>
@@ -218,7 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {user && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => { void signOut(); }}>
+                    <DropdownMenuItem onSelect={() => { setSignOutOpen(true); }}>
                       <LogOut className="mr-2 h-4 w-4" />{t("nav.signOut", "Sign out")}
                     </DropdownMenuItem>
                   </>
@@ -349,6 +352,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </nav>
+      <SignOutDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={async () => {
+          await signOut();
+          nav({ to: "/auth" });
+        }}
+      />
     </div>
   );
 }
