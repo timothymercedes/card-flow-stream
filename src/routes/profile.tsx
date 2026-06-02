@@ -648,6 +648,14 @@ function Profile() {
           Full document: <a href="/legal/seller-agreement" target="_blank" className="text-primary underline">Seller Agreement</a>
         </p>
       </AgreementModal>
+      <SignOutDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        onConfirm={async () => {
+          await signOut();
+          nav({ to: "/auth" });
+        }}
+      />
     </AppShell>
   );
 }
