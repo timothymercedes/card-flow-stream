@@ -270,6 +270,11 @@ export function ArenaBattleStage({
                 <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{environmentLabel}</p>
               )}
               <p className="mt-2 text-2xl font-black tracking-widest text-foreground">VS</p>
+              {myPassive && (
+                <p className="mt-2 text-[10px] font-semibold text-muted-foreground">
+                  Passive · <span className="text-primary">{myPassive}</span>
+                </p>
+              )}
             </div>
           </div>
         )}
