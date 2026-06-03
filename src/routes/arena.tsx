@@ -134,7 +134,23 @@ function ArenaPage() {
   const cosmeticsFn = useServerFn(getArenaCosmetics);
   const replayFn = useServerFn(getBattleReplay);
   const postFeedFn = useServerFn(postBattleToFeed);
+  const fighterFn = useServerFn(ensureCompanionFighter);
   const canLoadArena = !!user && !!session && !authLoading;
+
+  // Generate a card-accurate battle figure once per companion (cached server-side).
+  const fighterM = useMutation({
+    mutationFn: (companionId: string) => fighterFn({ data: { companionId } }),
+    onSuccess: (r) => {
+      if (r.fighterImage) qc.invalidateQueries({ queryKey: ["arena", "mine"] });
+    },
+  });
+  const fighterPending = useRef<Set<string>>(new Set());
+  function ensureFighter(c?: { id: string; fighter_image_url?: string | null; image_url?: string | null }) {
+    if (!c || c.fighter_image_url || !c.image_url) return;
+    if (fighterPending.current.has(c.id)) return;
+    fighterPending.current.add(c.id);
+    fighterM.mutate(c.id, { onSettled: () => fighterPending.current.delete(c.id) });
+  }
 
 
   const myQ = useQuery({
