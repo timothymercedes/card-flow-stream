@@ -24,7 +24,7 @@ function publicProjection(c: CompanionRow) {
   const total = c.wins + c.losses;
   return {
     id: c.id, user_id: c.user_id, name: c.name, category: c.category,
-    community: c.community, image_url: c.image_url,
+    community: c.community, arena_category: c.arena_category, image_url: c.image_url,
     wins: c.wins, losses: c.losses,
     win_rate: total > 0 ? Math.round((c.wins / total) * 1000) / 10 : 0,
     title: c.title, trophies: c.trophies, arena_rank: c.arena_rank,
