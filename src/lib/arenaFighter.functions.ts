@@ -6,7 +6,6 @@
 // at most once per companion. Real cards are never affected.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const FIGHTER_BUCKET = "vault-images";
 
