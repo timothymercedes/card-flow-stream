@@ -190,18 +190,26 @@ export async function computeCollectionBooks(
   const result: CollectionBook[] = [...books.values()].map((b) => {
     const official = officialTotals.get(setTotalKey(b.category, b.setName)) ?? 0;
     const proxy = proxyTotals.get(normSet(b.setName))?.size ?? 0;
-    const knownTotal = Math.max(official || proxy, b.ownedNumbers.size);
-    const hasTotal = knownTotal > 0 && (official > 0 || proxy > 0);
-    const completion = hasTotal ? Math.min(100, Math.round((b.ownedNumbers.size / knownTotal) * 100)) : null;
+    const { isSet, realTotal, kind } = classifyBook({
+      official,
+      proxyOrCatalog: proxy,
+      ownedDistinct: b.ownedNumbers.size,
+      ownedCount: b.ownedCount,
+    });
+    // Only real sets get a completion %; promo/special groupings never show
+    // a fake "X/X complete".
+    const knownTotal = isSet ? Math.max(realTotal, b.ownedNumbers.size) : 0;
+    const completion = isSet ? Math.min(100, Math.round((b.ownedNumbers.size / knownTotal) * 100)) : null;
     // True completion requires an official total AND owning every distinct card.
     const complete = official > 0 && b.ownedNumbers.size >= official;
     return {
       key: b.key,
       setName: b.setName,
       category: b.category,
+      kind,
       ownedCount: b.ownedCount,
       ownedDistinct: b.ownedNumbers.size,
-      knownTotal: hasTotal ? knownTotal : 0,
+      knownTotal,
       official: official > 0,
       completion,
       totalValueCents: Math.round(b.totalValue * 100),
