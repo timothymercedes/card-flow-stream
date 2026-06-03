@@ -97,21 +97,32 @@ export const getPublicCompanions = createServerFn({ method: "GET" })
   });
 
 // ---- Find opponents (other users' companions, limited stats) ----
+// Core query logic, extracted so it can be exercised in integration tests
+// without the server-function/runtime layer. `admin` is a Supabase client.
+export async function fetchOpponentsCore(
+  admin: { from: (t: string) => any },
+  userId: string,
+  community?: string,
+) {
+  let q = admin.from("arena_companions").select("*").neq("user_id", userId).limit(40);
+  if (community && community !== "general") q = q.eq("community", community);
+  const { data: rows, error } = await q;
+  if (error) throw new Error(error.message);
+  // Shuffle and take up to 12
+  const arr = (rows || []) as unknown as CompanionRow[];
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return { opponents: arr.slice(0, 12).map(publicProjection) };
+}
+
 export const findOpponents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { community?: string }) => d ?? {})
   .handler(async ({ context, data }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    let q = supabaseAdmin.from("arena_companions").select("*").neq("user_id", userId).limit(40);
-    if (data.community && data.community !== "general") q = q.eq("community", data.community);
-    const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    // Shuffle and take up to 12
-    const arr = (rows || []) as unknown as CompanionRow[];
-    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-    return { opponents: arr.slice(0, 12).map(publicProjection) };
+    return fetchOpponentsCore(supabaseAdmin, userId, data.community);
   });
+
 
 function power(c: { attack: number; defense: number; speed: number; level: number }): number {
   const base = c.attack * 1.0 + c.defense * 0.8 + c.speed * 0.6 + c.level * 5;
