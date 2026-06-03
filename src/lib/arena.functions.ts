@@ -395,7 +395,7 @@ export const battlePve = createServerFn({ method: "POST" })
     await supabaseAdmin.from("arena_companions").update(update).eq("id", me.id);
 
     const cpuName = COMPUTER_NAMES[Math.floor(Math.random() * COMPUTER_NAMES.length)];
-    await supabaseAdmin.from("arena_battles").insert({
+    const { data: pveBattle } = await supabaseAdmin.from("arena_battles").insert({
       challenger_id: me.user_id,
       opponent_id: null,
       challenger_companion_id: me.id,
@@ -405,13 +405,14 @@ export const battlePve = createServerFn({ method: "POST" })
       battle_type: "pve",
       difficulty: data.difficulty,
       log,
-    });
+    }).select("id").maybeSingle();
 
     return {
       iWon,
       myRounds,
       theirRounds,
       log,
+      battleId: (pveBattle?.id ?? null) as string | null,
       rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
       opponentName: `${cpuName} (${diff.label})`,
       opponentImage: null as string | null,
