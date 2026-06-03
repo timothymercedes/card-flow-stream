@@ -85,6 +85,10 @@ function ArenaPage() {
   const [collectorQuery, setCollectorQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [tab, setTab] = useState("roster");
+  const [battleFor, setBattleFor] = useState<string | null>(null);
+  const [trainFor, setTrainFor] = useState<string | null>(null);
+  const [statsFor, setStatsFor] = useState<string | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
   const syncFn = useServerFn(syncCompanions);
