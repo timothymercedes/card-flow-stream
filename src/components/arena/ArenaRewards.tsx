@@ -60,8 +60,20 @@ export function ArenaRewards() {
     onError: (e: any) => toast.error(e?.message || "Could not update"),
   });
 
+  const claimSetM = useMutation({
+    mutationFn: (setKey: string) => claimSetFn({ data: { setKey } }),
+    onSuccess: (r) => {
+      toast.success(`Set complete! +${r.rewardXp} XP · +${r.rewardCredits} credits`);
+      qc.invalidateQueries({ queryKey: ["arena", "set-rewards"] });
+      qc.invalidateQueries({ queryKey: ["arena", "cosmetics"] });
+      qc.invalidateQueries({ queryKey: ["arena", "mine"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not claim"),
+  });
+
   const ownedMap = new Map((cosmQ.data?.owned ?? []).map((o) => [o.key, o]));
   const balance = cosmQ.data?.balance ?? 0;
+  const setRewards = setQ.data?.rewards ?? [];
 
   return (
     <div className="space-y-6">
