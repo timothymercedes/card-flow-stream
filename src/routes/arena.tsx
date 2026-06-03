@@ -8,9 +8,10 @@ import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, battleAiBoss, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
-  getBattleReplay, postBattleToFeed, getMissionClaims, claimMission,
+  getBattleReplay, postBattleToFeed, getMissionClaims, claimMission, setCompanionVisual,
 } from "@/lib/arena.functions";
 import { ensureCompanionFighter } from "@/lib/arenaFighter.functions";
+import { CompanionCustomizeDialog, type VisualMode } from "@/components/arena/CompanionCustomizeDialog";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
