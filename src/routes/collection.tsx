@@ -291,7 +291,7 @@ function MissingCard({ card, setName, category }: { card: Missing; setName: stri
         <p className="text-[10px] text-muted-foreground">#{card.number}{card.value > 0 ? ` · $${card.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ""}</p>
         <div className="mt-1.5 flex gap-1">
           <Button asChild size="sm" variant="secondary" className="h-7 flex-1 px-2 text-[10px]">
-            <Link to="/market">
+            <Link to="/market" search={{ q: `${setName} ${card.number}`.trim() }}>
               {card.listingsCount > 0 ? <Tag className="h-3 w-3" /> : <Search className="h-3 w-3" />}
               <span className="ml-1">{card.listingsCount > 0 ? "Buy" : "Find"}</span>
             </Link>
