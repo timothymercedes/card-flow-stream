@@ -40,7 +40,7 @@ function WishlistPage() {
   const q = useQuery({ queryKey: ["wishlist"], queryFn: () => list(), enabled: !!user });
 
   const addMut = useMutation({
-    mutationFn: (input: Parameters<typeof add>[0]["data"]) => add({ data: input }),
+    mutationFn: (input: AddInput) => add({ data: input }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["wishlist"] }); setAdding(false); toast.success("Added to wishlist"); },
     onError: (e: Error) => toast.error(e.message),
   });
