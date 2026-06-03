@@ -449,7 +449,10 @@ export const battleAiBoss = createServerFn({ method: "POST" })
 
     const { log, myRounds, theirRounds, iWon } = simulateCombat(me, boss, tier.rounds);
 
-    const gainedXp = iWon ? tier.winXp : tier.lossXp;
+    const wStreak = iWon ? me.win_streak + 1 : 0;
+    const streakMult = iWon ? streakBonusMultiplier(wStreak) : 1;
+    const gainedXp = Math.round((iWon ? tier.winXp : tier.lossXp) * streakMult);
+    const gainedTrophies = iWon ? Math.round(tier.winTrophies * streakMult) : 0;
     const newXp = me.xp + gainedXp;
     const update: {
       xp: number; level: number; wins?: number; losses?: number;
@@ -458,12 +461,11 @@ export const battleAiBoss = createServerFn({ method: "POST" })
     } = { xp: newXp, level: companionLevel(newXp) };
     if (iWon) {
       const wWins = me.wins + 1;
-      const wStreak = me.win_streak + 1;
       update.wins = wWins;
       update.win_streak = wStreak;
       update.longest_win_streak = Math.max(me.longest_win_streak, wStreak);
       update.season_wins = me.season_wins + 1;
-      update.trophies = me.trophies + tier.winTrophies;
+      update.trophies = me.trophies + gainedTrophies;
       update.arena_rank = me.arena_rank + (data.boss === "weekly" ? 30 : 12);
       update.title = titleForWins(wWins);
     } else {
