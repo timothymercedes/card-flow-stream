@@ -473,3 +473,154 @@ export const getLeaderboards = createServerFn({ method: "GET" })
 
     return { mostWins: projW, longestStreak: projS, topTrainers: trainers };
   });
+
+// ================= Collector discovery & social =================
+
+// Aggregate a user's arena standing from their companion roster.
+function aggregateUser(rows: CompanionRow[]) {
+  let wins = 0, losses = 0, trophies = 0, longest = 0, companions = 0;
+  let best: ArenaTitle = "rookie";
+  const order: ArenaTitle[] = ["rookie", "veteran", "elite", "champion", "legend"];
+  for (const c of rows) {
+    wins += c.wins; losses += c.losses; trophies += c.trophies;
+    longest = Math.max(longest, c.longest_win_streak); companions++;
+    if (order.indexOf(c.title) > order.indexOf(best)) best = c.title;
+  }
+  return { wins, losses, trophies, longest, companions, best };
+}
+
+// ---- Search collectors by username (Arena profiles) ----
+export const searchCollectors = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { query?: string }) => ({ query: (d?.query ?? "").trim().slice(0, 60) }))
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let pq = supabaseAdmin.from("profiles").select("id, username, avatar_url").neq("id", userId).limit(20);
+    if (data.query) pq = pq.ilike("username", `%${data.query}%`);
+    const { data: profiles, error } = await pq;
+    if (error) throw new Error(error.message);
+    const ids = (profiles || []).map((p: any) => p.id);
+    if (ids.length === 0) return { collectors: [] as any[] };
+
+    const { data: comps } = await supabaseAdmin
+      .from("arena_companions").select("*").in("user_id", ids);
+    const byUser = new Map<string, CompanionRow[]>();
+    for (const c of ((comps || []) as unknown as CompanionRow[])) {
+      const arr = byUser.get(c.user_id) || []; arr.push(c); byUser.set(c.user_id, arr);
+    }
+    const { data: follows } = await supabaseAdmin
+      .from("follows").select("followee_id").eq("follower_id", userId).in("followee_id", ids);
+    const following = new Set((follows || []).map((f: any) => f.followee_id));
+
+    const collectors = (profiles || []).map((p: any) => {
+      const agg = aggregateUser(byUser.get(p.id) || []);
+      return {
+        user_id: p.id, username: p.username, avatar_url: p.avatar_url,
+        ...agg, isFollowing: following.has(p.id),
+      };
+    }).sort((a: any, b: any) => b.wins - a.wins);
+    return { collectors };
+  });
+
+// ---- Full Arena profile for one collector ----
+export const getArenaProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles").select("id, username, avatar_url").eq("id", data.userId).maybeSingle();
+    if (!profile) throw new Error("Collector not found");
+
+    const { data: comps } = await supabaseAdmin
+      .from("arena_companions").select("*").eq("user_id", data.userId).order("arena_rank", { ascending: false });
+    const rows = (comps || []) as unknown as CompanionRow[];
+    const agg = aggregateUser(rows);
+
+    const { data: badges } = await supabaseAdmin
+      .from("arena_badges").select("badge_key").eq("user_id", data.userId);
+    const { data: f } = await supabaseAdmin
+      .from("follows").select("followee_id").eq("follower_id", userId).eq("followee_id", data.userId).maybeSingle();
+
+    return {
+      profile: { user_id: profile.id, username: profile.username, avatar_url: profile.avatar_url },
+      ...agg,
+      companions: rows.map(publicProjection),
+      badges: (badges || []).map((b: any) => b.badge_key as ArenaBadgeKey),
+      isFollowing: !!f,
+      isSelf: data.userId === userId,
+    };
+  });
+
+// ---- Follow / unfollow a collector ----
+export const followCollector = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    if (data.userId === userId) throw new Error("You cannot follow yourself");
+    const { error } = await supabase
+      .from("follows").upsert({ follower_id: userId, followee_id: data.userId }, { onConflict: "follower_id,followee_id" });
+    if (error) throw new Error(error.message);
+    return { following: true };
+  });
+
+export const unfollowCollector = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("follows").delete().eq("follower_id", userId).eq("followee_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { following: false };
+  });
+
+// ---- Recent PVP opponents for the signed-in user (rematch) ----
+export const getRecentOpponents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: battles } = await supabaseAdmin
+      .from("arena_battles")
+      .select("opponent_id, created_at")
+      .eq("challenger_id", userId).eq("battle_type", "pvp")
+      .not("opponent_id", "is", null)
+      .order("created_at", { ascending: false }).limit(60);
+
+    const seen = new Map<string, string>(); // user_id -> last battle date
+    for (const b of ((battles || []) as any[])) {
+      if (!seen.has(b.opponent_id)) seen.set(b.opponent_id, b.created_at);
+    }
+    const ids = [...seen.keys()].slice(0, 12);
+    if (ids.length === 0) return { opponents: [] as any[] };
+
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles").select("id, username, avatar_url").in("id", ids);
+    const pmap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const opponents = ids.map((id) => {
+      const p = pmap.get(id) as any;
+      return {
+        user_id: id, username: p?.username ?? "Collector",
+        avatar_url: p?.avatar_url ?? null, last_battle: seen.get(id)!,
+      };
+    });
+    return { opponents };
+  });
+
+// ---- Badges earned by the signed-in user ----
+export const listMyBadges = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("arena_badges").select("badge_key, earned_at").eq("user_id", userId)
+      .order("earned_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { badges: (data || []).map((b: any) => ({ key: b.badge_key as ArenaBadgeKey, earned_at: b.earned_at })) };
+  });
