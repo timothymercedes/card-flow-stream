@@ -6331,6 +6331,138 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_items: {
+        Row: {
+          card_image_url: string | null
+          card_name: string
+          card_value: number
+          created_at: string
+          id: string
+          owner_id: string
+          owner_side: string
+          trade_id: string
+          vault_card_id: string | null
+        }
+        Insert: {
+          card_image_url?: string | null
+          card_name: string
+          card_value?: number
+          created_at?: string
+          id?: string
+          owner_id: string
+          owner_side: string
+          trade_id: string
+          vault_card_id?: string | null
+        }
+        Update: {
+          card_image_url?: string | null
+          card_name?: string
+          card_value?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          owner_side?: string
+          trade_id?: string
+          vault_card_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_items_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          ratee_id: string
+          rater_id: string
+          stars: number
+          trade_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          ratee_id: string
+          rater_id: string
+          stars: number
+          trade_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          ratee_id?: string
+          rater_id?: string
+          stars?: number
+          trade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_ratings_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          cash_amount: number
+          cash_direction: string
+          completed_at: string | null
+          created_at: string
+          from_user: string
+          id: string
+          message: string | null
+          parent_trade_id: string | null
+          status: string
+          to_user: string
+          updated_at: string
+        }
+        Insert: {
+          cash_amount?: number
+          cash_direction?: string
+          completed_at?: string | null
+          created_at?: string
+          from_user: string
+          id?: string
+          message?: string | null
+          parent_trade_id?: string | null
+          status?: string
+          to_user: string
+          updated_at?: string
+        }
+        Update: {
+          cash_amount?: number
+          cash_direction?: string
+          completed_at?: string | null
+          created_at?: string
+          from_user?: string
+          id?: string
+          message?: string | null
+          parent_trade_id?: string | null
+          status?: string
+          to_user?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_parent_trade_id_fkey"
+            columns: ["parent_trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutorial_progress: {
         Row: {
           completed_at: string | null
@@ -6736,12 +6868,15 @@ export type Database = {
       }
       vault_cards: {
         Row: {
+          accept_offers: boolean
+          accept_trades: boolean
           ai_image_url: string | null
           ai_suggested_at: string | null
           ai_suggestion: Json | null
           back_image_url: string | null
           card_identity_id: string | null
           category: string | null
+          collection_only: boolean
           condition: Database["public"]["Enums"]["card_condition"] | null
           condition_prices: Json | null
           confidence_score: number | null
@@ -6805,18 +6940,22 @@ export type Database = {
           tcg_number: string | null
           tcg_set: string | null
           tcg_year: string | null
+          trade_plus_cash: boolean
           user_id: string
           variant: string | null
           visibility: string
           wrong_match_reported_at: string | null
         }
         Insert: {
+          accept_offers?: boolean
+          accept_trades?: boolean
           ai_image_url?: string | null
           ai_suggested_at?: string | null
           ai_suggestion?: Json | null
           back_image_url?: string | null
           card_identity_id?: string | null
           category?: string | null
+          collection_only?: boolean
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
           confidence_score?: number | null
@@ -6880,18 +7019,22 @@ export type Database = {
           tcg_number?: string | null
           tcg_set?: string | null
           tcg_year?: string | null
+          trade_plus_cash?: boolean
           user_id: string
           variant?: string | null
           visibility?: string
           wrong_match_reported_at?: string | null
         }
         Update: {
+          accept_offers?: boolean
+          accept_trades?: boolean
           ai_image_url?: string | null
           ai_suggested_at?: string | null
           ai_suggestion?: Json | null
           back_image_url?: string | null
           card_identity_id?: string | null
           category?: string | null
+          collection_only?: boolean
           condition?: Database["public"]["Enums"]["card_condition"] | null
           condition_prices?: Json | null
           confidence_score?: number | null
@@ -6955,6 +7098,7 @@ export type Database = {
           tcg_number?: string | null
           tcg_set?: string | null
           tcg_year?: string | null
+          trade_plus_cash?: boolean
           user_id?: string
           variant?: string | null
           visibility?: string
@@ -7924,6 +8068,15 @@ export type Database = {
           full_name: string
           phone: string
         }[]
+      }
+      grant_user_xp: {
+        Args: {
+          _amount: number
+          _reason: string
+          _ref_id?: string
+          _user_id: string
+        }
+        Returns: undefined
       }
       has_active_hold: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
