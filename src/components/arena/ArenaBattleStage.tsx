@@ -29,18 +29,46 @@ export type StageResult = {
 };
 
 type Phase = "intro" | "fight" | "summary";
-type RoundFx = "crit" | "dodge" | "hit";
+type RoundFx = "crit" | "dodge" | "hit" | "block";
+type SkillKind = "basic" | "special" | "recover";
 
-// Map a saved round to a presentational combat event (attacker/defender + flair).
-function roundEvents(log: BattleLog) {
+type RoundEvent = {
+  attacker: "mine" | "theirs";
+  defender: "mine" | "theirs";
+  fx: RoundFx;
+  dmg: number;
+  healAmt: number;       // > 0 when the attacker uses a Recover special
+  skill: SkillKind;
+  round: number;
+};
+
+const SKILL_LABEL: Record<SkillKind, string> = {
+  basic: "Basic Attack", special: "Special Attack", recover: "Recover",
+};
+
+// Map the saved battle log into a richer, fully deterministic playback timeline.
+// A small seeded PRNG (derived from the log) decides block/recover flavour so
+// the same battle always replays identically — outcomes are still server-side.
+function roundEvents(log: BattleLog): RoundEvent[] {
+  let seed = log.reduce((s, r) => ((s * 31 + r.mine + r.theirs * 7 + r.round) >>> 0), 7) >>> 0;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   return log.map((r) => {
     const max = Math.max(r.mine, r.theirs, 1);
     const margin = Math.abs(r.mine - r.theirs) / max;
-    const fx: RoundFx = margin >= 0.22 ? "crit" : margin <= 0.06 ? "dodge" : "hit";
-    const dmg = fx === "crit" ? 42 : fx === "dodge" ? 12 : 28;
     const attacker: "mine" | "theirs" = r.winner;
     const defender: "mine" | "theirs" = r.winner === "mine" ? "theirs" : "mine";
-    return { attacker, defender, fx, dmg, round: r.round };
+
+    let fx: RoundFx; let dmg: number; let skill: SkillKind = "basic"; let healAmt = 0;
+    if (margin >= 0.24) { fx = "crit"; dmg = 40; skill = "special"; }
+    else if (margin <= 0.05) { fx = "dodge"; dmg = 7; }
+    else if (rnd() < 0.2) { fx = "block"; dmg = 14; }
+    else { fx = "hit"; dmg = 26; }
+
+    // Occasional healing special by the attacker (never on a whiffed dodge).
+    if (fx !== "dodge" && rnd() < 0.16) {
+      skill = "recover"; healAmt = 12; dmg = Math.round(dmg * 0.6);
+    }
+    return { attacker, defender, fx, dmg, healAmt, skill, round: r.round };
   });
 }
 
