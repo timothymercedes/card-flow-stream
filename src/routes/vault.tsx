@@ -2706,7 +2706,6 @@ function Vault() {
                 ["accept_trades", "Available for trade"],
                 ["trade_plus_cash", "Accept trade + cash"],
                 ["accept_offers", "Accept offers"],
-                ["collection_only", "Collection only (not for trade)"],
               ] as const).map(([key, label]) => (
                 <label key={key} className="flex items-center justify-between gap-2 text-sm">
                   <span>{label}</span>
