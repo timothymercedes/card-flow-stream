@@ -411,7 +411,7 @@ export const battlePve = createServerFn({ method: "POST" })
       theirRounds,
       log,
       battleId: (pveBattle?.id ?? null) as string | null,
-      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
+      rewards: { xp: gainedXp, trophies: gainedTrophies, rank: 0, credits: 0 },
       opponentName: `${trainer.name} · ${trainer.rank}`,
       opponentImage: null as string | null,
       opponentEmoji: trainer.emoji as string | null,
