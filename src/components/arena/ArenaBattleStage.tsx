@@ -91,56 +91,33 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
   );
 }
 
-// Generated character art (original Arena fighters under /arena/fighters/, or
-// AI-generated card characters cached under /arena-fighters/) is rendered whole
-// as a standing full-body fighter. A raw card photo is cropped to its character.
-const isCharacterArt = (url?: string | null) =>
-  !!url && (url.includes("/arena/fighters/") || url.includes("/arena-fighters/"));
-
+// The COMPANION is always the fighter — a card is NEVER shown in the arena.
+// Cards only UNLOCK companions; companion-vs-companion is what battles.
 function Fighter({
-  name, cardImage, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
+  name, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
   frameClass = "", effectClass = "", title, hp,
 }: {
-  name: string; cardImage?: string | null; emoji?: string | null; side: "left" | "right";
+  name: string; emoji?: string | null; side: "left" | "right";
   category: string; seedKey: string; level?: number; wrapperAnim: string; companionAnim: CompanionAnim;
   frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
-  const characterArt = isCharacterArt(cardImage);
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <HpBar hp={hp} side={side} />
       <div className={`relative ${wrapperAnim}`}>
         {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
-        {cardImage ? (
-          // A real digital FIGHTER — either an original Arena character (whole)
-          // or the character cropped out of the card art — never a card rectangle.
-          <div
-            className={`arena-cardfighter companion-${companionAnim} ${frameClass}`}
-            style={{ width: 120, height: 150 }}
-          >
-            <span className="arena-cardfighter-shadow" aria-hidden />
-            <img
-              src={cardImage}
-              alt={`${name} fighter`}
-              className={characterArt ? "arena-charfighter-img" : "arena-cardfighter-img"}
-              style={{ transform: side === "right" ? "scaleX(-1)" : undefined }}
-              draggable={false}
-            />
-          </div>
-        ) : (
-          <CompanionSprite
-            seedKey={seedKey}
-            category={category}
-            anim={companionAnim}
-            size={124}
-            level={level}
-            flip={side === "right"}
-            className={frameClass}
-          />
-        )}
+        <CompanionSprite
+          seedKey={seedKey}
+          category={category}
+          anim={companionAnim}
+          size={124}
+          level={level}
+          flip={side === "right"}
+          className={frameClass}
+        />
       </div>
       <p className="max-w-[8rem] truncate text-center text-xs font-bold sm:text-sm">{name}</p>
-      {!cardImage && emoji ? (
+      {emoji ? (
         <span className="text-base" aria-hidden>{emoji}</span>
       ) : null}
 
@@ -156,7 +133,7 @@ function Fighter({
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, mySeed, myLevel = 1, myPassive, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
+  result, myName, mySeed, myLevel = 1, myPassive, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
   isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
@@ -258,6 +235,17 @@ export function ArenaBattleStage({
   const myAnim = companionAnimFor("mine");
   const theirAnim = companionAnimFor("theirs");
 
+  // Attacker lunges across the arena toward the defender on each strike.
+  function wrapperAnimFor(sideKey: "mine" | "theirs", side: "left" | "right"): string {
+    if (phase === "intro") return side === "left" ? "arena-enter-left" : "arena-enter-right";
+    if (phase === "fight" && ev && fx && ev.attacker === sideKey && fx.kind !== "dodge") {
+      return side === "left" ? "arena-lunge-left" : "arena-lunge-right";
+    }
+    return "";
+  }
+  // Camera shake on every landed (non-dodge) hit — punchy combat feedback.
+  const impactShake = phase === "fight" && fx && fx.kind !== "dodge";
+
   function share() {
     const text = result.iWon
       ? `My ${myName} won its PullBid Arena battle against ${result.opponentName} ${result.myRounds}–${result.theirRounds}! ⚔️`
@@ -317,11 +305,13 @@ export function ArenaBattleStage({
           )}
         </div>
 
-        <div className={`relative z-10 flex items-end justify-between gap-3 ${phase === "summary" && !result.iWon ? "arena-shake" : ""}`}>
+        <div
+          key={`row-${runKey}-${impactShake ? roundIdx : "x"}`}
+          className={`relative z-10 flex items-end justify-between gap-3 ${impactShake || (phase === "summary" && !result.iWon) ? "arena-shake" : ""}`}
+        >
           <div className="relative flex-1">
             <Fighter
               name={myName}
-              cardImage={myImage}
               side="left"
               category={arenaCategory}
               seedKey={mySeed ?? myName}
@@ -330,7 +320,7 @@ export function ArenaBattleStage({
               frameClass={myFrameClass}
               effectClass={myEffectClass}
               title={myTitle}
-              wrapperAnim={phase === "intro" ? "arena-enter-left" : ""}
+              wrapperAnim={wrapperAnimFor("mine", "left")}
               companionAnim={myAnim}
             />
             {fx?.defender === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
@@ -339,6 +329,14 @@ export function ArenaBattleStage({
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
             <Swords className={`h-6 w-6 text-primary ${phase === "fight" ? "animate-pulse" : ""}`} />
+            {/* Energy projectile flies from the attacker toward the defender on a special */}
+            {fx && fx.skill === "special" && fx.kind !== "dodge" && ev && (
+              <span
+                key={`proj-${runKey}-${roundIdx}`}
+                className={`arena-projectile ${ev.attacker === "mine" ? "arena-projectile-right" : "arena-projectile-left"} ${fx.kind === "crit" ? "h-4 w-9 bg-amber-400" : "h-3 w-7 bg-sky-400"}`}
+                aria-hidden
+              />
+            )}
             {fx && fx.kind !== "dodge" && (
               <>
                 <span className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-14 w-14 bg-amber-400/70" : "h-10 w-10 bg-primary/60"}`} />
@@ -359,14 +357,13 @@ export function ArenaBattleStage({
           <div className="relative flex-1">
             <Fighter
               name={result.opponentName}
-              cardImage={result.opponentImage}
               emoji={result.opponentEmoji}
               side="right"
               category={arenaCategory}
               seedKey={result.opponentName}
               level={myLevel}
               hp={theirHp}
-              wrapperAnim={phase === "intro" ? "arena-enter-right" : ""}
+              wrapperAnim={wrapperAnimFor("theirs", "right")}
               companionAnim={theirAnim}
             />
             {fx?.defender === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
