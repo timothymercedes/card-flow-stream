@@ -525,6 +525,9 @@ function ArenaPage() {
               result={battleResult}
               myName={activeMine?.name ?? "Your companion"}
               myImage={activeMine?.image_url}
+              myFrameClass={equipped.frameClass}
+              myEffectClass={equipped.effectClass}
+              myTitle={equipped.titleText}
               onClose={() => setBattleResult(null)}
             />
           )}
