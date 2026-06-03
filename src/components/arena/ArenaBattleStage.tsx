@@ -136,6 +136,9 @@ export function ArenaBattleStage({
             name={myName}
             image={myImage}
             side="left"
+            frameClass={myFrameClass}
+            effectClass={myEffectClass}
+            title={myTitle}
             anim={`${phase === "intro" ? "arena-enter-left" : ""} ${myLunging ? "arena-lunge-left" : ""} ${theirLunging ? "arena-hit" : ""}`.trim()}
           />
 
