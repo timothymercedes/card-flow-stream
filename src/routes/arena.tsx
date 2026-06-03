@@ -155,6 +155,7 @@ function ArenaPage() {
   const battleM = useMutation({
     mutationFn: (vars: { myCompanionId: string; opponentCompanionId: string }) => battleFn({ data: vars }),
     onSuccess: (r) => {
+      setBattleFor(null);
       setBattleResult(r);
       qc.invalidateQueries({ queryKey: ["arena"] });
     },
@@ -164,6 +165,7 @@ function ArenaPage() {
   const pveM = useMutation({
     mutationFn: (vars: { myCompanionId: string; difficulty: ArenaDifficulty }) => pveFn({ data: vars }),
     onSuccess: (r) => {
+      setTrainFor(null);
       setBattleResult(r);
       qc.invalidateQueries({ queryKey: ["arena"] });
     },
