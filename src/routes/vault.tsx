@@ -2811,7 +2811,26 @@ function Vault() {
                   <input
                     type="checkbox"
                     checked={!!editing[key]}
-                    onChange={(e) => setEditing({ ...editing, [key]: e.target.checked })}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      const upd: Partial<Card> = { [key]: val };
+                      if (key === "collection_only" && val) {
+                        upd.accept_trades = false;
+                        upd.trade_plus_cash = false;
+                        upd.accept_offers = false;
+                      }
+                      if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && val) {
+                        upd.collection_only = false;
+                      }
+                      if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && !val) {
+                        const remaining =
+                          (key === "accept_trades" ? false : !!editing.accept_trades) ||
+                          (key === "trade_plus_cash" ? false : !!editing.trade_plus_cash) ||
+                          (key === "accept_offers" ? false : !!editing.accept_offers);
+                        if (!remaining) upd.collection_only = true;
+                      }
+                      setEditing({ ...editing, ...upd });
+                    }}
                     className="h-5 w-5 accent-primary"
                   />
                 </label>
