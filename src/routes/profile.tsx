@@ -271,6 +271,9 @@ function Profile() {
         {/* Collector rank, level, achievements + Showcase 9 */}
         <CollectorShowcase userId={user.id} />
 
+        {/* Set completion reward wheel winnings */}
+        <ProfileRewardsShowcase />
+
 
 
 
