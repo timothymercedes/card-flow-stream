@@ -254,7 +254,10 @@ export function ArenaBattleStage({
   return (
     <div className="space-y-4">
       {/* Stage */}
-      <div className={`arena-stage arena-theme arena-scanlines relative overflow-hidden rounded-xl border p-4 ${themeClass}`}>
+      <div className={`arena-stage arena-theme relative overflow-hidden rounded-xl border p-4 ${themeClass}`}>
+        {/* Outdoor arena environment (sky, sun, clouds, hills, ground) */}
+        <ArenaBackdrop category={arenaCategory} shake={phase === "summary" && !result.iWon} />
+
         {/* Critical-hit screen flash */}
         {critActive && <span key={`crit-${runKey}-${roundIdx}`} className="arena-crit-flash pointer-events-none absolute inset-0 z-20 bg-white" aria-hidden />}
 
