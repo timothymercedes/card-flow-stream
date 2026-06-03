@@ -102,6 +102,38 @@ export const DIFFICULTY_META: Record<ArenaDifficulty, {
 // are always more valuable than computer training.
 export const PVP_WIN_XP = 50;
 
+// Credits awarded to the winner of a real PVP battle. PVE never pays credits.
+export const PVP_WIN_CREDITS = 5;
+
+// ---- Arena badges ----
+export type ArenaBadgeKey =
+  | "first_win" | "streak_5" | "streak_10" | "wins_25" | "wins_100"
+  | "champion" | "legend" | "social_battler";
+
+export const ARENA_BADGES: Record<ArenaBadgeKey, { label: string; emoji: string; desc: string }> = {
+  first_win:      { label: "First Blood",      emoji: "🩸", desc: "Win your first Arena battle" },
+  streak_5:       { label: "On Fire",          emoji: "🔥", desc: "Reach a 5-win streak" },
+  streak_10:      { label: "Unstoppable",      emoji: "⚡", desc: "Reach a 10-win streak" },
+  wins_25:        { label: "Gladiator",        emoji: "🛡️", desc: "Win 25 Arena battles" },
+  wins_100:       { label: "Centurion",        emoji: "🏆", desc: "Win 100 Arena battles" },
+  champion:       { label: "Champion",         emoji: "👑", desc: "Earn the Champion title (150 wins)" },
+  legend:         { label: "Living Legend",    emoji: "🌟", desc: "Earn the Legend title (500 wins)" },
+  social_battler: { label: "Social Battler",   emoji: "🤝", desc: "Challenge a collector you follow" },
+};
+
+// Compute which milestone badges a user qualifies for from aggregate stats.
+export function earnedBadgeKeys(totalWins: number, longestStreak: number): ArenaBadgeKey[] {
+  const keys: ArenaBadgeKey[] = [];
+  if (totalWins >= 1) keys.push("first_win");
+  if (longestStreak >= 5) keys.push("streak_5");
+  if (longestStreak >= 10) keys.push("streak_10");
+  if (totalWins >= 25) keys.push("wins_25");
+  if (totalWins >= 100) keys.push("wins_100");
+  if (totalWins >= 150) keys.push("champion");
+  if (totalWins >= 500) keys.push("legend");
+  return keys;
+}
+
 // Map a card's estimated value into a 0..20 tier for stat scaling.
 export function valueTier(value: number | null | undefined): number {
   const v = Number(value) || 0;
