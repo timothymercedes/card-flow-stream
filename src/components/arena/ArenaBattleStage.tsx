@@ -109,6 +109,7 @@ function Fighter({
         <CompanionSprite
           seedKey={seedKey}
           category={category}
+          archetypeKey={deriveArchetype(name, category).key}
           anim={companionAnim}
           size={124}
           level={level}
