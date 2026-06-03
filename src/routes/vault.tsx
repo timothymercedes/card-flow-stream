@@ -1672,6 +1672,19 @@ function Vault() {
     return updateVariant(card, v.edition, v.finish, code);
   }
 
+  async function toggleTradeFlag(card: Card, key: "accept_trades" | "trade_plus_cash" | "accept_offers" | "collection_only", value: boolean) {
+    const patch: Partial<Card> = { [key]: value };
+    // Collection-only and tradeable are mutually exclusive.
+    if (key === "collection_only" && value) { patch.accept_trades = false; patch.trade_plus_cash = false; }
+    if ((key === "accept_trades" || key === "trade_plus_cash") && value) patch.collection_only = false;
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+    if (error) toast.error("Couldn't update trade setting");
+  }
+
+
+
   async function saveEdit() {
     if (!editing) return;
     // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
@@ -2669,6 +2682,28 @@ function Vault() {
             )}
 
             <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} cardIdentityId={actionFor.card_identity_id} />
+
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Trade availability</p>
+              {([
+                ["accept_trades", "Available for trade"],
+                ["trade_plus_cash", "Accept trade + cash"],
+                ["accept_offers", "Accept offers"],
+                ["collection_only", "Collection only (not for trade)"],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center justify-between gap-2 text-sm">
+                  <span>{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={!!actionFor[key]}
+                    onChange={(e) => toggleTradeFlag(actionFor, key, e.target.checked)}
+                    className="h-5 w-5 accent-primary"
+                  />
+                </label>
+              ))}
+            </div>
+
+
 
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
