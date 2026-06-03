@@ -277,7 +277,7 @@ export function ArenaBattleStage({
         <div className="relative z-10 mb-2 min-h-5 text-center">
           {phase === "fight" && ev && (
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Round {ev.round} · {ev.fx === "crit" ? "Critical strike!" : ev.fx === "dodge" ? "Glancing blow" : "Clash"}
+              Round {ev.round} · {(ev.attacker === "mine" ? myName : result.opponentName).split(" ")[0]} used {SKILL_LABEL[ev.skill]}
             </p>
           )}
           {phase === "summary" && (
