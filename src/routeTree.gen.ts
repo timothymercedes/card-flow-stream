@@ -64,6 +64,7 @@ import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.com
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as LegalAccountDeletionRouteImport } from './routes/legal.account-deletion'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CommunitiesSlugRouteImport } from './routes/communities.$slug'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
@@ -370,6 +371,11 @@ const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunitiesSlugRoute = CommunitiesSlugRouteImport.update({
+  id: '/communities/$slug',
+  path: '/communities/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   id: '/admin_/performance',
   path: '/admin/performance',
@@ -566,6 +572,7 @@ export interface FileRoutesByFullPath {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -651,6 +658,7 @@ export interface FileRoutesByTo {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -737,6 +745,7 @@ export interface FileRoutesById {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
+  '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -824,6 +833,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
@@ -909,6 +919,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
@@ -994,6 +1005,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin_/finance'
     | '/admin_/performance'
+    | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
@@ -1076,6 +1088,7 @@ export interface RootRouteChildren {
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
+  CommunitiesSlugRoute: typeof CommunitiesSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
@@ -1507,6 +1520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/communities/$slug': {
+      id: '/communities/$slug'
+      path: '/communities/$slug'
+      fullPath: '/communities/$slug'
+      preLoaderRoute: typeof CommunitiesSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin_/performance': {
       id: '/admin_/performance'
       path: '/admin/performance'
@@ -1780,6 +1800,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
+  CommunitiesSlugRoute: CommunitiesSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,

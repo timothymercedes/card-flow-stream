@@ -485,6 +485,7 @@ function PlatformSheet({
     {
       title: t("nav.tools", "Tools"),
       items: [
+        { to: "/communities", icon: Users, label: t("nav.communities", "Communities") },
         { to: "/trades", icon: ArrowLeftRight, label: t("nav.tradeCenter", "Trade Center") },
         { to: "/collection", icon: BookOpen, label: t("nav.collectionBooks", "Collection Books") },
         { to: "/wishlist", icon: Heart, label: t("nav.wishlist", "Wishlist") },
