@@ -5,6 +5,7 @@
 // unique, repeatable Arena fighter. No card art is used during combat.
 import { useMemo } from "react";
 import { seedFrom } from "@/lib/arenaShared";
+import type { ArchetypeKey } from "@/lib/arenaCompanion";
 
 export type CompanionAnim = "idle" | "attack" | "hit" | "dodge" | "victory" | "defeat";
 
@@ -22,12 +23,57 @@ const PALETTES: Record<string, { body: string; belly: string; accent: string; ey
   other:     { body: "#7c5cff", belly: "#e9e3ff", accent: "#22d3ee", eye: "#1a1a1a" },
 };
 
-type Headgear = "ears" | "hat" | "wizard" | "horns" | "band" | "crown" | "mask" | "helmet" | "antenna";
+type Headgear =
+  | "ears" | "hat" | "wizard" | "horns" | "band" | "crown" | "mask" | "helmet" | "antenna"
+  | "catears" | "wolfears" | "draconic" | "beak" | "halo" | "visor" | "pirate" | "hood" | "skull";
 
 const HEADGEAR_BY_CATEGORY: Record<string, Headgear> = {
   pokemon: "ears", onepiece: "hat", mtg: "wizard", yugioh: "horns", sports: "band",
   lorcana: "crown", marvel: "mask", starwars: "helmet", wrestling: "mask", other: "antenna",
 };
+
+// ---------------------------------------------------------------------------
+// Archetype → visual features. This is what makes a card's fighter instantly
+// recognizable (cat card → feline rogue, dragon card → winged dragon), using
+// ORIGINAL silhouettes rather than copying any copyrighted character.
+// ---------------------------------------------------------------------------
+type ArchetypeFeatures = {
+  head: Headgear;
+  tail?: "feline" | "bushy" | "reptile" | "spike";
+  wings?: "dragon" | "feather" | "insect";
+  whiskers?: boolean;
+  fangs?: boolean;
+  ghost?: boolean; // floats, no feet (undead/phantom)
+};
+
+const ARCHETYPE_FEATURES: Partial<Record<ArchetypeKey, ArchetypeFeatures>> = {
+  dragon:     { head: "draconic", tail: "reptile", wings: "dragon", fangs: true },
+  feline:     { head: "catears", tail: "feline", whiskers: true, fangs: true },
+  canine:     { head: "wolfears", tail: "bushy", fangs: true },
+  avian:      { head: "beak", wings: "feather" },
+  aquatic:    { head: "antenna", tail: "reptile" },
+  reptile:    { head: "horns", tail: "spike", fangs: true },
+  insect:     { head: "antenna", wings: "insect" },
+  arcane:     { head: "wizard" },
+  celestial:  { head: "halo", wings: "feather" },
+  undead:     { head: "skull", ghost: true },
+  mechanical: { head: "visor" },
+  buccaneer:  { head: "pirate" },
+  knight:     { head: "helmet" },
+  ninja:      { head: "hood" },
+  elemental:  { head: "horns" },
+  athlete:    { head: "band" },
+  hero:       { head: "mask", wings: "feather" },
+  jedi:       { head: "hood" },
+  grappler:   { head: "mask", fangs: true },
+  beast:      { head: "horns", tail: "spike", fangs: true },
+};
+
+function featuresFor(archetypeKey: ArchetypeKey | undefined, category: string): ArchetypeFeatures {
+  if (archetypeKey && ARCHETYPE_FEATURES[archetypeKey]) return ARCHETYPE_FEATURES[archetypeKey]!;
+  return { head: HEADGEAR_BY_CATEGORY[category] ?? "antenna" };
+}
+
 
 function palette(category: string) {
   return PALETTES[category] ?? PALETTES.other;
