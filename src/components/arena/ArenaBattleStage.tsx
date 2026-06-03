@@ -186,6 +186,18 @@ export function ArenaBattleStage({
   const theirDefendCls = fx?.side === "theirs" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
   const critActive = !!fx && fx.kind === "crit";
 
+  // Map the current phase/round into a companion sprite animation per side.
+  function companionAnimFor(sideKey: "mine" | "theirs"): CompanionAnim {
+    if (phase === "summary") return result.iWon === (sideKey === "mine") ? "victory" : "defeat";
+    if (phase === "fight" && ev && fx) {
+      if (ev.attacker === sideKey) return "attack";
+      if (fx.side === sideKey) return fx.kind === "dodge" ? "dodge" : "hit";
+    }
+    return "idle";
+  }
+  const myAnim = companionAnimFor("mine");
+  const theirAnim = companionAnimFor("theirs");
+
   function share() {
     const text = result.iWon
       ? `My ${myName} won its PullBid Arena battle against ${result.opponentName} ${result.myRounds}–${result.theirRounds}! ⚔️`
