@@ -359,3 +359,209 @@ export const getTraderReputation = createServerFn({ method: "GET" })
       badge,
     };
   });
+
+// ============================================================================
+// Smart Trade Discovery — matches the cards you WANT (wishlist + cards missing
+// from sets you're close to completing) against tradeable cards other
+// collectors own. Reverse-matches their wishlists against your tradeable cards
+// to surface mutual ("both win") trade opportunities, ranked highest.
+// Owner-centric: "Collector X has 3 cards you need and wants 2 of yours."
+// ============================================================================
+const dNorm = (v: unknown) => String(v ?? "").trim();
+const dNumN = (v: unknown) => dNorm(v).replace(/^0+(?=\d)/, "").toLowerCase();
+const dSetN = (v: unknown) => dNorm(v).toLowerCase();
+const TRADEABLE_OR = "accept_trades.eq.true,trade_plus_cash.eq.true";
+
+function pushTo<T>(map: Map<string, T[]>, key: string, val: T) {
+  const arr = map.get(key);
+  if (arr) arr.push(val);
+  else map.set(key, [val]);
+}
+
+export const getTradeDiscovery = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeCollectionBooks } = await import("@/lib/collection.functions");
+
+    const tcols =
+      "id, user_id, name, image_url, market_price, estimated_value, card_identity_id, tcg_set, tcg_number";
+
+    // 1) What the user WANTS — from their wishlist.
+    const { data: wl } = await supabaseAdmin
+      .from("wishlist_items")
+      .select("card_identity_id, set_name, tcg_number, name")
+      .eq("user_id", userId)
+      .limit(300);
+    const wantIdentity = new Set<string>();
+    const wantSetNum = new Set<string>();
+    const wantSets = new Set<string>();
+    (wl ?? []).forEach((w: any) => {
+      if (w.card_identity_id) wantIdentity.add(w.card_identity_id);
+      if (w.set_name && w.tcg_number) wantSetNum.add(`${dSetN(w.set_name)}|${dNumN(w.tcg_number)}`);
+      if (w.set_name) wantSets.add(w.set_name);
+    });
+
+    // 2) Sets the user is close to completing — any card they don't own counts.
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+    const nearSets = books
+      .filter((b) => b.kind === "set" && !b.complete && (b.completion ?? 0) >= 40)
+      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0))
+      .slice(0, 6);
+    const ownedBySet = new Map<string, Set<string>>();
+    for (const b of nearSets) {
+      const { data: mine } = await supabaseAdmin
+        .from("vault_cards")
+        .select("tcg_number")
+        .eq("user_id", userId)
+        .eq("is_sold", false)
+        .eq("tcg_set", b.setName)
+        .limit(3000);
+      ownedBySet.set(
+        dSetN(b.setName),
+        new Set((mine ?? []).map((m: any) => dNumN(m.tcg_number)).filter(Boolean)),
+      );
+    }
+
+    // 3) Find tradeable cards from OTHER collectors that match what we want.
+    const matchesByOwner = new Map<string, any[]>();
+    const seen = new Map<string, Set<string>>();
+    const addCard = (ownerId: string, c: any, reason: string) => {
+      if (!ownerId || ownerId === userId) return;
+      if (!seen.has(ownerId)) seen.set(ownerId, new Set());
+      if (seen.get(ownerId)!.has(c.id)) return;
+      seen.get(ownerId)!.add(c.id);
+      pushTo(matchesByOwner, ownerId, {
+        vaultCardId: c.id,
+        name: c.name,
+        image: c.image_url ?? null,
+        value: Number(c.market_price ?? c.estimated_value ?? 0),
+        reason,
+      });
+    };
+
+    // 3a) Exact wishlist matches by card identity.
+    const idArr = [...wantIdentity];
+    for (let i = 0; i < idArr.length; i += 100) {
+      const { data } = await supabaseAdmin
+        .from("vault_cards")
+        .select(tcols)
+        .in("card_identity_id", idArr.slice(i, i + 100))
+        .eq("is_sold", false)
+        .eq("is_demo", false)
+        .eq("collection_only", false)
+        .neq("user_id", userId)
+        .or(TRADEABLE_OR)
+        .limit(2000);
+      (data ?? []).forEach((c: any) => addCard(c.user_id, c, "On your wishlist"));
+    }
+
+    // 3b) Set-based matches (wishlist set+number, and near-complete missing).
+    const setNames = [...new Set([...wantSets, ...nearSets.map((b) => b.setName)])];
+    for (let i = 0; i < setNames.length; i += 50) {
+      const { data } = await supabaseAdmin
+        .from("vault_cards")
+        .select(tcols)
+        .in("tcg_set", setNames.slice(i, i + 50))
+        .eq("is_sold", false)
+        .eq("is_demo", false)
+        .eq("collection_only", false)
+        .neq("user_id", userId)
+        .or(TRADEABLE_OR)
+        .limit(3000);
+      (data ?? []).forEach((c: any) => {
+        const setL = dSetN(c.tcg_set);
+        const numL = dNumN(c.tcg_number);
+        if (numL && wantSetNum.has(`${setL}|${numL}`)) {
+          addCard(c.user_id, c, "On your wishlist");
+          return;
+        }
+        const owned = ownedBySet.get(setL);
+        if (owned && numL && !owned.has(numL)) {
+          const setName = nearSets.find((b) => dSetN(b.setName) === setL)?.setName ?? c.tcg_set;
+          addCard(c.user_id, c, `Completes ${setName}`);
+        }
+      });
+    }
+
+    if (matchesByOwner.size === 0) return { opportunities: [] };
+    const ownerIds = [...matchesByOwner.keys()];
+
+    // 4) Reverse match — what I can OFFER these owners (their wishlist vs my cards).
+    const { data: myCards } = await supabaseAdmin
+      .from("vault_cards")
+      .select(tcols)
+      .eq("user_id", userId)
+      .eq("is_sold", false)
+      .eq("is_demo", false)
+      .eq("collection_only", false)
+      .or(TRADEABLE_OR)
+      .limit(500);
+    const myByIdentity = new Map<string, any[]>();
+    const myBySetNum = new Map<string, any[]>();
+    (myCards ?? []).forEach((c: any) => {
+      if (c.card_identity_id) pushTo(myByIdentity, c.card_identity_id, c);
+      if (c.tcg_set && c.tcg_number) pushTo(myBySetNum, `${dSetN(c.tcg_set)}|${dNumN(c.tcg_number)}`, c);
+    });
+    const offerByOwner = new Map<string, any[]>();
+    const offerSeen = new Map<string, Set<string>>();
+    for (let i = 0; i < ownerIds.length; i += 100) {
+      const { data: theirWl } = await supabaseAdmin
+        .from("wishlist_items")
+        .select("user_id, card_identity_id, set_name, tcg_number")
+        .in("user_id", ownerIds.slice(i, i + 100))
+        .limit(3000);
+      (theirWl ?? []).forEach((w: any) => {
+        let cand: any[] = [];
+        if (w.card_identity_id && myByIdentity.has(w.card_identity_id)) {
+          cand = myByIdentity.get(w.card_identity_id)!;
+        } else if (w.set_name && w.tcg_number) {
+          cand = myBySetNum.get(`${dSetN(w.set_name)}|${dNumN(w.tcg_number)}`) ?? [];
+        }
+        if (!cand.length) return;
+        if (!offerSeen.has(w.user_id)) offerSeen.set(w.user_id, new Set());
+        cand.forEach((c) => {
+          if (offerSeen.get(w.user_id)!.has(c.id)) return;
+          offerSeen.get(w.user_id)!.add(c.id);
+          pushTo(offerByOwner, w.user_id, {
+            vaultCardId: c.id,
+            name: c.name,
+            image: c.image_url ?? null,
+            value: Number(c.market_price ?? c.estimated_value ?? 0),
+          });
+        });
+      });
+    }
+
+    // 5) Profiles + assemble + rank (mutual first, then by how many they have).
+    const { data: profs } = await supabaseAdmin
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .in("id", ownerIds);
+    const profMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+
+    const opportunities = ownerIds
+      .map((id) => {
+        const want = matchesByOwner.get(id) ?? [];
+        const offer = offerByOwner.get(id) ?? [];
+        const p = profMap.get(id);
+        return {
+          ownerId: id,
+          username: p?.username ?? "collector",
+          avatarUrl: p?.avatar_url ?? null,
+          theyHave: want.slice(0, 12),
+          theyHaveCount: want.length,
+          iCanOffer: offer.slice(0, 12),
+          iCanOfferCount: offer.length,
+          mutual: offer.length > 0,
+        };
+      })
+      .sort((a, b) => {
+        if (a.mutual !== b.mutual) return a.mutual ? -1 : 1;
+        return b.theyHaveCount - a.theyHaveCount;
+      })
+      .slice(0, 30);
+
+    return { opportunities };
+  });
