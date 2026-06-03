@@ -104,26 +104,39 @@ function Fighter({
       <HpBar hp={hp} side={side} />
       <div className={`relative ${wrapperAnim}`}>
         {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
-        <CompanionSprite
-          seedKey={seedKey}
-          category={category}
-          anim={companionAnim}
-          size={124}
-          level={level}
-          flip={side === "right"}
-          className={frameClass}
-        />
+        {cardImage ? (
+          // The CARD'S CHARACTER is the fighter — its art is cropped into a
+          // standing combatant cutout and animated with the battle phase.
+          <div
+            className={`arena-cardfighter companion-${companionAnim} ${frameClass}`}
+            style={{ width: 116, height: 150 }}
+          >
+            <span className="arena-cardfighter-shadow" aria-hidden />
+            <img
+              src={cardImage}
+              alt={`${name} fighter`}
+              className="arena-cardfighter-img"
+              style={{ transform: side === "right" ? "scaleX(-1)" : undefined }}
+              draggable={false}
+            />
+          </div>
+        ) : (
+          <CompanionSprite
+            seedKey={seedKey}
+            category={category}
+            anim={companionAnim}
+            size={124}
+            level={level}
+            flip={side === "right"}
+            className={frameClass}
+          />
+        )}
       </div>
       <p className="max-w-[8rem] truncate text-center text-xs font-bold sm:text-sm">{name}</p>
-      {/* Card stays a collectible reference — never the primary battle visual. */}
-      {cardImage ? (
-        <span className="flex items-center gap-1 rounded-full border bg-background/70 px-1.5 py-0.5">
-          <img src={cardImage} alt={`${name} card`} className="h-5 w-3.5 rounded-[2px] object-cover" />
-          <span className="text-[9px] text-muted-foreground">Card</span>
-        </span>
-      ) : emoji ? (
+      {!cardImage && emoji ? (
         <span className="text-base" aria-hidden>{emoji}</span>
       ) : null}
+
       {title ? (
         <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{title}</span>
       ) : (
