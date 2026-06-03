@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   titleForWins, communityForCategory, deriveCompanionStats, valueTier,
   companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS, TRAINING_TRAINERS,
-  simulateCombat, AI_BOSSES, bossCharacter,
+  simulateCombat, AI_BOSSES, bossCharacter, streakBonusMultiplier,
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, type ArenaBossKey,
 } from "@/lib/arenaShared";
 import { arenaCategoryFor } from "@/lib/arenaCategories";
