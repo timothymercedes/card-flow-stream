@@ -317,7 +317,7 @@ function ArenaPage() {
     setEnvironment(environmentsFor(c?.arena_category)[0]?.key ?? null);
     setTrainFor(id);
   }
-  function openCustomize() { setTab("rewards"); }
+  function openCustomize(id: string) { setCustomizeFor(id); }
 
   function battleCollector(targetUserId: string) {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
