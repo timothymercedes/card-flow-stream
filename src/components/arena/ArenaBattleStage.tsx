@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
-import { deriveArchetype } from "@/lib/arenaCompanion";
+import { deriveArchetype, archetypeElement, evolutionStage, type ElementMeta } from "@/lib/arenaCompanion";
 import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
 import { ArenaBackdrop } from "@/components/arena/ArenaBackdrop";
 import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users, FastForward, SkipForward } from "lucide-react";
@@ -96,11 +96,11 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
 // Cards only UNLOCK companions; companion-vs-companion is what battles.
 function Fighter({
   name, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
-  frameClass = "", effectClass = "", title, hp,
+  frameClass = "", effectClass = "", title, hp, evolution = 0,
 }: {
   name: string; emoji?: string | null; side: "left" | "right";
   category: string; seedKey: string; level?: number; wrapperAnim: string; companionAnim: CompanionAnim;
-  frameClass?: string; effectClass?: string; title?: string; hp: number;
+  frameClass?: string; effectClass?: string; title?: string; hp: number; evolution?: number;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
@@ -114,6 +114,7 @@ function Fighter({
           anim={companionAnim}
           size={124}
           level={level}
+          evolution={evolution}
           flip={side === "right"}
           className={frameClass}
         />
@@ -237,16 +238,45 @@ export function ArenaBattleStage({
   const myAnim = companionAnimFor("mine");
   const theirAnim = companionAnimFor("theirs");
 
-  // Attacker lunges across the arena toward the defender on each strike.
+  // Evolution stage per side drives sprite scale, aura & crown.
+  const myEvo = evolutionStage(myLevel).stage;
+  const theirEvo = evolutionStage(myLevel).stage;
+
+  // Combat element of the current attacker — themes projectile + burst + caption.
+  const attackerElement: ElementMeta = useMemo(
+    () => archetypeElement(deriveArchetype(ev?.attacker === "mine" ? myName : result.opponentName, arenaCategory).key),
+    [ev?.attacker, myName, result.opponentName, arenaCategory],
+  );
+
+  // Varied attacker movement so no two strikes look identical: dash / jump /
+  // charge / lunge, picked deterministically from the round + skill.
+  function attackMove(side: "left" | "right"): string {
+    if (!ev) return "";
+    const variant = (ev.round + (ev.skill === "special" ? 2 : 0)) % 4;
+    const dir = side === "left" ? "left" : "right";
+    if (fx?.kind === "crit") return `arena-charge-${dir}`;
+    if (variant === 0) return `arena-dash-${dir}`;
+    if (variant === 1) return `arena-jump-${dir}`;
+    if (variant === 2) return `arena-charge-${dir}`;
+    return `arena-lunge-${dir}`;
+  }
+
+  // Attacker advances toward the defender; defender gets knocked back on a hit.
   function wrapperAnimFor(sideKey: "mine" | "theirs", side: "left" | "right"): string {
     if (phase === "intro") return side === "left" ? "arena-enter-left" : "arena-enter-right";
-    if (phase === "fight" && ev && fx && ev.attacker === sideKey && fx.kind !== "dodge") {
-      return side === "left" ? "arena-lunge-left" : "arena-lunge-right";
+    if (phase === "fight" && ev && fx) {
+      if (ev.attacker === sideKey && fx.kind !== "dodge") return attackMove(side);
+      if (fx.defender === sideKey && fx.kind !== "dodge" && fx.kind !== "block") {
+        return side === "left" ? "arena-knockback-left" : "arena-knockback-right";
+      }
     }
     return "";
   }
   // Camera shake on every landed (non-dodge) hit — punchy combat feedback.
   const impactShake = phase === "fight" && fx && fx.kind !== "dodge";
+  // Rare "ultimate" moment: a special critical from an elite/legendary fighter.
+  const ultimateActive = !!fx && fx.kind === "crit" && fx.skill === "special" &&
+    (ev?.attacker === "mine" ? myEvo : theirEvo) >= 2;
 
   function share() {
     const text = result.iWon
@@ -318,6 +348,7 @@ export function ArenaBattleStage({
               category={arenaCategory}
               seedKey={mySeed ?? myName}
               level={myLevel}
+              evolution={myEvo}
               hp={myHp}
               frameClass={myFrameClass}
               effectClass={myEffectClass}
@@ -331,27 +362,36 @@ export function ArenaBattleStage({
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
             <Swords className={`h-6 w-6 text-primary ${phase === "fight" ? "animate-pulse" : ""}`} />
-            {/* Energy projectile flies from the attacker toward the defender on a special */}
+            {/* Element-themed projectile flies from attacker to defender on a special */}
             {fx && fx.skill === "special" && fx.kind !== "dodge" && ev && (
               <span
                 key={`proj-${runKey}-${roundIdx}`}
-                className={`arena-projectile ${ev.attacker === "mine" ? "arena-projectile-right" : "arena-projectile-left"} ${fx.kind === "crit" ? "h-4 w-9 bg-amber-400" : "h-3 w-7 bg-sky-400"}`}
+                className={`arena-projectile ${ev.attacker === "mine" ? "arena-projectile-right" : "arena-projectile-left"} ${fx.kind === "crit" ? "h-4 w-9" : "h-3 w-7"}`}
+                style={{ background: attackerElement.color, boxShadow: `0 0 12px ${attackerElement.glow}` }}
                 aria-hidden
               />
             )}
             {fx && fx.kind !== "dodge" && (
               <>
-                <span className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-14 w-14 bg-amber-400/70" : "h-10 w-10 bg-primary/60"}`} />
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <span
-                    key={`${runKey}-${roundIdx}-${i}`}
-                    className="arena-spark absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-amber-400"
-                    style={{
-                      ["--sx" as any]: `${Math.cos((i / 6) * 6.28) * (fx.kind === "crit" ? 48 : 34)}px`,
-                      ["--sy" as any]: `${Math.sin((i / 6) * 6.28) * (fx.kind === "crit" ? 48 : 34)}px`,
-                    }}
-                  />
-                ))}
+                <span
+                  className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-16 w-16" : "h-10 w-10"}`}
+                  style={{ background: `${attackerElement.color}b3` }}
+                />
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                  const n = fx.kind === "crit" ? 8 : 6;
+                  if (i >= n) return null;
+                  return (
+                    <span
+                      key={`${runKey}-${roundIdx}-${i}`}
+                      className="arena-spark absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
+                      style={{
+                        background: attackerElement.glow,
+                        ["--sx" as any]: `${Math.cos((i / n) * 6.28) * (fx.kind === "crit" ? 50 : 34)}px`,
+                        ["--sy" as any]: `${Math.sin((i / n) * 6.28) * (fx.kind === "crit" ? 50 : 34)}px`,
+                      }}
+                    />
+                  );
+                })}
               </>
             )}
           </div>
@@ -364,6 +404,7 @@ export function ArenaBattleStage({
               category={arenaCategory}
               seedKey={result.opponentName}
               level={myLevel}
+              evolution={theirEvo}
               hp={theirHp}
               wrapperAnim={wrapperAnimFor("theirs", "right")}
               companionAnim={theirAnim}
@@ -372,6 +413,19 @@ export function ArenaBattleStage({
             {fx?.healSide === "theirs" && <FloatText kind="heal" dmg={fx.healAmt} runKey={`h-${runKey}-${roundIdx}`} />}
           </div>
         </div>
+
+        {/* Element wash + ULTIMATE banner on a rare elite/legendary special crit */}
+        {ultimateActive && (
+          <>
+            <span key={`ult-wash-${runKey}-${roundIdx}`} className="arena-ultimate-wash pointer-events-none absolute inset-0 z-20"
+              style={{ background: `radial-gradient(circle at 50% 55%, ${attackerElement.color}66, transparent 70%)` }} aria-hidden />
+            <div key={`ult-band-${runKey}-${roundIdx}`} className="arena-ultimate-band pointer-events-none absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center">
+              <span className="text-2xl font-black uppercase tracking-[0.25em] drop-shadow" style={{ color: attackerElement.glow }}>
+                {attackerElement.emoji} Ultimate!
+              </span>
+            </div>
+          </>
+        )}
 
         {/* Victory confetti */}
         {phase === "summary" && result.iWon && (

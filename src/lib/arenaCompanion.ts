@@ -92,6 +92,87 @@ export function archetypeByKey(key: string | null | undefined): Archetype {
 }
 
 // ---------------------------------------------------------------------------
+// Combat element — drives a companion's ability animation & FX colour so a
+// Dragon (fire) fights differently from a Cat (shadow) or a Wizard (magic).
+// ---------------------------------------------------------------------------
+export type ElementKey =
+  | "fire" | "lightning" | "water" | "shadow" | "psychic"
+  | "sword" | "magic" | "projectile" | "nature" | "holy";
+
+export type ElementMeta = {
+  key: ElementKey;
+  label: string;
+  emoji: string;
+  /** Main glow colour (hex) used for projectiles, bursts and auras. */
+  color: string;
+  /** Secondary colour for gradients / sparks. */
+  glow: string;
+  /** CSS class that paints the on-hit element burst overlay. */
+  fxClass: string;
+  /** Verb used in the round caption ("unleashed", "slashed"…). */
+  verb: string;
+};
+
+export const ELEMENTS: Record<ElementKey, ElementMeta> = {
+  fire:       { key: "fire",       label: "Fire",       emoji: "🔥", color: "#fb7223", glow: "#ffd166", fxClass: "arena-el-fire",       verb: "scorched" },
+  lightning:  { key: "lightning",  label: "Lightning",  emoji: "⚡", color: "#38bdf8", glow: "#e0f2ff", fxClass: "arena-el-lightning",  verb: "shocked" },
+  water:      { key: "water",      label: "Water",      emoji: "🌊", color: "#22a7f0", glow: "#bfeaff", fxClass: "arena-el-water",      verb: "drenched" },
+  shadow:     { key: "shadow",     label: "Shadow",     emoji: "🌑", color: "#7c3aed", glow: "#c4b5fd", fxClass: "arena-el-shadow",     verb: "consumed" },
+  psychic:    { key: "psychic",    label: "Psychic",    emoji: "🔮", color: "#ec4899", glow: "#fbcfe8", fxClass: "arena-el-psychic",    verb: "mind-broke" },
+  sword:      { key: "sword",      label: "Blade",      emoji: "⚔️", color: "#e2e8f0", glow: "#fef9c3", fxClass: "arena-el-sword",      verb: "slashed" },
+  magic:      { key: "magic",      label: "Arcane",     emoji: "✨", color: "#a855f7", glow: "#f5d0fe", fxClass: "arena-el-magic",      verb: "hexed" },
+  projectile: { key: "projectile", label: "Strike",     emoji: "🎯", color: "#f59e0b", glow: "#fde68a", fxClass: "arena-el-projectile", verb: "blasted" },
+  nature:     { key: "nature",     label: "Nature",     emoji: "🍃", color: "#22c55e", glow: "#bbf7d0", fxClass: "arena-el-nature",     verb: "mauled" },
+  holy:       { key: "holy",       label: "Holy",       emoji: "🌟", color: "#fcd34d", glow: "#fffbeb", fxClass: "arena-el-holy",       verb: "smote" },
+};
+
+const ARCHETYPE_ELEMENT: Record<ArchetypeKey, ElementKey> = {
+  dragon: "fire", feline: "shadow", canine: "nature", avian: "lightning",
+  aquatic: "water", reptile: "water", insect: "nature", arcane: "magic",
+  celestial: "holy", undead: "shadow", mechanical: "lightning", buccaneer: "sword",
+  knight: "sword", ninja: "shadow", elemental: "lightning", athlete: "projectile",
+  hero: "projectile", jedi: "psychic", grappler: "sword", beast: "nature",
+};
+
+export function archetypeElement(key: ArchetypeKey | null | undefined): ElementMeta {
+  return ELEMENTS[ARCHETYPE_ELEMENT[(key as ArchetypeKey)] ?? "projectile"];
+}
+
+// ---------------------------------------------------------------------------
+// Evolution — a companion's appearance upgrades as it levels up, so players get
+// attached and keep grinding. Four visual stages: Lv1 / Lv10 / Lv25 / Lv50.
+// ---------------------------------------------------------------------------
+export type EvolutionStage = {
+  stage: 0 | 1 | 2 | 3;
+  key: "rookie" | "evolved" | "elite" | "legendary";
+  label: string;
+  /** Sprite scale multiplier — bigger, more imposing as it evolves. */
+  scale: number;
+  /** Extra aura/flair intensity added on top of rarity flair. */
+  auraBoost: number;
+  /** Level at which the NEXT evolution unlocks (null when maxed). */
+  nextAt: number | null;
+  color: string;     // tailwind text token
+  ring: string;      // tailwind ring classes for the evolved frame
+  emoji: string;
+};
+
+export const EVOLUTION_STAGES: EvolutionStage[] = [
+  { stage: 0, key: "rookie",    label: "Rookie",    scale: 1.0,  auraBoost: 0, nextAt: 10,  color: "text-muted-foreground", ring: "", emoji: "🥚" },
+  { stage: 1, key: "evolved",   label: "Evolved",   scale: 1.08, auraBoost: 1, nextAt: 25,  color: "text-sky-500",     ring: "ring-1 ring-sky-400/50", emoji: "🌀" },
+  { stage: 2, key: "elite",     label: "Elite",     scale: 1.16, auraBoost: 2, nextAt: 50,  color: "text-fuchsia-500", ring: "ring-2 ring-fuchsia-400/60", emoji: "🔱" },
+  { stage: 3, key: "legendary", label: "Legendary", scale: 1.26, auraBoost: 3, nextAt: null, color: "text-amber-500",  ring: "ring-2 ring-amber-400/80 shadow-[0_0_22px_rgba(251,191,36,0.55)]", emoji: "👑" },
+];
+
+export function evolutionStage(level: number | null | undefined): EvolutionStage {
+  const lv = level ?? 1;
+  if (lv >= 50) return EVOLUTION_STAGES[3];
+  if (lv >= 25) return EVOLUTION_STAGES[2];
+  if (lv >= 10) return EVOLUTION_STAGES[1];
+  return EVOLUTION_STAGES[0];
+}
+
+// ---------------------------------------------------------------------------
 // Rarity tiers — rarer cards unlock more impressive companions.
 // ---------------------------------------------------------------------------
 export type RarityTierKey = "common" | "uncommon" | "rare" | "ultra" | "legendary";
