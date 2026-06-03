@@ -61,124 +61,144 @@ function setTotalKey(category: unknown, setName: unknown) {
 }
 
 
+// ---------- Core computation (reusable by rewards engine) ----------
+export type CollectionBook = {
+  key: string;
+  setName: string;
+  category: string;
+  ownedCount: number;
+  ownedDistinct: number;
+  knownTotal: number;
+  official: boolean;
+  completion: number | null;
+  totalValueCents: number;
+  cover: string | null;
+  complete: boolean;
+};
+
+export async function computeCollectionBooks(
+  supabaseAdmin: any,
+  userId: string,
+): Promise<CollectionBook[]> {
+  const { data: cards, error } = await supabaseAdmin
+    .from("vault_cards")
+    .select("id, name, image_url, estimated_value, market_price, category, tcg_set, tcg_number, card_identity_id")
+    .eq("user_id", userId)
+    .eq("is_sold", false)
+    .eq("is_demo", false)
+    .limit(3000);
+  if (error) throw new Error(error.message);
+  const rows = cards ?? [];
+
+  // Pull identity info for cards that have it (more reliable set names).
+  const identityIds = [...new Set(rows.map((r: any) => r.card_identity_id).filter(Boolean))] as string[];
+  const idMap = new Map<string, any>();
+  for (let i = 0; i < identityIds.length; i += 300) {
+    const slice = identityIds.slice(i, i + 300);
+    const { data: ids } = await supabaseAdmin
+      .from("card_identities")
+      .select("id, set_name, set_code, number, category, image_url")
+      .in("id", slice);
+    (ids ?? []).forEach((d: any) => idMap.set(d.id, d));
+  }
+
+  type Book = {
+    key: string;
+    setName: string;
+    category: string;
+    ownedNumbers: Set<string>;
+    ownedCount: number;
+    totalValue: number;
+    cover: string | null;
+  };
+  const books = new Map<string, Book>();
+
+  for (const c of rows) {
+    const ident = c.card_identity_id ? idMap.get(c.card_identity_id) : null;
+    const setName = norm(ident?.set_name) || norm(c.tcg_set) || "Other Cards";
+    const category = norm(ident?.category) || norm(c.category) || "Uncategorized";
+    const key = `${category}|||${setName.toLowerCase()}`;
+    const number = normNum(ident?.number ?? c.tcg_number);
+    const value = Number(c.market_price ?? c.estimated_value ?? 0);
+    const img = c.image_url || ident?.image_url || null;
+
+    let b = books.get(key);
+    if (!b) {
+      b = { key, setName, category, ownedNumbers: new Set(), ownedCount: 0, totalValue: 0, cover: null };
+      books.set(key, b);
+    }
+    b.ownedCount += 1;
+    b.totalValue += value;
+    if (number) b.ownedNumbers.add(number);
+    if (!b.cover && img) b.cover = img;
+  }
+
+  const bookList = [...books.values()].filter((b) => b.setName && b.setName !== "Other Cards");
+
+  const officialTotals = await loadSetTotals(
+    supabaseAdmin,
+    bookList.map((b) => ({ category: b.category, setName: b.setName })),
+  );
+
+  const proxyTotals = new Map<string, Set<string>>();
+  const unknownBooks = bookList.filter((b) => !officialTotals.has(setTotalKey(b.category, b.setName)));
+  const unknownOriginal = [...new Set(unknownBooks.map((b) => b.setName))];
+  for (let i = 0; i < unknownOriginal.length; i += 50) {
+    const slice = unknownOriginal.slice(i, i + 50);
+    const { data: idents } = await supabaseAdmin
+      .from("card_identities")
+      .select("set_name, number")
+      .in("set_name", slice)
+      .limit(8000);
+    (idents ?? []).forEach((d: any) => {
+      const sn = normSet(d.set_name);
+      const n = normNum(d.number);
+      if (!n) return;
+      if (!proxyTotals.has(sn)) proxyTotals.set(sn, new Set());
+      proxyTotals.get(sn)!.add(n);
+    });
+  }
+
+  const result: CollectionBook[] = [...books.values()].map((b) => {
+    const official = officialTotals.get(setTotalKey(b.category, b.setName)) ?? 0;
+    const proxy = proxyTotals.get(normSet(b.setName))?.size ?? 0;
+    const knownTotal = Math.max(official || proxy, b.ownedNumbers.size);
+    const hasTotal = knownTotal > 0 && (official > 0 || proxy > 0);
+    const completion = hasTotal ? Math.min(100, Math.round((b.ownedNumbers.size / knownTotal) * 100)) : null;
+    // True completion requires an official total AND owning every distinct card.
+    const complete = official > 0 && b.ownedNumbers.size >= official;
+    return {
+      key: b.key,
+      setName: b.setName,
+      category: b.category,
+      ownedCount: b.ownedCount,
+      ownedDistinct: b.ownedNumbers.size,
+      knownTotal: hasTotal ? knownTotal : 0,
+      official: official > 0,
+      completion,
+      totalValueCents: Math.round(b.totalValue * 100),
+      cover: b.cover,
+      complete,
+    };
+  });
+
+  result.sort((a, b) => {
+    const ac = a.completion ?? -1;
+    const bc = b.completion ?? -1;
+    if (bc !== ac) return bc - ac;
+    return b.ownedDistinct - a.ownedDistinct;
+  });
+  return result;
+}
+
 // ---------- Collection Books overview ----------
 export const getCollectionBooks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: cards, error } = await supabaseAdmin
-      .from("vault_cards")
-      .select("id, name, image_url, estimated_value, market_price, category, tcg_set, tcg_number, card_identity_id")
-      .eq("user_id", userId)
-      .eq("is_sold", false)
-      .eq("is_demo", false)
-      .limit(3000);
-    if (error) throw new Error(error.message);
-    const rows = cards ?? [];
-
-    // Pull identity info for cards that have it (more reliable set names).
-    const identityIds = [...new Set(rows.map((r) => r.card_identity_id).filter(Boolean))] as string[];
-    const idMap = new Map<string, any>();
-    for (let i = 0; i < identityIds.length; i += 300) {
-      const slice = identityIds.slice(i, i + 300);
-      const { data: ids } = await supabaseAdmin
-        .from("card_identities")
-        .select("id, set_name, set_code, number, category, image_url")
-        .in("id", slice);
-      (ids ?? []).forEach((d) => idMap.set(d.id, d));
-    }
-
-    type Book = {
-      key: string;
-      setName: string;
-      category: string;
-      ownedNumbers: Set<string>; // distinct numbers — unique counting
-      ownedCount: number; // total copies (incl. duplicates)
-      totalValue: number;
-      cover: string | null;
-    };
-    const books = new Map<string, Book>();
-
-    for (const c of rows) {
-      const ident = c.card_identity_id ? idMap.get(c.card_identity_id) : null;
-      const setName = norm(ident?.set_name) || norm(c.tcg_set) || "Other Cards";
-      const category = norm(ident?.category) || norm(c.category) || "Uncategorized";
-      const key = `${category}|||${setName.toLowerCase()}`;
-      const number = normNum(ident?.number ?? c.tcg_number);
-      const value = Number(c.market_price ?? c.estimated_value ?? 0);
-      const img = c.image_url || ident?.image_url || null;
-
-      let b = books.get(key);
-      if (!b) {
-        b = { key, setName, category, ownedNumbers: new Set(), ownedCount: 0, totalValue: 0, cover: null };
-        books.set(key, b);
-      }
-      b.ownedCount += 1;
-      b.totalValue += value;
-      if (number) b.ownedNumbers.add(number); // duplicates collapse here
-      if (!b.cover && img) b.cover = img;
-    }
-
-    const bookList = [...books.values()].filter((b) => b.setName && b.setName !== "Other Cards");
-
-    // Official set sizes (primary source of truth), keyed by category + set.
-    const officialTotals = await loadSetTotals(
-      supabaseAdmin,
-      bookList.map((b) => ({ category: b.category, setName: b.setName })),
-    );
-
-    // Fallback proxy: distinct numbers seen across all collectors, used only
-    // when a set isn't in the master checklist table.
-    const proxyTotals = new Map<string, Set<string>>();
-    const unknownBooks = bookList.filter((b) => !officialTotals.has(setTotalKey(b.category, b.setName)));
-    const unknownOriginal = [...new Set(unknownBooks.map((b) => b.setName))];
-    for (let i = 0; i < unknownOriginal.length; i += 50) {
-      const slice = unknownOriginal.slice(i, i + 50);
-      const { data: idents } = await supabaseAdmin
-        .from("card_identities")
-        .select("set_name, number")
-        .in("set_name", slice)
-        .limit(8000);
-      (idents ?? []).forEach((d) => {
-        const sn = normSet(d.set_name);
-        const n = normNum(d.number);
-        if (!n) return;
-        if (!proxyTotals.has(sn)) proxyTotals.set(sn, new Set());
-        proxyTotals.get(sn)!.add(n);
-      });
-    }
-
-    const result = [...books.values()].map((b) => {
-      const official = officialTotals.get(setTotalKey(b.category, b.setName)) ?? 0;
-      const proxy = proxyTotals.get(normSet(b.setName))?.size ?? 0;
-      // Always at least as large as what the user owns distinctly.
-      const knownTotal = Math.max(official || proxy, b.ownedNumbers.size);
-      const hasTotal = knownTotal > 0 && (official > 0 || proxy > 0);
-      return {
-        key: b.key,
-        setName: b.setName,
-        category: b.category,
-        ownedCount: b.ownedCount,
-        ownedDistinct: b.ownedNumbers.size,
-        knownTotal: hasTotal ? knownTotal : 0,
-        official: official > 0,
-        completion: hasTotal ? Math.min(100, Math.round((b.ownedNumbers.size / knownTotal) * 100)) : null,
-        totalValueCents: Math.round(b.totalValue * 100),
-        cover: b.cover,
-      };
-    });
-
-
-    result.sort((a, b) => {
-      // Sets with real completion data first, then by progress, then size.
-      const ac = a.completion ?? -1;
-      const bc = b.completion ?? -1;
-      if (bc !== ac) return bc - ac;
-      return b.ownedDistinct - a.ownedDistinct;
-    });
-    return { books: result };
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+    return { books };
   });
 
 // ---------- Single book detail + Missing Card Finder ----------
@@ -303,14 +323,145 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
     return {
       setName,
       category: data.category,
+      setKey: setTotalKey(data.category, setName),
       knownTotal: hasTotal ? knownTotal : 0,
       official: officialTotal > 0,
       ownedCount: ownedNums.size, // distinct cards owned (unique counting)
       ownedCopies: myCards.length, // total copies incl. duplicates
       catalogCount: catalogTotal, // cards we have catalog images for
       distinctMissingCount,
+      // True 100% completion: official size known AND every distinct card owned.
+      complete: officialTotal > 0 && ownedNums.size >= officialTotal,
       completion: hasTotal ? Math.min(100, Math.round((ownedNums.size / knownTotal) * 100)) : null,
       owned,
       missing: missingWithAvail,
+    };
+  });
+
+// ---------- Missing Card Finder (expanded) ----------
+// For a single missing card, surface every way to obtain it: marketplace
+// buy-now listings, active auctions, open trades, collectors who own it,
+// and live shows currently featuring it.
+export const getMissingCardFinder = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        setName: z.string().min(1).max(200),
+        category: z.string().min(1).max(80),
+        number: z.string().min(1).max(40),
+        name: z.string().max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const setName = data.setName;
+    const target = normNum(data.number);
+    const nowIso = new Date().toISOString();
+
+    const [{ data: listings }, { data: liveShows }, { data: owners }, { data: wish }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("listings")
+          .select("id, title, image_url, price, buy_now_price, current_bid, starting_bid, is_auction, auction_status, auction_ends_at, expires_at, tcg_number, seller_id")
+          .eq("tcg_set", setName)
+          .eq("is_demo", false)
+          .gt("expires_at", nowIso)
+          .limit(400),
+        supabaseAdmin
+          .from("live_streams")
+          .select("id, title, thumbnail_url, seller_id, current_tcg_number, current_tcg_set, is_active")
+          .eq("current_tcg_set", setName)
+          .eq("is_active", true)
+          .limit(100),
+        supabaseAdmin
+          .from("vault_cards")
+          .select("id, user_id, tcg_number, accept_trades, trade_plus_cash, accept_offers")
+          .eq("tcg_set", setName)
+          .eq("is_sold", false)
+          .neq("user_id", userId)
+          .limit(800),
+        supabaseAdmin
+          .from("wishlist_items")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("set_name", setName)
+          .eq("tcg_number", data.number)
+          .limit(1),
+      ]);
+
+    const matchNum = (n: unknown) => normNum(n) === target;
+
+    const buyNow = (listings ?? []).filter((l: any) => matchNum(l.tcg_number) && !l.is_auction);
+    const auctions = (listings ?? []).filter(
+      (l: any) => matchNum(l.tcg_number) && l.is_auction && l.auction_status === "active",
+    );
+    const shows = (liveShows ?? []).filter((s: any) => matchNum(s.current_tcg_number));
+    const ownerRows = (owners ?? []).filter((o: any) => matchNum(o.tcg_number));
+    const tradeOwners = ownerRows.filter(
+      (o: any) => o.accept_trades || o.trade_plus_cash || o.accept_offers,
+    );
+
+    // Resolve usernames for sellers + owners we want to show.
+    const ids = [
+      ...new Set([
+        ...buyNow.map((l: any) => l.seller_id),
+        ...auctions.map((l: any) => l.seller_id),
+        ...shows.map((s: any) => s.seller_id),
+        ...ownerRows.slice(0, 12).map((o: any) => o.user_id),
+      ].filter(Boolean)),
+    ] as string[];
+    const profMap = new Map<string, any>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, username, shop_name, avatar_url")
+        .in("id", ids);
+      (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
+    }
+    const uname = (id: string) =>
+      profMap.get(id)?.username || profMap.get(id)?.shop_name || "Collector";
+
+    return {
+      setName,
+      category: data.category,
+      number: data.number,
+      name: data.name ?? "",
+      onWishlist: (wish ?? []).length > 0,
+      counts: {
+        buyNow: buyNow.length,
+        auctions: auctions.length,
+        trades: tradeOwners.length,
+        owners: ownerRows.length,
+        liveShows: shows.length,
+      },
+      listings: buyNow.slice(0, 8).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        image_url: l.image_url,
+        priceCents: Math.round(Number(l.buy_now_price ?? l.price ?? 0) * 100),
+        seller: uname(l.seller_id),
+      })),
+      auctions: auctions.slice(0, 8).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        image_url: l.image_url,
+        bidCents: Math.round(Number(l.current_bid ?? l.starting_bid ?? 0) * 100),
+        endsAt: l.auction_ends_at,
+        seller: uname(l.seller_id),
+      })),
+      liveShows: shows.slice(0, 6).map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        thumbnail_url: s.thumbnail_url,
+        host: uname(s.seller_id),
+      })),
+      owners: ownerRows.slice(0, 12).map((o: any) => ({
+        username: uname(o.user_id),
+        avatar_url: profMap.get(o.user_id)?.avatar_url ?? null,
+        openToTrade: !!(o.accept_trades || o.trade_plus_cash || o.accept_offers),
+      })),
     };
   });

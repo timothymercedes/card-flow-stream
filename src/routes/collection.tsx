@@ -5,13 +5,14 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { getCollectionBooks, getCollectionBookDetail } from "@/lib/collection.functions";
+import { claimReward } from "@/lib/rewards.functions";
 import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart } from "lucide-react";
+import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collection")({
@@ -127,14 +128,30 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
 
 function BookDetail({ setName, category, onBack }: { setName: string; category: string; onBack: () => void }) {
   const getDetail = useServerFn(getCollectionBookDetail);
+  const claim = useServerFn(claimReward);
   const q = useQuery({
     queryKey: ["collection-book", setName, category],
     queryFn: () => getDetail({ data: { setName, category } }),
   });
   const [tab, setTab] = useState("missing");
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [claimed, setClaimed] = useState(false);
 
   const d = q.data;
+
+  const onClaim = async () => {
+    if (!d) return;
+    try {
+      const r = await claim({ data: { slug: "set_completion", contextKey: d.setKey, contextLabel: d.setName } });
+      setClaimed(true);
+      if (r.granted) toast.success(`Reward claimed! +${r.credits} credits · +${r.xp} XP`);
+      else toast.info("Already claimed for this set");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+
 
 
 
@@ -170,6 +187,17 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
                 <p className="mt-1 text-xs font-medium">
                   {d.completion}% complete · {d.distinctMissingCount} still needed
                 </p>
+              </div>
+            )}
+            {d.complete && (
+              <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+                  <Trophy className="h-4 w-4" /> Set complete!
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">You own every card in this set. Claim your reward.</p>
+                <Button size="sm" className="mt-2 h-8" onClick={onClaim} disabled={claimed}>
+                  <Trophy className="mr-1 h-3.5 w-3.5" /> {claimed ? "Claimed" : "Claim reward"}
+                </Button>
               </div>
             )}
             <div className="mt-3 flex flex-wrap gap-2">

@@ -3,7 +3,7 @@ import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
   Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown, Swords,
-  ArrowLeftRight, BookOpen, Heart, Users,
+  ArrowLeftRight, BookOpen, Heart, Users, Trophy,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -488,6 +488,7 @@ function PlatformSheet({
         { to: "/communities", icon: Users, label: t("nav.communities", "Communities") },
         { to: "/trades", icon: ArrowLeftRight, label: t("nav.tradeCenter", "Trade Center") },
         { to: "/collection", icon: BookOpen, label: t("nav.collectionBooks", "Collection Books") },
+        { to: "/rewards", icon: Trophy, label: t("nav.rewardsCenter", "Rewards Center") },
         { to: "/wishlist", icon: Heart, label: t("nav.wishlist", "Wishlist") },
         { to: "/arena", icon: Swords, label: t("nav.arena", "PullBid Arena") },
         { to: "/vault", icon: Lock, label: t("nav.vaultTools", "Vault Tools") },

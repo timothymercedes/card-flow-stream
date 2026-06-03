@@ -14,6 +14,9 @@ export const TCG_CATEGORIES = [
   "onepiece",
   "lorcana",
   "sports",
+  "marvel",
+  "wrestling",
+  "starwars",
 ] as const;
 
 export type TcgCategory = (typeof TCG_CATEGORIES)[number] | string;
@@ -35,6 +38,14 @@ export function normalizeTcgCategory(input: unknown): string {
   )
     return "mtg";
   if (compact.includes("lorcana")) return "lorcana";
+  if (compact.includes("marvel")) return "marvel";
+  if (compact.includes("starwars")) return "starwars";
+  if (
+    compact.includes("wrestling") ||
+    compact.includes("wwe") ||
+    compact.includes("aew")
+  )
+    return "wrestling";
   if (compact.startsWith("sport")) return "sports";
 
   return compact || "other";
@@ -47,6 +58,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   onepiece: "One Piece",
   lorcana: "Disney Lorcana",
   sports: "Sports",
+  marvel: "Marvel",
+  wrestling: "Wrestling",
+  starwars: "Star Wars",
   other: "Other",
 };
 

@@ -1585,6 +1585,63 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          ref_id: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          ref_id?: string | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          ref_id?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_wallets: {
+        Row: {
+          balance: number
+          lifetime_earned: number
+          lifetime_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          lifetime_earned?: number
+          lifetime_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          lifetime_earned?: number
+          lifetime_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_quests: {
         Row: {
           created_at: string
@@ -5206,6 +5263,122 @@ export type Database = {
           },
         ]
       }
+      reward_claims: {
+        Row: {
+          claimed_at: string | null
+          context_key: string
+          context_label: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          progress: number
+          reward_def_id: string
+          status: string
+          target: number
+          unlocked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          context_key?: string
+          context_label?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          progress?: number
+          reward_def_id: string
+          status?: string
+          target?: number
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          context_key?: string
+          context_label?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          progress?: number
+          reward_def_id?: string
+          status?: string
+          target?: number
+          unlocked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_claims_reward_def_id_fkey"
+            columns: ["reward_def_id"]
+            isOneToOne: false
+            referencedRelation: "reward_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_definitions: {
+        Row: {
+          badge_slug: string | null
+          created_at: string
+          credits: number
+          description: string
+          frame_slug: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          slug: string
+          sort_order: number
+          threshold: number | null
+          title: string
+          title_slug: string | null
+          trigger_key: string | null
+          type: string
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          badge_slug?: string | null
+          created_at?: string
+          credits?: number
+          description?: string
+          frame_slug?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          slug: string
+          sort_order?: number
+          threshold?: number | null
+          title: string
+          title_slug?: string | null
+          trigger_key?: string | null
+          type?: string
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          badge_slug?: string | null
+          created_at?: string
+          credits?: number
+          description?: string
+          frame_slug?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          slug?: string
+          sort_order?: number
+          threshold?: number | null
+          title?: string
+          title_slug?: string | null
+          trigger_key?: string | null
+          type?: string
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       scan_history: {
         Row: {
           alternatives: Json | null
@@ -8120,6 +8293,15 @@ export type Database = {
         Args: { _stream_id?: string }
         Returns: number
       }
+      award_credits: {
+        Args: {
+          _amount: number
+          _description?: string
+          _ref_id?: string
+          _source?: string
+        }
+        Returns: number
+      }
       award_xp: {
         Args: { _amount: number; _reason: string; _ref_id?: string }
         Returns: {
@@ -8206,6 +8388,22 @@ export type Database = {
           already_claimed: boolean
           streak: number
           xp_awarded: number
+        }[]
+      }
+      claim_reward: {
+        Args: {
+          _context_key?: string
+          _context_label?: string
+          _def_slug: string
+        }
+        Returns: {
+          badge_slug: string
+          credits: number
+          description: string
+          granted: boolean
+          new_balance: number
+          title: string
+          xp: number
         }[]
       }
       clear_hold_admin: {
@@ -8715,6 +8913,16 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      record_reward_progress: {
+        Args: {
+          _context_key?: string
+          _context_label?: string
+          _def_slug: string
+          _progress: number
+          _target: number
+        }
+        Returns: undefined
       }
       record_shipping_adjustment: {
         Args: {

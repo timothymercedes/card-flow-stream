@@ -1,43 +1,64 @@
-# PullBid Live — Build Plan
+# Collection Books + Rewards Center — Master Build Plan
 
-I've saved your full master vision as the canonical project roadmap so every future build stays aligned with it. The ecosystem is large and most subsystems already exist in some form (vault, marketplace, live, communities-adjacent feed, quests, achievements, arena prototype). Rather than rebuild everything at once, I'll follow **your stated dev order** and ship one solid subsystem at a time.
+Building on what already exists (`card_sets`, `vault_cards`, `card_identities`, `user_progression`, `achievements`, `user_achievements`, `crate_rewards`, `user_rewards`, XP/quest RPCs), this adds dedicated Collection pages and a connected Rewards Center. Shipped in phases so each is testable and reversible-by-design.
 
-This plan covers **Priority 1: the Trade System** — the biggest missing piece. Once you approve and it's live, I'll move to Collection Tracking, then Wishlist, etc.
+## What exists vs. what's new
+- **Reuse:** set-completion math in `collection.functions.ts`, TCG normalizer in `tcgCategory.ts`, XP/level RPCs (`award_xp`, `bump_quest_progress`), achievements catalog.
+- **New:** a generic **rewards definition + ledger** system, set-completion + milestone rewards, a **PullBid Credits wallet**, a **Rewards Center** route, dedicated Collection sub-pages, and admin reward management.
 
-## Scope of this build (Trade System)
+---
 
+## Phase 1 — Dedicated Collection Book pages
+Break the in-place tabs into real routes (SSR-friendly, shareable, deep-linkable).
 ```text
-Your Vault ─┐
-            ├─> Trade Builder ─> Offer (cards + cash) ─> Lifecycle ─> Reputation
-Their Vault ┘
+/collection                  -> grid of all your Collection Books (per set, all TCGs)
+/collection/$category/$set   -> a single Book: header stats + sub-tabs
+   ├─ Overview   (count, %, completion reward CTA, progress)
+   ├─ Checklist  (full set checklist, owned vs missing marked)
+   └─ Missing    (missing list + Missing Card Finder)
+```
+- Add **Marvel / Wrestling / Star Wars** to `tcgCategory.ts` aliases + canonical keys (extensible for future TCGs).
+- Completion stays strict: `owned DISTINCT numbers ÷ official total`; never 100% unless all unique cards owned. Variants/reverse holos/promos collapse by canonical number.
+
+## Phase 2 — Missing Card Finder (expanded)
+For each missing card, surface obtain-paths via one server fn aggregating:
+- Marketplace listings, Trade listings, Active auctions, Live shows featuring the card, Users who own it, and Wishlist matching ("add to wishlist").
+- Reuses existing `listings` / `trades` / `live_streams` / `wishlist_items` and links into `/market`, `/trades`, `/live`.
+
+## Phase 3 — Rewards engine (data model)
+New tables (all with GRANTs + RLS; service_role full):
+- `reward_definitions` — admin-configurable catalog: `slug, type (set_completion|milestone|achievement|community|event), trigger_key, title, description, icon, credits, xp, badge_slug, title_slug, frame_slug, is_active, sort`.
+- `reward_claims` — per-user workflow ledger: `user_id, reward_def_id, status (in_progress|unlocked|ready_to_claim|claimed|expired), progress, target, unlocked_at, claimed_at, expires_at`. Unique `(user_id, reward_def_id)`.
+- `credit_wallets` + `credit_transactions` — PullBid Credits balance + immutable ledger (earn/spend, source-linked). Wallet read-only to owner; mutations only via SECURITY DEFINER RPC.
+- SECURITY DEFINER RPCs: `evaluate_set_rewards()` (compute unlock state from collection), `claim_reward(_def_slug)` (idempotent, one-time, grants credits+XP+badge atomically), `award_credits(...)`.
+
+## Phase 4 — Set completion + milestone rewards
+- Seed `reward_definitions` with a per-set completion reward template + collector milestones (1/5/10/25/50/100 sets completed) with progressively better credits/XP/badges/titles.
+- Collection Book Overview shows **CLAIM REWARD** when a set hits 100% (button appears once, claim-once enforced server-side).
+
+## Phase 5 — Rewards Center route
+```text
+/rewards  (linked from More menu, Profile, Collection Books)
+   ├─ Available   (ready-to-claim: set completion, achievement, community, event)
+   ├─ In Progress (active progress w/ reward preview, e.g. Team Rocket 43/83 → badge+XP+credits)
+   ├─ Redeemed    (full history: name, earned date, claimed date, details)
+   └─ Achievements(completed / locked / progress)
+   + Credits wallet balance header + Collector Milestones strip
 ```
 
-### 1. Database (single migration)
-- `trades` — challenger/recipient ids, optional `cash_amount` + `cash_direction` (who pays), `status` (pending, countered, accepted, shipped, delivered, completed, cancelled), `message`, parent trade id for counters.
-- `trade_items` — trade_id, owner side, `vault_card_id` snapshot (name/image/value at offer time so changes/sales don't corrupt history).
-- `trade_ratings` — rater/ratee, trade_id, stars (1–5), comment. Derived "Trusted/Elite Trader" badge computed from count + average.
-- Add a per-card availability column set on `vault_cards` (`accept_trades`, `trade_plus_cash`, `accept_offers`, `collection_only`) so cards can be flagged tradeable. RLS + GRANTs on all new tables. Realtime on `trades` for live status.
+## Phase 6 — Showcase / Profile integration
+- Surface earned badges, set-completion titles, collector rank, total rewards, milestone trophies on `/profile` and public `seller.$username` showcase.
 
-### 2. Server functions (`src/lib/trades.functions.ts`)
-- `createTrade` (validate both users own the listed cards, cards are tradeable, anti-abuse limits)
-- `respondToTrade` (accept / counter / cancel — server-enforced state machine)
-- `advanceTradeShipping` (shipped → delivered → completed)
-- `listMyTrades`, `getTrade`
-- `rateTrade` + reputation aggregation
-- On `completed`: award XP via existing progression and fire achievement checks (First Trade, Trade Master).
+## Phase 7 — Admin controls
+- `/admin` section to create/modify/disable rewards and change values/types **without code** (writes to `reward_definitions`). Gated by existing `user_roles` admin check.
 
-### 3. UI
-- New `/trades` route (Trade Center): Incoming, Outgoing, History tabs with status badges and action buttons.
-- Trade Builder modal: two-column card picker (my vault / their vault) + cash slider + message.
-- "Propose Trade" entry points: other users' vaults and profiles; tradeable badge on cards.
-- Trade rating dialog after completion; reputation shown on profiles.
-- Add **Trade Center** to the bottom More menu (platform features).
+---
 
-### 4. Out of scope for this build (later priorities)
-Collection Books, Wishlist notifications, Communities trade boards, and feed trade surfacing — I'll wire trade surfacing into those when each subsystem is built. Hooks/fields are included now so they slot in cleanly.
+## Technical notes
+- All reward mutations go through SECURITY DEFINER RPCs (no client-side credit/claim writes) — prevents privilege/credit escalation. RLS: users read only their own claims/wallet; definitions are public-read, admin-write.
+- Credits wallet is built now but kept "earn-only" until spending features ship; ledger architecture supports future spend (featured listings, promotions, trade protection).
+- Reward evaluation is derived/idempotent so it can be re-run after vaulting/trading/buying without double-granting.
+- Each new public table ships CREATE → GRANT → RLS → POLICY in one migration.
 
-## Notes
-- Real cards are never escrowed digitally; trades coordinate physical shipping like orders, with status tracking and reputation — matching how the existing order system works.
-- Reuses existing XP/achievement infrastructure rather than duplicating it.
-
-Approve this and I'll start with the migration, then server functions, then UI.
+## Suggested delivery order
+I'll start with **Phase 1 + 2** (dedicated pages + finder) since they're pure value with no payment surface, then do the **Phase 3 migration** (pause point — DB schema), then build Phases 4–7 on top. Confirm and I'll begin, or tell me to resequence.
