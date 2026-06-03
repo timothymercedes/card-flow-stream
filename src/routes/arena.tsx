@@ -1242,8 +1242,8 @@ function OwnerCompanionCard({
           </div>
           <div className="mt-1">
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span className={`font-semibold ${evo.color}`}>{evo.emoji} {evo.label}</span>
-              <span>{evo.nextAt ? `Evolves at Lv ${evo.nextAt}` : "Max evolution"}</span>
+              <span>Evolution</span>
+              <span>{evo.nextAt ? `Lv ${c.level} → ${evo.nextAt}` : "Maxed ✦"}</span>
             </div>
             <Progress value={evoPct} className="mt-0.5 h-1" />
           </div>
