@@ -303,10 +303,15 @@ function ArenaPage() {
     [companions, statsFor],
   );
 
-  function openBattle(id: string) { setSelectedMine(id); setBattleFor(id); }
+  function openBattle(id: string) {
+    setSelectedMine(id);
+    ensureFighter(companions.find((x) => x.id === id));
+    setBattleFor(id);
+  }
   function openTrain(id: string) {
     setSelectedMine(id);
     const c = companions.find((x) => x.id === id);
+    ensureFighter(c);
     setEnvironment(environmentsFor(c?.arena_category)[0]?.key ?? null);
     setTrainFor(id);
   }
