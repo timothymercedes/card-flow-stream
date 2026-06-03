@@ -99,8 +99,8 @@ function ArenaPage() {
   const companions = myQ.data?.companions ?? [];
 
   const oppQ = useQuery({
-    queryKey: ["arena", "opponents", community],
-    queryFn: () => oppFn({ data: { community } }),
+    queryKey: ["arena", "opponents", category],
+    queryFn: () => oppFn({ data: { category } }),
     enabled: !!user,
   });
 
