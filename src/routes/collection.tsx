@@ -111,11 +111,18 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
           <p className="truncate font-semibold">{book.setName}</p>
           <Badge variant="secondary" className="shrink-0 text-[10px] capitalize">{book.category}</Badge>
         </div>
+        {book.kind !== "set" && (
+          <Badge variant="outline" className="mt-1 text-[10px]">
+            {book.kind === "promo" ? "Promo Collection" : "Special Collection"}
+          </Badge>
+        )}
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {book.knownTotal > 0 ? `${book.ownedDistinct}/${book.knownTotal} cards` : `${book.ownedCount} cards`}
+          {book.kind === "set" && book.knownTotal > 0
+            ? `${book.ownedDistinct}/${book.knownTotal} cards`
+            : `${book.ownedCount} ${book.ownedCount === 1 ? "card" : "cards"}`}
           {" · "}{money(book.totalValueCents)}
         </p>
-        {book.completion != null && (
+        {book.kind === "set" && book.completion != null && (
           <div className="mt-2">
             <Progress value={book.completion} className="h-1.5" />
             <p className="mt-1 text-[10px] font-medium text-muted-foreground">{book.completion}% complete</p>
@@ -175,13 +182,23 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
         </div>
         {d && (
           <div className="mt-2">
+            {d.kind !== "set" && (
+              <Badge variant="outline" className="mb-1.5 text-[10px]">
+                {d.kind === "promo" ? "Promo Collection" : "Special Collection"}
+              </Badge>
+            )}
             <p className="text-sm text-muted-foreground">
-              {d.knownTotal > 0
+              {d.kind === "set" && d.knownTotal > 0
                 ? `${d.ownedCount} of ${d.knownTotal} cards collected${d.official ? "" : " (estimated set size)"}`
-                : `${d.ownedCount} cards collected`}
+                : `${d.ownedCount} ${d.ownedCount === 1 ? "card" : "cards"} collected`}
               {d.ownedCopies > d.ownedCount ? ` · ${d.ownedCopies} copies total` : ""}
             </p>
-            {d.completion != null && (
+            {d.kind !== "set" && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                This isn't tracked as a full release set, so it doesn't count toward set completion.
+              </p>
+            )}
+            {d.kind === "set" && d.completion != null && (
               <div className="mt-1.5 max-w-xs">
                 <Progress value={d.completion} className="h-2" />
                 <p className="mt-1 text-xs font-medium">

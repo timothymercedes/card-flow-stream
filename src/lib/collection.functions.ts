@@ -62,10 +62,22 @@ function setTotalKey(category: unknown, setName: unknown) {
 
 
 // ---------- Core computation (reusable by rewards engine) ----------
+// Minimum distinct cards a grouping must have to be treated as a real,
+// trackable release set. Anything smaller (1-2 cards) that has no official
+// total is a promo/showcase grouping, not a standard Collection Book set.
+const MIN_SET_SIZE = 10;
+
+// How a Collection Book is classified:
+//  - "set"     : official release set or recognized subset (has a real total)
+//  - "promo"   : single-card grouping (promo / one-off)
+//  - "special" : small non-official grouping (showcase / special collection)
+export type BookKind = "set" | "promo" | "special";
+
 export type CollectionBook = {
   key: string;
   setName: string;
   category: string;
+  kind: BookKind;
   ownedCount: number;
   ownedDistinct: number;
   knownTotal: number;
@@ -75,6 +87,22 @@ export type CollectionBook = {
   cover: string | null;
   complete: boolean;
 };
+
+// Decide whether a grouping is a real set and how it should be classified.
+function classifyBook(args: {
+  official: number;
+  proxyOrCatalog: number;
+  ownedDistinct: number;
+  ownedCount: number;
+}): { isSet: boolean; realTotal: number; kind: BookKind } {
+  const { official, proxyOrCatalog, ownedDistinct, ownedCount } = args;
+  // A real total exists only with an official count, or a substantial
+  // catalog/proxy size. Tiny groupings never inherit "owned" as their total.
+  const realTotal = official > 0 ? official : proxyOrCatalog >= MIN_SET_SIZE ? proxyOrCatalog : 0;
+  if (realTotal > 0) return { isSet: true, realTotal, kind: "set" };
+  const kind: BookKind = ownedDistinct <= 1 && ownedCount <= 1 ? "promo" : "special";
+  return { isSet: false, realTotal: 0, kind };
+}
 
 export async function computeCollectionBooks(
   supabaseAdmin: any,
@@ -162,18 +190,26 @@ export async function computeCollectionBooks(
   const result: CollectionBook[] = [...books.values()].map((b) => {
     const official = officialTotals.get(setTotalKey(b.category, b.setName)) ?? 0;
     const proxy = proxyTotals.get(normSet(b.setName))?.size ?? 0;
-    const knownTotal = Math.max(official || proxy, b.ownedNumbers.size);
-    const hasTotal = knownTotal > 0 && (official > 0 || proxy > 0);
-    const completion = hasTotal ? Math.min(100, Math.round((b.ownedNumbers.size / knownTotal) * 100)) : null;
+    const { isSet, realTotal, kind } = classifyBook({
+      official,
+      proxyOrCatalog: proxy,
+      ownedDistinct: b.ownedNumbers.size,
+      ownedCount: b.ownedCount,
+    });
+    // Only real sets get a completion %; promo/special groupings never show
+    // a fake "X/X complete".
+    const knownTotal = isSet ? Math.max(realTotal, b.ownedNumbers.size) : 0;
+    const completion = isSet ? Math.min(100, Math.round((b.ownedNumbers.size / knownTotal) * 100)) : null;
     // True completion requires an official total AND owning every distinct card.
     const complete = official > 0 && b.ownedNumbers.size >= official;
     return {
       key: b.key,
       setName: b.setName,
       category: b.category,
+      kind,
       ownedCount: b.ownedCount,
       ownedDistinct: b.ownedNumbers.size,
-      knownTotal: hasTotal ? knownTotal : 0,
+      knownTotal,
       official: official > 0,
       completion,
       totalValueCents: Math.round(b.totalValue * 100),
@@ -260,10 +296,16 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
 
     // True completion is measured against the official set size when known.
     // catalogTotal = number of cards we have catalog rows for (used as a proxy
-    // when no official size exists).
+    // when no official size exists, but only when it's a substantial set).
     const catalogTotal = byNumber.size;
-    const knownTotal = Math.max(officialTotal || catalogTotal, ownedNums.size);
-    const hasTotal = knownTotal > 0 && (officialTotal > 0 || catalogTotal > 0);
+    const { isSet, realTotal, kind } = classifyBook({
+      official: officialTotal,
+      proxyOrCatalog: catalogTotal,
+      ownedDistinct: ownedNums.size,
+      ownedCount: myCards.length,
+    });
+    const knownTotal = isSet ? Math.max(realTotal, ownedNums.size) : 0;
+    const hasTotal = isSet;
 
     // Number of distinct cards the user is still missing toward the full set.
     const distinctMissingCount = hasTotal ? Math.max(0, knownTotal - ownedNums.size) : missing.length;
@@ -324,6 +366,7 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
       setName,
       category: data.category,
       setKey: setTotalKey(data.category, setName),
+      kind,
       knownTotal: hasTotal ? knownTotal : 0,
       official: officialTotal > 0,
       ownedCount: ownedNums.size, // distinct cards owned (unique counting)
