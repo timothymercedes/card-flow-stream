@@ -1,7 +1,7 @@
 // AI-generated preview images for trading cards (Missing Cards Center, etc.).
 // Each unique card (category + set + number + name) is generated ONCE via the
-// Lovable AI image gateway, cached in the public `ai-card-images` storage
-// bucket, and served from a stable public URL on every subsequent request.
+// Lovable AI image gateway, cached in the `ai-card-images` storage bucket,
+// and served from a signed URL on every subsequent request.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
@@ -31,11 +31,6 @@ function keyFor(p: { category: string; setName: string; number: string; name: st
   for (let i = 0; i < raw.length; i++) h = ((h << 5) + h + raw.charCodeAt(i)) >>> 0;
   const label = slug([p.setName, p.number, p.name].filter(Boolean).join("-")) || "card";
   return `${label}-${h.toString(36)}.png`;
-}
-
-function publicUrl(path: string) {
-  const base = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-  return `${base}/storage/v1/object/public/${BUCKET}/${path}`;
 }
 
 function buildPrompt(p: { category: string; setName: string; number: string; name: string; rarity: string }) {
