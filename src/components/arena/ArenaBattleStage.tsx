@@ -108,7 +108,7 @@ function Fighter({
           seedKey={seedKey}
           category={category}
           anim={companionAnim}
-          size={104}
+          size={124}
           level={level}
           flip={side === "right"}
           className={frameClass}
