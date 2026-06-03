@@ -169,8 +169,13 @@ export const findOpponents = createServerFn({ method: "POST" })
   .inputValidator((d: { category?: string; community?: string }) => d ?? {})
   .handler(async ({ context, data }) => {
     const { userId } = context;
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return fetchOpponentsCore(supabaseAdmin, userId, data.category, data.community);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      return await fetchOpponentsCore(supabaseAdmin, userId, data.category, data.community);
+    } catch (err) {
+      console.error("findOpponents failed:", err);
+      return { opponents: [] as ReturnType<typeof publicProjection>[] };
+    }
   });
 
 
