@@ -17,6 +17,7 @@ import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
 import { CollectorShowcase } from "@/components/CollectorShowcase";
+import { ProfileRewardsShowcase } from "@/components/ProfileRewardsShowcase";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -270,6 +271,9 @@ function Profile() {
 
         {/* Collector rank, level, achievements + Showcase 9 */}
         <CollectorShowcase userId={user.id} />
+
+        {/* Set completion reward wheel winnings */}
+        <ProfileRewardsShowcase />
 
 
 

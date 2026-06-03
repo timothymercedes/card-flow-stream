@@ -5,7 +5,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { getCollectionBooks, getCollectionBookDetail } from "@/lib/collection.functions";
-import { claimReward } from "@/lib/rewards.functions";
+import { CollectionRewardButton } from "@/components/CollectionRewardWheel";
 import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -128,6 +128,11 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
             <p className="mt-1 text-[10px] font-medium text-muted-foreground">{book.completion}% complete</p>
           </div>
         )}
+        {book.kind === "set" && book.official && book.complete && (
+          <Badge className="mt-2 gap-1 bg-amber-500/15 text-amber-600 hover:bg-amber-500/20">
+            <Trophy className="h-3 w-3" /> Reward ready
+          </Badge>
+        )}
       </div>
     </Card>
   );
@@ -135,28 +140,15 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
 
 function BookDetail({ setName, category, onBack }: { setName: string; category: string; onBack: () => void }) {
   const getDetail = useServerFn(getCollectionBookDetail);
-  const claim = useServerFn(claimReward);
   const q = useQuery({
     queryKey: ["collection-book", setName, category],
     queryFn: () => getDetail({ data: { setName, category } }),
   });
   const [tab, setTab] = useState("missing");
   const [availableOnly, setAvailableOnly] = useState(false);
-  const [claimed, setClaimed] = useState(false);
 
   const d = q.data;
 
-  const onClaim = async () => {
-    if (!d) return;
-    try {
-      const r = await claim({ data: { slug: "set_completion", contextKey: d.setKey, contextLabel: d.setName } });
-      setClaimed(true);
-      if (r.granted) toast.success(`Reward claimed! +${r.credits} credits · +${r.xp} XP`);
-      else toast.info("Already claimed for this set");
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
 
 
 
@@ -206,15 +198,19 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
                 </p>
               </div>
             )}
-            {d.complete && (
-              <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
-                  <Trophy className="h-4 w-4" /> Set complete!
+            {d.kind === "set" && d.official && (
+              <div className={`mt-3 rounded-lg border p-3 ${d.complete ? "border-amber-500/40 bg-amber-500/10" : "border-border bg-muted/30"}`}>
+                <p className={`flex items-center gap-1.5 text-sm font-semibold ${d.complete ? "text-amber-600" : "text-muted-foreground"}`}>
+                  <Trophy className="h-4 w-4" /> {d.complete ? "Set complete!" : "Set reward"}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">You own every card in this set. Claim your reward.</p>
-                <Button size="sm" className="mt-2 h-8" onClick={onClaim} disabled={claimed}>
-                  <Trophy className="mr-1 h-3.5 w-3.5" /> {claimed ? "Claimed" : "Claim reward"}
-                </Button>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {d.complete
+                    ? "You own every card in this set. Spin the wheel for your reward — you always win something."
+                    : "Complete every card in this set to unlock a reward spin. Preview the prizes below."}
+                </p>
+                <div className="mt-2">
+                  <CollectionRewardButton setKey={d.setKey} setName={d.setName} complete={d.complete} />
+                </div>
               </div>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
