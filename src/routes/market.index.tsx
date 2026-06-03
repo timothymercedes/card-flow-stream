@@ -37,7 +37,7 @@ function fmtRemain(iso: string | null) {
 function Market() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(Route.useSearch().q ?? "");
   const [sort, setSort] = useState<Sort>("shuffled");
   const [sortOpen, setSortOpen] = useState(false);
   const [listingFilter, setListingFilter] = useState<ListingFilter>("all");
