@@ -28,6 +28,32 @@ export async function claimDailyLogin(): Promise<DailyLoginResult | null> {
   return (Array.isArray(data) ? data[0] : data) as DailyLoginResult;
 }
 
+export type CrateReward = {
+  reward_slug: string | null;
+  reward_name: string | null;
+  kind: string | null;
+  rarity: string | null;
+  value: string | null;
+  icon: string | null;
+  xp_bonus: number;
+  already_opened: boolean;
+  is_new: boolean;
+};
+
+/** Open today's free daily crate. Idempotent — already_opened=true if claimed today. */
+export async function openDailyCrate(): Promise<CrateReward | null> {
+  const { data, error } = await (supabase.rpc as any)("open_daily_crate");
+  if (error) { console.warn("[crate] open failed", error.message); return null; }
+  return (Array.isArray(data) ? data[0] : data) as CrateReward;
+}
+
+export const RARITY_STYLE: Record<string, { ring: string; text: string; glow: string }> = {
+  common:    { ring: "ring-slate-400",   text: "text-slate-500",   glow: "from-slate-400/20 to-slate-500/10" },
+  rare:      { ring: "ring-sky-400",     text: "text-sky-500",     glow: "from-sky-400/20 to-cyan-500/10" },
+  epic:      { ring: "ring-fuchsia-400", text: "text-fuchsia-500", glow: "from-fuchsia-400/20 to-violet-500/10" },
+  legendary: { ring: "ring-amber-400",   text: "text-amber-500",   glow: "from-amber-400/30 to-orange-500/15" },
+};
+
 /** Advance a daily/weekly quest (e.g. 'daily_bid'). Auto-awards XP on completion. */
 export async function bumpQuest(slug: string, delta = 1): Promise<QuestBumpResult | null> {
   const { data, error } = await (supabase.rpc as any)("bump_quest_progress", {
