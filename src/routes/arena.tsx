@@ -539,6 +539,73 @@ function ArenaPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Collector Arena profile dialog */}
+      <Dialog open={!!profileUserId} onOpenChange={(o) => !o && setProfileUserId(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Avatar className="h-8 w-8"><AvatarImage src={profileQ.data?.profile.avatar_url ?? undefined} /><AvatarFallback>{profileQ.data?.profile.username?.[0]?.toUpperCase() ?? "?"}</AvatarFallback></Avatar>
+              {profileQ.data?.profile.username ?? "Collector"}
+            </DialogTitle>
+          </DialogHeader>
+          {profileQ.isLoading || !profileQ.data ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Loading profile…</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <Card className="p-3"><div className="text-lg font-bold text-emerald-500">{profileQ.data.wins}</div><div className="text-xs text-muted-foreground">Wins</div></Card>
+                <Card className="p-3"><div className="text-lg font-bold">{profileQ.data.trophies}</div><div className="text-xs text-muted-foreground">Trophies</div></Card>
+                <Card className="p-3"><div className="text-lg font-bold text-amber-500">{profileQ.data.longest} 🔥</div><div className="text-xs text-muted-foreground">Best Streak</div></Card>
+              </div>
+
+              {!profileQ.data.isSelf && (
+                <div className="flex gap-2">
+                  <Button variant={profileQ.data.isFollowing ? "secondary" : "default"} className="flex-1"
+                    disabled={followM.isPending}
+                    onClick={() => followM.mutate({ userId: profileQ.data!.profile.user_id, follow: !profileQ.data!.isFollowing })}>
+                    {profileQ.data.isFollowing ? <><UserCheck className="mr-2 h-4 w-4" />Following</> : <><UserPlus className="mr-2 h-4 w-4" />Follow</>}
+                  </Button>
+                  <Button className="flex-1" disabled={!activeMine || challengeUserM.isPending}
+                    onClick={() => battleCollector(profileQ.data!.profile.user_id)}>
+                    <Swords className="mr-2 h-4 w-4" />Challenge
+                  </Button>
+                </div>
+              )}
+
+              {profileQ.data.badges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {profileQ.data.badges.map((k) => (
+                    <span key={k} title={ARENA_BADGES[k].desc} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-1 text-xs font-medium">
+                      {ARENA_BADGES[k].emoji} {ARENA_BADGES[k].label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Companions</p>
+                {profileQ.data.companions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No companions yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {profileQ.data.companions.map((o) => (
+                      <div key={o.id} className="flex items-center gap-3 rounded-lg border p-2">
+                        {o.image_url ? <img src={o.image_url} alt={o.name} className="h-12 w-9 rounded object-cover" loading="lazy" /> : <div className="flex h-12 w-9 items-center justify-center rounded bg-muted"><Sparkles className="h-4 w-4 text-muted-foreground" /></div>}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{o.name}</p>
+                          <p className="text-xs text-muted-foreground">{o.wins}W · {o.losses}L · {o.win_rate}%</p>
+                        </div>
+                        {titleBadge(o.title as ArenaTitle)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
