@@ -1,13 +1,15 @@
-// PullBid Arena — staged battle viewer (Phase 2).
-// Hybrid identity: pixelated companion sprites + modern CSS particle/glow FX.
-// Replaces the instant result dialog with intro → entrances → round-by-round
-// attacks → victory/defeat → summary, with replay & share. Purely presentational:
-// the outcome is already resolved server-side; this only animates it.
-import { useEffect, useRef, useState } from "react";
+// PullBid Arena — staged battle viewer.
+// Card unlocks the fighter; the COMPANION fights — not the card image.
+// Flow: arena intro → entrances → round-by-round attacks (with crit / dodge /
+// floating damage + HP bars) → victory/defeat → battle summary, with replay &
+// share. Purely presentational: the outcome is resolved server-side; this only
+// animates the saved battle log, so it doubles as a replay viewer.
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
-import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins } from "lucide-react";
+import { arenaCategoryMeta } from "@/lib/arenaCategories";
+import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 type BattleLog = Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }>;
@@ -23,15 +25,46 @@ export type StageResult = {
 };
 
 type Phase = "intro" | "fight" | "summary";
+type RoundFx = "crit" | "dodge" | "hit";
+
+// Map a saved round to a presentational combat event (attacker/defender + flair).
+function roundEvents(log: BattleLog) {
+  return log.map((r) => {
+    const max = Math.max(r.mine, r.theirs, 1);
+    const margin = Math.abs(r.mine - r.theirs) / max;
+    const fx: RoundFx = margin >= 0.22 ? "crit" : margin <= 0.06 ? "dodge" : "hit";
+    const dmg = fx === "crit" ? 42 : fx === "dodge" ? 12 : 28;
+    return { attacker: r.winner, defender: r.winner === "mine" ? "theirs" : "mine", fx, dmg, round: r.round };
+  });
+}
+
+const THEME_CLASS: Record<string, string> = {
+  pokemon: "arena-theme-pokemon", onepiece: "arena-theme-onepiece", mtg: "arena-theme-mtg",
+  yugioh: "arena-theme-yugioh", sports: "arena-theme-sports", lorcana: "arena-theme-lorcana",
+  wrestling: "arena-theme-wrestling", marvel: "arena-theme-marvel", starwars: "arena-theme-starwars",
+};
+
+function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
+  const color = hp > 50 ? "bg-emerald-500" : hp > 22 ? "bg-amber-500" : "bg-rose-500";
+  return (
+    <div className={`flex w-full items-center gap-1.5 ${side === "right" ? "flex-row-reverse" : ""}`}>
+      <Heart className="h-3 w-3 shrink-0 text-rose-400" />
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-foreground/15">
+        <div className={`arena-hp-fill h-full rounded-full ${color}`} style={{ width: `${Math.max(0, hp)}%` }} />
+      </div>
+    </div>
+  );
+}
 
 function Fighter({
-  name, image, side, anim, frameClass = "", effectClass = "", title,
+  name, image, side, anim, frameClass = "", effectClass = "", title, hp,
 }: {
   name: string; image?: string | null; side: "left" | "right"; anim: string;
-  frameClass?: string; effectClass?: string; title?: string;
+  frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
+      <HpBar hp={hp} side={side} />
       <div className={`relative ${anim}`}>
         {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
         {image ? (
@@ -55,7 +88,8 @@ function Fighter({
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, onClose,
+  result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
+  isTraining = false, onClose,
 }: {
   result: StageResult;
   myName: string;
@@ -63,11 +97,19 @@ export function ArenaBattleStage({
   myFrameClass?: string;
   myEffectClass?: string;
   myTitle?: string;
+  arenaCategory?: string;
+  isTraining?: boolean;
   onClose: () => void;
 }) {
+  const events = useMemo(() => roundEvents(result.log), [result.log]);
+  const meta = arenaCategoryMeta(arenaCategory);
+  const themeClass = THEME_CLASS[arenaCategory] ?? "";
+
   const [phase, setPhase] = useState<Phase>("intro");
   const [roundIdx, setRoundIdx] = useState(-1);
-  const [hit, setHit] = useState<null | "mine" | "theirs">(null);
+  const [fx, setFx] = useState<{ side: "mine" | "theirs"; kind: RoundFx; dmg: number } | null>(null);
+  const [myHp, setMyHp] = useState(100);
+  const [theirHp, setTheirHp] = useState(100);
   const [runKey, setRunKey] = useState(0); // forces re-mount on replay
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -76,30 +118,54 @@ export function ArenaBattleStage({
     timers.current = [];
     setPhase("intro");
     setRoundIdx(-1);
-    setHit(null);
+    setFx(null);
+    setMyHp(100);
+    setTheirHp(100);
+
+    // Precompute HP timeline so re-renders never double-apply damage.
+    let my = 100, their = 100;
+    const timeline = events.map((e) => {
+      if (e.defender === "mine") my = Math.max(0, my - e.dmg);
+      else their = Math.max(0, their - e.dmg);
+      return { my, their };
+    });
 
     const t = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
-    // Intro → fight
-    t(1100, () => setPhase("fight"));
-    // Schedule each round: lunge + hit flash
-    const ROUND_MS = 950;
-    result.log.forEach((r, i) => {
-      const at = 1100 + 600 + i * ROUND_MS;
-      t(at, () => { setRoundIdx(i); setHit(r.winner === "mine" ? "theirs" : "mine"); });
-      t(at + 500, () => setHit(null));
+    const INTRO_MS = 1500;
+    const ROUND_MS = 1050;
+    t(INTRO_MS, () => setPhase("fight"));
+
+    events.forEach((e, i) => {
+      const at = INTRO_MS + 500 + i * ROUND_MS;
+      t(at, () => {
+        setRoundIdx(i);
+        setFx({ side: e.defender, kind: e.fx, dmg: e.dmg });
+        setMyHp(timeline[i].my);
+        setTheirHp(timeline[i].their);
+      });
+      t(at + 600, () => setFx(null));
     });
-    // Summary
-    t(1100 + 600 + result.log.length * ROUND_MS + 300, () => setPhase("summary"));
+
+    // Summary — force the overall loser to 0 HP for a clean finish.
+    t(INTRO_MS + 500 + events.length * ROUND_MS + 300, () => {
+      setPhase("summary");
+      if (result.iWon) setTheirHp(0);
+      else setMyHp(0);
+    });
 
     return () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  }, [result, runKey]);
+  }, [events, result.iWon, runKey]);
 
-  const myLunging = phase === "fight" && hit === "theirs";
-  const theirLunging = phase === "fight" && hit === "mine";
+  const ev = roundIdx >= 0 ? events[roundIdx] : null;
+  const myAttacking = phase === "fight" && ev?.attacker === "mine" && !!fx;
+  const theirAttacking = phase === "fight" && ev?.attacker === "theirs" && !!fx;
+  const myDefendCls = fx?.side === "mine" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
+  const theirDefendCls = fx?.side === "theirs" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
+  const critActive = !!fx && fx.kind === "crit";
 
   function share() {
     const text = result.iWon
-      ? `I won my PullBid Arena battle against ${result.opponentName} ${result.myRounds}–${result.theirRounds}! ⚔️`
+      ? `My ${myName} won its PullBid Arena battle against ${result.opponentName} ${result.myRounds}–${result.theirRounds}! ⚔️`
       : `Tough PullBid Arena battle vs ${result.opponentName} (${result.myRounds}–${result.theirRounds}). Rematch incoming! ⚔️`;
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -113,15 +179,26 @@ export function ArenaBattleStage({
   return (
     <div className="space-y-4">
       {/* Stage */}
-      <div className="arena-stage arena-scanlines relative overflow-hidden rounded-xl border p-4">
-        {/* Round counter / VS */}
-        <div className="mb-2 text-center">
-          {phase === "intro" && (
-            <p className="arena-victory text-lg font-black tracking-widest text-primary">VS</p>
-          )}
-          {phase === "fight" && roundIdx >= 0 && (
+      <div className={`arena-stage arena-theme arena-scanlines relative overflow-hidden rounded-xl border p-4 ${themeClass}`}>
+        {/* Critical-hit screen flash */}
+        {critActive && <span key={`crit-${runKey}-${roundIdx}`} className="arena-crit-flash pointer-events-none absolute inset-0 z-20 bg-white" aria-hidden />}
+
+        {/* Arena intro banner */}
+        {phase === "intro" && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
+            <div className="arena-banner-in">
+              <div className="text-4xl">{meta.emoji}</div>
+              <p className="mt-1 text-sm font-black uppercase tracking-widest text-primary drop-shadow">{meta.label}</p>
+              <p className="mt-2 text-2xl font-black tracking-widest text-foreground">VS</p>
+            </div>
+          </div>
+        )}
+
+        {/* Round counter / result */}
+        <div className="relative z-10 mb-2 min-h-5 text-center">
+          {phase === "fight" && ev && (
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Round {result.log[roundIdx].round} · {result.log[roundIdx].mine} vs {result.log[roundIdx].theirs}
+              Round {ev.round} · {ev.fx === "crit" ? "Critical strike!" : ev.fx === "dodge" ? "Glancing blow" : "Clash"}
             </p>
           )}
           {phase === "summary" && (
@@ -131,30 +208,33 @@ export function ArenaBattleStage({
           )}
         </div>
 
-        <div className={`flex items-end justify-between gap-3 ${phase === "summary" && !result.iWon ? "arena-shake" : ""}`}>
-          <Fighter
-            name={myName}
-            image={myImage}
-            side="left"
-            frameClass={myFrameClass}
-            effectClass={myEffectClass}
-            title={myTitle}
-            anim={`${phase === "intro" ? "arena-enter-left" : ""} ${myLunging ? "arena-lunge-left" : ""} ${theirLunging ? "arena-hit" : ""}`.trim()}
-          />
+        <div className={`relative z-10 flex items-end justify-between gap-3 ${phase === "summary" && !result.iWon ? "arena-shake" : ""}`}>
+          <div className="relative flex-1">
+            <Fighter
+              name={myName}
+              image={myImage}
+              side="left"
+              hp={myHp}
+              frameClass={myFrameClass}
+              effectClass={myEffectClass}
+              title={myTitle}
+              anim={`${phase === "intro" ? "arena-enter-left" : ""} ${myAttacking ? "arena-lunge-left" : ""} ${myDefendCls}`.trim()}
+            />
+            {fx?.side === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
+          </div>
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
             <Swords className={`h-6 w-6 text-primary ${phase === "fight" ? "animate-pulse" : ""}`} />
-            {/* Impact burst */}
-            {hit && (
+            {fx && fx.kind !== "dodge" && (
               <>
-                <span className="arena-burst absolute left-1/2 top-1/2 h-10 w-10 rounded-full bg-primary/60" />
-                {[0, 1, 2, 3, 4].map((i) => (
+                <span className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-14 w-14 bg-amber-400/70" : "h-10 w-10 bg-primary/60"}`} />
+                {[0, 1, 2, 3, 4, 5].map((i) => (
                   <span
                     key={`${runKey}-${roundIdx}-${i}`}
                     className="arena-spark absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-amber-400"
                     style={{
-                      ["--sx" as any]: `${Math.cos((i / 5) * 6.28) * 34}px`,
-                      ["--sy" as any]: `${Math.sin((i / 5) * 6.28) * 34}px`,
+                      ["--sx" as any]: `${Math.cos((i / 6) * 6.28) * (fx.kind === "crit" ? 48 : 34)}px`,
+                      ["--sy" as any]: `${Math.sin((i / 6) * 6.28) * (fx.kind === "crit" ? 48 : 34)}px`,
                     }}
                   />
                 ))}
@@ -162,16 +242,39 @@ export function ArenaBattleStage({
             )}
           </div>
 
-          <Fighter
-            name={result.opponentName}
-            image={result.opponentImage}
-            side="right"
-            anim={`${phase === "intro" ? "arena-enter-right" : ""} ${theirLunging ? "arena-lunge-right" : ""} ${myLunging ? "arena-hit" : ""}`.trim()}
-          />
+          <div className="relative flex-1">
+            <Fighter
+              name={result.opponentName}
+              image={result.opponentImage}
+              side="right"
+              hp={theirHp}
+              anim={`${phase === "intro" ? "arena-enter-right" : ""} ${theirAttacking ? "arena-lunge-right" : ""} ${theirDefendCls}`.trim()}
+            />
+            {fx?.side === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
+          </div>
         </div>
 
-        <p className="mt-3 text-center text-[10px] text-muted-foreground">
-          Digital companions only — your real cards are never at risk.
+        {/* Victory confetti */}
+        {phase === "summary" && result.iWon && (
+          <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <span
+                key={`${runKey}-confetti-${i}`}
+                className="arena-confetti absolute top-2 h-2 w-2 rounded-sm"
+                style={{
+                  left: `${(i / 16) * 100}%`,
+                  background: ["#f59e0b", "#22c55e", "#38bdf8", "#e879f9", "#f43f5e"][i % 5],
+                  ["--cx" as any]: `${(i % 2 ? 1 : -1) * (10 + (i % 5) * 8)}px`,
+                  ["--cy" as any]: `${120 + (i % 4) * 24}px`,
+                  animationDelay: `${(i % 6) * 60}ms`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        <p className="relative z-10 mt-3 text-center text-[10px] text-muted-foreground">
+          {isTraining ? "Training battle — reduced rewards, no rank points." : "Digital companions only — your real cards are never at risk."}
         </p>
       </div>
 
@@ -204,7 +307,7 @@ export function ArenaBattleStage({
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={() => setRunKey((k) => k + 1)}>
-              <RotateCcw className="mr-2 h-4 w-4" />Replay
+              <RotateCcw className="mr-2 h-4 w-4" />Watch replay
             </Button>
             <Button variant="secondary" onClick={share}>
               <Share2 className="mr-2 h-4 w-4" />Share
@@ -218,6 +321,19 @@ export function ArenaBattleStage({
         </Button>
       )}
     </div>
+  );
+}
+
+function FloatText({ kind, dmg, runKey }: { kind: RoundFx; dmg: number; runKey: string }) {
+  const label = kind === "crit" ? "CRITICAL!" : kind === "dodge" ? "DODGE" : `-${dmg}`;
+  const cls = kind === "crit" ? "text-amber-400" : kind === "dodge" ? "text-sky-300" : "text-rose-400";
+  return (
+    <span
+      key={runKey}
+      className={`arena-float-text pointer-events-none absolute left-1/2 top-2 z-30 text-sm font-black drop-shadow ${cls}`}
+    >
+      {label}
+    </span>
   );
 }
 
