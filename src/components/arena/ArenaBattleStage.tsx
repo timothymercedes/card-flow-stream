@@ -109,13 +109,14 @@ function Fighter({
           // standing combatant cutout and animated with the battle phase.
           <div
             className={`arena-cardfighter companion-${companionAnim} ${frameClass}`}
-            style={{ width: 116, height: 150, transform: side === "right" ? "scaleX(-1)" : undefined }}
+            style={{ width: 116, height: 150 }}
           >
             <span className="arena-cardfighter-shadow" aria-hidden />
             <img
               src={cardImage}
               alt={`${name} fighter`}
               className="arena-cardfighter-img"
+              style={{ transform: side === "right" ? "scaleX(-1)" : undefined }}
               draggable={false}
             />
           </div>
