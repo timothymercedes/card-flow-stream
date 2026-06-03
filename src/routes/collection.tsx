@@ -206,15 +206,19 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
                 </p>
               </div>
             )}
-            {d.complete && (
-              <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
-                  <Trophy className="h-4 w-4" /> Set complete!
+            {d.kind === "set" && d.official && (
+              <div className={`mt-3 rounded-lg border p-3 ${d.complete ? "border-amber-500/40 bg-amber-500/10" : "border-border bg-muted/30"}`}>
+                <p className={`flex items-center gap-1.5 text-sm font-semibold ${d.complete ? "text-amber-600" : "text-muted-foreground"}`}>
+                  <Trophy className="h-4 w-4" /> {d.complete ? "Set complete!" : "Set reward"}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">You own every card in this set. Claim your reward.</p>
-                <Button size="sm" className="mt-2 h-8" onClick={onClaim} disabled={claimed}>
-                  <Trophy className="mr-1 h-3.5 w-3.5" /> {claimed ? "Claimed" : "Claim reward"}
-                </Button>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {d.complete
+                    ? "You own every card in this set. Spin the wheel for your reward — you always win something."
+                    : "Complete every card in this set to unlock a reward spin. Preview the prizes below."}
+                </p>
+                <div className="mt-2">
+                  <CollectionRewardButton setKey={d.setKey} setName={d.setName} complete={d.complete} />
+                </div>
               </div>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
