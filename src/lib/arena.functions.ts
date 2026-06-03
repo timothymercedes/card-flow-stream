@@ -623,6 +623,9 @@ export const claimMission = createServerFn({ method: "POST" })
     if (claimErr) throw new Error(claimErr.message);
 
     return { ok: true, reward: grantedLabel };
+  });
+
+
 
 // ---- Leaderboards (seasonal, optionally scoped to one Arena category) ----
 export const getLeaderboards = createServerFn({ method: "GET" })
