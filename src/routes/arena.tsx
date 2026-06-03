@@ -291,6 +291,59 @@ function ArenaPage() {
     fight(pool[Math.floor(Math.random() * pool.length)].id);
   }
 
+  // ---- AI fill-in matchmaking: never wait indefinitely for a human ----
+  const SEARCH_SECONDS = 10;
+  const [matchPhase, setMatchPhase] = useState<"idle" | "searching" | "ai-offer">("idle");
+  const [searchSecs, setSearchSecs] = useState(SEARCH_SECONDS);
+  const searchTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function clearSearch() {
+    if (searchTimer.current) { clearInterval(searchTimer.current); searchTimer.current = null; }
+  }
+
+  function startMatchmaking() {
+    if (!activeMine) { toast.error("Select one of your companions first"); return; }
+    const pool = oppQ.data?.opponents ?? [];
+    clearSearch();
+    setMatchPhase("searching");
+    // Priority 1 — real player. If one is available, match quickly (short search).
+    if (pool.length > 0) {
+      setSearchSecs(3);
+      let s = 3;
+      searchTimer.current = setInterval(() => {
+        s -= 1; setSearchSecs(s);
+        if (s <= 0) {
+          clearSearch();
+          setMatchPhase("idle");
+          fight(pool[Math.floor(Math.random() * pool.length)].id);
+        }
+      }, 1000);
+      return;
+    }
+    // No real player — search the full window, then offer AI fill-in opponents.
+    setSearchSecs(SEARCH_SECONDS);
+    let s = SEARCH_SECONDS;
+    searchTimer.current = setInterval(() => {
+      s -= 1; setSearchSecs(s);
+      if (s <= 0) { clearSearch(); setMatchPhase("ai-offer"); }
+    }, 1000);
+  }
+
+  function cancelMatchmaking() { clearSearch(); setMatchPhase("idle"); }
+
+  function fightAiTrainer(d: ArenaDifficulty) {
+    if (!activeMine) return;
+    setMatchPhase("idle");
+    pveM.mutate({ myCompanionId: activeMine.id, difficulty: d });
+  }
+
+  // Reset matchmaking whenever the Battle dialog opens/closes.
+  useEffect(() => {
+    if (!battleFor) { clearSearch(); setMatchPhase("idle"); }
+  }, [battleFor]);
+  useEffect(() => () => clearSearch(), []);
+
+
   function trainCpu() {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
     pveM.mutate({ myCompanionId: activeMine.id, difficulty, environment: environment ?? undefined });
