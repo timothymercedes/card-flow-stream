@@ -30,7 +30,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const ARENA_CATEGORY_KEYS = new Set(ARENA_CATEGORIES.map((c) => c.key));
+
 export const Route = createFileRoute("/arena")({
+  validateSearch: (search: Record<string, unknown>): { category?: string } => {
+    const c = typeof search.category === "string" ? search.category : undefined;
+    return c && ARENA_CATEGORY_KEYS.has(c as any) ? { category: c } : {};
+  },
   head: () => ({
     meta: [
       { title: "PullBid Arena — Battle Your Digital Companions" },
