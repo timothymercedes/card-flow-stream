@@ -99,8 +99,9 @@ describe("Arena findOpponents (authenticated POST)", () => {
 
   it("is configured as a POST server function", async () => {
     const { findOpponents } = await import("@/lib/arena.functions");
-    // createServerFn exposes its config; method must be POST (was GET, which crashed).
-    expect((findOpponents as any).options?.method ?? (findOpponents as any).method).toBe("POST");
+    // The server function must be POST (it was GET, which crashed with
+    // "Cannot read properties of undefined (reading 'method')").
+    expect((findOpponents as any).method).toBe("POST");
   });
 
   it("returns opponents (other users' companions) when authenticated", async () => {
