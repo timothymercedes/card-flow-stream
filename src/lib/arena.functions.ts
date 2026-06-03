@@ -401,8 +401,9 @@ export const battlePve = createServerFn({ method: "POST" })
       myRounds,
       theirRounds,
       log,
-      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0 },
+      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
       opponentName: `${cpuName} (${diff.label})`,
+      newBadges: [] as ArenaBadgeKey[],
     };
   });
 
