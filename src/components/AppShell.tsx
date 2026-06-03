@@ -485,6 +485,7 @@ function PlatformSheet({
     {
       title: t("nav.tools", "Tools"),
       items: [
+        { to: "/trades", icon: ArrowLeftRight, label: t("nav.tradeCenter", "Trade Center") },
         { to: "/arena", icon: Swords, label: t("nav.arena", "PullBid Arena") },
         { to: "/vault", icon: Lock, label: t("nav.vaultTools", "Vault Tools") },
         { to: "/showoff", icon: Sparkles, label: t("nav.creator", "Creator Features") },
