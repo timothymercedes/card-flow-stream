@@ -4,7 +4,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   titleForWins, communityForCategory, deriveCompanionStats, valueTier,
-  companionLevel, DIFFICULTY_META, type ArenaTitle, type ArenaDifficulty,
+  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS,
+  type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
 
 type CompanionRow = {
