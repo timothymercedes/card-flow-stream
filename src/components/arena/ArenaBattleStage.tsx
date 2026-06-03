@@ -62,25 +62,38 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
 }
 
 function Fighter({
-  name, image, emoji, side, anim, frameClass = "", effectClass = "", title, hp,
+  name, cardImage, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
+  frameClass = "", effectClass = "", title, hp,
 }: {
-  name: string; image?: string | null; emoji?: string | null; side: "left" | "right"; anim: string;
+  name: string; cardImage?: string | null; emoji?: string | null; side: "left" | "right";
+  category: string; seedKey: string; level?: number; wrapperAnim: string; companionAnim: CompanionAnim;
   frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <HpBar hp={hp} side={side} />
-      <div className={`relative ${anim}`}>
+      <div className={`relative ${wrapperAnim}`}>
         {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
-        {image ? (
-          <img src={image} alt={name} className={`arena-fighter relative h-28 w-20 rounded object-cover sm:h-36 sm:w-28 ${frameClass}`} />
-        ) : (
-          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted text-4xl sm:h-36 sm:w-28 sm:text-5xl ${frameClass}`}>
-            {emoji ? <span aria-hidden>{emoji}</span> : <Sparkles className="h-8 w-8 text-muted-foreground" />}
-          </div>
-        )}
+        <CompanionSprite
+          seedKey={seedKey}
+          category={category}
+          anim={companionAnim}
+          size={104}
+          level={level}
+          flip={side === "right"}
+          className={frameClass}
+        />
       </div>
       <p className="max-w-[8rem] truncate text-center text-xs font-bold sm:text-sm">{name}</p>
+      {/* Card stays a collectible reference — never the primary battle visual. */}
+      {cardImage ? (
+        <span className="flex items-center gap-1 rounded-full border bg-background/70 px-1.5 py-0.5">
+          <img src={cardImage} alt={`${name} card`} className="h-5 w-3.5 rounded-[2px] object-cover" />
+          <span className="text-[9px] text-muted-foreground">Card</span>
+        </span>
+      ) : emoji ? (
+        <span className="text-base" aria-hidden>{emoji}</span>
+      ) : null}
       {title ? (
         <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{title}</span>
       ) : (
