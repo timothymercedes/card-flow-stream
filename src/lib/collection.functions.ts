@@ -30,26 +30,36 @@ type BookCard = {
   rarity: string | null;
 };
 
-// Look up official set totals from the card_sets master table.
+import { normalizeTcgCategory } from "@/lib/tcgCategory";
+
+// Look up official set totals from the card_sets master table, keyed by
+// canonical game category + set name so cross-game name collisions never
+// cross-contaminate (e.g. a Pokémon "Dragon" set vs an MTG one).
 async function loadSetTotals(
   supabaseAdmin: any,
-  setNames: string[],
+  pairs: { category: string; setName: string }[],
 ): Promise<Map<string, number>> {
-  const totals = new Map<string, number>();
-  const names = [...new Set(setNames.map(norm).filter(Boolean))];
+  const totals = new Map<string, number>(); // key: `${cat}|||${lowerSetName}`
+  const names = [...new Set(pairs.map((p) => norm(p.setName)).filter(Boolean))];
   for (let i = 0; i < names.length; i += 100) {
     const slice = names.slice(i, i + 100);
     const { data } = await supabaseAdmin
       .from("card_sets")
-      .select("set_name, total, printed_total")
+      .select("category, set_name, total, printed_total")
       .in("set_name", slice);
     (data ?? []).forEach((r: any) => {
       const total = Number(r.total) || Number(r.printed_total) || 0;
-      if (total > 0) totals.set(normSet(r.set_name), total);
+      if (total <= 0) return;
+      totals.set(`${normalizeTcgCategory(r.category)}|||${normSet(r.set_name)}`, total);
     });
   }
   return totals;
 }
+
+function setTotalKey(category: unknown, setName: unknown) {
+  return `${normalizeTcgCategory(category)}|||${normSet(setName)}`;
+}
+
 
 // ---------- Collection Books overview ----------
 export const getCollectionBooks = createServerFn({ method: "GET" })
@@ -111,16 +121,19 @@ export const getCollectionBooks = createServerFn({ method: "GET" })
       if (!b.cover && img) b.cover = img;
     }
 
-    const setNames = [...books.values()].map((b) => b.setName).filter((s) => s && s !== "Other Cards");
+    const bookList = [...books.values()].filter((b) => b.setName && b.setName !== "Other Cards");
 
-    // Official set sizes (primary source of truth).
-    const officialTotals = await loadSetTotals(supabaseAdmin, setNames);
+    // Official set sizes (primary source of truth), keyed by category + set.
+    const officialTotals = await loadSetTotals(
+      supabaseAdmin,
+      bookList.map((b) => ({ category: b.category, setName: b.setName })),
+    );
 
     // Fallback proxy: distinct numbers seen across all collectors, used only
     // when a set isn't in the master checklist table.
     const proxyTotals = new Map<string, Set<string>>();
-    const unknownSets = [...new Set(setNames.map(normSet))].filter((s) => !officialTotals.has(s));
-    const unknownOriginal = [...new Set(setNames)].filter((s) => unknownSets.includes(normSet(s)));
+    const unknownBooks = bookList.filter((b) => !officialTotals.has(setTotalKey(b.category, b.setName)));
+    const unknownOriginal = [...new Set(unknownBooks.map((b) => b.setName))];
     for (let i = 0; i < unknownOriginal.length; i += 50) {
       const slice = unknownOriginal.slice(i, i + 50);
       const { data: idents } = await supabaseAdmin
@@ -138,9 +151,8 @@ export const getCollectionBooks = createServerFn({ method: "GET" })
     }
 
     const result = [...books.values()].map((b) => {
-      const sn = normSet(b.setName);
-      const official = officialTotals.get(sn) ?? 0;
-      const proxy = proxyTotals.get(sn)?.size ?? 0;
+      const official = officialTotals.get(setTotalKey(b.category, b.setName)) ?? 0;
+      const proxy = proxyTotals.get(normSet(b.setName))?.size ?? 0;
       // Always at least as large as what the user owns distinctly.
       const knownTotal = Math.max(official || proxy, b.ownedNumbers.size);
       const hasTotal = knownTotal > 0 && (official > 0 || proxy > 0);
@@ -157,6 +169,7 @@ export const getCollectionBooks = createServerFn({ method: "GET" })
         cover: b.cover,
       };
     });
+
 
     result.sort((a, b) => {
       // Sets with real completion data first, then by progress, then size.
@@ -180,8 +193,8 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
     const setName = data.setName;
 
     // Official total cards in this set (source of truth for completion).
-    const officialTotals = await loadSetTotals(supabaseAdmin, [setName]);
-    const officialTotal = officialTotals.get(normSet(setName)) ?? 0;
+    const officialTotals = await loadSetTotals(supabaseAdmin, [{ category: data.category, setName }]);
+    const officialTotal = officialTotals.get(setTotalKey(data.category, setName)) ?? 0;
 
     // Universe of cards known to exist in this set (for showing images/names
     // of missing cards we have catalog data for).
