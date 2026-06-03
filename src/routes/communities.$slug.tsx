@@ -14,9 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, MessageCircle, Trash2, ArrowLeft, Check, Send } from "lucide-react";
+import { Users, Heart, MessageCircle, Trash2, ArrowLeft, Check, Send, Swords } from "lucide-react";
 import { toast } from "sonner";
 import { CommunityChallenges } from "@/components/CommunityChallenges";
+import { arenaCategoryFor, arenaCategoryMeta } from "@/lib/arenaCategories";
 
 export const Route = createFileRoute("/communities/$slug")({
   component: CommunityDetailPage,
@@ -127,6 +128,23 @@ function CommunityDetailPage() {
             <Button size="sm" asChild><Link to="/auth">Join</Link></Button>
           )}
         </Card>
+
+        {(() => {
+          const arenaKey = arenaCategoryFor(community.category);
+          const meta = arenaCategoryMeta(arenaKey);
+          return (
+            <Card className="flex items-center gap-3 overflow-hidden border-primary/30 bg-gradient-to-r from-primary/10 to-transparent p-4">
+              <span className="text-3xl">{meta.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="flex items-center gap-1.5 text-sm font-bold"><Swords className="h-4 w-4 text-primary" /> {meta.label}</h2>
+                <p className="text-xs text-muted-foreground">Battle other {community.name} collectors with digital companions. Your real cards are never at risk.</p>
+              </div>
+              <Button size="sm" asChild>
+                <Link to="/arena" search={{ category: arenaKey }}>Enter</Link>
+              </Button>
+            </Card>
+          );
+        })()}
 
         <CommunityChallenges communityId={community.id} canParticipate={!!user && isMember} />
 

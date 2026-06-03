@@ -30,7 +30,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const ARENA_CATEGORY_KEYS = new Set(ARENA_CATEGORIES.map((c) => c.key));
+
 export const Route = createFileRoute("/arena")({
+  validateSearch: (search: Record<string, unknown>): { category?: string } => {
+    const c = typeof search.category === "string" ? search.category : undefined;
+    return c && ARENA_CATEGORY_KEYS.has(c as any) ? { category: c } : {};
+  },
   head: () => ({
     meta: [
       { title: "PullBid Arena — Battle Your Digital Companions" },
@@ -66,7 +72,8 @@ function StatBar({ icon: Icon, label, value, max = 60 }: { icon: any; label: str
 function ArenaPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [category, setCategory] = useState<string>("all");
+  const { category: initialCategory } = Route.useSearch();
+  const [category, setCategory] = useState<string>(initialCategory ?? "all");
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
