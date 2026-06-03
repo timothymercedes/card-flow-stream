@@ -504,6 +504,11 @@ function ArenaPage() {
               <LeaderboardCard title="Top Trainers" icon={Medal} rows={(lbQ.data?.topTrainers ?? []).map((r, i) => ({ name: `Trainer #${i + 1}`, value: `${r.season_wins} season wins` }))} />
             </div>
           </TabsContent>
+
+          {/* ---- Rewards (daily challenges + cosmetics) ---- */}
+          <TabsContent value="rewards">
+            <ArenaRewards />
+          </TabsContent>
         </Tabs>
       </div>
 
