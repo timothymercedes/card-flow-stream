@@ -207,7 +207,21 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
 
 type Missing = Awaited<ReturnType<typeof getCollectionBookDetail>>["missing"][number];
 
-function MissingCard({ card }: { card: Missing }) {
+function MissingCard({ card, setName, category }: { card: Missing; setName: string; category: string }) {
+  const addWish = useServerFn(addWishlistItem);
+  const [added, setAdded] = useState(false);
+  const onWish = async () => {
+    try {
+      await addWish({ data: {
+        name: card.name, set_name: setName, tcg_number: card.number, category,
+        image_url: card.image_url, notify_sale: true, notify_trade: true, notify_live: false,
+      } });
+      setAdded(true);
+      toast.success("Added to wishlist");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
   return (
     <Card className="overflow-hidden opacity-95">
       <div className="relative aspect-[3/4] bg-muted">
@@ -232,6 +246,9 @@ function MissingCard({ card }: { card: Missing }) {
               {card.listingsCount > 0 ? <Tag className="h-3 w-3" /> : <Search className="h-3 w-3" />}
               <span className="ml-1">{card.listingsCount > 0 ? "Buy" : "Find"}</span>
             </Link>
+          </Button>
+          <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]" onClick={onWish} disabled={added} aria-label="Add to wishlist">
+            <Heart className={`h-3 w-3 ${added ? "fill-primary text-primary" : ""}`} />
           </Button>
         </div>
         {card.tradeCount > 0 && (
