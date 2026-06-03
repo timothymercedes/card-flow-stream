@@ -7306,6 +7306,63 @@ export type Database = {
           },
         ]
       }
+      wishlist_items: {
+        Row: {
+          card_identity_id: string | null
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          last_notified_at: string | null
+          max_price: number | null
+          name: string
+          notes: string | null
+          notify_live: boolean
+          notify_sale: boolean
+          notify_trade: boolean
+          set_name: string | null
+          tcg_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_identity_id?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          last_notified_at?: string | null
+          max_price?: number | null
+          name: string
+          notes?: string | null
+          notify_live?: boolean
+          notify_sale?: boolean
+          notify_trade?: boolean
+          set_name?: string | null
+          tcg_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_identity_id?: string | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          last_notified_at?: string | null
+          max_price?: number | null
+          name?: string
+          notes?: string | null
+          notify_live?: boolean
+          notify_sale?: boolean
+          notify_trade?: boolean
+          set_name?: string | null
+          tcg_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       xp_events: {
         Row: {
           amount: number
