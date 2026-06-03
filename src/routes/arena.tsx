@@ -1164,22 +1164,47 @@ function OwnerCompanionCard({
 }) {
   const prog = companionLevelProgress(c.xp);
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
+  const cosm = (c.cosmetics ?? {}) as Record<string, any>;
+  const mode: VisualMode = (cosm.visual_mode as VisualMode) ?? "inspired";
+  const custom = (cosm.custom ?? {}) as { body?: string; accent?: string; head?: string };
+  const showCard = mode === "card" && !!c.image_url;
   return (
     <Card className="overflow-hidden p-4">
       <div className="flex gap-3">
         <div className="relative flex h-20 w-16 shrink-0 flex-col items-center justify-end">
-          <CompanionSprite
-            seedKey={`${c.id}:${c.name}`}
-            category={c.arena_category}
-            archetypeKey={c.archetype.key}
-            anim="idle"
-            level={c.level}
-            flair={c.rarity.flair}
-            size={64}
-            className={frameClass}
-          />
-          {c.image_url && (
-            <img src={c.image_url} alt={`${c.name} card`} className="absolute -bottom-1 -right-1 h-7 w-5 rounded-[2px] border border-background object-cover shadow" loading="lazy" />
+          {showCard ? (
+            <>
+              <img src={c.image_url!} alt={`${c.name} card`} className={`h-20 w-14 rounded object-cover shadow ${frameClass}`} loading="lazy" />
+              <CompanionSprite
+                seedKey={`${c.id}:${c.name}`}
+                category={c.arena_category}
+                archetypeKey={c.archetype.key}
+                anim="idle"
+                level={c.level}
+                flair={c.rarity.flair}
+                size={28}
+                className="absolute -bottom-1 -right-1"
+              />
+            </>
+          ) : (
+            <>
+              <CompanionSprite
+                seedKey={`${c.id}:${c.name}`}
+                category={c.arena_category}
+                archetypeKey={c.archetype.key}
+                anim="idle"
+                level={c.level}
+                flair={c.rarity.flair}
+                size={64}
+                className={frameClass}
+                bodyColor={mode === "custom" ? custom.body : undefined}
+                accentColor={mode === "custom" ? custom.accent : undefined}
+                headgear={mode === "custom" ? (custom.head as any) : undefined}
+              />
+              {c.image_url && (
+                <img src={c.image_url} alt={`${c.name} card`} className="absolute -bottom-1 -right-1 h-7 w-5 rounded-[2px] border border-background object-cover shadow" loading="lazy" />
+              )}
+            </>
           )}
         </div>
         <div className="min-w-0 flex-1">
