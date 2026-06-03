@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import {
   getArenaFeed, likeFeedPost, getFeedComments, commentOnFeedPost,
 } from "@/lib/arena.functions";
@@ -25,14 +26,18 @@ function timeAgo(iso: string): string {
 }
 
 function Comments({ postId }: { postId: string }) {
+  const { user, session, loading: authLoading } = useAuth();
   const qc = useQueryClient();
   const commentsFn = useServerFn(getFeedComments);
   const addFn = useServerFn(commentOnFeedPost);
   const [body, setBody] = useState("");
+  const canLoadArena = !!user && !!session && !authLoading;
 
   const q = useQuery({
     queryKey: ["arena", "feed", "comments", postId],
     queryFn: () => commentsFn({ data: { postId } }),
+    enabled: canLoadArena,
+    retry: false,
   });
 
   const addM = useMutation({
@@ -68,12 +73,14 @@ function Comments({ postId }: { postId: string }) {
 }
 
 export function ArenaFeed({ onWatchReplay }: { onWatchReplay: (battleId: string) => void }) {
+  const { user, session, loading: authLoading } = useAuth();
   const qc = useQueryClient();
   const feedFn = useServerFn(getArenaFeed);
   const likeFn = useServerFn(likeFeedPost);
   const [openComments, setOpenComments] = useState<string | null>(null);
+  const canLoadArena = !!user && !!session && !authLoading;
 
-  const q = useQuery({ queryKey: ["arena", "feed"], queryFn: () => feedFn() });
+  const q = useQuery({ queryKey: ["arena", "feed"], queryFn: () => feedFn(), enabled: canLoadArena, retry: false });
 
   const likeM = useMutation({
     mutationFn: (vars: { postId: string; like: boolean }) => likeFn({ data: vars }),

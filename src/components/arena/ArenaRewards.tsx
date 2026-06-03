@@ -2,6 +2,7 @@
 // Self-contained: manages its own queries/mutations. Digital-only rewards.
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import {
   getDailyChallenges, claimArenaChallenge, getArenaCosmetics,
   buyArenaCosmetic, equipArenaCosmetic, getSetCompletionRewards, claimSetReward,
@@ -21,6 +22,7 @@ const TYPE_LABEL: Record<CosmeticType, string> = {
 };
 
 export function ArenaRewards({ category = "all" }: { category?: string }) {
+  const { user, session, loading: authLoading } = useAuth();
   const qc = useQueryClient();
   const challengesFn = useServerFn(getDailyChallenges);
   const claimFn = useServerFn(claimArenaChallenge);
@@ -29,10 +31,11 @@ export function ArenaRewards({ category = "all" }: { category?: string }) {
   const equipFn = useServerFn(equipArenaCosmetic);
   const setRewardsFn = useServerFn(getSetCompletionRewards);
   const claimSetFn = useServerFn(claimSetReward);
+  const canLoadArena = !!user && !!session && !authLoading;
 
-  const challQ = useQuery({ queryKey: ["arena", "challenges"], queryFn: () => challengesFn() });
-  const cosmQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn() });
-  const setQ = useQuery({ queryKey: ["arena", "set-rewards"], queryFn: () => setRewardsFn() });
+  const challQ = useQuery({ queryKey: ["arena", "challenges"], queryFn: () => challengesFn(), enabled: canLoadArena, retry: false });
+  const cosmQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn(), enabled: canLoadArena, retry: false });
+  const setQ = useQuery({ queryKey: ["arena", "set-rewards"], queryFn: () => setRewardsFn(), enabled: canLoadArena, retry: false });
 
   const claimM = useMutation({
     mutationFn: (key: string) => claimFn({ data: { challengeKey: key } }),

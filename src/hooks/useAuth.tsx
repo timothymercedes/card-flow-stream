@@ -1,10 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { installServerFnAuth } from "@/lib/serverFnAuth";
 import { TUTORIAL_DEMO_USER, useTutorialMode } from "@/lib/tutorialMode";
 import type { Session, User } from "@supabase/supabase-js";
-
-if (typeof window !== "undefined") installServerFnAuth();
 
 type Profile = { id: string; username: string; is_seller: boolean; avatar_url: string | null; interests?: string[]; onboarding_completed?: boolean; current_streak?: number; longest_streak?: number; last_login_date?: string | null };
 

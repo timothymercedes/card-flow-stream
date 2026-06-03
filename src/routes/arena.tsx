@@ -91,7 +91,7 @@ function StatBar({ icon: Icon, label, value, max = 60 }: { icon: any; label: str
 }
 
 function ArenaPage() {
-  const { user } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const qc = useQueryClient();
   const { category: initialCategory } = Route.useSearch();
   const [category, setCategory] = useState<string>(initialCategory ?? "all");
@@ -132,12 +132,14 @@ function ArenaPage() {
   const cosmeticsFn = useServerFn(getArenaCosmetics);
   const replayFn = useServerFn(getBattleReplay);
   const postFeedFn = useServerFn(postBattleToFeed);
+  const canLoadArena = !!user && !!session && !authLoading;
 
 
   const myQ = useQuery({
     queryKey: ["arena", "mine"],
     queryFn: () => listFn(),
-    enabled: !!user,
+    enabled: canLoadArena,
+    retry: false,
   });
   const companions = myQ.data?.companions ?? [];
   const visibleCompanions = useMemo(
@@ -148,18 +150,20 @@ function ArenaPage() {
   const oppQ = useQuery({
     queryKey: ["arena", "opponents", category],
     queryFn: () => oppFn({ data: { category } }),
-    enabled: !!user,
+    enabled: canLoadArena,
+    retry: false,
   });
 
   const historyQ = useQuery({
     queryKey: ["arena", "history"],
     queryFn: () => historyFn(),
-    enabled: !!user,
+    enabled: canLoadArena,
+    retry: false,
   });
 
   const claimsFn = useServerFn(getMissionClaims);
   const claimFn = useServerFn(claimMission);
-  const claimsQ = useQuery({ queryKey: ["arena", "claims"], queryFn: () => claimsFn(), enabled: !!user });
+  const claimsQ = useQuery({ queryKey: ["arena", "claims"], queryFn: () => claimsFn(), enabled: canLoadArena, retry: false });
   const claimM = useMutation({
     mutationFn: (missionKey: string) => claimFn({ data: { missionKey } }),
     onSuccess: (r) => {
@@ -170,19 +174,21 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Could not claim reward"),
   });
 
-  const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: !!user });
-  const cosmeticsQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn(), enabled: !!user });
+  const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: canLoadArena, retry: false });
+  const cosmeticsQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn(), enabled: canLoadArena, retry: false });
   const equipped = useMemo(() => equippedClasses(cosmeticsQ.data?.owned), [cosmeticsQ.data]);
-  const recentQ = useQuery({ queryKey: ["arena", "recent"], queryFn: () => recentFn(), enabled: !!user });
+  const recentQ = useQuery({ queryKey: ["arena", "recent"], queryFn: () => recentFn(), enabled: canLoadArena, retry: false });
   const searchQ = useQuery({
     queryKey: ["arena", "collectors", searchTerm],
     queryFn: () => searchFn({ data: { query: searchTerm } }),
-    enabled: !!user,
+    enabled: canLoadArena,
+    retry: false,
   });
   const profileQ = useQuery({
     queryKey: ["arena", "profile", profileUserId],
     queryFn: () => profileFn({ data: { userId: profileUserId! } }),
-    enabled: !!user && !!profileUserId,
+    enabled: canLoadArena && !!profileUserId,
+    retry: false,
   });
 
   const lbQ = useQuery({ queryKey: ["arena", "leaderboards", category], queryFn: () => lbFn({ data: { category } }) });
