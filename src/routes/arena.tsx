@@ -296,6 +296,11 @@ function ArenaPage() {
     pveM.mutate({ myCompanionId: activeMine.id, difficulty, environment: environment ?? undefined });
   }
 
+  function fightBoss(boss: ArenaBossKey) {
+    if (!activeMine) { toast.error("Select one of your companions first"); return; }
+    bossM.mutate({ myCompanionId: activeMine.id, boss });
+  }
+
   if (!user) {
     return (
       <AppShell>
