@@ -270,7 +270,13 @@ export function ArenaBattleStage({
 
   // Attacker advances toward the defender; defender gets knocked back on a hit.
   function wrapperAnimFor(sideKey: "mine" | "theirs", side: "left" | "right"): string {
-    if (phase === "intro") return side === "left" ? "arena-enter-left" : "arena-enter-right";
+    if (phase === "intro") {
+      const evo = sideKey === "mine" ? myEvo : theirEvo;
+      // Elite/Legendary fighters get a dramatic slam-in entrance; others slide in.
+      if (evo >= 3) return side === "left" ? "arena-enter-legendary-left" : "arena-enter-legendary-right";
+      if (evo >= 2) return side === "left" ? "arena-enter-elite-left" : "arena-enter-elite-right";
+      return side === "left" ? "arena-enter-left" : "arena-enter-right";
+    }
     if (phase === "fight" && ev && fx) {
       if (ev.attacker === sideKey && fx.kind !== "dodge") return attackMove(side);
       if (fx.defender === sideKey && fx.kind !== "dodge" && fx.kind !== "block") {
