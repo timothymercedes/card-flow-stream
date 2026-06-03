@@ -990,7 +990,12 @@ function ArenaPage() {
                 return (
                   <div key={k} className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl" aria-hidden>{ch.emoji}</span>
+                      <img
+                        src={ch.image}
+                        alt={ch.name}
+                        loading="lazy"
+                        className="h-12 w-12 shrink-0 object-contain drop-shadow"
+                      />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-bold">{ch.name}</div>
                         <div className="truncate text-[10px] font-medium text-amber-600">{tier.emoji} {tier.label} · {ch.record}</div>
