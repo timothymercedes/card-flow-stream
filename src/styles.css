@@ -456,6 +456,37 @@ body.kb-open [data-bottom-nav] {
 }
 .arena-enter-left { animation: arena-enter-left 0.55s cubic-bezier(0.22,1,0.36,1) both; }
 .arena-enter-right { animation: arena-enter-right 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+/* Rare entrances — elite/legendary fighters slam into the arena */
+@keyframes arena-enter-elite-left {
+  0% { transform: translateX(-160%) scale(0.7); opacity: 0; }
+  55% { transform: translateX(10%) scale(1.14); opacity: 1; }
+  72% { transform: translateX(-4%) scale(0.96); }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes arena-enter-elite-right {
+  0% { transform: translateX(160%) scale(0.7); opacity: 0; }
+  55% { transform: translateX(-10%) scale(1.14); opacity: 1; }
+  72% { transform: translateX(4%) scale(0.96); }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+.arena-enter-elite-left { animation: arena-enter-elite-left 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+.arena-enter-elite-right { animation: arena-enter-elite-right 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes arena-enter-legendary-left {
+  0% { transform: translateY(-180%) scale(0.6) rotate(-12deg); opacity: 0; filter: brightness(2.4); }
+  50% { transform: translateY(0) scale(1.22) rotate(2deg); opacity: 1; filter: brightness(1.6); }
+  68% { transform: translateY(0) scale(0.92) rotate(-1deg); filter: brightness(1); }
+  82% { transform: translateY(0) scale(1.06); }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+@keyframes arena-enter-legendary-right {
+  0% { transform: translateY(-180%) scale(0.6) rotate(12deg); opacity: 0; filter: brightness(2.4); }
+  50% { transform: translateY(0) scale(1.22) rotate(-2deg); opacity: 1; filter: brightness(1.6); }
+  68% { transform: translateY(0) scale(0.92) rotate(1deg); filter: brightness(1); }
+  82% { transform: translateY(0) scale(1.06); }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+.arena-enter-legendary-left { animation: arena-enter-legendary-left 0.9s cubic-bezier(0.34,1.4,0.5,1) both; }
+.arena-enter-legendary-right { animation: arena-enter-legendary-right 0.9s cubic-bezier(0.34,1.4,0.5,1) both; }
 @keyframes arena-lunge-left { 0%,100% { transform: translateX(0); } 45% { transform: translateX(60%) rotate(-4deg); } }
 @keyframes arena-lunge-right { 0%,100% { transform: translateX(0); } 45% { transform: translateX(-60%) rotate(4deg); } }
 .arena-lunge-left { animation: arena-lunge-left 0.5s ease-in-out; }
