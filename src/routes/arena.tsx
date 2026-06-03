@@ -313,11 +313,17 @@ function ArenaPage() {
                   <RefreshCw className={`mr-2 h-4 w-4 ${syncM.isPending ? "animate-spin" : ""}`} />Unlock companions
                 </Button>
               </Card>
+            ) : visibleCompanions.length === 0 ? (
+              <Card className="p-8 text-center">
+                <Sparkles className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                <p className="mb-4 text-muted-foreground">No companions in {arenaCategoryMeta(category).label}. Switch categories or unlock more from your Vault.</p>
+                <Button variant="secondary" onClick={() => setCategory("all")}>Show all categories</Button>
+              </Card>
             ) : (
               <>
                 <p className="mb-3 text-sm text-muted-foreground">Pick a companion, then choose its next move.</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {companions.map((c) => (
+                  {visibleCompanions.map((c) => (
                     <OwnerCompanionCard
                       key={c.id}
                       c={c}
