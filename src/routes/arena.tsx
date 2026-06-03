@@ -119,6 +119,7 @@ function ArenaPage() {
   const oppFn = useServerFn(findOpponents);
   const battleFn = useServerFn(challengeAndResolve);
   const pveFn = useServerFn(battlePve);
+  const bossFn = useServerFn(battleAiBoss);
   const historyFn = useServerFn(getBattleHistory);
   const lbFn = useServerFn(getLeaderboards);
   const searchFn = useServerFn(searchCollectors);
