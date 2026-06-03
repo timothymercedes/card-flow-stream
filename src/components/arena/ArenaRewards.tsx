@@ -20,7 +20,7 @@ const TYPE_LABEL: Record<CosmeticType, string> = {
   frame: "Frames", effect: "Effect Auras", entrance: "Entrances", title: "Titles",
 };
 
-export function ArenaRewards() {
+export function ArenaRewards({ category = "all" }: { category?: string }) {
   const qc = useQueryClient();
   const challengesFn = useServerFn(getDailyChallenges);
   const claimFn = useServerFn(claimArenaChallenge);
