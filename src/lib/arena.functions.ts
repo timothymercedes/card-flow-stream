@@ -81,7 +81,7 @@ export const listMyCompanions = createServerFn({ method: "GET" })
       .from("arena_companions").select("*").eq("user_id", userId)
       .order("arena_rank", { ascending: false });
     if (error) throw new Error(error.message);
-    return { companions: (data || []) as CompanionRow[] };
+    return { companions: (data || []) as unknown as CompanionRow[] };
   });
 
 // ---- Public roster for a given user (limited stats only) ----
@@ -93,7 +93,7 @@ export const getPublicCompanions = createServerFn({ method: "GET" })
       .from("arena_companions").select("*").eq("user_id", data.userId)
       .order("wins", { ascending: false });
     if (error) throw new Error(error.message);
-    return { companions: ((rows || []) as CompanionRow[]).map(publicProjection) };
+    return { companions: ((rows || []) as unknown as CompanionRow[]).map(publicProjection) };
   });
 
 // ---- Find opponents (other users' companions, limited stats) ----
@@ -235,8 +235,8 @@ export const getLeaderboards = createServerFn({ method: "GET" })
       supabaseAdmin.from("arena_companions").select("*").order("wins", { ascending: false }).limit(20),
       supabaseAdmin.from("arena_companions").select("*").order("longest_win_streak", { ascending: false }).limit(20),
     ]);
-    const projW = ((mostWins.data || []) as CompanionRow[]).map(publicProjection);
-    const projS = ((longestStreak.data || []) as CompanionRow[]).map(publicProjection);
+    const projW = ((mostWins.data || []) as unknown as CompanionRow[]).map(publicProjection);
+    const projS = ((longestStreak.data || []) as unknown as CompanionRow[]).map(publicProjection);
 
     // Top trainers: aggregate season_wins by user.
     const { data: all } = await supabaseAdmin
