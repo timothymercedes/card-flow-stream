@@ -25,7 +25,12 @@ export const Route = createFileRoute("/collection")({
   component: CollectionPage,
 });
 
+import { normalizeTcgCategory } from "@/lib/tcgCategory";
+
 type Book = Awaited<ReturnType<typeof getCollectionBooks>>["books"][number];
+
+const setTotalKey = (category: string, setName: string) =>
+  `${normalizeTcgCategory(category)}|||${String(setName ?? "").trim().toLowerCase()}`;
 
 function money(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
