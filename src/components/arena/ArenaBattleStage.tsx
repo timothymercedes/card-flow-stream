@@ -261,6 +261,7 @@ export function ArenaBattleStage({
             <Fighter
               name={result.opponentName}
               image={result.opponentImage}
+              emoji={result.opponentEmoji}
               side="right"
               hp={theirHp}
               anim={`${phase === "intro" ? "arena-enter-right" : ""} ${theirAttacking ? "arena-lunge-right" : ""} ${theirDefendCls}`.trim()}
