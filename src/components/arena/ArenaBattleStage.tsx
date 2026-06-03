@@ -159,6 +159,13 @@ export function ArenaBattleStage({
   const events = useMemo(() => roundEvents(result.log), [result.log]);
   const meta = arenaCategoryMeta(arenaCategory);
   const themeClass = THEME_CLASS[arenaCategory] ?? "";
+  // Rotate the time-of-day backdrop per battle so no two fights look the same.
+  const backdropVariant = useMemo(() => {
+    const key = result.battleId ?? `${result.opponentName}:${result.log.length}:${result.myRounds}`;
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return h % 4;
+  }, [result.battleId, result.opponentName, result.log.length, result.myRounds]);
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [roundIdx, setRoundIdx] = useState(-1);
