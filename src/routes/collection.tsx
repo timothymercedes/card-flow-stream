@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { getCollectionBooks, getCollectionBookDetail, getCollectionDashboard, listCollectionGoals, toggleCollectionGoal, bulkAddMissingToWishlist } from "@/lib/collection.functions";
 import { CollectionRewardButton } from "@/components/CollectionRewardWheel";
+import { CollectionStreakCard } from "@/components/CollectionStreakCard";
 import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
