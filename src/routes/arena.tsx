@@ -18,6 +18,7 @@ import {
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
 import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
+import { CompanionSprite } from "@/components/arena/CompanionSprite";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
 import { ArenaFeed } from "@/components/arena/ArenaFeed";
 import { Button } from "@/components/ui/button";
