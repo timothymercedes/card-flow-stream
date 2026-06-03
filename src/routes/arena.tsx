@@ -158,7 +158,7 @@ function ArenaPage() {
   });
 
   const followM = useMutation({
-    mutationFn: (vars: { userId: string; follow: boolean }) =>
+    mutationFn: async (vars: { userId: string; follow: boolean }): Promise<{ following: boolean }> =>
       vars.follow ? followFn({ data: { userId: vars.userId } }) : unfollowFn({ data: { userId: vars.userId } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["arena", "profile"] });
