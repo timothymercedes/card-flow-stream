@@ -193,8 +193,8 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
     const setName = data.setName;
 
     // Official total cards in this set (source of truth for completion).
-    const officialTotals = await loadSetTotals(supabaseAdmin, [setName]);
-    const officialTotal = officialTotals.get(normSet(setName)) ?? 0;
+    const officialTotals = await loadSetTotals(supabaseAdmin, [{ category: data.category, setName }]);
+    const officialTotal = officialTotals.get(setTotalKey(data.category, setName)) ?? 0;
 
     // Universe of cards known to exist in this set (for showing images/names
     // of missing cards we have catalog data for).
