@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
-import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart } from "lucide-react";
+import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users } from "lucide-react";
 import { toast } from "sonner";
 
 type BattleLog = Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }>;
