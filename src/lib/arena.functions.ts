@@ -97,6 +97,7 @@ export const syncCompanions = createServerFn({ method: "POST" })
         name: c.name,
         category: c.category,
         community: communityForCategory(c.category),
+        arena_category: arenaCategoryFor(c.category),
         image_url: c.image_url,
         attack: stats.attack,
         defense: stats.defense,
