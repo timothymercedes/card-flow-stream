@@ -253,7 +253,7 @@ function ArenaPage() {
               </Card>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {companions.map((c) => <OwnerCompanionCard key={c.id} c={c} />)}
+                {companions.map((c) => <OwnerCompanionCard key={c.id} c={c} frameClass={equipped.frameClass} />)}
               </div>
             )}
           </TabsContent>
