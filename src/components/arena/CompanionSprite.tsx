@@ -248,10 +248,12 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
 }
 
 export function CompanionSprite({
-  seedKey, category, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
+  seedKey, category, archetypeKey, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
 }: {
   seedKey: string;
   category: string;
+  /** Card-derived archetype — drives the fighter's silhouette (ears, wings, tail…). */
+  archetypeKey?: ArchetypeKey;
   anim?: CompanionAnim;
   size?: number;
   flip?: boolean;
@@ -262,6 +264,7 @@ export function CompanionSprite({
 }) {
   const seed = useMemo(() => seedFrom(seedKey || category || "companion"), [seedKey, category]);
   const d = useMemo(() => describe(seed, category), [seed, category]);
+  const feat = useMemo(() => featuresFor(archetypeKey, category), [archetypeKey, category]);
   const pal = palette(category);
   const body = shiftColor(pal.body, d.hueShift);
   const belly = pal.belly;
