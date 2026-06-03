@@ -96,11 +96,11 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
 // Cards only UNLOCK companions; companion-vs-companion is what battles.
 function Fighter({
   name, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
-  frameClass = "", effectClass = "", title, hp,
+  frameClass = "", effectClass = "", title, hp, evolution = 0,
 }: {
   name: string; emoji?: string | null; side: "left" | "right";
   category: string; seedKey: string; level?: number; wrapperAnim: string; companionAnim: CompanionAnim;
-  frameClass?: string; effectClass?: string; title?: string; hp: number;
+  frameClass?: string; effectClass?: string; title?: string; hp: number; evolution?: number;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
@@ -114,6 +114,7 @@ function Fighter({
           anim={companionAnim}
           size={124}
           level={level}
+          evolution={evolution}
           flip={side === "right"}
           className={frameClass}
         />
