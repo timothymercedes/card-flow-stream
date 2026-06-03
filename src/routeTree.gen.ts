@@ -31,6 +31,7 @@ import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as DisputesRouteImport } from './routes/disputes'
 import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as CollectionRouteImport } from './routes/collection'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -198,6 +199,11 @@ const DisputesRoute = DisputesRouteImport.update({
 const DiscoverRoute = DiscoverRouteImport.update({
   id: '/discover',
   path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionRoute = CollectionRouteImport.update({
+  id: '/collection',
+  path: '/collection',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -516,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
+  '/collection': typeof CollectionRoute
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -598,6 +605,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
+  '/collection': typeof CollectionRoute
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -681,6 +689,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
+  '/collection': typeof CollectionRoute
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -765,6 +774,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bookmarks'
     | '/cart'
+    | '/collection'
     | '/discover'
     | '/disputes'
     | '/feed'
@@ -847,6 +857,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bookmarks'
     | '/cart'
+    | '/collection'
     | '/discover'
     | '/disputes'
     | '/feed'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bookmarks'
     | '/cart'
+    | '/collection'
     | '/discover'
     | '/disputes'
     | '/feed'
@@ -1012,6 +1024,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BookmarksRoute: typeof BookmarksRoute
   CartRoute: typeof CartRoute
+  CollectionRoute: typeof CollectionRoute
   DiscoverRoute: typeof DiscoverRoute
   DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
@@ -1235,6 +1248,13 @@ declare module '@tanstack/react-router' {
       path: '/discover'
       fullPath: '/discover'
       preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collection': {
+      id: '/collection'
+      path: '/collection'
+      fullPath: '/collection'
+      preLoaderRoute: typeof CollectionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -1691,6 +1711,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BookmarksRoute: BookmarksRoute,
   CartRoute: CartRoute,
+  CollectionRoute: CollectionRoute,
   DiscoverRoute: DiscoverRoute,
   DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
