@@ -1230,6 +1230,9 @@ function OwnerCompanionCard({
             <Badge variant="outline" className={`text-[10px] ${c.rarity.color} ${c.rarity.ring}`}>
               {c.rarity.emoji} {c.rarity.short}
             </Badge>
+            <Badge variant="outline" className={`text-[10px] ${evo.color} ${evo.ring}`}>
+              {evo.emoji} {evo.label}
+            </Badge>
           </div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{cm.emoji} {cm.arena} · {c.wins}W / {c.losses}L</p>
