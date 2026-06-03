@@ -2706,7 +2706,6 @@ function Vault() {
                 ["accept_trades", "Available for trade"],
                 ["trade_plus_cash", "Accept trade + cash"],
                 ["accept_offers", "Accept offers"],
-                ["collection_only", "Collection only (not for trade)"],
               ] as const).map(([key, label]) => (
                 <label key={key} className="flex items-center justify-between gap-2 text-sm">
                   <span>{label}</span>
@@ -2804,7 +2803,6 @@ function Vault() {
                 ["accept_trades", "Available for trade"],
                 ["trade_plus_cash", "Accept trade + cash"],
                 ["accept_offers", "Accept offers"],
-                ["collection_only", "Collection only (not for trade)"],
               ] as const).map(([key, label]) => (
                 <label key={key} className="flex items-center justify-between gap-2 text-sm">
                   <span>{label}</span>
@@ -2813,16 +2811,8 @@ function Vault() {
                     checked={!!editing[key]}
                     onChange={(e) => {
                       const val = e.target.checked;
-                      const upd: Partial<Card> = { [key]: val };
-                      if (key === "collection_only" && val) {
-                        upd.accept_trades = false;
-                        upd.trade_plus_cash = false;
-                        upd.accept_offers = false;
-                      }
-                      if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && val) {
-                        upd.collection_only = false;
-                      }
-                      if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && !val) {
+                      const upd: Partial<Card> = { [key]: val, collection_only: false };
+                      if (!val) {
                         const remaining =
                           (key === "accept_trades" ? false : !!editing.accept_trades) ||
                           (key === "trade_plus_cash" ? false : !!editing.trade_plus_cash) ||
