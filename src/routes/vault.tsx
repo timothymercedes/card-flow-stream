@@ -1675,8 +1675,25 @@ function Vault() {
   async function toggleTradeFlag(card: Card, key: "accept_trades" | "trade_plus_cash" | "accept_offers" | "collection_only", value: boolean) {
     const patch: Partial<Card> = { [key]: value };
     // Collection-only and tradeable are mutually exclusive.
-    if (key === "collection_only" && value) { patch.accept_trades = false; patch.trade_plus_cash = false; }
-    if ((key === "accept_trades" || key === "trade_plus_cash") && value) patch.collection_only = false;
+    if (key === "collection_only" && value) {
+      patch.accept_trades = false;
+      patch.trade_plus_cash = false;
+      patch.accept_offers = false;
+    }
+    if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && value) {
+      patch.collection_only = false;
+    }
+    // Auto-enable collection_only when all trade options are unchecked.
+    if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && !value) {
+      if (!card.accept_trades && !card.trade_plus_cash && !card.accept_offers && key !== "accept_trades" && key !== "trade_plus_cash" && key !== "accept_offers") {
+        // unreachable
+      }
+      const remainingTrades =
+        (key === "accept_trades" ? false : !!card.accept_trades) ||
+        (key === "trade_plus_cash" ? false : !!card.trade_plus_cash) ||
+        (key === "accept_offers" ? false : !!card.accept_offers);
+      if (!remainingTrades) patch.collection_only = true;
+    }
     setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
     setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
     const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
