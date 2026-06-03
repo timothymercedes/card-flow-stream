@@ -421,13 +421,24 @@ export function ArenaBattleStage({
   );
 }
 
-function FloatText({ kind, dmg, runKey }: { kind: RoundFx; dmg: number; runKey: string }) {
-  const label = kind === "crit" ? "CRITICAL!" : kind === "dodge" ? "DODGE" : `-${dmg}`;
-  const cls = kind === "crit" ? "text-amber-400" : kind === "dodge" ? "text-sky-300" : "text-rose-400";
+function FloatText({ kind, dmg, runKey }: { kind: RoundFx | "heal"; dmg: number; runKey: string }) {
+  const label =
+    kind === "crit" ? "CRITICAL!" :
+    kind === "dodge" ? "DODGED" :
+    kind === "block" ? "BLOCKED" :
+    kind === "heal" ? `+${dmg} HEAL` :
+    `-${dmg}`;
+  const cls =
+    kind === "crit" ? "text-amber-400" :
+    kind === "dodge" ? "text-sky-300" :
+    kind === "block" ? "text-slate-200" :
+    kind === "heal" ? "text-emerald-400" :
+    "text-rose-400";
+  const top = kind === "heal" ? "top-8" : "top-2";
   return (
     <span
       key={runKey}
-      className={`arena-float-text pointer-events-none absolute left-1/2 top-2 z-30 text-sm font-black drop-shadow ${cls}`}
+      className={`arena-float-text pointer-events-none absolute left-1/2 ${top} z-30 text-sm font-black drop-shadow ${cls}`}
     >
       {label}
     </span>
