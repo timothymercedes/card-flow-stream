@@ -1672,6 +1672,19 @@ function Vault() {
     return updateVariant(card, v.edition, v.finish, code);
   }
 
+  async function toggleTradeFlag(card: Card, key: "accept_trades" | "trade_plus_cash" | "accept_offers" | "collection_only", value: boolean) {
+    const patch: Partial<Card> = { [key]: value };
+    // Collection-only and tradeable are mutually exclusive.
+    if (key === "collection_only" && value) { patch.accept_trades = false; patch.trade_plus_cash = false; }
+    if ((key === "accept_trades" || key === "trade_plus_cash") && value) patch.collection_only = false;
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
+    setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
+    const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
+    if (error) toast.error("Couldn't update trade setting");
+  }
+
+
+
   async function saveEdit() {
     if (!editing) return;
     // estimated_value is auto-managed by TCG; recompute from condition_prices if condition changed
