@@ -1028,6 +1028,10 @@ export const getBattleReplay = createServerFn({ method: "POST" })
     const myCompanion = iAmChallenger ? challengerC : opponentC;
     const oppCompanion = iAmChallenger ? opponentC : challengerC;
     const isPve = b.battle_type === "pve";
+    const isBoss = b.battle_type === "boss";
+    const bossName = isBoss
+      ? `${bossCharacter((b.difficulty as ArenaBossKey) ?? "daily").name} · ${AI_BOSSES[(b.difficulty as ArenaBossKey) ?? "daily"].label}`
+      : null;
 
     return {
       battleId: b.id,
@@ -1040,7 +1044,7 @@ export const getBattleReplay = createServerFn({ method: "POST" })
         theirRounds,
         log,
         rewards: { xp: 0, trophies: 0, rank: 0, credits: 0 },
-        opponentName: isPve ? "Training Opponent" : (oppCompanion?.name ?? "Opponent"),
+        opponentName: bossName ?? (isPve ? "Training Opponent" : (oppCompanion?.name ?? "Opponent")),
         opponentImage: (oppCompanion?.image_url ?? null) as string | null,
         newBadges: [] as ArenaBadgeKey[],
       },
