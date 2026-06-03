@@ -132,8 +132,19 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
     queryFn: () => getDetail({ data: { setName, category } }),
   });
   const [tab, setTab] = useState("missing");
+  const [availableOnly, setAvailableOnly] = useState(false);
 
   const d = q.data;
+
+  const marketHref = `/market?q=${encodeURIComponent(setName)}`;
+  const tradeHref = `/trade?q=${encodeURIComponent(setName)}`;
+
+  const visibleMissing = d
+    ? availableOnly
+      ? d.missing.filter((c) => c.listingsCount > 0 || c.tradeCount > 0)
+      : d.missing
+    : [];
+  const availableCount = d ? d.missing.filter((c) => c.listingsCount > 0 || c.tradeCount > 0).length : 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
@@ -149,14 +160,40 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
         {d && (
           <div className="mt-2">
             <p className="text-sm text-muted-foreground">
-              {d.knownTotal > 0 ? `${d.ownedCount} of ${d.knownTotal} cards collected` : `${d.ownedCount} cards collected`}
+              {d.knownTotal > 0
+                ? `${d.ownedCount} of ${d.knownTotal} cards collected${d.official ? "" : " (estimated set size)"}`
+                : `${d.ownedCount} cards collected`}
+              {d.ownedCopies > d.ownedCount ? ` · ${d.ownedCopies} copies total` : ""}
             </p>
             {d.completion != null && (
               <div className="mt-1.5 max-w-xs">
                 <Progress value={d.completion} className="h-2" />
-                <p className="mt-1 text-xs font-medium">{d.completion}% complete</p>
+                <p className="mt-1 text-xs font-medium">
+                  {d.completion}% complete · {d.distinctMissingCount} still needed
+                </p>
               </div>
             )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={availableOnly ? "default" : "secondary"}
+                onClick={() => { setTab("missing"); setAvailableOnly((v) => !v); }}
+                className="h-8"
+              >
+                <Search className="mr-1 h-3.5 w-3.5" />
+                {availableOnly ? `Showing ${availableCount} available` : "Find missing cards"}
+              </Button>
+              <Button asChild size="sm" variant="outline" className="h-8">
+                <Link to="/market" search={{ q: setName }}>
+                  <Tag className="mr-1 h-3.5 w-3.5" /> Shop this set
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="h-8">
+                <Link to="/trade" search={{ q: setName }}>
+                  <ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade for cards
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
       </header>
@@ -166,21 +203,34 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
       {d && (
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="missing">Missing ({d.missing.length})</TabsTrigger>
+            <TabsTrigger value="missing">Missing ({d.distinctMissingCount})</TabsTrigger>
             <TabsTrigger value="owned">Owned ({d.owned.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="missing" className="mt-3">
-            {d.missing.length === 0 ? (
+            {d.distinctMissingCount === 0 ? (
               <Card className="p-8 text-center text-sm text-muted-foreground">
-                🎉 You've collected every known card in this set!
+                🎉 You've collected every card in this set!
+              </Card>
+            ) : visibleMissing.length === 0 ? (
+              <Card className="p-8 text-center text-sm text-muted-foreground">
+                {availableOnly
+                  ? "None of your missing cards are for sale or trade right now. Add them to your wishlist to get notified."
+                  : "We don't have card previews for this set yet, but you can still shop or trade for it above."}
               </Card>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {d.missing.map((c) => (
-                  <MissingCard key={c.number + c.name} card={c} setName={setName} category={category} />
-                ))}
-              </div>
+              <>
+                {d.distinctMissingCount > d.missing.length && (
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Showing {d.missing.length} missing cards with previews · {d.distinctMissingCount - d.missing.length} more in this set.
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {visibleMissing.map((c) => (
+                    <MissingCard key={c.number + c.name} card={c} setName={setName} category={category} />
+                  ))}
+                </div>
+              </>
             )}
           </TabsContent>
 
