@@ -249,6 +249,7 @@ async function resolvePvpBattle(
 
   return {
     iWon, myRounds, theirRounds, log,
+    battleId: (battle?.id ?? null) as string | null,
     rewards: iWon
       ? { xp: 50, trophies: 10, rank: 15, credits }
       : { xp: 15, trophies: 2, rank: -10, credits: 0 },
