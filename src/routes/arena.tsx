@@ -621,6 +621,7 @@ function ArenaPage() {
               myImage={activeMine?.image_url}
               mySeed={activeMine ? `${activeMine.id}:${activeMine.name}` : null}
               myLevel={activeMine?.level ?? 1}
+              myPassive={activeMine?.hidden_traits?.[0] ?? null}
               myFrameClass={equipped.frameClass}
               myEffectClass={equipped.effectClass}
               myTitle={equipped.titleText}
