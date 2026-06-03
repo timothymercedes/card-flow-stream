@@ -512,7 +512,155 @@ function ArenaPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Battle Player dialog (per-companion) */}
+      <Dialog open={!!battleFor} onOpenChange={(o) => !o && setBattleFor(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Swords className="h-5 w-5 text-primary" />Battle Player · {activeMine?.name ?? "Companion"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-medium">Arena Category</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setCategory("all")}
+                className={`rounded-full border px-3 py-1.5 text-sm transition ${category === "all" ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
+              >
+                ⚔️ All Categories
+              </button>
+              {ARENA_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => setCategory(cat.key)}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition ${category === cat.key ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
+                >
+                  {cat.emoji} {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-primary/5 p-3">
+            <p className="flex-1 text-xs text-muted-foreground">
+              Real battles reward the most — up to <span className="font-semibold text-foreground">+{PVP_WIN_XP} XP</span>, trophies, rank and leaderboard points.
+            </p>
+            <Button onClick={quickMatch} disabled={battleM.isPending || (oppQ.data?.opponents.length ?? 0) === 0} size="sm">
+              <Zap className="mr-2 h-4 w-4" />Quick Match
+            </Button>
+          </div>
+
+          {oppQ.isLoading ? (
+            <Card className="p-8 text-center text-muted-foreground">Finding opponents…</Card>
+          ) : (oppQ.data?.opponents.length ?? 0) === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground">No opponents in this arena yet. Check back soon!</Card>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {oppQ.data!.opponents.map((o) => (
+                <OpponentCard key={o.id} o={o} onFight={() => fight(o.id)} disabled={battleM.isPending} />
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Train AI dialog (per-companion) */}
+      <Dialog open={!!trainFor} onOpenChange={(o) => !o && setTrainFor(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />Train AI · {activeMine?.name ?? "Companion"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <Card className="mb-4 border-dashed p-4">
+            <p className="text-sm">
+              Practice against computer opponents to learn the Arena and train your companions risk-free.
+              Training gives <span className="font-semibold">reduced XP and rewards</span> and earns
+              <span className="font-semibold"> no rank or leaderboard points</span> — real PVP battles are always worth more.
+            </p>
+          </Card>
+
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-medium">Difficulty</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(Object.keys(DIFFICULTY_META) as ArenaDifficulty[]).map((k) => {
+                const m = DIFFICULTY_META[k];
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setDifficulty(k)}
+                    className={`rounded-lg border p-3 text-left transition ${difficulty === k ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`}
+                  >
+                    <div className="text-sm font-semibold">{m.emoji} {m.label}</div>
+                    <div className="text-[10px] text-muted-foreground">Win +{m.winXp} XP</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <Button onClick={trainCpu} disabled={pveM.isPending} className="w-full">
+            <Swords className="mr-2 h-4 w-4" />
+            {pveM.isPending ? "Training…" : `Train vs Computer (${DIFFICULTY_META[difficulty].label})`}
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Stats dialog (per-companion) */}
+      <Dialog open={!!statsFor} onOpenChange={(o) => !o && setStatsFor(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />{statsCompanion?.name ?? "Companion"}
+            </DialogTitle>
+          </DialogHeader>
+          {statsCompanion && (
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                {statsCompanion.image_url ? (
+                  <img src={statsCompanion.image_url} alt={statsCompanion.name} className="h-28 w-20 rounded object-cover" loading="lazy" />
+                ) : (
+                  <div className="flex h-28 w-20 items-center justify-center rounded bg-muted"><Sparkles className="h-7 w-7 text-muted-foreground" /></div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <Badge variant="secondary">Lv {statsCompanion.level}</Badge>
+                  <div className="mt-1">{titleBadge(statsCompanion.title as ArenaTitle)}</div>
+                  <p className="mt-1 text-xs text-muted-foreground">{statsCompanion.wins}W / {statsCompanion.losses}L</p>
+                  <div className="mt-2">
+                    <Progress value={companionLevelProgress(statsCompanion.xp).pct} className="h-1.5" />
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      {companionLevelProgress(statsCompanion.xp).current}/{companionLevelProgress(statsCompanion.xp).needed} XP to Lv {companionLevelProgress(statsCompanion.xp).level + 1}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <StatBar icon={Swords} label="Attack" value={statsCompanion.attack} />
+                <StatBar icon={Shield} label="Defense" value={statsCompanion.defense} />
+                <StatBar icon={Zap} label="Speed" value={statsCompanion.speed} />
+              </div>
+              {statsCompanion.hidden_traits?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {statsCompanion.hidden_traits.map((t) => <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>)}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={() => { const id = statsCompanion.id; setStatsFor(null); openBattle(id); }} size="sm">
+                  <Swords className="mr-1.5 h-4 w-4" />Battle Player
+                </Button>
+                <Button onClick={() => { const id = statsCompanion.id; setStatsFor(null); openTrain(id); }} size="sm" variant="secondary">
+                  <Shield className="mr-1.5 h-4 w-4" />Train AI
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
+
   );
 }
 
