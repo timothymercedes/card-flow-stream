@@ -238,16 +238,45 @@ export function ArenaBattleStage({
   const myAnim = companionAnimFor("mine");
   const theirAnim = companionAnimFor("theirs");
 
-  // Attacker lunges across the arena toward the defender on each strike.
+  // Evolution stage per side drives sprite scale, aura & crown.
+  const myEvo = evolutionStage(myLevel).stage;
+  const theirEvo = evolutionStage(myLevel).stage;
+
+  // Combat element of the current attacker — themes projectile + burst + caption.
+  const attackerElement: ElementMeta = useMemo(
+    () => archetypeElement(deriveArchetype(ev?.attacker === "mine" ? myName : result.opponentName, arenaCategory).key),
+    [ev?.attacker, myName, result.opponentName, arenaCategory],
+  );
+
+  // Varied attacker movement so no two strikes look identical: dash / jump /
+  // charge / lunge, picked deterministically from the round + skill.
+  function attackMove(side: "left" | "right"): string {
+    if (!ev) return "";
+    const variant = (ev.round + (ev.skill === "special" ? 2 : 0)) % 4;
+    const dir = side === "left" ? "left" : "right";
+    if (fx?.kind === "crit") return `arena-charge-${dir}`;
+    if (variant === 0) return `arena-dash-${dir}`;
+    if (variant === 1) return `arena-jump-${dir}`;
+    if (variant === 2) return `arena-charge-${dir}`;
+    return `arena-lunge-${dir}`;
+  }
+
+  // Attacker advances toward the defender; defender gets knocked back on a hit.
   function wrapperAnimFor(sideKey: "mine" | "theirs", side: "left" | "right"): string {
     if (phase === "intro") return side === "left" ? "arena-enter-left" : "arena-enter-right";
-    if (phase === "fight" && ev && fx && ev.attacker === sideKey && fx.kind !== "dodge") {
-      return side === "left" ? "arena-lunge-left" : "arena-lunge-right";
+    if (phase === "fight" && ev && fx) {
+      if (ev.attacker === sideKey && fx.kind !== "dodge") return attackMove(side);
+      if (fx.defender === sideKey && fx.kind !== "dodge" && fx.kind !== "block") {
+        return side === "left" ? "arena-knockback-left" : "arena-knockback-right";
+      }
     }
     return "";
   }
   // Camera shake on every landed (non-dodge) hit — punchy combat feedback.
   const impactShake = phase === "fight" && fx && fx.kind !== "dodge";
+  // Rare "ultimate" moment: a special critical from an elite/legendary fighter.
+  const ultimateActive = !!fx && fx.kind === "crit" && fx.skill === "special" &&
+    (ev?.attacker === "mine" ? myEvo : theirEvo) >= 2;
 
   function share() {
     const text = result.iWon
