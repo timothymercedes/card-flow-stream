@@ -531,11 +531,42 @@ function ArenaPage() {
               myTitle={equipped.titleText}
               arenaCategory={activeMine?.arena_category ?? category}
               isTraining={battleResult.rewards.rank === 0 && battleResult.rewards.credits === 0}
+              onShareToFeed={() => shareFeedM.mutate({
+                result: battleResult,
+                companionName: activeMine?.name ?? "Your companion",
+                companionImage: activeMine?.image_url ?? null,
+              })}
+              sharingToFeed={shareFeedM.isPending}
               onClose={() => setBattleResult(null)}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Battle replay viewer */}
+      <Dialog open={!!replay} onOpenChange={(o) => !o && setReplay(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-primary" />Battle Replay
+            </DialogTitle>
+          </DialogHeader>
+          {replay && (
+            <ArenaBattleStage
+              result={replay.result}
+              myName={replay.myName}
+              myImage={replay.myImage}
+              myFrameClass={equipped.frameClass}
+              myEffectClass={equipped.effectClass}
+              myTitle={equipped.titleText}
+              isTraining={replay.isTraining}
+              hideRewards
+              onClose={() => setReplay(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       {/* Collector Arena profile dialog */}
       <Dialog open={!!profileUserId} onOpenChange={(o) => !o && setProfileUserId(null)}>
