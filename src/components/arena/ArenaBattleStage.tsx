@@ -290,11 +290,15 @@ export function ArenaBattleStage({
           <div className="relative flex-1">
             <Fighter
               name={result.opponentName}
-              image={result.opponentImage}
+              cardImage={result.opponentImage}
               emoji={result.opponentEmoji}
               side="right"
+              category={arenaCategory}
+              seedKey={result.opponentName}
+              level={myLevel}
               hp={theirHp}
-              anim={`${phase === "intro" ? "arena-enter-right" : ""} ${theirAttacking ? "arena-lunge-right" : ""} ${theirDefendCls}`.trim()}
+              wrapperAnim={phase === "intro" ? "arena-enter-right" : ""}
+              companionAnim={theirAnim}
             />
             {fx?.side === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
           </div>
