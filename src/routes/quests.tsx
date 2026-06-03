@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProgression } from "@/hooks/useProgression";
-import { progressToNextLevel } from "@/lib/progression";
-import { Trophy, Flame, Zap, CheckCircle2, Lock } from "lucide-react";
+import { progressToNextLevel, openDailyCrate, RARITY_STYLE, type CrateReward } from "@/lib/progression";
+import { Trophy, Flame, Zap, CheckCircle2, Lock, Gift, Sparkles, Gem } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/quests")({
   head: () => ({ meta: [
@@ -26,6 +27,10 @@ function QuestsPage() {
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
+  const [crateOpenedToday, setCrateOpenedToday] = useState(false);
+  const [ownedRewards, setOwnedRewards] = useState<string[]>([]);
+  const [opening, setOpening] = useState(false);
+  const [lastReward, setLastReward] = useState<CrateReward | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -42,9 +47,26 @@ function QuestsPage() {
         setProgress(map);
         const { data: ua } = await supabase.from("user_achievements" as any).select("achievement_id").eq("user_id", user.id);
         setUnlocked(new Set(((ua as any) || []).map((u: any) => u.achievement_id)));
+        const { data: cs } = await supabase.from("user_crate_state" as any).select("last_opened_date").eq("user_id", user.id).maybeSingle();
+        setCrateOpenedToday(((cs as any)?.last_opened_date ?? null) === today);
+        const { data: rw } = await supabase.from("user_rewards" as any).select("reward_slug").eq("user_id", user.id);
+        setOwnedRewards(((rw as any) || []).map((r: any) => r.reward_slug));
       }
     })();
   }, [user?.id]);
+
+  const handleOpenCrate = async () => {
+    if (opening || crateOpenedToday) return;
+    setOpening(true);
+    const reward = await openDailyCrate();
+    setOpening(false);
+    if (!reward) { toast.error("Couldn't open crate. Try again."); return; }
+    if (reward.already_opened) { setCrateOpenedToday(true); toast("You already opened today's crate."); return; }
+    setCrateOpenedToday(true);
+    setLastReward(reward);
+    if (reward.reward_slug && reward.kind !== "xp") setOwnedRewards((p) => [...new Set([...p, reward.reward_slug!])]);
+    toast.success(`${reward.reward_name} • +${reward.xp_bonus} XP`);
+  };
 
   const lvl = progression ? progressToNextLevel(progression.xp) : null;
 
@@ -71,7 +93,50 @@ function QuestsPage() {
           </div>
         )}
 
+        {/* Daily crate */}
+        <section>
+          <h2 className="mb-2 px-1 text-xs font-extrabold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            <Gift className="h-3.5 w-3.5" /> Daily Crate
+          </h2>
+          <div className="rounded-3xl border border-border bg-gradient-to-br from-violet-500/10 via-fuchsia-500/10 to-amber-500/10 p-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleOpenCrate}
+                disabled={opening || crateOpenedToday || !user}
+                className={`relative grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg transition active:scale-95 disabled:opacity-60 ${!crateOpenedToday && !opening ? "animate-pulse" : ""}`}
+              >
+                {opening ? <Sparkles className="h-8 w-8 animate-spin" /> : crateOpenedToday ? <CheckCircle2 className="h-8 w-8" /> : <Gift className="h-9 w-9" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                {!user ? (
+                  <p className="text-sm font-bold">Sign in to open your daily crate.</p>
+                ) : crateOpenedToday ? (
+                  <>
+                    <p className="text-sm font-extrabold">Crate opened! 🎉</p>
+                    <p className="text-[11px] text-muted-foreground">Come back tomorrow for another free crate.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-extrabold">Open today's free crate</p>
+                    <p className="text-[11px] text-muted-foreground">Win XP boosts, badges, titles, frames & themes — purely digital rewards.</p>
+                  </>
+                )}
+                {lastReward && lastReward.reward_name && (
+                  <div className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold ring-2 ${RARITY_STYLE[lastReward.rarity ?? "common"]?.ring ?? "ring-slate-400"} ${RARITY_STYLE[lastReward.rarity ?? "common"]?.text ?? ""}`}>
+                    <Gem className="h-3 w-3" /> {lastReward.reward_name}
+                    <span className="uppercase opacity-70">{lastReward.rarity}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            {ownedRewards.length > 0 && (
+              <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{ownedRewards.length} cosmetic{ownedRewards.length === 1 ? "" : "s"} collected</p>
+            )}
+          </div>
+        </section>
+
         {/* Daily quests */}
+
         <section>
           <h2 className="mb-2 px-1 text-xs font-extrabold uppercase tracking-widest text-muted-foreground">Daily & Weekly Quests</h2>
           <div className="space-y-2">
