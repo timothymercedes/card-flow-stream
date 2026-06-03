@@ -1708,11 +1708,11 @@ function Vault() {
     if (!activeTrade || key === "collection_only") {
       await supabase
         .from("listings")
-        .update({ expires_at: nowIso })
+        .update({ expires_at: nowIso, auction_status: "cancelled" } as never)
         .eq("seller_id", user.id)
         .eq("vault_card_id", card.id)
         .eq("listing_type", "trade")
-        .gt("expires_at", nowIso);
+        .eq("auction_status", "active");
       if (value || key !== "collection_only") toast.success("Removed from active trade listings");
       return;
     }
@@ -1722,7 +1722,8 @@ function Vault() {
       .select("id, listing_type, is_auction, price, buy_now_price")
       .eq("seller_id", user.id)
       .eq("vault_card_id", card.id)
-      .gt("expires_at", nowIso)
+      .eq("listing_type", "trade")
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -1738,6 +1739,7 @@ function Vault() {
           tcg_number: card.tcg_number || null,
           tcg_set: card.tcg_set || null,
           tcg_year: card.tcg_year || null,
+          auction_status: "active",
           expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         } as never).eq("id", existing.id);
       }
@@ -1752,6 +1754,7 @@ function Vault() {
       image_url: displayImage(card) || card.image_url || null,
       category: card.category || null,
       listing_type: "trade",
+      auction_status: "active",
       is_auction: false,
       accepts_offers: false,
       price: null,
