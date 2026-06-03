@@ -723,14 +723,14 @@ function ArenaPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />Training · {activeMine?.name ?? "Companion"}
+              <Shield className="h-5 w-5 text-primary" />Battle Modes · {activeMine?.name ?? "Companion"}
             </DialogTitle>
           </DialogHeader>
 
           <p className="mb-3 text-xs text-muted-foreground">
-            Train your companion against AI trainers using the same battle engine as PVP.
-            Training is risk-free and gives <span className="font-semibold">reduced XP</span> with{" "}
-            <span className="font-semibold">no rank or leaderboard points</span> — real PVP battles always progress faster.
+            <span className="font-semibold">Practice</span> against AI trainers for risk-free, reduced XP, or take on an
+            <span className="font-semibold"> always-available Boss</span> for full rewards. The same HP-based battle engine
+            powers every fight — crits, dodges, traits and random events decide the winner.
           </p>
 
           {/* Choose your AI trainer */}
