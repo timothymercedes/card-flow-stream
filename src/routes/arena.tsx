@@ -13,7 +13,9 @@ import {
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
+  TRAINING_TRAINERS,
 } from "@/lib/arenaShared";
+import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
 import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
