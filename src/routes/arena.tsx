@@ -281,7 +281,7 @@ function ArenaPage() {
 
   function trainCpu() {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
-    pveM.mutate({ myCompanionId: activeMine.id, difficulty });
+    pveM.mutate({ myCompanionId: activeMine.id, difficulty, environment: environment ?? undefined });
   }
 
   if (!user) {
