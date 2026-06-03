@@ -507,7 +507,8 @@ body.kb-open [data-bottom-nav] {
 .arena-projectile-left { animation: arena-projectile-left 0.45s ease-in forwards; }
 @media (prefers-reduced-motion: reduce) {
   .arena-enter-left,.arena-enter-right,.arena-lunge-left,.arena-lunge-right,
-  .arena-hit,.arena-shake,.arena-burst,.arena-spark,.arena-victory { animation: none !important; }
+  .arena-hit,.arena-shake,.arena-burst,.arena-spark,.arena-victory,
+  .arena-projectile-right,.arena-projectile-left { animation: none !important; }
 }
 
 /* Arena cosmetic effect auras (equipped FX layered behind a fighter) */
