@@ -67,6 +67,9 @@ function ArenaPage() {
     | null
   >(null);
   const [selectedMine, setSelectedMine] = useState<string | null>(null);
+  const [collectorQuery, setCollectorQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
   const syncFn = useServerFn(syncCompanions);
@@ -75,6 +78,13 @@ function ArenaPage() {
   const pveFn = useServerFn(battlePve);
   const historyFn = useServerFn(getBattleHistory);
   const lbFn = useServerFn(getLeaderboards);
+  const searchFn = useServerFn(searchCollectors);
+  const profileFn = useServerFn(getArenaProfile);
+  const followFn = useServerFn(followCollector);
+  const unfollowFn = useServerFn(unfollowCollector);
+  const challengeUserFn = useServerFn(challengeUser);
+  const recentFn = useServerFn(getRecentOpponents);
+  const badgesFn = useServerFn(listMyBadges);
 
   const myQ = useQuery({
     queryKey: ["arena", "mine"],
@@ -93,6 +103,19 @@ function ArenaPage() {
     queryKey: ["arena", "history"],
     queryFn: () => historyFn(),
     enabled: !!user,
+  });
+
+  const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: !!user });
+  const recentQ = useQuery({ queryKey: ["arena", "recent"], queryFn: () => recentFn(), enabled: !!user });
+  const searchQ = useQuery({
+    queryKey: ["arena", "collectors", searchTerm],
+    queryFn: () => searchFn({ data: { query: searchTerm } }),
+    enabled: !!user,
+  });
+  const profileQ = useQuery({
+    queryKey: ["arena", "profile", profileUserId],
+    queryFn: () => profileFn({ data: { userId: profileUserId! } }),
+    enabled: !!user && !!profileUserId,
   });
 
   const lbQ = useQuery({ queryKey: ["arena", "leaderboards"], queryFn: () => lbFn() });
