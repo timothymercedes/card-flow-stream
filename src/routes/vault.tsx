@@ -2670,6 +2670,28 @@ function Vault() {
 
             <CardPriceChart name={actionFor.name} tcgSet={actionFor.tcg_set} tcgNumber={actionFor.tcg_number} currentValue={actionFor.estimated_value} cardIdentityId={actionFor.card_identity_id} />
 
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Trade availability</p>
+              {([
+                ["accept_trades", "Available for trade"],
+                ["trade_plus_cash", "Accept trade + cash"],
+                ["accept_offers", "Accept offers"],
+                ["collection_only", "Collection only (not for trade)"],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center justify-between gap-2 text-sm">
+                  <span>{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={!!actionFor[key]}
+                    onChange={(e) => toggleTradeFlag(actionFor, key, e.target.checked)}
+                    className="h-5 w-5 accent-primary"
+                  />
+                </label>
+              ))}
+            </div>
+
+
+
 
             <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
               <Tag className="h-4 w-4" /> Sell this card
