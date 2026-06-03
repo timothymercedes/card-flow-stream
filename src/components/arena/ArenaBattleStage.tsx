@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
+import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
 import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users } from "lucide-react";
 import { toast } from "sonner";
 
