@@ -923,13 +923,28 @@ function ArenaPage() {
               {TRAINING_MISSIONS.map((mission) => {
                 const have = Math.min(mission.count(historyQ.data?.battles ?? []), mission.goal);
                 const done = have >= mission.goal;
+                const claimed = (claimsQ.data?.claimed ?? []).includes(mission.key);
                 return (
                   <div key={mission.key}>
-                    <div className="mb-1 flex items-center justify-between text-[11px]">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
                       <span className={done ? "font-semibold text-emerald-500" : "font-medium"}>
                         {done ? "✓ " : ""}{mission.label}
                       </span>
-                      <span className="text-muted-foreground">{have}/{mission.goal} · {mission.reward}</span>
+                      {claimed ? (
+                        <span className="font-semibold text-emerald-500">Claimed ✓</span>
+                      ) : done ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 px-2 text-[10px]"
+                          disabled={claimM.isPending}
+                          onClick={() => claimM.mutate(mission.key)}
+                        >
+                          Claim {mission.reward}
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground">{have}/{mission.goal} · {mission.reward}</span>
+                      )}
                     </div>
                     <Progress value={(have / mission.goal) * 100} className="h-1.5" />
                   </div>
@@ -937,6 +952,7 @@ function ArenaPage() {
               })}
             </div>
           </div>
+
 
           <Button onClick={trainCpu} disabled={pveM.isPending || bossM.isPending} className="w-full">
             <Swords className="mr-2 h-4 w-4" />
