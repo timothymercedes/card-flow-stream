@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   titleForWins, communityForCategory, deriveCompanionStats, valueTier,
-  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS,
+  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS, TRAINING_TRAINERS,
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
 import { arenaCategoryFor } from "@/lib/arenaCategories";
@@ -333,14 +333,9 @@ export const awardCompanionXp = createServerFn({ method: "POST" })
 // ---- PVE: battle a computer opponent (training) ----
 // Capped, reduced rewards. NO arena_rank / season_wins / leaderboard points are
 // awarded — real PVP battles are always more valuable (anti-abuse).
-const COMPUTER_NAMES = [
-  "Training Dummy", "Rookie Bot", "Arena Sentinel", "Practice Golem",
-  "Sparring Partner", "Mock Challenger", "Drill Master", "Shadow Trainer",
-];
-
 export const battlePve = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { myCompanionId: string; difficulty: ArenaDifficulty }) => d)
+  .inputValidator((d: { myCompanionId: string; difficulty: ArenaDifficulty; environment?: string }) => d)
   .handler(async ({ context, data }) => {
     const { userId } = context;
     const diff = DIFFICULTY_META[data.difficulty] ?? DIFFICULTY_META.normal;
@@ -394,7 +389,7 @@ export const battlePve = createServerFn({ method: "POST" })
     }
     await supabaseAdmin.from("arena_companions").update(update).eq("id", me.id);
 
-    const cpuName = COMPUTER_NAMES[Math.floor(Math.random() * COMPUTER_NAMES.length)];
+    const trainer = TRAINING_TRAINERS[data.difficulty] ?? TRAINING_TRAINERS.normal;
     const { data: pveBattle } = await supabaseAdmin.from("arena_battles").insert({
       challenger_id: me.user_id,
       opponent_id: null,
@@ -414,8 +409,10 @@ export const battlePve = createServerFn({ method: "POST" })
       log,
       battleId: (pveBattle?.id ?? null) as string | null,
       rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
-      opponentName: `${cpuName} (${diff.label})`,
+      opponentName: `${trainer.name} · ${trainer.rank}`,
       opponentImage: null as string | null,
+      opponentEmoji: trainer.emoji as string | null,
+      environment: (data.environment ?? null) as string | null,
       newBadges: [] as ArenaBadgeKey[],
     };
   });

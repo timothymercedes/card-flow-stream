@@ -22,6 +22,8 @@ export type StageResult = {
   rewards: { xp: number; trophies: number; rank: number; credits: number };
   opponentName: string;
   opponentImage?: string | null;
+  opponentEmoji?: string | null;
+  environment?: string | null;
   newBadges: ArenaBadgeKey[];
 };
 
@@ -60,9 +62,9 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
 }
 
 function Fighter({
-  name, image, side, anim, frameClass = "", effectClass = "", title, hp,
+  name, image, emoji, side, anim, frameClass = "", effectClass = "", title, hp,
 }: {
-  name: string; image?: string | null; side: "left" | "right"; anim: string;
+  name: string; image?: string | null; emoji?: string | null; side: "left" | "right"; anim: string;
   frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
   return (
@@ -73,8 +75,8 @@ function Fighter({
         {image ? (
           <img src={image} alt={name} className={`arena-fighter relative h-28 w-20 rounded object-cover sm:h-36 sm:w-28 ${frameClass}`} />
         ) : (
-          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted sm:h-36 sm:w-28 ${frameClass}`}>
-            <Sparkles className="h-8 w-8 text-muted-foreground" />
+          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted text-4xl sm:h-36 sm:w-28 sm:text-5xl ${frameClass}`}>
+            {emoji ? <span aria-hidden>{emoji}</span> : <Sparkles className="h-8 w-8 text-muted-foreground" />}
           </div>
         )}
       </div>
@@ -92,7 +94,7 @@ function Fighter({
 
 export function ArenaBattleStage({
   result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
-  isTraining = false, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
+  isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
   myName: string;
@@ -102,6 +104,7 @@ export function ArenaBattleStage({
   myTitle?: string;
   arenaCategory?: string;
   isTraining?: boolean;
+  environmentLabel?: string;
   hideRewards?: boolean;
   onShareToFeed?: () => void;
   sharingToFeed?: boolean;
@@ -193,8 +196,14 @@ export function ArenaBattleStage({
         {phase === "intro" && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
             <div className="arena-banner-in">
+              {isTraining && (
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Training Mode</p>
+              )}
               <div className="text-4xl">{meta.emoji}</div>
               <p className="mt-1 text-sm font-black uppercase tracking-widest text-primary drop-shadow">{meta.label}</p>
+              {environmentLabel && (
+                <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{environmentLabel}</p>
+              )}
               <p className="mt-2 text-2xl font-black tracking-widest text-foreground">VS</p>
             </div>
           </div>
@@ -252,6 +261,7 @@ export function ArenaBattleStage({
             <Fighter
               name={result.opponentName}
               image={result.opponentImage}
+              emoji={result.opponentEmoji}
               side="right"
               hp={theirHp}
               anim={`${phase === "intro" ? "arena-enter-right" : ""} ${theirAttacking ? "arena-lunge-right" : ""} ${theirDefendCls}`.trim()}

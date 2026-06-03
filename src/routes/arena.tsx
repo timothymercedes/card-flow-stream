@@ -13,7 +13,9 @@ import {
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
+  TRAINING_TRAINERS,
 } from "@/lib/arenaShared";
+import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
 import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
@@ -94,6 +96,7 @@ function ArenaPage() {
   const { category: initialCategory } = Route.useSearch();
   const [category, setCategory] = useState<string>(initialCategory ?? "all");
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
+  const [environment, setEnvironment] = useState<string | null>(null);
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
     | Awaited<ReturnType<typeof challengeUser>>
@@ -189,7 +192,7 @@ function ArenaPage() {
   });
 
   const pveM = useMutation({
-    mutationFn: (vars: { myCompanionId: string; difficulty: ArenaDifficulty }) => pveFn({ data: vars }),
+    mutationFn: (vars: { myCompanionId: string; difficulty: ArenaDifficulty; environment?: string }) => pveFn({ data: vars }),
     onSuccess: (r) => {
       setTrainFor(null);
       setBattleResult(r);
@@ -252,7 +255,12 @@ function ArenaPage() {
   );
 
   function openBattle(id: string) { setSelectedMine(id); setBattleFor(id); }
-  function openTrain(id: string) { setSelectedMine(id); setTrainFor(id); }
+  function openTrain(id: string) {
+    setSelectedMine(id);
+    const c = companions.find((x) => x.id === id);
+    setEnvironment(environmentsFor(c?.arena_category)[0]?.key ?? null);
+    setTrainFor(id);
+  }
   function openCustomize() { setTab("rewards"); }
 
   function battleCollector(targetUserId: string) {
@@ -273,7 +281,7 @@ function ArenaPage() {
 
   function trainCpu() {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
-    pveM.mutate({ myCompanionId: activeMine.id, difficulty });
+    pveM.mutate({ myCompanionId: activeMine.id, difficulty, environment: environment ?? undefined });
   }
 
   if (!user) {
@@ -531,6 +539,11 @@ function ArenaPage() {
               myTitle={equipped.titleText}
               arenaCategory={activeMine?.arena_category ?? category}
               isTraining={battleResult.rewards.rank === 0 && battleResult.rewards.credits === 0}
+              environmentLabel={
+                "environment" in battleResult && battleResult.environment
+                  ? environmentMeta(activeMine?.arena_category, battleResult.environment).label
+                  : undefined
+              }
               onShareToFeed={() => shareFeedM.mutate({
                 result: battleResult,
                 companionName: activeMine?.name ?? "Your companion",
@@ -688,37 +701,91 @@ function ArenaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Train AI dialog (per-companion) */}
+      {/* Train AI — game-mode select screen (per-companion) */}
       <Dialog open={!!trainFor} onOpenChange={(o) => !o && setTrainFor(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />Train AI · {activeMine?.name ?? "Companion"}
+              <Shield className="h-5 w-5 text-primary" />Training · {activeMine?.name ?? "Companion"}
             </DialogTitle>
           </DialogHeader>
 
-          <Card className="mb-4 border-dashed p-4">
-            <p className="text-sm">
-              Practice against computer opponents to learn the Arena and train your companions risk-free.
-              Training gives <span className="font-semibold">reduced XP and rewards</span> and earns
-              <span className="font-semibold"> no rank or leaderboard points</span> — real PVP battles are always worth more.
-            </p>
-          </Card>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Train your companion against AI trainers using the same battle engine as PVP.
+            Training is risk-free and gives <span className="font-semibold">reduced XP</span> with{" "}
+            <span className="font-semibold">no rank or leaderboard points</span> — real PVP battles always progress faster.
+          </p>
 
+          {/* Choose your AI trainer */}
           <div className="mb-4">
-            <p className="mb-2 text-sm font-medium">Difficulty</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {(Object.keys(DIFFICULTY_META) as ArenaDifficulty[]).map((k) => {
+            <p className="mb-2 text-sm font-semibold">Choose your AI trainer</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(Object.keys(TRAINING_TRAINERS) as ArenaDifficulty[]).map((k) => {
+                const t = TRAINING_TRAINERS[k];
                 const m = DIFFICULTY_META[k];
+                const active = difficulty === k;
                 return (
                   <button
                     key={k}
                     onClick={() => setDifficulty(k)}
-                    className={`rounded-lg border p-3 text-left transition ${difficulty === k ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`}
+                    className={`rounded-lg border p-3 text-left transition ${active ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-muted"}`}
                   >
-                    <div className="text-sm font-semibold">{m.emoji} {m.label}</div>
-                    <div className="text-[10px] text-muted-foreground">Win +{m.winXp} XP</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl" aria-hidden>{t.emoji}</span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold">{t.name}</div>
+                        <div className="truncate text-[10px] font-medium text-primary">{m.emoji} {t.rank}</div>
+                      </div>
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{t.personality}</p>
+                    <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>{t.style}</span>
+                      <span className="font-semibold text-foreground">Win +{m.winXp} XP</span>
+                    </div>
                   </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Choose your environment */}
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-semibold">Training environment</p>
+            <div className="flex flex-wrap gap-2">
+              {environmentsFor(activeMine?.arena_category).map((env) => {
+                const active = environment === env.key;
+                return (
+                  <button
+                    key={env.key}
+                    onClick={() => setEnvironment(env.key)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${active ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted"}`}
+                  >
+                    {env.emoji} {env.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Training missions — progress from your battle history */}
+          <div className="mb-4 rounded-lg border bg-muted/30 p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+              <Award className="h-4 w-4 text-primary" />Training Missions
+            </p>
+            <div className="space-y-2.5">
+              {TRAINING_MISSIONS.map((mission) => {
+                const have = Math.min(mission.count(historyQ.data?.battles ?? []), mission.goal);
+                const done = have >= mission.goal;
+                return (
+                  <div key={mission.key}>
+                    <div className="mb-1 flex items-center justify-between text-[11px]">
+                      <span className={done ? "font-semibold text-emerald-500" : "font-medium"}>
+                        {done ? "✓ " : ""}{mission.label}
+                      </span>
+                      <span className="text-muted-foreground">{have}/{mission.goal} · {mission.reward}</span>
+                    </div>
+                    <Progress value={(have / mission.goal) * 100} className="h-1.5" />
+                  </div>
                 );
               })}
             </div>
@@ -726,10 +793,11 @@ function ArenaPage() {
 
           <Button onClick={trainCpu} disabled={pveM.isPending} className="w-full">
             <Swords className="mr-2 h-4 w-4" />
-            {pveM.isPending ? "Training…" : `Train vs Computer (${DIFFICULTY_META[difficulty].label})`}
+            {pveM.isPending ? "Training…" : `Train vs ${TRAINING_TRAINERS[difficulty].name}`}
           </Button>
         </DialogContent>
       </Dialog>
+
 
       {/* View Stats dialog (per-companion) */}
       <Dialog open={!!statsFor} onOpenChange={(o) => !o && setStatsFor(null)}>
