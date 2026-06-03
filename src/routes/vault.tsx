@@ -1801,9 +1801,15 @@ function Vault() {
     };
     setCards((prev) => prev.map((c) => (c.id === editing.id ? { ...c, ...patch } : c)));
     setActionFor((prev) => (prev && prev.id === editing.id ? { ...prev, ...patch } : prev));
+    const savedCard = { ...editing, ...patch } as Card;
     const { error, data } = await supabase.from("vault_cards").update(patch).eq("id", editing.id).select("id").single();
     if (!data && !error) return toast.error("Save did not update this card. Please reopen the vault and try again.");
     if (error) return toast.error(error.message);
+    await syncTradeMarketListing(
+      savedCard,
+      savedCard.collection_only || (!savedCard.accept_trades && !savedCard.trade_plus_cash) ? "collection_only" : "accept_trades",
+      !!savedCard.accept_trades,
+    );
     void ensureMasterIdentity(editing.id, {
       category: editing.category, name: editing.name, tcg_set: editing.tcg_set,
       tcg_number: editing.tcg_number, tcg_year: editing.tcg_year, variant: editing.variant,
