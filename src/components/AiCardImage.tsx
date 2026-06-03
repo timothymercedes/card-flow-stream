@@ -52,10 +52,12 @@ export function AiCardImage({
   card,
   alt,
   className = "",
+  priority = false,
 }: {
   card: AiCardIdentity;
   alt: string;
   className?: string;
+  priority?: boolean;
 }) {
   const gen = useServerFn(getOrCreateAiCardImage);
   const id = {
@@ -77,6 +79,7 @@ export function AiCardImage({
     gcTime: Infinity,
     retry: 4,
     retryDelay: (attempt) => Math.min(5000 * (attempt + 1), 20000),
+    enabled: priority,
   });
 
   if (q.data?.url) {
@@ -86,7 +89,7 @@ export function AiCardImage({
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
       <Sparkles className={`h-6 w-6 text-primary ${q.isLoading || q.isFetching ? "animate-pulse" : "opacity-50"}`} />
-      <span className="text-[9px]">{q.isLoading || q.isFetching ? "Generating art…" : "Retrying art…"}</span>
+      <span className="text-[9px]">{q.isLoading || q.isFetching ? "Generating art…" : "AI art queued"}</span>
     </div>
   );
 }
