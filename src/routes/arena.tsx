@@ -194,6 +194,15 @@ function ArenaPage() {
     [companions, selectedMine],
   );
 
+  const statsCompanion = useMemo(
+    () => companions.find((c) => c.id === statsFor) ?? null,
+    [companions, statsFor],
+  );
+
+  function openBattle(id: string) { setSelectedMine(id); setBattleFor(id); }
+  function openTrain(id: string) { setSelectedMine(id); setTrainFor(id); }
+  function openCustomize() { setTab("rewards"); }
+
   function battleCollector(targetUserId: string) {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
     challengeUserM.mutate({ myCompanionId: activeMine.id, targetUserId });
