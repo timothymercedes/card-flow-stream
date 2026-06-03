@@ -534,7 +534,7 @@ export const getBattleHistory = createServerFn({ method: "GET" })
       const iWon = b.winner_companion_id != null && myCompanionIds.has(b.winner_companion_id);
       return {
         id: b.id,
-        type: b.battle_type as "pvp" | "pve",
+        type: b.battle_type as "pvp" | "pve" | "boss",
         difficulty: b.difficulty as ArenaDifficulty | null,
         iWon,
         result: b.winner_companion_id == null ? "loss" : iWon ? "win" : "loss",
