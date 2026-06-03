@@ -1135,7 +1135,19 @@ function ArenaPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Customize — visual mode (Card / Inspired / Custom) + custom-piece builder */}
+      <CompanionCustomizeDialog
+        companion={customizeCompanion}
+        open={!!customizeFor}
+        onOpenChange={(o) => !o && setCustomizeFor(null)}
+        saving={visualM.isPending}
+        onSave={(mode, custom) =>
+          customizeCompanion && visualM.mutate({ companionId: customizeCompanion.id, mode, custom })
+        }
+      />
     </AppShell>
+
 
   );
 }
