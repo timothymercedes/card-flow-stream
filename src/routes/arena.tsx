@@ -8,14 +8,16 @@ import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
+  getBattleReplay, postBattleToFeed,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
-import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
+import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
+import { ArenaFeed } from "@/components/arena/ArenaFeed";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
-  Users, Search, UserPlus, UserCheck, Award, History, Gift,
+  Users, Search, UserPlus, UserCheck, Award, History, Gift, Rss, PlayCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
