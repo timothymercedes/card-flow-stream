@@ -5,6 +5,7 @@
 // unique, repeatable Arena fighter. No card art is used during combat.
 import { useMemo } from "react";
 import { seedFrom } from "@/lib/arenaShared";
+import type { ArchetypeKey } from "@/lib/arenaCompanion";
 
 export type CompanionAnim = "idle" | "attack" | "hit" | "dodge" | "victory" | "defeat";
 
@@ -22,12 +23,57 @@ const PALETTES: Record<string, { body: string; belly: string; accent: string; ey
   other:     { body: "#7c5cff", belly: "#e9e3ff", accent: "#22d3ee", eye: "#1a1a1a" },
 };
 
-type Headgear = "ears" | "hat" | "wizard" | "horns" | "band" | "crown" | "mask" | "helmet" | "antenna";
+type Headgear =
+  | "ears" | "hat" | "wizard" | "horns" | "band" | "crown" | "mask" | "helmet" | "antenna"
+  | "catears" | "wolfears" | "draconic" | "beak" | "halo" | "visor" | "pirate" | "hood" | "skull";
 
 const HEADGEAR_BY_CATEGORY: Record<string, Headgear> = {
   pokemon: "ears", onepiece: "hat", mtg: "wizard", yugioh: "horns", sports: "band",
   lorcana: "crown", marvel: "mask", starwars: "helmet", wrestling: "mask", other: "antenna",
 };
+
+// ---------------------------------------------------------------------------
+// Archetype → visual features. This is what makes a card's fighter instantly
+// recognizable (cat card → feline rogue, dragon card → winged dragon), using
+// ORIGINAL silhouettes rather than copying any copyrighted character.
+// ---------------------------------------------------------------------------
+type ArchetypeFeatures = {
+  head: Headgear;
+  tail?: "feline" | "bushy" | "reptile" | "spike";
+  wings?: "dragon" | "feather" | "insect";
+  whiskers?: boolean;
+  fangs?: boolean;
+  ghost?: boolean; // floats, no feet (undead/phantom)
+};
+
+const ARCHETYPE_FEATURES: Partial<Record<ArchetypeKey, ArchetypeFeatures>> = {
+  dragon:     { head: "draconic", tail: "reptile", wings: "dragon", fangs: true },
+  feline:     { head: "catears", tail: "feline", whiskers: true, fangs: true },
+  canine:     { head: "wolfears", tail: "bushy", fangs: true },
+  avian:      { head: "beak", wings: "feather" },
+  aquatic:    { head: "antenna", tail: "reptile" },
+  reptile:    { head: "horns", tail: "spike", fangs: true },
+  insect:     { head: "antenna", wings: "insect" },
+  arcane:     { head: "wizard" },
+  celestial:  { head: "halo", wings: "feather" },
+  undead:     { head: "skull", ghost: true },
+  mechanical: { head: "visor" },
+  buccaneer:  { head: "pirate" },
+  knight:     { head: "helmet" },
+  ninja:      { head: "hood" },
+  elemental:  { head: "horns" },
+  athlete:    { head: "band" },
+  hero:       { head: "mask", wings: "feather" },
+  jedi:       { head: "hood" },
+  grappler:   { head: "mask", fangs: true },
+  beast:      { head: "horns", tail: "spike", fangs: true },
+};
+
+function featuresFor(archetypeKey: ArchetypeKey | undefined, category: string): ArchetypeFeatures {
+  if (archetypeKey && ARCHETYPE_FEATURES[archetypeKey]) return ARCHETYPE_FEATURES[archetypeKey]!;
+  return { head: HEADGEAR_BY_CATEGORY[category] ?? "antenna" };
+}
+
 
 function palette(category: string) {
   return PALETTES[category] ?? PALETTES.other;
@@ -128,6 +174,69 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
           <rect x={cx - 3} y={topY - 12} width={6} height={10} rx={3} fill={body} />
         </g>
       );
+    case "catears":
+      return (
+        <g fill={body} stroke="#0002">
+          <path d={`M${l - 2} ${topY + 4} L${l - 8} ${topY - 22} L${l + 10} ${topY - 2} Z`} />
+          <path d={`M${r + 2} ${topY + 4} L${r + 8} ${topY - 22} L${r - 10} ${topY - 2} Z`} />
+          <path d={`M${l} ${topY - 2} l-3 -12 l8 6 Z`} fill={accent} stroke="none" />
+          <path d={`M${r} ${topY - 2} l3 -12 l-8 6 Z`} fill={accent} stroke="none" />
+        </g>
+      );
+    case "wolfears":
+      return (
+        <g fill={shiftColor(body, -12)}>
+          <path d={`M${l - 4} ${topY + 4} L${l - 14} ${topY - 18} L${l + 6} ${topY} Z`} />
+          <path d={`M${r + 4} ${topY + 4} L${r + 14} ${topY - 18} L${r - 6} ${topY} Z`} />
+        </g>
+      );
+    case "draconic":
+      return (
+        <g fill={accent}>
+          <path d={`M${l} ${topY + 2} q-14 -16 -2 -30 q4 16 12 24 Z`} />
+          <path d={`M${r} ${topY + 2} q14 -16 2 -30 q-4 16 -12 24 Z`} />
+          <path d={`M${cx - 6} ${topY - 2} l6 -12 l6 12 Z`} fill={shiftColor(accent, 20)} />
+        </g>
+      );
+    case "beak":
+      return (
+        <g>
+          <path d={`M${cx - 6} ${topY - 4} l6 -14 l6 14 Z`} fill={accent} />
+        </g>
+      );
+    case "halo":
+      return (
+        <ellipse cx={cx} cy={topY - 16} rx={w / 2.6} ry={5} fill="none" stroke="#facc15" strokeWidth={3} />
+      );
+    case "visor":
+      return (
+        <g>
+          <rect x={cx - w / 2} y={topY + 12} width={w} height={9} rx={2} fill="#0b1220" />
+          <rect x={cx - w / 2 + 3} y={topY + 14} width={w - 6} height={4} rx={2} fill={accent} />
+          <rect x={cx - 2} y={topY - 14} width={4} height={12} rx={2} fill={accent} />
+        </g>
+      );
+    case "pirate":
+      return (
+        <g>
+          <path d={`M${cx - w / 2 - 4} ${topY - 2} q${w / 2 + 4} -22 ${w + 8} 0 Z`} fill="#1f2d3d" />
+          <rect x={cx - w / 2 - 6} y={topY - 4} width={w + 12} height={5} rx={2} fill="#1f2d3d" />
+          <text x={cx} y={topY - 8} fontSize="9" textAnchor="middle" fill="#fff">☠</text>
+        </g>
+      );
+    case "hood":
+      return (
+        <g>
+          <path d={`M${cx - w / 2} ${topY + 18} q${w / 2} -34 ${w} 0 l0 8 q-${w / 2} -16 -${w} 0 Z`} fill={shiftColor(body, -16)} />
+        </g>
+      );
+    case "skull":
+      return (
+        <g fill={accent}>
+          <path d={`M${l} ${topY + 2} q-8 -16 4 -24 q-1 12 6 18 Z`} />
+          <path d={`M${r} ${topY + 2} q8 -16 -4 -24 q1 12 -6 18 Z`} />
+        </g>
+      );
     default: // antenna
       return (
         <g stroke={accent} strokeWidth={3} fill="none">
@@ -139,10 +248,12 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
 }
 
 export function CompanionSprite({
-  seedKey, category, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
+  seedKey, category, archetypeKey, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
 }: {
   seedKey: string;
   category: string;
+  /** Card-derived archetype — drives the fighter's silhouette (ears, wings, tail…). */
+  archetypeKey?: ArchetypeKey;
   anim?: CompanionAnim;
   size?: number;
   flip?: boolean;
@@ -153,6 +264,7 @@ export function CompanionSprite({
 }) {
   const seed = useMemo(() => seedFrom(seedKey || category || "companion"), [seedKey, category]);
   const d = useMemo(() => describe(seed, category), [seed, category]);
+  const feat = useMemo(() => featuresFor(archetypeKey, category), [archetypeKey, category]);
   const pal = palette(category);
   const body = shiftColor(pal.body, d.hueShift);
   const belly = pal.belly;
@@ -191,14 +303,52 @@ export function CompanionSprite({
         <ellipse cx={cx} cy={108} rx={bodyW * 0.62} ry={11} fill="none"
           stroke={accent} strokeWidth={flair >= 4 ? 3 : 2} opacity={0.35 + flair * 0.1} />
       )}
-      {/* Ground shadow */}
-      <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />
+      {/* Ground shadow (skipped for floating phantoms) */}
+      {!feat.ghost && <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />}
 
-      {/* Feet */}
-      <g className="companion-feet" fill={shiftColor(body, -10)}>
-        <ellipse cx={cx - bodyW / 4} cy={114} rx={9} ry={6} />
-        <ellipse cx={cx + bodyW / 4} cy={114} rx={9} ry={6} />
-      </g>
+      {/* Wings — rendered behind the body */}
+      {feat.wings === "dragon" && (
+        <g className="companion-wing" fill={shiftColor(accent, 10)} opacity={0.92} stroke="#0002">
+          <path d={`M${bodyLeft + 6} ${bodyTop + 16} q-40 -16 -44 18 q22 -6 26 2 q-14 6 -10 18 q18 -10 30 -16 Z`} />
+          <path d={`M${bodyLeft + bodyW - 6} ${bodyTop + 16} q40 -16 44 18 q-22 -6 -26 2 q14 6 10 18 q-18 -10 -30 -16 Z`} />
+        </g>
+      )}
+      {feat.wings === "feather" && (
+        <g className="companion-wing" fill="#fff" opacity={0.9} stroke="#0001">
+          <path d={`M${bodyLeft + 6} ${bodyTop + 18} q-34 -6 -38 22 q20 -10 24 -4 q-10 8 -6 16 q14 -12 26 -18 Z`} />
+          <path d={`M${bodyLeft + bodyW - 6} ${bodyTop + 18} q34 -6 38 22 q-20 -10 -24 -4 q10 8 6 16 q-14 -12 -26 -18 Z`} />
+        </g>
+      )}
+      {feat.wings === "insect" && (
+        <g className="companion-wing" fill={accent} opacity={0.4} stroke="#0002">
+          <ellipse cx={bodyLeft - 8} cy={bodyTop + 24} rx={18} ry={10} transform={`rotate(-24 ${bodyLeft - 8} ${bodyTop + 24})`} />
+          <ellipse cx={bodyLeft + bodyW + 8} cy={bodyTop + 24} rx={18} ry={10} transform={`rotate(24 ${bodyLeft + bodyW + 8} ${bodyTop + 24})`} />
+        </g>
+      )}
+
+      {/* Tail */}
+      {feat.tail === "feline" && (
+        <path d={`M${bodyLeft + bodyW - 6} ${bodyTop + bodyH - 4} q26 6 22 -22 q-2 -10 8 -12`} fill="none" stroke={body} strokeWidth={7} strokeLinecap="round" />
+      )}
+      {feat.tail === "bushy" && (
+        <path d={`M${bodyLeft + bodyW - 8} ${bodyTop + bodyH - 6} q28 0 28 -22 q10 6 4 18 q12 0 6 12 q-22 6 -38 -6 Z`} fill={shiftColor(body, -12)} />
+      )}
+      {feat.tail === "reptile" && (
+        <path d={`M${bodyLeft + bodyW - 8} ${bodyTop + bodyH - 8} q34 4 40 26 q-16 -6 -24 -2 q-8 -10 -18 -12 Z`} fill={body} />
+      )}
+      {feat.tail === "spike" && (
+        <path d={`M${bodyLeft + bodyW - 8} ${bodyTop + bodyH - 8} q28 6 34 24 l-8 -2 l4 8 l-10 -6 q-6 -12 -18 -16 Z`} fill={shiftColor(body, -8)} />
+      )}
+
+      {/* Feet (phantoms get a wispy floating tail instead) */}
+      {feat.ghost ? (
+        <path className="companion-feet" d={`M${bodyLeft + 6} ${bodyTop + bodyH - 6} q${bodyW / 2} 30 ${bodyW - 12} 0 q-8 18 -${(bodyW - 12) / 2} 18 q-${(bodyW - 12) / 2} 0 -${bodyW - 12} -18 Z`} fill={body} opacity={0.85} />
+      ) : (
+        <g className="companion-feet" fill={shiftColor(body, -10)}>
+          <ellipse cx={cx - bodyW / 4} cy={114} rx={9} ry={6} />
+          <ellipse cx={cx + bodyW / 4} cy={114} rx={9} ry={6} />
+        </g>
+      )}
 
       {/* Arms */}
       <g className="companion-arms" fill={body}>
@@ -215,8 +365,26 @@ export function CompanionSprite({
         <circle key={i} cx={cx - 10 + i * 8} cy={bodyTop + bodyH * 0.7} r={2.2} fill={accent} opacity={0.5} />
       ))}
 
-      {/* Headgear */}
-      <Headgear kind={d.headgear} cx={cx} topY={bodyTop} w={bodyW} accent={accent} body={body} />
+      {/* Headgear (archetype-driven) */}
+      <Headgear kind={feat.head} cx={cx} topY={bodyTop} w={bodyW} accent={accent} body={body} />
+
+      {/* Whiskers */}
+      {feat.whiskers && (
+        <g stroke="#0006" strokeWidth={1.4} strokeLinecap="round">
+          <path d={`M${cx - 6} ${bodyTop + 28} l-16 -3`} />
+          <path d={`M${cx - 6} ${bodyTop + 31} l-16 3`} />
+          <path d={`M${cx + 6} ${bodyTop + 28} l16 -3`} />
+          <path d={`M${cx + 6} ${bodyTop + 31} l16 3`} />
+        </g>
+      )}
+      {/* Fangs */}
+      {feat.fangs && (
+        <g fill="#fff" stroke="#0002">
+          <path d={`M${cx - 5} ${bodyTop + 33} l3 6 l3 -6 Z`} />
+          <path d={`M${cx + 5} ${bodyTop + 33} l-3 6 l3 0 Z`} />
+        </g>
+      )}
+
 
       {/* Eyes */}
       <g>

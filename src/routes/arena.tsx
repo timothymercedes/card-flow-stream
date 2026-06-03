@@ -1140,6 +1140,7 @@ function OwnerCompanionCard({
           <CompanionSprite
             seedKey={`${c.id}:${c.name}`}
             category={c.arena_category}
+            archetypeKey={c.archetype.key}
             anim="idle"
             level={c.level}
             flair={c.rarity.flair}
