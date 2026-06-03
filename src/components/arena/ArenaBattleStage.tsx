@@ -91,6 +91,10 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
   );
 }
 
+// Generated character art lives under /arena/fighters/ — render it whole as a
+// standing fighter. Card art (a real card photo) is cropped to its character.
+const isCharacterArt = (url?: string | null) => !!url && url.includes("/arena/fighters/");
+
 function Fighter({
   name, cardImage, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
   frameClass = "", effectClass = "", title, hp,
@@ -99,23 +103,24 @@ function Fighter({
   category: string; seedKey: string; level?: number; wrapperAnim: string; companionAnim: CompanionAnim;
   frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
+  const characterArt = isCharacterArt(cardImage);
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <HpBar hp={hp} side={side} />
       <div className={`relative ${wrapperAnim}`}>
         {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
         {cardImage ? (
-          // The CARD'S CHARACTER is the fighter — its art is cropped into a
-          // standing combatant cutout and animated with the battle phase.
+          // A real digital FIGHTER — either an original Arena character (whole)
+          // or the character cropped out of the card art — never a card rectangle.
           <div
             className={`arena-cardfighter companion-${companionAnim} ${frameClass}`}
-            style={{ width: 116, height: 150 }}
+            style={{ width: 120, height: 150 }}
           >
             <span className="arena-cardfighter-shadow" aria-hidden />
             <img
               src={cardImage}
               alt={`${name} fighter`}
-              className="arena-cardfighter-img"
+              className={characterArt ? "arena-charfighter-img" : "arena-cardfighter-img"}
               style={{ transform: side === "right" ? "scaleX(-1)" : undefined }}
               draggable={false}
             />
