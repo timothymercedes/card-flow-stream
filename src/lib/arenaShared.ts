@@ -81,6 +81,27 @@ export function deriveCompanionStats(seedKey: string, valueTier: number): {
   return { attack, defense, speed, hidden_traits };
 }
 
+// ---- PVE (computer battles) ----
+// Difficulty presets. `mult` scales the computer opponent's effective power
+// relative to the player's companion. Rewards are intentionally capped far
+// below PVP so training can never replace real battles (anti-abuse).
+export type ArenaDifficulty = "beginner" | "normal" | "hard" | "elite";
+
+export const DIFFICULTY_META: Record<ArenaDifficulty, {
+  label: string; emoji: string; mult: number;
+  // capped rewards on a PVE win / consolation on a PVE loss
+  winXp: number; lossXp: number; winTrophies: number;
+}> = {
+  beginner: { label: "Beginner", emoji: "🟢", mult: 0.7, winXp: 5, lossXp: 1, winTrophies: 1 },
+  normal:   { label: "Normal",   emoji: "🔵", mult: 0.95, winXp: 5, lossXp: 1, winTrophies: 1 },
+  hard:     { label: "Hard",     emoji: "🟠", mult: 1.15, winXp: 8, lossXp: 2, winTrophies: 2 },
+  elite:    { label: "Elite",    emoji: "🔴", mult: 1.4, winXp: 10, lossXp: 2, winTrophies: 3 },
+};
+
+// Reference PVP rewards (kept here so UI can show the contrast). Real battles
+// are always more valuable than computer training.
+export const PVP_WIN_XP = 50;
+
 // Map a card's estimated value into a 0..20 tier for stat scaling.
 export function valueTier(value: number | null | undefined): number {
   const v = Number(value) || 0;
