@@ -354,6 +354,11 @@ function BookDetail({ setName, category, onBack, isGoal, onToggleGoal }: { setNa
                   <ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade for cards
                 </Link>
               </Button>
+              {d.kind === "set" && d.distinctMissingCount > 0 && (
+                <Button size="sm" variant="default" className="h-8" onClick={addAllToWishlist} disabled={addingAll}>
+                  <Heart className="mr-1 h-3.5 w-3.5" /> Add all missing to wishlist
+                </Button>
+              )}
             </div>
           </div>
         )}
