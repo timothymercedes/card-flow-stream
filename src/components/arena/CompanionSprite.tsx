@@ -327,6 +327,21 @@ export function CompanionSprite({
         <ellipse cx={cx} cy={108} rx={bodyW * 0.62} ry={11} fill="none"
           stroke={accent} strokeWidth={flair >= 4 ? 3 : 2} opacity={0.35 + flair * 0.1} />
       )}
+      {/* Evolution aura ring — glows brighter as the companion evolves */}
+      {evo >= 1 && (
+        <ellipse className="companion-evo-ring" cx={cx} cy={106} rx={bodyW * 0.66} ry={13} fill="none"
+          stroke={evo >= 3 ? "#fbbf24" : evo >= 2 ? "#e879f9" : "#38bdf8"}
+          strokeWidth={evo >= 3 ? 3 : 2} opacity={0.55} />
+      )}
+      {/* Evolution crown — only at the final (Lv50) stage */}
+      {evo >= 3 && (
+        <g className="companion-evo-crown">
+          <path d={`M${cx - 12} ${bodyTop - 14} l4 -12 l5 7 l3 -11 l3 11 l5 -7 l4 12 Z`} fill="#fbbf24" stroke="#b45309" strokeWidth={0.8} />
+          <circle cx={cx - 8} cy={bodyTop - 24} r={1.6} fill="#fff7cd" />
+          <circle cx={cx} cy={bodyTop - 27} r={1.8} fill="#fff7cd" />
+          <circle cx={cx + 8} cy={bodyTop - 24} r={1.6} fill="#fff7cd" />
+        </g>
+      )}
       {/* Ground shadow (skipped for floating phantoms) */}
       {!feat.ghost && <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />}
 
