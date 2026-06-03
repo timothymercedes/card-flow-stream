@@ -19,6 +19,7 @@ import {
 } from "@/lib/arenaShared";
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
+import { evolutionStage } from "@/lib/arenaCompanion";
 import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
 import { CompanionSprite } from "@/components/arena/CompanionSprite";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
