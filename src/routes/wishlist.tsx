@@ -181,7 +181,7 @@ function AddDialog({
   submitting: boolean;
 }) {
   const [name, setName] = useState("");
-  const [setName, setSetName] = useState("");
+  const [cardSet, setCardSet] = useState("");
   const [number, setNumber] = useState("");
   const [category, setCategory] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
