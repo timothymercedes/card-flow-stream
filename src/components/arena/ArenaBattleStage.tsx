@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
-import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart } from "lucide-react";
+import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users } from "lucide-react";
 import { toast } from "sonner";
 
 type BattleLog = Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }>;
@@ -18,6 +18,7 @@ export type StageResult = {
   myRounds: number;
   theirRounds: number;
   log: BattleLog;
+  battleId?: string | null;
   rewards: { xp: number; trophies: number; rank: number; credits: number };
   opponentName: string;
   opponentImage?: string | null;
@@ -91,7 +92,7 @@ function Fighter({
 
 export function ArenaBattleStage({
   result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
-  isTraining = false, onClose,
+  isTraining = false, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
   myName: string;
@@ -101,6 +102,9 @@ export function ArenaBattleStage({
   myTitle?: string;
   arenaCategory?: string;
   isTraining?: boolean;
+  hideRewards?: boolean;
+  onShareToFeed?: () => void;
+  sharingToFeed?: boolean;
   onClose: () => void;
 }) {
   const events = useMemo(() => roundEvents(result.log), [result.log]);
@@ -287,12 +291,14 @@ export function ArenaBattleStage({
             {myName} vs {result.opponentName} — <span className="font-bold">{result.myRounds}–{result.theirRounds}</span>
           </p>
 
-          <div className="grid grid-cols-4 gap-2">
-            <Reward icon={Zap} label="XP" value={`${result.rewards.xp > 0 ? "+" : ""}${result.rewards.xp}`} />
-            <Reward icon={Trophy} label="Trophies" value={`+${result.rewards.trophies}`} />
-            <Reward icon={Shield} label="Rank" value={`${result.rewards.rank > 0 ? "+" : ""}${result.rewards.rank}`} />
-            <Reward icon={Coins} label="Credits" value={`+${result.rewards.credits}`} />
-          </div>
+          {!hideRewards && (
+            <div className="grid grid-cols-4 gap-2">
+              <Reward icon={Zap} label="XP" value={`${result.rewards.xp > 0 ? "+" : ""}${result.rewards.xp}`} />
+              <Reward icon={Trophy} label="Trophies" value={`+${result.rewards.trophies}`} />
+              <Reward icon={Shield} label="Rank" value={`${result.rewards.rank > 0 ? "+" : ""}${result.rewards.rank}`} />
+              <Reward icon={Coins} label="Credits" value={`+${result.rewards.credits}`} />
+            </div>
+          )}
 
           {result.newBadges.length > 0 && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -315,6 +321,11 @@ export function ArenaBattleStage({
               <Share2 className="mr-2 h-4 w-4" />Share
             </Button>
           </div>
+          {onShareToFeed && (
+            <Button variant="outline" className="w-full" onClick={onShareToFeed} disabled={sharingToFeed}>
+              <Users className="mr-2 h-4 w-4" />{sharingToFeed ? "Posting…" : "Post to Arena Feed"}
+            </Button>
+          )}
           <Button className="w-full" onClick={onClose}>Continue</Button>
         </div>
       ) : (

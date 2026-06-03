@@ -8,14 +8,16 @@ import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
+  getBattleReplay, postBattleToFeed,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
-import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
+import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
+import { ArenaFeed } from "@/components/arena/ArenaFeed";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
-  Users, Search, UserPlus, UserCheck, Award, History, Gift,
+  Users, Search, UserPlus, UserCheck, Award, History, Gift, Rss, PlayCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -106,6 +108,7 @@ function ArenaPage() {
   const [battleFor, setBattleFor] = useState<string | null>(null);
   const [trainFor, setTrainFor] = useState<string | null>(null);
   const [statsFor, setStatsFor] = useState<string | null>(null);
+  const [replay, setReplay] = useState<Awaited<ReturnType<typeof getBattleReplay>> | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
   const syncFn = useServerFn(syncCompanions);
@@ -122,6 +125,8 @@ function ArenaPage() {
   const recentFn = useServerFn(getRecentOpponents);
   const badgesFn = useServerFn(listMyBadges);
   const cosmeticsFn = useServerFn(getArenaCosmetics);
+  const replayFn = useServerFn(getBattleReplay);
+  const postFeedFn = useServerFn(postBattleToFeed);
 
 
   const myQ = useQuery({
@@ -212,6 +217,30 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Could not update follow"),
   });
 
+  const replayM = useMutation({
+    mutationFn: (battleId: string) => replayFn({ data: { battleId } }),
+    onSuccess: (r) => setReplay(r),
+    onError: (e: any) => toast.error(e?.message || "Could not load replay"),
+  });
+
+  const shareFeedM = useMutation({
+    mutationFn: (vars: { result: StageResult; companionName: string; companionImage: string | null }) =>
+      postFeedFn({ data: {
+        battleId: vars.result.battleId ?? null,
+        won: vars.result.iWon,
+        opponentName: vars.result.opponentName,
+        companionName: vars.companionName,
+        imageUrl: vars.companionImage,
+      } }),
+    onSuccess: () => {
+      toast.success("Shared to the Arena feed!");
+      qc.invalidateQueries({ queryKey: ["arena", "feed"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not share to feed"),
+  });
+
+  function watchReplay(battleId: string) { replayM.mutate(battleId); }
+
   const activeMine = useMemo(
     () => companions.find((c) => c.id === selectedMine) ?? companions[0],
     [companions, selectedMine],
@@ -298,6 +327,7 @@ function ArenaPage() {
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
             <TabsTrigger value="collectors"><Users className="mr-1 h-4 w-4" />Collectors</TabsTrigger>
+            <TabsTrigger value="feed"><Rss className="mr-1 h-4 w-4" />Feed</TabsTrigger>
             <TabsTrigger value="history"><Flame className="mr-1 h-4 w-4" />History</TabsTrigger>
             <TabsTrigger value="leaderboards"><Trophy className="mr-1 h-4 w-4" />Leaderboards</TabsTrigger>
             <TabsTrigger value="rewards"><Gift className="mr-1 h-4 w-4" />Rewards</TabsTrigger>
@@ -449,12 +479,23 @@ function ArenaPage() {
                         {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : "PVP Battle"}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</span>
+                      <Button size="sm" variant="ghost" onClick={() => watchReplay(b.id)} disabled={replayM.isPending}>
+                        <PlayCircle className="mr-1 h-4 w-4" />Replay
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </Card>
             )}
           </TabsContent>
+
+          {/* ---- Feed (shared battles) ---- */}
+          <TabsContent value="feed">
+            <ArenaFeed onWatchReplay={watchReplay} />
+          </TabsContent>
+
 
           {/* ---- Leaderboards ---- */}
           <TabsContent value="leaderboards">
@@ -490,11 +531,42 @@ function ArenaPage() {
               myTitle={equipped.titleText}
               arenaCategory={activeMine?.arena_category ?? category}
               isTraining={battleResult.rewards.rank === 0 && battleResult.rewards.credits === 0}
+              onShareToFeed={() => shareFeedM.mutate({
+                result: battleResult,
+                companionName: activeMine?.name ?? "Your companion",
+                companionImage: activeMine?.image_url ?? null,
+              })}
+              sharingToFeed={shareFeedM.isPending}
               onClose={() => setBattleResult(null)}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Battle replay viewer */}
+      <Dialog open={!!replay} onOpenChange={(o) => !o && setReplay(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-primary" />Battle Replay
+            </DialogTitle>
+          </DialogHeader>
+          {replay && (
+            <ArenaBattleStage
+              result={replay.result}
+              myName={replay.myName}
+              myImage={replay.myImage}
+              myFrameClass={equipped.frameClass}
+              myEffectClass={equipped.effectClass}
+              myTitle={equipped.titleText}
+              isTraining={replay.isTraining}
+              hideRewards
+              onClose={() => setReplay(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       {/* Collector Arena profile dialog */}
       <Dialog open={!!profileUserId} onOpenChange={(o) => !o && setProfileUserId(null)}>

@@ -416,6 +416,120 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_feed_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arena_feed_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "arena_feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arena_feed_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arena_feed_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "arena_feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arena_feed_posts: {
+        Row: {
+          battle_id: string | null
+          caption: string | null
+          comment_count: number
+          companion_name: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          like_count: number
+          opponent_name: string | null
+          updated_at: string
+          user_id: string
+          won: boolean
+        }
+        Insert: {
+          battle_id?: string | null
+          caption?: string | null
+          comment_count?: number
+          companion_name?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          like_count?: number
+          opponent_name?: string | null
+          updated_at?: string
+          user_id: string
+          won?: boolean
+        }
+        Update: {
+          battle_id?: string | null
+          caption?: string | null
+          comment_count?: number
+          companion_name?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          like_count?: number
+          opponent_name?: string | null
+          updated_at?: string
+          user_id?: string
+          won?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arena_feed_posts_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "arena_battles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       arena_seasons: {
         Row: {
           active: boolean
