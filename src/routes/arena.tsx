@@ -295,6 +295,23 @@ function ArenaPage() {
 
   function watchReplay(battleId: string) { replayM.mutate(battleId); }
 
+  const visualFn = useServerFn(setCompanionVisual);
+  const visualM = useMutation({
+    mutationFn: (vars: { companionId: string; mode: VisualMode; custom: { body?: string; accent?: string; head?: string } }) =>
+      visualFn({ data: vars }),
+    onSuccess: () => {
+      toast.success("Appearance updated!");
+      setCustomizeFor(null);
+      qc.invalidateQueries({ queryKey: ["arena", "mine"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not update appearance"),
+  });
+
+  const customizeCompanion = useMemo(
+    () => companions.find((c) => c.id === customizeFor) ?? null,
+    [companions, customizeFor],
+  );
+
   const activeMine = useMemo(
     () => companions.find((c) => c.id === selectedMine) ?? companions[0],
     [companions, selectedMine],
