@@ -195,7 +195,7 @@ function AddDialog({
     if (!name.trim()) { toast.error("Card name is required"); return; }
     onSubmit({
       name: name.trim(),
-      set_name: setName.trim() || null,
+      set_name: cardSet.trim() || null,
       tcg_number: number.trim() || null,
       category: category.trim() || null,
       max_price: maxPrice ? Number(maxPrice) : null,
