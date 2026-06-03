@@ -296,10 +296,16 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
 
     // True completion is measured against the official set size when known.
     // catalogTotal = number of cards we have catalog rows for (used as a proxy
-    // when no official size exists).
+    // when no official size exists, but only when it's a substantial set).
     const catalogTotal = byNumber.size;
-    const knownTotal = Math.max(officialTotal || catalogTotal, ownedNums.size);
-    const hasTotal = knownTotal > 0 && (officialTotal > 0 || catalogTotal > 0);
+    const { isSet, realTotal, kind } = classifyBook({
+      official: officialTotal,
+      proxyOrCatalog: catalogTotal,
+      ownedDistinct: ownedNums.size,
+      ownedCount: myCards.length,
+    });
+    const knownTotal = isSet ? Math.max(realTotal, ownedNums.size) : 0;
+    const hasTotal = isSet;
 
     // Number of distinct cards the user is still missing toward the full set.
     const distinctMissingCount = hasTotal ? Math.max(0, knownTotal - ownedNums.size) : missing.length;
