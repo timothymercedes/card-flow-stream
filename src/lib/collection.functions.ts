@@ -689,13 +689,29 @@ export const getCollectionDashboard = createServerFn({ method: "GET" })
 export const getMissingCardCenter = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { userId } = context;
+    const { userId, supabase } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const books = await computeCollectionBooks(supabaseAdmin, userId);
-    // Focus on incomplete real sets, closest-to-done first.
+
+    // Favorited sets (collection goals) get top priority.
+    const { data: goalRows } = await supabase
+      .from("collection_goals")
+      .select("set_name, category")
+      .eq("user_id", userId);
+    const favKeys = new Set(
+      (goalRows ?? []).map((g: any) => setTotalKey(g.category, g.set_name)),
+    );
+
+    // Focus on incomplete real sets. Completion priority:
+    //  1. favorited sets, 2. closest-to-done, 3. above 75%.
     const target = books
       .filter((b) => b.kind === "set" && !b.complete && (b.completion ?? 0) > 0)
-      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0))
+      .sort((a, b) => {
+        const af = favKeys.has(a.key) ? 1 : 0;
+        const bf = favKeys.has(b.key) ? 1 : 0;
+        if (bf !== af) return bf - af;
+        return (b.completion ?? 0) - (a.completion ?? 0);
+      })
       .slice(0, 12);
 
     const nowIso = new Date().toISOString();
