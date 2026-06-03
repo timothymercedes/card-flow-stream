@@ -303,7 +303,8 @@ export function ArenaBattleStage({
               wrapperAnim={phase === "intro" ? "arena-enter-left" : ""}
               companionAnim={myAnim}
             />
-            {fx?.side === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
+            {fx?.defender === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
+            {fx?.healSide === "mine" && <FloatText kind="heal" dmg={fx.healAmt} runKey={`h-${runKey}-${roundIdx}`} />}
           </div>
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
