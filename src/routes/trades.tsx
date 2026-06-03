@@ -220,8 +220,8 @@ function ItemStack({ items }: { items: Trade["items"] }) {
 }
 
 function TradeCard({ t, actions }: { t: Trade; actions: React.ReactNode }) {
-  const give = t.items.filter((i) => (t.role === "outgoing" ? i.owner_side === "from" : i.owner_side === "to"));
-  const get = t.items.filter((i) => (t.role === "outgoing" ? i.owner_side === "to" : i.owner_side === "from"));
+  const give = t.items.filter((i: any) => (t.role === "outgoing" ? i.owner_side === "from" : i.owner_side === "to"));
+  const get = t.items.filter((i: any) => (t.role === "outgoing" ? i.owner_side === "to" : i.owner_side === "from"));
   return (
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between">
