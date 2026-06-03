@@ -13,7 +13,7 @@ type CompanionRow = {
   level: number; xp: number; attack: number; defense: number; speed: number;
   hidden_traits: string[]; wins: number; losses: number; win_streak: number;
   longest_win_streak: number; season_wins: number; trophies: number;
-  arena_rank: number; title: ArenaTitle; cosmetics: Record<string, unknown>;
+  arena_rank: number; title: ArenaTitle; cosmetics: Record<string, any>;
   created_at: string;
 };
 
