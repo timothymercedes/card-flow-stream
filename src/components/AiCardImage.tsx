@@ -3,9 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
 import { getOrCreateAiCardImage } from "@/lib/cardImage.functions";
 
-const MAX_ACTIVE_IMAGE_JOBS = 2;
+const MAX_ACTIVE_IMAGE_JOBS = 1;
 let activeImageJobs = 0;
 const queuedImageJobs: Array<() => void> = [];
+let lastImageJobAt = 0;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function runNextImageJob() {
   if (activeImageJobs >= MAX_ACTIVE_IMAGE_JOBS) return;
@@ -17,8 +22,11 @@ function runNextImageJob() {
 
 function enqueueImageJob<T>(job: () => Promise<T>) {
   return new Promise<T>((resolve, reject) => {
-    queuedImageJobs.push(() => {
-      job()
+    queuedImageJobs.push(async () => {
+      const waitFor = Math.max(0, 3500 - (Date.now() - lastImageJobAt));
+      if (waitFor > 0) await wait(waitFor);
+      lastImageJobAt = Date.now();
+      return job()
         .then(resolve)
         .catch(reject)
         .finally(() => {
