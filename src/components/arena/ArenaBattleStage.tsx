@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
 import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
-import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users } from "lucide-react";
+import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users, FastForward, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 
 type BattleLog = Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }>;
@@ -29,18 +29,46 @@ export type StageResult = {
 };
 
 type Phase = "intro" | "fight" | "summary";
-type RoundFx = "crit" | "dodge" | "hit";
+type RoundFx = "crit" | "dodge" | "hit" | "block";
+type SkillKind = "basic" | "special" | "recover";
 
-// Map a saved round to a presentational combat event (attacker/defender + flair).
-function roundEvents(log: BattleLog) {
+type RoundEvent = {
+  attacker: "mine" | "theirs";
+  defender: "mine" | "theirs";
+  fx: RoundFx;
+  dmg: number;
+  healAmt: number;       // > 0 when the attacker uses a Recover special
+  skill: SkillKind;
+  round: number;
+};
+
+const SKILL_LABEL: Record<SkillKind, string> = {
+  basic: "Basic Attack", special: "Special Attack", recover: "Recover",
+};
+
+// Map the saved battle log into a richer, fully deterministic playback timeline.
+// A small seeded PRNG (derived from the log) decides block/recover flavour so
+// the same battle always replays identically — outcomes are still server-side.
+function roundEvents(log: BattleLog): RoundEvent[] {
+  let seed = log.reduce((s, r) => ((s * 31 + r.mine + r.theirs * 7 + r.round) >>> 0), 7) >>> 0;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   return log.map((r) => {
     const max = Math.max(r.mine, r.theirs, 1);
     const margin = Math.abs(r.mine - r.theirs) / max;
-    const fx: RoundFx = margin >= 0.22 ? "crit" : margin <= 0.06 ? "dodge" : "hit";
-    const dmg = fx === "crit" ? 42 : fx === "dodge" ? 12 : 28;
     const attacker: "mine" | "theirs" = r.winner;
     const defender: "mine" | "theirs" = r.winner === "mine" ? "theirs" : "mine";
-    return { attacker, defender, fx, dmg, round: r.round };
+
+    let fx: RoundFx; let dmg: number; let skill: SkillKind = "basic"; let healAmt = 0;
+    if (margin >= 0.24) { fx = "crit"; dmg = 40; skill = "special"; }
+    else if (margin <= 0.05) { fx = "dodge"; dmg = 7; }
+    else if (rnd() < 0.2) { fx = "block"; dmg = 14; }
+    else { fx = "hit"; dmg = 26; }
+
+    // Occasional healing special by the attacker (never on a whiffed dodge).
+    if (fx !== "dodge" && rnd() < 0.16) {
+      skill = "recover"; healAmt = 12; dmg = Math.round(dmg * 0.6);
+    }
+    return { attacker, defender, fx, dmg, healAmt, skill, round: r.round };
   });
 }
 
@@ -107,7 +135,7 @@ function Fighter({
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, mySeed, myLevel = 1, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
+  result, myName, myImage, mySeed, myLevel = 1, myPassive, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
   isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
@@ -115,6 +143,7 @@ export function ArenaBattleStage({
   myImage?: string | null;
   mySeed?: string | null;
   myLevel?: number;
+  myPassive?: string | null;
   myFrameClass?: string;
   myEffectClass?: string;
   myTitle?: string;
@@ -132,10 +161,14 @@ export function ArenaBattleStage({
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [roundIdx, setRoundIdx] = useState(-1);
-  const [fx, setFx] = useState<{ side: "mine" | "theirs"; kind: RoundFx; dmg: number } | null>(null);
+  const [fx, setFx] = useState<
+    | { defender: "mine" | "theirs"; kind: RoundFx; dmg: number; skill: SkillKind; healSide: "mine" | "theirs" | null; healAmt: number }
+    | null
+  >(null);
   const [myHp, setMyHp] = useState(100);
   const [theirHp, setTheirHp] = useState(100);
   const [runKey, setRunKey] = useState(0); // forces re-mount on replay
+  const [speed, setSpeed] = useState<1 | 2>(1);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -147,15 +180,20 @@ export function ArenaBattleStage({
     setMyHp(100);
     setTheirHp(100);
 
-    // Precompute HP timeline so re-renders never double-apply damage.
+    // Precompute HP timeline so re-renders never double-apply damage / heals.
     let my = 100, their = 100;
     const timeline = events.map((e) => {
       if (e.defender === "mine") my = Math.max(0, my - e.dmg);
       else their = Math.max(0, their - e.dmg);
+      if (e.healAmt > 0) {
+        if (e.attacker === "mine") my = Math.min(100, my + e.healAmt);
+        else their = Math.min(100, their + e.healAmt);
+      }
       return { my, their };
     });
 
-    const t = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
+    const sf = 1 / speed; // speed factor — 2x halves every delay
+    const t = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms * sf));
     const INTRO_MS = 1500;
     const ROUND_MS = 1050;
     t(INTRO_MS, () => setPhase("fight"));
@@ -164,7 +202,10 @@ export function ArenaBattleStage({
       const at = INTRO_MS + 500 + i * ROUND_MS;
       t(at, () => {
         setRoundIdx(i);
-        setFx({ side: e.defender, kind: e.fx, dmg: e.dmg });
+        setFx({
+          defender: e.defender, kind: e.fx, dmg: e.dmg, skill: e.skill,
+          healSide: e.healAmt > 0 ? e.attacker : null, healAmt: e.healAmt,
+        });
         setMyHp(timeline[i].my);
         setTheirHp(timeline[i].their);
       });
@@ -179,7 +220,7 @@ export function ArenaBattleStage({
     });
 
     return () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  }, [events, result.iWon, runKey]);
+  }, [events, result.iWon, runKey, speed]);
 
   const ev = roundIdx >= 0 ? events[roundIdx] : null;
   const critActive = !!fx && fx.kind === "crit";
@@ -189,7 +230,7 @@ export function ArenaBattleStage({
     if (phase === "summary") return result.iWon === (sideKey === "mine") ? "victory" : "defeat";
     if (phase === "fight" && ev && fx) {
       if (ev.attacker === sideKey) return "attack";
-      if (fx.side === sideKey) return fx.kind === "dodge" ? "dodge" : "hit";
+      if (fx.defender === sideKey) return fx.kind === "dodge" ? "dodge" : "hit";
     }
     return "idle";
   }
@@ -229,6 +270,11 @@ export function ArenaBattleStage({
                 <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{environmentLabel}</p>
               )}
               <p className="mt-2 text-2xl font-black tracking-widest text-foreground">VS</p>
+              {myPassive && (
+                <p className="mt-2 text-[10px] font-semibold text-muted-foreground">
+                  Passive · <span className="text-primary">{myPassive}</span>
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -237,7 +283,7 @@ export function ArenaBattleStage({
         <div className="relative z-10 mb-2 min-h-5 text-center">
           {phase === "fight" && ev && (
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Round {ev.round} · {ev.fx === "crit" ? "Critical strike!" : ev.fx === "dodge" ? "Glancing blow" : "Clash"}
+              Round {ev.round} · {(ev.attacker === "mine" ? myName : result.opponentName).split(" ")[0]} used {SKILL_LABEL[ev.skill]}
             </p>
           )}
           {phase === "summary" && (
@@ -263,7 +309,8 @@ export function ArenaBattleStage({
               wrapperAnim={phase === "intro" ? "arena-enter-left" : ""}
               companionAnim={myAnim}
             />
-            {fx?.side === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
+            {fx?.defender === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
+            {fx?.healSide === "mine" && <FloatText kind="heal" dmg={fx.healAmt} runKey={`h-${runKey}-${roundIdx}`} />}
           </div>
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
@@ -298,7 +345,8 @@ export function ArenaBattleStage({
               wrapperAnim={phase === "intro" ? "arena-enter-right" : ""}
               companionAnim={theirAnim}
             />
-            {fx?.side === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
+            {fx?.defender === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
+            {fx?.healSide === "theirs" && <FloatText kind="heal" dmg={fx.healAmt} runKey={`h-${runKey}-${roundIdx}`} />}
           </div>
         </div>
 
@@ -371,21 +419,53 @@ export function ArenaBattleStage({
           <Button className="w-full" onClick={onClose}>Continue</Button>
         </div>
       ) : (
-        <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setPhase("summary")}>
-          Skip animation
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+            <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Speed</span>
+            <Button
+              size="sm"
+              variant={speed === 1 ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setSpeed(1)}
+            >
+              1×
+            </Button>
+            <Button
+              size="sm"
+              variant={speed === 2 ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setSpeed(2)}
+            >
+              <FastForward className="mr-1 h-3 w-3" />2×
+            </Button>
+          </div>
+          <Button variant="ghost" className="text-muted-foreground" onClick={() => setPhase("summary")}>
+            <SkipForward className="mr-1.5 h-4 w-4" />Skip
+          </Button>
+        </div>
       )}
     </div>
   );
 }
 
-function FloatText({ kind, dmg, runKey }: { kind: RoundFx; dmg: number; runKey: string }) {
-  const label = kind === "crit" ? "CRITICAL!" : kind === "dodge" ? "DODGE" : `-${dmg}`;
-  const cls = kind === "crit" ? "text-amber-400" : kind === "dodge" ? "text-sky-300" : "text-rose-400";
+function FloatText({ kind, dmg, runKey }: { kind: RoundFx | "heal"; dmg: number; runKey: string }) {
+  const label =
+    kind === "crit" ? "CRITICAL!" :
+    kind === "dodge" ? "DODGED" :
+    kind === "block" ? "BLOCKED" :
+    kind === "heal" ? `+${dmg} HEAL` :
+    `-${dmg}`;
+  const cls =
+    kind === "crit" ? "text-amber-400" :
+    kind === "dodge" ? "text-sky-300" :
+    kind === "block" ? "text-slate-200" :
+    kind === "heal" ? "text-emerald-400" :
+    "text-rose-400";
+  const top = kind === "heal" ? "top-8" : "top-2";
   return (
     <span
       key={runKey}
-      className={`arena-float-text pointer-events-none absolute left-1/2 top-2 z-30 text-sm font-black drop-shadow ${cls}`}
+      className={`arena-float-text pointer-events-none absolute left-1/2 ${top} z-30 text-sm font-black drop-shadow ${cls}`}
     >
       {label}
     </span>
