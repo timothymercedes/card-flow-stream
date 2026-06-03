@@ -110,6 +110,46 @@ export function ArenaRewards() {
         </div>
       </section>
 
+      {/* Set completion bonuses */}
+      <section>
+        <h2 className="mb-1 flex items-center gap-2 font-bold"><BookCheck className="h-4 w-4 text-primary" />Set Completion Bonuses</h2>
+        <p className="mb-3 text-xs text-muted-foreground">Complete a real set in your Collection Books to earn a one-time Arena XP + Credits bonus.</p>
+        {setQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Checking your collection…</p>
+        ) : setRewards.length === 0 ? (
+          <Card className="p-4 text-sm text-muted-foreground">No completed sets yet. Finish a set to unlock a bonus.</Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {setRewards.map((r) => {
+              const meta = arenaCategoryMeta(r.arenaCategory);
+              return (
+                <Card key={r.setKey} className="flex items-center gap-3 p-3">
+                  {r.cover ? (
+                    <img src={r.cover} alt={r.setName} className="h-12 w-9 shrink-0 rounded object-cover" loading="lazy" />
+                  ) : (
+                    <span className="text-2xl">{meta.emoji}</span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{r.setName}</p>
+                    <p className="text-[11px] text-muted-foreground">{meta.label} · {r.ownedDistinct}/{r.knownTotal}</p>
+                    <p className="mt-0.5 text-[11px]">+{r.rewardXp} XP · +{r.rewardCredits} credits</p>
+                  </div>
+                  <Button
+                    size="sm" variant={r.claimed ? "secondary" : "default"}
+                    disabled={r.claimed || claimSetM.isPending}
+                    onClick={() => claimSetM.mutate(r.setKey)}
+                  >
+                    {r.claimed ? <><Check className="mr-1 h-4 w-4" />Claimed</> : "Claim"}
+                  </Button>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+
+
       {/* Cosmetics shop */}
       <section>
         <h2 className="mb-1 font-bold">Cosmetics</h2>
