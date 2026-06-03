@@ -12,10 +12,12 @@ import { arenaCategoryFor } from "@/lib/arenaCategories";
 import { MISSION_MAP } from "@/lib/arenaTraining";
 import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
 import { COSMETIC_MAP } from "@/lib/arenaCosmetics";
+import { ensureFighterForCompanion } from "@/lib/arenaFighter.functions";
 
 type CompanionRow = {
   id: string; user_id: string; vault_card_id: string; name: string;
   category: string | null; community: string; arena_category: string; image_url: string | null;
+  fighter_image_url: string | null;
   level: number; xp: number; attack: number; defense: number; speed: number;
   hidden_traits: string[]; wins: number; losses: number; win_streak: number;
   longest_win_streak: number; season_wins: number; trophies: number;
@@ -278,7 +280,7 @@ async function resolvePvpBattle(
       ? { xp: 50, trophies: 10, rank: 15, credits }
       : { xp: 15, trophies: 2, rank: -10, credits: 0 },
     opponentName: them.name,
-    opponentImage: them.image_url ?? null,
+    opponentImage: (await ensureFighterForCompanion(them).catch(() => null)) ?? them.image_url ?? null,
     newBadges,
   };
 }

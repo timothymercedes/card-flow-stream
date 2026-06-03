@@ -91,9 +91,11 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
   );
 }
 
-// Generated character art lives under /arena/fighters/ — render it whole as a
-// standing fighter. Card art (a real card photo) is cropped to its character.
-const isCharacterArt = (url?: string | null) => !!url && url.includes("/arena/fighters/");
+// Generated character art (original Arena fighters under /arena/fighters/, or
+// AI-generated card characters cached under /arena-fighters/) is rendered whole
+// as a standing full-body fighter. A raw card photo is cropped to its character.
+const isCharacterArt = (url?: string | null) =>
+  !!url && (url.includes("/arena/fighters/") || url.includes("/arena-fighters/"));
 
 function Fighter({
   name, cardImage, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,

@@ -10,6 +10,7 @@ import {
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
   getBattleReplay, postBattleToFeed, getMissionClaims, claimMission,
 } from "@/lib/arena.functions";
+import { ensureCompanionFighter } from "@/lib/arenaFighter.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
@@ -133,7 +134,23 @@ function ArenaPage() {
   const cosmeticsFn = useServerFn(getArenaCosmetics);
   const replayFn = useServerFn(getBattleReplay);
   const postFeedFn = useServerFn(postBattleToFeed);
+  const fighterFn = useServerFn(ensureCompanionFighter);
   const canLoadArena = !!user && !!session && !authLoading;
+
+  // Generate a card-accurate battle figure once per companion (cached server-side).
+  const fighterM = useMutation({
+    mutationFn: (companionId: string) => fighterFn({ data: { companionId } }),
+    onSuccess: (r) => {
+      if (r.fighterImage) qc.invalidateQueries({ queryKey: ["arena", "mine"] });
+    },
+  });
+  const fighterPending = useRef<Set<string>>(new Set());
+  function ensureFighter(c?: { id: string; fighter_image_url?: string | null; image_url?: string | null }) {
+    if (!c || c.fighter_image_url || !c.image_url) return;
+    if (fighterPending.current.has(c.id)) return;
+    fighterPending.current.add(c.id);
+    fighterM.mutate(c.id, { onSettled: () => fighterPending.current.delete(c.id) });
+  }
 
 
   const myQ = useQuery({
@@ -286,10 +303,15 @@ function ArenaPage() {
     [companions, statsFor],
   );
 
-  function openBattle(id: string) { setSelectedMine(id); setBattleFor(id); }
+  function openBattle(id: string) {
+    setSelectedMine(id);
+    ensureFighter(companions.find((x) => x.id === id));
+    setBattleFor(id);
+  }
   function openTrain(id: string) {
     setSelectedMine(id);
     const c = companions.find((x) => x.id === id);
+    ensureFighter(c);
     setEnvironment(environmentsFor(c?.arena_category)[0]?.key ?? null);
     setTrainFor(id);
   }
@@ -618,7 +640,7 @@ function ArenaPage() {
             <ArenaBattleStage
               result={battleResult}
               myName={activeMine?.name ?? "Your companion"}
-              myImage={activeMine?.image_url}
+              myImage={activeMine?.fighter_image_url ?? activeMine?.image_url}
               mySeed={activeMine ? `${activeMine.id}:${activeMine.name}` : null}
               myLevel={activeMine?.level ?? 1}
               myPassive={activeMine?.hidden_traits?.[0] ?? null}
