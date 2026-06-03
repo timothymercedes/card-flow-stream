@@ -7,10 +7,11 @@ import {
   companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS,
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
+import { arenaCategoryFor } from "@/lib/arenaCategories";
 
 type CompanionRow = {
   id: string; user_id: string; vault_card_id: string; name: string;
-  category: string | null; community: string; image_url: string | null;
+  category: string | null; community: string; arena_category: string; image_url: string | null;
   level: number; xp: number; attack: number; defense: number; speed: number;
   hidden_traits: string[]; wins: number; losses: number; win_streak: number;
   longest_win_streak: number; season_wins: number; trophies: number;
