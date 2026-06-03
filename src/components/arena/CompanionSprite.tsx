@@ -303,14 +303,52 @@ export function CompanionSprite({
         <ellipse cx={cx} cy={108} rx={bodyW * 0.62} ry={11} fill="none"
           stroke={accent} strokeWidth={flair >= 4 ? 3 : 2} opacity={0.35 + flair * 0.1} />
       )}
-      {/* Ground shadow */}
-      <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />
+      {/* Ground shadow (skipped for floating phantoms) */}
+      {!feat.ghost && <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />}
 
-      {/* Feet */}
-      <g className="companion-feet" fill={shiftColor(body, -10)}>
-        <ellipse cx={cx - bodyW / 4} cy={114} rx={9} ry={6} />
-        <ellipse cx={cx + bodyW / 4} cy={114} rx={9} ry={6} />
-      </g>
+      {/* Wings — rendered behind the body */}
+      {feat.wings === "dragon" && (
+        <g className="companion-wing" fill={shiftColor(accent, 10)} opacity={0.92} stroke="#0002">
+          <path d={`M${bodyLeft + 6} ${bodyTop + 16} q-40 -16 -44 18 q22 -6 26 2 q-14 6 -10 18 q18 -10 30 -16 Z`} />
+          <path d={`M${bodyLeft + bodyW - 6} ${bodyTop + 16} q40 -16 44 18 q-22 -6 -26 2 q14 6 10 18 q-18 -10 -30 -16 Z`} />
+        </g>
+      )}
+      {feat.wings === "feather" && (
+        <g className="companion-wing" fill="#fff" opacity={0.9} stroke="#0001">
+          <path d={`M${bodyLeft + 6} ${bodyTop + 18} q-34 -6 -38 22 q20 -10 24 -4 q-10 8 -6 16 q14 -12 26 -18 Z`} />
+          <path d={`M${bodyLeft + bodyW - 6} ${bodyTop + 18} q34 -6 38 22 q-20 -10 -24 -4 q10 8 6 16 q-14 -12 -26 -18 Z`} />
+        </g>
+      )}
+      {feat.wings === "insect" && (
+        <g className="companion-wing" fill={accent} opacity={0.4} stroke="#0002">
+          <ellipse cx={bodyLeft - 8} cy={bodyTop + 24} rx={18} ry={10} transform={`rotate(-24 ${bodyLeft - 8} ${bodyTop + 24})`} />
+          <ellipse cx={bodyLeft + bodyW + 8} cy={bodyTop + 24} rx={18} ry={10} transform={`rotate(24 ${bodyLeft + bodyW + 8} ${bodyTop + 24})`} />
+        </g>
+      )}
+
+      {/* Tail */}
+      {feat.tail === "feline" && (
+        <path d={`M${bodyLeft + bodyW - 6} ${bodyTop + bodyH - 4} q26 6 22 -22 q-2 -10 8 -12`} fill="none" stroke={body} strokeWidth={7} strokeLinecap="round" />
+      )}
+      {feat.tail === "bushy" && (
+        <path d={`M${bodyLeft + bodyW - 8} ${bodyTop + bodyH - 6} q28 0 28 -22 q10 6 4 18 q12 0 6 12 q-22 6 -38 -6 Z`} fill={shiftColor(body, -12)} />
+      )}
+      {feat.tail === "reptile" && (
+        <path d={`M${bodyLeft + bodyW - 8} ${bodyTop + bodyH - 8} q34 4 40 26 q-16 -6 -24 -2 q-8 -10 -18 -12 Z`} fill={body} />
+      )}
+      {feat.tail === "spike" && (
+        <path d={`M${bodyLeft + bodyW - 8} ${bodyTop + bodyH - 8} q28 6 34 24 l-8 -2 l4 8 l-10 -6 q-6 -12 -18 -16 Z`} fill={shiftColor(body, -8)} />
+      )}
+
+      {/* Feet (phantoms get a wispy floating tail instead) */}
+      {feat.ghost ? (
+        <path className="companion-feet" d={`M${bodyLeft + 6} ${bodyTop + bodyH - 6} q${bodyW / 2} 30 ${bodyW - 12} 0 q-8 18 -${(bodyW - 12) / 2} 18 q-${(bodyW - 12) / 2} 0 -${bodyW - 12} -18 Z`} fill={body} opacity={0.85} />
+      ) : (
+        <g className="companion-feet" fill={shiftColor(body, -10)}>
+          <ellipse cx={cx - bodyW / 4} cy={114} rx={9} ry={6} />
+          <ellipse cx={cx + bodyW / 4} cy={114} rx={9} ry={6} />
+        </g>
+      )}
 
       {/* Arms */}
       <g className="companion-arms" fill={body}>
@@ -327,8 +365,26 @@ export function CompanionSprite({
         <circle key={i} cx={cx - 10 + i * 8} cy={bodyTop + bodyH * 0.7} r={2.2} fill={accent} opacity={0.5} />
       ))}
 
-      {/* Headgear */}
-      <Headgear kind={d.headgear} cx={cx} topY={bodyTop} w={bodyW} accent={accent} body={body} />
+      {/* Headgear (archetype-driven) */}
+      <Headgear kind={feat.head} cx={cx} topY={bodyTop} w={bodyW} accent={accent} body={body} />
+
+      {/* Whiskers */}
+      {feat.whiskers && (
+        <g stroke="#0006" strokeWidth={1.4} strokeLinecap="round">
+          <path d={`M${cx - 6} ${bodyTop + 28} l-16 -3`} />
+          <path d={`M${cx - 6} ${bodyTop + 31} l-16 3`} />
+          <path d={`M${cx + 6} ${bodyTop + 28} l16 -3`} />
+          <path d={`M${cx + 6} ${bodyTop + 31} l16 3`} />
+        </g>
+      )}
+      {/* Fangs */}
+      {feat.fangs && (
+        <g fill="#fff" stroke="#0002">
+          <path d={`M${cx - 5} ${bodyTop + 33} l3 6 l3 -6 Z`} />
+          <path d={`M${cx + 5} ${bodyTop + 33} l-3 6 l3 0 Z`} />
+        </g>
+      )}
+
 
       {/* Eyes */}
       <g>
