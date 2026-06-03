@@ -23,7 +23,7 @@ export function CollectionStreakCard({ recordOnMount = false }: { recordOnMount?
     let cancelled = false;
     (async () => {
       try {
-        await record({ data: undefined } as never);
+        await record();
         if (!cancelled) qc.invalidateQueries({ queryKey: ["collection-streak"] });
       } catch {
         /* streak recording is best-effort */
