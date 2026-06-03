@@ -30,26 +30,36 @@ type BookCard = {
   rarity: string | null;
 };
 
-// Look up official set totals from the card_sets master table.
+import { normalizeTcgCategory } from "@/lib/tcgCategory";
+
+// Look up official set totals from the card_sets master table, keyed by
+// canonical game category + set name so cross-game name collisions never
+// cross-contaminate (e.g. a Pokémon "Dragon" set vs an MTG one).
 async function loadSetTotals(
   supabaseAdmin: any,
-  setNames: string[],
+  pairs: { category: string; setName: string }[],
 ): Promise<Map<string, number>> {
-  const totals = new Map<string, number>();
-  const names = [...new Set(setNames.map(norm).filter(Boolean))];
+  const totals = new Map<string, number>(); // key: `${cat}|||${lowerSetName}`
+  const names = [...new Set(pairs.map((p) => norm(p.setName)).filter(Boolean))];
   for (let i = 0; i < names.length; i += 100) {
     const slice = names.slice(i, i + 100);
     const { data } = await supabaseAdmin
       .from("card_sets")
-      .select("set_name, total, printed_total")
+      .select("category, set_name, total, printed_total")
       .in("set_name", slice);
     (data ?? []).forEach((r: any) => {
       const total = Number(r.total) || Number(r.printed_total) || 0;
-      if (total > 0) totals.set(normSet(r.set_name), total);
+      if (total <= 0) return;
+      totals.set(`${normalizeTcgCategory(r.category)}|||${normSet(r.set_name)}`, total);
     });
   }
   return totals;
 }
+
+function setTotalKey(category: unknown, setName: unknown) {
+  return `${normalizeTcgCategory(category)}|||${normSet(setName)}`;
+}
+
 
 // ---------- Collection Books overview ----------
 export const getCollectionBooks = createServerFn({ method: "GET" })
