@@ -275,6 +275,9 @@ function Profile() {
         {/* Set completion reward wheel winnings */}
         <ProfileRewardsShowcase />
 
+        {/* Favorited sets + live completion progress */}
+        <ProfileCollectionGoals />
+
 
 
 
