@@ -1346,6 +1346,36 @@ export type Database = {
         }
         Relationships: []
       }
+      collection_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          last_activity_date: string | null
+          longest_streak: number
+          total_activities: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          last_activity_date?: string | null
+          longest_streak?: number
+          total_activities?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          last_activity_date?: string | null
+          longest_streak?: number
+          total_activities?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       collection_wheel_slots: {
         Row: {
           color: string
@@ -1497,6 +1527,94 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      community_challenge_contributions: {
+        Row: {
+          challenge_id: string
+          contribution: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          contribution?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          contribution?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_challenge_contributions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "community_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_challenges: {
+        Row: {
+          category: string | null
+          community_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          set_name: string | null
+          target_count: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          community_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          set_name?: string | null
+          target_count?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          community_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          set_name?: string | null
+          target_count?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_challenges_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       community_comments: {
         Row: {
@@ -9047,6 +9165,14 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      record_collection_activity: {
+        Args: { _user_id: string }
+        Returns: {
+          current_streak: number
+          gained: boolean
+          longest_streak: number
+        }[]
       }
       record_reward_progress: {
         Args: {
