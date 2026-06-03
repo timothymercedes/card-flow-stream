@@ -283,6 +283,12 @@ function PublicStore() {
                       >
                         <MessageCircle className="h-3 w-3" /> Message
                       </button>
+                      <button
+                        onClick={() => nav({ to: "/trades", search: { to: seller.id } })}
+                        className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold ring-1 ring-border"
+                      >
+                        <ArrowLeftRight className="h-3 w-3" /> Trade
+                      </button>
                     </>
                   )}
                   <ShareButton
