@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProgression } from "@/hooks/useProgression";
-import { progressToNextLevel } from "@/lib/progression";
-import { Trophy, Flame, Zap, CheckCircle2, Lock } from "lucide-react";
+import { progressToNextLevel, openDailyCrate, RARITY_STYLE, type CrateReward } from "@/lib/progression";
+import { Trophy, Flame, Zap, CheckCircle2, Lock, Gift, Sparkles, Gem } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/quests")({
   head: () => ({ meta: [
