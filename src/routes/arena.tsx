@@ -6,9 +6,11 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
+  battlePve, getBattleHistory,
 } from "@/lib/arena.functions";
 import {
-  TITLE_META, COMMUNITY_META, companionLevelProgress, type ArenaCommunity, type ArenaTitle,
+  TITLE_META, COMMUNITY_META, DIFFICULTY_META, companionLevelProgress,
+  type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, PVP_WIN_XP,
 } from "@/lib/arenaShared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
