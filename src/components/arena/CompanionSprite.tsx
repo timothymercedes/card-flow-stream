@@ -174,6 +174,69 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
           <rect x={cx - 3} y={topY - 12} width={6} height={10} rx={3} fill={body} />
         </g>
       );
+    case "catears":
+      return (
+        <g fill={body} stroke="#0002">
+          <path d={`M${l - 2} ${topY + 4} L${l - 8} ${topY - 22} L${l + 10} ${topY - 2} Z`} />
+          <path d={`M${r + 2} ${topY + 4} L${r + 8} ${topY - 22} L${r - 10} ${topY - 2} Z`} />
+          <path d={`M${l} ${topY - 2} l-3 -12 l8 6 Z`} fill={accent} stroke="none" />
+          <path d={`M${r} ${topY - 2} l3 -12 l-8 6 Z`} fill={accent} stroke="none" />
+        </g>
+      );
+    case "wolfears":
+      return (
+        <g fill={shiftColor(body, -12)}>
+          <path d={`M${l - 4} ${topY + 4} L${l - 14} ${topY - 18} L${l + 6} ${topY} Z`} />
+          <path d={`M${r + 4} ${topY + 4} L${r + 14} ${topY - 18} L${r - 6} ${topY} Z`} />
+        </g>
+      );
+    case "draconic":
+      return (
+        <g fill={accent}>
+          <path d={`M${l} ${topY + 2} q-14 -16 -2 -30 q4 16 12 24 Z`} />
+          <path d={`M${r} ${topY + 2} q14 -16 2 -30 q-4 16 -12 24 Z`} />
+          <path d={`M${cx - 6} ${topY - 2} l6 -12 l6 12 Z`} fill={shiftColor(accent, 20)} />
+        </g>
+      );
+    case "beak":
+      return (
+        <g>
+          <path d={`M${cx - 6} ${topY - 4} l6 -14 l6 14 Z`} fill={accent} />
+        </g>
+      );
+    case "halo":
+      return (
+        <ellipse cx={cx} cy={topY - 16} rx={w / 2.6} ry={5} fill="none" stroke="#facc15" strokeWidth={3} />
+      );
+    case "visor":
+      return (
+        <g>
+          <rect x={cx - w / 2} y={topY + 12} width={w} height={9} rx={2} fill="#0b1220" />
+          <rect x={cx - w / 2 + 3} y={topY + 14} width={w - 6} height={4} rx={2} fill={accent} />
+          <rect x={cx - 2} y={topY - 14} width={4} height={12} rx={2} fill={accent} />
+        </g>
+      );
+    case "pirate":
+      return (
+        <g>
+          <path d={`M${cx - w / 2 - 4} ${topY - 2} q${w / 2 + 4} -22 ${w + 8} 0 Z`} fill="#1f2d3d" />
+          <rect x={cx - w / 2 - 6} y={topY - 4} width={w + 12} height={5} rx={2} fill="#1f2d3d" />
+          <text x={cx} y={topY - 8} fontSize="9" textAnchor="middle" fill="#fff">☠</text>
+        </g>
+      );
+    case "hood":
+      return (
+        <g>
+          <path d={`M${cx - w / 2} ${topY + 18} q${w / 2} -34 ${w} 0 l0 8 q-${w / 2} -16 -${w} 0 Z`} fill={shiftColor(body, -16)} />
+        </g>
+      );
+    case "skull":
+      return (
+        <g fill={accent}>
+          <path d={`M${l} ${topY + 2} q-8 -16 4 -24 q-1 12 6 18 Z`} />
+          <path d={`M${r} ${topY + 2} q8 -16 -4 -24 q1 12 -6 18 Z`} />
+        </g>
+      );
     default: // antenna
       return (
         <g stroke={accent} strokeWidth={3} fill="none">
