@@ -329,6 +329,14 @@ export function ArenaBattleStage({
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
             <Swords className={`h-6 w-6 text-primary ${phase === "fight" ? "animate-pulse" : ""}`} />
+            {/* Energy projectile flies from the attacker toward the defender on a special */}
+            {fx && fx.skill === "special" && fx.kind !== "dodge" && ev && (
+              <span
+                key={`proj-${runKey}-${roundIdx}`}
+                className={`arena-projectile ${ev.attacker === "mine" ? "arena-projectile-right" : "arena-projectile-left"} ${fx.kind === "crit" ? "h-4 w-9 bg-amber-400" : "h-3 w-7 bg-sky-400"}`}
+                aria-hidden
+              />
+            )}
             {fx && fx.kind !== "dodge" && (
               <>
                 <span className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-14 w-14 bg-amber-400/70" : "h-10 w-10 bg-primary/60"}`} />
@@ -349,14 +357,13 @@ export function ArenaBattleStage({
           <div className="relative flex-1">
             <Fighter
               name={result.opponentName}
-              cardImage={result.opponentImage}
               emoji={result.opponentEmoji}
               side="right"
               category={arenaCategory}
               seedKey={result.opponentName}
               level={myLevel}
               hp={theirHp}
-              wrapperAnim={phase === "intro" ? "arena-enter-right" : ""}
+              wrapperAnim={wrapperAnimFor("theirs", "right")}
               companionAnim={theirAnim}
             />
             {fx?.defender === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
