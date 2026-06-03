@@ -105,7 +105,7 @@ describe("Arena findOpponents (authenticated POST)", () => {
 
   it("returns opponents (other users' companions) when authenticated", async () => {
     const { findOpponents } = await import("@/lib/arena.functions");
-    const res = await findOpponents({ data: {} });
+    const res = await callServer<{ opponents: Array<{ user_id: string }> }>(findOpponents, {});
 
     expect(Array.isArray(res.opponents)).toBe(true);
     expect(res.opponents.length).toBeGreaterThan(0);
@@ -117,8 +117,8 @@ describe("Arena findOpponents (authenticated POST)", () => {
 
   it("uses the opponent-safe projection (no hidden stats leaked)", async () => {
     const { findOpponents } = await import("@/lib/arena.functions");
-    const res = await findOpponents({ data: {} });
-    const sample = res.opponents[0] as Record<string, unknown>;
+    const res = await callServer<{ opponents: Array<Record<string, unknown>> }>(findOpponents, {});
+    const sample = res.opponents[0];
 
     expect(sample).toHaveProperty("win_rate");
     for (const secret of ["attack", "defense", "speed", "hidden_traits", "xp"]) {
@@ -128,7 +128,7 @@ describe("Arena findOpponents (authenticated POST)", () => {
 
   it("filters opponents by community", async () => {
     const { findOpponents } = await import("@/lib/arena.functions");
-    const res = await findOpponents({ data: { community: "sports" } });
+    const res = await callServer<{ opponents: Array<{ community: string }> }>(findOpponents, { community: "sports" });
 
     expect(res.opponents.length).toBe(1);
     expect(res.opponents[0].community).toBe("sports");
