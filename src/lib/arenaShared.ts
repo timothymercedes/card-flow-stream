@@ -98,6 +98,34 @@ export const DIFFICULTY_META: Record<ArenaDifficulty, {
   elite:    { label: "Elite",    emoji: "🔴", mult: 1.4, winXp: 10, lossXp: 2, winTrophies: 3 },
 };
 
+// AI trainers — each difficulty is fronted by a named character with a rank
+// and personality so Training feels like facing a real opponent, not a button.
+// Used by both the Train game-mode screen and the battle stage (opponentName).
+export const TRAINING_TRAINERS: Record<ArenaDifficulty, {
+  name: string; rank: string; emoji: string; personality: string; style: string;
+}> = {
+  beginner: {
+    name: "Pip", rank: "Arena Rookie", emoji: "🐣",
+    personality: "Eager and friendly — the perfect first sparring partner.",
+    style: "Cautious, plays it safe",
+  },
+  normal: {
+    name: "Coach Vera", rank: "Veteran Trainer", emoji: "🧑‍🏫",
+    personality: "A steady mentor who tests your fundamentals.",
+    style: "Balanced, measured pressure",
+  },
+  hard: {
+    name: "Razor Kane", rank: "Elite Challenger", emoji: "🥷",
+    personality: "Ruthless and fast — punishes every mistake.",
+    style: "Aggressive, high-tempo strikes",
+  },
+  elite: {
+    name: "Champion Aurelia", rank: "Arena Champion", emoji: "👑",
+    personality: "The reigning legend. Beat her to prove yourself.",
+    style: "Relentless, flawless mastery",
+  },
+};
+
 // Reference PVP rewards (kept here so UI can show the contrast). Real battles
 // are always more valuable than computer training.
 export const PVP_WIN_XP = 50;
