@@ -413,9 +413,30 @@ export function ArenaBattleStage({
           <Button className="w-full" onClick={onClose}>Continue</Button>
         </div>
       ) : (
-        <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setPhase("summary")}>
-          Skip animation
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+            <span className="px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Speed</span>
+            <Button
+              size="sm"
+              variant={speed === 1 ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setSpeed(1)}
+            >
+              1×
+            </Button>
+            <Button
+              size="sm"
+              variant={speed === 2 ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setSpeed(2)}
+            >
+              <FastForward className="mr-1 h-3 w-3" />2×
+            </Button>
+          </div>
+          <Button variant="ghost" className="text-muted-foreground" onClick={() => setPhase("summary")}>
+            <SkipForward className="mr-1.5 h-4 w-4" />Skip
+          </Button>
+        </div>
       )}
     </div>
   );
