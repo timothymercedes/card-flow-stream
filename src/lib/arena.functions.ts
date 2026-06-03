@@ -8,6 +8,8 @@ import {
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
 import { arenaCategoryFor } from "@/lib/arenaCategories";
+import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
+import { COSMETIC_MAP } from "@/lib/arenaCosmetics";
 
 type CompanionRow = {
   id: string; user_id: string; vault_card_id: string; name: string;
