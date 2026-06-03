@@ -207,7 +207,7 @@ function ItemStack({ items }: { items: Trade["items"] }) {
   if (items.length === 0) return <span className="text-xs text-muted-foreground">cash only</span>;
   return (
     <div className="flex flex-wrap gap-1">
-      {items.map((i) => (
+      {items.map((i: any) => (
         <div key={i.id} className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5">
           {i.card_image_url ? (
             <img src={i.card_image_url} alt={i.card_name} className="h-8 w-6 rounded object-cover" />
