@@ -255,7 +255,12 @@ function ArenaPage() {
   );
 
   function openBattle(id: string) { setSelectedMine(id); setBattleFor(id); }
-  function openTrain(id: string) { setSelectedMine(id); setTrainFor(id); }
+  function openTrain(id: string) {
+    setSelectedMine(id);
+    const c = companions.find((x) => x.id === id);
+    setEnvironment(environmentsFor(c?.arena_category)[0]?.key ?? null);
+    setTrainFor(id);
+  }
   function openCustomize() { setTab("rewards"); }
 
   function battleCollector(targetUserId: string) {
