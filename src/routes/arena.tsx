@@ -33,6 +33,22 @@ import { toast } from "sonner";
 
 const ARENA_CATEGORY_KEYS = new Set(ARENA_CATEGORIES.map((c) => c.key));
 
+// Ordered category options for the top-level Arena filter dropdown.
+const FILTER_CATEGORY_KEYS = [
+  "pokemon", "onepiece", "mtg", "yugioh", "sports", "lorcana", "wrestling", "marvel", "starwars",
+] as const;
+
+// Small colored category badge shown on each companion card.
+function CategoryBadge({ categoryKey }: { categoryKey: string }) {
+  const m = arenaCategoryMeta(categoryKey);
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-[10px] font-medium">
+      <span className="leading-none">{m.emoji}</span>
+      {m.label.replace(/ Arena$/, "")}
+    </span>
+  );
+}
+
 export const Route = createFileRoute("/arena")({
   validateSearch: (search: Record<string, unknown>): { category?: string } => {
     const c = typeof search.category === "string" ? search.category : undefined;
