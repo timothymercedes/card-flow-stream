@@ -178,7 +178,7 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {d.missing.map((c) => (
-                  <MissingCard key={c.number + c.name} card={c} />
+                  <MissingCard key={c.number + c.name} card={c} setName={setName} category={category} />
                 ))}
               </div>
             )}
