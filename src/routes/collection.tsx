@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart } from "lucide-react";
+import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collection")({
@@ -187,6 +187,17 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
                 <p className="mt-1 text-xs font-medium">
                   {d.completion}% complete · {d.distinctMissingCount} still needed
                 </p>
+              </div>
+            )}
+            {d.complete && (
+              <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+                  <Trophy className="h-4 w-4" /> Set complete!
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">You own every card in this set. Claim your reward.</p>
+                <Button size="sm" className="mt-2 h-8" onClick={onClaim} disabled={claimed}>
+                  <Trophy className="mr-1 h-3.5 w-3.5" /> {claimed ? "Claimed" : "Claim reward"}
+                </Button>
               </div>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
