@@ -22,6 +22,8 @@ export type StageResult = {
   rewards: { xp: number; trophies: number; rank: number; credits: number };
   opponentName: string;
   opponentImage?: string | null;
+  opponentEmoji?: string | null;
+  environment?: string | null;
   newBadges: ArenaBadgeKey[];
 };
 
