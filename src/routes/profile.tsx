@@ -267,6 +267,11 @@ function Profile() {
           </div>
         </div>
 
+        {/* Collector rank, level, achievements + Showcase 9 */}
+        <CollectorShowcase userId={user.id} />
+
+
+
 
         {/* Quick action bar — own profile shortcuts */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
