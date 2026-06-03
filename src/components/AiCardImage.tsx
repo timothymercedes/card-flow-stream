@@ -52,7 +52,7 @@ export function AiCardImage({
   card,
   alt,
   className = "",
-  priority = false,
+  priority = true,
 }: {
   card: AiCardIdentity;
   alt: string;
