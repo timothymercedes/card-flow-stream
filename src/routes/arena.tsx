@@ -478,7 +478,7 @@ function ArenaPage() {
                       onBattle={() => openBattle(c.id)}
                       onTrain={() => openTrain(c.id)}
                       onStats={() => setStatsFor(c.id)}
-                      onCustomize={openCustomize}
+                      onCustomize={() => openCustomize(c.id)}
                     />
                   ))}
                 </div>
