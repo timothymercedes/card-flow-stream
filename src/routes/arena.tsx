@@ -63,6 +63,7 @@ function ArenaPage() {
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
+    | Awaited<ReturnType<typeof challengeUser>>
     | Awaited<ReturnType<typeof battlePve>>
     | null
   >(null);
