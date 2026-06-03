@@ -11,6 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sparkles, ArrowLeft, ArrowLeftRight, ArrowRight, Repeat, Gift, Search } from "lucide-react";
 
 export const Route = createFileRoute("/trades/discover")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    q: typeof s.q === "string" ? s.q : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Trade Discovery — PullBid Live" },
