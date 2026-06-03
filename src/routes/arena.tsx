@@ -217,6 +217,30 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Could not update follow"),
   });
 
+  const replayM = useMutation({
+    mutationFn: (battleId: string) => replayFn({ data: { battleId } }),
+    onSuccess: (r) => setReplay(r),
+    onError: (e: any) => toast.error(e?.message || "Could not load replay"),
+  });
+
+  const shareFeedM = useMutation({
+    mutationFn: (vars: { result: StageResult; companionName: string; companionImage: string | null }) =>
+      postFeedFn({ data: {
+        battleId: vars.result.battleId ?? null,
+        won: vars.result.iWon,
+        opponentName: vars.result.opponentName,
+        companionName: vars.companionName,
+        imageUrl: vars.companionImage,
+      } }),
+    onSuccess: () => {
+      toast.success("Shared to the Arena feed!");
+      qc.invalidateQueries({ queryKey: ["arena", "feed"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not share to feed"),
+  });
+
+  function watchReplay(battleId: string) { replayM.mutate(battleId); }
+
   const activeMine = useMemo(
     () => companions.find((c) => c.id === selectedMine) ?? companions[0],
     [companions, selectedMine],
