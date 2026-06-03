@@ -614,3 +614,69 @@ body.kb-open [data-bottom-nav] {
   .arena-float-text,.arena-crit-flash,.arena-dodge,.arena-banner-in,.arena-confetti { animation: none !important; }
   .arena-float-text,.arena-confetti { opacity: 0 !important; }
 }
+
+/* ============================================================
+   PullBid Arena — Companion sprites (original digital fighters)
+   The card unlocks the companion; the companion is the fighter.
+   ============================================================ */
+.companion-sprite { display: block; transform-origin: 50% 100%; }
+.companion-sprite .companion-aura { animation: companion-aura-pulse 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes companion-aura-pulse { 0%,100% { opacity: 0.6; transform: scale(0.94); } 50% { opacity: 1; transform: scale(1.06); } }
+
+/* Idle breathing + arm sway */
+.companion-idle { animation: companion-breathe 2.6s ease-in-out infinite; }
+@keyframes companion-breathe { 0%,100% { transform: translateY(0) scale(1,1); } 50% { transform: translateY(-3px) scale(1.015,0.985); } }
+.companion-idle .companion-arm-l { animation: companion-sway-l 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
+.companion-idle .companion-arm-r { animation: companion-sway-r 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
+@keyframes companion-sway-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(7deg); } }
+@keyframes companion-sway-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-7deg); } }
+
+/* Blinking pupils */
+.companion-sprite .companion-pupil { animation: companion-blink 4.2s steps(1) infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes companion-blink { 0%,92%,100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+
+/* Attack — lunge + squash */
+.companion-attack { animation: companion-attack 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes companion-attack {
+  0% { transform: translateX(0) scale(1,1); }
+  35% { transform: translateX(14px) scale(1.12,0.9); }
+  55% { transform: translateX(2px) scale(0.95,1.06); }
+  100% { transform: translateX(0) scale(1,1); }
+}
+
+/* Hit — flash + recoil */
+.companion-hit { animation: companion-hit 0.45s ease-out; }
+@keyframes companion-hit {
+  0%,100% { transform: translateX(0); filter: none; }
+  20% { transform: translateX(-7px) rotate(-3deg); filter: brightness(2.4) saturate(0.3); }
+  50% { transform: translateX(5px) rotate(2deg); }
+  75% { transform: translateX(-3px); }
+}
+
+/* Dodge — slip aside */
+.companion-dodge { animation: companion-dodge 0.5s ease-in-out; }
+@keyframes companion-dodge {
+  0%,100% { transform: translateX(0); opacity: 1; }
+  45% { transform: translateX(-22px) skewX(10deg); opacity: 0.4; }
+}
+
+/* Victory — celebratory hop */
+.companion-victory { animation: companion-victory 0.9s ease-in-out infinite; }
+@keyframes companion-victory {
+  0%,100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-12px) rotate(-4deg); }
+  60% { transform: translateY(0) rotate(4deg); }
+}
+
+/* Defeat — slump + fade */
+.companion-defeat { animation: companion-defeat 0.7s ease-out forwards; }
+@keyframes companion-defeat {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(10px) rotate(8deg) scale(0.92); opacity: 0.45; filter: grayscale(0.7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .companion-idle,.companion-attack,.companion-hit,.companion-dodge,.companion-victory,
+  .companion-aura,.companion-arm-l,.companion-arm-r,.companion-pupil { animation: none !important; }
+  .companion-defeat { animation: none !important; opacity: 0.5 !important; }
+}
