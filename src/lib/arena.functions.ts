@@ -140,15 +140,20 @@ export const getPublicCompanions = createServerFn({ method: "GET" })
   });
 
 // ---- Find opponents (other users' companions, limited stats) ----
+// Category-scoped matchmaking: collectors battle within their own Arena
+// category (Pokémon vs Pokémon, etc.). Pass category "all" / undefined for a
+// cross-category pool. `community` is kept for backward compatibility.
 // Core query logic, extracted so it can be exercised in integration tests
 // without the server-function/runtime layer. `admin` is a Supabase client.
 export async function fetchOpponentsCore(
   admin: { from: (t: string) => any },
   userId: string,
+  category?: string,
   community?: string,
 ) {
-  let q = admin.from("arena_companions").select("*").neq("user_id", userId).limit(40);
-  if (community && community !== "general") q = q.eq("community", community);
+  let q = admin.from("arena_companions").select("*").neq("user_id", userId).limit(60);
+  if (category && category !== "all") q = q.eq("arena_category", category);
+  else if (community && community !== "general") q = q.eq("community", community);
   const { data: rows, error } = await q;
   if (error) throw new Error(error.message);
   // Shuffle and take up to 12
@@ -159,11 +164,11 @@ export async function fetchOpponentsCore(
 
 export const findOpponents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { community?: string }) => d ?? {})
+  .inputValidator((d: { category?: string; community?: string }) => d ?? {})
   .handler(async ({ context, data }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return fetchOpponentsCore(supabaseAdmin, userId, data.community);
+    return fetchOpponentsCore(supabaseAdmin, userId, data.category, data.community);
   });
 
 
