@@ -6,20 +6,24 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
-  battlePve, getBattleHistory,
+  battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
+  unfollowCollector, challengeUser, getRecentOpponents, listMyBadges,
 } from "@/lib/arena.functions";
 import {
-  TITLE_META, COMMUNITY_META, DIFFICULTY_META, companionLevelProgress,
-  type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, PVP_WIN_XP,
+  TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
+  type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
+  Users, Search, UserPlus, UserCheck, Award, History,
 } from "lucide-react";
 import { toast } from "sonner";
 
