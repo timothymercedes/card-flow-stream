@@ -1,83 +1,43 @@
+# PullBid Live — Build Plan
 
-# Master Card Vault Architecture
+I've saved your full master vision as the canonical project roadmap so every future build stays aligned with it. The ecosystem is large and most subsystems already exist in some form (vault, marketplace, live, communities-adjacent feed, quests, achievements, arena prototype). Rather than rebuild everything at once, I'll follow **your stated dev order** and ship one solid subsystem at a time.
 
-The database already contains the right tables — they just aren't wired into one coherent flow. This plan turns `card_identities` into the true source of truth and makes pricing belong to the card, not the user.
+This plan covers **Priority 1: the Trade System** — the biggest missing piece. Once you approve and it's live, I'll move to Collection Tracking, then Wishlist, etc.
 
-## What already exists (reuse, don't rebuild)
-- `card_identities` — master record (name, set, number, variant, rarity, year, **language**, image_url, fingerprint, external_ids/product IDs).
-- `card_images` — multiple images per identity (official + uploads).
-- `price_observations` + `card_price_history` — historical pricing.
-- `vault_cards.card_identity_id` — the link from a user's card to the master record.
-- `refresh-vault-values` cron hook + `card-price` edge function — pricing engine.
+## Scope of this build (Trade System)
 
-## The gaps causing the "no workflow / no linkage" complaints
-1. Scans don't reliably resolve to (or create) a master `card_identities` row, so the same card gets rediscovered and `card_identity_id` stays empty.
-2. Daily sync iterates `vault_cards` per-user instead of per-identity → duplicate API calls, and one user's refresh doesn't update other owners.
-3. Charts read user-scoped history keys instead of the identity's shared history.
-4. Master record has no `market_value`, `last_price_sync`, or `verification_status` columns, so there's no canonical stored price.
-
-## Plan
-
-### 1. Extend the master table (migration)
-Add to `card_identities`: `market_value_cents int`, `price_currency text default 'USD'`, `price_source text`, `last_price_sync timestamptz`, `verification_status text default 'unverified'` (verified / estimated / unverified), `ai_reference_image_url text`. Keep `external_ids` for product IDs. Index `last_price_sync`.
-
-### 2. Identity-first scanner workflow
-Create a single resolver server fn `resolveCardIdentity` (used by scan apply + manual correction):
 ```text
-AI identifies language, set, number, variant, name (AI never prices)
-        → build fingerprint (canonical key, includes language)
-        → SELECT card_identities WHERE fingerprint = ?
-   exists → reuse identity: image, language, market_value, history
-   missing → card-catalog lookup → INSERT card_identities (+ card_images)
-        → return identity_id
-vault_cards.card_identity_id = identity_id   (always linked)
+Your Vault ─┐
+            ├─> Trade Builder ─> Offer (cards + cash) ─> Lifecycle ─> Reputation
+Their Vault ┘
 ```
-Language is part of the fingerprint, so JP/CN/EN are separate identities with their own image + price. The vault renders `card_images`/identity image, never an English image for a foreign card.
 
-### 3. Pricing belongs to the card
-- `card-price` keyed by `identity_id`. On refresh it writes `market_value_cents`/`last_price_sync`/`verification_status` on the identity and appends `price_observations` + `card_price_history`.
-- After an identity's price updates, **propagate** to every `vault_cards` row with that `card_identity_id` (estimated_value, market_price, price_updated_at) in one update.
+### 1. Database (single migration)
+- `trades` — challenger/recipient ids, optional `cash_amount` + `cash_direction` (who pays), `status` (pending, countered, accepted, shipped, delivered, completed, cancelled), `message`, parent trade id for counters.
+- `trade_items` — trade_id, owner side, `vault_card_id` snapshot (name/image/value at offer time so changes/sales don't corrupt history).
+- `trade_ratings` — rater/ratee, trade_id, stars (1–5), comment. Derived "Trusted/Elite Trader" badge computed from count + average.
+- Add a per-card availability column set on `vault_cards` (`accept_trades`, `trade_plus_cash`, `accept_offers`, `collection_only`) so cards can be flagged tradeable. RLS + GRANTs on all new tables. Realtime on `trades` for live status.
 
-### 4. Daily global sync (one run, deduped)
-Rewrite `refresh-vault-values` cron to iterate **distinct `card_identities` owned by at least one vault card** and not synced in 24h → refresh each once → propagate to all owners → snapshot vault values. Schedule 2:00 AM via pg_cron. No per-user duplication.
+### 2. Server functions (`src/lib/trades.functions.ts`)
+- `createTrade` (validate both users own the listed cards, cards are tradeable, anti-abuse limits)
+- `respondToTrade` (accept / counter / cancel — server-enforced state machine)
+- `advanceTradeShipping` (shipped → delivered → completed)
+- `listMyTrades`, `getTrade`
+- `rateTrade` + reputation aggregation
+- On `completed`: award XP via existing progression and fire achievement checks (First Trade, Trade Master).
 
-### 5. Manual refresh = card-level
-"Refresh price" calls the identity refresh. If `last_price_sync` < a few minutes ago, return the stored value (no duplicate API hit). All owners get the update automatically. UI shows: `Market Value · Source: TCGPlayer · Last checked: 2h ago` + small "Prices update automatically every 24 hours."
+### 3. UI
+- New `/trades` route (Trade Center): Incoming, Outgoing, History tabs with status badges and action buttons.
+- Trade Builder modal: two-column card picker (my vault / their vault) + cash slider + message.
+- "Propose Trade" entry points: other users' vaults and profiles; tradeable badge on cards.
+- Trade rating dialog after completion; reputation shown on profiles.
+- Add **Trade Center** to the bottom More menu (platform features).
 
-### 6. Confidence display (always show a price)
-- `verified` → `✓ Verified`.
-- otherwise → `⚠ Price may be inaccurate. Verify with TCGPlayer.`
-Never blank.
+### 4. Out of scope for this build (later priorities)
+Collection Books, Wishlist notifications, Communities trade boards, and feed trade surfacing — I'll wire trade surfacing into those when each subsystem is built. Hooks/fields are included now so they slot in cleanly.
 
-### 7. History-backed charts
-`CardPriceChart` reads `card_price_history`/`price_observations` for the card's `identity_id` with ranges 7D/30D/90D/6M/1Y/All. `VaultGrowthChart` stays on `vault_value_snapshots`.
+## Notes
+- Real cards are never escrowed digitally; trades coordinate physical shipping like orders, with status tracking and reputation — matching how the existing order system works.
+- Reuses existing XP/achievement infrastructure rather than duplicating it.
 
-## Technical notes
-- New migration for the `card_identities` columns + index.
-- New `src/lib/cardIdentity.functions.ts` (`resolveCardIdentity`, `refreshIdentityPrice`) used by vault apply/correction/refresh paths.
-- `card-price` edge function updated to accept/return `identity_id` and write identity price + history.
-- `refresh-vault-values` hook rewritten to be identity-driven + propagating.
-- Fingerprint helper must include language so languages stay distinct.
-
-## Suggested build order
-1. Migration (master columns).
-2. Identity resolver + scan/correction linkage.
-3. `card-price` identity write + propagation.
-4. Daily cron rewrite + 2AM schedule.
-5. Manual refresh (card-level) + confidence UI.
-6. Charts on identity history.
-
-## Status (completed)
-- Master columns migration: DONE
-- Identity resolver + scan/correction linkage: DONE
-- card-price identity write + propagation: DONE
-- Confidence UI (Verified / Estimated / Needs Review badge, source, last updated): DONE (already in vault.tsx)
-- Charts on identity history: DONE (CardPriceChart reads card_identity_id key)
-- Daily cron: consolidated to single job `daily-vault-revalue` @ 02:00 calling
-  /api/public/hooks/refresh-vault-values (does pricing + propagation + snapshots).
-  Removed broken/duplicate jobs (daily-refresh-prices no-auth, refresh-vault-values-daily no-secret).
-
-## Action required
-The nightly job authenticates with CRON_SECRET. The schedule sends:
-  661e36ee54a822b9beb7424c032924dd13ffc2b4a93a563059609b8d5f9f0d58
-CRON_SECRET must be set to this EXACT value, then republish so the server route picks it up.
+Approve this and I'll start with the migration, then server functions, then UI.

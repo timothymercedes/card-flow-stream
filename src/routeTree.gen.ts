@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as TutorialsRouteImport } from './routes/tutorials'
+import { Route as TradesRouteImport } from './routes/trades'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as StoreRouteImport } from './routes/store'
@@ -97,6 +98,11 @@ const VaultRoute = VaultRouteImport.update({
 const TutorialsRoute = TutorialsRouteImport.update({
   id: '/tutorials',
   path: '/tutorials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradesRoute = TradesRouteImport.update({
+  id: '/trades',
+  path: '/trades',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -529,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
+  '/trades': typeof TradesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
@@ -610,6 +617,7 @@ export interface FileRoutesByTo {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
+  '/trades': typeof TradesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
@@ -692,6 +700,7 @@ export interface FileRoutesById {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
+  '/trades': typeof TradesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
@@ -775,6 +784,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/stories'
     | '/support'
+    | '/trades'
     | '/tutorials'
     | '/vault'
     | '/.well-known/apple-app-site-association'
@@ -856,6 +866,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/stories'
     | '/support'
+    | '/trades'
     | '/tutorials'
     | '/vault'
     | '/.well-known/apple-app-site-association'
@@ -937,6 +948,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/stories'
     | '/support'
+    | '/trades'
     | '/tutorials'
     | '/vault'
     | '/.well-known/apple-app-site-association'
@@ -1019,6 +1031,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   StoriesRoute: typeof StoriesRoute
   SupportRoute: typeof SupportRoute
+  TradesRoute: typeof TradesRoute
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
   DotwellKnownAppleAppSiteAssociationRoute: typeof DotwellKnownAppleAppSiteAssociationRoute
@@ -1082,6 +1095,13 @@ declare module '@tanstack/react-router' {
       path: '/tutorials'
       fullPath: '/tutorials'
       preLoaderRoute: typeof TutorialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trades': {
+      id: '/trades'
+      path: '/trades'
+      fullPath: '/trades'
+      preLoaderRoute: typeof TradesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -1690,6 +1710,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   StoriesRoute: StoriesRoute,
   SupportRoute: SupportRoute,
+  TradesRoute: TradesRoute,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
   DotwellKnownAppleAppSiteAssociationRoute:
