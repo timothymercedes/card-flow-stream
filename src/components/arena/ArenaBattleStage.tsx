@@ -160,10 +160,14 @@ export function ArenaBattleStage({
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [roundIdx, setRoundIdx] = useState(-1);
-  const [fx, setFx] = useState<{ side: "mine" | "theirs"; kind: RoundFx; dmg: number } | null>(null);
+  const [fx, setFx] = useState<
+    | { defender: "mine" | "theirs"; kind: RoundFx; dmg: number; skill: SkillKind; healSide: "mine" | "theirs" | null; healAmt: number }
+    | null
+  >(null);
   const [myHp, setMyHp] = useState(100);
   const [theirHp, setTheirHp] = useState(100);
   const [runKey, setRunKey] = useState(0); // forces re-mount on replay
+  const [speed, setSpeed] = useState<1 | 2>(1);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -175,15 +179,20 @@ export function ArenaBattleStage({
     setMyHp(100);
     setTheirHp(100);
 
-    // Precompute HP timeline so re-renders never double-apply damage.
+    // Precompute HP timeline so re-renders never double-apply damage / heals.
     let my = 100, their = 100;
     const timeline = events.map((e) => {
       if (e.defender === "mine") my = Math.max(0, my - e.dmg);
       else their = Math.max(0, their - e.dmg);
+      if (e.healAmt > 0) {
+        if (e.attacker === "mine") my = Math.min(100, my + e.healAmt);
+        else their = Math.min(100, their + e.healAmt);
+      }
       return { my, their };
     });
 
-    const t = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms));
+    const sf = 1 / speed; // speed factor — 2x halves every delay
+    const t = (ms: number, fn: () => void) => timers.current.push(setTimeout(fn, ms * sf));
     const INTRO_MS = 1500;
     const ROUND_MS = 1050;
     t(INTRO_MS, () => setPhase("fight"));
@@ -192,7 +201,10 @@ export function ArenaBattleStage({
       const at = INTRO_MS + 500 + i * ROUND_MS;
       t(at, () => {
         setRoundIdx(i);
-        setFx({ side: e.defender, kind: e.fx, dmg: e.dmg });
+        setFx({
+          defender: e.defender, kind: e.fx, dmg: e.dmg, skill: e.skill,
+          healSide: e.healAmt > 0 ? e.attacker : null, healAmt: e.healAmt,
+        });
         setMyHp(timeline[i].my);
         setTheirHp(timeline[i].their);
       });
@@ -207,7 +219,7 @@ export function ArenaBattleStage({
     });
 
     return () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  }, [events, result.iWon, runKey]);
+  }, [events, result.iWon, runKey, speed]);
 
   const ev = roundIdx >= 0 ? events[roundIdx] : null;
   const critActive = !!fx && fx.kind === "crit";
@@ -217,7 +229,7 @@ export function ArenaBattleStage({
     if (phase === "summary") return result.iWon === (sideKey === "mine") ? "victory" : "defeat";
     if (phase === "fight" && ev && fx) {
       if (ev.attacker === sideKey) return "attack";
-      if (fx.side === sideKey) return fx.kind === "dodge" ? "dodge" : "hit";
+      if (fx.defender === sideKey) return fx.kind === "dodge" ? "dodge" : "hit";
     }
     return "idle";
   }
