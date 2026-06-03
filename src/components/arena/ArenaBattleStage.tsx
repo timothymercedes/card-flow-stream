@@ -62,9 +62,9 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
 }
 
 function Fighter({
-  name, image, side, anim, frameClass = "", effectClass = "", title, hp,
+  name, image, emoji, side, anim, frameClass = "", effectClass = "", title, hp,
 }: {
-  name: string; image?: string | null; side: "left" | "right"; anim: string;
+  name: string; image?: string | null; emoji?: string | null; side: "left" | "right"; anim: string;
   frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
   return (
@@ -75,8 +75,8 @@ function Fighter({
         {image ? (
           <img src={image} alt={name} className={`arena-fighter relative h-28 w-20 rounded object-cover sm:h-36 sm:w-28 ${frameClass}`} />
         ) : (
-          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted sm:h-36 sm:w-28 ${frameClass}`}>
-            <Sparkles className="h-8 w-8 text-muted-foreground" />
+          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted text-4xl sm:h-36 sm:w-28 sm:text-5xl ${frameClass}`}>
+            {emoji ? <span aria-hidden>{emoji}</span> : <Sparkles className="h-8 w-8 text-muted-foreground" />}
           </div>
         )}
       </div>
