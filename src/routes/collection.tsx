@@ -136,8 +136,7 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
 
   const d = q.data;
 
-  const marketHref = `/market?q=${encodeURIComponent(setName)}`;
-  const tradeHref = `/trade?q=${encodeURIComponent(setName)}`;
+
 
   const visibleMissing = d
     ? availableOnly
