@@ -274,10 +274,11 @@ function MissingCard({ card, group: g }: { card: Missing; group: Group }) {
         {card.image_url ? (
           <img src={card.image_url} alt={`${card.name} ${g.setName} #${card.number}`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
-            <span className="text-2xl font-bold opacity-50">#{card.number}</span>
-            <span className="text-[9px]">{card.catalogPending ? "Catalog pending" : "No image"}</span>
-          </div>
+          <AiCardImage
+            card={{ category: g.category, setName: g.setName, number: card.number, name: card.name, rarity: card.rarity }}
+            alt={`${card.name} ${g.setName} #${card.number}`}
+            className="h-full w-full object-cover"
+          />
         )}
         {card.rarity && <Badge className="absolute right-1 top-1 border-0 bg-black/65 text-[8px] text-white">{card.rarity}</Badge>}
         {card.listingsCount > 0 && <Badge className="absolute left-1 top-1 border-0 bg-green-600 text-[9px] text-white">For sale</Badge>}
