@@ -366,6 +366,7 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
       setName,
       category: data.category,
       setKey: setTotalKey(data.category, setName),
+      kind,
       knownTotal: hasTotal ? knownTotal : 0,
       official: officialTotal > 0,
       ownedCount: ownedNums.size, // distinct cards owned (unique counting)
