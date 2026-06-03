@@ -128,6 +128,11 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
             <p className="mt-1 text-[10px] font-medium text-muted-foreground">{book.completion}% complete</p>
           </div>
         )}
+        {book.kind === "set" && book.official && book.complete && (
+          <Badge className="mt-2 gap-1 bg-amber-500/15 text-amber-600 hover:bg-amber-500/20">
+            <Trophy className="h-3 w-3" /> Reward ready
+          </Badge>
+        )}
       </div>
     </Card>
   );
