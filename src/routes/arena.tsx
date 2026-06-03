@@ -168,9 +168,11 @@ function ArenaPage() {
         </div>
 
         <Tabs defaultValue="roster">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
-            <TabsTrigger value="battle"><Swords className="mr-1 h-4 w-4" />Battle</TabsTrigger>
+            <TabsTrigger value="battle"><Swords className="mr-1 h-4 w-4" />Battle (PVP)</TabsTrigger>
+            <TabsTrigger value="train"><Shield className="mr-1 h-4 w-4" />Train (PVE)</TabsTrigger>
+            <TabsTrigger value="history"><Flame className="mr-1 h-4 w-4" />History</TabsTrigger>
             <TabsTrigger value="leaderboards"><Trophy className="mr-1 h-4 w-4" />Leaderboards</TabsTrigger>
           </TabsList>
 
