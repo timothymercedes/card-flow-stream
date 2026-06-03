@@ -4,7 +4,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   titleForWins, communityForCategory, deriveCompanionStats, valueTier,
-  companionLevel, DIFFICULTY_META, type ArenaTitle, type ArenaDifficulty,
+  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS,
+  type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
 
 type CompanionRow = {
@@ -28,6 +29,46 @@ function publicProjection(c: CompanionRow) {
     title: c.title, trophies: c.trophies, arena_rank: c.arena_rank,
     longest_win_streak: c.longest_win_streak,
   };
+}
+
+type Admin = { from: (t: string) => any };
+
+// Award PullBid Credits directly (server-side, bypasses RLS). Used for PVP wins.
+async function creditWinner(admin: Admin, userId: string, amount: number, refId: string) {
+  if (amount <= 0) return;
+  const { data: wallet } = await admin
+    .from("credit_wallets").select("balance, lifetime_earned").eq("user_id", userId).maybeSingle();
+  const balance = (wallet?.balance ?? 0) + amount;
+  const lifetimeEarned = (wallet?.lifetime_earned ?? 0) + amount;
+  await admin.from("credit_wallets").upsert(
+    { user_id: userId, balance, lifetime_earned: lifetimeEarned, updated_at: new Date().toISOString() },
+    { onConflict: "user_id" },
+  );
+  await admin.from("credit_transactions").insert({
+    user_id: userId, amount, balance_after: balance,
+    source: "arena_battle", ref_id: refId, description: "Arena PVP victory",
+  });
+}
+
+// Grant any newly-qualified badges. Returns the keys that were newly granted.
+async function grantBadges(admin: Admin, userId: string, keys: ArenaBadgeKey[]): Promise<ArenaBadgeKey[]> {
+  if (keys.length === 0) return [];
+  const { data: existing } = await admin
+    .from("arena_badges").select("badge_key").eq("user_id", userId);
+  const have = new Set((existing || []).map((r: any) => r.badge_key));
+  const toAdd = keys.filter((k) => !have.has(k));
+  if (toAdd.length === 0) return [];
+  await admin.from("arena_badges").insert(toAdd.map((k) => ({ user_id: userId, badge_key: k })));
+  return toAdd;
+}
+
+// Total wins + longest streak across all of a user's companions.
+async function userBattleAggregate(admin: Admin, userId: string): Promise<{ wins: number; longest: number }> {
+  const { data } = await admin
+    .from("arena_companions").select("wins, longest_win_streak").eq("user_id", userId);
+  let wins = 0, longest = 0;
+  for (const r of (data || []) as any[]) { wins += r.wins; longest = Math.max(longest, r.longest_win_streak); }
+  return { wins, longest };
 }
 
 // ---- Sync companions from the user's Vault (unlock new digital companions) ----
@@ -130,6 +171,83 @@ function power(c: { attack: number; defense: number; speed: number; level: numbe
   return base * luck;
 }
 
+// Shared PVP resolution. `me`/`them` are full companion rows; `callerId` is the
+// signed-in user (always the challenger). Awards credits + badges to the caller
+// on a win. `social` flags battles against a followed collector (extra badge).
+async function resolvePvpBattle(
+  admin: Admin,
+  me: CompanionRow,
+  them: CompanionRow,
+  callerId: string,
+  social: boolean,
+) {
+  const log: Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }> = [];
+  let myRounds = 0, theirRounds = 0;
+  for (let r = 1; r <= 3; r++) {
+    const mp = power(me); const tp = power(them);
+    const w = mp >= tp ? "mine" : "theirs";
+    if (w === "mine") myRounds++; else theirRounds++;
+    log.push({ round: r, mine: Math.round(mp), theirs: Math.round(tp), winner: w });
+  }
+  const iWon = myRounds > theirRounds;
+  const winner = iWon ? me : them;
+  const loser = iWon ? them : me;
+
+  const wWins = winner.wins + 1;
+  const wStreak = winner.win_streak + 1;
+  const wXp = winner.xp + 50;
+  const winnerUpdate = {
+    wins: wWins, win_streak: wStreak,
+    longest_win_streak: Math.max(winner.longest_win_streak, wStreak),
+    season_wins: winner.season_wins + 1, trophies: winner.trophies + 10,
+    arena_rank: winner.arena_rank + 15, xp: wXp,
+    level: companionLevel(wXp), title: titleForWins(wWins),
+  };
+  const lXp = loser.xp + 15;
+  const loserUpdate = {
+    losses: loser.losses + 1, win_streak: 0, trophies: loser.trophies + 2,
+    arena_rank: Math.max(0, loser.arena_rank - 10), xp: lXp, level: companionLevel(lXp),
+  };
+
+  await admin.from("arena_companions").update(winnerUpdate).eq("id", winner.id);
+  await admin.from("arena_companions").update(loserUpdate).eq("id", loser.id);
+
+  const { data: season } = await admin
+    .from("arena_seasons").select("id").eq("active", true).maybeSingle();
+
+  const { data: battle } = await admin.from("arena_battles").insert({
+    challenger_id: me.user_id,
+    opponent_id: them.user_id,
+    challenger_companion_id: me.id,
+    opponent_companion_id: them.id,
+    winner_companion_id: winner.id,
+    status: "resolved",
+    log,
+    season_id: season?.id ?? null,
+  }).select("id").maybeSingle();
+
+  // Caller payouts (winner only) + badges.
+  let credits = 0;
+  let newBadges: ArenaBadgeKey[] = [];
+  if (iWon) {
+    credits = PVP_WIN_CREDITS;
+    await creditWinner(admin, callerId, credits, battle?.id ?? "arena");
+  }
+  const agg = await userBattleAggregate(admin, callerId);
+  const milestone = earnedBadgeKeys(agg.wins, agg.longest);
+  if (social && iWon) milestone.push("social_battler");
+  newBadges = await grantBadges(admin, callerId, milestone);
+
+  return {
+    iWon, myRounds, theirRounds, log,
+    rewards: iWon
+      ? { xp: 50, trophies: 10, rank: 15, credits }
+      : { xp: 15, trophies: 2, rank: -10, credits: 0 },
+    opponentName: them.name,
+    newBadges,
+  };
+}
+
 // ---- Challenge an opponent and resolve the battle server-side ----
 export const challengeAndResolve = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -150,74 +268,37 @@ export const challengeAndResolve = createServerFn({ method: "POST" })
 
     const me = mine as unknown as CompanionRow;
     const them = opp as unknown as CompanionRow;
+    const { data: f } = await supabaseAdmin
+      .from("follows").select("followee_id").eq("follower_id", userId).eq("followee_id", them.user_id).maybeSingle();
+    return resolvePvpBattle(supabaseAdmin, me, them, userId, !!f);
+  });
 
-    // Best of 3 rounds.
-    const log: Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }> = [];
-    let myRounds = 0, theirRounds = 0;
-    for (let r = 1; r <= 3; r++) {
-      const mp = power(me); const tp = power(them);
-      const w = mp >= tp ? "mine" : "theirs";
-      if (w === "mine") myRounds++; else theirRounds++;
-      log.push({ round: r, mine: Math.round(mp), theirs: Math.round(tp), winner: w });
-    }
-    const iWon = myRounds > theirRounds;
+// ---- Challenge a specific collector (Friends / direct / rematch battles) ----
+// Picks the target collector's strongest companion automatically.
+export const challengeUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { myCompanionId: string; targetUserId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    if (data.targetUserId === userId) throw new Error("You cannot battle yourself");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const winner = iWon ? me : them;
-    const loser = iWon ? them : me;
+    const { data: mine, error: e1 } = await supabaseAdmin
+      .from("arena_companions").select("*").eq("id", data.myCompanionId).maybeSingle();
+    if (e1 || !mine) throw new Error("Your companion was not found");
+    if (mine.user_id !== userId) throw new Error("Not your companion");
 
-    // Winner updates
-    const wWins = winner.wins + 1;
-    const wStreak = winner.win_streak + 1;
-    const wXp = winner.xp + 50;
-    const winnerUpdate = {
-      wins: wWins,
-      win_streak: wStreak,
-      longest_win_streak: Math.max(winner.longest_win_streak, wStreak),
-      season_wins: winner.season_wins + 1,
-      trophies: winner.trophies + 10,
-      arena_rank: winner.arena_rank + 15,
-      xp: wXp,
-      level: companionLevel(wXp),
-      title: titleForWins(wWins),
-    };
-    // Loser updates
-    const lXp = loser.xp + 15;
-    const loserUpdate = {
-      losses: loser.losses + 1,
-      win_streak: 0,
-      trophies: loser.trophies + 2,
-      arena_rank: Math.max(0, loser.arena_rank - 10),
-      xp: lXp,
-      level: companionLevel(lXp),
-    };
+    const { data: theirs } = await supabaseAdmin
+      .from("arena_companions").select("*").eq("user_id", data.targetUserId)
+      .order("arena_rank", { ascending: false }).limit(1);
+    const opp = (theirs || [])[0];
+    if (!opp) throw new Error("This collector has no companions to battle yet");
 
-    await supabaseAdmin.from("arena_companions").update(winnerUpdate).eq("id", winner.id);
-    await supabaseAdmin.from("arena_companions").update(loserUpdate).eq("id", loser.id);
-
-    const { data: season } = await supabaseAdmin
-      .from("arena_seasons").select("id").eq("active", true).maybeSingle();
-
-    await supabaseAdmin.from("arena_battles").insert({
-      challenger_id: me.user_id,
-      opponent_id: them.user_id,
-      challenger_companion_id: me.id,
-      opponent_companion_id: them.id,
-      winner_companion_id: winner.id,
-      status: "resolved",
-      log,
-      season_id: season?.id ?? null,
-    });
-
-    return {
-      iWon,
-      myRounds,
-      theirRounds,
-      log,
-      rewards: iWon
-        ? { xp: 50, trophies: 10, rank: 15 }
-        : { xp: 15, trophies: 2, rank: -10 },
-      opponentName: them.name,
-    };
+    const me = mine as unknown as CompanionRow;
+    const them = opp as unknown as CompanionRow;
+    const { data: f } = await supabaseAdmin
+      .from("follows").select("followee_id").eq("follower_id", userId).eq("followee_id", data.targetUserId).maybeSingle();
+    return resolvePvpBattle(supabaseAdmin, me, them, userId, !!f);
   });
 
 // ---- Training XP hook (reusable across platform activity) ----
@@ -320,8 +401,9 @@ export const battlePve = createServerFn({ method: "POST" })
       myRounds,
       theirRounds,
       log,
-      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0 },
+      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
       opponentName: `${cpuName} (${diff.label})`,
+      newBadges: [] as ArenaBadgeKey[],
     };
   });
 
@@ -390,4 +472,155 @@ export const getLeaderboards = createServerFn({ method: "GET" })
     const trainers = [...byUser.values()].sort((a, b) => b.season_wins - a.season_wins).slice(0, 20);
 
     return { mostWins: projW, longestStreak: projS, topTrainers: trainers };
+  });
+
+// ================= Collector discovery & social =================
+
+// Aggregate a user's arena standing from their companion roster.
+function aggregateUser(rows: CompanionRow[]) {
+  let wins = 0, losses = 0, trophies = 0, longest = 0, companions = 0;
+  let best: ArenaTitle = "rookie";
+  const order: ArenaTitle[] = ["rookie", "veteran", "elite", "champion", "legend"];
+  for (const c of rows) {
+    wins += c.wins; losses += c.losses; trophies += c.trophies;
+    longest = Math.max(longest, c.longest_win_streak); companions++;
+    if (order.indexOf(c.title) > order.indexOf(best)) best = c.title;
+  }
+  return { wins, losses, trophies, longest, companions, best };
+}
+
+// ---- Search collectors by username (Arena profiles) ----
+export const searchCollectors = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { query?: string }) => ({ query: (d?.query ?? "").trim().slice(0, 60) }))
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let pq = supabaseAdmin.from("profiles").select("id, username, avatar_url").neq("id", userId).limit(20);
+    if (data.query) pq = pq.ilike("username", `%${data.query}%`);
+    const { data: profiles, error } = await pq;
+    if (error) throw new Error(error.message);
+    const ids = (profiles || []).map((p: any) => p.id);
+    if (ids.length === 0) return { collectors: [] as any[] };
+
+    const { data: comps } = await supabaseAdmin
+      .from("arena_companions").select("*").in("user_id", ids);
+    const byUser = new Map<string, CompanionRow[]>();
+    for (const c of ((comps || []) as unknown as CompanionRow[])) {
+      const arr = byUser.get(c.user_id) || []; arr.push(c); byUser.set(c.user_id, arr);
+    }
+    const { data: follows } = await supabaseAdmin
+      .from("follows").select("followee_id").eq("follower_id", userId).in("followee_id", ids);
+    const following = new Set((follows || []).map((f: any) => f.followee_id));
+
+    const collectors = (profiles || []).map((p: any) => {
+      const agg = aggregateUser(byUser.get(p.id) || []);
+      return {
+        user_id: p.id, username: p.username, avatar_url: p.avatar_url,
+        ...agg, isFollowing: following.has(p.id),
+      };
+    }).sort((a: any, b: any) => b.wins - a.wins);
+    return { collectors };
+  });
+
+// ---- Full Arena profile for one collector ----
+export const getArenaProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles").select("id, username, avatar_url").eq("id", data.userId).maybeSingle();
+    if (!profile) throw new Error("Collector not found");
+
+    const { data: comps } = await supabaseAdmin
+      .from("arena_companions").select("*").eq("user_id", data.userId).order("arena_rank", { ascending: false });
+    const rows = (comps || []) as unknown as CompanionRow[];
+    const agg = aggregateUser(rows);
+
+    const { data: badges } = await supabaseAdmin
+      .from("arena_badges").select("badge_key").eq("user_id", data.userId);
+    const { data: f } = await supabaseAdmin
+      .from("follows").select("followee_id").eq("follower_id", userId).eq("followee_id", data.userId).maybeSingle();
+
+    return {
+      profile: { user_id: profile.id, username: profile.username, avatar_url: profile.avatar_url },
+      ...agg,
+      companions: rows.map(publicProjection),
+      badges: (badges || []).map((b: any) => b.badge_key as ArenaBadgeKey),
+      isFollowing: !!f,
+      isSelf: data.userId === userId,
+    };
+  });
+
+// ---- Follow / unfollow a collector ----
+export const followCollector = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    if (data.userId === userId) throw new Error("You cannot follow yourself");
+    const { error } = await supabase
+      .from("follows").upsert({ follower_id: userId, followee_id: data.userId }, { onConflict: "follower_id,followee_id" });
+    if (error) throw new Error(error.message);
+    return { following: true };
+  });
+
+export const unfollowCollector = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase
+      .from("follows").delete().eq("follower_id", userId).eq("followee_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { following: false };
+  });
+
+// ---- Recent PVP opponents for the signed-in user (rematch) ----
+export const getRecentOpponents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: battles } = await supabaseAdmin
+      .from("arena_battles")
+      .select("opponent_id, created_at")
+      .eq("challenger_id", userId).eq("battle_type", "pvp")
+      .not("opponent_id", "is", null)
+      .order("created_at", { ascending: false }).limit(60);
+
+    const seen = new Map<string, string>(); // user_id -> last battle date
+    for (const b of ((battles || []) as any[])) {
+      if (!seen.has(b.opponent_id)) seen.set(b.opponent_id, b.created_at);
+    }
+    const ids = [...seen.keys()].slice(0, 12);
+    if (ids.length === 0) return { opponents: [] as any[] };
+
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles").select("id, username, avatar_url").in("id", ids);
+    const pmap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const opponents = ids.map((id) => {
+      const p = pmap.get(id) as any;
+      return {
+        user_id: id, username: p?.username ?? "Collector",
+        avatar_url: p?.avatar_url ?? null, last_battle: seen.get(id)!,
+      };
+    });
+    return { opponents };
+  });
+
+// ---- Badges earned by the signed-in user ----
+export const listMyBadges = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("arena_badges").select("badge_key, earned_at").eq("user_id", userId)
+      .order("earned_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { badges: (data || []).map((b: any) => ({ key: b.badge_key as ArenaBadgeKey, earned_at: b.earned_at })) };
   });

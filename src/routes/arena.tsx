@@ -6,20 +6,24 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
-  battlePve, getBattleHistory,
+  battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
+  unfollowCollector, challengeUser, getRecentOpponents, listMyBadges,
 } from "@/lib/arena.functions";
 import {
-  TITLE_META, COMMUNITY_META, DIFFICULTY_META, companionLevelProgress,
-  type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, PVP_WIN_XP,
+  TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
+  type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
+  Users, Search, UserPlus, UserCheck, Award, History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +45,10 @@ function titleBadge(title: ArenaTitle) {
   return <span className={`inline-flex items-center gap-1 text-xs font-semibold ${m.color}`}><Crown className="h-3 w-3" />{m.label}</span>;
 }
 
+function titleLabel(title: ArenaTitle) {
+  return TITLE_META[title].label;
+}
+
 function StatBar({ icon: Icon, label, value, max = 60 }: { icon: any; label: string; value: number; max?: number }) {
   return (
     <div className="flex items-center gap-2">
@@ -59,10 +67,14 @@ function ArenaPage() {
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
+    | Awaited<ReturnType<typeof challengeUser>>
     | Awaited<ReturnType<typeof battlePve>>
     | null
   >(null);
   const [selectedMine, setSelectedMine] = useState<string | null>(null);
+  const [collectorQuery, setCollectorQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
   const syncFn = useServerFn(syncCompanions);
@@ -71,6 +83,13 @@ function ArenaPage() {
   const pveFn = useServerFn(battlePve);
   const historyFn = useServerFn(getBattleHistory);
   const lbFn = useServerFn(getLeaderboards);
+  const searchFn = useServerFn(searchCollectors);
+  const profileFn = useServerFn(getArenaProfile);
+  const followFn = useServerFn(followCollector);
+  const unfollowFn = useServerFn(unfollowCollector);
+  const challengeUserFn = useServerFn(challengeUser);
+  const recentFn = useServerFn(getRecentOpponents);
+  const badgesFn = useServerFn(listMyBadges);
 
   const myQ = useQuery({
     queryKey: ["arena", "mine"],
@@ -89,6 +108,19 @@ function ArenaPage() {
     queryKey: ["arena", "history"],
     queryFn: () => historyFn(),
     enabled: !!user,
+  });
+
+  const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: !!user });
+  const recentQ = useQuery({ queryKey: ["arena", "recent"], queryFn: () => recentFn(), enabled: !!user });
+  const searchQ = useQuery({
+    queryKey: ["arena", "collectors", searchTerm],
+    queryFn: () => searchFn({ data: { query: searchTerm } }),
+    enabled: !!user,
+  });
+  const profileQ = useQuery({
+    queryKey: ["arena", "profile", profileUserId],
+    queryFn: () => profileFn({ data: { userId: profileUserId! } }),
+    enabled: !!user && !!profileUserId,
   });
 
   const lbQ = useQuery({ queryKey: ["arena", "leaderboards"], queryFn: () => lbFn() });
@@ -120,10 +152,34 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Training battle failed"),
   });
 
+  const challengeUserM = useMutation({
+    mutationFn: (vars: { myCompanionId: string; targetUserId: string }) => challengeUserFn({ data: vars }),
+    onSuccess: (r) => {
+      setBattleResult(r);
+      qc.invalidateQueries({ queryKey: ["arena"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Battle failed"),
+  });
+
+  const followM = useMutation({
+    mutationFn: async (vars: { userId: string; follow: boolean }): Promise<{ following: boolean }> =>
+      vars.follow ? followFn({ data: { userId: vars.userId } }) : unfollowFn({ data: { userId: vars.userId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["arena", "profile"] });
+      qc.invalidateQueries({ queryKey: ["arena", "collectors"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not update follow"),
+  });
+
   const activeMine = useMemo(
     () => companions.find((c) => c.id === selectedMine) ?? companions[0],
     [companions, selectedMine],
   );
+
+  function battleCollector(targetUserId: string) {
+    if (!activeMine) { toast.error("Select one of your companions first"); return; }
+    challengeUserM.mutate({ myCompanionId: activeMine.id, targetUserId });
+  }
 
   function fight(opponentId: string) {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
@@ -172,6 +228,7 @@ function ArenaPage() {
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
             <TabsTrigger value="battle"><Swords className="mr-1 h-4 w-4" />Battle (PVP)</TabsTrigger>
             <TabsTrigger value="train"><Shield className="mr-1 h-4 w-4" />Train (PVE)</TabsTrigger>
+            <TabsTrigger value="collectors"><Users className="mr-1 h-4 w-4" />Collectors</TabsTrigger>
             <TabsTrigger value="history"><Flame className="mr-1 h-4 w-4" />History</TabsTrigger>
             <TabsTrigger value="leaderboards"><Trophy className="mr-1 h-4 w-4" />Leaderboards</TabsTrigger>
           </TabsList>
@@ -309,7 +366,95 @@ function ArenaPage() {
             )}
           </TabsContent>
 
-          {/* ---- Battle History ---- */}
+          {/* ---- Collectors (search / follow / friends battle / rematch) ---- */}
+          <TabsContent value="collectors">
+            {!activeMine && (
+              <Card className="mb-4 p-4 text-center text-sm text-muted-foreground">
+                Unlock a companion first to challenge collectors.
+              </Card>
+            )}
+
+            {/* My badges */}
+            <Card className="mb-4 p-4">
+              <h3 className="mb-3 flex items-center gap-2 font-bold"><Award className="h-4 w-4 text-primary" />Your Badges</h3>
+              {(badgesQ.data?.badges.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">No badges yet — win battles to earn them.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {badgesQ.data!.badges.map((b) => {
+                    const m = ARENA_BADGES[b.key];
+                    return (
+                      <span key={b.key} title={m.desc} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-1 text-xs font-medium">
+                        <span className="text-base leading-none">{m.emoji}</span>{m.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+
+            {/* Rematch recent opponents */}
+            {(recentQ.data?.opponents.length ?? 0) > 0 && (
+              <Card className="mb-4 p-4">
+                <h3 className="mb-3 flex items-center gap-2 font-bold"><History className="h-4 w-4 text-primary" />Rematch</h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {recentQ.data!.opponents.map((o) => (
+                    <div key={o.user_id} className="flex items-center justify-between gap-2 rounded-lg border p-2">
+                      <button onClick={() => setProfileUserId(o.user_id)} className="flex min-w-0 items-center gap-2">
+                        <Avatar className="h-8 w-8"><AvatarImage src={o.avatar_url ?? undefined} /><AvatarFallback>{o.username[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                        <span className="truncate text-sm font-medium">{o.username}</span>
+                      </button>
+                      <Button size="sm" variant="secondary" disabled={!activeMine || challengeUserM.isPending} onClick={() => battleCollector(o.user_id)}>
+                        <Swords className="mr-1 h-3.5 w-3.5" />Rematch
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Search collectors */}
+            <Card className="p-4">
+              <h3 className="mb-3 flex items-center gap-2 font-bold"><Search className="h-4 w-4 text-primary" />Find Collectors</h3>
+              <form
+                className="mb-4 flex gap-2"
+                onSubmit={(e) => { e.preventDefault(); setSearchTerm(collectorQuery.trim()); }}
+              >
+                <Input value={collectorQuery} onChange={(e) => setCollectorQuery(e.target.value)} placeholder="Search by username…" />
+                <Button type="submit" variant="secondary"><Search className="h-4 w-4" /></Button>
+              </form>
+              {searchQ.isLoading ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">Searching…</p>
+              ) : (searchQ.data?.collectors.length ?? 0) === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No collectors found.</p>
+              ) : (
+                <div className="divide-y">
+                  {searchQ.data!.collectors.map((c) => (
+                    <div key={c.user_id} className="flex items-center justify-between gap-2 py-2">
+                      <button onClick={() => setProfileUserId(c.user_id)} className="flex min-w-0 items-center gap-3 text-left">
+                        <Avatar className="h-9 w-9"><AvatarImage src={c.avatar_url ?? undefined} /><AvatarFallback>{c.username[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{c.username}</p>
+                          <p className="text-xs text-muted-foreground">{c.wins}W · {c.companions} companions · {titleLabel(c.best)}</p>
+                        </div>
+                      </button>
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button size="icon" variant={c.isFollowing ? "default" : "outline"} className="h-8 w-8"
+                          disabled={followM.isPending}
+                          onClick={() => followM.mutate({ userId: c.user_id, follow: !c.isFollowing })}>
+                          {c.isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" disabled={!activeMine || challengeUserM.isPending} onClick={() => battleCollector(c.user_id)}>
+                          <Swords className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
           <TabsContent value="history">
             <div className="mb-4 grid grid-cols-3 gap-3">
               <Card className="p-4 text-center"><div className="text-2xl font-bold text-emerald-500">{historyQ.data?.wins ?? 0}</div><div className="text-xs text-muted-foreground">Wins</div></Card>
@@ -375,8 +520,88 @@ function ArenaPage() {
                 <div><div className="font-bold">{battleResult.rewards.xp > 0 ? "+" : ""}{battleResult.rewards.xp}</div><div className="text-xs text-muted-foreground">XP</div></div>
                 <div><div className="font-bold">+{battleResult.rewards.trophies}</div><div className="text-xs text-muted-foreground">Trophies</div></div>
                 <div><div className="font-bold">{battleResult.rewards.rank > 0 ? "+" : ""}{battleResult.rewards.rank}</div><div className="text-xs text-muted-foreground">Rank</div></div>
+                <div><div className="font-bold">+{battleResult.rewards.credits}</div><div className="text-xs text-muted-foreground">Credits</div></div>
               </div>
+              {battleResult.newBadges.length > 0 && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                  <p className="mb-1 font-semibold">🎖️ New badge{battleResult.newBadges.length > 1 ? "s" : ""}!</p>
+                  <div className="flex flex-wrap gap-2">
+                    {battleResult.newBadges.map((k) => (
+                      <span key={k} className="inline-flex items-center gap-1 text-xs font-medium">
+                        {ARENA_BADGES[k].emoji} {ARENA_BADGES[k].label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <Button className="w-full" onClick={() => setBattleResult(null)}>Continue</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Collector Arena profile dialog */}
+      <Dialog open={!!profileUserId} onOpenChange={(o) => !o && setProfileUserId(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Avatar className="h-8 w-8"><AvatarImage src={profileQ.data?.profile.avatar_url ?? undefined} /><AvatarFallback>{profileQ.data?.profile.username?.[0]?.toUpperCase() ?? "?"}</AvatarFallback></Avatar>
+              {profileQ.data?.profile.username ?? "Collector"}
+            </DialogTitle>
+          </DialogHeader>
+          {profileQ.isLoading || !profileQ.data ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Loading profile…</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <Card className="p-3"><div className="text-lg font-bold text-emerald-500">{profileQ.data.wins}</div><div className="text-xs text-muted-foreground">Wins</div></Card>
+                <Card className="p-3"><div className="text-lg font-bold">{profileQ.data.trophies}</div><div className="text-xs text-muted-foreground">Trophies</div></Card>
+                <Card className="p-3"><div className="text-lg font-bold text-amber-500">{profileQ.data.longest} 🔥</div><div className="text-xs text-muted-foreground">Best Streak</div></Card>
+              </div>
+
+              {!profileQ.data.isSelf && (
+                <div className="flex gap-2">
+                  <Button variant={profileQ.data.isFollowing ? "secondary" : "default"} className="flex-1"
+                    disabled={followM.isPending}
+                    onClick={() => followM.mutate({ userId: profileQ.data!.profile.user_id, follow: !profileQ.data!.isFollowing })}>
+                    {profileQ.data.isFollowing ? <><UserCheck className="mr-2 h-4 w-4" />Following</> : <><UserPlus className="mr-2 h-4 w-4" />Follow</>}
+                  </Button>
+                  <Button className="flex-1" disabled={!activeMine || challengeUserM.isPending}
+                    onClick={() => battleCollector(profileQ.data!.profile.user_id)}>
+                    <Swords className="mr-2 h-4 w-4" />Challenge
+                  </Button>
+                </div>
+              )}
+
+              {profileQ.data.badges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {profileQ.data.badges.map((k) => (
+                    <span key={k} title={ARENA_BADGES[k].desc} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-1 text-xs font-medium">
+                      {ARENA_BADGES[k].emoji} {ARENA_BADGES[k].label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <p className="mb-2 text-sm font-medium">Companions</p>
+                {profileQ.data.companions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No companions yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {profileQ.data.companions.map((o) => (
+                      <div key={o.id} className="flex items-center gap-3 rounded-lg border p-2">
+                        {o.image_url ? <img src={o.image_url} alt={o.name} className="h-12 w-9 rounded object-cover" loading="lazy" /> : <div className="flex h-12 w-9 items-center justify-center rounded bg-muted"><Sparkles className="h-4 w-4 text-muted-foreground" /></div>}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{o.name}</p>
+                          <p className="text-xs text-muted-foreground">{o.wins}W · {o.losses}L · {o.win_rate}%</p>
+                        </div>
+                        {titleBadge(o.title as ArenaTitle)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
