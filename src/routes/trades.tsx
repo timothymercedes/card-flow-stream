@@ -108,7 +108,7 @@ function TradesPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-4 p-4">
-        <div class="" className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold">
               <ArrowLeftRight className="h-6 w-6 text-primary" /> Trade Center
