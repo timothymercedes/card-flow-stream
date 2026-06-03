@@ -7191,54 +7191,6 @@ export type Database = {
       }
     }
     Views: {
-      arena_companions_public: {
-        Row: {
-          arena_rank: number | null
-          category: string | null
-          community: string | null
-          id: string | null
-          image_url: string | null
-          longest_win_streak: number | null
-          losses: number | null
-          name: string | null
-          title: Database["public"]["Enums"]["arena_title"] | null
-          trophies: number | null
-          user_id: string | null
-          win_rate: number | null
-          wins: number | null
-        }
-        Insert: {
-          arena_rank?: number | null
-          category?: string | null
-          community?: string | null
-          id?: string | null
-          image_url?: string | null
-          longest_win_streak?: number | null
-          losses?: number | null
-          name?: string | null
-          title?: Database["public"]["Enums"]["arena_title"] | null
-          trophies?: number | null
-          user_id?: string | null
-          win_rate?: never
-          wins?: number | null
-        }
-        Update: {
-          arena_rank?: number | null
-          category?: string | null
-          community?: string | null
-          id?: string | null
-          image_url?: string | null
-          longest_win_streak?: number | null
-          losses?: number | null
-          name?: string | null
-          title?: Database["public"]["Enums"]["arena_title"] | null
-          trophies?: number | null
-          user_id?: string | null
-          win_rate?: never
-          wins?: number | null
-        }
-        Relationships: []
-      }
       mv_seller_shipping_analytics: {
         Row: {
           avg_hours_label_to_scan: number | null
