@@ -604,16 +604,16 @@ function ArenaPage() {
   );
 }
 
-function OwnerCompanionCard({ c }: { c: Companion }) {
+function OwnerCompanionCard({ c, frameClass = "" }: { c: Companion; frameClass?: string }) {
   const prog = companionLevelProgress(c.xp);
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
   return (
     <Card className="overflow-hidden p-4">
       <div className="flex gap-3">
         {c.image_url ? (
-          <img src={c.image_url} alt={c.name} className="h-20 w-16 rounded object-cover" loading="lazy" />
+          <img src={c.image_url} alt={c.name} className={`h-20 w-16 rounded object-cover ${frameClass}`} loading="lazy" />
         ) : (
-          <div className="flex h-20 w-16 items-center justify-center rounded bg-muted"><Sparkles className="h-6 w-6 text-muted-foreground" /></div>
+          <div className={`flex h-20 w-16 items-center justify-center rounded bg-muted ${frameClass}`}><Sparkles className="h-6 w-6 text-muted-foreground" /></div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
