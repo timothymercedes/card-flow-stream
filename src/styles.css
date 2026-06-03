@@ -490,3 +490,11 @@ body.kb-open [data-bottom-nav] {
   .arena-enter-left,.arena-enter-right,.arena-lunge-left,.arena-lunge-right,
   .arena-hit,.arena-shake,.arena-burst,.arena-spark,.arena-victory { animation: none !important; }
 }
+
+/* Arena cosmetic effect auras (equipped FX layered behind a fighter) */
+.arena-fx { position: absolute; inset: -6px; border-radius: 0.5rem; pointer-events: none; }
+.arena-fx-embers { background: radial-gradient(circle at 50% 100%, rgba(249,115,22,0.45), transparent 65%); animation: arena-aura 2.2s ease-in-out infinite; }
+.arena-fx-sparkle { background: radial-gradient(circle at 50% 50%, rgba(232,121,249,0.40), transparent 65%); animation: arena-aura 1.6s ease-in-out infinite; }
+.arena-fx-storm { background: radial-gradient(circle at 50% 0%, rgba(56,189,248,0.50), transparent 65%); animation: arena-aura 1.1s ease-in-out infinite; }
+@keyframes arena-aura { 0%,100% { opacity: 0.45; transform: scale(0.96); } 50% { opacity: 0.9; transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) { .arena-fx-embers,.arena-fx-sparkle,.arena-fx-storm { animation: none !important; } }
