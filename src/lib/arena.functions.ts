@@ -417,7 +417,100 @@ export const battlePve = createServerFn({ method: "POST" })
     };
   });
 
-// ---- Battle history for the signed-in user (PVP + PVE) ----
+// ---- AI Challenge: fight an always-available Daily / Weekly Boss ----
+// Bosses are computer opponents scaled above the player's companion. A win pays
+// FULL rewards (XP, trophies, rank, credits) + badges; players never have to
+// wait for a human to play. The boss rotates by day / week.
+export const battleAiBoss = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { myCompanionId: string; boss: ArenaBossKey }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const tier = AI_BOSSES[data.boss] ?? AI_BOSSES.daily;
+    const character = bossCharacter(data.boss);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: mine, error: e1 } = await supabaseAdmin
+      .from("arena_companions").select("*").eq("id", data.myCompanionId).maybeSingle();
+    if (e1 || !mine) throw new Error("Your companion was not found");
+    if (mine.user_id !== userId) throw new Error("Not your companion");
+    const me = mine as unknown as CompanionRow;
+
+    const boss = {
+      attack: Math.round(me.attack * tier.mult),
+      defense: Math.round(me.defense * tier.mult),
+      speed: Math.round(me.speed * tier.mult),
+      level: me.level + (data.boss === "weekly" ? 5 : 2),
+      hidden_traits: me.hidden_traits,
+    };
+
+    const { log, myRounds, theirRounds, iWon } = simulateCombat(me, boss, tier.rounds);
+
+    const gainedXp = iWon ? tier.winXp : tier.lossXp;
+    const newXp = me.xp + gainedXp;
+    const update: {
+      xp: number; level: number; wins?: number; losses?: number;
+      win_streak?: number; longest_win_streak?: number; season_wins?: number;
+      trophies?: number; arena_rank?: number; title?: ArenaTitle;
+    } = { xp: newXp, level: companionLevel(newXp) };
+    if (iWon) {
+      const wWins = me.wins + 1;
+      const wStreak = me.win_streak + 1;
+      update.wins = wWins;
+      update.win_streak = wStreak;
+      update.longest_win_streak = Math.max(me.longest_win_streak, wStreak);
+      update.season_wins = me.season_wins + 1;
+      update.trophies = me.trophies + tier.winTrophies;
+      update.arena_rank = me.arena_rank + (data.boss === "weekly" ? 30 : 12);
+      update.title = titleForWins(wWins);
+    } else {
+      update.losses = me.losses + 1;
+      update.win_streak = 0;
+    }
+    await supabaseAdmin.from("arena_companions").update(update).eq("id", me.id);
+
+    const { data: bossBattle } = await supabaseAdmin.from("arena_battles").insert({
+      challenger_id: me.user_id,
+      opponent_id: null,
+      challenger_companion_id: me.id,
+      opponent_companion_id: null,
+      winner_companion_id: iWon ? me.id : null,
+      status: "resolved",
+      battle_type: "boss",
+      difficulty: data.boss,
+      log,
+    }).select("id").maybeSingle();
+
+    let credits = 0;
+    let newBadges: ArenaBadgeKey[] = [];
+    if (iWon) {
+      credits = tier.winCredits;
+      await creditWinner(supabaseAdmin, userId, credits, bossBattle?.id ?? "arena_boss");
+      const agg = await userBattleAggregate(supabaseAdmin, userId);
+      newBadges = await grantBadges(supabaseAdmin, userId, earnedBadgeKeys(agg.wins, agg.longest));
+    }
+
+    return {
+      iWon,
+      myRounds,
+      theirRounds,
+      log,
+      battleId: (bossBattle?.id ?? null) as string | null,
+      rewards: {
+        xp: gainedXp,
+        trophies: iWon ? tier.winTrophies : 0,
+        rank: iWon ? (data.boss === "weekly" ? 30 : 12) : 0,
+        credits,
+      },
+      opponentName: `${character.name} · ${tier.label}`,
+      opponentImage: null as string | null,
+      opponentEmoji: character.emoji as string | null,
+      environment: null as string | null,
+      newBadges,
+    };
+  });
+
+
 export const getBattleHistory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
