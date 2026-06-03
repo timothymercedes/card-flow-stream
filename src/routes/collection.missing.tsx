@@ -56,13 +56,19 @@ function MissingCenter() {
         <Link to="/collection" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Collection Books
         </Link>
-        <header className="flex items-center gap-2">
-          <Search className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold">Missing Card Center</h1>
-            <p className="text-xs text-muted-foreground">Every card you still need — ranked by how close each set is.</p>
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Search className="h-6 w-6 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold">Missing Card Center</h1>
+              <p className="text-xs text-muted-foreground">Every card you still need — ranked by how close each set is.</p>
+            </div>
           </div>
+          <Button asChild size="sm" variant="secondary" className="h-8 shrink-0">
+            <Link to="/trades/discover"><Sparkles className="mr-1 h-3.5 w-3.5" /> Find trades</Link>
+          </Button>
         </header>
+
 
         {q.isLoading && <p className="py-12 text-center text-sm text-muted-foreground">Finding your missing cards…</p>}
 
