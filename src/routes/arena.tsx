@@ -285,13 +285,8 @@ function ArenaPage() {
     battleM.mutate({ myCompanionId: activeMine.id, opponentCompanionId: opponentId });
   }
 
-  function quickMatch() {
-    const pool = oppQ.data?.opponents ?? [];
-    if (pool.length === 0) { toast.error("No opponents available right now"); return; }
-    fight(pool[Math.floor(Math.random() * pool.length)].id);
-  }
-
   // ---- AI fill-in matchmaking: never wait indefinitely for a human ----
+
   const SEARCH_SECONDS = 10;
   const [matchPhase, setMatchPhase] = useState<"idle" | "searching" | "ai-offer">("idle");
   const [searchSecs, setSearchSecs] = useState(SEARCH_SECONDS);
