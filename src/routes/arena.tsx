@@ -1055,7 +1055,14 @@ function OwnerCompanionCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h3 className="truncate font-bold">{c.name}</h3>
-            <Badge variant="secondary" className="shrink-0">Lv {c.level}</Badge>
+            <div className="flex shrink-0 items-center gap-1">
+              {c.win_streak >= 2 && (
+                <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-600">
+                  <Flame className="mr-0.5 h-3 w-3" />{c.win_streak} · {streakBonusLabel(c.win_streak + 1)}
+                </Badge>
+              )}
+              <Badge variant="secondary">Lv {c.level}</Badge>
+            </div>
           </div>
           <div className="mt-1"><CategoryBadge categoryKey={c.arena_category} /></div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
