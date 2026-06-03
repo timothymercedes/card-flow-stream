@@ -456,20 +456,25 @@ export const getBattleHistory = createServerFn({ method: "GET" })
     return { battles, wins, losses, currentStreak };
   });
 
-// ---- Leaderboards (seasonal) ----
+// ---- Leaderboards (seasonal, optionally scoped to one Arena category) ----
 export const getLeaderboards = createServerFn({ method: "GET" })
-  .handler(async () => {
+  .inputValidator((d?: { category?: string }) => ({ category: d?.category ?? "all" }))
+  .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const cat = data.category;
+    const scope = (q: any) => (cat && cat !== "all" ? q.eq("arena_category", cat) : q);
+
     const [mostWins, longestStreak] = await Promise.all([
-      supabaseAdmin.from("arena_companions").select("*").order("wins", { ascending: false }).limit(20),
-      supabaseAdmin.from("arena_companions").select("*").order("longest_win_streak", { ascending: false }).limit(20),
+      scope(supabaseAdmin.from("arena_companions").select("*")).order("wins", { ascending: false }).limit(20),
+      scope(supabaseAdmin.from("arena_companions").select("*")).order("longest_win_streak", { ascending: false }).limit(20),
     ]);
     const projW = ((mostWins.data || []) as unknown as CompanionRow[]).map(publicProjection);
     const projS = ((longestStreak.data || []) as unknown as CompanionRow[]).map(publicProjection);
 
-    // Top trainers: aggregate season_wins by user.
-    const { data: all } = await supabaseAdmin
-      .from("arena_companions").select("user_id, season_wins, wins, trophies");
+    // Top trainers: aggregate season_wins by user (within scope).
+    const { data: all } = await scope(
+      supabaseAdmin.from("arena_companions").select("user_id, season_wins, wins, trophies"),
+    );
     const byUser = new Map<string, { user_id: string; season_wins: number; wins: number; trophies: number }>();
     for (const r of (all || []) as any[]) {
       const e = byUser.get(r.user_id) || { user_id: r.user_id, season_wins: 0, wins: 0, trophies: 0 };
@@ -478,7 +483,7 @@ export const getLeaderboards = createServerFn({ method: "GET" })
     }
     const trainers = [...byUser.values()].sort((a, b) => b.season_wins - a.season_wins).slice(0, 20);
 
-    return { mostWins: projW, longestStreak: projS, topTrainers: trainers };
+    return { mostWins: projW, longestStreak: projS, topTrainers: trainers, category: cat };
   });
 
 // ================= Collector discovery & social =================
