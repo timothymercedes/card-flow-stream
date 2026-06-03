@@ -34,7 +34,9 @@ function roundEvents(log: BattleLog) {
     const margin = Math.abs(r.mine - r.theirs) / max;
     const fx: RoundFx = margin >= 0.22 ? "crit" : margin <= 0.06 ? "dodge" : "hit";
     const dmg = fx === "crit" ? 42 : fx === "dodge" ? 12 : 28;
-    return { attacker: r.winner, defender: r.winner === "mine" ? "theirs" : "mine", fx, dmg, round: r.round };
+    const attacker: "mine" | "theirs" = r.winner;
+    const defender: "mine" | "theirs" = r.winner === "mine" ? "theirs" : "mine";
+    return { attacker, defender, fx, dmg, round: r.round };
   });
 }
 
