@@ -238,6 +238,132 @@ export const awardCompanionXp = createServerFn({ method: "POST" })
     return { xp: newXp, level: companionLevel(newXp), awarded: amt };
   });
 
+// ---- PVE: battle a computer opponent (training) ----
+// Capped, reduced rewards. NO arena_rank / season_wins / leaderboard points are
+// awarded — real PVP battles are always more valuable (anti-abuse).
+const COMPUTER_NAMES = [
+  "Training Dummy", "Rookie Bot", "Arena Sentinel", "Practice Golem",
+  "Sparring Partner", "Mock Challenger", "Drill Master", "Shadow Trainer",
+];
+
+export const battlePve = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { myCompanionId: string; difficulty: ArenaDifficulty }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const diff = DIFFICULTY_META[data.difficulty] ?? DIFFICULTY_META.normal;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: mine, error: e1 } = await supabaseAdmin
+      .from("arena_companions").select("*").eq("id", data.myCompanionId).maybeSingle();
+    if (e1 || !mine) throw new Error("Your companion was not found");
+    if (mine.user_id !== userId) throw new Error("Not your companion");
+    const me = mine as unknown as CompanionRow;
+
+    // Computer opponent derived from the player's companion, scaled by difficulty.
+    const cpu = {
+      attack: Math.round(me.attack * diff.mult),
+      defense: Math.round(me.defense * diff.mult),
+      speed: Math.round(me.speed * diff.mult),
+      level: me.level,
+    };
+
+    const log: Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }> = [];
+    let myRounds = 0, theirRounds = 0;
+    for (let r = 1; r <= 3; r++) {
+      const mp = power(me); const tp = power(cpu);
+      const w = mp >= tp ? "mine" : "theirs";
+      if (w === "mine") myRounds++; else theirRounds++;
+      log.push({ round: r, mine: Math.round(mp), theirs: Math.round(tp), winner: w });
+    }
+    const iWon = myRounds > theirRounds;
+
+    const gainedXp = iWon ? diff.winXp : diff.lossXp;
+    const newXp = me.xp + gainedXp;
+    const update: Record<string, unknown> = {
+      xp: newXp,
+      level: companionLevel(newXp),
+    };
+    if (iWon) {
+      const wWins = me.wins + 1;
+      const wStreak = me.win_streak + 1;
+      update.wins = wWins;
+      update.win_streak = wStreak;
+      update.longest_win_streak = Math.max(me.longest_win_streak, wStreak);
+      update.trophies = me.trophies + diff.winTrophies;
+      update.title = titleForWins(wWins);
+      // Note: arena_rank and season_wins deliberately unchanged for PVE.
+    } else {
+      update.losses = me.losses + 1;
+      update.win_streak = 0;
+    }
+    await supabaseAdmin.from("arena_companions").update(update).eq("id", me.id);
+
+    const cpuName = COMPUTER_NAMES[Math.floor(Math.random() * COMPUTER_NAMES.length)];
+    await supabaseAdmin.from("arena_battles").insert({
+      challenger_id: me.user_id,
+      opponent_id: null,
+      challenger_companion_id: me.id,
+      opponent_companion_id: null,
+      winner_companion_id: iWon ? me.id : null,
+      status: "resolved",
+      battle_type: "pve",
+      difficulty: data.difficulty,
+      log,
+    });
+
+    return {
+      iWon,
+      myRounds,
+      theirRounds,
+      log,
+      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0 },
+      opponentName: `${cpuName} (${diff.label})`,
+    };
+  });
+
+// ---- Battle history for the signed-in user (PVP + PVE) ----
+export const getBattleHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: rows, error } = await supabase
+      .from("arena_battles")
+      .select("id, challenger_id, opponent_id, challenger_companion_id, winner_companion_id, battle_type, difficulty, created_at")
+      .or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+
+    // Map each battle to a win/loss from this user's perspective.
+    const myCompanionIds = new Set<string>();
+    const { data: mine } = await supabase
+      .from("arena_companions").select("id").eq("user_id", userId);
+    for (const c of (mine || []) as any[]) myCompanionIds.add(c.id);
+
+    const battles = ((rows || []) as any[]).map((b) => {
+      const iAmChallenger = b.challenger_id === userId;
+      const iWon = b.winner_companion_id != null && myCompanionIds.has(b.winner_companion_id);
+      return {
+        id: b.id,
+        type: b.battle_type as "pvp" | "pve",
+        difficulty: b.difficulty as ArenaDifficulty | null,
+        iWon,
+        result: b.winner_companion_id == null ? "loss" : iWon ? "win" : "loss",
+        created_at: b.created_at,
+        iAmChallenger,
+      };
+    });
+
+    const wins = battles.filter((b) => b.iWon).length;
+    const losses = battles.length - wins;
+    // Current streak from most-recent backwards.
+    let currentStreak = 0;
+    for (const b of battles) { if (b.iWon) currentStreak++; else break; }
+
+    return { battles, wins, losses, currentStreak };
+  });
+
 // ---- Leaderboards (seasonal) ----
 export const getLeaderboards = createServerFn({ method: "GET" })
   .handler(async () => {
