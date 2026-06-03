@@ -737,6 +737,7 @@ function OwnerCompanionCard({
             <h3 className="truncate font-bold">{c.name}</h3>
             <Badge variant="secondary" className="shrink-0">Lv {c.level}</Badge>
           </div>
+          <div className="mt-1"><CategoryBadge categoryKey={c.arena_category} /></div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{cm.emoji} {cm.arena} · {c.wins}W / {c.losses}L</p>
           <div className="mt-1">
