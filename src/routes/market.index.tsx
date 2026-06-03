@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Search, Sparkles, Flame, Clock, Tag, ChevronDown, Check, X, SlidersHorizontal } from "lucide-react";
+import { Search, Sparkles, Flame, Clock, Tag, ChevronDown, Check, X, SlidersHorizontal, ArrowLeftRight } from "lucide-react";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { SellerBadge } from "@/components/SellerBadge";
 import { getListingPriceDisplay, isPublicListingVisible } from "@/lib/listingDisplay";
@@ -409,6 +409,10 @@ function Market() {
                       </p>
                     ) : display.kind === "offer" ? (
                       <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Make Offer</span>
+                    ) : display.kind === "trade" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        <ArrowLeftRight className="h-3 w-3" /> Trade
+                      </span>
                     ) : (
                       <span className="text-[10px] text-muted-foreground">—</span>
                     )}
