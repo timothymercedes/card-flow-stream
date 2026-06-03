@@ -1,4 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { runWithStartContext } from "@tanstack/start-storage-context";
+
+// Execute a TanStack server function's real server pipeline (validators +
+// middleware + handler) inside a minimal Start context, the same way the
+// server runtime invokes it.
+async function callServer<T>(fn: any, data: unknown): Promise<T> {
+  return runWithStartContext(
+    {
+      request: new Request("http://localhost/_serverFn", { method: "POST" }),
+      contextAfterGlobalMiddlewares: {},
+      startOptions: { functionMiddleware: [] },
+      executedRequestMiddlewares: new Set(),
+    } as any,
+    async () => {
+      const r = await fn.__executeServer({ data, context: {} });
+      if (r.error) throw r.error;
+      return r.result as T;
+    },
+  );
+}
 
 /**
  * Integration test for the Arena "find opponents" flow.
