@@ -8,6 +8,8 @@ import {
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
 import { arenaCategoryFor } from "@/lib/arenaCategories";
+import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
+import { COSMETIC_MAP } from "@/lib/arenaCosmetics";
 
 type CompanionRow = {
   id: string; user_id: string; vault_card_id: string; name: string;
@@ -637,4 +639,175 @@ export const listMyBadges = createServerFn({ method: "GET" })
       .order("earned_at", { ascending: false });
     if (error) throw new Error(error.message);
     return { badges: (data || []).map((b: any) => ({ key: b.badge_key as ArenaBadgeKey, earned_at: b.earned_at })) };
+  });
+
+// ===================================================================
+// Phase 3 — Daily challenges, cosmetics & rewards (digital-only).
+// ===================================================================
+
+function startOfTodayUtc(): string {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+// Compute today's battle metrics for a user from arena_battles.
+async function todaysMetrics(admin: Admin, userId: string) {
+  const since = startOfTodayUtc();
+  const { data } = await admin
+    .from("arena_battles")
+    .select("battle_type, winner_companion_id, challenger_companion_id")
+    .eq("challenger_id", userId)
+    .gte("created_at", since);
+  const rows = (data || []) as Array<{ battle_type: string; winner_companion_id: string | null; challenger_companion_id: string }>;
+  let pvp_wins = 0, pve_battles = 0;
+  for (const r of rows) {
+    if (r.battle_type === "pve") pve_battles++;
+    else if (r.winner_companion_id && r.winner_companion_id === r.challenger_companion_id) pvp_wins++;
+  }
+  return { pvp_wins, pve_battles, total_battles: rows.length };
+}
+
+// Spend PullBid Credits (server-side). Throws if balance is insufficient.
+async function spendCredits(admin: Admin, userId: string, amount: number, refId: string, desc: string) {
+  if (amount <= 0) return;
+  const { data: wallet } = await admin
+    .from("credit_wallets").select("balance, lifetime_spent").eq("user_id", userId).maybeSingle();
+  const current = wallet?.balance ?? 0;
+  if (current < amount) throw new Error("Not enough PullBid Credits");
+  const balance = current - amount;
+  const lifetimeSpent = (wallet?.lifetime_spent ?? 0) + amount;
+  await admin.from("credit_wallets").upsert(
+    { user_id: userId, balance, lifetime_spent: lifetimeSpent, updated_at: new Date().toISOString() },
+    { onConflict: "user_id" },
+  );
+  await admin.from("credit_transactions").insert({
+    user_id: userId, amount: -amount, balance_after: balance,
+    source: "arena_cosmetic", ref_id: refId, description: desc,
+  });
+}
+
+// ---- Daily challenges with live progress + claim status ----
+export const getDailyChallenges = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const metrics = await todaysMetrics(supabaseAdmin, userId);
+    const since = startOfTodayUtc().slice(0, 10);
+    const { data: claims } = await supabaseAdmin
+      .from("arena_daily_claims").select("challenge_key")
+      .eq("user_id", userId).eq("challenge_date", since);
+    const claimed = new Set((claims || []).map((c: any) => c.challenge_key));
+    const challenges = ARENA_DAILY_CHALLENGES.map((c) => {
+      const progress = (metrics as any)[c.metric] as number;
+      return {
+        key: c.key,
+        progress: Math.min(progress, c.goal),
+        goal: c.goal,
+        complete: progress >= c.goal,
+        claimed: claimed.has(c.key),
+      };
+    });
+    return { challenges };
+  });
+
+// ---- Claim a completed daily challenge (Arena XP + PullBid Credits) ----
+export const claimArenaChallenge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { challengeKey: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const def = CHALLENGE_MAP[data.challengeKey];
+    if (!def) throw new Error("Unknown challenge");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const metrics = await todaysMetrics(supabaseAdmin, userId);
+    const progress = (metrics as any)[def.metric] as number;
+    if (progress < def.goal) throw new Error("Challenge not complete yet");
+
+    const today = startOfTodayUtc().slice(0, 10);
+    const { error: claimErr } = await supabaseAdmin.from("arena_daily_claims").insert({
+      user_id: userId, challenge_date: today, challenge_key: def.key,
+      reward_xp: def.rewardXp, reward_credits: def.rewardCredits,
+    });
+    if (claimErr) throw new Error("Already claimed today");
+
+    if (def.rewardCredits > 0) {
+      await creditWinner(supabaseAdmin, userId, def.rewardCredits, `challenge:${def.key}`);
+    }
+    let xpCompanion: string | null = null;
+    if (def.rewardXp > 0) {
+      const { data: comp } = await supabaseAdmin
+        .from("arena_companions").select("id, xp")
+        .eq("user_id", userId).order("arena_rank", { ascending: false }).limit(1);
+      const c = (comp || [])[0];
+      if (c) {
+        const newXp = (c as any).xp + def.rewardXp;
+        await supabaseAdmin.from("arena_companions")
+          .update({ xp: newXp, level: companionLevel(newXp) }).eq("id", (c as any).id);
+        xpCompanion = (c as any).id;
+      }
+    }
+    return { ok: true, rewardXp: def.rewardXp, rewardCredits: def.rewardCredits, xpCompanion };
+  });
+
+// ---- Cosmetics: owned + equipped + wallet balance ----
+export const getArenaCosmetics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: owned } = await supabase
+      .from("arena_user_cosmetics").select("cosmetic_key, cosmetic_type, equipped")
+      .eq("user_id", userId);
+    const { data: wallet } = await supabase
+      .from("credit_wallets").select("balance").eq("user_id", userId).maybeSingle();
+    return {
+      owned: (owned || []).map((o: any) => ({ key: o.cosmetic_key, type: o.cosmetic_type, equipped: o.equipped })),
+      balance: (wallet as any)?.balance ?? 0,
+    };
+  });
+
+// ---- Buy a cosmetic with PullBid Credits ----
+export const buyArenaCosmetic = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { cosmeticKey: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const cosmetic = COSMETIC_MAP[data.cosmeticKey];
+    if (!cosmetic) throw new Error("Unknown cosmetic");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing } = await supabaseAdmin
+      .from("arena_user_cosmetics").select("id")
+      .eq("user_id", userId).eq("cosmetic_key", cosmetic.key).maybeSingle();
+    if (existing) throw new Error("You already own this cosmetic");
+
+    await spendCredits(supabaseAdmin, userId, cosmetic.cost, `cosmetic:${cosmetic.key}`, `Bought ${cosmetic.name}`);
+    const { error } = await supabaseAdmin.from("arena_user_cosmetics").insert({
+      user_id: userId, cosmetic_key: cosmetic.key, cosmetic_type: cosmetic.type,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---- Equip / unequip a cosmetic (one per type) ----
+export const equipArenaCosmetic = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { cosmeticKey: string; equipped: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const cosmetic = COSMETIC_MAP[data.cosmeticKey];
+    if (!cosmetic) throw new Error("Unknown cosmetic");
+    if (data.equipped) {
+      // One equipped per type: clear others of the same type first.
+      await supabase.from("arena_user_cosmetics")
+        .update({ equipped: false })
+        .eq("user_id", userId).eq("cosmetic_type", cosmetic.type);
+    }
+    const { error } = await supabase.from("arena_user_cosmetics")
+      .update({ equipped: data.equipped })
+      .eq("user_id", userId).eq("cosmetic_key", cosmetic.key);
+    if (error) throw new Error(error.message);
+    return { ok: true, equipped: data.equipped };
   });

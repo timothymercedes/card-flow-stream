@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
-  unfollowCollector, challengeUser, getRecentOpponents, listMyBadges,
+  unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/arenaShared";
 import { ARENA_CATEGORIES } from "@/lib/arenaCategories";
 import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
+import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
-  Users, Search, UserPlus, UserCheck, Award, History,
+  Users, Search, UserPlus, UserCheck, Award, History, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -92,6 +93,8 @@ function ArenaPage() {
   const challengeUserFn = useServerFn(challengeUser);
   const recentFn = useServerFn(getRecentOpponents);
   const badgesFn = useServerFn(listMyBadges);
+  const cosmeticsFn = useServerFn(getArenaCosmetics);
+
 
   const myQ = useQuery({
     queryKey: ["arena", "mine"],
@@ -113,6 +116,8 @@ function ArenaPage() {
   });
 
   const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: !!user });
+  const cosmeticsQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn(), enabled: !!user });
+  const equipped = useMemo(() => equippedClasses(cosmeticsQ.data?.owned), [cosmeticsQ.data]);
   const recentQ = useQuery({ queryKey: ["arena", "recent"], queryFn: () => recentFn(), enabled: !!user });
   const searchQ = useQuery({
     queryKey: ["arena", "collectors", searchTerm],
@@ -233,6 +238,7 @@ function ArenaPage() {
             <TabsTrigger value="collectors"><Users className="mr-1 h-4 w-4" />Collectors</TabsTrigger>
             <TabsTrigger value="history"><Flame className="mr-1 h-4 w-4" />History</TabsTrigger>
             <TabsTrigger value="leaderboards"><Trophy className="mr-1 h-4 w-4" />Leaderboards</TabsTrigger>
+            <TabsTrigger value="rewards"><Gift className="mr-1 h-4 w-4" />Rewards</TabsTrigger>
           </TabsList>
 
           {/* ---- Roster ---- */}
@@ -247,7 +253,7 @@ function ArenaPage() {
               </Card>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
-                {companions.map((c) => <OwnerCompanionCard key={c.id} c={c} />)}
+                {companions.map((c) => <OwnerCompanionCard key={c.id} c={c} frameClass={equipped.frameClass} />)}
               </div>
             )}
           </TabsContent>
@@ -498,6 +504,11 @@ function ArenaPage() {
               <LeaderboardCard title="Top Trainers" icon={Medal} rows={(lbQ.data?.topTrainers ?? []).map((r, i) => ({ name: `Trainer #${i + 1}`, value: `${r.season_wins} season wins` }))} />
             </div>
           </TabsContent>
+
+          {/* ---- Rewards (daily challenges + cosmetics) ---- */}
+          <TabsContent value="rewards">
+            <ArenaRewards />
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -514,6 +525,9 @@ function ArenaPage() {
               result={battleResult}
               myName={activeMine?.name ?? "Your companion"}
               myImage={activeMine?.image_url}
+              myFrameClass={equipped.frameClass}
+              myEffectClass={equipped.effectClass}
+              myTitle={equipped.titleText}
               onClose={() => setBattleResult(null)}
             />
           )}
@@ -590,16 +604,16 @@ function ArenaPage() {
   );
 }
 
-function OwnerCompanionCard({ c }: { c: Companion }) {
+function OwnerCompanionCard({ c, frameClass = "" }: { c: Companion; frameClass?: string }) {
   const prog = companionLevelProgress(c.xp);
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
   return (
     <Card className="overflow-hidden p-4">
       <div className="flex gap-3">
         {c.image_url ? (
-          <img src={c.image_url} alt={c.name} className="h-20 w-16 rounded object-cover" loading="lazy" />
+          <img src={c.image_url} alt={c.name} className={`h-20 w-16 rounded object-cover ${frameClass}`} loading="lazy" />
         ) : (
-          <div className="flex h-20 w-16 items-center justify-center rounded bg-muted"><Sparkles className="h-6 w-6 text-muted-foreground" /></div>
+          <div className={`flex h-20 w-16 items-center justify-center rounded bg-muted ${frameClass}`}><Sparkles className="h-6 w-6 text-muted-foreground" /></div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
