@@ -1085,11 +1085,19 @@ function OwnerCompanionCard({
   return (
     <Card className="overflow-hidden p-4">
       <div className="flex gap-3">
-        {c.image_url ? (
-          <img src={c.image_url} alt={c.name} className={`h-20 w-16 rounded object-cover ${frameClass}`} loading="lazy" />
-        ) : (
-          <div className={`flex h-20 w-16 items-center justify-center rounded bg-muted ${frameClass}`}><Sparkles className="h-6 w-6 text-muted-foreground" /></div>
-        )}
+        <div className="relative flex h-20 w-16 shrink-0 flex-col items-center justify-end">
+          <CompanionSprite
+            seedKey={`${c.id}:${c.name}`}
+            category={c.arena_category}
+            anim="idle"
+            level={c.level}
+            size={64}
+            className={frameClass}
+          />
+          {c.image_url && (
+            <img src={c.image_url} alt={`${c.name} card`} className="absolute -bottom-1 -right-1 h-7 w-5 rounded-[2px] border border-background object-cover shadow" loading="lazy" />
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h3 className="truncate font-bold">{c.name}</h3>
