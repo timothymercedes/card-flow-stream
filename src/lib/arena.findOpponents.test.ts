@@ -84,15 +84,16 @@ describe("Arena findOpponents (authenticated POST)", () => {
     }
   });
 
-  it("filters opponents by community", async () => {
+  it("filters opponents by Arena category", async () => {
     const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "sports");
 
     expect(res.opponents.length).toBe(1);
-    expect(res.opponents[0].community).toBe("sports");
+    expect(res.opponents[0].arena_category).toBe("sports");
   });
 
-  it("returns all non-self opponents for the 'general' community", async () => {
-    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "general");
+  it("returns all non-self opponents for the 'all' category (cross-category)", async () => {
+    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "all");
     expect(res.opponents.length).toBe(2);
   });
+
 });
