@@ -101,6 +101,7 @@ function ArenaPage() {
     | Awaited<ReturnType<typeof challengeAndResolve>>
     | Awaited<ReturnType<typeof challengeUser>>
     | Awaited<ReturnType<typeof battlePve>>
+    | Awaited<ReturnType<typeof battleAiBoss>>
     | null
   >(null);
   const [selectedMine, setSelectedMine] = useState<string | null>(null);
