@@ -130,6 +130,10 @@ function ArenaPage() {
     enabled: !!user,
   });
   const companions = myQ.data?.companions ?? [];
+  const visibleCompanions = useMemo(
+    () => (category === "all" ? companions : companions.filter((c) => c.arena_category === category)),
+    [companions, category],
+  );
 
   const oppQ = useQuery({
     queryKey: ["arena", "opponents", category],
