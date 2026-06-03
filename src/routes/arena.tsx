@@ -252,18 +252,16 @@ function ArenaPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="roster">
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
-            <TabsTrigger value="battle"><Swords className="mr-1 h-4 w-4" />Battle (PVP)</TabsTrigger>
-            <TabsTrigger value="train"><Shield className="mr-1 h-4 w-4" />Train (PVE)</TabsTrigger>
             <TabsTrigger value="collectors"><Users className="mr-1 h-4 w-4" />Collectors</TabsTrigger>
             <TabsTrigger value="history"><Flame className="mr-1 h-4 w-4" />History</TabsTrigger>
             <TabsTrigger value="leaderboards"><Trophy className="mr-1 h-4 w-4" />Leaderboards</TabsTrigger>
             <TabsTrigger value="rewards"><Gift className="mr-1 h-4 w-4" />Rewards</TabsTrigger>
           </TabsList>
 
-          {/* ---- Roster ---- */}
+          {/* ---- Roster (companion-driven gameplay starts here) ---- */}
           <TabsContent value="roster">
             {companions.length === 0 ? (
               <Card className="p-8 text-center">
@@ -274,133 +272,25 @@ function ArenaPage() {
                 </Button>
               </Card>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {companions.map((c) => <OwnerCompanionCard key={c.id} c={c} frameClass={equipped.frameClass} />)}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ---- Battle ---- */}
-          <TabsContent value="battle">
-            {companions.length === 0 ? (
-              <Card className="p-8 text-center text-muted-foreground">Unlock a companion first to enter the arena.</Card>
-            ) : (
               <>
-                <div className="mb-4">
-                  <p className="mb-2 text-sm font-medium">Your fighter</p>
-                  <div className="flex flex-wrap gap-2">
-                    {companions.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => setSelectedMine(c.id)}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${activeMine?.id === c.id ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
-                      >
-                        {c.name} · Lv{c.level}
-                      </button>
-                    ))}
-                  </div>
+                <p className="mb-3 text-sm text-muted-foreground">Pick a companion, then choose its next move.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {companions.map((c) => (
+                    <OwnerCompanionCard
+                      key={c.id}
+                      c={c}
+                      frameClass={equipped.frameClass}
+                      onBattle={() => openBattle(c.id)}
+                      onTrain={() => openTrain(c.id)}
+                      onStats={() => setStatsFor(c.id)}
+                      onCustomize={openCustomize}
+                    />
+                  ))}
                 </div>
-
-                <div className="mb-4">
-                  <p className="mb-2 text-sm font-medium">Arena Category</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setCategory("all")}
-                      className={`rounded-full border px-3 py-1.5 text-sm transition ${category === "all" ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
-                    >
-                      ⚔️ All Categories
-                    </button>
-                    {ARENA_CATEGORIES.map((c) => (
-                      <button
-                        key={c.key}
-                        onClick={() => setCategory(c.key)}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${category === c.key ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
-                      >
-                        {c.emoji} {c.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-primary/5 p-3">
-                  <p className="flex-1 text-xs text-muted-foreground">
-                    Real battles reward the most — up to <span className="font-semibold text-foreground">+{PVP_WIN_XP} XP</span>, trophies, rank and leaderboard points.
-                  </p>
-                  <Button onClick={quickMatch} disabled={battleM.isPending || (oppQ.data?.opponents.length ?? 0) === 0} size="sm">
-                    <Zap className="mr-2 h-4 w-4" />Quick Match
-                  </Button>
-                </div>
-
-                {oppQ.isLoading ? (
-                  <Card className="p-8 text-center text-muted-foreground">Finding opponents…</Card>
-                ) : (oppQ.data?.opponents.length ?? 0) === 0 ? (
-                  <Card className="p-8 text-center text-muted-foreground">No opponents in this arena yet. Check back soon!</Card>
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {oppQ.data!.opponents.map((o) => (
-                      <OpponentCard key={o.id} o={o} onFight={() => fight(o.id)} disabled={battleM.isPending} />
-                    ))}
-                  </div>
-                )}
               </>
             )}
           </TabsContent>
 
-          {/* ---- Train (PVE) ---- */}
-          <TabsContent value="train">
-            {companions.length === 0 ? (
-              <Card className="p-8 text-center text-muted-foreground">Unlock a companion first to start training.</Card>
-            ) : (
-              <>
-                <Card className="mb-4 border-dashed p-4">
-                  <p className="text-sm">
-                    Practice against computer opponents to learn the Arena and train your companions risk-free.
-                    Training gives <span className="font-semibold">reduced XP and rewards</span> and earns
-                    <span className="font-semibold"> no rank or leaderboard points</span> — real PVP battles are always worth more.
-                  </p>
-                </Card>
-
-                <div className="mb-4">
-                  <p className="mb-2 text-sm font-medium">Your fighter</p>
-                  <div className="flex flex-wrap gap-2">
-                    {companions.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => setSelectedMine(c.id)}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${activeMine?.id === c.id ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
-                      >
-                        {c.name} · Lv{c.level}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <p className="mb-2 text-sm font-medium">Difficulty</p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {(Object.keys(DIFFICULTY_META) as ArenaDifficulty[]).map((k) => {
-                      const m = DIFFICULTY_META[k];
-                      return (
-                        <button
-                          key={k}
-                          onClick={() => setDifficulty(k)}
-                          className={`rounded-lg border p-3 text-left transition ${difficulty === k ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`}
-                        >
-                          <div className="text-sm font-semibold">{m.emoji} {m.label}</div>
-                          <div className="text-[10px] text-muted-foreground">Win +{m.winXp} XP</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <Button onClick={trainCpu} disabled={pveM.isPending} className="w-full">
-                  <Swords className="mr-2 h-4 w-4" />
-                  {pveM.isPending ? "Training…" : `Train vs Computer (${DIFFICULTY_META[difficulty].label})`}
-                </Button>
-              </>
-            )}
-          </TabsContent>
 
           {/* ---- Collectors (search / follow / friends battle / rematch) ---- */}
           <TabsContent value="collectors">
