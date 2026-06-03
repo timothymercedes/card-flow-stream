@@ -13,7 +13,7 @@ import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
-import { ARENA_CATEGORIES } from "@/lib/arenaCategories";
+import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
 import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
   Users, Search, UserPlus, UserCheck, Award, History, Gift,
@@ -31,6 +32,22 @@ import {
 import { toast } from "sonner";
 
 const ARENA_CATEGORY_KEYS = new Set(ARENA_CATEGORIES.map((c) => c.key));
+
+// Ordered category options for the top-level Arena filter dropdown.
+const FILTER_CATEGORY_KEYS = [
+  "pokemon", "onepiece", "mtg", "yugioh", "sports", "lorcana", "wrestling", "marvel", "starwars",
+] as const;
+
+// Small colored category badge shown on each companion card.
+function CategoryBadge({ categoryKey }: { categoryKey: string }) {
+  const m = arenaCategoryMeta(categoryKey);
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border bg-muted/40 px-2 py-0.5 text-[10px] font-medium">
+      <span className="leading-none">{m.emoji}</span>
+      {m.label.replace(/ Arena$/, "")}
+    </span>
+  );
+}
 
 export const Route = createFileRoute("/arena")({
   validateSearch: (search: Record<string, unknown>): { category?: string } => {
@@ -113,6 +130,10 @@ function ArenaPage() {
     enabled: !!user,
   });
   const companions = myQ.data?.companions ?? [];
+  const visibleCompanions = useMemo(
+    () => (category === "all" ? companions : companions.filter((c) => c.arena_category === category)),
+    [companions, category],
+  );
 
   const oppQ = useQuery({
     queryKey: ["arena", "opponents", category],
@@ -252,6 +273,27 @@ function ArenaPage() {
           </Button>
         </div>
 
+        {/* Top-level Arena Category filter — keeps the roster visible, no category page. */}
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Arena Category</span>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">⚔️ All Categories</SelectItem>
+              {FILTER_CATEGORY_KEYS.map((k) => {
+                const m = arenaCategoryMeta(k);
+                return (
+                  <SelectItem key={k} value={k}>{m.emoji} {m.label}</SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+
+
+
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
@@ -271,11 +313,17 @@ function ArenaPage() {
                   <RefreshCw className={`mr-2 h-4 w-4 ${syncM.isPending ? "animate-spin" : ""}`} />Unlock companions
                 </Button>
               </Card>
+            ) : visibleCompanions.length === 0 ? (
+              <Card className="p-8 text-center">
+                <Sparkles className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                <p className="mb-4 text-muted-foreground">No companions in {arenaCategoryMeta(category).label}. Switch categories or unlock more from your Vault.</p>
+                <Button variant="secondary" onClick={() => setCategory("all")}>Show all categories</Button>
+              </Card>
             ) : (
               <>
                 <p className="mb-3 text-sm text-muted-foreground">Pick a companion, then choose its next move.</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {companions.map((c) => (
+                  {visibleCompanions.map((c) => (
                     <OwnerCompanionCard
                       key={c.id}
                       c={c}
@@ -419,7 +467,7 @@ function ArenaPage() {
 
           {/* ---- Rewards (daily challenges + cosmetics) ---- */}
           <TabsContent value="rewards">
-            <ArenaRewards />
+            <ArenaRewards category={category} />
           </TabsContent>
         </Tabs>
       </div>
@@ -689,6 +737,7 @@ function OwnerCompanionCard({
             <h3 className="truncate font-bold">{c.name}</h3>
             <Badge variant="secondary" className="shrink-0">Lv {c.level}</Badge>
           </div>
+          <div className="mt-1"><CategoryBadge categoryKey={c.arena_category} /></div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{cm.emoji} {cm.arena} · {c.wins}W / {c.losses}L</p>
           <div className="mt-1">

@@ -20,7 +20,7 @@ const TYPE_LABEL: Record<CosmeticType, string> = {
   frame: "Frames", effect: "Effect Auras", entrance: "Entrances", title: "Titles",
 };
 
-export function ArenaRewards() {
+export function ArenaRewards({ category = "all" }: { category?: string }) {
   const qc = useQueryClient();
   const challengesFn = useServerFn(getDailyChallenges);
   const claimFn = useServerFn(claimArenaChallenge);
@@ -73,7 +73,10 @@ export function ArenaRewards() {
 
   const ownedMap = new Map((cosmQ.data?.owned ?? []).map((o) => [o.key, o]));
   const balance = cosmQ.data?.balance ?? 0;
-  const setRewards = setQ.data?.rewards ?? [];
+  const allSetRewards = setQ.data?.rewards ?? [];
+  const setRewards = category === "all"
+    ? allSetRewards
+    : allSetRewards.filter((r) => r.arenaCategory === category);
 
   return (
     <div className="space-y-6">
