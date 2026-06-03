@@ -31,6 +31,46 @@ function publicProjection(c: CompanionRow) {
   };
 }
 
+type Admin = { from: (t: string) => any };
+
+// Award PullBid Credits directly (server-side, bypasses RLS). Used for PVP wins.
+async function creditWinner(admin: Admin, userId: string, amount: number, refId: string) {
+  if (amount <= 0) return;
+  const { data: wallet } = await admin
+    .from("credit_wallets").select("balance, lifetime_earned").eq("user_id", userId).maybeSingle();
+  const balance = (wallet?.balance ?? 0) + amount;
+  const lifetimeEarned = (wallet?.lifetime_earned ?? 0) + amount;
+  await admin.from("credit_wallets").upsert(
+    { user_id: userId, balance, lifetime_earned: lifetimeEarned, updated_at: new Date().toISOString() },
+    { onConflict: "user_id" },
+  );
+  await admin.from("credit_transactions").insert({
+    user_id: userId, amount, balance_after: balance,
+    source: "arena_battle", ref_id: refId, description: "Arena PVP victory",
+  });
+}
+
+// Grant any newly-qualified badges. Returns the keys that were newly granted.
+async function grantBadges(admin: Admin, userId: string, keys: ArenaBadgeKey[]): Promise<ArenaBadgeKey[]> {
+  if (keys.length === 0) return [];
+  const { data: existing } = await admin
+    .from("arena_badges").select("badge_key").eq("user_id", userId);
+  const have = new Set((existing || []).map((r: any) => r.badge_key));
+  const toAdd = keys.filter((k) => !have.has(k));
+  if (toAdd.length === 0) return [];
+  await admin.from("arena_badges").insert(toAdd.map((k) => ({ user_id: userId, badge_key: k })));
+  return toAdd;
+}
+
+// Total wins + longest streak across all of a user's companions.
+async function userBattleAggregate(admin: Admin, userId: string): Promise<{ wins: number; longest: number }> {
+  const { data } = await admin
+    .from("arena_companions").select("wins, longest_win_streak").eq("user_id", userId);
+  let wins = 0, longest = 0;
+  for (const r of (data || []) as any[]) { wins += r.wins; longest = Math.max(longest, r.longest_win_streak); }
+  return { wins, longest };
+}
+
 // ---- Sync companions from the user's Vault (unlock new digital companions) ----
 export const syncCompanions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
