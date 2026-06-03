@@ -966,19 +966,35 @@ export const bulkAddMissingToWishlist = createServerFn({ method: "POST" })
       .limit(2000);
     const onList = new Set((existing ?? []).map((w: any) => normNum(w.tcg_number)).filter(Boolean));
 
-    const toAdd = [...byNumber.entries()]
-      .filter(([n]) => !ownedNums.has(n) && !onList.has(n))
-      .map(([, c]) => ({
-        user_id: userId,
-        name: c.name || `${setName} #${c.number}`,
-        set_name: setName,
-        tcg_number: c.number,
-        category: data.category,
-        image_url: c.image_url,
-        notify_sale: true,
-        notify_trade: true,
-        notify_live: false,
-      }));
+    // Enumerate the full official checklist when the set total is known, so
+    // every missing card (not just cataloged ones) can be wishlisted at once.
+    const officialTotals = await loadSetTotals(supabaseAdmin, [{ category: data.category, setName }]);
+    const officialTotal = officialTotals.get(setTotalKey(data.category, setName)) ?? 0;
+    const wanted = new Map<string, { name: string; number: string; image_url: string | null }>();
+    if (officialTotal > 0) {
+      for (let i = 1; i <= officialTotal; i++) {
+        const n = String(i);
+        if (ownedNums.has(n) || onList.has(n)) continue;
+        const cat = byNumber.get(n);
+        wanted.set(n, cat ?? { name: "", number: n, image_url: null });
+      }
+    }
+    for (const [n, c] of byNumber) {
+      if (!ownedNums.has(n) && !onList.has(n) && !wanted.has(n)) wanted.set(n, c);
+    }
+
+    const toAdd = [...wanted.values()].map((c) => ({
+      user_id: userId,
+      name: c.name || `${setName} #${c.number}`,
+      set_name: setName,
+      tcg_number: c.number,
+      category: data.category,
+      image_url: c.image_url,
+      notify_sale: true,
+      notify_trade: true,
+      notify_live: false,
+    }));
+
 
     if (toAdd.length === 0) return { added: 0 };
     for (let i = 0; i < toAdd.length; i += 200) {
