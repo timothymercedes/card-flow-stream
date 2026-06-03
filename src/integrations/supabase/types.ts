@@ -386,6 +386,36 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_daily_claims: {
+        Row: {
+          challenge_date: string
+          challenge_key: string
+          created_at: string
+          id: string
+          reward_credits: number
+          reward_xp: number
+          user_id: string
+        }
+        Insert: {
+          challenge_date?: string
+          challenge_key: string
+          created_at?: string
+          id?: string
+          reward_credits?: number
+          reward_xp?: number
+          user_id: string
+        }
+        Update: {
+          challenge_date?: string
+          challenge_key?: string
+          created_at?: string
+          id?: string
+          reward_credits?: number
+          reward_xp?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       arena_seasons: {
         Row: {
           active: boolean
@@ -410,6 +440,33 @@ export type Database = {
           id?: string
           name?: string
           starts_at?: string
+        }
+        Relationships: []
+      }
+      arena_user_cosmetics: {
+        Row: {
+          cosmetic_key: string
+          cosmetic_type: string
+          created_at: string
+          equipped: boolean
+          id: string
+          user_id: string
+        }
+        Insert: {
+          cosmetic_key: string
+          cosmetic_type: string
+          created_at?: string
+          equipped?: boolean
+          id?: string
+          user_id: string
+        }
+        Update: {
+          cosmetic_key?: string
+          cosmetic_type?: string
+          created_at?: string
+          equipped?: boolean
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
