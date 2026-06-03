@@ -133,7 +133,7 @@ function Fighter({
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, mySeed, myLevel = 1, myPassive, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
+  result, myName, mySeed, myLevel = 1, myPassive, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
   isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
