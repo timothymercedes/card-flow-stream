@@ -1164,6 +1164,8 @@ function OwnerCompanionCard({
   onCustomize: () => void;
 }) {
   const prog = companionLevelProgress(c.xp);
+  const evo = evolutionStage(c.level);
+  const evoPct = evo.nextAt ? Math.min(100, Math.round((c.level / evo.nextAt) * 100)) : 100;
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
   const cosm = (c.cosmetics ?? {}) as Record<string, any>;
   const mode: VisualMode = (cosm.visual_mode as VisualMode) ?? "inspired";
