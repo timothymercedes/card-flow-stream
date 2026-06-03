@@ -26,6 +26,16 @@ export const Route = createFileRoute("/wishlist")({
 });
 
 type WishItem = Awaited<ReturnType<typeof listWishlist>>[number];
+type AddInput = {
+  name: string;
+  set_name?: string | null;
+  tcg_number?: string | null;
+  category?: string | null;
+  max_price?: number | null;
+  notify_sale: boolean;
+  notify_trade: boolean;
+  notify_live: boolean;
+};
 
 function WishlistPage() {
   const { user } = useAuth();
