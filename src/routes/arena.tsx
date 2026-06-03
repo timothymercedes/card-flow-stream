@@ -516,7 +516,16 @@ function ArenaPage() {
   );
 }
 
-function OwnerCompanionCard({ c, frameClass = "" }: { c: Companion; frameClass?: string }) {
+function OwnerCompanionCard({
+  c, frameClass = "", onBattle, onTrain, onStats, onCustomize,
+}: {
+  c: Companion;
+  frameClass?: string;
+  onBattle: () => void;
+  onTrain: () => void;
+  onStats: () => void;
+  onCustomize: () => void;
+}) {
   const prog = companionLevelProgress(c.xp);
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
   return (
@@ -540,19 +549,16 @@ function OwnerCompanionCard({ c, frameClass = "" }: { c: Companion; frameClass?:
           </div>
         </div>
       </div>
-      <div className="mt-3 space-y-1.5">
-        <StatBar icon={Swords} label="Attack" value={c.attack} />
-        <StatBar icon={Shield} label="Defense" value={c.defense} />
-        <StatBar icon={Zap} label="Speed" value={c.speed} />
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <Button onClick={onBattle} size="sm"><Swords className="mr-1.5 h-4 w-4" />Battle Player</Button>
+        <Button onClick={onTrain} size="sm" variant="secondary"><Shield className="mr-1.5 h-4 w-4" />Train AI</Button>
+        <Button onClick={onStats} size="sm" variant="outline"><Zap className="mr-1.5 h-4 w-4" />View Stats</Button>
+        <Button onClick={onCustomize} size="sm" variant="outline"><Sparkles className="mr-1.5 h-4 w-4" />Customize</Button>
       </div>
-      {c.hidden_traits?.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {c.hidden_traits.map((t) => <Badge key={t} variant="outline" className="text-[10px]">{t}</Badge>)}
-        </div>
-      )}
     </Card>
   );
 }
+
 
 function OpponentCard({ o, onFight, disabled }: { o: PublicCompanion; onFight: () => void; disabled: boolean }) {
   return (
