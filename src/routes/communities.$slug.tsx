@@ -127,6 +127,10 @@ function CommunityDetailPage() {
           )}
         </Card>
 
+        <CommunityChallenges communityId={community.id} canParticipate={!!user && isMember} />
+
+
+
         {user && isMember && (
           <Card className="space-y-2 p-3">
             <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={`Share something with ${community.name}…`} rows={3} maxLength={4000} />
