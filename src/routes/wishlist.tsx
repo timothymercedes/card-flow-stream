@@ -41,6 +41,7 @@ function WishlistPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<"all" | "watching">("all");
 
   const list = useServerFn(listWishlist);
   const add = useServerFn(addWishlistItem);
