@@ -1043,7 +1043,15 @@ function ArenaPage() {
                   <div className="flex h-28 w-20 items-center justify-center rounded bg-muted"><Sparkles className="h-7 w-7 text-muted-foreground" /></div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <Badge variant="secondary">Lv {statsCompanion.level}</Badge>
+                  <p className="truncate text-sm font-semibold">
+                    <span className="mr-1">{statsCompanion.archetype.emoji}</span>{statsCompanion.archetype.label}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <Badge variant="secondary">Lv {statsCompanion.level}</Badge>
+                    <Badge variant="outline" className={`text-[10px] ${statsCompanion.rarity.color} ${statsCompanion.rarity.ring}`}>
+                      {statsCompanion.rarity.emoji} {statsCompanion.rarity.label}
+                    </Badge>
+                  </div>
                   <div className="mt-1">{titleBadge(statsCompanion.title as ArenaTitle)}</div>
                   <p className="mt-1 text-xs text-muted-foreground">{statsCompanion.wins}W / {statsCompanion.losses}L</p>
                   <div className="mt-2">
@@ -1058,6 +1066,16 @@ function ArenaPage() {
                 <StatBar icon={Swords} label="Attack" value={statsCompanion.attack} />
                 <StatBar icon={Shield} label="Defense" value={statsCompanion.defense} />
                 <StatBar icon={Zap} label="Speed" value={statsCompanion.speed} />
+              </div>
+              <div className="space-y-2">
+                <div className="rounded-md border border-border bg-muted/40 p-2.5">
+                  <p className="text-xs font-semibold"><Shield className="mr-1 inline h-3.5 w-3.5 text-sky-500" />Passive · {statsCompanion.passive.name}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{statsCompanion.passive.desc}</p>
+                </div>
+                <div className="rounded-md border border-primary/40 bg-primary/10 p-2.5">
+                  <p className="text-xs font-semibold"><Flame className="mr-1 inline h-3.5 w-3.5 text-amber-500" />Special · {statsCompanion.special.name}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{statsCompanion.special.desc}</p>
+                </div>
               </div>
               {statsCompanion.hidden_traits?.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -1102,6 +1120,7 @@ function OwnerCompanionCard({
             category={c.arena_category}
             anim="idle"
             level={c.level}
+            flair={c.rarity.flair}
             size={64}
             className={frameClass}
           />
@@ -1121,7 +1140,15 @@ function OwnerCompanionCard({
               <Badge variant="secondary">Lv {c.level}</Badge>
             </div>
           </div>
-          <div className="mt-1"><CategoryBadge categoryKey={c.arena_category} /></div>
+          <p className="mt-0.5 truncate text-xs font-medium">
+            <span className="mr-1">{c.archetype.emoji}</span>{c.archetype.label}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            <CategoryBadge categoryKey={c.arena_category} />
+            <Badge variant="outline" className={`text-[10px] ${c.rarity.color} ${c.rarity.ring}`}>
+              {c.rarity.emoji} {c.rarity.short}
+            </Badge>
+          </div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{cm.emoji} {cm.arena} · {c.wins}W / {c.losses}L</p>
           <div className="mt-1">

@@ -139,7 +139,7 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
 }
 
 export function CompanionSprite({
-  seedKey, category, anim = "idle", size = 120, flip = false, level = 1, className = "",
+  seedKey, category, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
 }: {
   seedKey: string;
   category: string;
@@ -147,6 +147,8 @@ export function CompanionSprite({
   size?: number;
   flip?: boolean;
   level?: number;
+  /** Rarity flair 0-4 — rarer companions get a stronger aura + a rarity ring. */
+  flair?: number;
   className?: string;
 }) {
   const seed = useMemo(() => seedFrom(seedKey || category || "companion"), [seedKey, category]);
@@ -162,8 +164,8 @@ export function CompanionSprite({
   const bodyH = 60;
   const bodyLeft = cx - bodyW / 2;
 
-  // Higher level → subtle aura ring.
-  const aura = Math.min(0.55, 0.12 + level * 0.02);
+  // Higher level + rarer companion → stronger aura ring.
+  const aura = Math.min(0.7, 0.12 + level * 0.02 + flair * 0.08);
 
   return (
     <svg
@@ -182,8 +184,13 @@ export function CompanionSprite({
         </radialGradient>
       </defs>
 
-      {/* Aura / power ring (scales with level) */}
+      {/* Aura / power ring (scales with level + rarity) */}
       <ellipse className="companion-aura" cx={cx} cy={86} rx={bodyW * 0.7} ry={50} fill={`url(#aura-${seed})`} />
+      {/* Rarity ring — only for rarer companions */}
+      {flair >= 2 && (
+        <ellipse cx={cx} cy={108} rx={bodyW * 0.62} ry={11} fill="none"
+          stroke={accent} strokeWidth={flair >= 4 ? 3 : 2} opacity={0.35 + flair * 0.1} />
+      )}
       {/* Ground shadow */}
       <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />
 
