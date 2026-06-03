@@ -133,6 +133,23 @@ export const PVP_WIN_XP = 50;
 // Credits awarded to the winner of a real PVP battle. PVE never pays credits.
 export const PVP_WIN_CREDITS = 5;
 
+// ----------------------------------------------------------------------------
+// Win-streak bonus. The longer a companion's active win streak, the bigger the
+// reward multiplier on the NEXT win. `newStreak` is the streak AFTER this win
+// (i.e. previous win_streak + 1). 2nd win in a row → +10%, capped at +60%.
+// ----------------------------------------------------------------------------
+export function streakBonusMultiplier(newStreak: number): number {
+  if (newStreak <= 1) return 1;
+  return 1 + Math.min(0.6, (newStreak - 1) * 0.1);
+}
+
+// Human label for the active streak bonus, e.g. "+30%". Empty when no bonus.
+export function streakBonusLabel(newStreak: number): string {
+  const m = streakBonusMultiplier(newStreak);
+  return m > 1 ? `+${Math.round((m - 1) * 100)}%` : "";
+}
+
+
 // ---- Arena badges ----
 export type ArenaBadgeKey =
   | "first_win" | "streak_5" | "streak_10" | "wins_25" | "wins_100"
