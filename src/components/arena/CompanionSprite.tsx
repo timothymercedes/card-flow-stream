@@ -304,8 +304,12 @@ export function CompanionSprite({
       viewBox="0 0 120 130"
       width={size}
       height={(size * 130) / 120}
-      className={`companion-sprite companion-${anim} ${className}`}
-      style={{ transform: flip ? "scaleX(-1)" : undefined, overflow: "visible" }}
+      className={`companion-sprite companion-${anim} ${evo >= 3 ? "companion-legendary" : ""} ${className}`}
+      style={{
+        transform: `${flip ? "scaleX(-1) " : ""}scale(${evoScale})`,
+        transformOrigin: "50% 95%",
+        overflow: "visible",
+      }}
       role="img"
       aria-label="Arena companion"
     >
