@@ -188,7 +188,7 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="h-8">
-                <Link to="/trade" search={{ q: setName }}>
+                <Link to="/trades" search={{ q: setName }}>
                   <ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade for cards
                 </Link>
               </Button>
