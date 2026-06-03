@@ -19,6 +19,7 @@ import {
 } from "@/lib/arenaShared";
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
+import { evolutionStage } from "@/lib/arenaCompanion";
 import { ArenaBattleStage, type StageResult } from "@/components/arena/ArenaBattleStage";
 import { CompanionSprite } from "@/components/arena/CompanionSprite";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
@@ -1163,6 +1164,8 @@ function OwnerCompanionCard({
   onCustomize: () => void;
 }) {
   const prog = companionLevelProgress(c.xp);
+  const evo = evolutionStage(c.level);
+  const evoPct = evo.nextAt ? Math.min(100, Math.round((c.level / evo.nextAt) * 100)) : 100;
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
   const cosm = (c.cosmetics ?? {}) as Record<string, any>;
   const mode: VisualMode = (cosm.visual_mode as VisualMode) ?? "inspired";
@@ -1227,12 +1230,22 @@ function OwnerCompanionCard({
             <Badge variant="outline" className={`text-[10px] ${c.rarity.color} ${c.rarity.ring}`}>
               {c.rarity.emoji} {c.rarity.short}
             </Badge>
+            <Badge variant="outline" className={`text-[10px] ${evo.color} ${evo.ring}`}>
+              {evo.emoji} {evo.label}
+            </Badge>
           </div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{cm.emoji} {cm.arena} · {c.wins}W / {c.losses}L</p>
           <div className="mt-1">
             <Progress value={prog.pct} className="h-1.5" />
             <p className="mt-0.5 text-[10px] text-muted-foreground">{prog.current}/{prog.needed} XP to Lv {prog.level + 1}</p>
+          </div>
+          <div className="mt-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Evolution</span>
+              <span>{evo.nextAt ? `Lv ${c.level} → ${evo.nextAt}` : "Maxed ✦"}</span>
+            </div>
+            <Progress value={evoPct} className="mt-0.5 h-1" />
           </div>
         </div>
       </div>

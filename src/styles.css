@@ -456,6 +456,37 @@ body.kb-open [data-bottom-nav] {
 }
 .arena-enter-left { animation: arena-enter-left 0.55s cubic-bezier(0.22,1,0.36,1) both; }
 .arena-enter-right { animation: arena-enter-right 0.55s cubic-bezier(0.22,1,0.36,1) both; }
+/* Rare entrances — elite/legendary fighters slam into the arena */
+@keyframes arena-enter-elite-left {
+  0% { transform: translateX(-160%) scale(0.7); opacity: 0; }
+  55% { transform: translateX(10%) scale(1.14); opacity: 1; }
+  72% { transform: translateX(-4%) scale(0.96); }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes arena-enter-elite-right {
+  0% { transform: translateX(160%) scale(0.7); opacity: 0; }
+  55% { transform: translateX(-10%) scale(1.14); opacity: 1; }
+  72% { transform: translateX(4%) scale(0.96); }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+.arena-enter-elite-left { animation: arena-enter-elite-left 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+.arena-enter-elite-right { animation: arena-enter-elite-right 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes arena-enter-legendary-left {
+  0% { transform: translateY(-180%) scale(0.6) rotate(-12deg); opacity: 0; filter: brightness(2.4); }
+  50% { transform: translateY(0) scale(1.22) rotate(2deg); opacity: 1; filter: brightness(1.6); }
+  68% { transform: translateY(0) scale(0.92) rotate(-1deg); filter: brightness(1); }
+  82% { transform: translateY(0) scale(1.06); }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+@keyframes arena-enter-legendary-right {
+  0% { transform: translateY(-180%) scale(0.6) rotate(12deg); opacity: 0; filter: brightness(2.4); }
+  50% { transform: translateY(0) scale(1.22) rotate(-2deg); opacity: 1; filter: brightness(1.6); }
+  68% { transform: translateY(0) scale(0.92) rotate(1deg); filter: brightness(1); }
+  82% { transform: translateY(0) scale(1.06); }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+.arena-enter-legendary-left { animation: arena-enter-legendary-left 0.9s cubic-bezier(0.34,1.4,0.5,1) both; }
+.arena-enter-legendary-right { animation: arena-enter-legendary-right 0.9s cubic-bezier(0.34,1.4,0.5,1) both; }
 @keyframes arena-lunge-left { 0%,100% { transform: translateX(0); } 45% { transform: translateX(60%) rotate(-4deg); } }
 @keyframes arena-lunge-right { 0%,100% { transform: translateX(0); } 45% { transform: translateX(-60%) rotate(4deg); } }
 .arena-lunge-left { animation: arena-lunge-left 0.5s ease-in-out; }
@@ -539,6 +570,7 @@ body.kb-open [data-bottom-nav] {
 
 @media (prefers-reduced-motion: reduce) {
   .arena-enter-left,.arena-enter-right,.arena-lunge-left,.arena-lunge-right,
+  .arena-enter-elite-left,.arena-enter-elite-right,.arena-enter-legendary-left,.arena-enter-legendary-right,
   .arena-hit,.arena-shake,.arena-burst,.arena-spark,.arena-victory,
   .arena-projectile-right,.arena-projectile-left,
   .arena-dash-left,.arena-dash-right,.arena-jump-left,.arena-jump-right,
@@ -627,6 +659,30 @@ body.kb-open [data-bottom-nav] {
 .arena-env-wrestling{ --sky-top:#7a2f2f; --sky-bot:#f0a36b; --sun:#ffe2a8; --hills-back:#7c3a2a; --hills-front:#5c281d; --ground:linear-gradient(180deg,#9a5a3a,#5e3320); }
 .arena-env-marvel   { --sky-top:#1e2a66; --sky-bot:#7fa0e8; --sun:#ffe6a8; --hills-back:#2a3a78; --hills-front:#1c2a5c; --ground:linear-gradient(180deg,#3a4a7e,#1f2a4e); }
 .arena-env-starwars { --sky-top:#caa15a; --sky-bot:#ffe6b0; --sun:#fff6dc; --hills-back:#b07b3a; --hills-front:#84592a; --ground:linear-gradient(180deg,#d8b677,#a8814a); }
+
+/* ---- Time-of-day variants (rotated per battle) ---- */
+/* A colour wash over the scene + sun tweaks change the mood while keeping each
+   category's identity. Day = neutral; sunset/dusk warm & dim; night cool & dark. */
+.arena-scene::after { content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: multiply; background: transparent; transition: background 0.4s ease; }
+.arena-time-day::after    { background: transparent; }
+.arena-time-sunset::after { background: linear-gradient(180deg, rgba(255,138,60,0.30) 0%, rgba(255,94,98,0.22) 55%, rgba(120,40,80,0.30) 100%); }
+.arena-time-dusk::after   { background: linear-gradient(180deg, rgba(76,58,120,0.40) 0%, rgba(120,70,120,0.28) 50%, rgba(30,24,60,0.45) 100%); }
+.arena-time-night::after  { background: linear-gradient(180deg, rgba(14,18,46,0.62) 0%, rgba(20,28,66,0.50) 55%, rgba(6,8,24,0.66) 100%); }
+.arena-time-sunset .arena-sun { top: 22%; background: radial-gradient(circle, #fff0d0 0%, #ff9a4d 55%, transparent 72%); }
+.arena-time-dusk .arena-sun   { top: 16%; opacity: 0.7; background: radial-gradient(circle, #ffe6f5 0%, #c98bd6 55%, transparent 72%); }
+.arena-time-night .arena-sun  { top: 11%; width: 52px; height: 52px; margin-left: -26px; opacity: 0.9; background: radial-gradient(circle, #ffffff 0%, #d6e2ff 52%, transparent 70%); }
+.arena-time-night .arena-cloud { opacity: 0.25; }
+/* Stars on night battles */
+.arena-time-night .arena-sky {
+  background-image:
+    radial-gradient(1px 1px at 20% 18%, rgba(255,255,255,0.9), transparent),
+    radial-gradient(1px 1px at 62% 12%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 80% 24%, rgba(255,255,255,0.85), transparent),
+    radial-gradient(1px 1px at 38% 28%, rgba(255,255,255,0.7), transparent),
+    linear-gradient(180deg, var(--sky-top, #6fb7ef) 0%, var(--sky-bot, #cfe9fb) 62%, transparent 62%);
+}
+
+
 
 /* HP bar drain */
 .arena-hp-fill { transition: width 0.5s cubic-bezier(0.22,1,0.36,1); }

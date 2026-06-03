@@ -17,10 +17,14 @@ const ENV_CLASS: Record<string, string> = {
   starwars: "arena-env-starwars",
 };
 
-export function ArenaBackdrop({ category = "all", shake = false }: { category?: string; shake?: boolean }) {
+// Time-of-day variants so each battle gets its own look (rotated per battle).
+const TIME_CLASS = ["arena-time-day", "arena-time-sunset", "arena-time-dusk", "arena-time-night"];
+
+export function ArenaBackdrop({ category = "all", shake = false, variant = 0 }: { category?: string; shake?: boolean; variant?: number }) {
   const envClass = ENV_CLASS[category] ?? "arena-env-default";
+  const timeClass = TIME_CLASS[((variant % TIME_CLASS.length) + TIME_CLASS.length) % TIME_CLASS.length];
   return (
-    <div className={`arena-scene ${envClass} ${shake ? "arena-scene-shake" : ""}`} aria-hidden>
+    <div className={`arena-scene ${envClass} ${timeClass} ${shake ? "arena-scene-shake" : ""}`} aria-hidden>
       {/* Sky */}
       <div className="arena-sky" />
       {/* Sun / light source */}

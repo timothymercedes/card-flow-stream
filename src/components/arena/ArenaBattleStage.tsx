@@ -159,6 +159,13 @@ export function ArenaBattleStage({
   const events = useMemo(() => roundEvents(result.log), [result.log]);
   const meta = arenaCategoryMeta(arenaCategory);
   const themeClass = THEME_CLASS[arenaCategory] ?? "";
+  // Rotate the time-of-day backdrop per battle so no two fights look the same.
+  const backdropVariant = useMemo(() => {
+    const key = result.battleId ?? `${result.opponentName}:${result.log.length}:${result.myRounds}`;
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return h % 4;
+  }, [result.battleId, result.opponentName, result.log.length, result.myRounds]);
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [roundIdx, setRoundIdx] = useState(-1);
@@ -263,7 +270,13 @@ export function ArenaBattleStage({
 
   // Attacker advances toward the defender; defender gets knocked back on a hit.
   function wrapperAnimFor(sideKey: "mine" | "theirs", side: "left" | "right"): string {
-    if (phase === "intro") return side === "left" ? "arena-enter-left" : "arena-enter-right";
+    if (phase === "intro") {
+      const evo = sideKey === "mine" ? myEvo : theirEvo;
+      // Elite/Legendary fighters get a dramatic slam-in entrance; others slide in.
+      if (evo >= 3) return side === "left" ? "arena-enter-legendary-left" : "arena-enter-legendary-right";
+      if (evo >= 2) return side === "left" ? "arena-enter-elite-left" : "arena-enter-elite-right";
+      return side === "left" ? "arena-enter-left" : "arena-enter-right";
+    }
     if (phase === "fight" && ev && fx) {
       if (ev.attacker === sideKey && fx.kind !== "dodge") return attackMove(side);
       if (fx.defender === sideKey && fx.kind !== "dodge" && fx.kind !== "block") {
@@ -296,7 +309,7 @@ export function ArenaBattleStage({
       {/* Stage */}
       <div className={`arena-stage arena-theme relative overflow-hidden rounded-xl border p-4 ${themeClass}`}>
         {/* Outdoor arena environment (sky, sun, clouds, hills, ground) */}
-        <ArenaBackdrop category={arenaCategory} shake={phase === "summary" && !result.iWon} />
+        <ArenaBackdrop category={arenaCategory} variant={backdropVariant} shake={phase === "summary" && !result.iWon} />
 
         {/* Critical-hit screen flash */}
         {critActive && <span key={`crit-${runKey}-${roundIdx}`} className="arena-crit-flash pointer-events-none absolute inset-0 z-20 bg-white" aria-hidden />}
