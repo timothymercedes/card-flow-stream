@@ -135,7 +135,7 @@ function Fighter({
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, mySeed, myLevel = 1, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
+  result, myName, myImage, mySeed, myLevel = 1, myPassive, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
   isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
@@ -143,6 +143,7 @@ export function ArenaBattleStage({
   myImage?: string | null;
   mySeed?: string | null;
   myLevel?: number;
+  myPassive?: string | null;
   myFrameClass?: string;
   myEffectClass?: string;
   myTitle?: string;
