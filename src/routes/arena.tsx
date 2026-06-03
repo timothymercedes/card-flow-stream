@@ -479,7 +479,12 @@ function ArenaPage() {
                         {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : "PVP Battle"}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</span>
+                      <Button size="sm" variant="ghost" onClick={() => watchReplay(b.id)} disabled={replayM.isPending}>
+                        <PlayCircle className="mr-1 h-4 w-4" />Replay
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </Card>
