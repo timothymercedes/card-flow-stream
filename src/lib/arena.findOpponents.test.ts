@@ -18,21 +18,21 @@ const OTHER_USER = "22222222-2222-2222-2222-222222222222";
 const ROWS = [
   {
     id: "c-own", user_id: TEST_USER, name: "My Charizard", category: "Pokémon",
-    community: "pokemon", image_url: null, attack: 50, defense: 40, speed: 30,
+    community: "pokemon", arena_category: "pokemon", image_url: null, attack: 50, defense: 40, speed: 30,
     hidden_traits: ["First Strike"], xp: 500, level: 3,
     wins: 10, losses: 2, win_streak: 3, longest_win_streak: 5, season_wins: 4,
     trophies: 120, arena_rank: 1200, title: "veteran",
   },
   {
     id: "c-poke", user_id: OTHER_USER, name: "Rival Blastoise", category: "Pokémon",
-    community: "pokemon", image_url: "https://img/blastoise.png", attack: 44, defense: 55, speed: 22,
+    community: "pokemon", arena_category: "pokemon", image_url: "https://img/blastoise.png", attack: 44, defense: 55, speed: 22,
     hidden_traits: ["Iron Wall"], xp: 300, level: 2,
     wins: 8, losses: 4, win_streak: 1, longest_win_streak: 3, season_wins: 2,
     trophies: 80, arena_rank: 1100, title: "rookie",
   },
   {
     id: "c-sport", user_id: OTHER_USER, name: "Rival Jordan", category: "Sports",
-    community: "sports", image_url: null, attack: 60, defense: 30, speed: 40,
+    community: "sports", arena_category: "sports", image_url: null, attack: 60, defense: 30, speed: 40,
     hidden_traits: ["Berserker"], xp: 900, level: 4,
     wins: 20, losses: 5, win_streak: 6, longest_win_streak: 9, season_wins: 12,
     trophies: 200, arena_rank: 1500, title: "elite",
@@ -84,15 +84,16 @@ describe("Arena findOpponents (authenticated POST)", () => {
     }
   });
 
-  it("filters opponents by community", async () => {
+  it("filters opponents by Arena category", async () => {
     const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "sports");
 
     expect(res.opponents.length).toBe(1);
-    expect(res.opponents[0].community).toBe("sports");
+    expect(res.opponents[0].arena_category).toBe("sports");
   });
 
-  it("returns all non-self opponents for the 'general' community", async () => {
-    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "general");
+  it("returns all non-self opponents for the 'all' category (cross-category)", async () => {
+    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "all");
     expect(res.opponents.length).toBe(2);
   });
+
 });

@@ -7,10 +7,11 @@ import {
   companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS,
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey,
 } from "@/lib/arenaShared";
+import { arenaCategoryFor } from "@/lib/arenaCategories";
 
 type CompanionRow = {
   id: string; user_id: string; vault_card_id: string; name: string;
-  category: string | null; community: string; image_url: string | null;
+  category: string | null; community: string; arena_category: string; image_url: string | null;
   level: number; xp: number; attack: number; defense: number; speed: number;
   hidden_traits: string[]; wins: number; losses: number; win_streak: number;
   longest_win_streak: number; season_wins: number; trophies: number;
@@ -23,7 +24,7 @@ function publicProjection(c: CompanionRow) {
   const total = c.wins + c.losses;
   return {
     id: c.id, user_id: c.user_id, name: c.name, category: c.category,
-    community: c.community, image_url: c.image_url,
+    community: c.community, arena_category: c.arena_category, image_url: c.image_url,
     wins: c.wins, losses: c.losses,
     win_rate: total > 0 ? Math.round((c.wins / total) * 1000) / 10 : 0,
     title: c.title, trophies: c.trophies, arena_rank: c.arena_rank,
@@ -96,6 +97,7 @@ export const syncCompanions = createServerFn({ method: "POST" })
         name: c.name,
         category: c.category,
         community: communityForCategory(c.category),
+        arena_category: arenaCategoryFor(c.category),
         image_url: c.image_url,
         attack: stats.attack,
         defense: stats.defense,
@@ -138,15 +140,20 @@ export const getPublicCompanions = createServerFn({ method: "GET" })
   });
 
 // ---- Find opponents (other users' companions, limited stats) ----
+// Category-scoped matchmaking: collectors battle within their own Arena
+// category (Pokémon vs Pokémon, etc.). Pass category "all" / undefined for a
+// cross-category pool. `community` is kept for backward compatibility.
 // Core query logic, extracted so it can be exercised in integration tests
 // without the server-function/runtime layer. `admin` is a Supabase client.
 export async function fetchOpponentsCore(
   admin: { from: (t: string) => any },
   userId: string,
+  category?: string,
   community?: string,
 ) {
-  let q = admin.from("arena_companions").select("*").neq("user_id", userId).limit(40);
-  if (community && community !== "general") q = q.eq("community", community);
+  let q = admin.from("arena_companions").select("*").neq("user_id", userId).limit(60);
+  if (category && category !== "all") q = q.eq("arena_category", category);
+  else if (community && community !== "general") q = q.eq("community", community);
   const { data: rows, error } = await q;
   if (error) throw new Error(error.message);
   // Shuffle and take up to 12
@@ -157,11 +164,11 @@ export async function fetchOpponentsCore(
 
 export const findOpponents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { community?: string }) => d ?? {})
+  .inputValidator((d: { category?: string; community?: string }) => d ?? {})
   .handler(async ({ context, data }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return fetchOpponentsCore(supabaseAdmin, userId, data.community);
+    return fetchOpponentsCore(supabaseAdmin, userId, data.category, data.community);
   });
 
 
@@ -449,20 +456,25 @@ export const getBattleHistory = createServerFn({ method: "GET" })
     return { battles, wins, losses, currentStreak };
   });
 
-// ---- Leaderboards (seasonal) ----
+// ---- Leaderboards (seasonal, optionally scoped to one Arena category) ----
 export const getLeaderboards = createServerFn({ method: "GET" })
-  .handler(async () => {
+  .inputValidator((d?: { category?: string }) => ({ category: d?.category ?? "all" }))
+  .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const cat = data.category;
+    const scope = (q: any) => (cat && cat !== "all" ? q.eq("arena_category", cat) : q);
+
     const [mostWins, longestStreak] = await Promise.all([
-      supabaseAdmin.from("arena_companions").select("*").order("wins", { ascending: false }).limit(20),
-      supabaseAdmin.from("arena_companions").select("*").order("longest_win_streak", { ascending: false }).limit(20),
+      scope(supabaseAdmin.from("arena_companions").select("*")).order("wins", { ascending: false }).limit(20),
+      scope(supabaseAdmin.from("arena_companions").select("*")).order("longest_win_streak", { ascending: false }).limit(20),
     ]);
     const projW = ((mostWins.data || []) as unknown as CompanionRow[]).map(publicProjection);
     const projS = ((longestStreak.data || []) as unknown as CompanionRow[]).map(publicProjection);
 
-    // Top trainers: aggregate season_wins by user.
-    const { data: all } = await supabaseAdmin
-      .from("arena_companions").select("user_id, season_wins, wins, trophies");
+    // Top trainers: aggregate season_wins by user (within scope).
+    const { data: all } = await scope(
+      supabaseAdmin.from("arena_companions").select("user_id, season_wins, wins, trophies"),
+    );
     const byUser = new Map<string, { user_id: string; season_wins: number; wins: number; trophies: number }>();
     for (const r of (all || []) as any[]) {
       const e = byUser.get(r.user_id) || { user_id: r.user_id, season_wins: 0, wins: 0, trophies: 0 };
@@ -471,7 +483,7 @@ export const getLeaderboards = createServerFn({ method: "GET" })
     }
     const trainers = [...byUser.values()].sort((a, b) => b.season_wins - a.season_wins).slice(0, 20);
 
-    return { mostWins: projW, longestStreak: projS, topTrainers: trainers };
+    return { mostWins: projW, longestStreak: projS, topTrainers: trainers, category: cat };
   });
 
 // ================= Collector discovery & social =================

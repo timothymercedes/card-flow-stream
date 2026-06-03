@@ -13,6 +13,7 @@ import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
+import { ARENA_CATEGORIES } from "@/lib/arenaCategories";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +64,7 @@ function StatBar({ icon: Icon, label, value, max = 60 }: { icon: any; label: str
 function ArenaPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [community, setCommunity] = useState<ArenaCommunity>("general");
+  const [category, setCategory] = useState<string>("all");
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
@@ -99,8 +100,8 @@ function ArenaPage() {
   const companions = myQ.data?.companions ?? [];
 
   const oppQ = useQuery({
-    queryKey: ["arena", "opponents", community],
-    queryFn: () => oppFn({ data: { community } }),
+    queryKey: ["arena", "opponents", category],
+    queryFn: () => oppFn({ data: { category } }),
     enabled: !!user,
   });
 
@@ -123,7 +124,7 @@ function ArenaPage() {
     enabled: !!user && !!profileUserId,
   });
 
-  const lbQ = useQuery({ queryKey: ["arena", "leaderboards"], queryFn: () => lbFn() });
+  const lbQ = useQuery({ queryKey: ["arena", "leaderboards", category], queryFn: () => lbFn({ data: { category } }) });
 
   const syncM = useMutation({
     mutationFn: () => syncFn(),
@@ -272,15 +273,21 @@ function ArenaPage() {
                 </div>
 
                 <div className="mb-4">
-                  <p className="mb-2 text-sm font-medium">Arena</p>
+                  <p className="mb-2 text-sm font-medium">Arena Category</p>
                   <div className="flex flex-wrap gap-2">
-                    {(Object.keys(COMMUNITY_META) as ArenaCommunity[]).map((k) => (
+                    <button
+                      onClick={() => setCategory("all")}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition ${category === "all" ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
+                    >
+                      ⚔️ All Categories
+                    </button>
+                    {ARENA_CATEGORIES.map((c) => (
                       <button
-                        key={k}
-                        onClick={() => setCommunity(k)}
-                        className={`rounded-full border px-3 py-1.5 text-sm transition ${community === k ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
+                        key={c.key}
+                        onClick={() => setCategory(c.key)}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition ${category === c.key ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
                       >
-                        {COMMUNITY_META[k].emoji} {COMMUNITY_META[k].arena}
+                        {c.emoji} {c.label}
                       </button>
                     ))}
                   </div>
