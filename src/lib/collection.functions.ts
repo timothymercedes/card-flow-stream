@@ -736,7 +736,11 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         const ex = byNumber.get(n);
         if (!ex || (!ex.image_url && card.image_url)) byNumber.set(n, card);
       });
-      if (byNumber.size === 0) continue;
+      // Whether we can enumerate the FULL official checklist (1..total). This
+      // is what makes every missing card visible even when the catalog only
+      // has details for a handful of cards in the set.
+      const canEnumerate = b.official && b.knownTotal > 0;
+      if (byNumber.size === 0 && !canEnumerate) continue;
 
       const { data: mine } = await supabaseAdmin
         .from("vault_cards")
@@ -778,8 +782,37 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         if (n) forTrade.set(n, (forTrade.get(n) ?? 0) + 1);
       });
 
-      const missing = [...byNumber.entries()]
-        .filter(([n]) => !ownedNums.has(n))
+      // Build the set of candidate missing card numbers.
+      //  - When we know the official total, enumerate 1..total so EVERY card
+      //    the user still needs is surfaced (numbered placeholders are used
+      //    when the catalog has no details for that number — never fake data).
+      //  - Otherwise fall back to the catalog universe we do have.
+      const candidates = new Map<string, BookCard & { catalogPending: boolean }>();
+      if (canEnumerate) {
+        for (let i = 1; i <= b.knownTotal; i++) {
+          const n = String(i);
+          if (ownedNums.has(n)) continue;
+          const cat = byNumber.get(n);
+          candidates.set(n, {
+            number: cat?.number ?? n,
+            name: cat?.name ?? "",
+            image_url: cat?.image_url ?? null,
+            value: cat?.value ?? 0,
+            rarity: cat?.rarity ?? null,
+            catalogPending: !cat,
+          });
+        }
+        // Include any catalog cards with non-numeric numbers the user lacks.
+        for (const [n, c] of byNumber) {
+          if (!ownedNums.has(n) && !candidates.has(n)) candidates.set(n, { ...c, catalogPending: false });
+        }
+      } else {
+        for (const [n, c] of byNumber) {
+          if (!ownedNums.has(n)) candidates.set(n, { ...c, catalogPending: false });
+        }
+      }
+
+      const missing = [...candidates.entries()]
         .map(([n, c]) => ({
           ...c,
           listingsCount: forSale.get(n) ?? 0,
@@ -787,9 +820,13 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
           tradeCount: forTrade.get(n) ?? 0,
         }))
         .sort((a, b2) => {
-          const aa = (a.listingsCount > 0 ? 2 : 0) + (a.auctionCount > 0 ? 1 : 0) + (a.tradeCount > 0 ? 1 : 0);
-          const bb = (b2.listingsCount > 0 ? 2 : 0) + (b2.auctionCount > 0 ? 1 : 0) + (b2.tradeCount > 0 ? 1 : 0);
+          // Available first, then cards we have catalog details for, then by number.
+          const aa = (a.listingsCount > 0 ? 4 : 0) + (a.auctionCount > 0 ? 2 : 0) + (a.tradeCount > 0 ? 1 : 0);
+          const bb = (b2.listingsCount > 0 ? 4 : 0) + (b2.auctionCount > 0 ? 2 : 0) + (b2.tradeCount > 0 ? 1 : 0);
           if (bb !== aa) return bb - aa;
+          const ad = a.catalogPending ? 1 : 0;
+          const bd = b2.catalogPending ? 1 : 0;
+          if (ad !== bd) return ad - bd;
           return (Number(a.number) || 0) - (Number(b2.number) || 0);
         });
 
@@ -803,7 +840,7 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         remaining: Math.max(0, b.knownTotal - b.ownedDistinct),
         favorited: favKeys.has(b.key),
         availableCount: missing.filter((m) => m.listingsCount + m.auctionCount + m.tradeCount > 0).length,
-        missing: missing.slice(0, 60),
+        missing: missing.slice(0, 120),
       });
     }
     return { groups };
@@ -929,19 +966,35 @@ export const bulkAddMissingToWishlist = createServerFn({ method: "POST" })
       .limit(2000);
     const onList = new Set((existing ?? []).map((w: any) => normNum(w.tcg_number)).filter(Boolean));
 
-    const toAdd = [...byNumber.entries()]
-      .filter(([n]) => !ownedNums.has(n) && !onList.has(n))
-      .map(([, c]) => ({
-        user_id: userId,
-        name: c.name || `${setName} #${c.number}`,
-        set_name: setName,
-        tcg_number: c.number,
-        category: data.category,
-        image_url: c.image_url,
-        notify_sale: true,
-        notify_trade: true,
-        notify_live: false,
-      }));
+    // Enumerate the full official checklist when the set total is known, so
+    // every missing card (not just cataloged ones) can be wishlisted at once.
+    const officialTotals = await loadSetTotals(supabaseAdmin, [{ category: data.category, setName }]);
+    const officialTotal = officialTotals.get(setTotalKey(data.category, setName)) ?? 0;
+    const wanted = new Map<string, { name: string; number: string; image_url: string | null }>();
+    if (officialTotal > 0) {
+      for (let i = 1; i <= officialTotal; i++) {
+        const n = String(i);
+        if (ownedNums.has(n) || onList.has(n)) continue;
+        const cat = byNumber.get(n);
+        wanted.set(n, cat ?? { name: "", number: n, image_url: null });
+      }
+    }
+    for (const [n, c] of byNumber) {
+      if (!ownedNums.has(n) && !onList.has(n) && !wanted.has(n)) wanted.set(n, c);
+    }
+
+    const toAdd = [...wanted.values()].map((c) => ({
+      user_id: userId,
+      name: c.name || `${setName} #${c.number}`,
+      set_name: setName,
+      tcg_number: c.number,
+      category: data.category,
+      image_url: c.image_url,
+      notify_sale: true,
+      notify_trade: true,
+      notify_live: false,
+    }));
+
 
     if (toAdd.length === 0) return { added: 0 };
     for (let i = 0; i < toAdd.length; i += 200) {

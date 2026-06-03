@@ -263,8 +263,8 @@ function MissingCard({ card, group: g }: { card: Missing; group: Group }) {
           <img src={card.image_url} alt={`${card.name} ${g.setName} #${card.number}`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
-            <BookOpen className="h-6 w-6" />
-            <span className="text-[9px]">No catalog image</span>
+            <span className="text-2xl font-bold opacity-50">#{card.number}</span>
+            <span className="text-[9px]">{card.catalogPending ? "Catalog pending" : "No image"}</span>
           </div>
         )}
         {card.rarity && <Badge className="absolute right-1 top-1 border-0 bg-black/65 text-[8px] text-white">{card.rarity}</Badge>}
@@ -273,9 +273,10 @@ function MissingCard({ card, group: g }: { card: Missing; group: Group }) {
         {card.tradeCount > 0 && <Badge className="absolute right-1 bottom-1 border-0 bg-blue-600 text-[9px] text-white">Trade</Badge>}
       </div>
       <div className="p-2">
-        <p className="truncate text-xs font-medium" title={card.name}>{card.name || "Unknown card"}</p>
+        <p className="truncate text-xs font-medium" title={card.name || `Card #${card.number}`}>{card.name || `Card #${card.number}`}</p>
         <p className="text-[10px] text-muted-foreground">{g.setName} #{card.number}</p>
-        <p className="text-[10px] font-medium text-foreground">{card.value > 0 ? `Est. ${money(card.value)}` : "Value n/a"}</p>
+        <p className="text-[10px] font-medium text-foreground">{card.value > 0 ? `Est. ${money(card.value)}` : card.catalogPending ? "Details pending" : "Value n/a"}</p>
+
         <p className="mt-0.5 text-[9px] leading-tight text-muted-foreground">
           Completes {g.ownedDistinct}/{g.knownTotal} → {g.ownedDistinct + 1}/{g.knownTotal}
         </p>
