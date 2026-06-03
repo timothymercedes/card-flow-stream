@@ -1201,6 +1201,42 @@ export type Database = {
         }
         Relationships: []
       }
+      card_sets: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          printed_total: number
+          release_date: string | null
+          series: string | null
+          set_code: string | null
+          set_name: string
+          total: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          printed_total?: number
+          release_date?: string | null
+          series?: string | null
+          set_code?: string | null
+          set_name: string
+          total?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          printed_total?: number
+          release_date?: string | null
+          series?: string | null
+          set_code?: string | null
+          set_name?: string
+          total?: number
+        }
+        Relationships: []
+      }
       cart_items: {
         Row: {
           created_at: string

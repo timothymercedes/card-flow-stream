@@ -23,6 +23,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/trades")({
   validateSearch: (s: Record<string, unknown>) => ({
     to: typeof s.to === "string" ? s.to : undefined,
+    q: typeof s.q === "string" ? s.q : undefined,
   }),
   head: () => ({
     meta: [

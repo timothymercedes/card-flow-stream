@@ -11,7 +11,12 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { MarketQuickView } from "@/components/MarketQuickView";
 
-export const Route = createFileRoute("/market/")({ component: Market });
+export const Route = createFileRoute("/market/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    q: typeof s.q === "string" ? s.q : undefined,
+  }),
+  component: Market,
+});
 
 type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
 type ListingFilter = "all" | "auction" | "buy_now" | "make_offer" | "ending_soon" | "trending" | "newly_listed";
@@ -32,7 +37,7 @@ function fmtRemain(iso: string | null) {
 function Market() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(Route.useSearch().q ?? "");
   const [sort, setSort] = useState<Sort>("shuffled");
   const [sortOpen, setSortOpen] = useState(false);
   const [listingFilter, setListingFilter] = useState<ListingFilter>("all");
