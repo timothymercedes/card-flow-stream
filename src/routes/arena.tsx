@@ -10,6 +10,7 @@ import {
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
   getBattleReplay, postBattleToFeed, getMissionClaims, claimMission,
 } from "@/lib/arena.functions";
+import { ensureCompanionFighter } from "@/lib/arenaFighter.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
