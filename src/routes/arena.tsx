@@ -6,14 +6,14 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
-  battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
+  battlePve, battleAiBoss, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
   getBattleReplay, postBattleToFeed,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
-  TRAINING_TRAINERS,
+  TRAINING_TRAINERS, AI_BOSSES, bossCharacter, type ArenaBossKey,
 } from "@/lib/arenaShared";
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
