@@ -1698,6 +1698,74 @@ function Vault() {
     setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
     const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
     if (error) toast.error("Couldn't update trade setting");
+    else await syncTradeMarketListing({ ...card, ...patch }, key, value);
+  }
+
+  async function syncTradeMarketListing(card: Card, key: "accept_trades" | "trade_plus_cash" | "accept_offers" | "collection_only", value: boolean) {
+    if (!user || (key !== "accept_trades" && key !== "trade_plus_cash" && key !== "collection_only")) return;
+    const nowIso = new Date().toISOString();
+    const activeTrade = !!card.accept_trades || !!card.trade_plus_cash;
+    if (!activeTrade || key === "collection_only") {
+      await supabase
+        .from("listings")
+        .update({ expires_at: nowIso })
+        .eq("seller_id", user.id)
+        .eq("vault_card_id", card.id)
+        .eq("listing_type", "trade")
+        .gt("expires_at", nowIso);
+      if (value || key !== "collection_only") toast.success("Removed from active trade listings");
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from("listings")
+      .select("id, listing_type, is_auction, price, buy_now_price")
+      .eq("seller_id", user.id)
+      .eq("vault_card_id", card.id)
+      .gt("expires_at", nowIso)
+      .limit(1)
+      .maybeSingle();
+
+    const description = `${card.trade_plus_cash ? "Available for trade + cash" : "Available for trade"} from my vault${card.tcg_set ? ` — ${card.tcg_set}` : ""}${card.tcg_number ? ` #${card.tcg_number}` : ""}.`;
+    if (existing?.id) {
+      if (existing.listing_type === "trade") {
+        await supabase.from("listings").update({
+          title: card.name,
+          description,
+          image_url: displayImage(card) || card.image_url,
+          category: card.category || null,
+          condition: card.condition || null,
+          tcg_number: card.tcg_number || null,
+          tcg_set: card.tcg_set || null,
+          tcg_year: card.tcg_year || null,
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        } as never).eq("id", existing.id);
+      }
+      toast.success("Active in Trade Center and Marketplace");
+      return;
+    }
+
+    const { error } = await supabase.from("listings").insert({
+      seller_id: user.id,
+      title: card.name,
+      description,
+      image_url: displayImage(card) || card.image_url || null,
+      category: card.category || null,
+      listing_type: "trade",
+      is_auction: false,
+      accepts_offers: false,
+      price: null,
+      buy_now_price: null,
+      quantity: 1,
+      condition: card.condition || null,
+      tcg_number: card.tcg_number || null,
+      tcg_set: card.tcg_set || null,
+      tcg_year: card.tcg_year || null,
+      vault_card_id: card.id,
+      expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    } as never);
+    if (error) toast.error(error.message);
+    else toast.success("Active in Trade Center and Marketplace");
   }
 
 
