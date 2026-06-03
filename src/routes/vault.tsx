@@ -1686,6 +1686,10 @@ function Vault() {
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
+      accept_trades: !!editing.accept_trades,
+      trade_plus_cash: !!editing.trade_plus_cash,
+      accept_offers: !!editing.accept_offers,
+      collection_only: !!editing.collection_only,
       estimated_value: newValue,
     };
     setCards((prev) => prev.map((c) => (c.id === editing.id ? { ...c, ...patch } : c)));
