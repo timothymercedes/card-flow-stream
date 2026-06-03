@@ -44,6 +44,7 @@ import { Route as ShowsIndexRouteImport } from './routes/shows.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
+import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as StoreUsernameRouteImport } from './routes/store.$username'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
@@ -265,6 +266,11 @@ const MarketIndexRoute = MarketIndexRouteImport.update({
 const LiveIndexRoute = LiveIndexRouteImport.update({
   id: '/live/',
   path: '/live/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
+  id: '/communities/',
+  path: '/communities/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StudioIdRoute = StudioIdRouteImport.update({
@@ -579,6 +585,7 @@ export interface FileRoutesByFullPath {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
@@ -663,6 +670,7 @@ export interface FileRoutesByTo {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/communities': typeof CommunitiesIndexRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
@@ -748,6 +756,7 @@ export interface FileRoutesById {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
@@ -834,6 +843,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/communities/'
     | '/live/'
     | '/market/'
     | '/messages/'
@@ -918,6 +928,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/communities'
     | '/live'
     | '/market'
     | '/messages'
@@ -1002,6 +1013,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/communities/'
     | '/live/'
     | '/market/'
     | '/messages/'
@@ -1082,6 +1094,7 @@ export interface RootRouteChildren {
   SellerShippingAnalyticsRoute: typeof SellerShippingAnalyticsRoute
   ShowsIdRoute: typeof ShowsIdRouteWithChildren
   StudioIdRoute: typeof StudioIdRoute
+  CommunitiesIndexRoute: typeof CommunitiesIndexRoute
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
@@ -1352,6 +1365,13 @@ declare module '@tanstack/react-router' {
       path: '/live'
       fullPath: '/live/'
       preLoaderRoute: typeof LiveIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communities/': {
+      id: '/communities/'
+      path: '/communities'
+      fullPath: '/communities/'
+      preLoaderRoute: typeof CommunitiesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/studio/$id': {
@@ -1778,6 +1798,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellerShippingAnalyticsRoute: SellerShippingAnalyticsRoute,
   ShowsIdRoute: ShowsIdRouteWithChildren,
   StudioIdRoute: StudioIdRoute,
+  CommunitiesIndexRoute: CommunitiesIndexRoute,
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
