@@ -280,7 +280,10 @@ async function resolvePvpBattle(
       ? { xp: 50, trophies: 10, rank: 15, credits }
       : { xp: 15, trophies: 2, rank: -10, credits: 0 },
     opponentName: them.name,
-    opponentImage: (await ensureFighterForCompanion(them).catch(() => null)) ?? them.image_url ?? null,
+    opponentImage:
+      (await (await import("@/lib/arenaFighter.server"))
+        .ensureFighterForCompanion(them)
+        .catch(() => null)) ?? them.image_url ?? null,
     newBadges,
   };
 }
