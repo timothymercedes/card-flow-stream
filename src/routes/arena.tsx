@@ -8,9 +8,10 @@ import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, battleAiBoss, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
-  getBattleReplay, postBattleToFeed, getMissionClaims, claimMission,
+  getBattleReplay, postBattleToFeed, getMissionClaims, claimMission, setCompanionVisual,
 } from "@/lib/arena.functions";
 import { ensureCompanionFighter } from "@/lib/arenaFighter.functions";
+import { CompanionCustomizeDialog, type VisualMode } from "@/components/arena/CompanionCustomizeDialog";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
@@ -114,6 +115,7 @@ function ArenaPage() {
   const [battleFor, setBattleFor] = useState<string | null>(null);
   const [trainFor, setTrainFor] = useState<string | null>(null);
   const [statsFor, setStatsFor] = useState<string | null>(null);
+  const [customizeFor, setCustomizeFor] = useState<string | null>(null);
   const [replay, setReplay] = useState<Awaited<ReturnType<typeof getBattleReplay>> | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
@@ -293,6 +295,23 @@ function ArenaPage() {
 
   function watchReplay(battleId: string) { replayM.mutate(battleId); }
 
+  const visualFn = useServerFn(setCompanionVisual);
+  const visualM = useMutation({
+    mutationFn: (vars: { companionId: string; mode: VisualMode; custom: { body?: string; accent?: string; head?: string } }) =>
+      visualFn({ data: vars }),
+    onSuccess: () => {
+      toast.success("Appearance updated!");
+      setCustomizeFor(null);
+      qc.invalidateQueries({ queryKey: ["arena", "mine"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not update appearance"),
+  });
+
+  const customizeCompanion = useMemo(
+    () => companions.find((c) => c.id === customizeFor) ?? null,
+    [companions, customizeFor],
+  );
+
   const activeMine = useMemo(
     () => companions.find((c) => c.id === selectedMine) ?? companions[0],
     [companions, selectedMine],
@@ -315,7 +334,7 @@ function ArenaPage() {
     setEnvironment(environmentsFor(c?.arena_category)[0]?.key ?? null);
     setTrainFor(id);
   }
-  function openCustomize() { setTab("rewards"); }
+  function openCustomize(id: string) { setCustomizeFor(id); }
 
   function battleCollector(targetUserId: string) {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
@@ -476,7 +495,7 @@ function ArenaPage() {
                       onBattle={() => openBattle(c.id)}
                       onTrain={() => openTrain(c.id)}
                       onStats={() => setStatsFor(c.id)}
-                      onCustomize={openCustomize}
+                      onCustomize={() => openCustomize(c.id)}
                     />
                   ))}
                 </div>
@@ -1116,7 +1135,19 @@ function ArenaPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Customize — visual mode (Card / Inspired / Custom) + custom-piece builder */}
+      <CompanionCustomizeDialog
+        companion={customizeCompanion}
+        open={!!customizeFor}
+        onOpenChange={(o) => !o && setCustomizeFor(null)}
+        saving={visualM.isPending}
+        onSave={(mode, custom) =>
+          customizeCompanion && visualM.mutate({ companionId: customizeCompanion.id, mode, custom })
+        }
+      />
     </AppShell>
+
 
   );
 }
@@ -1133,22 +1164,47 @@ function OwnerCompanionCard({
 }) {
   const prog = companionLevelProgress(c.xp);
   const cm = COMMUNITY_META[(c.community as ArenaCommunity)] ?? COMMUNITY_META.general;
+  const cosm = (c.cosmetics ?? {}) as Record<string, any>;
+  const mode: VisualMode = (cosm.visual_mode as VisualMode) ?? "inspired";
+  const custom = (cosm.custom ?? {}) as { body?: string; accent?: string; head?: string };
+  const showCard = mode === "card" && !!c.image_url;
   return (
     <Card className="overflow-hidden p-4">
       <div className="flex gap-3">
         <div className="relative flex h-20 w-16 shrink-0 flex-col items-center justify-end">
-          <CompanionSprite
-            seedKey={`${c.id}:${c.name}`}
-            category={c.arena_category}
-            archetypeKey={c.archetype.key}
-            anim="idle"
-            level={c.level}
-            flair={c.rarity.flair}
-            size={64}
-            className={frameClass}
-          />
-          {c.image_url && (
-            <img src={c.image_url} alt={`${c.name} card`} className="absolute -bottom-1 -right-1 h-7 w-5 rounded-[2px] border border-background object-cover shadow" loading="lazy" />
+          {showCard ? (
+            <>
+              <img src={c.image_url!} alt={`${c.name} card`} className={`h-20 w-14 rounded object-cover shadow ${frameClass}`} loading="lazy" />
+              <CompanionSprite
+                seedKey={`${c.id}:${c.name}`}
+                category={c.arena_category}
+                archetypeKey={c.archetype.key}
+                anim="idle"
+                level={c.level}
+                flair={c.rarity.flair}
+                size={28}
+                className="absolute -bottom-1 -right-1"
+              />
+            </>
+          ) : (
+            <>
+              <CompanionSprite
+                seedKey={`${c.id}:${c.name}`}
+                category={c.arena_category}
+                archetypeKey={c.archetype.key}
+                anim="idle"
+                level={c.level}
+                flair={c.rarity.flair}
+                size={64}
+                className={frameClass}
+                bodyColor={mode === "custom" ? custom.body : undefined}
+                accentColor={mode === "custom" ? custom.accent : undefined}
+                headgear={mode === "custom" ? (custom.head as any) : undefined}
+              />
+              {c.image_url && (
+                <img src={c.image_url} alt={`${c.name} card`} className="absolute -bottom-1 -right-1 h-7 w-5 rounded-[2px] border border-background object-cover shadow" loading="lazy" />
+              )}
+            </>
           )}
         </div>
         <div className="min-w-0 flex-1">

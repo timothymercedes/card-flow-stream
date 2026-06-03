@@ -27,6 +27,12 @@ type Headgear =
   | "ears" | "hat" | "wizard" | "horns" | "band" | "crown" | "mask" | "helmet" | "antenna"
   | "catears" | "wolfears" | "draconic" | "beak" | "halo" | "visor" | "pirate" | "hood" | "skull";
 
+export type HeadgearOverride = Headgear;
+export const HEADGEAR_OPTIONS: Headgear[] = [
+  "ears", "hat", "wizard", "horns", "band", "crown", "mask", "helmet", "antenna",
+  "catears", "wolfears", "draconic", "beak", "halo", "visor", "pirate", "hood", "skull",
+];
+
 const HEADGEAR_BY_CATEGORY: Record<string, Headgear> = {
   pokemon: "ears", onepiece: "hat", mtg: "wizard", yugioh: "horns", sports: "band",
   lorcana: "crown", marvel: "mask", starwars: "helmet", wrestling: "mask", other: "antenna",
@@ -249,6 +255,7 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
 
 export function CompanionSprite({
   seedKey, category, archetypeKey, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
+  bodyColor, accentColor, headgear,
 }: {
   seedKey: string;
   category: string;
@@ -261,14 +268,21 @@ export function CompanionSprite({
   /** Rarity flair 0-4 — rarer companions get a stronger aura + a rarity ring. */
   flair?: number;
   className?: string;
+  /** Custom-mode overrides (from the companion's cosmetic builder). */
+  bodyColor?: string;
+  accentColor?: string;
+  headgear?: HeadgearOverride;
 }) {
   const seed = useMemo(() => seedFrom(seedKey || category || "companion"), [seedKey, category]);
   const d = useMemo(() => describe(seed, category), [seed, category]);
-  const feat = useMemo(() => featuresFor(archetypeKey, category), [archetypeKey, category]);
+  const feat = useMemo(() => {
+    const base = featuresFor(archetypeKey, category);
+    return headgear ? { ...base, head: headgear } : base;
+  }, [archetypeKey, category, headgear]);
   const pal = palette(category);
-  const body = shiftColor(pal.body, d.hueShift);
+  const body = bodyColor ?? shiftColor(pal.body, d.hueShift);
   const belly = pal.belly;
-  const accent = pal.accent;
+  const accent = accentColor ?? pal.accent;
 
   const cx = 60;
   const bodyTop = 42;
