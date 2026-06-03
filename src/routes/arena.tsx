@@ -123,7 +123,7 @@ function ArenaPage() {
     enabled: !!user && !!profileUserId,
   });
 
-  const lbQ = useQuery({ queryKey: ["arena", "leaderboards"], queryFn: () => lbFn() });
+  const lbQ = useQuery({ queryKey: ["arena", "leaderboards", category], queryFn: () => lbFn({ data: { category } }) });
 
   const syncM = useMutation({
     mutationFn: () => syncFn(),
