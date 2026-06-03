@@ -184,8 +184,13 @@ export function CompanionSprite({
         </radialGradient>
       </defs>
 
-      {/* Aura / power ring (scales with level) */}
+      {/* Aura / power ring (scales with level + rarity) */}
       <ellipse className="companion-aura" cx={cx} cy={86} rx={bodyW * 0.7} ry={50} fill={`url(#aura-${seed})`} />
+      {/* Rarity ring — only for rarer companions */}
+      {flair >= 2 && (
+        <ellipse cx={cx} cy={108} rx={bodyW * 0.62} ry={11} fill="none"
+          stroke={accent} strokeWidth={flair >= 4 ? 3 : 2} opacity={0.35 + flair * 0.1} />
+      )}
       {/* Ground shadow */}
       <ellipse cx={cx} cy={122} rx={bodyW * 0.5} ry={6} fill="#0003" />
 
