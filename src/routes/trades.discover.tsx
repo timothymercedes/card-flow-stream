@@ -31,6 +31,7 @@ type Opp = Awaited<ReturnType<typeof getTradeDiscovery>>["opportunities"][number
 
 function DiscoverPage() {
   const { user } = useAuth();
+  const search = Route.useSearch();
   const discover = useServerFn(getTradeDiscovery);
   const q = useQuery({
     queryKey: ["trade-discovery"],
@@ -51,7 +52,11 @@ function DiscoverPage() {
     );
   }
 
-  const opps = q.data?.opportunities ?? [];
+  const term = (search.q ?? "").trim().toLowerCase();
+  const opps = (q.data?.opportunities ?? []).filter((o) => {
+    if (!term) return true;
+    return [...o.theyHave, ...o.iCanOffer].some((c) => `${c.name} ${c.reason ?? ""}`.toLowerCase().includes(term));
+  });
 
   return (
     <AppShell>
