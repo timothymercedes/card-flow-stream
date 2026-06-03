@@ -337,3 +337,131 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
       missing: missingWithAvail,
     };
   });
+
+// ---------- Missing Card Finder (expanded) ----------
+// For a single missing card, surface every way to obtain it: marketplace
+// buy-now listings, active auctions, open trades, collectors who own it,
+// and live shows currently featuring it.
+export const getMissingCardFinder = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        setName: z.string().min(1).max(200),
+        category: z.string().min(1).max(80),
+        number: z.string().min(1).max(40),
+        name: z.string().max(200).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const setName = data.setName;
+    const target = normNum(data.number);
+    const nowIso = new Date().toISOString();
+
+    const [{ data: listings }, { data: liveShows }, { data: owners }, { data: wish }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("listings")
+          .select("id, title, image_url, price, buy_now_price, current_bid, starting_bid, is_auction, auction_status, auction_ends_at, expires_at, tcg_number, seller_id")
+          .eq("tcg_set", setName)
+          .eq("is_demo", false)
+          .gt("expires_at", nowIso)
+          .limit(400),
+        supabaseAdmin
+          .from("live_streams")
+          .select("id, title, thumbnail_url, seller_id, current_tcg_number, current_tcg_set, is_active")
+          .eq("current_tcg_set", setName)
+          .eq("is_active", true)
+          .limit(100),
+        supabaseAdmin
+          .from("vault_cards")
+          .select("id, user_id, tcg_number, accept_trades, trade_plus_cash, accept_offers")
+          .eq("tcg_set", setName)
+          .eq("is_sold", false)
+          .neq("user_id", userId)
+          .limit(800),
+        supabaseAdmin
+          .from("wishlist_items")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("set_name", setName)
+          .eq("tcg_number", data.number)
+          .limit(1),
+      ]);
+
+    const matchNum = (n: unknown) => normNum(n) === target;
+
+    const buyNow = (listings ?? []).filter((l: any) => matchNum(l.tcg_number) && !l.is_auction);
+    const auctions = (listings ?? []).filter(
+      (l: any) => matchNum(l.tcg_number) && l.is_auction && l.auction_status === "active",
+    );
+    const shows = (liveShows ?? []).filter((s: any) => matchNum(s.current_tcg_number));
+    const ownerRows = (owners ?? []).filter((o: any) => matchNum(o.tcg_number));
+    const tradeOwners = ownerRows.filter(
+      (o: any) => o.accept_trades || o.trade_plus_cash || o.accept_offers,
+    );
+
+    // Resolve usernames for sellers + owners we want to show.
+    const ids = [
+      ...new Set([
+        ...buyNow.map((l: any) => l.seller_id),
+        ...auctions.map((l: any) => l.seller_id),
+        ...shows.map((s: any) => s.seller_id),
+        ...ownerRows.slice(0, 12).map((o: any) => o.user_id),
+      ].filter(Boolean)),
+    ] as string[];
+    const profMap = new Map<string, any>();
+    if (ids.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("id, username, shop_name, avatar_url")
+        .in("id", ids);
+      (profs ?? []).forEach((p: any) => profMap.set(p.id, p));
+    }
+    const uname = (id: string) =>
+      profMap.get(id)?.username || profMap.get(id)?.shop_name || "Collector";
+
+    return {
+      setName,
+      category: data.category,
+      number: data.number,
+      name: data.name ?? "",
+      onWishlist: (wish ?? []).length > 0,
+      counts: {
+        buyNow: buyNow.length,
+        auctions: auctions.length,
+        trades: tradeOwners.length,
+        owners: ownerRows.length,
+        liveShows: shows.length,
+      },
+      listings: buyNow.slice(0, 8).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        image_url: l.image_url,
+        priceCents: Math.round(Number(l.buy_now_price ?? l.price ?? 0) * 100),
+        seller: uname(l.seller_id),
+      })),
+      auctions: auctions.slice(0, 8).map((l: any) => ({
+        id: l.id,
+        title: l.title,
+        image_url: l.image_url,
+        bidCents: Math.round(Number(l.current_bid ?? l.starting_bid ?? 0) * 100),
+        endsAt: l.auction_ends_at,
+        seller: uname(l.seller_id),
+      })),
+      liveShows: shows.slice(0, 6).map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        thumbnail_url: s.thumbnail_url,
+        host: uname(s.seller_id),
+      })),
+      owners: ownerRows.slice(0, 12).map((o: any) => ({
+        username: uname(o.user_id),
+        avatar_url: profMap.get(o.user_id)?.avatar_url ?? null,
+        openToTrade: !!(o.accept_trades || o.trade_plus_cash || o.accept_offers),
+      })),
+    };
+  });
