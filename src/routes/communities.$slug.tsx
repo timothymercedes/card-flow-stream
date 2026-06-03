@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, Heart, MessageCircle, Trash2, ArrowLeft, Check, Send } from "lucide-react";
 import { toast } from "sonner";
+import { CommunityChallenges } from "@/components/CommunityChallenges";
 
 export const Route = createFileRoute("/communities/$slug")({
   component: CommunityDetailPage,
@@ -126,6 +127,10 @@ function CommunityDetailPage() {
             <Button size="sm" asChild><Link to="/auth">Join</Link></Button>
           )}
         </Card>
+
+        <CommunityChallenges communityId={community.id} canParticipate={!!user && isMember} />
+
+
 
         {user && isMember && (
           <Card className="space-y-2 p-3">
