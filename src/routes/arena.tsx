@@ -13,7 +13,7 @@ import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
-import { ARENA_CATEGORIES } from "@/lib/arenaCategories";
+import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
 import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
 import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
 import { Button } from "@/components/ui/button";
