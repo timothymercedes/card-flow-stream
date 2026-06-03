@@ -14,6 +14,7 @@ import {
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
 } from "@/lib/arenaShared";
 import { ARENA_CATEGORIES } from "@/lib/arenaCategories";
+import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
