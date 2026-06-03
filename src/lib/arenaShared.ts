@@ -102,25 +102,25 @@ export const DIFFICULTY_META: Record<ArenaDifficulty, {
 // and personality so Training feels like facing a real opponent, not a button.
 // Used by both the Train game-mode screen and the battle stage (opponentName).
 export const TRAINING_TRAINERS: Record<ArenaDifficulty, {
-  name: string; rank: string; emoji: string; personality: string; style: string; record: string;
+  name: string; rank: string; emoji: string; image: string; personality: string; style: string; record: string;
 }> = {
   beginner: {
-    name: "Pip", rank: "Arena Rookie", emoji: "🐣",
+    name: "Pip", rank: "Arena Rookie", emoji: "🐣", image: "/arena/fighters/trainer-beginner.png",
     personality: "Eager and friendly — the perfect first sparring partner.",
     style: "Cautious, plays it safe", record: "63 Wins",
   },
   normal: {
-    name: "Coach Vera", rank: "Veteran Trainer", emoji: "🧑‍🏫",
+    name: "Coach Vera", rank: "Veteran Trainer", emoji: "🧑‍🏫", image: "/arena/fighters/trainer-normal.png",
     personality: "A steady mentor who tests your fundamentals.",
     style: "Balanced, measured pressure", record: "245 Wins",
   },
   hard: {
-    name: "Razor Kane", rank: "Elite Challenger", emoji: "🥷",
+    name: "Razor Kane", rank: "Elite Challenger", emoji: "🥷", image: "/arena/fighters/trainer-hard.png",
     personality: "Ruthless and fast — punishes every mistake.",
     style: "Aggressive, high-tempo strikes", record: "1,042 Wins",
   },
   elite: {
-    name: "Champion Aurelia", rank: "Arena Champion", emoji: "👑",
+    name: "Champion Aurelia", rank: "Arena Champion", emoji: "👑", image: "/arena/fighters/trainer-elite.png",
     personality: "The reigning legend. Beat her to prove yourself.",
     style: "Relentless, flawless mastery", record: "3,318 Wins",
   },
