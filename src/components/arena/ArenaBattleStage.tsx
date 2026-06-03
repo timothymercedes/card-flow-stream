@@ -348,6 +348,7 @@ export function ArenaBattleStage({
               category={arenaCategory}
               seedKey={mySeed ?? myName}
               level={myLevel}
+              evolution={myEvo}
               hp={myHp}
               frameClass={myFrameClass}
               effectClass={myEffectClass}
@@ -361,27 +362,36 @@ export function ArenaBattleStage({
 
           <div className="relative flex h-28 w-10 shrink-0 items-center justify-center sm:h-36">
             <Swords className={`h-6 w-6 text-primary ${phase === "fight" ? "animate-pulse" : ""}`} />
-            {/* Energy projectile flies from the attacker toward the defender on a special */}
+            {/* Element-themed projectile flies from attacker to defender on a special */}
             {fx && fx.skill === "special" && fx.kind !== "dodge" && ev && (
               <span
                 key={`proj-${runKey}-${roundIdx}`}
-                className={`arena-projectile ${ev.attacker === "mine" ? "arena-projectile-right" : "arena-projectile-left"} ${fx.kind === "crit" ? "h-4 w-9 bg-amber-400" : "h-3 w-7 bg-sky-400"}`}
+                className={`arena-projectile ${ev.attacker === "mine" ? "arena-projectile-right" : "arena-projectile-left"} ${fx.kind === "crit" ? "h-4 w-9" : "h-3 w-7"}`}
+                style={{ background: attackerElement.color, boxShadow: `0 0 12px ${attackerElement.glow}` }}
                 aria-hidden
               />
             )}
             {fx && fx.kind !== "dodge" && (
               <>
-                <span className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-14 w-14 bg-amber-400/70" : "h-10 w-10 bg-primary/60"}`} />
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <span
-                    key={`${runKey}-${roundIdx}-${i}`}
-                    className="arena-spark absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-amber-400"
-                    style={{
-                      ["--sx" as any]: `${Math.cos((i / 6) * 6.28) * (fx.kind === "crit" ? 48 : 34)}px`,
-                      ["--sy" as any]: `${Math.sin((i / 6) * 6.28) * (fx.kind === "crit" ? 48 : 34)}px`,
-                    }}
-                  />
-                ))}
+                <span
+                  className={`arena-burst absolute left-1/2 top-1/2 rounded-full ${fx.kind === "crit" ? "h-16 w-16" : "h-10 w-10"}`}
+                  style={{ background: `${attackerElement.color}b3` }}
+                />
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                  const n = fx.kind === "crit" ? 8 : 6;
+                  if (i >= n) return null;
+                  return (
+                    <span
+                      key={`${runKey}-${roundIdx}-${i}`}
+                      className="arena-spark absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
+                      style={{
+                        background: attackerElement.glow,
+                        ["--sx" as any]: `${Math.cos((i / n) * 6.28) * (fx.kind === "crit" ? 50 : 34)}px`,
+                        ["--sy" as any]: `${Math.sin((i / n) * 6.28) * (fx.kind === "crit" ? 50 : 34)}px`,
+                      }}
+                    />
+                  );
+                })}
               </>
             )}
           </div>
@@ -394,6 +404,7 @@ export function ArenaBattleStage({
               category={arenaCategory}
               seedKey={result.opponentName}
               level={myLevel}
+              evolution={theirEvo}
               hp={theirHp}
               wrapperAnim={wrapperAnimFor("theirs", "right")}
               companionAnim={theirAnim}
@@ -402,6 +413,19 @@ export function ArenaBattleStage({
             {fx?.healSide === "theirs" && <FloatText kind="heal" dmg={fx.healAmt} runKey={`h-${runKey}-${roundIdx}`} />}
           </div>
         </div>
+
+        {/* Element wash + ULTIMATE banner on a rare elite/legendary special crit */}
+        {ultimateActive && (
+          <>
+            <span key={`ult-wash-${runKey}-${roundIdx}`} className="arena-ultimate-wash pointer-events-none absolute inset-0 z-20"
+              style={{ background: `radial-gradient(circle at 50% 55%, ${attackerElement.color}66, transparent 70%)` }} aria-hidden />
+            <div key={`ult-band-${runKey}-${roundIdx}`} className="arena-ultimate-band pointer-events-none absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center">
+              <span className="text-2xl font-black uppercase tracking-[0.25em] drop-shadow" style={{ color: attackerElement.glow }}>
+                {attackerElement.emoji} Ultimate!
+              </span>
+            </div>
+          </>
+        )}
 
         {/* Victory confetti */}
         {phase === "summary" && result.iWon && (
