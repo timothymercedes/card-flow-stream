@@ -255,7 +255,7 @@ function Headgear({ kind, cx, topY, w, accent, body }: {
 
 export function CompanionSprite({
   seedKey, category, archetypeKey, anim = "idle", size = 120, flip = false, level = 1, flair = 0, className = "",
-  bodyColor, accentColor, headgear,
+  bodyColor, accentColor, headgear, evolution = 0,
 }: {
   seedKey: string;
   category: string;
@@ -272,6 +272,8 @@ export function CompanionSprite({
   bodyColor?: string;
   accentColor?: string;
   headgear?: HeadgearOverride;
+  /** Evolution stage 0-3 (Lv1/10/25/50) — upgrades scale, aura and crown. */
+  evolution?: number;
 }) {
   const seed = useMemo(() => seedFrom(seedKey || category || "companion"), [seedKey, category]);
   const d = useMemo(() => describe(seed, category), [seed, category]);
@@ -290,8 +292,12 @@ export function CompanionSprite({
   const bodyH = 60;
   const bodyLeft = cx - bodyW / 2;
 
-  // Higher level + rarer companion → stronger aura ring.
-  const aura = Math.min(0.7, 0.12 + level * 0.02 + flair * 0.08);
+  // Evolution upgrades the silhouette: bigger, brighter, with a crown at max.
+  const evo = Math.max(0, Math.min(3, Math.round(evolution)));
+  const evoScale = [1, 1.06, 1.13, 1.2][evo];
+
+  // Higher level + rarer + more-evolved companion → stronger aura ring.
+  const aura = Math.min(0.85, 0.12 + level * 0.02 + flair * 0.08 + evo * 0.1);
 
   return (
     <svg
