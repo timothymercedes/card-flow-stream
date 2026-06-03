@@ -339,7 +339,8 @@ export function ArenaBattleStage({
               wrapperAnim={phase === "intro" ? "arena-enter-right" : ""}
               companionAnim={theirAnim}
             />
-            {fx?.side === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
+            {fx?.defender === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
+            {fx?.healSide === "theirs" && <FloatText kind="heal" dmg={fx.healAmt} runKey={`h-${runKey}-${roundIdx}`} />}
           </div>
         </div>
 
