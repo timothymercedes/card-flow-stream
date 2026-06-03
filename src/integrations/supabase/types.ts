@@ -1319,6 +1319,113 @@ export type Database = {
           },
         ]
       }
+      collection_wheel_slots: {
+        Row: {
+          color: string
+          created_at: string
+          credits: number
+          icon: string
+          id: string
+          is_active: boolean
+          label: string
+          rarity: string
+          reward_kind: string
+          reward_slug: string | null
+          sort_order: number
+          updated_at: string
+          weight: number
+          xp: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          credits?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          rarity?: string
+          reward_kind?: string
+          reward_slug?: string | null
+          sort_order?: number
+          updated_at?: string
+          weight?: number
+          xp?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          credits?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          rarity?: string
+          reward_kind?: string
+          reward_slug?: string | null
+          sort_order?: number
+          updated_at?: string
+          weight?: number
+          xp?: number
+        }
+        Relationships: []
+      }
+      collection_wheel_spins: {
+        Row: {
+          context_key: string
+          context_label: string | null
+          created_at: string
+          credits: number
+          icon: string
+          id: string
+          label: string
+          rarity: string
+          reward_kind: string
+          reward_slug: string | null
+          slot_id: string | null
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          context_key: string
+          context_label?: string | null
+          created_at?: string
+          credits?: number
+          icon?: string
+          id?: string
+          label?: string
+          rarity?: string
+          reward_kind?: string
+          reward_slug?: string | null
+          slot_id?: string | null
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          context_key?: string
+          context_label?: string | null
+          created_at?: string
+          credits?: number
+          icon?: string
+          id?: string
+          label?: string
+          rarity?: string
+          reward_kind?: string
+          reward_slug?: string | null
+          slot_id?: string | null
+          user_id?: string
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_wheel_spins_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "collection_wheel_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communities: {
         Row: {
           category: string | null
@@ -9062,6 +9169,22 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      spin_collection_wheel: {
+        Args: { _context_key: string; _context_label?: string }
+        Returns: {
+          already_spun: boolean
+          color: string
+          credits: number
+          icon: string
+          label: string
+          new_balance: number
+          rarity: string
+          reward_kind: string
+          reward_slug: string
+          slot_id: string
+          xp: number
+        }[]
+      }
       suggested_users: {
         Args: { _limit?: number }
         Returns: {
