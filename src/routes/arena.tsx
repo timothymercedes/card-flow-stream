@@ -108,6 +108,7 @@ function ArenaPage() {
   const [battleFor, setBattleFor] = useState<string | null>(null);
   const [trainFor, setTrainFor] = useState<string | null>(null);
   const [statsFor, setStatsFor] = useState<string | null>(null);
+  const [replay, setReplay] = useState<Awaited<ReturnType<typeof getBattleReplay>> | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
   const syncFn = useServerFn(syncCompanions);
