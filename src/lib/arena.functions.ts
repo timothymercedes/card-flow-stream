@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   titleForWins, communityForCategory, deriveCompanionStats, valueTier,
-  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS, TRAINING_TRAINERS,
+  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS, PVP_WIN_XP, TRAINING_TRAINERS,
   simulateCombat, AI_BOSSES, bossCharacter, streakBonusMultiplier,
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, type ArenaBossKey,
 } from "@/lib/arenaShared";
