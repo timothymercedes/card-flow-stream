@@ -44,6 +44,7 @@ import { Route as ShowsIndexRouteImport } from './routes/shows.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
+import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as StoreUsernameRouteImport } from './routes/store.$username'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
@@ -63,6 +64,7 @@ import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.com
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as LegalAccountDeletionRouteImport } from './routes/legal.account-deletion'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
+import { Route as CommunitiesSlugRouteImport } from './routes/communities.$slug'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
@@ -267,6 +269,11 @@ const LiveIndexRoute = LiveIndexRouteImport.update({
   path: '/live/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
+  id: '/communities/',
+  path: '/communities/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudioIdRoute = StudioIdRouteImport.update({
   id: '/studio/$id',
   path: '/studio/$id',
@@ -362,6 +369,11 @@ const LegalAccountDeletionRoute = LegalAccountDeletionRouteImport.update({
 const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
   id: '/email/unsubscribe',
   path: '/email/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunitiesSlugRoute = CommunitiesSlugRouteImport.update({
+  id: '/communities/$slug',
+  path: '/communities/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
@@ -560,6 +572,7 @@ export interface FileRoutesByFullPath {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -579,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
@@ -644,6 +658,7 @@ export interface FileRoutesByTo {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -663,6 +678,7 @@ export interface FileRoutesByTo {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/communities': typeof CommunitiesIndexRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
@@ -729,6 +745,7 @@ export interface FileRoutesById {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
+  '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
@@ -748,6 +765,7 @@ export interface FileRoutesById {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
@@ -815,6 +833,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
@@ -834,6 +853,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/communities/'
     | '/live/'
     | '/market/'
     | '/messages/'
@@ -899,6 +919,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
@@ -918,6 +939,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/communities'
     | '/live'
     | '/market'
     | '/messages'
@@ -983,6 +1005,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin_/finance'
     | '/admin_/performance'
+    | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
@@ -1002,6 +1025,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/communities/'
     | '/live/'
     | '/market/'
     | '/messages/'
@@ -1064,6 +1088,7 @@ export interface RootRouteChildren {
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
+  CommunitiesSlugRoute: typeof CommunitiesSlugRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
@@ -1082,6 +1107,7 @@ export interface RootRouteChildren {
   SellerShippingAnalyticsRoute: typeof SellerShippingAnalyticsRoute
   ShowsIdRoute: typeof ShowsIdRouteWithChildren
   StudioIdRoute: typeof StudioIdRoute
+  CommunitiesIndexRoute: typeof CommunitiesIndexRoute
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
@@ -1354,6 +1380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/communities/': {
+      id: '/communities/'
+      path: '/communities'
+      fullPath: '/communities/'
+      preLoaderRoute: typeof CommunitiesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/studio/$id': {
       id: '/studio/$id'
       path: '/studio/$id'
@@ -1485,6 +1518,13 @@ declare module '@tanstack/react-router' {
       path: '/email/unsubscribe'
       fullPath: '/email/unsubscribe'
       preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communities/$slug': {
+      id: '/communities/$slug'
+      path: '/communities/$slug'
+      fullPath: '/communities/$slug'
+      preLoaderRoute: typeof CommunitiesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin_/performance': {
@@ -1760,6 +1800,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
+  CommunitiesSlugRoute: CommunitiesSlugRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
@@ -1778,6 +1819,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellerShippingAnalyticsRoute: SellerShippingAnalyticsRoute,
   ShowsIdRoute: ShowsIdRouteWithChildren,
   StudioIdRoute: StudioIdRoute,
+  CommunitiesIndexRoute: CommunitiesIndexRoute,
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
