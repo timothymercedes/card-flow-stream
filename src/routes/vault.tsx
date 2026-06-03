@@ -50,6 +50,8 @@ type Card = {
   confirmed_by?: string | null;
   card_identity_id?: string | null; master_identity_id?: string | null; enrichment_status?: string | null;
   pricing_details?: Record<string, unknown> | null; price_source_url?: string | null;
+  accept_trades?: boolean | null; trade_plus_cash?: boolean | null;
+  accept_offers?: boolean | null; collection_only?: boolean | null;
 };
 
 function Vault() {
