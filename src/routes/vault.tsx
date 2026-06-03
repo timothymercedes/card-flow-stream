@@ -2746,6 +2746,25 @@ function Vault() {
               </div>
               <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" />
             </div>
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Trade availability</p>
+              {([
+                ["accept_trades", "Available for trade"],
+                ["trade_plus_cash", "Accept trade + cash"],
+                ["accept_offers", "Accept offers"],
+                ["collection_only", "Collection only (not for trade)"],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center justify-between gap-2 text-sm">
+                  <span>{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={!!editing[key]}
+                    onChange={(e) => setEditing({ ...editing, [key]: e.target.checked })}
+                    className="h-5 w-5 accent-primary"
+                  />
+                </label>
+              ))}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={saveEdit} className="rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save changes</button>
               <button onClick={verifyWithTcg} className="rounded-lg bg-emerald-500/20 py-2 text-sm font-bold text-emerald-400 hover:bg-emerald-500/30">Verify with TCG</button>
