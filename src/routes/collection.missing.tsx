@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AiCardImage } from "@/components/AiCardImage";
 
 export const Route = createFileRoute("/collection/missing")({
   validateSearch: (s: Record<string, unknown>) => ({
