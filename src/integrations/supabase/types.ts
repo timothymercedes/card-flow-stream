@@ -1465,6 +1465,48 @@ export type Database = {
           },
         ]
       }
+      crate_rewards: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          is_active: boolean
+          kind: string
+          name: string
+          rarity: string
+          slug: string
+          value: string | null
+          weight: number
+          xp_bonus: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name: string
+          rarity?: string
+          slug: string
+          value?: string | null
+          weight?: number
+          xp_bonus?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          rarity?: string
+          slug?: string
+          value?: string | null
+          weight?: number
+          xp_bonus?: number
+        }
+        Relationships: []
+      }
       creator_stream_tiers: {
         Row: {
           created_at: string
@@ -6811,6 +6853,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_crate_state: {
+        Row: {
+          last_opened_date: string | null
+          total_opened: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          last_opened_date?: string | null
+          total_opened?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          last_opened_date?: string | null
+          total_opened?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_progression: {
         Row: {
           created_at: string
@@ -6940,6 +7003,30 @@ export type Database = {
           target_id?: string | null
           target_label?: string | null
           target_type?: string
+        }
+        Relationships: []
+      }
+      user_rewards: {
+        Row: {
+          id: string
+          obtained_at: string
+          quantity: number
+          reward_slug: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          obtained_at?: string
+          quantity?: number
+          reward_slug: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          obtained_at?: string
+          quantity?: number
+          reward_slug?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -8465,6 +8552,20 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      open_daily_crate: {
+        Args: never
+        Returns: {
+          already_opened: boolean
+          icon: string
+          is_new: boolean
+          kind: string
+          rarity: string
+          reward_name: string
+          reward_slug: string
+          value: string
+          xp_bonus: number
+        }[]
       }
       perf_slow_routes: {
         Args: { _limit?: number; _minutes?: number }
