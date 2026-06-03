@@ -289,6 +289,9 @@ function BookDetail({ setName, category, onBack, isGoal, onToggleGoal }: { setNa
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold">{setName}</h1>
           <Badge variant="secondary" className="capitalize">{category}</Badge>
+          <Button size="sm" variant={isGoal ? "default" : "outline"} className="ml-auto h-8" onClick={() => onToggleGoal(setName, category)}>
+            <Star className={`mr-1 h-3.5 w-3.5 ${isGoal ? "fill-current" : ""}`} /> {isGoal ? "Goal" : "Set as goal"}
+          </Button>
         </div>
         {d && (
           <div className="mt-2">
