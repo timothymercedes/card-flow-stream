@@ -1122,8 +1122,8 @@ export const getBattleReplay = createServerFn({ method: "POST" })
         theirRounds,
         log,
         rewards: { xp: 0, trophies: 0, rank: 0, credits: 0 },
-        opponentName: bossName ?? (isPve ? "Training Opponent" : (oppCompanion?.name ?? "Opponent")),
-        opponentImage: (oppCompanion?.image_url ?? null) as string | null,
+        opponentName: bossName ?? (isPve ? `${pveTrainer!.name} · ${pveTrainer!.rank}` : (oppCompanion?.name ?? "Opponent")),
+        opponentImage: (bossChar?.image ?? pveTrainer?.image ?? oppCompanion?.image_url ?? null) as string | null,
         newBadges: [] as ArenaBadgeKey[],
       },
     };
