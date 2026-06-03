@@ -46,6 +46,7 @@ import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
+import { Route as TradesDiscoverRouteImport } from './routes/trades.discover'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as StoreUsernameRouteImport } from './routes/store.$username'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
@@ -281,6 +282,11 @@ const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
   id: '/communities/',
   path: '/communities/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TradesDiscoverRoute = TradesDiscoverRouteImport.update({
+  id: '/discover',
+  path: '/discover',
+  getParentRoute: () => TradesRoute,
 } as any)
 const StudioIdRoute = StudioIdRouteImport.update({
   id: '/studio/$id',
@@ -579,7 +585,7 @@ export interface FileRoutesByFullPath {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
-  '/trades': typeof TradesRoute
+  '/trades': typeof TradesRouteWithChildren
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/wishlist': typeof WishlistRoute
@@ -613,6 +619,7 @@ export interface FileRoutesByFullPath {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/trades/discover': typeof TradesDiscoverRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
@@ -668,7 +675,7 @@ export interface FileRoutesByTo {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
-  '/trades': typeof TradesRoute
+  '/trades': typeof TradesRouteWithChildren
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/wishlist': typeof WishlistRoute
@@ -702,6 +709,7 @@ export interface FileRoutesByTo {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/trades/discover': typeof TradesDiscoverRoute
   '/communities': typeof CommunitiesIndexRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
@@ -758,7 +766,7 @@ export interface FileRoutesById {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
-  '/trades': typeof TradesRoute
+  '/trades': typeof TradesRouteWithChildren
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/wishlist': typeof WishlistRoute
@@ -792,6 +800,7 @@ export interface FileRoutesById {
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
+  '/trades/discover': typeof TradesDiscoverRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
@@ -883,6 +892,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/trades/discover'
     | '/communities/'
     | '/live/'
     | '/market/'
@@ -972,6 +982,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/trades/discover'
     | '/communities'
     | '/live'
     | '/market'
@@ -1061,6 +1072,7 @@ export interface FileRouteTypes {
     | '/shows/$id'
     | '/store/$username'
     | '/studio/$id'
+    | '/trades/discover'
     | '/communities/'
     | '/live/'
     | '/market/'
@@ -1117,7 +1129,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   StoriesRoute: typeof StoriesRoute
   SupportRoute: typeof SupportRoute
-  TradesRoute: typeof TradesRoute
+  TradesRoute: typeof TradesRouteWithChildren
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
   WishlistRoute: typeof WishlistRoute
@@ -1430,6 +1442,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/communities/'
       preLoaderRoute: typeof CommunitiesIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/trades/discover': {
+      id: '/trades/discover'
+      path: '/discover'
+      fullPath: '/trades/discover'
+      preLoaderRoute: typeof TradesDiscoverRouteImport
+      parentRoute: typeof TradesRoute
     }
     '/studio/$id': {
       id: '/studio/$id'
@@ -1824,6 +1843,17 @@ const StoreRouteChildren: StoreRouteChildren = {
 
 const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
+interface TradesRouteChildren {
+  TradesDiscoverRoute: typeof TradesDiscoverRoute
+}
+
+const TradesRouteChildren: TradesRouteChildren = {
+  TradesDiscoverRoute: TradesDiscoverRoute,
+}
+
+const TradesRouteWithChildren =
+  TradesRoute._addFileChildren(TradesRouteChildren)
+
 interface ShowsIdRouteChildren {
   ShowsIdEditRoute: typeof ShowsIdEditRoute
 }
@@ -1864,7 +1894,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   StoriesRoute: StoriesRoute,
   SupportRoute: SupportRoute,
-  TradesRoute: TradesRoute,
+  TradesRoute: TradesRouteWithChildren,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
   WishlistRoute: WishlistRoute,
