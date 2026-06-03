@@ -340,14 +340,19 @@ function BookDetail({ setName, category, onBack, isGoal, onToggleGoal }: { setNa
               </div>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="secondary" className="h-8">
+                <Link to="/collection/missing" search={{ set: setName, category }}>
+                  <Search className="mr-1 h-3.5 w-3.5" /> Missing Cards Center
+                </Link>
+              </Button>
               <Button
                 size="sm"
-                variant={availableOnly ? "default" : "secondary"}
+                variant={availableOnly ? "default" : "outline"}
                 onClick={() => { setTab("missing"); setAvailableOnly((v) => !v); }}
                 className="h-8"
               >
-                <Search className="mr-1 h-3.5 w-3.5" />
-                {availableOnly ? `Showing ${availableCount} available` : "Find missing cards"}
+                <Tag className="mr-1 h-3.5 w-3.5" />
+                {availableOnly ? `Showing ${availableCount} available` : "Available only"}
               </Button>
               <Button asChild size="sm" variant="outline" className="h-8">
                 <Link to="/market" search={{ q: setName }}>
@@ -355,7 +360,7 @@ function BookDetail({ setName, category, onBack, isGoal, onToggleGoal }: { setNa
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="h-8">
-                <Link to="/trades" search={{ q: setName }}>
+                <Link to="/trades/discover" search={{ q: setName }}>
                   <ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade for cards
                 </Link>
               </Button>
