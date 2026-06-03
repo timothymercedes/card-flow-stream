@@ -26,7 +26,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Swords, Shield, Zap, Trophy, Flame, Sparkles, RefreshCw, Crown, Lock, Medal,
-  Users, Search, UserPlus, UserCheck, Award, History,
+  Users, Search, UserPlus, UserCheck, Award, History, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 
