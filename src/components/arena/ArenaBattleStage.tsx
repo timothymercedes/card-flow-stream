@@ -182,10 +182,6 @@ export function ArenaBattleStage({
   }, [events, result.iWon, runKey]);
 
   const ev = roundIdx >= 0 ? events[roundIdx] : null;
-  const myAttacking = phase === "fight" && ev?.attacker === "mine" && !!fx;
-  const theirAttacking = phase === "fight" && ev?.attacker === "theirs" && !!fx;
-  const myDefendCls = fx?.side === "mine" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
-  const theirDefendCls = fx?.side === "theirs" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
   const critActive = !!fx && fx.kind === "crit";
 
   // Map the current phase/round into a companion sprite animation per side.
