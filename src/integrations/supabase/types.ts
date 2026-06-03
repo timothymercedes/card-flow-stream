@@ -304,6 +304,7 @@ export type Database = {
       }
       arena_companions: {
         Row: {
+          arena_category: string
           arena_rank: number
           attack: number
           category: string | null
@@ -330,6 +331,7 @@ export type Database = {
           xp: number
         }
         Insert: {
+          arena_category?: string
           arena_rank?: number
           attack?: number
           category?: string | null
@@ -356,6 +358,7 @@ export type Database = {
           xp?: number
         }
         Update: {
+          arena_category?: string
           arena_rank?: number
           attack?: number
           category?: string | null
