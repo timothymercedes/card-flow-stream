@@ -148,7 +148,29 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Training battle failed"),
   });
 
-  const activeMine = useMemo(
+  const challengeUserM = useMutation({
+    mutationFn: (vars: { myCompanionId: string; targetUserId: string }) => challengeUserFn({ data: vars }),
+    onSuccess: (r) => {
+      setBattleResult(r);
+      qc.invalidateQueries({ queryKey: ["arena"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Battle failed"),
+  });
+
+  const followM = useMutation({
+    mutationFn: (vars: { userId: string; follow: boolean }) =>
+      vars.follow ? followFn({ data: { userId: vars.userId } }) : unfollowFn({ data: { userId: vars.userId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["arena", "profile"] });
+      qc.invalidateQueries({ queryKey: ["arena", "collectors"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not update follow"),
+  });
+
+  function battleCollector(targetUserId: string) {
+    if (!activeMine) { toast.error("Select one of your companions first"); return; }
+    challengeUserM.mutate({ myCompanionId: activeMine.id, targetUserId });
+  }
     () => companions.find((c) => c.id === selectedMine) ?? companions[0],
     [companions, selectedMine],
   );
