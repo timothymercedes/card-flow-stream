@@ -27,6 +27,10 @@ function QuestsPage() {
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set());
+  const [crateOpenedToday, setCrateOpenedToday] = useState(false);
+  const [ownedRewards, setOwnedRewards] = useState<string[]>([]);
+  const [opening, setOpening] = useState(false);
+  const [lastReward, setLastReward] = useState<CrateReward | null>(null);
 
   useEffect(() => {
     (async () => {
