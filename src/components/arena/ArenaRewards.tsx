@@ -27,9 +27,12 @@ export function ArenaRewards() {
   const cosmeticsFn = useServerFn(getArenaCosmetics);
   const buyFn = useServerFn(buyArenaCosmetic);
   const equipFn = useServerFn(equipArenaCosmetic);
+  const setRewardsFn = useServerFn(getSetCompletionRewards);
+  const claimSetFn = useServerFn(claimSetReward);
 
   const challQ = useQuery({ queryKey: ["arena", "challenges"], queryFn: () => challengesFn() });
   const cosmQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn() });
+  const setQ = useQuery({ queryKey: ["arena", "set-rewards"], queryFn: () => setRewardsFn() });
 
   const claimM = useMutation({
     mutationFn: (key: string) => claimFn({ data: { challengeKey: key } }),
