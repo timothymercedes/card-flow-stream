@@ -365,7 +365,11 @@ export const battlePve = createServerFn({ method: "POST" })
     // Real HP-based combat: crits, dodges, traits and random events decide it.
     const { log, myRounds, theirRounds, iWon } = simulateCombat(me, cpu, 5);
 
-    const gainedXp = iWon ? diff.winXp : diff.lossXp;
+    const wStreak = iWon ? me.win_streak + 1 : 0;
+    const streakMult = iWon ? streakBonusMultiplier(wStreak) : 1;
+    const baseXp = iWon ? diff.winXp : diff.lossXp;
+    const gainedXp = Math.round(baseXp * streakMult);
+    const gainedTrophies = iWon ? Math.round(diff.winTrophies * streakMult) : 0;
     const newXp = me.xp + gainedXp;
     const update: {
       xp: number; level: number; wins?: number; losses?: number;
@@ -376,11 +380,10 @@ export const battlePve = createServerFn({ method: "POST" })
     };
     if (iWon) {
       const wWins = me.wins + 1;
-      const wStreak = me.win_streak + 1;
       update.wins = wWins;
       update.win_streak = wStreak;
       update.longest_win_streak = Math.max(me.longest_win_streak, wStreak);
-      update.trophies = me.trophies + diff.winTrophies;
+      update.trophies = me.trophies + gainedTrophies;
       update.title = titleForWins(wWins);
       // Note: arena_rank and season_wins deliberately unchanged for PVE.
     } else {
