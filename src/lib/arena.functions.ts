@@ -998,6 +998,46 @@ export const equipArenaCosmetic = createServerFn({ method: "POST" })
     return { ok: true, equipped: data.equipped };
   });
 
+// ---- Per-companion visual mode + custom appearance ----
+// Stored in arena_companions.cosmetics jsonb: { visual_mode, custom: { body, accent, head } }
+const VISUAL_MODES = ["card", "inspired", "custom"] as const;
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+const HEAD_KEYS = [
+  "ears", "hat", "wizard", "horns", "band", "crown", "mask", "helmet", "antenna",
+  "catears", "wolfears", "draconic", "beak", "halo", "visor", "pirate", "hood", "skull",
+];
+export const setCompanionVisual = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    companionId: string;
+    mode: "card" | "inspired" | "custom";
+    custom?: { body?: string; accent?: string; head?: string };
+  }) => {
+    if (!VISUAL_MODES.includes(d.mode)) throw new Error("Invalid mode");
+    const custom: { body?: string; accent?: string; head?: string } = {};
+    if (d.custom?.body && HEX_RE.test(d.custom.body)) custom.body = d.custom.body;
+    if (d.custom?.accent && HEX_RE.test(d.custom.accent)) custom.accent = d.custom.accent;
+    if (d.custom?.head && HEAD_KEYS.includes(d.custom.head)) custom.head = d.custom.head;
+    return { companionId: d.companionId, mode: d.mode, custom };
+  })
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: row, error: readErr } = await supabase
+      .from("arena_companions").select("cosmetics")
+      .eq("id", data.companionId).eq("user_id", userId).maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("Companion not found");
+    const cosmetics = { ...((row.cosmetics as Record<string, any>) || {}) };
+    cosmetics.visual_mode = data.mode;
+    cosmetics.custom = data.custom;
+    const { error } = await supabase
+      .from("arena_companions").update({ cosmetics })
+      .eq("id", data.companionId).eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, visual_mode: data.mode, custom: data.custom };
+  });
+
+
 // ===================================================================
 // Collection-completion → Arena XP hook (digital-only).
 // Completing a real-world set grants a one-time Arena XP + Credits bonus.
