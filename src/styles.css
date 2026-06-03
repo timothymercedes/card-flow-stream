@@ -500,79 +500,78 @@ body.kb-open [data-bottom-nav] {
 @media (prefers-reduced-motion: reduce) { .arena-fx-embers,.arena-fx-sparkle,.arena-fx-storm { animation: none !important; } }
 
 /* ============================================================
-   PullBid Arena — themed battle backgrounds (per category)
-   Original PullBid identity — abstract, not game-replicas.
+   PullBid Arena — OUTDOOR battle environments (per category)
+   A real open-air arena: sky, sun, drifting clouds, distant
+   hills and a grounded battlefield. Original PullBid identity.
    ============================================================ */
-.arena-theme {
-  position: relative;
+.arena-theme { position: relative; min-height: 320px; }
+
+/* Scene container — sits behind the fighters (content is z-10). */
+.arena-scene { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+.arena-scene-shake { animation: arena-shake 0.4s ease-in-out; }
+
+/* Sky — default bright daytime. Categories override --sky-top/--sky-bot. */
+.arena-sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, var(--sky-top, #6fb7ef) 0%, var(--sky-bot, #cfe9fb) 62%, transparent 62%);
+}
+
+/* Sun / light source */
+.arena-sun {
+  position: absolute; top: 9%; left: 50%; width: 70px; height: 70px; margin-left: -35px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffbe6 0%, var(--sun, #ffd86b) 55%, transparent 72%);
+  filter: blur(0.5px);
+  animation: arena-sun-pulse 6s ease-in-out infinite;
+}
+@keyframes arena-sun-pulse { 0%,100% { opacity: 0.85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.07); } }
+
+/* Drifting clouds */
+.arena-cloud {
+  position: absolute; height: 16px; width: 70px; border-radius: 999px;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 22px 4px 0 -2px rgba(255,255,255,0.9), -20px 5px 0 -3px rgba(255,255,255,0.85);
+  opacity: var(--cloud-op, 0.85);
+  animation: arena-cloud-drift linear infinite;
+}
+.arena-cloud-1 { top: 14%; transform: scale(0.9); animation-duration: 26s; animation-delay: -4s; }
+.arena-cloud-2 { top: 26%; transform: scale(1.25); animation-duration: 38s; animation-delay: -16s; }
+.arena-cloud-3 { top: 20%; transform: scale(0.7); animation-duration: 30s; animation-delay: -22s; }
+@keyframes arena-cloud-drift { from { left: -30%; } to { left: 120%; } }
+
+/* Distant hills / horizon */
+.arena-hills { position: absolute; left: -5%; right: -5%; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+.arena-hills-back { bottom: 36%; height: 22%; background: var(--hills-back, #5b9e63); opacity: 0.8; }
+.arena-hills-front { bottom: 34%; height: 16%; background: var(--hills-front, #3f7d49); }
+
+/* Battlefield ground */
+.arena-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 38%; background: var(--ground, linear-gradient(180deg, #6cae5a, #3f7a36)); }
+/* Perspective floor lines */
+.arena-ground-grid {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 38%;
   background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in oklab, var(--foreground) 6%, var(--background)), var(--background));
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(255,255,255,0.08) 38px 40px),
+    repeating-linear-gradient(0deg, transparent 0 18px, rgba(0,0,0,0.06) 18px 19px);
+  mask-image: linear-gradient(0deg, rgba(0,0,0,0.55), transparent);
+  -webkit-mask-image: linear-gradient(0deg, rgba(0,0,0,0.55), transparent);
 }
-/* Animated horizon band shared by every theme */
-.arena-theme::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 38%;
-  pointer-events: none;
-  opacity: 0.55;
-  background: var(--arena-floor, linear-gradient(0deg, color-mix(in oklab, var(--primary) 18%, transparent), transparent));
+.arena-vignette { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 42%, transparent 55%, rgba(0,0,0,0.32)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-sun, .arena-cloud, .arena-scene-shake { animation: none !important; }
 }
-.arena-theme-pokemon {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(56,189,248,0.30), transparent 60%),
-    linear-gradient(180deg, #0b2a1b, #06140d);
-  --arena-floor: linear-gradient(0deg, rgba(34,197,94,0.55), transparent);
-}
-.arena-theme-onepiece {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(125,211,252,0.35), transparent 60%),
-    linear-gradient(180deg, #06283d, #021019);
-  --arena-floor: linear-gradient(0deg, rgba(14,165,233,0.6), transparent);
-}
-.arena-theme-mtg {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(192,132,252,0.35), transparent 60%),
-    linear-gradient(180deg, #1e1033, #0a0518);
-  --arena-floor: linear-gradient(0deg, rgba(168,85,247,0.55), transparent);
-}
-.arena-theme-yugioh {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(251,191,36,0.30), transparent 60%),
-    linear-gradient(180deg, #2a1606, #140a02);
-  --arena-floor: linear-gradient(0deg, rgba(245,158,11,0.55), transparent);
-}
-.arena-theme-sports {
-  background:
-    radial-gradient(90% 50% at 50% 4%, rgba(255,255,255,0.30), transparent 55%),
-    linear-gradient(180deg, #0a2e16, #04150a);
-  --arena-floor: repeating-linear-gradient(90deg, rgba(34,197,94,0.55) 0 24px, rgba(22,163,74,0.55) 24px 48px);
-}
-.arena-theme-lorcana {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(244,114,182,0.32), transparent 60%),
-    linear-gradient(180deg, #2a0b33, #120618);
-  --arena-floor: linear-gradient(0deg, rgba(236,72,153,0.5), transparent);
-}
-.arena-theme-wrestling {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(248,113,113,0.30), transparent 60%),
-    linear-gradient(180deg, #2a0a0a, #140404);
-  --arena-floor: linear-gradient(0deg, rgba(239,68,68,0.55), transparent);
-}
-.arena-theme-marvel {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(248,113,113,0.30), transparent 60%),
-    linear-gradient(180deg, #10162e, #050814);
-  --arena-floor: linear-gradient(0deg, rgba(59,130,246,0.55), transparent);
-}
-.arena-theme-starwars {
-  background:
-    radial-gradient(90% 60% at 50% 8%, rgba(250,204,21,0.28), transparent 60%),
-    linear-gradient(180deg, #05060a, #010204);
-  --arena-floor: linear-gradient(0deg, rgba(234,179,8,0.5), transparent);
-}
+
+/* ---- Per-category outdoor environments ---- */
+.arena-env-default  { --sky-top:#6fb7ef; --sky-bot:#cfe9fb; --sun:#ffd86b; --hills-back:#5b9e63; --hills-front:#3f7d49; --ground:linear-gradient(180deg,#6cae5a,#3f7a36); }
+.arena-env-pokemon  { --sky-top:#5ec3f2; --sky-bot:#d7f3ff; --sun:#fff0a3; --hills-back:#4fae5b; --hills-front:#2f8a45; --ground:linear-gradient(180deg,#5fc05a,#2f8537); }
+.arena-env-onepiece { --sky-top:#56b8ef; --sky-bot:#bfeafb; --sun:#fff1b0; --hills-back:#2f9fd6; --hills-front:#1f86c4; --ground:linear-gradient(180deg,#f3dca0,#d9b56e); }
+.arena-env-mtg      { --sky-top:#3a2a6e; --sky-bot:#9d7bdd; --sun:#e8c6ff; --hills-back:#4a347e; --hills-front:#33215e; --ground:linear-gradient(180deg,#5a4690,#2e1f55); }
+.arena-env-yugioh   { --sky-top:#e89b3c; --sky-bot:#ffdd9e; --sun:#fff4cf; --hills-back:#b9712c; --hills-front:#8a5320; --ground:linear-gradient(180deg,#d8a85a,#a87534); }
+.arena-env-sports   { --sky-top:#5fb6ef; --sky-bot:#dff1ff; --sun:#ffffff; --hills-back:#3a7b3f; --hills-front:#2c6230; --ground:repeating-linear-gradient(0deg,#3f9a44 0 22px,#368a3b 22px 44px); }
+.arena-env-lorcana  { --sky-top:#3fb8c4; --sky-bot:#cdf4f8; --sun:#fff0c2; --hills-back:#2f9aa8; --hills-front:#22808c; --ground:linear-gradient(180deg,#46b39a,#2a7d6a); }
+.arena-env-wrestling{ --sky-top:#7a2f2f; --sky-bot:#f0a36b; --sun:#ffe2a8; --hills-back:#7c3a2a; --hills-front:#5c281d; --ground:linear-gradient(180deg,#9a5a3a,#5e3320); }
+.arena-env-marvel   { --sky-top:#1e2a66; --sky-bot:#7fa0e8; --sun:#ffe6a8; --hills-back:#2a3a78; --hills-front:#1c2a5c; --ground:linear-gradient(180deg,#3a4a7e,#1f2a4e); }
+.arena-env-starwars { --sky-top:#caa15a; --sky-bot:#ffe6b0; --sun:#fff6dc; --hills-back:#b07b3a; --hills-front:#84592a; --ground:linear-gradient(180deg,#d8b677,#a8814a); }
 
 /* HP bar drain */
 .arena-hp-fill { transition: width 0.5s cubic-bezier(0.22,1,0.36,1); }

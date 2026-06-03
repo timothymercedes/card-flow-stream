@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
 import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
+import { ArenaBackdrop } from "@/components/arena/ArenaBackdrop";
 import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users, FastForward, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 
@@ -107,7 +108,7 @@ function Fighter({
           seedKey={seedKey}
           category={category}
           anim={companionAnim}
-          size={104}
+          size={124}
           level={level}
           flip={side === "right"}
           className={frameClass}
@@ -253,7 +254,10 @@ export function ArenaBattleStage({
   return (
     <div className="space-y-4">
       {/* Stage */}
-      <div className={`arena-stage arena-theme arena-scanlines relative overflow-hidden rounded-xl border p-4 ${themeClass}`}>
+      <div className={`arena-stage arena-theme relative overflow-hidden rounded-xl border p-4 ${themeClass}`}>
+        {/* Outdoor arena environment (sky, sun, clouds, hills, ground) */}
+        <ArenaBackdrop category={arenaCategory} shake={phase === "summary" && !result.iWon} />
+
         {/* Critical-hit screen flash */}
         {critActive && <span key={`crit-${runKey}-${roundIdx}`} className="arena-crit-flash pointer-events-none absolute inset-0 z-20 bg-white" aria-hidden />}
 
