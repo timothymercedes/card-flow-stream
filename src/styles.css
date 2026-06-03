@@ -570,6 +570,7 @@ body.kb-open [data-bottom-nav] {
 
 @media (prefers-reduced-motion: reduce) {
   .arena-enter-left,.arena-enter-right,.arena-lunge-left,.arena-lunge-right,
+  .arena-enter-elite-left,.arena-enter-elite-right,.arena-enter-legendary-left,.arena-enter-legendary-right,
   .arena-hit,.arena-shake,.arena-burst,.arena-spark,.arena-victory,
   .arena-projectile-right,.arena-projectile-left,
   .arena-dash-left,.arena-dash-right,.arena-jump-left,.arena-jump-right,
