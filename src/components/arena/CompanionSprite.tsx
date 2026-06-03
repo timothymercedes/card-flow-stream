@@ -27,6 +27,12 @@ type Headgear =
   | "ears" | "hat" | "wizard" | "horns" | "band" | "crown" | "mask" | "helmet" | "antenna"
   | "catears" | "wolfears" | "draconic" | "beak" | "halo" | "visor" | "pirate" | "hood" | "skull";
 
+export type HeadgearOverride = Headgear;
+export const HEADGEAR_OPTIONS: Headgear[] = [
+  "ears", "hat", "wizard", "horns", "band", "crown", "mask", "helmet", "antenna",
+  "catears", "wolfears", "draconic", "beak", "halo", "visor", "pirate", "hood", "skull",
+];
+
 const HEADGEAR_BY_CATEGORY: Record<string, Headgear> = {
   pokemon: "ears", onepiece: "hat", mtg: "wizard", yugioh: "horns", sports: "band",
   lorcana: "crown", marvel: "mask", starwars: "helmet", wrestling: "mask", other: "antenna",
