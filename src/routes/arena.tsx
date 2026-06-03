@@ -327,6 +327,7 @@ function ArenaPage() {
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
             <TabsTrigger value="collectors"><Users className="mr-1 h-4 w-4" />Collectors</TabsTrigger>
+            <TabsTrigger value="feed"><Rss className="mr-1 h-4 w-4" />Feed</TabsTrigger>
             <TabsTrigger value="history"><Flame className="mr-1 h-4 w-4" />History</TabsTrigger>
             <TabsTrigger value="leaderboards"><Trophy className="mr-1 h-4 w-4" />Leaderboards</TabsTrigger>
             <TabsTrigger value="rewards"><Gift className="mr-1 h-4 w-4" />Rewards</TabsTrigger>
