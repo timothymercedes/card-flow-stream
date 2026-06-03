@@ -305,11 +305,13 @@ export function ArenaBattleStage({
           )}
         </div>
 
-        <div className={`relative z-10 flex items-end justify-between gap-3 ${phase === "summary" && !result.iWon ? "arena-shake" : ""}`}>
+        <div
+          key={`row-${runKey}-${impactShake ? roundIdx : "x"}`}
+          className={`relative z-10 flex items-end justify-between gap-3 ${impactShake || (phase === "summary" && !result.iWon) ? "arena-shake" : ""}`}
+        >
           <div className="relative flex-1">
             <Fighter
               name={myName}
-              cardImage={myImage}
               side="left"
               category={arenaCategory}
               seedKey={mySeed ?? myName}
@@ -318,7 +320,7 @@ export function ArenaBattleStage({
               frameClass={myFrameClass}
               effectClass={myEffectClass}
               title={myTitle}
-              wrapperAnim={phase === "intro" ? "arena-enter-left" : ""}
+              wrapperAnim={wrapperAnimFor("mine", "left")}
               companionAnim={myAnim}
             />
             {fx?.defender === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`d-${runKey}-${roundIdx}`} />}
