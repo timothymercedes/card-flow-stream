@@ -811,3 +811,80 @@ export const equipArenaCosmetic = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true, equipped: data.equipped };
   });
+
+// ===================================================================
+// Collection-completion → Arena XP hook (digital-only).
+// Completing a real-world set grants a one-time Arena XP + Credits bonus.
+// Completion is verified server-side from the collection engine; each set
+// can only ever be claimed once (enforced by the unique constraint).
+// ===================================================================
+
+const SET_COMPLETION_XP = 250;
+const SET_COMPLETION_CREDITS = 25;
+
+// List the user's completed sets, annotated with whether the Arena bonus
+// has already been claimed.
+export const getSetCompletionRewards = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeCollectionBooks } = await import("@/lib/collection.functions");
+
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+    const completed = books.filter((b) => b.complete);
+
+    const { data: claims } = await supabaseAdmin
+      .from("arena_set_rewards").select("set_key").eq("user_id", userId);
+    const claimed = new Set((claims || []).map((c: any) => c.set_key));
+
+    const rewards = completed.map((b) => ({
+      setKey: b.key,
+      setName: b.setName,
+      category: b.category,
+      arenaCategory: arenaCategoryFor(b.category),
+      cover: b.cover,
+      ownedDistinct: b.ownedDistinct,
+      knownTotal: b.knownTotal,
+      rewardXp: SET_COMPLETION_XP,
+      rewardCredits: SET_COMPLETION_CREDITS,
+      claimed: claimed.has(b.key),
+    }));
+    return { rewards };
+  });
+
+// Claim the one-time Arena bonus for a completed set. Re-verifies completion
+// server-side so the reward can never be claimed for an incomplete set.
+export const claimSetReward = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { setKey: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeCollectionBooks } = await import("@/lib/collection.functions");
+
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+    const book = books.find((b) => b.key === data.setKey);
+    if (!book || !book.complete) throw new Error("Set is not complete yet");
+
+    const { error: claimErr } = await supabaseAdmin.from("arena_set_rewards").insert({
+      user_id: userId, set_key: book.key, set_name: book.setName, category: book.category,
+      reward_xp: SET_COMPLETION_XP, reward_credits: SET_COMPLETION_CREDITS,
+    });
+    if (claimErr) throw new Error("Reward already claimed for this set");
+
+    await creditWinner(supabaseAdmin, userId, SET_COMPLETION_CREDITS, `set:${book.key}`);
+
+    let xpCompanion: string | null = null;
+    const { data: comp } = await supabaseAdmin
+      .from("arena_companions").select("id, xp")
+      .eq("user_id", userId).order("arena_rank", { ascending: false }).limit(1);
+    const c = (comp || [])[0];
+    if (c) {
+      const newXp = (c as any).xp + SET_COMPLETION_XP;
+      await supabaseAdmin.from("arena_companions")
+        .update({ xp: newXp, level: companionLevel(newXp) }).eq("id", (c as any).id);
+      xpCompanion = (c as any).id;
+    }
+    return { ok: true, rewardXp: SET_COMPLETION_XP, rewardCredits: SET_COMPLETION_CREDITS, xpCompanion };
+  });

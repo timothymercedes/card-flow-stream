@@ -4,15 +4,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getDailyChallenges, claimArenaChallenge, getArenaCosmetics,
-  buyArenaCosmetic, equipArenaCosmetic,
+  buyArenaCosmetic, equipArenaCosmetic, getSetCompletionRewards, claimSetReward,
 } from "@/lib/arena.functions";
 import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
 import { ARENA_COSMETICS, COSMETIC_MAP, RARITY_COLOR, type CosmeticType } from "@/lib/arenaCosmetics";
+import { arenaCategoryMeta } from "@/lib/arenaCategories";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Coins, Check, Gift } from "lucide-react";
+import { Coins, Check, Gift, BookCheck } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<CosmeticType, string> = {
@@ -26,9 +27,12 @@ export function ArenaRewards() {
   const cosmeticsFn = useServerFn(getArenaCosmetics);
   const buyFn = useServerFn(buyArenaCosmetic);
   const equipFn = useServerFn(equipArenaCosmetic);
+  const setRewardsFn = useServerFn(getSetCompletionRewards);
+  const claimSetFn = useServerFn(claimSetReward);
 
   const challQ = useQuery({ queryKey: ["arena", "challenges"], queryFn: () => challengesFn() });
   const cosmQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn() });
+  const setQ = useQuery({ queryKey: ["arena", "set-rewards"], queryFn: () => setRewardsFn() });
 
   const claimM = useMutation({
     mutationFn: (key: string) => claimFn({ data: { challengeKey: key } }),
@@ -56,8 +60,20 @@ export function ArenaRewards() {
     onError: (e: any) => toast.error(e?.message || "Could not update"),
   });
 
+  const claimSetM = useMutation({
+    mutationFn: (setKey: string) => claimSetFn({ data: { setKey } }),
+    onSuccess: (r) => {
+      toast.success(`Set complete! +${r.rewardXp} XP · +${r.rewardCredits} credits`);
+      qc.invalidateQueries({ queryKey: ["arena", "set-rewards"] });
+      qc.invalidateQueries({ queryKey: ["arena", "cosmetics"] });
+      qc.invalidateQueries({ queryKey: ["arena", "mine"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not claim"),
+  });
+
   const ownedMap = new Map((cosmQ.data?.owned ?? []).map((o) => [o.key, o]));
   const balance = cosmQ.data?.balance ?? 0;
+  const setRewards = setQ.data?.rewards ?? [];
 
   return (
     <div className="space-y-6">
@@ -93,6 +109,46 @@ export function ArenaRewards() {
           })}
         </div>
       </section>
+
+      {/* Set completion bonuses */}
+      <section>
+        <h2 className="mb-1 flex items-center gap-2 font-bold"><BookCheck className="h-4 w-4 text-primary" />Set Completion Bonuses</h2>
+        <p className="mb-3 text-xs text-muted-foreground">Complete a real set in your Collection Books to earn a one-time Arena XP + Credits bonus.</p>
+        {setQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Checking your collection…</p>
+        ) : setRewards.length === 0 ? (
+          <Card className="p-4 text-sm text-muted-foreground">No completed sets yet. Finish a set to unlock a bonus.</Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {setRewards.map((r) => {
+              const meta = arenaCategoryMeta(r.arenaCategory);
+              return (
+                <Card key={r.setKey} className="flex items-center gap-3 p-3">
+                  {r.cover ? (
+                    <img src={r.cover} alt={r.setName} className="h-12 w-9 shrink-0 rounded object-cover" loading="lazy" />
+                  ) : (
+                    <span className="text-2xl">{meta.emoji}</span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{r.setName}</p>
+                    <p className="text-[11px] text-muted-foreground">{meta.label} · {r.ownedDistinct}/{r.knownTotal}</p>
+                    <p className="mt-0.5 text-[11px]">+{r.rewardXp} XP · +{r.rewardCredits} credits</p>
+                  </div>
+                  <Button
+                    size="sm" variant={r.claimed ? "secondary" : "default"}
+                    disabled={r.claimed || claimSetM.isPending}
+                    onClick={() => claimSetM.mutate(r.setKey)}
+                  >
+                    {r.claimed ? <><Check className="mr-1 h-4 w-4" />Claimed</> : "Claim"}
+                  </Button>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+
 
       {/* Cosmetics shop */}
       <section>

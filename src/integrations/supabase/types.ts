@@ -443,6 +443,39 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_set_rewards: {
+        Row: {
+          category: string
+          claimed_at: string
+          id: string
+          reward_credits: number
+          reward_xp: number
+          set_key: string
+          set_name: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          claimed_at?: string
+          id?: string
+          reward_credits?: number
+          reward_xp?: number
+          set_key: string
+          set_name: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          claimed_at?: string
+          id?: string
+          reward_credits?: number
+          reward_xp?: number
+          set_key?: string
+          set_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       arena_user_cosmetics: {
         Row: {
           cosmetic_key: string
