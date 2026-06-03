@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy, Star, LayoutDashboard, TrendingUp, DollarSign, Gift, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/collection")({
+export const Route = createFileRoute("/collection/")({
   head: () => ({
     meta: [
       { title: "Collection Books — PullBid Live" },

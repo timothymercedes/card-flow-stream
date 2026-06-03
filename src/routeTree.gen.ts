@@ -41,11 +41,13 @@ import { Route as ArenaRouteImport } from './routes/arena'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AtusernameRouteImport } from './routes/@$username'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TradesIndexRouteImport } from './routes/trades.index'
 import { Route as ShowsIndexRouteImport } from './routes/shows.index'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
+import { Route as CollectionIndexRouteImport } from './routes/collection.index'
 import { Route as TradesDiscoverRouteImport } from './routes/trades.discover'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as StoreUsernameRouteImport } from './routes/store.$username'
@@ -258,6 +260,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TradesIndexRoute = TradesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TradesRoute,
+} as any)
 const ShowsIndexRoute = ShowsIndexRouteImport.update({
   id: '/shows/',
   path: '/shows/',
@@ -282,6 +289,11 @@ const CommunitiesIndexRoute = CommunitiesIndexRouteImport.update({
   id: '/communities/',
   path: '/communities/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionIndexRoute = CollectionIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CollectionRoute,
 } as any)
 const TradesDiscoverRoute = TradesDiscoverRouteImport.update({
   id: '/discover',
@@ -620,11 +632,13 @@ export interface FileRoutesByFullPath {
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
+  '/collection/': typeof CollectionIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
+  '/trades/': typeof TradesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -654,7 +668,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
-  '/collection': typeof CollectionRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -675,7 +688,6 @@ export interface FileRoutesByTo {
   '/store': typeof StoreRouteWithChildren
   '/stories': typeof StoriesRoute
   '/support': typeof SupportRoute
-  '/trades': typeof TradesRouteWithChildren
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
   '/wishlist': typeof WishlistRoute
@@ -710,11 +722,13 @@ export interface FileRoutesByTo {
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
+  '/collection': typeof CollectionIndexRoute
   '/communities': typeof CommunitiesIndexRoute
   '/live': typeof LiveIndexRoute
   '/market': typeof MarketIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/shows': typeof ShowsIndexRoute
+  '/trades': typeof TradesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -801,11 +815,13 @@ export interface FileRoutesById {
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
+  '/collection/': typeof CollectionIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
   '/market/': typeof MarketIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
+  '/trades/': typeof TradesIndexRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -893,11 +909,13 @@ export interface FileRouteTypes {
     | '/store/$username'
     | '/studio/$id'
     | '/trades/discover'
+    | '/collection/'
     | '/communities/'
     | '/live/'
     | '/market/'
     | '/messages/'
     | '/shows/'
+    | '/trades/'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
@@ -927,7 +945,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/bookmarks'
     | '/cart'
-    | '/collection'
     | '/discover'
     | '/disputes'
     | '/feed'
@@ -948,7 +965,6 @@ export interface FileRouteTypes {
     | '/store'
     | '/stories'
     | '/support'
-    | '/trades'
     | '/tutorials'
     | '/vault'
     | '/wishlist'
@@ -983,11 +999,13 @@ export interface FileRouteTypes {
     | '/store/$username'
     | '/studio/$id'
     | '/trades/discover'
+    | '/collection'
     | '/communities'
     | '/live'
     | '/market'
     | '/messages'
     | '/shows'
+    | '/trades'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
@@ -1073,11 +1091,13 @@ export interface FileRouteTypes {
     | '/store/$username'
     | '/studio/$id'
     | '/trades/discover'
+    | '/collection/'
     | '/communities/'
     | '/live/'
     | '/market/'
     | '/messages/'
     | '/shows/'
+    | '/trades/'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
@@ -1408,6 +1428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trades/': {
+      id: '/trades/'
+      path: '/'
+      fullPath: '/trades/'
+      preLoaderRoute: typeof TradesIndexRouteImport
+      parentRoute: typeof TradesRoute
+    }
     '/shows/': {
       id: '/shows/'
       path: '/shows'
@@ -1442,6 +1469,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/communities/'
       preLoaderRoute: typeof CommunitiesIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/collection/': {
+      id: '/collection/'
+      path: '/'
+      fullPath: '/collection/'
+      preLoaderRoute: typeof CollectionIndexRouteImport
+      parentRoute: typeof CollectionRoute
     }
     '/trades/discover': {
       id: '/trades/discover'
@@ -1823,10 +1857,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface CollectionRouteChildren {
   CollectionMissingRoute: typeof CollectionMissingRoute
+  CollectionIndexRoute: typeof CollectionIndexRoute
 }
 
 const CollectionRouteChildren: CollectionRouteChildren = {
   CollectionMissingRoute: CollectionMissingRoute,
+  CollectionIndexRoute: CollectionIndexRoute,
 }
 
 const CollectionRouteWithChildren = CollectionRoute._addFileChildren(
@@ -1845,10 +1881,12 @@ const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 
 interface TradesRouteChildren {
   TradesDiscoverRoute: typeof TradesDiscoverRoute
+  TradesIndexRoute: typeof TradesIndexRoute
 }
 
 const TradesRouteChildren: TradesRouteChildren = {
   TradesDiscoverRoute: TradesDiscoverRoute,
+  TradesIndexRoute: TradesIndexRoute,
 }
 
 const TradesRouteWithChildren =
