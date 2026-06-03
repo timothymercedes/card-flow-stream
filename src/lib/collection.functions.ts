@@ -689,13 +689,29 @@ export const getCollectionDashboard = createServerFn({ method: "GET" })
 export const getMissingCardCenter = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { userId } = context;
+    const { userId, supabase } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const books = await computeCollectionBooks(supabaseAdmin, userId);
-    // Focus on incomplete real sets, closest-to-done first.
+
+    // Favorited sets (collection goals) get top priority.
+    const { data: goalRows } = await supabase
+      .from("collection_goals")
+      .select("set_name, category")
+      .eq("user_id", userId);
+    const favKeys = new Set(
+      (goalRows ?? []).map((g: any) => setTotalKey(g.category, g.set_name)),
+    );
+
+    // Focus on incomplete real sets. Completion priority:
+    //  1. favorited sets, 2. closest-to-done, 3. above 75%.
     const target = books
       .filter((b) => b.kind === "set" && !b.complete && (b.completion ?? 0) > 0)
-      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0))
+      .sort((a, b) => {
+        const af = favKeys.has(a.key) ? 1 : 0;
+        const bf = favKeys.has(b.key) ? 1 : 0;
+        if (bf !== af) return bf - af;
+        return (b.completion ?? 0) - (a.completion ?? 0);
+      })
       .slice(0, 12);
 
     const nowIso = new Date().toISOString();
@@ -784,11 +800,89 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         completion: b.completion ?? 0,
         ownedDistinct: b.ownedDistinct,
         knownTotal: b.knownTotal,
+        remaining: Math.max(0, b.knownTotal - b.ownedDistinct),
+        favorited: favKeys.has(b.key),
         availableCount: missing.filter((m) => m.listingsCount + m.auctionCount + m.tradeCount > 0).length,
         missing: missing.slice(0, 60),
       });
     }
     return { groups };
+  });
+
+// ============================================================================
+// Bulk add EVERY missing card across ALL of a user's in-progress sets at once.
+// ============================================================================
+export const bulkAddAllMissingToWishlist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId, supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+    const target = books
+      .filter((b) => b.kind === "set" && !b.complete && (b.completion ?? 0) > 0)
+      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0))
+      .slice(0, 20);
+
+    const { data: existing } = await supabase
+      .from("wishlist_items")
+      .select("set_name, tcg_number")
+      .eq("user_id", userId)
+      .limit(5000);
+    const onList = new Set(
+      (existing ?? []).map((w: any) => `${normSet(w.set_name)}|||${normNum(w.tcg_number)}`),
+    );
+
+    const toAdd: any[] = [];
+    for (const b of target) {
+      const { data: universe } = await supabaseAdmin
+        .from("card_identities")
+        .select("name, number, image_url")
+        .eq("set_name", b.setName)
+        .limit(5000);
+      const byNumber = new Map<string, { name: string; number: string; image_url: string | null }>();
+      (universe ?? []).forEach((u: any) => {
+        const n = normNum(u.number);
+        if (!n) return;
+        const ex = byNumber.get(n);
+        const card = { name: norm(u.name), number: norm(u.number), image_url: u.image_url ?? null };
+        if (!ex || (!ex.image_url && card.image_url)) byNumber.set(n, card);
+      });
+      if (byNumber.size === 0) continue;
+
+      const { data: mine } = await supabaseAdmin
+        .from("vault_cards")
+        .select("tcg_number")
+        .eq("user_id", userId)
+        .eq("is_sold", false)
+        .eq("tcg_set", b.setName)
+        .limit(3000);
+      const ownedNums = new Set((mine ?? []).map((m: any) => normNum(m.tcg_number)).filter(Boolean));
+
+      for (const [n, c] of byNumber) {
+        if (ownedNums.has(n)) continue;
+        if (onList.has(`${normSet(b.setName)}|||${n}`)) continue;
+        onList.add(`${normSet(b.setName)}|||${n}`);
+        toAdd.push({
+          user_id: userId,
+          name: c.name || `${b.setName} #${c.number}`,
+          set_name: b.setName,
+          tcg_number: c.number,
+          category: b.category,
+          image_url: c.image_url,
+          notify_sale: true,
+          notify_trade: true,
+          notify_live: false,
+        });
+      }
+    }
+
+    if (toAdd.length === 0) return { added: 0 };
+    for (let i = 0; i < toAdd.length; i += 200) {
+      const slice = toAdd.slice(i, i + 200);
+      const { error } = await supabase.from("wishlist_items").insert(slice);
+      if (error) throw new Error(error.message);
+    }
+    return { added: toAdd.length };
   });
 
 // ============================================================================
