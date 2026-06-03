@@ -5,7 +5,6 @@
 // unique, repeatable Arena fighter. No card art is used during combat.
 import { useMemo } from "react";
 import { seedFrom } from "@/lib/arenaShared";
-import type { ArenaCategory } from "@/lib/arenaCategories";
 
 export type CompanionAnim = "idle" | "attack" | "hit" | "dodge" | "victory" | "defeat";
 
