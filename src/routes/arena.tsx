@@ -808,10 +808,54 @@ function ArenaPage() {
             </div>
           </div>
 
-          <Button onClick={trainCpu} disabled={pveM.isPending} className="w-full">
+          <Button onClick={trainCpu} disabled={pveM.isPending || bossM.isPending} className="w-full">
             <Swords className="mr-2 h-4 w-4" />
-            {pveM.isPending ? "Training…" : `Train vs ${TRAINING_TRAINERS[difficulty].name}`}
+            {pveM.isPending ? "Training…" : `Practice vs ${TRAINING_TRAINERS[difficulty].name}`}
           </Button>
+
+          {/* AI Challenge — always-available Boss Battles (full rewards) */}
+          <div className="mt-5 border-t pt-4">
+            <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+              <Flame className="h-4 w-4 text-amber-500" />AI Challenge · Boss Battles
+            </p>
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              Always available — no waiting for opponents. Bosses are tougher AI fighters that pay
+              <span className="font-semibold text-foreground"> full XP, trophies, rank & credits</span> on a win.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(Object.keys(AI_BOSSES) as ArenaBossKey[]).map((k) => {
+                const tier = AI_BOSSES[k];
+                const ch = bossCharacter(k);
+                return (
+                  <div key={k} className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl" aria-hidden>{ch.emoji}</span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold">{ch.name}</div>
+                        <div className="truncate text-[10px] font-medium text-amber-600">{tier.emoji} {tier.label} · {ch.record}</div>
+                      </div>
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{ch.style}</p>
+                    <p className="mt-1 text-[11px] italic text-muted-foreground">“{ch.taunt}”</p>
+                    <div className="mt-1.5 text-[10px] font-semibold text-foreground">
+                      Win +{tier.winXp} XP · +{tier.winTrophies} 🏆 · +{tier.winCredits} 🪙
+                    </div>
+                    <Button
+                      onClick={() => fightBoss(k)}
+                      disabled={pveM.isPending || bossM.isPending}
+                      size="sm"
+                      className="mt-2 w-full"
+                      variant="secondary"
+                    >
+                      <Swords className="mr-1.5 h-3.5 w-3.5" />
+                      {bossM.isPending ? "Fighting…" : `Challenge ${tier.label}`}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </DialogContent>
       </Dialog>
 
