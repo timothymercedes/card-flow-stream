@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { getCollectionBooks, getCollectionBookDetail } from "@/lib/collection.functions";
+import { claimReward } from "@/lib/rewards.functions";
 import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
