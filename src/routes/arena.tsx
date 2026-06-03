@@ -1240,6 +1240,13 @@ function OwnerCompanionCard({
             <Progress value={prog.pct} className="h-1.5" />
             <p className="mt-0.5 text-[10px] text-muted-foreground">{prog.current}/{prog.needed} XP to Lv {prog.level + 1}</p>
           </div>
+          <div className="mt-1">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span className={`font-semibold ${evo.color}`}>{evo.emoji} {evo.label}</span>
+              <span>{evo.nextAt ? `Evolves at Lv ${evo.nextAt}` : "Max evolution"}</span>
+            </div>
+            <Progress value={evoPct} className="mt-0.5 h-1" />
+          </div>
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
