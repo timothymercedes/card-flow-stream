@@ -186,7 +186,7 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
+function BookTile({ book, onOpen, isGoal, onToggleGoal }: { book: Book; onOpen: () => void; isGoal: boolean; onToggleGoal: (setName: string, category: string) => void }) {
   return (
     <Card
       onClick={onOpen}
@@ -202,7 +202,18 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate font-semibold">{book.setName}</p>
-          <Badge variant="secondary" className="shrink-0 text-[10px] capitalize">{book.category}</Badge>
+          <div className="flex shrink-0 items-center gap-1">
+            <Badge variant="secondary" className="text-[10px] capitalize">{book.category}</Badge>
+            {book.kind === "set" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleGoal(book.setName, book.category); }}
+                aria-label={isGoal ? "Remove goal" : "Add as goal"}
+                className="rounded p-0.5 hover:bg-accent"
+              >
+                <Star className={`h-4 w-4 ${isGoal ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+              </button>
+            )}
+          </div>
         </div>
         {book.kind !== "set" && (
           <Badge variant="outline" className="mt-1 text-[10px]">
