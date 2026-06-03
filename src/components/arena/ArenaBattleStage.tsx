@@ -25,33 +25,44 @@ export type StageResult = {
 type Phase = "intro" | "fight" | "summary";
 
 function Fighter({
-  name, image, side, anim,
-}: { name: string; image?: string | null; side: "left" | "right"; anim: string }) {
+  name, image, side, anim, frameClass = "", effectClass = "", title,
+}: {
+  name: string; image?: string | null; side: "left" | "right"; anim: string;
+  frameClass?: string; effectClass?: string; title?: string;
+}) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <div className={`relative ${anim}`}>
+        {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
         {image ? (
-          <img src={image} alt={name} className="arena-fighter h-28 w-20 rounded object-cover sm:h-36 sm:w-28" />
+          <img src={image} alt={name} className={`arena-fighter relative h-28 w-20 rounded object-cover sm:h-36 sm:w-28 ${frameClass}`} />
         ) : (
-          <div className="arena-fighter flex h-28 w-20 items-center justify-center rounded bg-muted sm:h-36 sm:w-28">
+          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted sm:h-36 sm:w-28 ${frameClass}`}>
             <Sparkles className="h-8 w-8 text-muted-foreground" />
           </div>
         )}
       </div>
       <p className="max-w-[8rem] truncate text-center text-xs font-bold sm:text-sm">{name}</p>
-      <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-        {side === "left" ? "You" : "Opponent"}
-      </span>
+      {title ? (
+        <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{title}</span>
+      ) : (
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          {side === "left" ? "You" : "Opponent"}
+        </span>
+      )}
     </div>
   );
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, onClose,
+  result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, onClose,
 }: {
   result: StageResult;
   myName: string;
   myImage?: string | null;
+  myFrameClass?: string;
+  myEffectClass?: string;
+  myTitle?: string;
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("intro");
