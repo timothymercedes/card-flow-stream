@@ -13,7 +13,7 @@ import {
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
-  TRAINING_TRAINERS, AI_BOSSES, bossCharacter, type ArenaBossKey,
+  TRAINING_TRAINERS, AI_BOSSES, bossCharacter, type ArenaBossKey, streakBonusLabel,
 } from "@/lib/arenaShared";
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
