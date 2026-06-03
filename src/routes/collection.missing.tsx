@@ -22,7 +22,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  BookOpen,
   ArrowLeft,
   Tag,
   ArrowLeftRight,
