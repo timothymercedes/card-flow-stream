@@ -196,8 +196,14 @@ export function ArenaBattleStage({
         {phase === "intro" && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center">
             <div className="arena-banner-in">
+              {isTraining && (
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Training Mode</p>
+              )}
               <div className="text-4xl">{meta.emoji}</div>
               <p className="mt-1 text-sm font-black uppercase tracking-widest text-primary drop-shadow">{meta.label}</p>
+              {environmentLabel && (
+                <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">{environmentLabel}</p>
+              )}
               <p className="mt-2 text-2xl font-black tracking-widest text-foreground">VS</p>
             </div>
           </div>
