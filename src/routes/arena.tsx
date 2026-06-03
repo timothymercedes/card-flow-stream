@@ -253,6 +253,90 @@ function ArenaPage() {
             )}
           </TabsContent>
 
+          {/* ---- Train (PVE) ---- */}
+          <TabsContent value="train">
+            {companions.length === 0 ? (
+              <Card className="p-8 text-center text-muted-foreground">Unlock a companion first to start training.</Card>
+            ) : (
+              <>
+                <Card className="mb-4 border-dashed p-4">
+                  <p className="text-sm">
+                    Practice against computer opponents to learn the Arena and train your companions risk-free.
+                    Training gives <span className="font-semibold">reduced XP and rewards</span> and earns
+                    <span className="font-semibold"> no rank or leaderboard points</span> — real PVP battles are always worth more.
+                  </p>
+                </Card>
+
+                <div className="mb-4">
+                  <p className="mb-2 text-sm font-medium">Your fighter</p>
+                  <div className="flex flex-wrap gap-2">
+                    {companions.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedMine(c.id)}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition ${activeMine?.id === c.id ? "border-primary bg-primary/10 font-semibold" : "border-border hover:bg-muted"}`}
+                      >
+                        {c.name} · Lv{c.level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <p className="mb-2 text-sm font-medium">Difficulty</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {(Object.keys(DIFFICULTY_META) as ArenaDifficulty[]).map((k) => {
+                      const m = DIFFICULTY_META[k];
+                      return (
+                        <button
+                          key={k}
+                          onClick={() => setDifficulty(k)}
+                          className={`rounded-lg border p-3 text-left transition ${difficulty === k ? "border-primary bg-primary/10" : "border-border hover:bg-muted"}`}
+                        >
+                          <div className="text-sm font-semibold">{m.emoji} {m.label}</div>
+                          <div className="text-[10px] text-muted-foreground">Win +{m.winXp} XP</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Button onClick={trainCpu} disabled={pveM.isPending} className="w-full">
+                  <Swords className="mr-2 h-4 w-4" />
+                  {pveM.isPending ? "Training…" : `Train vs Computer (${DIFFICULTY_META[difficulty].label})`}
+                </Button>
+              </>
+            )}
+          </TabsContent>
+
+          {/* ---- Battle History ---- */}
+          <TabsContent value="history">
+            <div className="mb-4 grid grid-cols-3 gap-3">
+              <Card className="p-4 text-center"><div className="text-2xl font-bold text-emerald-500">{historyQ.data?.wins ?? 0}</div><div className="text-xs text-muted-foreground">Wins</div></Card>
+              <Card className="p-4 text-center"><div className="text-2xl font-bold text-muted-foreground">{historyQ.data?.losses ?? 0}</div><div className="text-xs text-muted-foreground">Losses</div></Card>
+              <Card className="p-4 text-center"><div className="text-2xl font-bold text-amber-500">{historyQ.data?.currentStreak ?? 0} 🔥</div><div className="text-xs text-muted-foreground">Current Streak</div></Card>
+            </div>
+            {historyQ.isLoading ? (
+              <Card className="p-8 text-center text-muted-foreground">Loading battle history…</Card>
+            ) : (historyQ.data?.battles.length ?? 0) === 0 ? (
+              <Card className="p-8 text-center text-muted-foreground">No battles yet. Jump into the arena!</Card>
+            ) : (
+              <Card className="divide-y">
+                {historyQ.data!.battles.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={b.iWon ? "default" : "secondary"}>{b.iWon ? "Win" : "Loss"}</Badge>
+                      <span className="text-muted-foreground">
+                        {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : "PVP Battle"}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </Card>
+            )}
+          </TabsContent>
+
           {/* ---- Leaderboards ---- */}
           <TabsContent value="leaderboards">
             <div className="grid gap-4 md:grid-cols-2">
