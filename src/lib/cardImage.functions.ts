@@ -21,7 +21,11 @@ function wait(ms: number) {
 }
 
 function slug(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
 }
 
 // Stable, collision-resistant key for a card identity.
@@ -33,7 +37,13 @@ function keyFor(p: { category: string; setName: string; number: string; name: st
   return `${label}-${h.toString(36)}.png`;
 }
 
-function buildPrompt(p: { category: string; setName: string; number: string; name: string; rarity: string }) {
+function buildPrompt(p: {
+  category: string;
+  setName: string;
+  number: string;
+  name: string;
+  rarity: string;
+}) {
   const subject = p.name || `card number ${p.number}`;
   const cat = p.category ? `${p.category} ` : "";
   const rarity = p.rarity ? `, ${p.rarity} rarity` : "";
@@ -61,7 +71,9 @@ async function imageGatewayRequest(key: string, body: Record<string, unknown>) {
   try {
     const json = JSON.parse(text) as { data?: { b64_json?: string }[] };
     const b64 = json.data?.[0]?.b64_json;
-    return b64 ? { ok: true as const, b64: cleanBase64(b64) } : { ok: false as const, status: 502, text: "No image returned" };
+    return b64
+      ? { ok: true as const, b64: cleanBase64(b64) }
+      : { ok: false as const, status: 502, text: "No image returned" };
   } catch {
     return { ok: false as const, status: 502, text: "Invalid image response" };
   }
@@ -110,7 +122,9 @@ export const getOrCreateAiCardImage = createServerFn({ method: "POST" })
     });
 
     const createUrl = async () => {
-      const { data: signed, error } = await supabaseAdmin.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+      const { data: signed, error } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (error) console.error("AI card image signed URL failed:", error);
       return signed?.signedUrl ?? null;
     };
@@ -143,6 +157,9 @@ export const getOrCreateAiCardImage = createServerFn({ method: "POST" })
       return { url: await createUrl(), cached: false };
     } catch (e) {
       console.error("AI card image error:", e);
-      return { url: null as string | null, error: e instanceof Error ? e.message : "Image generation error" };
+      return {
+        url: null as string | null,
+        error: e instanceof Error ? e.message : "Image generation error",
+      };
     }
   });
