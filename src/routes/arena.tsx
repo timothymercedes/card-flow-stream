@@ -888,7 +888,12 @@ function ArenaPage() {
                     className={`rounded-lg border p-3 text-left transition ${active ? "border-primary bg-primary/10 ring-1 ring-primary" : "border-border hover:bg-muted"}`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl" aria-hidden>{t.emoji}</span>
+                      <img
+                        src={t.image}
+                        alt={t.name}
+                        loading="lazy"
+                        className="h-12 w-12 shrink-0 object-contain drop-shadow"
+                      />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-bold">{t.name}</div>
                         <div className="truncate text-[10px] font-medium text-primary">{m.emoji} {t.rank}</div>
