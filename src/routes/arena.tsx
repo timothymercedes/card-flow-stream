@@ -8,7 +8,7 @@ import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, battleAiBoss, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
-  getBattleReplay, postBattleToFeed,
+  getBattleReplay, postBattleToFeed, getMissionClaims, claimMission,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
