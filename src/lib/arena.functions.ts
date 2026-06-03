@@ -210,11 +210,12 @@ async function resolvePvpBattle(
 
   const wWins = winner.wins + 1;
   const wStreak = winner.win_streak + 1;
-  const wXp = winner.xp + 50;
+  const streakMult = streakBonusMultiplier(wStreak);
+  const wXp = winner.xp + Math.round(PVP_WIN_XP * streakMult);
   const winnerUpdate = {
     wins: wWins, win_streak: wStreak,
     longest_win_streak: Math.max(winner.longest_win_streak, wStreak),
-    season_wins: winner.season_wins + 1, trophies: winner.trophies + 10,
+    season_wins: winner.season_wins + 1, trophies: winner.trophies + Math.round(10 * streakMult),
     arena_rank: winner.arena_rank + 15, xp: wXp,
     level: companionLevel(wXp), title: titleForWins(wWins),
   };
