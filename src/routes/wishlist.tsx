@@ -189,7 +189,7 @@ function AddDialog({
   const [notifyTrade, setNotifyTrade] = useState(true);
   const [notifyLive, setNotifyLive] = useState(false);
 
-  const reset = () => { setName(""); setSetName(""); setNumber(""); setCategory(""); setMaxPrice(""); setNotifySale(true); setNotifyTrade(true); setNotifyLive(false); };
+  const reset = () => { setName(""); setCardSet(""); setNumber(""); setCategory(""); setMaxPrice(""); setNotifySale(true); setNotifyTrade(true); setNotifyLive(false); };
 
   const submit = () => {
     if (!name.trim()) { toast.error("Card name is required"); return; }

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as TutorialsRouteImport } from './routes/tutorials'
 import { Route as TradesRouteImport } from './routes/trades'
@@ -91,6 +92,11 @@ import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './rou
 import { Route as ApiPublicHooksExpireOffersRouteImport } from './routes/api/public/hooks/expire-offers'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
   path: '/vault',
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/trades': typeof TradesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
@@ -628,6 +635,7 @@ export interface FileRoutesByTo {
   '/trades': typeof TradesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
@@ -712,6 +720,7 @@ export interface FileRoutesById {
   '/trades': typeof TradesRoute
   '/tutorials': typeof TutorialsRoute
   '/vault': typeof VaultRoute
+  '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
@@ -797,6 +806,7 @@ export interface FileRouteTypes {
     | '/trades'
     | '/tutorials'
     | '/vault'
+    | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/insurance-claims'
@@ -880,6 +890,7 @@ export interface FileRouteTypes {
     | '/trades'
     | '/tutorials'
     | '/vault'
+    | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/insurance-claims'
@@ -963,6 +974,7 @@ export interface FileRouteTypes {
     | '/trades'
     | '/tutorials'
     | '/vault'
+    | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/insurance-claims'
@@ -1047,6 +1059,7 @@ export interface RootRouteChildren {
   TradesRoute: typeof TradesRoute
   TutorialsRoute: typeof TutorialsRoute
   VaultRoute: typeof VaultRoute
+  WishlistRoute: typeof WishlistRoute
   DotwellKnownAppleAppSiteAssociationRoute: typeof DotwellKnownAppleAppSiteAssociationRoute
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
@@ -1096,6 +1109,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vault': {
       id: '/vault'
       path: '/vault'
@@ -1734,6 +1754,7 @@ const rootRouteChildren: RootRouteChildren = {
   TradesRoute: TradesRoute,
   TutorialsRoute: TutorialsRoute,
   VaultRoute: VaultRoute,
+  WishlistRoute: WishlistRoute,
   DotwellKnownAppleAppSiteAssociationRoute:
     DotwellKnownAppleAppSiteAssociationRoute,
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
