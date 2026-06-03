@@ -14,9 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, MessageCircle, Trash2, ArrowLeft, Check, Send } from "lucide-react";
+import { Users, Heart, MessageCircle, Trash2, ArrowLeft, Check, Send, Swords } from "lucide-react";
 import { toast } from "sonner";
 import { CommunityChallenges } from "@/components/CommunityChallenges";
+import { arenaCategoryFor, arenaCategoryMeta } from "@/lib/arenaCategories";
 
 export const Route = createFileRoute("/communities/$slug")({
   component: CommunityDetailPage,
