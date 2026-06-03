@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
-import { Swords, Trophy, Sparkles, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users } from "lucide-react";
+import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
+import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users } from "lucide-react";
 import { toast } from "sonner";
 
 type BattleLog = Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }>;
@@ -62,25 +63,38 @@ function HpBar({ hp, side }: { hp: number; side: "left" | "right" }) {
 }
 
 function Fighter({
-  name, image, emoji, side, anim, frameClass = "", effectClass = "", title, hp,
+  name, cardImage, emoji, side, category, seedKey, level = 1, wrapperAnim, companionAnim,
+  frameClass = "", effectClass = "", title, hp,
 }: {
-  name: string; image?: string | null; emoji?: string | null; side: "left" | "right"; anim: string;
+  name: string; cardImage?: string | null; emoji?: string | null; side: "left" | "right";
+  category: string; seedKey: string; level?: number; wrapperAnim: string; companionAnim: CompanionAnim;
   frameClass?: string; effectClass?: string; title?: string; hp: number;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-2">
       <HpBar hp={hp} side={side} />
-      <div className={`relative ${anim}`}>
+      <div className={`relative ${wrapperAnim}`}>
         {effectClass && <span className={`arena-fx ${effectClass}`} aria-hidden />}
-        {image ? (
-          <img src={image} alt={name} className={`arena-fighter relative h-28 w-20 rounded object-cover sm:h-36 sm:w-28 ${frameClass}`} />
-        ) : (
-          <div className={`arena-fighter relative flex h-28 w-20 items-center justify-center rounded bg-muted text-4xl sm:h-36 sm:w-28 sm:text-5xl ${frameClass}`}>
-            {emoji ? <span aria-hidden>{emoji}</span> : <Sparkles className="h-8 w-8 text-muted-foreground" />}
-          </div>
-        )}
+        <CompanionSprite
+          seedKey={seedKey}
+          category={category}
+          anim={companionAnim}
+          size={104}
+          level={level}
+          flip={side === "right"}
+          className={frameClass}
+        />
       </div>
       <p className="max-w-[8rem] truncate text-center text-xs font-bold sm:text-sm">{name}</p>
+      {/* Card stays a collectible reference — never the primary battle visual. */}
+      {cardImage ? (
+        <span className="flex items-center gap-1 rounded-full border bg-background/70 px-1.5 py-0.5">
+          <img src={cardImage} alt={`${name} card`} className="h-5 w-3.5 rounded-[2px] object-cover" />
+          <span className="text-[9px] text-muted-foreground">Card</span>
+        </span>
+      ) : emoji ? (
+        <span className="text-base" aria-hidden>{emoji}</span>
+      ) : null}
       {title ? (
         <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{title}</span>
       ) : (
@@ -93,12 +107,14 @@ function Fighter({
 }
 
 export function ArenaBattleStage({
-  result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
+  result, myName, myImage, mySeed, myLevel = 1, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
   isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
   myName: string;
   myImage?: string | null;
+  mySeed?: string | null;
+  myLevel?: number;
   myFrameClass?: string;
   myEffectClass?: string;
   myTitle?: string;
@@ -166,11 +182,19 @@ export function ArenaBattleStage({
   }, [events, result.iWon, runKey]);
 
   const ev = roundIdx >= 0 ? events[roundIdx] : null;
-  const myAttacking = phase === "fight" && ev?.attacker === "mine" && !!fx;
-  const theirAttacking = phase === "fight" && ev?.attacker === "theirs" && !!fx;
-  const myDefendCls = fx?.side === "mine" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
-  const theirDefendCls = fx?.side === "theirs" ? (fx.kind === "dodge" ? "arena-dodge" : "arena-hit") : "";
   const critActive = !!fx && fx.kind === "crit";
+
+  // Map the current phase/round into a companion sprite animation per side.
+  function companionAnimFor(sideKey: "mine" | "theirs"): CompanionAnim {
+    if (phase === "summary") return result.iWon === (sideKey === "mine") ? "victory" : "defeat";
+    if (phase === "fight" && ev && fx) {
+      if (ev.attacker === sideKey) return "attack";
+      if (fx.side === sideKey) return fx.kind === "dodge" ? "dodge" : "hit";
+    }
+    return "idle";
+  }
+  const myAnim = companionAnimFor("mine");
+  const theirAnim = companionAnimFor("theirs");
 
   function share() {
     const text = result.iWon
@@ -227,13 +251,17 @@ export function ArenaBattleStage({
           <div className="relative flex-1">
             <Fighter
               name={myName}
-              image={myImage}
+              cardImage={myImage}
               side="left"
+              category={arenaCategory}
+              seedKey={mySeed ?? myName}
+              level={myLevel}
               hp={myHp}
               frameClass={myFrameClass}
               effectClass={myEffectClass}
               title={myTitle}
-              anim={`${phase === "intro" ? "arena-enter-left" : ""} ${myAttacking ? "arena-lunge-left" : ""} ${myDefendCls}`.trim()}
+              wrapperAnim={phase === "intro" ? "arena-enter-left" : ""}
+              companionAnim={myAnim}
             />
             {fx?.side === "mine" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
           </div>
@@ -260,11 +288,15 @@ export function ArenaBattleStage({
           <div className="relative flex-1">
             <Fighter
               name={result.opponentName}
-              image={result.opponentImage}
+              cardImage={result.opponentImage}
               emoji={result.opponentEmoji}
               side="right"
+              category={arenaCategory}
+              seedKey={result.opponentName}
+              level={myLevel}
               hp={theirHp}
-              anim={`${phase === "intro" ? "arena-enter-right" : ""} ${theirAttacking ? "arena-lunge-right" : ""} ${theirDefendCls}`.trim()}
+              wrapperAnim={phase === "intro" ? "arena-enter-right" : ""}
+              companionAnim={theirAnim}
             />
             {fx?.side === "theirs" && <FloatText kind={fx.kind} dmg={fx.dmg} runKey={`${runKey}-${roundIdx}`} />}
           </div>
