@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowLeftRight, Plus, Truck, CheckCircle2, XCircle, Star, Repeat, Send,
+  ArrowLeftRight, Plus, Truck, CheckCircle2, XCircle, Star, Repeat, Send, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
