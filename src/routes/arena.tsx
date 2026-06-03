@@ -167,13 +167,15 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Could not update follow"),
   });
 
+  const activeMine = useMemo(
+    () => companions.find((c) => c.id === selectedMine) ?? companions[0],
+    [companions, selectedMine],
+  );
+
   function battleCollector(targetUserId: string) {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
     challengeUserM.mutate({ myCompanionId: activeMine.id, targetUserId });
   }
-    () => companions.find((c) => c.id === selectedMine) ?? companions[0],
-    [companions, selectedMine],
-  );
 
   function fight(opponentId: string) {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
