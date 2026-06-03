@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AiCardImage } from "@/components/AiCardImage";
+import { CardImageUnavailable } from "@/components/CardImageUnavailable";
 
 export const Route = createFileRoute("/collection/missing")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -274,11 +274,7 @@ function MissingCard({ card, group: g }: { card: Missing; group: Group }) {
         {card.image_url ? (
           <img src={card.image_url} alt={`${card.name} ${g.setName} #${card.number}`} className="h-full w-full object-cover" loading="lazy" />
         ) : (
-          <AiCardImage
-            card={{ category: g.category, setName: g.setName, number: card.number, name: card.name, rarity: card.rarity }}
-            alt={`${card.name} ${g.setName} #${card.number}`}
-            className="h-full w-full object-cover"
-          />
+          <CardImageUnavailable />
         )}
         {card.rarity && <Badge className="absolute right-1 top-1 border-0 bg-black/65 text-[8px] text-white">{card.rarity}</Badge>}
         {card.listingsCount > 0 && <Badge className="absolute left-1 top-1 border-0 bg-green-600 text-[9px] text-white">For sale</Badge>}
@@ -342,11 +338,7 @@ function CardDetailsDialog({ card, group: g, onClose }: { card: Missing; group: 
             {card.image_url ? (
               <img src={card.image_url} alt={card.name} className="h-full w-full object-cover" />
             ) : (
-              <AiCardImage
-                card={{ category: g.category, setName: g.setName, number: card.number, name: card.name, rarity: card.rarity }}
-                alt={card.name || `Card #${card.number}`}
-                className="h-full w-full object-cover"
-              />
+              <CardImageUnavailable />
             )}
           </div>
           <p className="text-xs text-muted-foreground">
