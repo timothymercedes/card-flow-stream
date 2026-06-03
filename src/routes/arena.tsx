@@ -362,7 +362,95 @@ function ArenaPage() {
             )}
           </TabsContent>
 
-          {/* ---- Battle History ---- */}
+          {/* ---- Collectors (search / follow / friends battle / rematch) ---- */}
+          <TabsContent value="collectors">
+            {!activeMine && (
+              <Card className="mb-4 p-4 text-center text-sm text-muted-foreground">
+                Unlock a companion first to challenge collectors.
+              </Card>
+            )}
+
+            {/* My badges */}
+            <Card className="mb-4 p-4">
+              <h3 className="mb-3 flex items-center gap-2 font-bold"><Award className="h-4 w-4 text-primary" />Your Badges</h3>
+              {(badgesQ.data?.badges.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">No badges yet — win battles to earn them.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {badgesQ.data!.badges.map((b) => {
+                    const m = ARENA_BADGES[b.key];
+                    return (
+                      <span key={b.key} title={m.desc} className="inline-flex items-center gap-1 rounded-full border bg-muted/40 px-2.5 py-1 text-xs font-medium">
+                        <span className="text-base leading-none">{m.emoji}</span>{m.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+
+            {/* Rematch recent opponents */}
+            {(recentQ.data?.opponents.length ?? 0) > 0 && (
+              <Card className="mb-4 p-4">
+                <h3 className="mb-3 flex items-center gap-2 font-bold"><History className="h-4 w-4 text-primary" />Rematch</h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {recentQ.data!.opponents.map((o) => (
+                    <div key={o.user_id} className="flex items-center justify-between gap-2 rounded-lg border p-2">
+                      <button onClick={() => setProfileUserId(o.user_id)} className="flex min-w-0 items-center gap-2">
+                        <Avatar className="h-8 w-8"><AvatarImage src={o.avatar_url ?? undefined} /><AvatarFallback>{o.username[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                        <span className="truncate text-sm font-medium">{o.username}</span>
+                      </button>
+                      <Button size="sm" variant="secondary" disabled={!activeMine || challengeUserM.isPending} onClick={() => battleCollector(o.user_id)}>
+                        <Swords className="mr-1 h-3.5 w-3.5" />Rematch
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Search collectors */}
+            <Card className="p-4">
+              <h3 className="mb-3 flex items-center gap-2 font-bold"><Search className="h-4 w-4 text-primary" />Find Collectors</h3>
+              <form
+                className="mb-4 flex gap-2"
+                onSubmit={(e) => { e.preventDefault(); setSearchTerm(collectorQuery.trim()); }}
+              >
+                <Input value={collectorQuery} onChange={(e) => setCollectorQuery(e.target.value)} placeholder="Search by username…" />
+                <Button type="submit" variant="secondary"><Search className="h-4 w-4" /></Button>
+              </form>
+              {searchQ.isLoading ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">Searching…</p>
+              ) : (searchQ.data?.collectors.length ?? 0) === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No collectors found.</p>
+              ) : (
+                <div className="divide-y">
+                  {searchQ.data!.collectors.map((c) => (
+                    <div key={c.user_id} className="flex items-center justify-between gap-2 py-2">
+                      <button onClick={() => setProfileUserId(c.user_id)} className="flex min-w-0 items-center gap-3 text-left">
+                        <Avatar className="h-9 w-9"><AvatarImage src={c.avatar_url ?? undefined} /><AvatarFallback>{c.username[0]?.toUpperCase()}</AvatarFallback></Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold">{c.username}</p>
+                          <p className="text-xs text-muted-foreground">{c.wins}W · {c.companions} companions · {titleLabel(c.best)}</p>
+                        </div>
+                      </button>
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button size="icon" variant={c.isFollowing ? "default" : "outline"} className="h-8 w-8"
+                          disabled={followM.isPending}
+                          onClick={() => followM.mutate({ userId: c.user_id, follow: !c.isFollowing })}>
+                          {c.isFollowing ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                        </Button>
+                        <Button size="sm" disabled={!activeMine || challengeUserM.isPending} onClick={() => battleCollector(c.user_id)}>
+                          <Swords className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
           <TabsContent value="history">
             <div className="mb-4 grid grid-cols-3 gap-3">
               <Card className="p-4 text-center"><div className="text-2xl font-bold text-emerald-500">{historyQ.data?.wins ?? 0}</div><div className="text-xs text-muted-foreground">Wins</div></Card>
