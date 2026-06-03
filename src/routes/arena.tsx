@@ -501,7 +501,7 @@ function ArenaPage() {
                     <div className="flex items-center gap-2">
                       <Badge variant={b.iWon ? "default" : "secondary"}>{b.iWon ? "Win" : "Loss"}</Badge>
                       <span className="text-muted-foreground">
-                        {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : "PVP Battle"}
+                        {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : b.type === "boss" ? `Boss Battle${b.difficulty ? ` · ${b.difficulty}` : ""}` : "PVP Battle"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
