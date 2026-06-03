@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
-import { getCollectionBooks, getCollectionBookDetail } from "@/lib/collection.functions";
+import { getCollectionBooks, getCollectionBookDetail, getCollectionDashboard, listCollectionGoals, toggleCollectionGoal, bulkAddMissingToWishlist } from "@/lib/collection.functions";
 import { CollectionRewardButton } from "@/components/CollectionRewardWheel";
 import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy } from "lucide-react";
+import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy, Star, LayoutDashboard, TrendingUp, DollarSign, Gift, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collection")({
