@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -285,11 +285,59 @@ function ArenaPage() {
     battleM.mutate({ myCompanionId: activeMine.id, opponentCompanionId: opponentId });
   }
 
-  function quickMatch() {
-    const pool = oppQ.data?.opponents ?? [];
-    if (pool.length === 0) { toast.error("No opponents available right now"); return; }
-    fight(pool[Math.floor(Math.random() * pool.length)].id);
+  // ---- AI fill-in matchmaking: never wait indefinitely for a human ----
+
+  const SEARCH_SECONDS = 10;
+  const [matchPhase, setMatchPhase] = useState<"idle" | "searching" | "ai-offer">("idle");
+  const [searchSecs, setSearchSecs] = useState(SEARCH_SECONDS);
+  const searchTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function clearSearch() {
+    if (searchTimer.current) { clearInterval(searchTimer.current); searchTimer.current = null; }
   }
+
+  function startMatchmaking() {
+    if (!activeMine) { toast.error("Select one of your companions first"); return; }
+    const pool = oppQ.data?.opponents ?? [];
+    clearSearch();
+    setMatchPhase("searching");
+    // Priority 1 — real player. If one is available, match quickly (short search).
+    if (pool.length > 0) {
+      setSearchSecs(3);
+      let s = 3;
+      searchTimer.current = setInterval(() => {
+        s -= 1; setSearchSecs(s);
+        if (s <= 0) {
+          clearSearch();
+          setMatchPhase("idle");
+          fight(pool[Math.floor(Math.random() * pool.length)].id);
+        }
+      }, 1000);
+      return;
+    }
+    // No real player — search the full window, then offer AI fill-in opponents.
+    setSearchSecs(SEARCH_SECONDS);
+    let s = SEARCH_SECONDS;
+    searchTimer.current = setInterval(() => {
+      s -= 1; setSearchSecs(s);
+      if (s <= 0) { clearSearch(); setMatchPhase("ai-offer"); }
+    }, 1000);
+  }
+
+  function cancelMatchmaking() { clearSearch(); setMatchPhase("idle"); }
+
+  function fightAiTrainer(d: ArenaDifficulty) {
+    if (!activeMine) return;
+    setMatchPhase("idle");
+    pveM.mutate({ myCompanionId: activeMine.id, difficulty: d });
+  }
+
+  // Reset matchmaking whenever the Battle dialog opens/closes.
+  useEffect(() => {
+    if (!battleFor) { clearSearch(); setMatchPhase("idle"); }
+  }, [battleFor]);
+  useEffect(() => () => clearSearch(), []);
+
 
   function trainCpu() {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
@@ -699,15 +747,84 @@ function ArenaPage() {
             <p className="flex-1 text-xs text-muted-foreground">
               Real battles reward the most — up to <span className="font-semibold text-foreground">+{PVP_WIN_XP} XP</span>, trophies, rank and leaderboard points.
             </p>
-            <Button onClick={quickMatch} disabled={battleM.isPending || (oppQ.data?.opponents.length ?? 0) === 0} size="sm">
-              <Zap className="mr-2 h-4 w-4" />Quick Match
+            <Button onClick={startMatchmaking} disabled={battleM.isPending || pveM.isPending || matchPhase === "searching"} size="sm">
+              <Zap className="mr-2 h-4 w-4" />Find Match
             </Button>
           </div>
 
-          {oppQ.isLoading ? (
+          {matchPhase === "searching" ? (
+            <Card className="flex flex-col items-center gap-3 p-8 text-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <p className="font-semibold">Searching for opponent…</p>
+              <p className="text-sm text-muted-foreground">Looking for a real player ({searchSecs}s)</p>
+              <Button variant="ghost" size="sm" onClick={cancelMatchmaking}>Cancel</Button>
+            </Card>
+          ) : matchPhase === "ai-offer" ? (
+            <div className="space-y-3">
+              <Card className="border-amber-500/30 bg-amber-500/5 p-3 text-center text-sm">
+                No active player found right now. Jump straight into an <span className="font-semibold">AI battle</span> — available 24/7.
+                <span className="block text-[11px] text-muted-foreground">AI battles award reduced XP and no ranked progression.</span>
+              </Card>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(["beginner", "normal", "hard"] as ArenaDifficulty[]).map((k) => {
+                  const t = TRAINING_TRAINERS[k];
+                  const m = DIFFICULTY_META[k];
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => fightAiTrainer(k)}
+                      disabled={pveM.isPending}
+                      className="rounded-lg border p-3 text-left transition hover:bg-muted disabled:opacity-60"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl" aria-hidden>{t.emoji}</span>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-bold">{t.name}</div>
+                          <div className="truncate text-[10px] font-medium text-primary">{m.emoji} {t.rank}</div>
+                        </div>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{t.style}</span>
+                        <span className="font-semibold text-foreground">{t.record}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+                {(Object.keys(AI_BOSSES) as ArenaBossKey[]).map((k) => {
+                  const tier = AI_BOSSES[k];
+                  const ch = bossCharacter(k);
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => { setMatchPhase("idle"); fightBoss(k); }}
+                      disabled={bossM.isPending}
+                      className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-left transition hover:bg-amber-500/10 disabled:opacity-60"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl" aria-hidden>{ch.emoji}</span>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-bold">{ch.name}</div>
+                          <div className="truncate text-[10px] font-medium text-amber-600">{tier.emoji} {tier.label} · {ch.record}</div>
+                        </div>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{ch.style}</span>
+                        <span className="font-semibold text-foreground">+{tier.winXp} XP · +{tier.winTrophies} 🏆</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <Button variant="outline" size="sm" className="w-full" onClick={startMatchmaking}>
+                <Zap className="mr-2 h-4 w-4" />Search for a real player again
+              </Button>
+            </div>
+          ) : oppQ.isLoading ? (
             <Card className="p-8 text-center text-muted-foreground">Finding opponents…</Card>
           ) : (oppQ.data?.opponents.length ?? 0) === 0 ? (
-            <Card className="p-8 text-center text-muted-foreground">No opponents in this arena yet. Check back soon!</Card>
+            <Card className="p-6 text-center text-sm text-muted-foreground">
+              No real players in this arena right now. Tap <span className="font-semibold text-foreground">Find Match</span> to battle AI opponents instantly.
+            </Card>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {oppQ.data!.opponents.map((o) => (
