@@ -4,15 +4,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getDailyChallenges, claimArenaChallenge, getArenaCosmetics,
-  buyArenaCosmetic, equipArenaCosmetic,
+  buyArenaCosmetic, equipArenaCosmetic, getSetCompletionRewards, claimSetReward,
 } from "@/lib/arena.functions";
 import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
 import { ARENA_COSMETICS, COSMETIC_MAP, RARITY_COLOR, type CosmeticType } from "@/lib/arenaCosmetics";
+import { arenaCategoryMeta } from "@/lib/arenaCategories";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Coins, Check, Gift } from "lucide-react";
+import { Coins, Check, Gift, BookCheck } from "lucide-react";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<CosmeticType, string> = {
