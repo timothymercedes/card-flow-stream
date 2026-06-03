@@ -242,14 +242,28 @@ function BookTile({ book, onOpen, isGoal, onToggleGoal }: { book: Book; onOpen: 
   );
 }
 
-function BookDetail({ setName, category, onBack }: { setName: string; category: string; onBack: () => void }) {
+function BookDetail({ setName, category, onBack, isGoal, onToggleGoal }: { setName: string; category: string; onBack: () => void; isGoal: boolean; onToggleGoal: (setName: string, category: string) => void }) {
   const getDetail = useServerFn(getCollectionBookDetail);
+  const bulkAdd = useServerFn(bulkAddMissingToWishlist);
   const q = useQuery({
     queryKey: ["collection-book", setName, category],
     queryFn: () => getDetail({ data: { setName, category } }),
   });
   const [tab, setTab] = useState("missing");
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [addingAll, setAddingAll] = useState(false);
+
+  const addAllToWishlist = async () => {
+    setAddingAll(true);
+    try {
+      const r = await bulkAdd({ data: { setName, category } });
+      toast.success(r.added > 0 ? `Added ${r.added} cards to your wishlist` : "All missing cards already on your wishlist");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAddingAll(false);
+    }
+  };
 
   const d = q.data;
 
