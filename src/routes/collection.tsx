@@ -206,7 +206,6 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
 type Missing = Awaited<ReturnType<typeof getCollectionBookDetail>>["missing"][number];
 
 function MissingCard({ card, setName }: { card: Missing; setName: string }) {
-  const searchTo = `${card.name} ${setName}`.trim();
   return (
     <Card className="overflow-hidden opacity-95">
       <div className="relative aspect-[3/4] bg-muted">
