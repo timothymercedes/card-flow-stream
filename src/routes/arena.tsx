@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
-  unfollowCollector, challengeUser, getRecentOpponents, listMyBadges,
+  unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/arenaShared";
 import { ARENA_CATEGORIES } from "@/lib/arenaCategories";
 import { ArenaBattleStage } from "@/components/arena/ArenaBattleStage";
+import { ArenaRewards, equippedClasses } from "@/components/arena/ArenaRewards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
