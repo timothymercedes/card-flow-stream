@@ -273,6 +273,27 @@ function ArenaPage() {
           </Button>
         </div>
 
+        {/* Top-level Arena Category filter — keeps the roster visible, no category page. */}
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">Arena Category</span>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">⚔️ All Categories</SelectItem>
+              {FILTER_CATEGORY_KEYS.map((k) => {
+                const m = arenaCategoryMeta(k);
+                return (
+                  <SelectItem key={k} value={k}>{m.emoji} {m.label}</SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+
+
+
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="roster"><Sparkles className="mr-1 h-4 w-4" />Companions</TabsTrigger>
