@@ -251,6 +251,7 @@ async function resolvePvpBattle(
       ? { xp: 50, trophies: 10, rank: 15, credits }
       : { xp: 15, trophies: 2, rank: -10, credits: 0 },
     opponentName: them.name,
+    opponentImage: them.image_url ?? null,
     newBadges,
   };
 }
@@ -410,6 +411,7 @@ export const battlePve = createServerFn({ method: "POST" })
       log,
       rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
       opponentName: `${cpuName} (${diff.label})`,
+      opponentImage: null as string | null,
       newBadges: [] as ArenaBadgeKey[],
     };
   });
