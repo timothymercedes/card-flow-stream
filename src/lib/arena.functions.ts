@@ -888,3 +888,199 @@ export const claimSetReward = createServerFn({ method: "POST" })
     }
     return { ok: true, rewardXp: SET_COMPLETION_XP, rewardCredits: SET_COMPLETION_CREDITS, xpCompanion };
   });
+
+// ===================================================================
+// Battle replay viewer + Arena social feed (digital-only, presentational).
+// Replays rehydrate a saved battle log into the staged viewer. The feed lets
+// collectors share battles, like, and comment — a reason to WATCH battles.
+// ===================================================================
+
+type ReplayLog = Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }>;
+
+// Rebuild a StageResult-shaped payload from a stored battle, from the
+// signed-in user's perspective (flips the log if the user was the opponent).
+export const getBattleReplay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { battleId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: b, error } = await supabaseAdmin
+      .from("arena_battles").select("*").eq("id", data.battleId).maybeSingle();
+    if (error || !b) throw new Error("Battle not found");
+
+    const iAmChallenger = b.challenger_id === userId;
+    const iAmOpponent = b.opponent_id === userId;
+    if (!iAmChallenger && !iAmOpponent) throw new Error("This is not your battle");
+
+    const ids = [b.challenger_companion_id, b.opponent_companion_id].filter(Boolean) as string[];
+    const { data: comps } = await supabaseAdmin
+      .from("arena_companions").select("id, name, image_url").in("id", ids);
+    const cmap = new Map((comps || []).map((c: any) => [c.id, c]));
+    const challengerC = cmap.get(b.challenger_companion_id) as any;
+    const opponentC = b.opponent_companion_id ? (cmap.get(b.opponent_companion_id) as any) : null;
+
+    // The stored log is always from the challenger's perspective ("mine").
+    const rawLog = (b.log || []) as ReplayLog;
+    const log: ReplayLog = iAmChallenger
+      ? rawLog
+      : rawLog.map((r) => ({ round: r.round, mine: r.theirs, theirs: r.mine, winner: r.winner === "mine" ? "theirs" : "mine" }));
+
+    let myRounds = 0, theirRounds = 0;
+    for (const r of log) { if (r.winner === "mine") myRounds++; else theirRounds++; }
+    const iWon = b.winner_companion_id != null
+      && ((iAmChallenger && b.winner_companion_id === b.challenger_companion_id)
+        || (iAmOpponent && b.winner_companion_id === b.opponent_companion_id));
+
+    const myCompanion = iAmChallenger ? challengerC : opponentC;
+    const oppCompanion = iAmChallenger ? opponentC : challengerC;
+    const isPve = b.battle_type === "pve";
+
+    return {
+      battleId: b.id,
+      isTraining: isPve,
+      myName: myCompanion?.name ?? "Your companion",
+      myImage: (myCompanion?.image_url ?? null) as string | null,
+      result: {
+        iWon,
+        myRounds,
+        theirRounds,
+        log,
+        rewards: { xp: 0, trophies: 0, rank: 0, credits: 0 },
+        opponentName: isPve ? "Training Opponent" : (oppCompanion?.name ?? "Opponent"),
+        opponentImage: (oppCompanion?.image_url ?? null) as string | null,
+        newBadges: [] as ArenaBadgeKey[],
+      },
+    };
+  });
+
+// ---- Share a battle to the Arena feed ----
+export const postBattleToFeed = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: {
+    battleId?: string | null; caption?: string; won: boolean;
+    opponentName?: string | null; companionName?: string | null; imageUrl?: string | null;
+  }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const caption = (data.caption ?? "").trim().slice(0, 280);
+    const { data: row, error } = await supabase.from("arena_feed_posts").insert({
+      user_id: userId,
+      battle_id: data.battleId ?? null,
+      caption: caption || null,
+      won: !!data.won,
+      opponent_name: data.opponentName ?? null,
+      companion_name: data.companionName ?? null,
+      image_url: data.imageUrl ?? null,
+    }).select("id").maybeSingle();
+    if (error) throw new Error(error.message);
+    return { ok: true, postId: row?.id ?? null };
+  });
+
+// ---- Arena feed (recent shared battles) with liked-by-me + author profile ----
+export const getArenaFeed = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: posts, error } = await supabaseAdmin
+      .from("arena_feed_posts").select("*")
+      .order("created_at", { ascending: false }).limit(40);
+    if (error) throw new Error(error.message);
+    const rows = (posts || []) as any[];
+    if (rows.length === 0) return { posts: [] as any[] };
+
+    const postIds = rows.map((p) => p.id);
+    const authorIds = [...new Set(rows.map((p) => p.user_id))];
+
+    const [{ data: profiles }, { data: myLikes }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, username, avatar_url").in("id", authorIds),
+      supabaseAdmin.from("arena_feed_likes").select("post_id").eq("user_id", userId).in("post_id", postIds),
+    ]);
+    const pmap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const liked = new Set((myLikes || []).map((l: any) => l.post_id));
+
+    return {
+      posts: rows.map((p) => {
+        const author = pmap.get(p.user_id) as any;
+        return {
+          id: p.id,
+          battle_id: p.battle_id,
+          caption: p.caption,
+          won: p.won,
+          opponent_name: p.opponent_name,
+          companion_name: p.companion_name,
+          image_url: p.image_url,
+          like_count: p.like_count,
+          comment_count: p.comment_count,
+          created_at: p.created_at,
+          user_id: p.user_id,
+          username: author?.username ?? "Collector",
+          avatar_url: author?.avatar_url ?? null,
+          likedByMe: liked.has(p.id),
+          isMine: p.user_id === userId,
+        };
+      }),
+    };
+  });
+
+// ---- Like / unlike a feed post ----
+export const likeFeedPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { postId: string; like: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    if (data.like) {
+      const { error } = await supabase.from("arena_feed_likes")
+        .upsert({ post_id: data.postId, user_id: userId }, { onConflict: "post_id,user_id" });
+      if (error) throw new Error(error.message);
+      return { liked: true };
+    }
+    const { error } = await supabase.from("arena_feed_likes")
+      .delete().eq("post_id", data.postId).eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { liked: false };
+  });
+
+// ---- Comments on a feed post (read) ----
+export const getFeedComments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { postId: string }) => d)
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("arena_feed_comments").select("*").eq("post_id", data.postId)
+      .order("created_at", { ascending: true }).limit(100);
+    if (error) throw new Error(error.message);
+    const list = (rows || []) as any[];
+    const ids = [...new Set(list.map((c) => c.user_id))];
+    const { data: profiles } = ids.length
+      ? await supabaseAdmin.from("profiles").select("id, username, avatar_url").in("id", ids)
+      : { data: [] as any[] };
+    const pmap = new Map((profiles || []).map((p: any) => [p.id, p]));
+    return {
+      comments: list.map((c) => {
+        const p = pmap.get(c.user_id) as any;
+        return {
+          id: c.id, body: c.body, created_at: c.created_at, user_id: c.user_id,
+          username: p?.username ?? "Collector", avatar_url: p?.avatar_url ?? null,
+        };
+      }),
+    };
+  });
+
+// ---- Add a comment to a feed post ----
+export const commentOnFeedPost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { postId: string; body: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const body = (data.body ?? "").trim().slice(0, 280);
+    if (!body) throw new Error("Comment cannot be empty");
+    const { error } = await supabase.from("arena_feed_comments")
+      .insert({ post_id: data.postId, user_id: userId, body });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
