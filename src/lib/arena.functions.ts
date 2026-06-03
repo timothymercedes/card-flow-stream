@@ -9,6 +9,7 @@ import {
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, type ArenaBossKey,
 } from "@/lib/arenaShared";
 import { arenaCategoryFor } from "@/lib/arenaCategories";
+import { MISSION_MAP } from "@/lib/arenaTraining";
 import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
 import { COSMETIC_MAP } from "@/lib/arenaCosmetics";
 
