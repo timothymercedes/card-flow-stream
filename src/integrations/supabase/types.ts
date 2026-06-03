@@ -312,6 +312,7 @@ export type Database = {
           cosmetics: Json
           created_at: string
           defense: number
+          fighter_image_url: string | null
           hidden_traits: Json
           id: string
           image_url: string | null
@@ -339,6 +340,7 @@ export type Database = {
           cosmetics?: Json
           created_at?: string
           defense?: number
+          fighter_image_url?: string | null
           hidden_traits?: Json
           id?: string
           image_url?: string | null
@@ -366,6 +368,7 @@ export type Database = {
           cosmetics?: Json
           created_at?: string
           defense?: number
+          fighter_image_url?: string | null
           hidden_traits?: Json
           id?: string
           image_url?: string | null

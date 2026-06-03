@@ -1,0 +1,1 @@
+ALTER TABLE public.arena_companions ADD COLUMN IF NOT EXISTS fighter_image_url text;
