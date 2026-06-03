@@ -736,7 +736,11 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         const ex = byNumber.get(n);
         if (!ex || (!ex.image_url && card.image_url)) byNumber.set(n, card);
       });
-      if (byNumber.size === 0) continue;
+      // Whether we can enumerate the FULL official checklist (1..total). This
+      // is what makes every missing card visible even when the catalog only
+      // has details for a handful of cards in the set.
+      const canEnumerate = b.official && b.knownTotal > 0;
+      if (byNumber.size === 0 && !canEnumerate) continue;
 
       const { data: mine } = await supabaseAdmin
         .from("vault_cards")
