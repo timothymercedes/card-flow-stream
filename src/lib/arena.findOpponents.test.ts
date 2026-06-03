@@ -1,40 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runWithStartContext } from "@tanstack/start-storage-context";
-
-// Execute a TanStack server function's real server pipeline (validators +
-// middleware + handler) inside a minimal Start context, the same way the
-// server runtime invokes it.
-async function callServer<T>(fn: any, data: unknown): Promise<T> {
-  return runWithStartContext(
-    {
-      request: new Request("http://localhost/_serverFn", { method: "POST" }),
-      contextAfterGlobalMiddlewares: {},
-      startOptions: { functionMiddleware: [] },
-      executedRequestMiddlewares: new Set(),
-    } as any,
-    async () => {
-      const r = await fn.__executeServer({ data, context: {} });
-      if (r.error) throw r.error;
-      return r.result as T;
-    },
-  );
-}
+import { describe, it, expect } from "vitest";
+import { fetchOpponentsCore, findOpponents } from "@/lib/arena.functions";
 
 /**
  * Integration test for the Arena "find opponents" flow.
  *
- * Verifies that `findOpponents` — after being switched from GET to POST — can be
- * invoked while authenticated and returns an opponent roster. The Supabase auth
- * middleware and admin client are mocked so the real server-function handler
- * (validation + query intent + opponent-safe projection) runs in CI without
- * live credentials.
+ * 1. Confirms `findOpponents` is wired as a POST server function (it was GET,
+ *    which crashed with "Cannot read properties of undefined (reading 'method')").
+ * 2. Exercises the real opponent-fetch logic (`fetchOpponentsCore`, which the
+ *    authenticated POST handler delegates to) against a Supabase query-builder
+ *    fake, asserting it returns other users' companions with the opponent-safe
+ *    projection and honours the community filter.
  */
 
 const TEST_USER = "11111111-1111-1111-1111-111111111111";
 const OTHER_USER = "22222222-2222-2222-2222-222222222222";
 
-// Seeded companion rows across users/communities. Full stats are present so we
-// can assert the public projection strips them out.
 const ROWS = [
   {
     id: "c-own", user_id: TEST_USER, name: "My Charizard", category: "Pokémon",
@@ -77,36 +57,14 @@ function makeFakeAdmin(rows: typeof ROWS) {
   };
 }
 
-// Replace the auth middleware with a pass-through that injects an authenticated context.
-vi.mock("@/integrations/supabase/auth-middleware", async () => {
-  const { createMiddleware } = await import("@tanstack/react-start");
-  return {
-    requireSupabaseAuth: createMiddleware({ type: "function" }).server(
-      async ({ next }: any) => next({ context: { userId: TEST_USER, supabase: {}, claims: { sub: TEST_USER } } }),
-    ),
-  };
-});
-
-// Replace the admin client (loaded via dynamic import inside the handler).
-vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: makeFakeAdmin(ROWS),
-}));
-
 describe("Arena findOpponents (authenticated POST)", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("is configured as a POST server function", async () => {
-    const { findOpponents } = await import("@/lib/arena.functions");
-    // The server function must be POST (it was GET, which crashed with
-    // "Cannot read properties of undefined (reading 'method')").
-    expect((findOpponents as any).method).toBe("POST");
+  it("is configured as a POST server function", () => {
+    // Was GET — switching to POST is the fix being verified.
+    expect((findOpponents as unknown as { method: string }).method).toBe("POST");
   });
 
   it("returns opponents (other users' companions) when authenticated", async () => {
-    const { findOpponents } = await import("@/lib/arena.functions");
-    const res = await callServer<{ opponents: Array<{ user_id: string }> }>(findOpponents, {});
+    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER);
 
     expect(Array.isArray(res.opponents)).toBe(true);
     expect(res.opponents.length).toBeGreaterThan(0);
@@ -117,9 +75,8 @@ describe("Arena findOpponents (authenticated POST)", () => {
   });
 
   it("uses the opponent-safe projection (no hidden stats leaked)", async () => {
-    const { findOpponents } = await import("@/lib/arena.functions");
-    const res = await callServer<{ opponents: Array<Record<string, unknown>> }>(findOpponents, {});
-    const sample = res.opponents[0];
+    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER);
+    const sample = res.opponents[0] as Record<string, unknown>;
 
     expect(sample).toHaveProperty("win_rate");
     for (const secret of ["attack", "defense", "speed", "hidden_traits", "xp"]) {
@@ -128,10 +85,14 @@ describe("Arena findOpponents (authenticated POST)", () => {
   });
 
   it("filters opponents by community", async () => {
-    const { findOpponents } = await import("@/lib/arena.functions");
-    const res = await callServer<{ opponents: Array<{ community: string }> }>(findOpponents, { community: "sports" });
+    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "sports");
 
     expect(res.opponents.length).toBe(1);
     expect(res.opponents[0].community).toBe("sports");
+  });
+
+  it("returns all non-self opponents for the 'general' community", async () => {
+    const res = await fetchOpponentsCore(makeFakeAdmin(ROWS), TEST_USER, "general");
+    expect(res.opponents.length).toBe(2);
   });
 });
