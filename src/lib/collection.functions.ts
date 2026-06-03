@@ -782,8 +782,37 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         if (n) forTrade.set(n, (forTrade.get(n) ?? 0) + 1);
       });
 
-      const missing = [...byNumber.entries()]
-        .filter(([n]) => !ownedNums.has(n))
+      // Build the set of candidate missing card numbers.
+      //  - When we know the official total, enumerate 1..total so EVERY card
+      //    the user still needs is surfaced (numbered placeholders are used
+      //    when the catalog has no details for that number — never fake data).
+      //  - Otherwise fall back to the catalog universe we do have.
+      const candidates = new Map<string, BookCard & { catalogPending: boolean }>();
+      if (canEnumerate) {
+        for (let i = 1; i <= b.knownTotal; i++) {
+          const n = String(i);
+          if (ownedNums.has(n)) continue;
+          const cat = byNumber.get(n);
+          candidates.set(n, {
+            number: cat?.number ?? n,
+            name: cat?.name ?? "",
+            image_url: cat?.image_url ?? null,
+            value: cat?.value ?? 0,
+            rarity: cat?.rarity ?? null,
+            catalogPending: !cat,
+          });
+        }
+        // Include any catalog cards with non-numeric numbers the user lacks.
+        for (const [n, c] of byNumber) {
+          if (!ownedNums.has(n) && !candidates.has(n)) candidates.set(n, { ...c, catalogPending: false });
+        }
+      } else {
+        for (const [n, c] of byNumber) {
+          if (!ownedNums.has(n)) candidates.set(n, { ...c, catalogPending: false });
+        }
+      }
+
+      const missing = [...candidates.entries()]
         .map(([n, c]) => ({
           ...c,
           listingsCount: forSale.get(n) ?? 0,
@@ -791,9 +820,13 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
           tradeCount: forTrade.get(n) ?? 0,
         }))
         .sort((a, b2) => {
-          const aa = (a.listingsCount > 0 ? 2 : 0) + (a.auctionCount > 0 ? 1 : 0) + (a.tradeCount > 0 ? 1 : 0);
-          const bb = (b2.listingsCount > 0 ? 2 : 0) + (b2.auctionCount > 0 ? 1 : 0) + (b2.tradeCount > 0 ? 1 : 0);
+          // Available first, then cards we have catalog details for, then by number.
+          const aa = (a.listingsCount > 0 ? 4 : 0) + (a.auctionCount > 0 ? 2 : 0) + (a.tradeCount > 0 ? 1 : 0);
+          const bb = (b2.listingsCount > 0 ? 4 : 0) + (b2.auctionCount > 0 ? 2 : 0) + (b2.tradeCount > 0 ? 1 : 0);
           if (bb !== aa) return bb - aa;
+          const ad = a.catalogPending ? 1 : 0;
+          const bd = b2.catalogPending ? 1 : 0;
+          if (ad !== bd) return ad - bd;
           return (Number(a.number) || 0) - (Number(b2.number) || 0);
         });
 
@@ -807,7 +840,7 @@ export const getMissingCardCenter = createServerFn({ method: "GET" })
         remaining: Math.max(0, b.knownTotal - b.ownedDistinct),
         favorited: favKeys.has(b.key),
         availableCount: missing.filter((m) => m.listingsCount + m.auctionCount + m.tradeCount > 0).length,
-        missing: missing.slice(0, 60),
+        missing: missing.slice(0, 120),
       });
     }
     return { groups };
