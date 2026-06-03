@@ -333,14 +333,9 @@ export const awardCompanionXp = createServerFn({ method: "POST" })
 // ---- PVE: battle a computer opponent (training) ----
 // Capped, reduced rewards. NO arena_rank / season_wins / leaderboard points are
 // awarded — real PVP battles are always more valuable (anti-abuse).
-const COMPUTER_NAMES = [
-  "Training Dummy", "Rookie Bot", "Arena Sentinel", "Practice Golem",
-  "Sparring Partner", "Mock Challenger", "Drill Master", "Shadow Trainer",
-];
-
 export const battlePve = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { myCompanionId: string; difficulty: ArenaDifficulty }) => d)
+  .inputValidator((d: { myCompanionId: string; difficulty: ArenaDifficulty; environment?: string }) => d)
   .handler(async ({ context, data }) => {
     const { userId } = context;
     const diff = DIFFICULTY_META[data.difficulty] ?? DIFFICULTY_META.normal;
