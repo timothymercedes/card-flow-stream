@@ -1697,8 +1697,12 @@ function Vault() {
     setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, ...patch } : c)));
     setActionFor((prev) => (prev && prev.id === card.id ? { ...prev, ...patch } : prev));
     const { error } = await supabase.from("vault_cards").update(patch as never).eq("id", card.id);
-    if (error) toast.error("Couldn't update trade setting");
-    else await syncTradeMarketListing({ ...card, ...patch }, key, value);
+    if (error) {
+      toast.error("Couldn't update trade setting");
+      load();
+      return;
+    }
+    await syncTradeMarketListing({ ...card, ...patch }, key, value);
   }
 
   async function syncTradeMarketListing(card: Card, key: "accept_trades" | "trade_plus_cash" | "accept_offers" | "collection_only", value: boolean) {
@@ -1706,13 +1710,14 @@ function Vault() {
     const nowIso = new Date().toISOString();
     const activeTrade = !!card.accept_trades || !!card.trade_plus_cash;
     if (!activeTrade || key === "collection_only") {
-      await supabase
+      const { error } = await supabase
         .from("listings")
         .update({ expires_at: nowIso, auction_status: "cancelled" } as never)
         .eq("seller_id", user.id)
         .eq("vault_card_id", card.id)
         .eq("listing_type", "trade")
         .eq("auction_status", "active");
+      if (error) toast.error(error.message);
       if (value || key !== "collection_only") toast.success("Removed from active trade listings");
       return;
     }
@@ -1730,7 +1735,7 @@ function Vault() {
     const description = `${card.trade_plus_cash ? "Available for trade + cash" : "Available for trade"} from my vault${card.tcg_set ? ` — ${card.tcg_set}` : ""}${card.tcg_number ? ` #${card.tcg_number}` : ""}.`;
     if (existing?.id) {
       if (existing.listing_type === "trade") {
-        await supabase.from("listings").update({
+        const { error } = await supabase.from("listings").update({
           title: card.name,
           description,
           image_url: displayImage(card) || card.image_url,
@@ -1742,6 +1747,7 @@ function Vault() {
           auction_status: "active",
           expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
         } as never).eq("id", existing.id);
+        if (error) return toast.error(error.message);
       }
       toast.success("Active in Trade Center and Marketplace");
       return;
