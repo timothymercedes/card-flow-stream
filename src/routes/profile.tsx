@@ -16,6 +16,7 @@ import { SellerTrustBadges } from "@/components/SellerTrustBadges";
 import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
+import { CollectorShowcase } from "@/components/CollectorShowcase";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -266,6 +267,11 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Collector rank, level, achievements + Showcase 9 */}
+        <CollectorShowcase userId={user.id} />
+
+
 
 
         {/* Quick action bar — own profile shortcuts */}

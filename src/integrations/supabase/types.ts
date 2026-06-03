@@ -7116,6 +7116,7 @@ export type Database = {
           rarity: string | null
           recent_sales_avg: number | null
           review_reason: string | null
+          showcase_order: number | null
           sold_at: string | null
           sold_stream_id: string | null
           status: string
@@ -7195,6 +7196,7 @@ export type Database = {
           rarity?: string | null
           recent_sales_avg?: number | null
           review_reason?: string | null
+          showcase_order?: number | null
           sold_at?: string | null
           sold_stream_id?: string | null
           status?: string
@@ -7274,6 +7276,7 @@ export type Database = {
           rarity?: string | null
           recent_sales_avg?: number | null
           review_reason?: string | null
+          showcase_order?: number | null
           sold_at?: string | null
           sold_stream_id?: string | null
           status?: string
