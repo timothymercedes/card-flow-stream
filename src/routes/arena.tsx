@@ -539,6 +539,11 @@ function ArenaPage() {
               myTitle={equipped.titleText}
               arenaCategory={activeMine?.arena_category ?? category}
               isTraining={battleResult.rewards.rank === 0 && battleResult.rewards.credits === 0}
+              environmentLabel={
+                "environment" in battleResult && battleResult.environment
+                  ? environmentMeta(activeMine?.arena_category, battleResult.environment).label
+                  : undefined
+              }
               onShareToFeed={() => shareFeedM.mutate({
                 result: battleResult,
                 companionName: activeMine?.name ?? "Your companion",
