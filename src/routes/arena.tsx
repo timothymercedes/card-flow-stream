@@ -229,6 +229,15 @@ function ArenaPage() {
                   </div>
                 </div>
 
+                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-primary/5 p-3">
+                  <p className="flex-1 text-xs text-muted-foreground">
+                    Real battles reward the most — up to <span className="font-semibold text-foreground">+{PVP_WIN_XP} XP</span>, trophies, rank and leaderboard points.
+                  </p>
+                  <Button onClick={quickMatch} disabled={battleM.isPending || (oppQ.data?.opponents.length ?? 0) === 0} size="sm">
+                    <Zap className="mr-2 h-4 w-4" />Quick Match
+                  </Button>
+                </div>
+
                 {oppQ.isLoading ? (
                   <Card className="p-8 text-center text-muted-foreground">Finding opponents…</Card>
                 ) : (oppQ.data?.opponents.length ?? 0) === 0 ? (
