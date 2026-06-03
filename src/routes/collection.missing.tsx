@@ -343,7 +343,11 @@ function CardDetailsDialog({ card, group: g, onClose }: { card: Missing; group: 
             {card.image_url ? (
               <img src={card.image_url} alt={card.name} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground"><BookOpen className="h-6 w-6" /></div>
+              <AiCardImage
+                card={{ category: g.category, setName: g.setName, number: card.number, name: card.name, rarity: card.rarity }}
+                alt={card.name || `Card #${card.number}`}
+                className="h-full w-full object-cover"
+              />
             )}
           </div>
           <p className="text-xs text-muted-foreground">
