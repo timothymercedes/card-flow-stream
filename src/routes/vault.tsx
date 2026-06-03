@@ -50,6 +50,8 @@ type Card = {
   confirmed_by?: string | null;
   card_identity_id?: string | null; master_identity_id?: string | null; enrichment_status?: string | null;
   pricing_details?: Record<string, unknown> | null; price_source_url?: string | null;
+  accept_trades?: boolean | null; trade_plus_cash?: boolean | null;
+  accept_offers?: boolean | null; collection_only?: boolean | null;
 };
 
 function Vault() {
@@ -1684,6 +1686,10 @@ function Vault() {
       price: editing.price != null ? Number(editing.price) : null,
       tcg_number: editing.tcg_number || null, tcg_set: editing.tcg_set || null, tcg_year: editing.tcg_year || null,
       condition: editing.condition || null,
+      accept_trades: !!editing.accept_trades,
+      trade_plus_cash: !!editing.trade_plus_cash,
+      accept_offers: !!editing.accept_offers,
+      collection_only: !!editing.collection_only,
       estimated_value: newValue,
     };
     setCards((prev) => prev.map((c) => (c.id === editing.id ? { ...c, ...patch } : c)));
@@ -2739,6 +2745,25 @@ function Vault() {
                 <p className="font-bold">${Number(editing.estimated_value || 0).toFixed(2)}</p>
               </div>
               <input type="number" min="0" step="0.01" value={editing.price ?? ""} onChange={(e) => setEditing({ ...editing, price: e.target.value === "" ? null : Number(e.target.value) })} className="rounded-lg bg-input px-3 py-2 text-sm" placeholder="My ask price ($)" />
+            </div>
+            <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Trade availability</p>
+              {([
+                ["accept_trades", "Available for trade"],
+                ["trade_plus_cash", "Accept trade + cash"],
+                ["accept_offers", "Accept offers"],
+                ["collection_only", "Collection only (not for trade)"],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="flex items-center justify-between gap-2 text-sm">
+                  <span>{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={!!editing[key]}
+                    onChange={(e) => setEditing({ ...editing, [key]: e.target.checked })}
+                    className="h-5 w-5 accent-primary"
+                  />
+                </label>
+              ))}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={saveEdit} className="rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground">Save changes</button>
