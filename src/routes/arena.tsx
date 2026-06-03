@@ -1121,7 +1121,15 @@ function OwnerCompanionCard({
               <Badge variant="secondary">Lv {c.level}</Badge>
             </div>
           </div>
-          <div className="mt-1"><CategoryBadge categoryKey={c.arena_category} /></div>
+          <p className="mt-0.5 truncate text-xs font-medium">
+            <span className="mr-1">{c.archetype.emoji}</span>{c.archetype.label}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            <CategoryBadge categoryKey={c.arena_category} />
+            <Badge variant="outline" className={`text-[10px] ${c.rarity.color} ${c.rarity.ring}`}>
+              {c.rarity.emoji} {c.rarity.short}
+            </Badge>
+          </div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
           <p className="mt-0.5 text-xs text-muted-foreground">{cm.emoji} {cm.arena} · {c.wins}W / {c.losses}L</p>
           <div className="mt-1">
