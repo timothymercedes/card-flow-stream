@@ -47,9 +47,26 @@ function QuestsPage() {
         setProgress(map);
         const { data: ua } = await supabase.from("user_achievements" as any).select("achievement_id").eq("user_id", user.id);
         setUnlocked(new Set(((ua as any) || []).map((u: any) => u.achievement_id)));
+        const { data: cs } = await supabase.from("user_crate_state" as any).select("last_opened_date").eq("user_id", user.id).maybeSingle();
+        setCrateOpenedToday(((cs as any)?.last_opened_date ?? null) === today);
+        const { data: rw } = await supabase.from("user_rewards" as any).select("reward_slug").eq("user_id", user.id);
+        setOwnedRewards(((rw as any) || []).map((r: any) => r.reward_slug));
       }
     })();
   }, [user?.id]);
+
+  const handleOpenCrate = async () => {
+    if (opening || crateOpenedToday) return;
+    setOpening(true);
+    const reward = await openDailyCrate();
+    setOpening(false);
+    if (!reward) { toast.error("Couldn't open crate. Try again."); return; }
+    if (reward.already_opened) { setCrateOpenedToday(true); toast("You already opened today's crate."); return; }
+    setCrateOpenedToday(true);
+    setLastReward(reward);
+    if (reward.reward_slug && reward.kind !== "xp") setOwnedRewards((p) => [...new Set([...p, reward.reward_slug!])]);
+    toast.success(`${reward.reward_name} • +${reward.xp_bonus} XP`);
+  };
 
   const lvl = progression ? progressToNextLevel(progression.xp) : null;
 
