@@ -71,6 +71,7 @@ export async function ensureFighterForCompanion(companion: {
   if (!dataUrl) return null;
 
   // Persist the generated figure to storage so the client gets a small URL.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
   let publicUrl = dataUrl;
   if (match) {
@@ -97,6 +98,7 @@ export const ensureCompanionFighter = createServerFn({ method: "POST" })
   .inputValidator((input: { companionId: string }) => input)
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: c } = await supabaseAdmin
       .from("arena_companions")
       .select("id, user_id, name, category, image_url, fighter_image_url")
