@@ -640,7 +640,7 @@ function ArenaPage() {
             <ArenaBattleStage
               result={battleResult}
               myName={activeMine?.name ?? "Your companion"}
-              myImage={activeMine?.image_url}
+              myImage={activeMine?.fighter_image_url ?? activeMine?.image_url}
               mySeed={activeMine ? `${activeMine.id}:${activeMine.name}` : null}
               myLevel={activeMine?.level ?? 1}
               myPassive={activeMine?.hidden_traits?.[0] ?? null}
