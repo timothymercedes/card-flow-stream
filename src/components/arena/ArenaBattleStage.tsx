@@ -18,6 +18,7 @@ export type StageResult = {
   myRounds: number;
   theirRounds: number;
   log: BattleLog;
+  battleId?: string | null;
   rewards: { xp: number; trophies: number; rank: number; credits: number };
   opponentName: string;
   opponentImage?: string | null;
