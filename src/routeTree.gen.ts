@@ -21,6 +21,7 @@ import { Route as ShowoffRouteImport } from './routes/showoff'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as RewardsRouteImport } from './routes/rewards'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as QuestsRouteImport } from './routes/quests'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -152,6 +153,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RewardsRoute = RewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -552,6 +558,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/quests': typeof QuestsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/rewards': typeof RewardsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
@@ -638,6 +645,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/quests': typeof QuestsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/rewards': typeof RewardsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
@@ -725,6 +733,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/quests': typeof QuestsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/rewards': typeof RewardsRoute
   '/sell': typeof SellRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
@@ -813,6 +822,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/quests'
     | '/reset-password'
+    | '/rewards'
     | '/sell'
     | '/settings'
     | '/shop'
@@ -899,6 +909,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/quests'
     | '/reset-password'
+    | '/rewards'
     | '/sell'
     | '/settings'
     | '/shop'
@@ -985,6 +996,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/quests'
     | '/reset-password'
+    | '/rewards'
     | '/sell'
     | '/settings'
     | '/shop'
@@ -1072,6 +1084,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   QuestsRoute: typeof QuestsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RewardsRoute: typeof RewardsRoute
   SellRoute: typeof SellRoute
   SettingsRoute: typeof SettingsRoute
   ShopRoute: typeof ShopRoute
@@ -1217,6 +1230,13 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/sell'
       preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rewards': {
+      id: '/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof RewardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1783,6 +1803,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   QuestsRoute: QuestsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RewardsRoute: RewardsRoute,
   SellRoute: SellRoute,
   SettingsRoute: SettingsRoute,
   ShopRoute: ShopRoute,

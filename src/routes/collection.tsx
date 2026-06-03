@@ -127,14 +127,30 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
 
 function BookDetail({ setName, category, onBack }: { setName: string; category: string; onBack: () => void }) {
   const getDetail = useServerFn(getCollectionBookDetail);
+  const claim = useServerFn(claimReward);
   const q = useQuery({
     queryKey: ["collection-book", setName, category],
     queryFn: () => getDetail({ data: { setName, category } }),
   });
   const [tab, setTab] = useState("missing");
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [claimed, setClaimed] = useState(false);
 
   const d = q.data;
+
+  const onClaim = async () => {
+    if (!d) return;
+    try {
+      const r = await claim({ data: { slug: "set_completion", contextKey: d.setKey, contextLabel: d.setName } });
+      setClaimed(true);
+      if (r.granted) toast.success(`Reward claimed! +${r.credits} credits · +${r.xp} XP`);
+      else toast.info("Already claimed for this set");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+
 
 
 
