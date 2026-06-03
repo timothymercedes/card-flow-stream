@@ -1120,6 +1120,7 @@ function OwnerCompanionCard({
             category={c.arena_category}
             anim="idle"
             level={c.level}
+            flair={c.rarity.flair}
             size={64}
             className={frameClass}
           />
