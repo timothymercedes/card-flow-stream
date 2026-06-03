@@ -91,7 +91,7 @@ function Fighter({
 
 export function ArenaBattleStage({
   result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
-  isTraining = false, onClose,
+  isTraining = false, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
   myName: string;
@@ -101,6 +101,9 @@ export function ArenaBattleStage({
   myTitle?: string;
   arenaCategory?: string;
   isTraining?: boolean;
+  hideRewards?: boolean;
+  onShareToFeed?: () => void;
+  sharingToFeed?: boolean;
   onClose: () => void;
 }) {
   const events = useMemo(() => roundEvents(result.log), [result.log]);
