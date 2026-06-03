@@ -467,7 +467,7 @@ function ArenaPage() {
 
           {/* ---- Rewards (daily challenges + cosmetics) ---- */}
           <TabsContent value="rewards">
-            <ArenaRewards />
+            <ArenaRewards category={category} />
           </TabsContent>
         </Tabs>
       </div>
