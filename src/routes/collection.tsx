@@ -5,12 +5,14 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { getCollectionBooks, getCollectionBookDetail } from "@/lib/collection.functions";
+import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library } from "lucide-react";
+import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/collection")({
   head: () => ({
