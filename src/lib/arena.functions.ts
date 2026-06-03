@@ -128,8 +128,24 @@ export const listMyCompanions = createServerFn({ method: "GET" })
       .from("arena_companions").select("*").eq("user_id", userId)
       .order("arena_rank", { ascending: false });
     if (error) throw new Error(error.message);
-    return { companions: (data || []) as unknown as CompanionRow[] };
+    const { companionIdentity } = await import("@/lib/arenaCompanion");
+    const companions = ((data || []) as unknown as CompanionRow[]).map((c) => {
+      const id = companionIdentity({
+        id: c.id, name: c.name, category: c.category ?? c.arena_category,
+        statTotal: c.attack + c.defense + c.speed,
+        trait: c.hidden_traits?.[0] ?? null,
+      });
+      return {
+        ...c,
+        archetype: id.archetype,
+        rarity: id.rarity,
+        passive: id.abilities.passive,
+        special: id.abilities.special,
+      };
+    });
+    return { companions };
   });
+
 
 // ---- Public roster for a given user (limited stats only) ----
 export const getPublicCompanions = createServerFn({ method: "GET" })
