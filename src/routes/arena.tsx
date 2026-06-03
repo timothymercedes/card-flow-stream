@@ -157,6 +157,19 @@ function ArenaPage() {
     enabled: !!user,
   });
 
+  const claimsFn = useServerFn(getMissionClaims);
+  const claimFn = useServerFn(claimMission);
+  const claimsQ = useQuery({ queryKey: ["arena", "claims"], queryFn: () => claimsFn(), enabled: !!user });
+  const claimM = useMutation({
+    mutationFn: (missionKey: string) => claimFn({ data: { missionKey } }),
+    onSuccess: (r) => {
+      toast.success(`Reward claimed: ${r.reward}`);
+      qc.invalidateQueries({ queryKey: ["arena", "claims"] });
+      qc.invalidateQueries({ queryKey: ["arena", "cosmetics"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not claim reward"),
+  });
+
   const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: !!user });
   const cosmeticsQ = useQuery({ queryKey: ["arena", "cosmetics"], queryFn: () => cosmeticsFn(), enabled: !!user });
   const equipped = useMemo(() => equippedClasses(cosmeticsQ.data?.owned), [cosmeticsQ.data]);
