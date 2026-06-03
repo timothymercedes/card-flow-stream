@@ -235,6 +235,17 @@ export function ArenaBattleStage({
   const myAnim = companionAnimFor("mine");
   const theirAnim = companionAnimFor("theirs");
 
+  // Attacker lunges across the arena toward the defender on each strike.
+  function wrapperAnimFor(sideKey: "mine" | "theirs", side: "left" | "right"): string {
+    if (phase === "intro") return side === "left" ? "arena-enter-left" : "arena-enter-right";
+    if (phase === "fight" && ev && fx && ev.attacker === sideKey && fx.kind !== "dodge") {
+      return side === "left" ? "arena-lunge-left" : "arena-lunge-right";
+    }
+    return "";
+  }
+  // Camera shake on every landed (non-dodge) hit — punchy combat feedback.
+  const impactShake = phase === "fight" && fx && fx.kind !== "dodge";
+
   function share() {
     const text = result.iWon
       ? `My ${myName} won its PullBid Arena battle against ${result.opponentName} ${result.myRounds}–${result.theirRounds}! ⚔️`
