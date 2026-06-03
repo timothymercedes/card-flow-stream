@@ -54,7 +54,7 @@ export type TrainingMission = {
 };
 
 type BattleRecord = {
-  type: "pvp" | "pve";
+  type: "pvp" | "pve" | "boss";
   difficulty: ArenaDifficulty | null;
   iWon: boolean;
 };

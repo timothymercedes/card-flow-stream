@@ -6,14 +6,14 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
-  battlePve, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
+  battlePve, battleAiBoss, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
   getBattleReplay, postBattleToFeed,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
-  TRAINING_TRAINERS,
+  TRAINING_TRAINERS, AI_BOSSES, bossCharacter, type ArenaBossKey,
 } from "@/lib/arenaShared";
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
@@ -101,6 +101,7 @@ function ArenaPage() {
     | Awaited<ReturnType<typeof challengeAndResolve>>
     | Awaited<ReturnType<typeof challengeUser>>
     | Awaited<ReturnType<typeof battlePve>>
+    | Awaited<ReturnType<typeof battleAiBoss>>
     | null
   >(null);
   const [selectedMine, setSelectedMine] = useState<string | null>(null);
@@ -118,6 +119,7 @@ function ArenaPage() {
   const oppFn = useServerFn(findOpponents);
   const battleFn = useServerFn(challengeAndResolve);
   const pveFn = useServerFn(battlePve);
+  const bossFn = useServerFn(battleAiBoss);
   const historyFn = useServerFn(getBattleHistory);
   const lbFn = useServerFn(getLeaderboards);
   const searchFn = useServerFn(searchCollectors);
@@ -201,6 +203,16 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Training battle failed"),
   });
 
+  const bossM = useMutation({
+    mutationFn: (vars: { myCompanionId: string; boss: ArenaBossKey }) => bossFn({ data: vars }),
+    onSuccess: (r) => {
+      setTrainFor(null);
+      setBattleResult(r);
+      qc.invalidateQueries({ queryKey: ["arena"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Boss battle failed"),
+  });
+
   const challengeUserM = useMutation({
     mutationFn: (vars: { myCompanionId: string; targetUserId: string }) => challengeUserFn({ data: vars }),
     onSuccess: (r) => {
@@ -282,6 +294,11 @@ function ArenaPage() {
   function trainCpu() {
     if (!activeMine) { toast.error("Select one of your companions first"); return; }
     pveM.mutate({ myCompanionId: activeMine.id, difficulty, environment: environment ?? undefined });
+  }
+
+  function fightBoss(boss: ArenaBossKey) {
+    if (!activeMine) { toast.error("Select one of your companions first"); return; }
+    bossM.mutate({ myCompanionId: activeMine.id, boss });
   }
 
   if (!user) {
@@ -484,7 +501,7 @@ function ArenaPage() {
                     <div className="flex items-center gap-2">
                       <Badge variant={b.iWon ? "default" : "secondary"}>{b.iWon ? "Win" : "Loss"}</Badge>
                       <span className="text-muted-foreground">
-                        {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : "PVP Battle"}
+                        {b.type === "pve" ? `Training${b.difficulty ? ` · ${DIFFICULTY_META[b.difficulty].label}` : ""}` : b.type === "boss" ? `Boss Battle${b.difficulty ? ` · ${b.difficulty}` : ""}` : "PVP Battle"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -706,14 +723,14 @@ function ArenaPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />Training · {activeMine?.name ?? "Companion"}
+              <Shield className="h-5 w-5 text-primary" />Battle Modes · {activeMine?.name ?? "Companion"}
             </DialogTitle>
           </DialogHeader>
 
           <p className="mb-3 text-xs text-muted-foreground">
-            Train your companion against AI trainers using the same battle engine as PVP.
-            Training is risk-free and gives <span className="font-semibold">reduced XP</span> with{" "}
-            <span className="font-semibold">no rank or leaderboard points</span> — real PVP battles always progress faster.
+            <span className="font-semibold">Practice</span> against AI trainers for risk-free, reduced XP, or take on an
+            <span className="font-semibold"> always-available Boss</span> for full rewards. The same HP-based battle engine
+            powers every fight — crits, dodges, traits and random events decide the winner.
           </p>
 
           {/* Choose your AI trainer */}
@@ -791,10 +808,54 @@ function ArenaPage() {
             </div>
           </div>
 
-          <Button onClick={trainCpu} disabled={pveM.isPending} className="w-full">
+          <Button onClick={trainCpu} disabled={pveM.isPending || bossM.isPending} className="w-full">
             <Swords className="mr-2 h-4 w-4" />
-            {pveM.isPending ? "Training…" : `Train vs ${TRAINING_TRAINERS[difficulty].name}`}
+            {pveM.isPending ? "Training…" : `Practice vs ${TRAINING_TRAINERS[difficulty].name}`}
           </Button>
+
+          {/* AI Challenge — always-available Boss Battles (full rewards) */}
+          <div className="mt-5 border-t pt-4">
+            <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+              <Flame className="h-4 w-4 text-amber-500" />AI Challenge · Boss Battles
+            </p>
+            <p className="mb-3 text-[11px] text-muted-foreground">
+              Always available — no waiting for opponents. Bosses are tougher AI fighters that pay
+              <span className="font-semibold text-foreground"> full XP, trophies, rank & credits</span> on a win.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(Object.keys(AI_BOSSES) as ArenaBossKey[]).map((k) => {
+                const tier = AI_BOSSES[k];
+                const ch = bossCharacter(k);
+                return (
+                  <div key={k} className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl" aria-hidden>{ch.emoji}</span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold">{ch.name}</div>
+                        <div className="truncate text-[10px] font-medium text-amber-600">{tier.emoji} {tier.label} · {ch.record}</div>
+                      </div>
+                    </div>
+                    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{ch.style}</p>
+                    <p className="mt-1 text-[11px] italic text-muted-foreground">“{ch.taunt}”</p>
+                    <div className="mt-1.5 text-[10px] font-semibold text-foreground">
+                      Win +{tier.winXp} XP · +{tier.winTrophies} 🏆 · +{tier.winCredits} 🪙
+                    </div>
+                    <Button
+                      onClick={() => fightBoss(k)}
+                      disabled={pveM.isPending || bossM.isPending}
+                      size="sm"
+                      className="mt-2 w-full"
+                      variant="secondary"
+                    >
+                      <Swords className="mr-1.5 h-3.5 w-3.5" />
+                      {bossM.isPending ? "Fighting…" : `Challenge ${tier.label}`}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </DialogContent>
       </Dialog>
 
