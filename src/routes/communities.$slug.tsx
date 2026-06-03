@@ -129,6 +129,23 @@ function CommunityDetailPage() {
           )}
         </Card>
 
+        {(() => {
+          const arenaKey = arenaCategoryFor(community.category);
+          const meta = arenaCategoryMeta(arenaKey);
+          return (
+            <Card className="flex items-center gap-3 overflow-hidden border-primary/30 bg-gradient-to-r from-primary/10 to-transparent p-4">
+              <span className="text-3xl">{meta.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="flex items-center gap-1.5 text-sm font-bold"><Swords className="h-4 w-4 text-primary" /> {meta.label}</h2>
+                <p className="text-xs text-muted-foreground">Battle other {community.name} collectors with digital companions. Your real cards are never at risk.</p>
+              </div>
+              <Button size="sm" asChild>
+                <Link to="/arena" search={{ category: arenaKey }}>Enter</Link>
+              </Button>
+            </Card>
+          );
+        })()}
+
         <CommunityChallenges communityId={community.id} canParticipate={!!user && isMember} />
 
 
