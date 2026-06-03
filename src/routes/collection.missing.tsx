@@ -130,7 +130,7 @@ function MissingGroup({ group: g }: { group: Group }) {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {g.missing.map((c) => (
+        {g.missing.map((c: Missing) => (
           <MissingCard key={c.number + c.name} card={c} setName={g.setName} category={g.category} />
         ))}
       </div>
