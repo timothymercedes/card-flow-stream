@@ -500,49 +500,21 @@ function ArenaPage() {
         </Tabs>
       </div>
 
-      {/* Battle result dialog */}
+      {/* Battle result — staged animated viewer (hybrid pixel + modern FX) */}
       <Dialog open={!!battleResult} onOpenChange={(o) => !o && setBattleResult(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {battleResult?.iWon ? <><Trophy className="h-5 w-5 text-amber-500" />Victory!</> : <><Swords className="h-5 w-5 text-muted-foreground" />Defeat</>}
+              <Swords className="h-5 w-5 text-primary" />Arena Battle
             </DialogTitle>
           </DialogHeader>
           {battleResult && (
-            <div className="space-y-3">
-              <p className="text-sm">
-                {activeMine?.name} vs {battleResult.opponentName} — {battleResult.myRounds}–{battleResult.theirRounds}
-              </p>
-              <div className="space-y-1 rounded-lg bg-muted/50 p-3 text-sm">
-                {battleResult.log.map((r) => (
-                  <div key={r.round} className="flex justify-between">
-                    <span>Round {r.round}</span>
-                    <span className={r.winner === "mine" ? "font-semibold text-emerald-500" : "text-muted-foreground"}>
-                      {r.mine} vs {r.theirs}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-around rounded-lg border p-3 text-center text-sm">
-                <div><div className="font-bold">{battleResult.rewards.xp > 0 ? "+" : ""}{battleResult.rewards.xp}</div><div className="text-xs text-muted-foreground">XP</div></div>
-                <div><div className="font-bold">+{battleResult.rewards.trophies}</div><div className="text-xs text-muted-foreground">Trophies</div></div>
-                <div><div className="font-bold">{battleResult.rewards.rank > 0 ? "+" : ""}{battleResult.rewards.rank}</div><div className="text-xs text-muted-foreground">Rank</div></div>
-                <div><div className="font-bold">+{battleResult.rewards.credits}</div><div className="text-xs text-muted-foreground">Credits</div></div>
-              </div>
-              {battleResult.newBadges.length > 0 && (
-                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-                  <p className="mb-1 font-semibold">🎖️ New badge{battleResult.newBadges.length > 1 ? "s" : ""}!</p>
-                  <div className="flex flex-wrap gap-2">
-                    {battleResult.newBadges.map((k) => (
-                      <span key={k} className="inline-flex items-center gap-1 text-xs font-medium">
-                        {ARENA_BADGES[k].emoji} {ARENA_BADGES[k].label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <Button className="w-full" onClick={() => setBattleResult(null)}>Continue</Button>
-            </div>
+            <ArenaBattleStage
+              result={battleResult}
+              myName={activeMine?.name ?? "Your companion"}
+              myImage={activeMine?.image_url}
+              onClose={() => setBattleResult(null)}
+            />
           )}
         </DialogContent>
       </Dialog>
