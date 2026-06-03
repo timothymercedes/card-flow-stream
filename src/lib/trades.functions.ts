@@ -36,7 +36,37 @@ function snapshot(rows: any[], side: "from" | "to", ownerId: string) {
   }));
 }
 
-// ---------- create ----------
+// ---------- trade builder data (my offerable cards + their tradeable cards) ----------
+export const getTradeBuilderData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ toUser: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    if (data.toUser === userId) throw new Error("You cannot trade with yourself");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const cols = "id, name, image_url, market_price, estimated_value, accept_trades, trade_plus_cash, collection_only, status";
+    const [{ data: mine }, { data: theirs }, { data: prof }] = await Promise.all([
+      supabaseAdmin.from("vault_cards").select(cols)
+        .eq("user_id", userId).neq("status", "sold").eq("collection_only", false).limit(500),
+      supabaseAdmin.from("vault_cards").select(cols)
+        .eq("user_id", data.toUser).neq("status", "sold")
+        .or("accept_trades.eq.true,trade_plus_cash.eq.true").limit(500),
+      supabaseAdmin.from("profiles").select("id, username, avatar_url").eq("id", data.toUser).single(),
+    ]);
+
+    const map = (r: any) => ({
+      id: r.id, name: r.name, image_url: r.image_url ?? null,
+      value: Number(r.market_price ?? r.estimated_value ?? 0),
+    });
+    return {
+      counterpart: { id: data.toUser, username: prof?.username ?? "user", avatar_url: prof?.avatar_url ?? null },
+      myCards: (mine ?? []).map(map),
+      theirCards: (theirs ?? []).map(map),
+    };
+  });
+
+
 const createSchema = z.object({
   toUser: z.string().uuid(),
   fromCardIds: z.array(z.string().uuid()).max(50),
