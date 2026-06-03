@@ -41,6 +41,7 @@ function WishlistPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<"all" | "watching">("all");
 
   const list = useServerFn(listWishlist);
   const add = useServerFn(addWishlistItem);
@@ -80,6 +81,8 @@ function WishlistPage() {
   }
 
   const items = q.data ?? [];
+  const watching = items.filter((i) => i.notify_live);
+  const shown = filter === "watching" ? watching : items;
 
   return (
     <AppShell>
@@ -95,6 +98,15 @@ function WishlistPage() {
           <Button size="sm" onClick={() => setAdding(true)}><Plus className="mr-1 h-4 w-4" /> Add</Button>
         </header>
 
+        <div className="flex gap-2">
+          <Button size="sm" variant={filter === "all" ? "default" : "outline"} className="h-8" onClick={() => setFilter("all")}>
+            <Heart className="mr-1 h-3.5 w-3.5" /> All ({items.length})
+          </Button>
+          <Button size="sm" variant={filter === "watching" ? "default" : "outline"} className="h-8" onClick={() => setFilter("watching")}>
+            <Radio className="mr-1 h-3.5 w-3.5" /> Watching ({watching.length})
+          </Button>
+        </div>
+
         {q.isLoading && <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>}
 
         {!q.isLoading && items.length === 0 && (
@@ -106,8 +118,17 @@ function WishlistPage() {
           </Card>
         )}
 
+        {!q.isLoading && items.length > 0 && filter === "watching" && watching.length === 0 && (
+          <Card className="p-8 text-center">
+            <Radio className="mx-auto h-10 w-10 text-muted-foreground" />
+            <p className="mt-3 font-medium">You're not watching any cards yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Tap Watch on a card in the Missing Cards Center to get live-show alerts the moment it appears.</p>
+            <Button asChild className="mt-4" variant="outline"><Link to="/collection/missing">Open Missing Cards Center</Link></Button>
+          </Card>
+        )}
+
         <div className="space-y-3">
-          {items.map((item) => (
+          {shown.map((item) => (
             <WishRow
               key={item.id}
               item={item}
@@ -116,6 +137,7 @@ function WishlistPage() {
             />
           ))}
         </div>
+
       </div>
 
       <AddDialog open={adding} onOpenChange={setAdding} onSubmit={(v) => addMut.mutate(v)} submitting={addMut.isPending} />
