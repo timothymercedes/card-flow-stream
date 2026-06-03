@@ -56,13 +56,20 @@ function ArenaPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [community, setCommunity] = useState<ArenaCommunity>("general");
-  const [battleResult, setBattleResult] = useState<Awaited<ReturnType<typeof challengeAndResolve>> | null>(null);
+  const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
+  const [battleResult, setBattleResult] = useState<
+    | Awaited<ReturnType<typeof challengeAndResolve>>
+    | Awaited<ReturnType<typeof battlePve>>
+    | null
+  >(null);
   const [selectedMine, setSelectedMine] = useState<string | null>(null);
 
   const listFn = useServerFn(listMyCompanions);
   const syncFn = useServerFn(syncCompanions);
   const oppFn = useServerFn(findOpponents);
   const battleFn = useServerFn(challengeAndResolve);
+  const pveFn = useServerFn(battlePve);
+  const historyFn = useServerFn(getBattleHistory);
   const lbFn = useServerFn(getLeaderboards);
 
   const myQ = useQuery({
@@ -75,6 +82,12 @@ function ArenaPage() {
   const oppQ = useQuery({
     queryKey: ["arena", "opponents", community],
     queryFn: () => oppFn({ data: { community } }),
+    enabled: !!user,
+  });
+
+  const historyQ = useQuery({
+    queryKey: ["arena", "history"],
+    queryFn: () => historyFn(),
     enabled: !!user,
   });
 
@@ -96,6 +109,15 @@ function ArenaPage() {
       qc.invalidateQueries({ queryKey: ["arena"] });
     },
     onError: (e: any) => toast.error(e?.message || "Battle failed"),
+  });
+
+  const pveM = useMutation({
+    mutationFn: (vars: { myCompanionId: string; difficulty: ArenaDifficulty }) => pveFn({ data: vars }),
+    onSuccess: (r) => {
+      setBattleResult(r);
+      qc.invalidateQueries({ queryKey: ["arena"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Training battle failed"),
   });
 
   const activeMine = useMemo(
