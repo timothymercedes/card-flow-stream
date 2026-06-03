@@ -415,7 +415,7 @@ export const battlePve = createServerFn({ method: "POST" })
       battleId: (pveBattle?.id ?? null) as string | null,
       rewards: { xp: gainedXp, trophies: gainedTrophies, rank: 0, credits: 0 },
       opponentName: `${trainer.name} · ${trainer.rank}`,
-      opponentImage: null as string | null,
+      opponentImage: trainer.image as string | null,
       opponentEmoji: trainer.emoji as string | null,
       environment: (data.environment ?? null) as string | null,
       newBadges: [] as ArenaBadgeKey[],
@@ -510,7 +510,7 @@ export const battleAiBoss = createServerFn({ method: "POST" })
         credits,
       },
       opponentName: `${character.name} · ${tier.label}`,
-      opponentImage: null as string | null,
+      opponentImage: character.image as string | null,
       opponentEmoji: character.emoji as string | null,
       environment: null as string | null,
       newBadges,
@@ -1105,9 +1105,11 @@ export const getBattleReplay = createServerFn({ method: "POST" })
     const oppCompanion = iAmChallenger ? opponentC : challengerC;
     const isPve = b.battle_type === "pve";
     const isBoss = b.battle_type === "boss";
+    const bossChar = isBoss ? bossCharacter((b.difficulty as ArenaBossKey) ?? "daily") : null;
     const bossName = isBoss
-      ? `${bossCharacter((b.difficulty as ArenaBossKey) ?? "daily").name} · ${AI_BOSSES[(b.difficulty as ArenaBossKey) ?? "daily"].label}`
+      ? `${bossChar!.name} · ${AI_BOSSES[(b.difficulty as ArenaBossKey) ?? "daily"].label}`
       : null;
+    const pveTrainer = isPve ? (TRAINING_TRAINERS[(b.difficulty as keyof typeof TRAINING_TRAINERS)] ?? TRAINING_TRAINERS.normal) : null;
 
     return {
       battleId: b.id,
@@ -1120,8 +1122,8 @@ export const getBattleReplay = createServerFn({ method: "POST" })
         theirRounds,
         log,
         rewards: { xp: 0, trophies: 0, rank: 0, credits: 0 },
-        opponentName: bossName ?? (isPve ? "Training Opponent" : (oppCompanion?.name ?? "Opponent")),
-        opponentImage: (oppCompanion?.image_url ?? null) as string | null,
+        opponentName: bossName ?? (isPve ? `${pveTrainer!.name} · ${pveTrainer!.rank}` : (oppCompanion?.name ?? "Opponent")),
+        opponentImage: (bossChar?.image ?? pveTrainer?.image ?? oppCompanion?.image_url ?? null) as string | null,
         newBadges: [] as ArenaBadgeKey[],
       },
     };

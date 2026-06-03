@@ -102,25 +102,25 @@ export const DIFFICULTY_META: Record<ArenaDifficulty, {
 // and personality so Training feels like facing a real opponent, not a button.
 // Used by both the Train game-mode screen and the battle stage (opponentName).
 export const TRAINING_TRAINERS: Record<ArenaDifficulty, {
-  name: string; rank: string; emoji: string; personality: string; style: string; record: string;
+  name: string; rank: string; emoji: string; image: string; personality: string; style: string; record: string;
 }> = {
   beginner: {
-    name: "Pip", rank: "Arena Rookie", emoji: "🐣",
+    name: "Pip", rank: "Arena Rookie", emoji: "🐣", image: "/arena/fighters/trainer-beginner.png",
     personality: "Eager and friendly — the perfect first sparring partner.",
     style: "Cautious, plays it safe", record: "63 Wins",
   },
   normal: {
-    name: "Coach Vera", rank: "Veteran Trainer", emoji: "🧑‍🏫",
+    name: "Coach Vera", rank: "Veteran Trainer", emoji: "🧑‍🏫", image: "/arena/fighters/trainer-normal.png",
     personality: "A steady mentor who tests your fundamentals.",
     style: "Balanced, measured pressure", record: "245 Wins",
   },
   hard: {
-    name: "Razor Kane", rank: "Elite Challenger", emoji: "🥷",
+    name: "Razor Kane", rank: "Elite Challenger", emoji: "🥷", image: "/arena/fighters/trainer-hard.png",
     personality: "Ruthless and fast — punishes every mistake.",
     style: "Aggressive, high-tempo strikes", record: "1,042 Wins",
   },
   elite: {
-    name: "Champion Aurelia", rank: "Arena Champion", emoji: "👑",
+    name: "Champion Aurelia", rank: "Arena Champion", emoji: "👑", image: "/arena/fighters/trainer-elite.png",
     personality: "The reigning legend. Beat her to prove yourself.",
     style: "Relentless, flawless mastery", record: "3,318 Wins",
   },
@@ -293,23 +293,23 @@ export const AI_BOSSES: Record<ArenaBossKey, BossTier> = {
 
 // Rotating boss characters. A deterministic period index (day/week number)
 // selects which character fronts the boss fight.
-type BossCharacter = { name: string; title: string; emoji: string; style: string; record: string; taunt: string };
+type BossCharacter = { name: string; title: string; emoji: string; image: string; style: string; record: string; taunt: string };
 
 const DAILY_BOSSES: BossCharacter[] = [
-  { name: "Ironjaw Greel", title: "Daily Boss", emoji: "🦾", style: "Brute force, heavy hits", record: "412–88", taunt: "You won't last three rounds." },
-  { name: "Lady Mirage", title: "Daily Boss", emoji: "🦊", style: "Evasive counter-fighter", record: "388–102", taunt: "Catch me if you can." },
-  { name: "Sgt. Bastion", title: "Daily Boss", emoji: "🛡️", style: "Defensive wall, attrition", record: "501–60", taunt: "Break against my shield." },
-  { name: "Volt Reaper", title: "Daily Boss", emoji: "⚡", style: "Lightning-fast crits", record: "455–77", taunt: "Too slow." },
-  { name: "Pyra Vex", title: "Daily Boss", emoji: "🔥", style: "Burn-status aggression", record: "401–94", taunt: "Feel the heat." },
-  { name: "Frost Maw", title: "Daily Boss", emoji: "❄️", style: "Freeze-control tempo", record: "377–110", taunt: "Stay frozen." },
-  { name: "Hex Warden", title: "Daily Boss", emoji: "🔮", style: "Status-effect trickery", record: "420–80", taunt: "Cursed already." },
+  { name: "Ironjaw Greel", title: "Daily Boss", emoji: "🦾", image: "/arena/fighters/daily-0.png", style: "Brute force, heavy hits", record: "412–88", taunt: "You won't last three rounds." },
+  { name: "Lady Mirage", title: "Daily Boss", emoji: "🦊", image: "/arena/fighters/daily-1.png", style: "Evasive counter-fighter", record: "388–102", taunt: "Catch me if you can." },
+  { name: "Sgt. Bastion", title: "Daily Boss", emoji: "🛡️", image: "/arena/fighters/daily-2.png", style: "Defensive wall, attrition", record: "501–60", taunt: "Break against my shield." },
+  { name: "Volt Reaper", title: "Daily Boss", emoji: "⚡", image: "/arena/fighters/daily-3.png", style: "Lightning-fast crits", record: "455–77", taunt: "Too slow." },
+  { name: "Pyra Vex", title: "Daily Boss", emoji: "🔥", image: "/arena/fighters/daily-4.png", style: "Burn-status aggression", record: "401–94", taunt: "Feel the heat." },
+  { name: "Frost Maw", title: "Daily Boss", emoji: "❄️", image: "/arena/fighters/daily-5.png", style: "Freeze-control tempo", record: "377–110", taunt: "Stay frozen." },
+  { name: "Hex Warden", title: "Daily Boss", emoji: "🔮", image: "/arena/fighters/daily-6.png", style: "Status-effect trickery", record: "420–80", taunt: "Cursed already." },
 ];
 
 const WEEKLY_BOSSES: BossCharacter[] = [
-  { name: "Overlord Kratheon", title: "Weekly Boss", emoji: "👹", style: "Unrelenting, flawless mastery", record: "1287–143", taunt: "None have toppled me this week." },
-  { name: "The Eternal Champion", title: "Weekly Boss", emoji: "🏆", style: "Adaptive all-rounder", record: "1402–98", taunt: "Prove you belong here." },
-  { name: "Nightmare Sovereign", title: "Weekly Boss", emoji: "🌑", style: "Crit + status onslaught", record: "1190–166", taunt: "Your reign ends now." },
-  { name: "Titanus Prime", title: "Weekly Boss", emoji: "🤖", style: "Calculated, overwhelming power", record: "1333–120", taunt: "Resistance is illogical." },
+  { name: "Overlord Kratheon", title: "Weekly Boss", emoji: "👹", image: "/arena/fighters/weekly-0.png", style: "Unrelenting, flawless mastery", record: "1287–143", taunt: "None have toppled me this week." },
+  { name: "The Eternal Champion", title: "Weekly Boss", emoji: "🏆", image: "/arena/fighters/weekly-1.png", style: "Adaptive all-rounder", record: "1402–98", taunt: "Prove you belong here." },
+  { name: "Nightmare Sovereign", title: "Weekly Boss", emoji: "🌑", image: "/arena/fighters/weekly-2.png", style: "Crit + status onslaught", record: "1190–166", taunt: "Your reign ends now." },
+  { name: "Titanus Prime", title: "Weekly Boss", emoji: "🤖", image: "/arena/fighters/weekly-3.png", style: "Calculated, overwhelming power", record: "1333–120", taunt: "Resistance is illogical." },
 ];
 
 export function periodIndex(key: ArenaBossKey, now = new Date()): number {
