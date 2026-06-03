@@ -108,7 +108,7 @@ export const findOpponents = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     // Shuffle and take up to 12
-    const arr = (rows || []) as CompanionRow[];
+    const arr = (rows || []) as unknown as CompanionRow[];
     for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
     return { opponents: arr.slice(0, 12).map(publicProjection) };
   });
@@ -137,8 +137,8 @@ export const challengeAndResolve = createServerFn({ method: "POST" })
     if (e2 || !opp) throw new Error("Opponent companion not found");
     if (opp.user_id === userId) throw new Error("You cannot battle your own companion");
 
-    const me = mine as CompanionRow;
-    const them = opp as CompanionRow;
+    const me = mine as unknown as CompanionRow;
+    const them = opp as unknown as CompanionRow;
 
     // Best of 3 rounds.
     const log: Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }> = [];
