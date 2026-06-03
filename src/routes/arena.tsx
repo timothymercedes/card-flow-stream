@@ -96,6 +96,7 @@ function ArenaPage() {
   const { category: initialCategory } = Route.useSearch();
   const [category, setCategory] = useState<string>(initialCategory ?? "all");
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
+  const [environment, setEnvironment] = useState<string | null>(null);
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
     | Awaited<ReturnType<typeof challengeUser>>
