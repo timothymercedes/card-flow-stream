@@ -618,6 +618,8 @@ function ArenaPage() {
               result={battleResult}
               myName={activeMine?.name ?? "Your companion"}
               myImage={activeMine?.image_url}
+              mySeed={activeMine ? `${activeMine.id}:${activeMine.name}` : null}
+              myLevel={activeMine?.level ?? 1}
               myFrameClass={equipped.frameClass}
               myEffectClass={equipped.effectClass}
               myTitle={equipped.titleText}
