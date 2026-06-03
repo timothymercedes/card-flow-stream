@@ -1105,9 +1105,11 @@ export const getBattleReplay = createServerFn({ method: "POST" })
     const oppCompanion = iAmChallenger ? opponentC : challengerC;
     const isPve = b.battle_type === "pve";
     const isBoss = b.battle_type === "boss";
+    const bossChar = isBoss ? bossCharacter((b.difficulty as ArenaBossKey) ?? "daily") : null;
     const bossName = isBoss
-      ? `${bossCharacter((b.difficulty as ArenaBossKey) ?? "daily").name} · ${AI_BOSSES[(b.difficulty as ArenaBossKey) ?? "daily"].label}`
+      ? `${bossChar!.name} · ${AI_BOSSES[(b.difficulty as ArenaBossKey) ?? "daily"].label}`
       : null;
+    const pveTrainer = isPve ? (TRAINING_TRAINERS[(b.difficulty as keyof typeof TRAINING_TRAINERS)] ?? TRAINING_TRAINERS.normal) : null;
 
     return {
       battleId: b.id,
