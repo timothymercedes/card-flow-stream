@@ -508,3 +508,352 @@ export const getMissingCardFinder = createServerFn({ method: "GET" })
       })),
     };
   });
+
+// ============================================================================
+// Collection Goals — users favorite sets they're actively working to complete.
+// ============================================================================
+export const listCollectionGoals = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("collection_goals")
+      .select("id, set_name, category, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((g: any) => ({
+      id: g.id,
+      setName: g.set_name,
+      category: g.category,
+      key: setTotalKey(g.category, g.set_name),
+    }));
+  });
+
+export const toggleCollectionGoal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ setName: z.string().min(1).max(200), category: z.string().min(1).max(80) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: existing } = await supabase
+      .from("collection_goals")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("category", data.category)
+      .eq("set_name", data.setName)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase.from("collection_goals").delete().eq("id", (existing as any).id);
+      if (error) throw new Error(error.message);
+      return { active: false };
+    }
+    const { error } = await supabase
+      .from("collection_goals")
+      .insert({ user_id: userId, set_name: data.setName, category: data.category });
+    if (error) throw new Error(error.message);
+    return { active: true };
+  });
+
+// ============================================================================
+// Collection Dashboard — aggregate stats across all of a user's books.
+// ============================================================================
+export const getCollectionDashboard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId, supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+
+    const sets = books.filter((b) => b.kind === "set");
+    const completed = sets.filter((b) => b.complete);
+    const inProgress = sets.filter((b) => !b.complete && (b.completion ?? 0) > 0);
+
+    const totalValueCents = books.reduce((s, b) => s + b.totalValueCents, 0);
+    const missingCount = sets.reduce(
+      (s, b) => s + Math.max(0, b.knownTotal - b.ownedDistinct),
+      0,
+    );
+
+    // Near-completion buckets drive buying/trading.
+    const near = inProgress
+      .filter((b) => (b.completion ?? 0) >= 50 && !b.complete)
+      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0));
+    const bucket = (min: number, max: number) =>
+      near.filter((b) => (b.completion ?? 0) >= min && (b.completion ?? 0) < max).length;
+
+    // Closest sets to completion (top 6 incomplete by %).
+    const closest = inProgress
+      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0))
+      .slice(0, 6)
+      .map((b) => ({
+        setName: b.setName,
+        category: b.category,
+        completion: b.completion ?? 0,
+        ownedDistinct: b.ownedDistinct,
+        knownTotal: b.knownTotal,
+        missing: Math.max(0, b.knownTotal - b.ownedDistinct),
+        cover: b.cover,
+      }));
+
+    // Goals with live progress.
+    const { data: goalRows } = await supabase
+      .from("collection_goals")
+      .select("set_name, category")
+      .eq("user_id", userId);
+    const byKey = new Map(sets.map((b) => [b.key, b]));
+    const goals = (goalRows ?? []).map((g: any) => {
+      const b = byKey.get(setTotalKey(g.category, g.set_name));
+      return {
+        setName: g.set_name,
+        category: g.category,
+        completion: b?.completion ?? 0,
+        ownedDistinct: b?.ownedDistinct ?? 0,
+        knownTotal: b?.knownTotal ?? 0,
+        complete: b?.complete ?? false,
+        cover: b?.cover ?? null,
+      };
+    });
+
+    // Rewards earned from completed-set wheel spins.
+    const { count: rewardsCount } = await supabase
+      .from("collection_wheel_spins")
+      .select("id", { head: true, count: "exact" })
+      .eq("user_id", userId);
+
+    // Wishlist matches: wishlist items currently for sale.
+    const { data: wl } = await supabase
+      .from("wishlist_items")
+      .select("set_name, tcg_number")
+      .eq("user_id", userId)
+      .limit(500);
+    let wishlistMatches = 0;
+    const wlBySet = new Map<string, Set<string>>();
+    (wl ?? []).forEach((w: any) => {
+      if (!w.set_name) return;
+      const set = String(w.set_name);
+      if (!wlBySet.has(set)) wlBySet.set(set, new Set());
+      if (w.tcg_number) wlBySet.get(set)!.add(normNum(w.tcg_number));
+    });
+    const wlSets = [...wlBySet.keys()];
+    if (wlSets.length) {
+      const nowIso = new Date().toISOString();
+      for (let i = 0; i < wlSets.length; i += 50) {
+        const slice = wlSets.slice(i, i + 50);
+        const { data: ls } = await supabaseAdmin
+          .from("listings")
+          .select("tcg_set, tcg_number")
+          .in("tcg_set", slice)
+          .eq("is_demo", false)
+          .gt("expires_at", nowIso)
+          .limit(2000);
+        (ls ?? []).forEach((l: any) => {
+          const wanted = wlBySet.get(l.tcg_set);
+          if (wanted && (wanted.size === 0 || wanted.has(normNum(l.tcg_number)))) wishlistMatches += 1;
+        });
+      }
+    }
+
+    return {
+      stats: {
+        setsCompleted: completed.length,
+        setsInProgress: inProgress.length,
+        rewardsEarned: rewardsCount ?? 0,
+        missingCount,
+        wishlistMatches,
+        collectionValueCents: totalValueCents,
+        totalCards: books.reduce((s, b) => s + b.ownedCount, 0),
+      },
+      nearCompletion: {
+        above50: bucket(50, 75),
+        above75: bucket(75, 90),
+        above90: bucket(90, 100),
+        list: near.slice(0, 10).map((b) => ({
+          setName: b.setName,
+          category: b.category,
+          completion: b.completion ?? 0,
+          missing: Math.max(0, b.knownTotal - b.ownedDistinct),
+          cover: b.cover,
+        })),
+      },
+      closest,
+      goals,
+    };
+  });
+
+// ============================================================================
+// Missing Card Center — aggregate missing cards across a user's near-complete
+// sets, with buy/trade availability. Bounded to the most relevant sets.
+// ============================================================================
+export const getMissingCardCenter = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const books = await computeCollectionBooks(supabaseAdmin, userId);
+    // Focus on incomplete real sets, closest-to-done first.
+    const target = books
+      .filter((b) => b.kind === "set" && !b.complete && (b.completion ?? 0) > 0)
+      .sort((a, b) => (b.completion ?? 0) - (a.completion ?? 0))
+      .slice(0, 12);
+
+    const nowIso = new Date().toISOString();
+    const groups: any[] = [];
+    for (const b of target) {
+      const { data: universe } = await supabaseAdmin
+        .from("card_identities")
+        .select("name, number, image_url, market_value_cents, rarity")
+        .eq("set_name", b.setName)
+        .limit(3000);
+      const byNumber = new Map<string, BookCard>();
+      (universe ?? []).forEach((u: any) => {
+        const n = normNum(u.number);
+        if (!n) return;
+        const card: BookCard = {
+          number: norm(u.number),
+          name: norm(u.name),
+          image_url: u.image_url ?? null,
+          value: Number(u.market_value_cents ?? 0) / 100,
+          rarity: u.rarity ?? null,
+        };
+        const ex = byNumber.get(n);
+        if (!ex || (!ex.image_url && card.image_url)) byNumber.set(n, card);
+      });
+      if (byNumber.size === 0) continue;
+
+      const { data: mine } = await supabaseAdmin
+        .from("vault_cards")
+        .select("tcg_number")
+        .eq("user_id", userId)
+        .eq("is_sold", false)
+        .eq("tcg_set", b.setName)
+        .limit(3000);
+      const ownedNums = new Set((mine ?? []).map((m: any) => normNum(m.tcg_number)).filter(Boolean));
+
+      const [{ data: listings }, { data: tradeables }] = await Promise.all([
+        supabaseAdmin
+          .from("listings")
+          .select("tcg_number, is_auction")
+          .eq("tcg_set", b.setName)
+          .eq("is_demo", false)
+          .gt("expires_at", nowIso)
+          .limit(2000),
+        supabaseAdmin
+          .from("vault_cards")
+          .select("tcg_number")
+          .eq("tcg_set", b.setName)
+          .eq("is_sold", false)
+          .neq("user_id", userId)
+          .or("accept_trades.eq.true,trade_plus_cash.eq.true,accept_offers.eq.true")
+          .limit(2000),
+      ]);
+      const forSale = new Map<string, number>();
+      const forAuction = new Map<string, number>();
+      (listings ?? []).forEach((l: any) => {
+        const n = normNum(l.tcg_number);
+        if (!n) return;
+        if (l.is_auction) forAuction.set(n, (forAuction.get(n) ?? 0) + 1);
+        else forSale.set(n, (forSale.get(n) ?? 0) + 1);
+      });
+      const forTrade = new Map<string, number>();
+      (tradeables ?? []).forEach((v: any) => {
+        const n = normNum(v.tcg_number);
+        if (n) forTrade.set(n, (forTrade.get(n) ?? 0) + 1);
+      });
+
+      const missing = [...byNumber.entries()]
+        .filter(([n]) => !ownedNums.has(n))
+        .map(([n, c]) => ({
+          ...c,
+          listingsCount: forSale.get(n) ?? 0,
+          auctionCount: forAuction.get(n) ?? 0,
+          tradeCount: forTrade.get(n) ?? 0,
+        }))
+        .sort((a, b2) => {
+          const aa = (a.listingsCount > 0 ? 2 : 0) + (a.auctionCount > 0 ? 1 : 0) + (a.tradeCount > 0 ? 1 : 0);
+          const bb = (b2.listingsCount > 0 ? 2 : 0) + (b2.auctionCount > 0 ? 1 : 0) + (b2.tradeCount > 0 ? 1 : 0);
+          if (bb !== aa) return bb - aa;
+          return (Number(a.number) || 0) - (Number(b2.number) || 0);
+        });
+
+      if (missing.length === 0) continue;
+      groups.push({
+        setName: b.setName,
+        category: b.category,
+        completion: b.completion ?? 0,
+        ownedDistinct: b.ownedDistinct,
+        knownTotal: b.knownTotal,
+        availableCount: missing.filter((m) => m.listingsCount + m.auctionCount + m.tradeCount > 0).length,
+        missing: missing.slice(0, 60),
+      });
+    }
+    return { groups };
+  });
+
+// ============================================================================
+// Bulk add every missing card in a set (with catalog data) to the wishlist.
+// ============================================================================
+export const bulkAddMissingToWishlist = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ setName: z.string().min(1).max(200), category: z.string().min(1).max(80) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId, supabase } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const setName = data.setName;
+
+    const { data: universe } = await supabaseAdmin
+      .from("card_identities")
+      .select("name, number, image_url")
+      .eq("set_name", setName)
+      .limit(5000);
+    const byNumber = new Map<string, { name: string; number: string; image_url: string | null }>();
+    (universe ?? []).forEach((u: any) => {
+      const n = normNum(u.number);
+      if (!n) return;
+      const ex = byNumber.get(n);
+      const card = { name: norm(u.name), number: norm(u.number), image_url: u.image_url ?? null };
+      if (!ex || (!ex.image_url && card.image_url)) byNumber.set(n, card);
+    });
+
+    const { data: mine } = await supabaseAdmin
+      .from("vault_cards")
+      .select("tcg_number")
+      .eq("user_id", userId)
+      .eq("is_sold", false)
+      .eq("tcg_set", setName)
+      .limit(3000);
+    const ownedNums = new Set((mine ?? []).map((m: any) => normNum(m.tcg_number)).filter(Boolean));
+
+    const { data: existing } = await supabase
+      .from("wishlist_items")
+      .select("tcg_number")
+      .eq("user_id", userId)
+      .eq("set_name", setName)
+      .limit(2000);
+    const onList = new Set((existing ?? []).map((w: any) => normNum(w.tcg_number)).filter(Boolean));
+
+    const toAdd = [...byNumber.entries()]
+      .filter(([n]) => !ownedNums.has(n) && !onList.has(n))
+      .map(([, c]) => ({
+        user_id: userId,
+        name: c.name || `${setName} #${c.number}`,
+        set_name: setName,
+        tcg_number: c.number,
+        category: data.category,
+        image_url: c.image_url,
+        notify_sale: true,
+        notify_trade: true,
+        notify_live: false,
+      }));
+
+    if (toAdd.length === 0) return { added: 0 };
+    for (let i = 0; i < toAdd.length; i += 200) {
+      const slice = toAdd.slice(i, i + 200);
+      const { error } = await supabase.from("wishlist_items").insert(slice);
+      if (error) throw new Error(error.message);
+    }
+    return { added: toAdd.length };
+  });

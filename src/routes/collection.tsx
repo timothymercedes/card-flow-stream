@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
-import { getCollectionBooks, getCollectionBookDetail } from "@/lib/collection.functions";
+import { getCollectionBooks, getCollectionBookDetail, getCollectionDashboard, listCollectionGoals, toggleCollectionGoal, bulkAddMissingToWishlist } from "@/lib/collection.functions";
 import { CollectionRewardButton } from "@/components/CollectionRewardWheel";
 import { addWishlistItem } from "@/lib/wishlist.functions";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy } from "lucide-react";
+import { BookOpen, ArrowLeft, Search, Tag, ArrowLeftRight, Library, Heart, Trophy, Star, LayoutDashboard, TrendingUp, DollarSign, Gift, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collection")({
@@ -25,7 +25,12 @@ export const Route = createFileRoute("/collection")({
   component: CollectionPage,
 });
 
+import { normalizeTcgCategory } from "@/lib/tcgCategory";
+
 type Book = Awaited<ReturnType<typeof getCollectionBooks>>["books"][number];
+
+const setTotalKey = (category: string, setName: string) =>
+  `${normalizeTcgCategory(category)}|||${String(setName ?? "").trim().toLowerCase()}`;
 
 function money(cents: number) {
   return `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -33,14 +38,28 @@ function money(cents: number) {
 
 function CollectionPage() {
   const { user } = useAuth();
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<{ setName: string; category: string } | null>(null);
 
   const getBooks = useServerFn(getCollectionBooks);
-  const booksQ = useQuery({
-    queryKey: ["collection-books"],
-    queryFn: () => getBooks(),
-    enabled: !!user,
-  });
+  const getDash = useServerFn(getCollectionDashboard);
+  const listGoals = useServerFn(listCollectionGoals);
+  const toggleGoal = useServerFn(toggleCollectionGoal);
+
+  const booksQ = useQuery({ queryKey: ["collection-books"], queryFn: () => getBooks(), enabled: !!user });
+  const dashQ = useQuery({ queryKey: ["collection-dashboard"], queryFn: () => getDash(), enabled: !!user });
+  const goalsQ = useQuery({ queryKey: ["collection-goals"], queryFn: () => listGoals(), enabled: !!user });
+
+  const goalKeys = new Set((goalsQ.data ?? []).map((g) => g.key));
+  const onToggleGoal = async (setName: string, category: string) => {
+    try {
+      await toggleGoal({ data: { setName, category } });
+      qc.invalidateQueries({ queryKey: ["collection-goals"] });
+      qc.invalidateQueries({ queryKey: ["collection-dashboard"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   if (!user) {
     return (
@@ -56,21 +75,84 @@ function CollectionPage() {
   }
 
   if (selected) {
-    return <AppShell><BookDetail setName={selected.setName} category={selected.category} onBack={() => setSelected(null)} /></AppShell>;
+    return <AppShell><BookDetail setName={selected.setName} category={selected.category} onBack={() => setSelected(null)} isGoal={goalKeys.has(setTotalKey(selected.category, selected.setName))} onToggleGoal={onToggleGoal} /></AppShell>;
   }
 
   const books = booksQ.data?.books ?? [];
+  const dash = dashQ.data;
 
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-4 p-4">
-        <header className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold">Collection Books</h1>
-            <p className="text-xs text-muted-foreground">Your sets, completion progress, and missing cards.</p>
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold">Collection Books</h1>
+              <p className="text-xs text-muted-foreground">Your sets, completion progress, and missing cards.</p>
+            </div>
           </div>
+          <Button asChild size="sm" variant="secondary" className="h-8">
+            <Link to="/collection/missing"><Search className="mr-1 h-3.5 w-3.5" /> Missing Cards</Link>
+          </Button>
         </header>
+
+        {dash && (
+          <Card className="p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <LayoutDashboard className="h-3.5 w-3.5" /> Collection Dashboard
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              <Stat icon={<Trophy className="h-4 w-4 text-amber-500" />} label="Sets done" value={dash.stats.setsCompleted} />
+              <Stat icon={<Gift className="h-4 w-4 text-pink-500" />} label="Rewards" value={dash.stats.rewardsEarned} />
+              <Stat icon={<TrendingUp className="h-4 w-4 text-primary" />} label="In progress" value={dash.stats.setsInProgress} />
+              <Stat icon={<Search className="h-4 w-4 text-blue-500" />} label="Missing" value={dash.stats.missingCount} />
+              <Stat icon={<Heart className="h-4 w-4 text-rose-500" />} label="Wishlist hits" value={dash.stats.wishlistMatches} />
+              <Stat icon={<DollarSign className="h-4 w-4 text-emerald-500" />} label="Value" value={money(dash.stats.collectionValueCents)} />
+            </div>
+          </Card>
+        )}
+
+        {dash && dash.goals.length > 0 && (
+          <section>
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Star className="h-4 w-4 text-amber-500" /> Collection Goals</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {dash.goals.map((g) => (
+                <Card key={g.category + g.setName} className="cursor-pointer p-3 transition hover:bg-accent/40" onClick={() => setSelected({ setName: g.setName, category: g.category })}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-medium">{g.setName}</p>
+                    {g.complete ? <Badge className="bg-amber-500/15 text-amber-600 text-[10px]">Complete</Badge> : <span className="text-xs font-bold text-primary">{g.completion}%</span>}
+                  </div>
+                  <Progress value={g.completion} className="mt-2 h-1.5" />
+                  <p className="mt-1 text-[10px] text-muted-foreground">{g.ownedDistinct}/{g.knownTotal} cards</p>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {dash && dash.nearCompletion.list.length > 0 && (
+          <section>
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><TrendingUp className="h-4 w-4 text-primary" /> Near Completion</p>
+            <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
+              <Badge variant="outline">50%+ · {dash.nearCompletion.above50}</Badge>
+              <Badge variant="outline">75%+ · {dash.nearCompletion.above75}</Badge>
+              <Badge variant="outline">90%+ · {dash.nearCompletion.above90}</Badge>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {dash.nearCompletion.list.map((n) => (
+                <Card key={n.category + n.setName} className="cursor-pointer p-3 transition hover:bg-accent/40" onClick={() => setSelected({ setName: n.setName, category: n.category })}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-medium">{n.setName}</p>
+                    <span className="text-xs font-bold text-primary">{n.completion}%</span>
+                  </div>
+                  <Progress value={n.completion} className="mt-2 h-1.5" />
+                  <p className="mt-1 text-[10px] text-muted-foreground">{n.missing} cards to go</p>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
         {booksQ.isLoading && <p className="py-12 text-center text-sm text-muted-foreground">Loading your collection…</p>}
 
@@ -83,9 +165,10 @@ function CollectionPage() {
           </Card>
         )}
 
+        {books.length > 0 && <p className="flex items-center gap-1.5 pt-1 text-sm font-semibold"><ListChecks className="h-4 w-4" /> All Sets</p>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {books.map((b) => (
-            <BookTile key={b.key} book={b} onOpen={() => setSelected({ setName: b.setName, category: b.category })} />
+            <BookTile key={b.key} book={b} isGoal={goalKeys.has(b.key)} onToggleGoal={onToggleGoal} onOpen={() => setSelected({ setName: b.setName, category: b.category })} />
           ))}
         </div>
       </div>
@@ -93,7 +176,17 @@ function CollectionPage() {
   );
 }
 
-function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+  return (
+    <div className="rounded-lg bg-muted/40 p-2 text-center">
+      <div className="flex justify-center">{icon}</div>
+      <p className="mt-1 text-sm font-bold leading-none">{value}</p>
+      <p className="mt-0.5 text-[9px] text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function BookTile({ book, onOpen, isGoal, onToggleGoal }: { book: Book; onOpen: () => void; isGoal: boolean; onToggleGoal: (setName: string, category: string) => void }) {
   return (
     <Card
       onClick={onOpen}
@@ -109,7 +202,18 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate font-semibold">{book.setName}</p>
-          <Badge variant="secondary" className="shrink-0 text-[10px] capitalize">{book.category}</Badge>
+          <div className="flex shrink-0 items-center gap-1">
+            <Badge variant="secondary" className="text-[10px] capitalize">{book.category}</Badge>
+            {book.kind === "set" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleGoal(book.setName, book.category); }}
+                aria-label={isGoal ? "Remove goal" : "Add as goal"}
+                className="rounded p-0.5 hover:bg-accent"
+              >
+                <Star className={`h-4 w-4 ${isGoal ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+              </button>
+            )}
+          </div>
         </div>
         {book.kind !== "set" && (
           <Badge variant="outline" className="mt-1 text-[10px]">
@@ -138,14 +242,28 @@ function BookTile({ book, onOpen }: { book: Book; onOpen: () => void }) {
   );
 }
 
-function BookDetail({ setName, category, onBack }: { setName: string; category: string; onBack: () => void }) {
+function BookDetail({ setName, category, onBack, isGoal, onToggleGoal }: { setName: string; category: string; onBack: () => void; isGoal: boolean; onToggleGoal: (setName: string, category: string) => void }) {
   const getDetail = useServerFn(getCollectionBookDetail);
+  const bulkAdd = useServerFn(bulkAddMissingToWishlist);
   const q = useQuery({
     queryKey: ["collection-book", setName, category],
     queryFn: () => getDetail({ data: { setName, category } }),
   });
   const [tab, setTab] = useState("missing");
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [addingAll, setAddingAll] = useState(false);
+
+  const addAllToWishlist = async () => {
+    setAddingAll(true);
+    try {
+      const r = await bulkAdd({ data: { setName, category } });
+      toast.success(r.added > 0 ? `Added ${r.added} cards to your wishlist` : "All missing cards already on your wishlist");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAddingAll(false);
+    }
+  };
 
   const d = q.data;
 
@@ -171,6 +289,9 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold">{setName}</h1>
           <Badge variant="secondary" className="capitalize">{category}</Badge>
+          <Button size="sm" variant={isGoal ? "default" : "outline"} className="ml-auto h-8" onClick={() => onToggleGoal(setName, category)}>
+            <Star className={`mr-1 h-3.5 w-3.5 ${isGoal ? "fill-current" : ""}`} /> {isGoal ? "Goal" : "Set as goal"}
+          </Button>
         </div>
         {d && (
           <div className="mt-2">
@@ -233,6 +354,11 @@ function BookDetail({ setName, category, onBack }: { setName: string; category: 
                   <ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade for cards
                 </Link>
               </Button>
+              {d.kind === "set" && d.distinctMissingCount > 0 && (
+                <Button size="sm" variant="default" className="h-8" onClick={addAllToWishlist} disabled={addingAll}>
+                  <Heart className="mr-1 h-3.5 w-3.5" /> Add all missing to wishlist
+                </Button>
+              )}
             </div>
           </div>
         )}

@@ -66,6 +66,7 @@ import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as LegalAccountDeletionRouteImport } from './routes/legal.account-deletion'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CommunitiesSlugRouteImport } from './routes/communities.$slug'
+import { Route as CollectionMissingRouteImport } from './routes/collection.missing'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
@@ -383,6 +384,11 @@ const CommunitiesSlugRoute = CommunitiesSlugRouteImport.update({
   path: '/communities/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CollectionMissingRoute = CollectionMissingRouteImport.update({
+  id: '/missing',
+  path: '/missing',
+  getParentRoute: () => CollectionRoute,
+} as any)
 const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   id: '/admin_/performance',
   path: '/admin/performance',
@@ -552,7 +558,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
-  '/collection': typeof CollectionRoute
+  '/collection': typeof CollectionRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -586,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
@@ -640,7 +647,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
-  '/collection': typeof CollectionRoute
+  '/collection': typeof CollectionRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -674,6 +681,7 @@ export interface FileRoutesByTo {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
@@ -729,7 +737,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
-  '/collection': typeof CollectionRoute
+  '/collection': typeof CollectionRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
@@ -763,6 +771,7 @@ export interface FileRoutesById {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
+  '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
@@ -853,6 +862,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/collection/missing'
     | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
@@ -941,6 +951,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/collection/missing'
     | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
@@ -1029,6 +1040,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin_/finance'
     | '/admin_/performance'
+    | '/collection/missing'
     | '/communities/$slug'
     | '/email/unsubscribe'
     | '/legal/account-deletion'
@@ -1084,7 +1096,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BookmarksRoute: typeof BookmarksRoute
   CartRoute: typeof CartRoute
-  CollectionRoute: typeof CollectionRoute
+  CollectionRoute: typeof CollectionRouteWithChildren
   DiscoverRoute: typeof DiscoverRoute
   DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
@@ -1559,6 +1571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunitiesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collection/missing': {
+      id: '/collection/missing'
+      path: '/missing'
+      fullPath: '/collection/missing'
+      preLoaderRoute: typeof CollectionMissingRouteImport
+      parentRoute: typeof CollectionRoute
+    }
     '/admin_/performance': {
       id: '/admin_/performance'
       path: '/admin/performance'
@@ -1783,6 +1802,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CollectionRouteChildren {
+  CollectionMissingRoute: typeof CollectionMissingRoute
+}
+
+const CollectionRouteChildren: CollectionRouteChildren = {
+  CollectionMissingRoute: CollectionMissingRoute,
+}
+
+const CollectionRouteWithChildren = CollectionRoute._addFileChildren(
+  CollectionRouteChildren,
+)
+
 interface StoreRouteChildren {
   StoreUsernameRoute: typeof StoreUsernameRoute
 }
@@ -1812,7 +1843,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BookmarksRoute: BookmarksRoute,
   CartRoute: CartRoute,
-  CollectionRoute: CollectionRoute,
+  CollectionRoute: CollectionRouteWithChildren,
   DiscoverRoute: DiscoverRoute,
   DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
