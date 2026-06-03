@@ -236,6 +236,153 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_battles: {
+        Row: {
+          challenger_companion_id: string
+          challenger_id: string
+          created_at: string
+          id: string
+          log: Json
+          opponent_companion_id: string
+          opponent_id: string
+          season_id: string | null
+          status: string
+          winner_companion_id: string | null
+        }
+        Insert: {
+          challenger_companion_id: string
+          challenger_id: string
+          created_at?: string
+          id?: string
+          log?: Json
+          opponent_companion_id: string
+          opponent_id: string
+          season_id?: string | null
+          status?: string
+          winner_companion_id?: string | null
+        }
+        Update: {
+          challenger_companion_id?: string
+          challenger_id?: string
+          created_at?: string
+          id?: string
+          log?: Json
+          opponent_companion_id?: string
+          opponent_id?: string
+          season_id?: string | null
+          status?: string
+          winner_companion_id?: string | null
+        }
+        Relationships: []
+      }
+      arena_companions: {
+        Row: {
+          arena_rank: number
+          attack: number
+          category: string | null
+          community: string
+          cosmetics: Json
+          created_at: string
+          defense: number
+          hidden_traits: Json
+          id: string
+          image_url: string | null
+          level: number
+          longest_win_streak: number
+          losses: number
+          name: string
+          season_wins: number
+          speed: number
+          title: Database["public"]["Enums"]["arena_title"]
+          trophies: number
+          updated_at: string
+          user_id: string
+          vault_card_id: string
+          win_streak: number
+          wins: number
+          xp: number
+        }
+        Insert: {
+          arena_rank?: number
+          attack?: number
+          category?: string | null
+          community?: string
+          cosmetics?: Json
+          created_at?: string
+          defense?: number
+          hidden_traits?: Json
+          id?: string
+          image_url?: string | null
+          level?: number
+          longest_win_streak?: number
+          losses?: number
+          name: string
+          season_wins?: number
+          speed?: number
+          title?: Database["public"]["Enums"]["arena_title"]
+          trophies?: number
+          updated_at?: string
+          user_id: string
+          vault_card_id: string
+          win_streak?: number
+          wins?: number
+          xp?: number
+        }
+        Update: {
+          arena_rank?: number
+          attack?: number
+          category?: string | null
+          community?: string
+          cosmetics?: Json
+          created_at?: string
+          defense?: number
+          hidden_traits?: Json
+          id?: string
+          image_url?: string | null
+          level?: number
+          longest_win_streak?: number
+          losses?: number
+          name?: string
+          season_wins?: number
+          speed?: number
+          title?: Database["public"]["Enums"]["arena_title"]
+          trophies?: number
+          updated_at?: string
+          user_id?: string
+          vault_card_id?: string
+          win_streak?: number
+          wins?: number
+          xp?: number
+        }
+        Relationships: []
+      }
+      arena_seasons: {
+        Row: {
+          active: boolean
+          created_at: string
+          ends_at: string | null
+          id: string
+          name: string
+          starts_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          name: string
+          starts_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          name?: string
+          starts_at?: string
+        }
+        Relationships: []
+      }
       auction_queue: {
         Row: {
           buy_now_price: number | null
@@ -8248,6 +8395,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "owner" | "support"
+      arena_title: "rookie" | "veteran" | "elite" | "champion" | "legend"
       audit_event_type:
         | "payment_failed"
         | "payment_declined"
@@ -8508,6 +8656,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "owner", "support"],
+      arena_title: ["rookie", "veteran", "elite", "champion", "legend"],
       audit_event_type: [
         "payment_failed",
         "payment_declined",

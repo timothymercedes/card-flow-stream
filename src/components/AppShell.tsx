@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
-  Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown,
+  Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown, Swords,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -484,6 +484,7 @@ function PlatformSheet({
     {
       title: t("nav.tools", "Tools"),
       items: [
+        { to: "/arena", icon: Swords, label: t("nav.arena", "PullBid Arena") },
         { to: "/vault", icon: Lock, label: t("nav.vaultTools", "Vault Tools") },
         { to: "/showoff", icon: Sparkles, label: t("nav.creator", "Creator Features") },
         { to: "/quests", icon: Gift, label: t("nav.referrals", "Referrals & Rewards") },

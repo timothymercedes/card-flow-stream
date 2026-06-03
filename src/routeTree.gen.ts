@@ -33,6 +33,7 @@ import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BookmarksRouteImport } from './routes/bookmarks'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ArenaRouteImport } from './routes/arena'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AtusernameRouteImport } from './routes/@$username'
 import { Route as IndexRouteImport } from './routes/index'
@@ -206,6 +207,11 @@ const BookmarksRoute = BookmarksRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArenaRoute = ArenaRouteImport.update({
+  id: '/arena',
+  path: '/arena',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -500,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
+  '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
@@ -580,6 +587,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
+  '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
@@ -661,6 +669,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
+  '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
   '/cart': typeof CartRoute
@@ -743,6 +752,7 @@ export interface FileRouteTypes {
     | '/'
     | '/@$username'
     | '/admin'
+    | '/arena'
     | '/auth'
     | '/bookmarks'
     | '/cart'
@@ -823,6 +833,7 @@ export interface FileRouteTypes {
     | '/'
     | '/@$username'
     | '/admin'
+    | '/arena'
     | '/auth'
     | '/bookmarks'
     | '/cart'
@@ -903,6 +914,7 @@ export interface FileRouteTypes {
     | '/'
     | '/@$username'
     | '/admin'
+    | '/arena'
     | '/auth'
     | '/bookmarks'
     | '/cart'
@@ -984,6 +996,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtusernameRoute: typeof AtusernameRoute
   AdminRoute: typeof AdminRouteWithChildren
+  ArenaRoute: typeof ArenaRoute
   AuthRoute: typeof AuthRoute
   BookmarksRoute: typeof BookmarksRoute
   CartRoute: typeof CartRoute
@@ -1223,6 +1236,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arena': {
+      id: '/arena'
+      path: '/arena'
+      fullPath: '/arena'
+      preLoaderRoute: typeof ArenaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -1647,6 +1667,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtusernameRoute: AtusernameRoute,
   AdminRoute: AdminRouteWithChildren,
+  ArenaRoute: ArenaRoute,
   AuthRoute: AuthRoute,
   BookmarksRoute: BookmarksRoute,
   CartRoute: CartRoute,
@@ -1723,12 +1744,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
