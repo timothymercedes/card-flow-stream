@@ -359,17 +359,11 @@ export const battlePve = createServerFn({ method: "POST" })
       defense: Math.round(me.defense * diff.mult),
       speed: Math.round(me.speed * diff.mult),
       level: me.level,
+      hidden_traits: me.hidden_traits,
     };
 
-    const log: Array<{ round: number; mine: number; theirs: number; winner: "mine" | "theirs" }> = [];
-    let myRounds = 0, theirRounds = 0;
-    for (let r = 1; r <= 3; r++) {
-      const mp = power(me); const tp = power(cpu);
-      const w = mp >= tp ? "mine" : "theirs";
-      if (w === "mine") myRounds++; else theirRounds++;
-      log.push({ round: r, mine: Math.round(mp), theirs: Math.round(tp), winner: w });
-    }
-    const iWon = myRounds > theirRounds;
+    // Real HP-based combat: crits, dodges, traits and random events decide it.
+    const { log, myRounds, theirRounds, iWon } = simulateCombat(me, cpu, 5);
 
     const gainedXp = iWon ? diff.winXp : diff.lossXp;
     const newXp = me.xp + gainedXp;
