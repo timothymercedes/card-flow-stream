@@ -218,7 +218,7 @@ function AddDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Set</Label>
-              <Input value={setName} onChange={(e) => setSetName(e.target.value)} placeholder="Base Set" />
+              <Input value={cardSet} onChange={(e) => setCardSet(e.target.value)} placeholder="Base Set" />
             </div>
             <div>
               <Label className="text-xs">Card #</Label>
