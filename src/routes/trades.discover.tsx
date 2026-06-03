@@ -55,7 +55,10 @@ function DiscoverPage() {
   const term = (search.q ?? "").trim().toLowerCase();
   const opps = (q.data?.opportunities ?? []).filter((o) => {
     if (!term) return true;
-    return [...o.theyHave, ...o.iCanOffer].some((c) => `${c.name} ${c.reason ?? ""}`.toLowerCase().includes(term));
+    return [...o.theyHave, ...o.iCanOffer].some((c) => {
+      const reason = "reason" in c ? c.reason : "";
+      return `${c.name} ${reason}`.toLowerCase().includes(term);
+    });
   });
 
   return (
