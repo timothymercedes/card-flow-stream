@@ -72,7 +72,8 @@ function StatBar({ icon: Icon, label, value, max = 60 }: { icon: any; label: str
 function ArenaPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [category, setCategory] = useState<string>("all");
+  const { category: initialCategory } = Route.useSearch();
+  const [category, setCategory] = useState<string>(initialCategory ?? "all");
   const [difficulty, setDifficulty] = useState<ArenaDifficulty>("normal");
   const [battleResult, setBattleResult] = useState<
     | Awaited<ReturnType<typeof challengeAndResolve>>
