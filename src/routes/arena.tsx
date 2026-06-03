@@ -45,6 +45,10 @@ function titleBadge(title: ArenaTitle) {
   return <span className={`inline-flex items-center gap-1 text-xs font-semibold ${m.color}`}><Crown className="h-3 w-3" />{m.label}</span>;
 }
 
+function titleLabel(title: ArenaTitle) {
+  return TITLE_META[title].label;
+}
+
 function StatBar({ icon: Icon, label, value, max = 60 }: { icon: any; label: string; value: number; max?: number }) {
   return (
     <div className="flex items-center gap-2">
