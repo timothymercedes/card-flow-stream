@@ -323,12 +323,15 @@ export const getCollectionBookDetail = createServerFn({ method: "GET" })
     return {
       setName,
       category: data.category,
+      setKey: setTotalKey(data.category, setName),
       knownTotal: hasTotal ? knownTotal : 0,
       official: officialTotal > 0,
       ownedCount: ownedNums.size, // distinct cards owned (unique counting)
       ownedCopies: myCards.length, // total copies incl. duplicates
       catalogCount: catalogTotal, // cards we have catalog images for
       distinctMissingCount,
+      // True 100% completion: official size known AND every distinct card owned.
+      complete: officialTotal > 0 && ownedNums.size >= officialTotal,
       completion: hasTotal ? Math.min(100, Math.round((ownedNums.size / knownTotal) * 100)) : null,
       owned,
       missing: missingWithAvail,
