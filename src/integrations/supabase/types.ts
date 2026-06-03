@@ -238,37 +238,43 @@ export type Database = {
       }
       arena_battles: {
         Row: {
+          battle_type: string
           challenger_companion_id: string
           challenger_id: string
           created_at: string
+          difficulty: string | null
           id: string
           log: Json
-          opponent_companion_id: string
-          opponent_id: string
+          opponent_companion_id: string | null
+          opponent_id: string | null
           season_id: string | null
           status: string
           winner_companion_id: string | null
         }
         Insert: {
+          battle_type?: string
           challenger_companion_id: string
           challenger_id: string
           created_at?: string
+          difficulty?: string | null
           id?: string
           log?: Json
-          opponent_companion_id: string
-          opponent_id: string
+          opponent_companion_id?: string | null
+          opponent_id?: string | null
           season_id?: string | null
           status?: string
           winner_companion_id?: string | null
         }
         Update: {
+          battle_type?: string
           challenger_companion_id?: string
           challenger_id?: string
           created_at?: string
+          difficulty?: string | null
           id?: string
           log?: Json
-          opponent_companion_id?: string
-          opponent_id?: string
+          opponent_companion_id?: string | null
+          opponent_id?: string | null
           season_id?: string | null
           status?: string
           winner_companion_id?: string | null
