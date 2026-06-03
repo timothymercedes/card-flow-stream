@@ -491,6 +491,12 @@ function ArenaPage() {
             )}
           </TabsContent>
 
+          {/* ---- Feed (shared battles) ---- */}
+          <TabsContent value="feed">
+            <ArenaFeed onWatchReplay={watchReplay} />
+          </TabsContent>
+
+
           {/* ---- Leaderboards ---- */}
           <TabsContent value="leaderboards">
             <div className="grid gap-4 md:grid-cols-2">
