@@ -121,16 +121,19 @@ export const getCollectionBooks = createServerFn({ method: "GET" })
       if (!b.cover && img) b.cover = img;
     }
 
-    const setNames = [...books.values()].map((b) => b.setName).filter((s) => s && s !== "Other Cards");
+    const bookList = [...books.values()].filter((b) => b.setName && b.setName !== "Other Cards");
 
-    // Official set sizes (primary source of truth).
-    const officialTotals = await loadSetTotals(supabaseAdmin, setNames);
+    // Official set sizes (primary source of truth), keyed by category + set.
+    const officialTotals = await loadSetTotals(
+      supabaseAdmin,
+      bookList.map((b) => ({ category: b.category, setName: b.setName })),
+    );
 
     // Fallback proxy: distinct numbers seen across all collectors, used only
     // when a set isn't in the master checklist table.
     const proxyTotals = new Map<string, Set<string>>();
-    const unknownSets = [...new Set(setNames.map(normSet))].filter((s) => !officialTotals.has(s));
-    const unknownOriginal = [...new Set(setNames)].filter((s) => unknownSets.includes(normSet(s)));
+    const unknownBooks = bookList.filter((b) => !officialTotals.has(setTotalKey(b.category, b.setName)));
+    const unknownOriginal = [...new Set(unknownBooks.map((b) => b.setName))];
     for (let i = 0; i < unknownOriginal.length; i += 50) {
       const slice = unknownOriginal.slice(i, i + 50);
       const { data: idents } = await supabaseAdmin
@@ -148,9 +151,8 @@ export const getCollectionBooks = createServerFn({ method: "GET" })
     }
 
     const result = [...books.values()].map((b) => {
-      const sn = normSet(b.setName);
-      const official = officialTotals.get(sn) ?? 0;
-      const proxy = proxyTotals.get(sn)?.size ?? 0;
+      const official = officialTotals.get(setTotalKey(b.category, b.setName)) ?? 0;
+      const proxy = proxyTotals.get(normSet(b.setName))?.size ?? 0;
       // Always at least as large as what the user owns distinctly.
       const knownTotal = Math.max(official || proxy, b.ownedNumbers.size);
       const hasTotal = knownTotal > 0 && (official > 0 || proxy > 0);
@@ -167,6 +169,7 @@ export const getCollectionBooks = createServerFn({ method: "GET" })
         cover: b.cover,
       };
     });
+
 
     result.sort((a, b) => {
       // Sets with real completion data first, then by progress, then size.
