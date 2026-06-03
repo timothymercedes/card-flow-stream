@@ -488,6 +488,8 @@ function ArenaPage() {
               myFrameClass={equipped.frameClass}
               myEffectClass={equipped.effectClass}
               myTitle={equipped.titleText}
+              arenaCategory={activeMine?.arena_category ?? category}
+              isTraining={battleResult.rewards.rank === 0 && battleResult.rewards.credits === 0}
               onClose={() => setBattleResult(null)}
             />
           )}
