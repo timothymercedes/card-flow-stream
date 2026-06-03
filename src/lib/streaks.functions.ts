@@ -94,15 +94,15 @@ export const getStreakLeaderboard = createServerFn({ method: "GET" })
     if (ids.length) {
       const { data: ps } = await supabaseAdmin
         .from("profiles")
-        .select("user_id, display_name, avatar_url")
-        .in("user_id", ids);
-      (ps ?? []).forEach((p: any) => profiles.set(p.user_id, p));
+        .select("id, username, avatar_url")
+        .in("id", ids);
+      (ps ?? []).forEach((p: any) => profiles.set(p.id, p));
     }
     return (rows ?? []).map((r: any) => ({
       userId: r.user_id,
       currentStreak: r.current_streak,
       longestStreak: r.longest_streak,
-      displayName: profiles.get(r.user_id)?.display_name ?? "Collector",
+      displayName: profiles.get(r.user_id)?.username ?? "Collector",
       avatarUrl: profiles.get(r.user_id)?.avatar_url ?? null,
     }));
   });
