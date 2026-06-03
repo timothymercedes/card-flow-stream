@@ -94,7 +94,7 @@ function Fighter({
 
 export function ArenaBattleStage({
   result, myName, myImage, myFrameClass = "", myEffectClass = "", myTitle, arenaCategory = "all",
-  isTraining = false, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
+  isTraining = false, environmentLabel, hideRewards = false, onShareToFeed, sharingToFeed = false, onClose,
 }: {
   result: StageResult;
   myName: string;
@@ -104,6 +104,7 @@ export function ArenaBattleStage({
   myTitle?: string;
   arenaCategory?: string;
   isTraining?: boolean;
+  environmentLabel?: string;
   hideRewards?: boolean;
   onShareToFeed?: () => void;
   sharingToFeed?: boolean;
