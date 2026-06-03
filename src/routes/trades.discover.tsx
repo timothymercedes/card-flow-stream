@@ -11,6 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sparkles, ArrowLeft, ArrowLeftRight, ArrowRight, Repeat, Gift, Search } from "lucide-react";
 
 export const Route = createFileRoute("/trades/discover")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    q: typeof s.q === "string" ? s.q : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Trade Discovery — PullBid Live" },
@@ -28,6 +31,7 @@ type Opp = Awaited<ReturnType<typeof getTradeDiscovery>>["opportunities"][number
 
 function DiscoverPage() {
   const { user } = useAuth();
+  const search = Route.useSearch();
   const discover = useServerFn(getTradeDiscovery);
   const q = useQuery({
     queryKey: ["trade-discovery"],
@@ -48,7 +52,14 @@ function DiscoverPage() {
     );
   }
 
-  const opps = q.data?.opportunities ?? [];
+  const term = (search.q ?? "").trim().toLowerCase();
+  const opps = (q.data?.opportunities ?? []).filter((o) => {
+    if (!term) return true;
+    return [...o.theyHave, ...o.iCanOffer].some((c) => {
+      const reason = "reason" in c ? c.reason : "";
+      return `${c.name} ${reason}`.toLowerCase().includes(term);
+    });
+  });
 
   return (
     <AppShell>

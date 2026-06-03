@@ -11,7 +11,7 @@ export type ListingLike = {
 export type ListingPriceDisplay = {
   label: string;
   suffix?: string;
-  kind: "price" | "offer" | "empty";
+  kind: "price" | "offer" | "trade" | "empty";
   amount: number;
 };
 
@@ -33,6 +33,10 @@ export function getListingPriceDisplay(listing: ListingLike, compact = false): L
 
   if (!!listing.accepts_offers || listing.listing_type === "offer") {
     return { label: "Make Offer", kind: "offer", amount: 0 };
+  }
+
+  if (listing.listing_type === "trade") {
+    return { label: "Trade", kind: "trade", amount: 0 };
   }
 
   return { label: "—", kind: "empty", amount: 0 };

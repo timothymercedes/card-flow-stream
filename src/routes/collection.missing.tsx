@@ -42,6 +42,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/collection/missing")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    set: typeof s.set === "string" ? s.set : undefined,
+    category: typeof s.category === "string" ? s.category : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Missing Cards Center — PullBid Live" },
@@ -61,6 +65,7 @@ function money(v: number) {
 function MissingCenter() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const search = Route.useSearch();
   const getCenter = useServerFn(getMissingCardCenter);
   const addAllAll = useServerFn(bulkAddAllMissingToWishlist);
   const [addingAll, setAddingAll] = useState(false);
@@ -85,6 +90,13 @@ function MissingCenter() {
   }
 
   const groups = q.data?.groups ?? [];
+  const shownGroups = search.set
+    ? [...groups].sort((a, b) => {
+        const am = a.setName === search.set && (!search.category || a.category === search.category) ? 1 : 0;
+        const bm = b.setName === search.set && (!search.category || b.category === search.category) ? 1 : 0;
+        return bm - am;
+      })
+    : groups;
   const totalMissing = groups.reduce((s, g) => s + g.missing.length, 0);
   const totalAvailable = groups.reduce((s, g) => s + g.availableCount, 0);
   const oneAway = groups.filter((g) => g.remaining === 1).length;
@@ -148,7 +160,7 @@ function MissingCenter() {
           </Card>
         )}
 
-        {groups.map((g) => <MissingGroup key={g.category + g.setName} group={g} />)}
+        {shownGroups.map((g) => <MissingGroup key={g.category + g.setName} group={g} />)}
       </div>
     </AppShell>
   );
@@ -218,7 +230,7 @@ function MissingGroup({ group: g }: { group: Group }) {
           <Link to="/market" search={{ q: g.setName }}><Tag className="mr-1 h-3.5 w-3.5" /> Shop set</Link>
         </Button>
         <Button asChild size="sm" variant="outline" className="h-8">
-          <Link to="/trades" search={{ q: g.setName }}><ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade</Link>
+          <Link to="/trades/discover" search={{ q: g.setName }}><ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Trade</Link>
         </Button>
       </div>
 
@@ -288,7 +300,7 @@ function MissingCard({ card, group: g }: { card: Missing; group: Group }) {
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline" className="col-span-2 h-7 px-1 text-[10px]" aria-label="Trade">
-            <Link to="/trades" search={{ q: `${g.setName} ${card.number}`.trim() }}>
+            <Link to="/trades/discover" search={{ q: `${g.setName} ${card.number}`.trim() }}>
               <ArrowLeftRight className="h-3 w-3" /><span className="ml-1">Trade</span>
             </Link>
           </Button>
@@ -391,7 +403,7 @@ function CardDetailsDialog({ card, group: g, onClose }: { card: Missing; group: 
                 <Link to="/market" search={{ q: `${g.setName} ${card.number}`.trim() }}><Tag className="mr-1 h-3.5 w-3.5" /> Shop</Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="h-8 flex-1">
-                <Link to="/trades/discover"><ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Find a trade</Link>
+                <Link to="/trades/discover" search={{ q: `${g.setName} ${card.number}`.trim() }}><ArrowLeftRight className="mr-1 h-3.5 w-3.5" /> Find a trade</Link>
               </Button>
             </div>
           </div>

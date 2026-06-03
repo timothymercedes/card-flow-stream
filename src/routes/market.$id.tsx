@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, MessageCircle, Timer, Pencil } from "lucide-react";
+import { ArrowLeft, MessageCircle, Timer, Pencil, ArrowLeftRight } from "lucide-react";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { ReportDialog } from "@/components/ReportDialog";
 import { SellerBadge } from "@/components/SellerBadge";
@@ -378,6 +378,8 @@ function ListingDetail() {
                     <p className="text-2xl font-bold text-primary">{priceDisplay.label}</p>
                   ) : priceDisplay.kind === "offer" ? (
                     <p className="text-2xl font-bold text-primary">Make Offer</p>
+                  ) : priceDisplay.kind === "trade" ? (
+                    <p className="text-2xl font-bold text-primary">Trade</p>
                   ) : (
                     <p className="text-2xl font-bold text-muted-foreground">—</p>
                   )}
@@ -404,6 +406,11 @@ function ListingDetail() {
                 )}
                 {soldOut && !isSeller && (
                   <div className="rounded-lg bg-muted/40 p-2 text-center text-xs text-muted-foreground">This listing is sold out.</div>
+                )}
+                {!isSeller && type === "trade" && (
+                  <Link to="/trades/discover" search={{ q: listing.title }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
+                    <ArrowLeftRight className="h-4 w-4" /> Find trade matches
+                  </Link>
                 )}
               </>
             );
