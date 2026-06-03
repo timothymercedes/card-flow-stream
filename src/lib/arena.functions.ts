@@ -97,7 +97,7 @@ export const getPublicCompanions = createServerFn({ method: "GET" })
   });
 
 // ---- Find opponents (other users' companions, limited stats) ----
-export const findOpponents = createServerFn({ method: "GET" })
+export const findOpponents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { community?: string }) => d ?? {})
   .handler(async ({ context, data }) => {
