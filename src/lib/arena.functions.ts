@@ -280,7 +280,10 @@ export const battlePve = createServerFn({ method: "POST" })
 
     const gainedXp = iWon ? diff.winXp : diff.lossXp;
     const newXp = me.xp + gainedXp;
-    const update: Record<string, unknown> = {
+    const update: {
+      xp: number; level: number; wins?: number; losses?: number;
+      win_streak?: number; longest_win_streak?: number; trophies?: number; title?: ArenaTitle;
+    } = {
       xp: newXp,
       level: companionLevel(newXp),
     };
