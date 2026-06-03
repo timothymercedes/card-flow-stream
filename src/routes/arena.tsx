@@ -203,6 +203,16 @@ function ArenaPage() {
     onError: (e: any) => toast.error(e?.message || "Training battle failed"),
   });
 
+  const bossM = useMutation({
+    mutationFn: (vars: { myCompanionId: string; boss: ArenaBossKey }) => bossFn({ data: vars }),
+    onSuccess: (r) => {
+      setTrainFor(null);
+      setBattleResult(r);
+      qc.invalidateQueries({ queryKey: ["arena"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Boss battle failed"),
+  });
+
   const challengeUserM = useMutation({
     mutationFn: (vars: { myCompanionId: string; targetUserId: string }) => challengeUserFn({ data: vars }),
     onSuccess: (r) => {
