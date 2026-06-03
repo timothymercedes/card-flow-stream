@@ -530,6 +530,27 @@ export type Database = {
           },
         ]
       }
+      arena_mission_claims: {
+        Row: {
+          created_at: string
+          id: string
+          mission_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mission_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mission_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       arena_seasons: {
         Row: {
           active: boolean

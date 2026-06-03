@@ -4,11 +4,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   titleForWins, communityForCategory, deriveCompanionStats, valueTier,
-  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS, TRAINING_TRAINERS,
-  simulateCombat, AI_BOSSES, bossCharacter,
+  companionLevel, DIFFICULTY_META, earnedBadgeKeys, PVP_WIN_CREDITS, PVP_WIN_XP, TRAINING_TRAINERS,
+  simulateCombat, AI_BOSSES, bossCharacter, streakBonusMultiplier,
   type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, type ArenaBossKey,
 } from "@/lib/arenaShared";
 import { arenaCategoryFor } from "@/lib/arenaCategories";
+import { MISSION_MAP } from "@/lib/arenaTraining";
 import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
 import { COSMETIC_MAP } from "@/lib/arenaCosmetics";
 
@@ -210,11 +211,12 @@ async function resolvePvpBattle(
 
   const wWins = winner.wins + 1;
   const wStreak = winner.win_streak + 1;
-  const wXp = winner.xp + 50;
+  const streakMult = streakBonusMultiplier(wStreak);
+  const wXp = winner.xp + Math.round(PVP_WIN_XP * streakMult);
   const winnerUpdate = {
     wins: wWins, win_streak: wStreak,
     longest_win_streak: Math.max(winner.longest_win_streak, wStreak),
-    season_wins: winner.season_wins + 1, trophies: winner.trophies + 10,
+    season_wins: winner.season_wins + 1, trophies: winner.trophies + Math.round(10 * streakMult),
     arena_rank: winner.arena_rank + 15, xp: wXp,
     level: companionLevel(wXp), title: titleForWins(wWins),
   };
@@ -365,7 +367,11 @@ export const battlePve = createServerFn({ method: "POST" })
     // Real HP-based combat: crits, dodges, traits and random events decide it.
     const { log, myRounds, theirRounds, iWon } = simulateCombat(me, cpu, 5);
 
-    const gainedXp = iWon ? diff.winXp : diff.lossXp;
+    const wStreak = iWon ? me.win_streak + 1 : 0;
+    const streakMult = iWon ? streakBonusMultiplier(wStreak) : 1;
+    const baseXp = iWon ? diff.winXp : diff.lossXp;
+    const gainedXp = Math.round(baseXp * streakMult);
+    const gainedTrophies = iWon ? Math.round(diff.winTrophies * streakMult) : 0;
     const newXp = me.xp + gainedXp;
     const update: {
       xp: number; level: number; wins?: number; losses?: number;
@@ -376,11 +382,10 @@ export const battlePve = createServerFn({ method: "POST" })
     };
     if (iWon) {
       const wWins = me.wins + 1;
-      const wStreak = me.win_streak + 1;
       update.wins = wWins;
       update.win_streak = wStreak;
       update.longest_win_streak = Math.max(me.longest_win_streak, wStreak);
-      update.trophies = me.trophies + diff.winTrophies;
+      update.trophies = me.trophies + gainedTrophies;
       update.title = titleForWins(wWins);
       // Note: arena_rank and season_wins deliberately unchanged for PVE.
     } else {
@@ -408,7 +413,7 @@ export const battlePve = createServerFn({ method: "POST" })
       theirRounds,
       log,
       battleId: (pveBattle?.id ?? null) as string | null,
-      rewards: { xp: gainedXp, trophies: iWon ? diff.winTrophies : 0, rank: 0, credits: 0 },
+      rewards: { xp: gainedXp, trophies: gainedTrophies, rank: 0, credits: 0 },
       opponentName: `${trainer.name} · ${trainer.rank}`,
       opponentImage: null as string | null,
       opponentEmoji: trainer.emoji as string | null,
@@ -446,7 +451,10 @@ export const battleAiBoss = createServerFn({ method: "POST" })
 
     const { log, myRounds, theirRounds, iWon } = simulateCombat(me, boss, tier.rounds);
 
-    const gainedXp = iWon ? tier.winXp : tier.lossXp;
+    const wStreak = iWon ? me.win_streak + 1 : 0;
+    const streakMult = iWon ? streakBonusMultiplier(wStreak) : 1;
+    const gainedXp = Math.round((iWon ? tier.winXp : tier.lossXp) * streakMult);
+    const gainedTrophies = iWon ? Math.round(tier.winTrophies * streakMult) : 0;
     const newXp = me.xp + gainedXp;
     const update: {
       xp: number; level: number; wins?: number; losses?: number;
@@ -455,12 +463,11 @@ export const battleAiBoss = createServerFn({ method: "POST" })
     } = { xp: newXp, level: companionLevel(newXp) };
     if (iWon) {
       const wWins = me.wins + 1;
-      const wStreak = me.win_streak + 1;
       update.wins = wWins;
       update.win_streak = wStreak;
       update.longest_win_streak = Math.max(me.longest_win_streak, wStreak);
       update.season_wins = me.season_wins + 1;
-      update.trophies = me.trophies + tier.winTrophies;
+      update.trophies = me.trophies + gainedTrophies;
       update.arena_rank = me.arena_rank + (data.boss === "weekly" ? 30 : 12);
       update.title = titleForWins(wWins);
     } else {
@@ -498,7 +505,7 @@ export const battleAiBoss = createServerFn({ method: "POST" })
       battleId: (bossBattle?.id ?? null) as string | null,
       rewards: {
         xp: gainedXp,
-        trophies: iWon ? tier.winTrophies : 0,
+        trophies: gainedTrophies,
         rank: iWon ? (data.boss === "weekly" ? 30 : 12) : 0,
         credits,
       },
@@ -551,6 +558,75 @@ export const getBattleHistory = createServerFn({ method: "GET" })
 
     return { battles, wins, losses, currentStreak };
   });
+
+// ---- Claimable training-mission rewards ----
+export const getMissionClaims = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("arena_mission_claims").select("mission_key").eq("user_id", userId);
+    if (error) throw new Error(error.message);
+    return { claimed: ((data || []) as any[]).map((r) => r.mission_key as string) };
+  });
+
+export const claimMission = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { missionKey: string }) => d)
+  .handler(async ({ context, data }) => {
+    const { userId } = context;
+    const mission = MISSION_MAP[data.missionKey];
+    if (!mission) throw new Error("Unknown mission");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Already claimed?
+    const { data: prior } = await supabaseAdmin
+      .from("arena_mission_claims").select("id")
+      .eq("user_id", userId).eq("mission_key", mission.key).maybeSingle();
+    if (prior) throw new Error("Reward already claimed");
+
+    // Verify progress server-side from this user's battle history.
+    const { data: rows } = await supabaseAdmin
+      .from("arena_battles")
+      .select("winner_companion_id, battle_type, difficulty, challenger_id, opponent_id")
+      .or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`)
+      .limit(500);
+    const { data: mineRows } = await supabaseAdmin
+      .from("arena_companions").select("id").eq("user_id", userId);
+    const mineIds = new Set(((mineRows || []) as any[]).map((c) => c.id));
+    const battles = ((rows || []) as any[]).map((b) => ({
+      type: b.battle_type as "pvp" | "pve" | "boss",
+      difficulty: b.difficulty as ArenaDifficulty | null,
+      iWon: b.winner_companion_id != null && mineIds.has(b.winner_companion_id),
+    }));
+    if (mission.count(battles) < mission.goal) throw new Error("Mission not complete yet");
+
+    // Grant the payout.
+    let grantedLabel = mission.reward;
+    if (mission.payout.kind === "credits") {
+      await creditWinner(supabaseAdmin, userId, mission.payout.amount, `mission:${mission.key}`);
+    } else {
+      const cosmetic = COSMETIC_MAP[mission.payout.cosmeticKey];
+      if (!cosmetic) throw new Error("Reward cosmetic unavailable");
+      const { data: owned } = await supabaseAdmin
+        .from("arena_user_cosmetics").select("id")
+        .eq("user_id", userId).eq("cosmetic_key", cosmetic.key).maybeSingle();
+      if (!owned) {
+        await supabaseAdmin.from("arena_user_cosmetics").insert({
+          user_id: userId, cosmetic_key: cosmetic.key, cosmetic_type: cosmetic.type,
+        });
+      }
+      grantedLabel = cosmetic.name;
+    }
+
+    const { error: claimErr } = await supabaseAdmin.from("arena_mission_claims")
+      .insert({ user_id: userId, mission_key: mission.key });
+    if (claimErr) throw new Error(claimErr.message);
+
+    return { ok: true, reward: grantedLabel };
+  });
+
+
 
 // ---- Leaderboards (seasonal, optionally scoped to one Arena category) ----
 export const getLeaderboards = createServerFn({ method: "GET" })

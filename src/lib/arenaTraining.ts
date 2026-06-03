@@ -45,11 +45,16 @@ export function environmentMeta(category: string | null | undefined, key: string
 }
 
 // ---- Training missions (progress derived from PVE battle history) ----
+export type MissionPayout =
+  | { kind: "credits"; amount: number }
+  | { kind: "cosmetic"; cosmeticKey: string };
+
 export type TrainingMission = {
   key: string;
   label: string;
   goal: number;
   reward: string;
+  payout: MissionPayout;
   count: (battles: BattleRecord[]) => number;
 };
 
@@ -64,28 +69,32 @@ export const TRAINING_MISSIONS: TrainingMission[] = [
     key: "win_3",
     label: "Win 3 Training Battles",
     goal: 3,
-    reward: "+XP boost",
+    reward: "+10 🪙 Credits",
+    payout: { kind: "credits", amount: 10 },
     count: (b) => b.filter((x) => x.type === "pve" && x.iWon).length,
   },
   {
     key: "defeat_elite",
     label: "Defeat Elite AI",
     goal: 1,
-    reward: "🏅 Elite Slayer title",
+    reward: "🛡️ Unbroken title",
+    payout: { kind: "cosmetic", cosmeticKey: "title_unbroken" },
     count: (b) => b.filter((x) => x.type === "pve" && x.iWon && x.difficulty === "elite").length,
   },
   {
     key: "train_5",
     label: "Train Your Companion 5 Times",
     goal: 5,
-    reward: "+Credits",
+    reward: "+15 🪙 Credits",
+    payout: { kind: "credits", amount: 15 },
     count: (b) => b.filter((x) => x.type === "pve").length,
   },
   {
     key: "all_trainers",
     label: "Face All 4 AI Trainers",
     goal: 4,
-    reward: "🎖️ Sparring cosmetic",
+    reward: "💨 Smoke Entrance cosmetic",
+    payout: { kind: "cosmetic", cosmeticKey: "ent_smoke" },
     count: (b) => {
       const seen = new Set<string>();
       for (const x of b) if (x.type === "pve" && x.difficulty) seen.add(x.difficulty);
@@ -93,3 +102,8 @@ export const TRAINING_MISSIONS: TrainingMission[] = [
     },
   },
 ];
+
+// Server-safe lookup so the claim endpoint can validate progress + payout.
+export const MISSION_MAP: Record<string, TrainingMission> = Object.fromEntries(
+  TRAINING_MISSIONS.map((m) => [m.key, m]),
+);

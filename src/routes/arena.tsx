@@ -8,12 +8,12 @@ import {
   syncCompanions, listMyCompanions, findOpponents, challengeAndResolve, getLeaderboards,
   battlePve, battleAiBoss, getBattleHistory, searchCollectors, getArenaProfile, followCollector,
   unfollowCollector, challengeUser, getRecentOpponents, listMyBadges, getArenaCosmetics,
-  getBattleReplay, postBattleToFeed,
+  getBattleReplay, postBattleToFeed, getMissionClaims, claimMission,
 } from "@/lib/arena.functions";
 import {
   TITLE_META, COMMUNITY_META, DIFFICULTY_META, ARENA_BADGES, companionLevelProgress,
   type ArenaCommunity, type ArenaTitle, type ArenaDifficulty, type ArenaBadgeKey, PVP_WIN_XP,
-  TRAINING_TRAINERS, AI_BOSSES, bossCharacter, type ArenaBossKey,
+  TRAINING_TRAINERS, AI_BOSSES, bossCharacter, type ArenaBossKey, streakBonusLabel,
 } from "@/lib/arenaShared";
 import { environmentsFor, environmentMeta, TRAINING_MISSIONS } from "@/lib/arenaTraining";
 import { ARENA_CATEGORIES, arenaCategoryMeta } from "@/lib/arenaCategories";
@@ -155,6 +155,19 @@ function ArenaPage() {
     queryKey: ["arena", "history"],
     queryFn: () => historyFn(),
     enabled: !!user,
+  });
+
+  const claimsFn = useServerFn(getMissionClaims);
+  const claimFn = useServerFn(claimMission);
+  const claimsQ = useQuery({ queryKey: ["arena", "claims"], queryFn: () => claimsFn(), enabled: !!user });
+  const claimM = useMutation({
+    mutationFn: (missionKey: string) => claimFn({ data: { missionKey } }),
+    onSuccess: (r) => {
+      toast.success(`Reward claimed: ${r.reward}`);
+      qc.invalidateQueries({ queryKey: ["arena", "claims"] });
+      qc.invalidateQueries({ queryKey: ["arena", "cosmetics"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Could not claim reward"),
   });
 
   const badgesQ = useQuery({ queryKey: ["arena", "badges"], queryFn: () => badgesFn(), enabled: !!user });
@@ -910,13 +923,28 @@ function ArenaPage() {
               {TRAINING_MISSIONS.map((mission) => {
                 const have = Math.min(mission.count(historyQ.data?.battles ?? []), mission.goal);
                 const done = have >= mission.goal;
+                const claimed = (claimsQ.data?.claimed ?? []).includes(mission.key);
                 return (
                   <div key={mission.key}>
-                    <div className="mb-1 flex items-center justify-between text-[11px]">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
                       <span className={done ? "font-semibold text-emerald-500" : "font-medium"}>
                         {done ? "✓ " : ""}{mission.label}
                       </span>
-                      <span className="text-muted-foreground">{have}/{mission.goal} · {mission.reward}</span>
+                      {claimed ? (
+                        <span className="font-semibold text-emerald-500">Claimed ✓</span>
+                      ) : done ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 px-2 text-[10px]"
+                          disabled={claimM.isPending}
+                          onClick={() => claimM.mutate(mission.key)}
+                        >
+                          Claim {mission.reward}
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground">{have}/{mission.goal} · {mission.reward}</span>
+                      )}
                     </div>
                     <Progress value={(have / mission.goal) * 100} className="h-1.5" />
                   </div>
@@ -924,6 +952,7 @@ function ArenaPage() {
               })}
             </div>
           </div>
+
 
           <Button onClick={trainCpu} disabled={pveM.isPending || bossM.isPending} className="w-full">
             <Swords className="mr-2 h-4 w-4" />
@@ -1055,7 +1084,14 @@ function OwnerCompanionCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h3 className="truncate font-bold">{c.name}</h3>
-            <Badge variant="secondary" className="shrink-0">Lv {c.level}</Badge>
+            <div className="flex shrink-0 items-center gap-1">
+              {c.win_streak >= 2 && (
+                <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-600">
+                  <Flame className="mr-0.5 h-3 w-3" />{c.win_streak} · {streakBonusLabel(c.win_streak + 1)}
+                </Badge>
+              )}
+              <Badge variant="secondary">Lv {c.level}</Badge>
+            </div>
           </div>
           <div className="mt-1"><CategoryBadge categoryKey={c.arena_category} /></div>
           <div className="mt-0.5">{titleBadge(c.title as ArenaTitle)}</div>
