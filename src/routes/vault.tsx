@@ -2811,16 +2811,8 @@ function Vault() {
                     checked={!!editing[key]}
                     onChange={(e) => {
                       const val = e.target.checked;
-                      const upd: Partial<Card> = { [key]: val };
-                      if (key === "collection_only" && val) {
-                        upd.accept_trades = false;
-                        upd.trade_plus_cash = false;
-                        upd.accept_offers = false;
-                      }
-                      if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && val) {
-                        upd.collection_only = false;
-                      }
-                      if ((key === "accept_trades" || key === "trade_plus_cash" || key === "accept_offers") && !val) {
+                      const upd: Partial<Card> = { [key]: val, collection_only: false };
+                      if (!val) {
                         const remaining =
                           (key === "accept_trades" ? false : !!editing.accept_trades) ||
                           (key === "trade_plus_cash" ? false : !!editing.trade_plus_cash) ||
