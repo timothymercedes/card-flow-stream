@@ -125,6 +125,8 @@ function ArenaPage() {
   const recentFn = useServerFn(getRecentOpponents);
   const badgesFn = useServerFn(listMyBadges);
   const cosmeticsFn = useServerFn(getArenaCosmetics);
+  const replayFn = useServerFn(getBattleReplay);
+  const postFeedFn = useServerFn(postBattleToFeed);
 
 
   const myQ = useQuery({
