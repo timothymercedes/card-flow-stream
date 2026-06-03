@@ -12,7 +12,7 @@ import { arenaCategoryFor } from "@/lib/arenaCategories";
 import { MISSION_MAP } from "@/lib/arenaTraining";
 import { ARENA_DAILY_CHALLENGES, CHALLENGE_MAP } from "@/lib/arenaChallenges";
 import { COSMETIC_MAP } from "@/lib/arenaCosmetics";
-import { ensureFighterForCompanion } from "@/lib/arenaFighter.functions";
+import { ensureFighterForCompanion } from "@/lib/arenaFighter.server";
 
 type CompanionRow = {
   id: string; user_id: string; vault_card_id: string; name: string;
