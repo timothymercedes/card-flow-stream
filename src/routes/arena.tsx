@@ -93,6 +93,8 @@ function ArenaPage() {
   const challengeUserFn = useServerFn(challengeUser);
   const recentFn = useServerFn(getRecentOpponents);
   const badgesFn = useServerFn(listMyBadges);
+  const cosmeticsFn = useServerFn(getArenaCosmetics);
+
 
   const myQ = useQuery({
     queryKey: ["arena", "mine"],
