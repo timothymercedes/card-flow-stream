@@ -192,7 +192,7 @@ function ArenaPage() {
   });
 
   const pveM = useMutation({
-    mutationFn: (vars: { myCompanionId: string; difficulty: ArenaDifficulty }) => pveFn({ data: vars }),
+    mutationFn: (vars: { myCompanionId: string; difficulty: ArenaDifficulty; environment?: string }) => pveFn({ data: vars }),
     onSuccess: (r) => {
       setTrainFor(null);
       setBattleResult(r);
