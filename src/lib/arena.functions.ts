@@ -503,7 +503,7 @@ export const battleAiBoss = createServerFn({ method: "POST" })
       battleId: (bossBattle?.id ?? null) as string | null,
       rewards: {
         xp: gainedXp,
-        trophies: iWon ? tier.winTrophies : 0,
+        trophies: gainedTrophies,
         rank: iWon ? (data.boss === "weekly" ? 30 : 12) : 0,
         credits,
       },
