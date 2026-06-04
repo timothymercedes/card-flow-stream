@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
 import { deriveArchetype, archetypeElement, evolutionStage, type ElementMeta } from "@/lib/arenaCompanion";
+import { commentaryFor, type CommentaryLine } from "@/lib/arenaCommentary";
 import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
 import { ArenaBackdrop } from "@/components/arena/ArenaBackdrop";
 import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users, FastForward, SkipForward } from "lucide-react";
