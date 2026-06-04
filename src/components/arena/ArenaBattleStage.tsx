@@ -248,6 +248,7 @@ export function ArenaBattleStage({
         });
         setMyHp(timeline[i].my);
         setTheirHp(timeline[i].their);
+        if (commentary[i]) setShownLines((prev) => [...prev, commentary[i]]);
       });
       t(at + 600, () => setFx(null));
     });
