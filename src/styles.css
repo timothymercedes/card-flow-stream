@@ -720,6 +720,14 @@ body.kb-open [data-bottom-nav] {
 }
 .arena-confetti { animation: arena-confetti 1.2s ease-in forwards; }
 
+/* Live commentary caption pop */
+@keyframes arena-commentary {
+  0% { transform: translateY(8px) scale(0.96); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.arena-commentary { animation: arena-commentary 0.32s cubic-bezier(0.22,1,0.36,1) both; }
+
+
 @media (prefers-reduced-motion: reduce) {
   .arena-float-text,.arena-crit-flash,.arena-dodge,.arena-banner-in,.arena-confetti { animation: none !important; }
   .arena-float-text,.arena-confetti { opacity: 0 !important; }
