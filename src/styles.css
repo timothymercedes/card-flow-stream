@@ -729,7 +729,7 @@ body.kb-open [data-bottom-nav] {
 
 
 @media (prefers-reduced-motion: reduce) {
-  .arena-float-text,.arena-crit-flash,.arena-dodge,.arena-banner-in,.arena-confetti { animation: none !important; }
+  .arena-float-text,.arena-crit-flash,.arena-dodge,.arena-banner-in,.arena-confetti,.arena-commentary { animation: none !important; }
   .arena-float-text,.arena-confetti { opacity: 0 !important; }
 }
 
