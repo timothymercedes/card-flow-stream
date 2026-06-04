@@ -207,6 +207,7 @@ export function ArenaBattleStage({
   const [theirHp, setTheirHp] = useState(100);
   const [runKey, setRunKey] = useState(0); // forces re-mount on replay
   const [speed, setSpeed] = useState<1 | 2>(1);
+  const [shownLines, setShownLines] = useState<CommentaryLine[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
