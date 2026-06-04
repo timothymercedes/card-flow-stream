@@ -218,6 +218,7 @@ export function ArenaBattleStage({
     setFx(null);
     setMyHp(100);
     setTheirHp(100);
+    setShownLines([]);
 
     // Precompute HP timeline so re-renders never double-apply damage / heals.
     let my = 100, their = 100;
