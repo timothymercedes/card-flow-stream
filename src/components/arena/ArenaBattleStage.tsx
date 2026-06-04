@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ARENA_BADGES, type ArenaBadgeKey } from "@/lib/arenaShared";
 import { arenaCategoryMeta } from "@/lib/arenaCategories";
 import { deriveArchetype, archetypeElement, evolutionStage, type ElementMeta } from "@/lib/arenaCompanion";
+import { commentaryFor, type CommentaryLine } from "@/lib/arenaCommentary";
 import { CompanionSprite, type CompanionAnim } from "@/components/arena/CompanionSprite";
 import { ArenaBackdrop } from "@/components/arena/ArenaBackdrop";
 import { Swords, Trophy, RotateCcw, Share2, Shield, Zap, Coins, Heart, Users, FastForward, SkipForward } from "lucide-react";
@@ -46,6 +47,15 @@ type RoundEvent = {
 
 const SKILL_LABEL: Record<SkillKind, string> = {
   basic: "Basic Attack", special: "Special Attack", recover: "Recover",
+};
+
+const LOG_TONE: Record<CommentaryLine["tone"], string> = {
+  crit: "text-amber-400 font-semibold",
+  finish: "text-amber-300 font-bold",
+  dodge: "text-sky-300",
+  block: "text-slate-300",
+  heal: "text-emerald-400",
+  hit: "text-foreground/90",
 };
 
 // Map the saved battle log into a richer, fully deterministic playback timeline.
@@ -157,6 +167,35 @@ export function ArenaBattleStage({
   onClose: () => void;
 }) {
   const events = useMemo(() => roundEvents(result.log), [result.log]);
+
+  // Deterministic play-by-play commentary, one line per round, so battles feel
+  // narrated like a real sport. Element/signature derive from the attacker.
+  const commentary = useMemo<CommentaryLine[]>(() => {
+    const lastWinIdx = (() => {
+      for (let i = events.length - 1; i >= 0; i--) if (events[i].attacker === (result.iWon ? "mine" : "theirs")) return i;
+      return events.length - 1;
+    })();
+    return events.map((e, i) => {
+      const attackerName = e.attacker === "mine" ? myName : result.opponentName;
+      const defenderName = e.attacker === "mine" ? result.opponentName : myName;
+      const arch = deriveArchetype(attackerName, arenaCategory);
+      const el = archetypeElement(arch.key);
+      return commentaryFor({
+        round: e.round,
+        attacker: attackerName,
+        defender: defenderName,
+        kind: e.fx,
+        skill: e.skill,
+        dmg: e.dmg,
+        healAmt: e.healAmt,
+        elementVerb: el.verb,
+        signature: arch.signature,
+        seed: (e.round * 2654435761 + e.dmg * 40503 + i) >>> 0,
+        isFinal: i === lastWinIdx,
+        attackerWonBattle: e.attacker === (result.iWon ? "mine" : "theirs"),
+      });
+    });
+  }, [events, myName, result.opponentName, result.iWon, arenaCategory]);
   const meta = arenaCategoryMeta(arenaCategory);
   const themeClass = THEME_CLASS[arenaCategory] ?? "";
   // Rotate the time-of-day backdrop per battle so no two fights look the same.
@@ -177,6 +216,7 @@ export function ArenaBattleStage({
   const [theirHp, setTheirHp] = useState(100);
   const [runKey, setRunKey] = useState(0); // forces re-mount on replay
   const [speed, setSpeed] = useState<1 | 2>(1);
+  const [shownLines, setShownLines] = useState<CommentaryLine[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -187,6 +227,7 @@ export function ArenaBattleStage({
     setFx(null);
     setMyHp(100);
     setTheirHp(100);
+    setShownLines([]);
 
     // Precompute HP timeline so re-renders never double-apply damage / heals.
     let my = 100, their = 100;
@@ -216,6 +257,7 @@ export function ArenaBattleStage({
         });
         setMyHp(timeline[i].my);
         setTheirHp(timeline[i].their);
+        if (commentary[i]) setShownLines((prev) => [...prev, commentary[i]]);
       });
       t(at + 600, () => setFx(null));
     });
@@ -223,12 +265,13 @@ export function ArenaBattleStage({
     // Summary — force the overall loser to 0 HP for a clean finish.
     t(INTRO_MS + 500 + events.length * ROUND_MS + 300, () => {
       setPhase("summary");
+      setShownLines(commentary);
       if (result.iWon) setTheirHp(0);
       else setMyHp(0);
     });
 
     return () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  }, [events, result.iWon, runKey, speed]);
+  }, [events, commentary, result.iWon, runKey, speed]);
 
   const ev = roundIdx >= 0 ? events[roundIdx] : null;
   const critActive = !!fx && fx.kind === "crit";
@@ -459,10 +502,40 @@ export function ArenaBattleStage({
           </div>
         )}
 
+        {/* Live play-by-play caption */}
+        {phase === "fight" && shownLines.length > 0 && (
+          <div
+            key={`cap-${runKey}-${shownLines.length}`}
+            className="arena-commentary relative z-10 mx-auto mt-3 max-w-[26rem] rounded-lg border border-primary/30 bg-background/70 px-3 py-2 text-center text-xs font-semibold text-foreground backdrop-blur-sm"
+          >
+            <span className="mr-1" aria-hidden>🎙️</span>
+            {shownLines[shownLines.length - 1].text}
+          </div>
+        )}
+
         <p className="relative z-10 mt-3 text-center text-[10px] text-muted-foreground">
           {isTraining ? "Training battle — reduced rewards, no rank points." : "Digital companions only — your real cards are never at risk."}
         </p>
       </div>
+
+      {/* Combat log — scrollable play-by-play, builds during the fight & full in summary */}
+      {shownLines.length > 0 && (
+        <div className="rounded-xl border bg-muted/30 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Swords className="h-3 w-3" /> Combat Log
+          </p>
+          <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1">
+            {shownLines.map((l, i) => (
+              <div key={`${runKey}-log-${i}`} className="flex gap-2 text-xs">
+                <span className="mt-0.5 shrink-0 rounded bg-foreground/10 px-1.5 text-[10px] font-bold tabular-nums text-muted-foreground">
+                  R{l.round}
+                </span>
+                <span className={LOG_TONE[l.tone]}>{l.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       {phase === "summary" ? (
@@ -529,7 +602,7 @@ export function ArenaBattleStage({
               <FastForward className="mr-1 h-3 w-3" />2×
             </Button>
           </div>
-          <Button variant="ghost" className="text-muted-foreground" onClick={() => setPhase("summary")}>
+          <Button variant="ghost" className="text-muted-foreground" onClick={() => { setShownLines(commentary); setPhase("summary"); }}>
             <SkipForward className="mr-1.5 h-4 w-4" />Skip
           </Button>
         </div>
