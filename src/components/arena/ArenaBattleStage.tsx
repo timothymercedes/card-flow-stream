@@ -49,6 +49,15 @@ const SKILL_LABEL: Record<SkillKind, string> = {
   basic: "Basic Attack", special: "Special Attack", recover: "Recover",
 };
 
+const LOG_TONE: Record<CommentaryLine["tone"], string> = {
+  crit: "text-amber-400 font-semibold",
+  finish: "text-amber-300 font-bold",
+  dodge: "text-sky-300",
+  block: "text-slate-300",
+  heal: "text-emerald-400",
+  hit: "text-foreground/90",
+};
+
 // Map the saved battle log into a richer, fully deterministic playback timeline.
 // A small seeded PRNG (derived from the log) decides block/recover flavour so
 // the same battle always replays identically — outcomes are still server-side.
