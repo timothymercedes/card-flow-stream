@@ -256,12 +256,13 @@ export function ArenaBattleStage({
     // Summary — force the overall loser to 0 HP for a clean finish.
     t(INTRO_MS + 500 + events.length * ROUND_MS + 300, () => {
       setPhase("summary");
+      setShownLines(commentary);
       if (result.iWon) setTheirHp(0);
       else setMyHp(0);
     });
 
     return () => { timers.current.forEach(clearTimeout); timers.current = []; };
-  }, [events, result.iWon, runKey, speed]);
+  }, [events, commentary, result.iWon, runKey, speed]);
 
   const ev = roundIdx >= 0 ? events[roundIdx] : null;
   const critActive = !!fx && fx.kind === "crit";
