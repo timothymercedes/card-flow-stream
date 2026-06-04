@@ -158,6 +158,35 @@ export function ArenaBattleStage({
   onClose: () => void;
 }) {
   const events = useMemo(() => roundEvents(result.log), [result.log]);
+
+  // Deterministic play-by-play commentary, one line per round, so battles feel
+  // narrated like a real sport. Element/signature derive from the attacker.
+  const commentary = useMemo<CommentaryLine[]>(() => {
+    const lastWinIdx = (() => {
+      for (let i = events.length - 1; i >= 0; i--) if (events[i].attacker === (result.iWon ? "mine" : "theirs")) return i;
+      return events.length - 1;
+    })();
+    return events.map((e, i) => {
+      const attackerName = e.attacker === "mine" ? myName : result.opponentName;
+      const defenderName = e.attacker === "mine" ? result.opponentName : myName;
+      const arch = deriveArchetype(attackerName, arenaCategory);
+      const el = archetypeElement(arch.key);
+      return commentaryFor({
+        round: e.round,
+        attacker: attackerName,
+        defender: defenderName,
+        kind: e.fx,
+        skill: e.skill,
+        dmg: e.dmg,
+        healAmt: e.healAmt,
+        elementVerb: el.verb,
+        signature: arch.signature,
+        seed: (e.round * 2654435761 + e.dmg * 40503 + i) >>> 0,
+        isFinal: i === lastWinIdx,
+        attackerWonBattle: e.attacker === (result.iWon ? "mine" : "theirs"),
+      });
+    });
+  }, [events, myName, result.opponentName, result.iWon, arenaCategory]);
   const meta = arenaCategoryMeta(arenaCategory);
   const themeClass = THEME_CLASS[arenaCategory] ?? "";
   // Rotate the time-of-day backdrop per battle so no two fights look the same.
