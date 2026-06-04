@@ -493,10 +493,40 @@ export function ArenaBattleStage({
           </div>
         )}
 
+        {/* Live play-by-play caption */}
+        {phase === "fight" && shownLines.length > 0 && (
+          <div
+            key={`cap-${runKey}-${shownLines.length}`}
+            className="arena-commentary relative z-10 mx-auto mt-3 max-w-[26rem] rounded-lg border border-primary/30 bg-background/70 px-3 py-2 text-center text-xs font-semibold text-foreground backdrop-blur-sm"
+          >
+            <span className="mr-1" aria-hidden>🎙️</span>
+            {shownLines[shownLines.length - 1].text}
+          </div>
+        )}
+
         <p className="relative z-10 mt-3 text-center text-[10px] text-muted-foreground">
           {isTraining ? "Training battle — reduced rewards, no rank points." : "Digital companions only — your real cards are never at risk."}
         </p>
       </div>
+
+      {/* Combat log — scrollable play-by-play, builds during the fight & full in summary */}
+      {shownLines.length > 0 && (
+        <div className="rounded-xl border bg-muted/30 p-3">
+          <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <Swords className="h-3 w-3" /> Combat Log
+          </p>
+          <div className="max-h-36 space-y-1.5 overflow-y-auto pr-1">
+            {shownLines.map((l, i) => (
+              <div key={`${runKey}-log-${i}`} className="flex gap-2 text-xs">
+                <span className="mt-0.5 shrink-0 rounded bg-foreground/10 px-1.5 text-[10px] font-bold tabular-nums text-muted-foreground">
+                  R{l.round}
+                </span>
+                <span className={LOG_TONE[l.tone]}>{l.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary */}
       {phase === "summary" ? (
