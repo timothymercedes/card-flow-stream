@@ -602,7 +602,7 @@ export function ArenaBattleStage({
               <FastForward className="mr-1 h-3 w-3" />2×
             </Button>
           </div>
-          <Button variant="ghost" className="text-muted-foreground" onClick={() => setPhase("summary")}>
+          <Button variant="ghost" className="text-muted-foreground" onClick={() => { setShownLines(commentary); setPhase("summary"); }}>
             <SkipForward className="mr-1.5 h-4 w-4" />Skip
           </Button>
         </div>
