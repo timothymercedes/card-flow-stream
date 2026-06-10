@@ -83,6 +83,7 @@ import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
+import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -474,6 +475,11 @@ const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   path: '/api/public/beta-verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBetaRequestRoute = ApiPublicBetaRequestRouteImport.update({
+  id: '/api/public/beta-request',
+  path: '/api/public/beta-request',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -639,6 +645,7 @@ export interface FileRoutesByFullPath {
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
   '/trades/': typeof TradesIndexRoute
+  '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -729,6 +736,7 @@ export interface FileRoutesByTo {
   '/messages': typeof MessagesIndexRoute
   '/shows': typeof ShowsIndexRoute
   '/trades': typeof TradesIndexRoute
+  '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -822,6 +830,7 @@ export interface FileRoutesById {
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
   '/trades/': typeof TradesIndexRoute
+  '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
@@ -916,6 +925,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/shows/'
     | '/trades/'
+    | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
@@ -1006,6 +1016,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/shows'
     | '/trades'
+    | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
@@ -1098,6 +1109,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/shows/'
     | '/trades/'
+    | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/suppression'
@@ -1181,6 +1193,7 @@ export interface RootRouteChildren {
   MarketIndexRoute: typeof MarketIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
   ShowsIndexRoute: typeof ShowsIndexRoute
+  ApiPublicBetaRequestRoute: typeof ApiPublicBetaRequestRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1722,6 +1735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBetaVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/beta-request': {
+      id: '/api/public/beta-request'
+      path: '/api/public/beta-request'
+      fullPath: '/api/public/beta-request'
+      preLoaderRoute: typeof ApiPublicBetaRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -1965,6 +1985,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIndexRoute: MarketIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
   ShowsIndexRoute: ShowsIndexRoute,
+  ApiPublicBetaRequestRoute: ApiPublicBetaRequestRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
