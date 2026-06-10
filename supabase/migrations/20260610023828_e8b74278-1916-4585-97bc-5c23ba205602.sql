@@ -1,0 +1,1 @@
+ALTER TABLE public.beta_access_requests ADD COLUMN ip_hash text;
