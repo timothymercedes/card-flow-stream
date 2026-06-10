@@ -313,26 +313,48 @@ function SafetyCard({ icon, title, body }: { icon: React.ReactNode; title: strin
 function BetaForm() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ email: "", name: "", role: "buyer", message: "" });
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!form.email) return;
-    setSubmitting(true);
-    const { error } = await supabase.from("beta_access_requests").insert({
-      email: form.email.trim().toLowerCase(),
-      name: form.name.trim() || null,
-      role: form.role,
-      message: form.message.trim() || null,
-      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Couldn't submit — try again");
+    if (!turnstileToken) {
+      setError("Please complete the security check below.");
       return;
     }
-    setDone(true);
-    toast.success("You're on the list! We'll email when your invite is ready.");
+    setSubmitting(true);
+    try {
+      const r = await fetch("/api/public/beta-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          name: form.name.trim() || undefined,
+          role: form.role,
+          message: form.message.trim() || undefined,
+          turnstileToken,
+        }),
+      });
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setError(json.error || "Something went wrong. Please try again.");
+        setTurnstileToken(null);
+        setTurnstileKey((k) => k + 1);
+        setSubmitting(false);
+        return;
+      }
+      setDone(true);
+      toast.success("You're on the list! We'll email when your invite is ready.");
+    } catch {
+      setError("Network error — try again.");
+      setTurnstileToken(null);
+      setTurnstileKey((k) => k + 1);
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -369,7 +391,19 @@ function BetaForm() {
             <textarea placeholder="Tell us what you collect or sell (optional)" value={form.message} rows={3}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               className="md:col-span-2 rounded-xl border border-border bg-background px-4 py-3 text-sm" />
-            <button disabled={submitting} type="submit"
+            <div className="md:col-span-2 flex justify-center">
+              <Turnstile
+                key={turnstileKey}
+                action="beta_request"
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onUnavailable={() => setTurnstileToken(null)}
+              />
+            </div>
+            {error ? (
+              <div className="md:col-span-2 rounded-lg bg-destructive/10 px-4 py-2 text-xs text-destructive">{error}</div>
+            ) : null}
+            <button disabled={submitting || !turnstileToken} type="submit"
               className="md:col-span-2 rounded-xl bg-gradient-to-r from-primary to-primary-glow px-5 py-3 text-sm font-bold text-primary-foreground rare-glow disabled:opacity-50">
               {submitting ? "Submitting…" : "Request invite"}
             </button>
