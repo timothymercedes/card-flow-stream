@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Radio, Sparkles, ShieldCheck, Zap, Trophy, PackageCheck, CreditCard,
