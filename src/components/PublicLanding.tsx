@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Radio, Sparkles, ShieldCheck, Zap, Trophy, PackageCheck, CreditCard,
   Gavel, Store, Video, Lock, PlayCircle, Users, Globe, MessageSquare,
   Truck, ScanLine, ChevronRight, Mail, ArrowRight,
 } from "lucide-react";
+import { Turnstile } from "@/components/Turnstile";
 import heroCards from "@/assets/hero-cards.jpg";
 import logo from "@/assets/logo.png";
 
