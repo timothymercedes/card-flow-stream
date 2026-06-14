@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,9 +14,15 @@ import {
   type IdentityActionLog,
   type DuplicateFingerprintGroup,
 } from "@/lib/identityHealth.functions";
-import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2, ScrollText, FilterX } from "lucide-react";
+import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2, ScrollText, FilterX, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity-audit")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    logFp: typeof s.logFp === "string" ? s.logFp : undefined,
+    logUser: typeof s.logUser === "string" ? s.logUser : undefined,
+    logFrom: typeof s.logFrom === "string" ? s.logFrom : undefined,
+    logTo: typeof s.logTo === "string" ? s.logTo : undefined,
+  }),
   head: () => ({ meta: [{ title: "Identity Audit — Admin" }] }),
   component: IdentityAuditPage,
 });
@@ -25,6 +31,8 @@ type FilterTab = "all" | "duplicates" | "languages";
 
 function IdentityAuditPage() {
   const { user } = useAuth();
+  const search = Route.useSearch();
+  const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingRole, setCheckingRole] = useState(true);
   const [audit, setAudit] = useState<IdentityAudit | null>(null);
@@ -37,10 +45,10 @@ function IdentityAuditPage() {
   const [log, setLog] = useState<IdentityActionLog | null>(null);
   const [logLoading, setLogLoading] = useState(false);
   const [logError, setLogError] = useState<string | null>(null);
-  const [logFp, setLogFp] = useState("");
-  const [logUser, setLogUser] = useState("");
-  const [logFrom, setLogFrom] = useState("");
-  const [logTo, setLogTo] = useState("");
+  const [logFp, setLogFp] = useState(search.logFp ?? "");
+  const [logUser, setLogUser] = useState(search.logUser ?? "");
+  const [logFrom, setLogFrom] = useState(search.logFrom ?? "");
+  const [logTo, setLogTo] = useState(search.logTo ?? "");
   const runAudit = useServerFn(getIdentityAuditFn);
   const runMerge = useServerFn(mergeIdentitiesFn);
   const runRecanon = useServerFn(recanonicalizeIdentityFn);
@@ -96,6 +104,7 @@ function IdentityAuditPage() {
     setLogUser("");
     setLogFrom("");
     setLogTo("");
+    navigate({ to: "/admin/identity-audit", search: {} as any, replace: true });
   }
 
   function flash(msg: string) {
@@ -378,6 +387,7 @@ function IdentityAuditPage() {
                       <Link
                         to="/admin/identity/$id"
                         params={{ id: r.target_id }}
+                        search={{ fromFp: r.fingerprint || undefined }}
                         className="text-muted-foreground hover:text-primary hover:underline"
                       >
                         · {r.identity_name}

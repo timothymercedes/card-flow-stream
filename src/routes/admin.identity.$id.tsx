@@ -8,12 +8,16 @@ import { getIdentityDetailsFn, type IdentityDetails } from "@/lib/identityHealth
 import { ArrowLeft, Fingerprint, Image, Tag, Package, Heart, BarChart3, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity/$id")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    fromFp: typeof s.fromFp === "string" ? s.fromFp : undefined,
+  }),
   head: () => ({ meta: [{ title: "Identity Inspector — Admin" }] }),
   component: IdentityInspectorPage,
 });
 
 function IdentityInspectorPage() {
   const { id } = Route.useParams();
+  const { fromFp } = Route.useSearch();
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingRole, setCheckingRole] = useState(true);
@@ -64,6 +68,7 @@ function IdentityInspectorPage() {
         <div className="flex items-center gap-2">
           <Link
             to="/admin/identity-audit"
+            search={fromFp ? { logFp: fromFp } : undefined}
             className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground ring-1 ring-border/60 active:scale-[0.98]"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to audit
