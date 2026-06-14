@@ -53,7 +53,7 @@ function IdentityAuditPage() {
       const admin = (data || []).some((r: any) => r.role === "admin" || r.role === "owner");
       setIsAdmin(admin);
       setCheckingRole(false);
-      if (admin) refresh();
+      if (admin) { refresh(); loadLog(); }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
