@@ -71,6 +71,33 @@ function IdentityAuditPage() {
     }
   }
 
+  async function loadLog() {
+    setLogLoading(true);
+    setLogError(null);
+    try {
+      const res = await runLog({
+        data: {
+          fingerprint: logFp.trim(),
+          user: logUser.trim(),
+          from: logFrom ? new Date(logFrom).toISOString() : undefined,
+          to: logTo ? new Date(logTo).toISOString() : undefined,
+        },
+      });
+      setLog(res);
+    } catch (e: any) {
+      setLogError(e?.message ?? "Failed to load action log");
+    } finally {
+      setLogLoading(false);
+    }
+  }
+
+  function clearLogFilters() {
+    setLogFp("");
+    setLogUser("");
+    setLogFrom("");
+    setLogTo("");
+  }
+
   function flash(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(null), 4000);
