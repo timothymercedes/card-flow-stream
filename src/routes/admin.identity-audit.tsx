@@ -61,6 +61,47 @@ function IdentityAuditPage() {
     }
   }
 
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handleMerge(group: DuplicateFingerprintGroup, survivorId: string) {
+    if (busyId) return;
+    const victims = group.rows.map((r) => r.id).filter((id) => id !== survivorId);
+    if (victims.length === 0) return;
+    if (!confirm(`Merge ${victims.length} duplicate(s) into ${survivorId.slice(0, 8)}? References will be repointed and the duplicates deleted. This cannot be undone.`)) return;
+    setBusyId(group.fingerprint);
+    setError(null);
+    try {
+      const res = await runMerge({ data: { survivor: survivorId, victims } });
+      flash(`Merged ${res.merged} duplicate(s) into ${res.survivor.slice(0, 8)}.`);
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message ?? "Merge failed");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRecanon(id: string) {
+    if (busyId) return;
+    if (!confirm(`Recompute the canonical fingerprint for ${id.slice(0, 8)}? If another identity already matches, this one will be merged into it.`)) return;
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await runRecanon({ data: { id } });
+      flash(res.result === "merged"
+        ? `Merged into existing identity ${res.survivor?.slice(0, 8)}.`
+        : `Re-canonicalized ${id.slice(0, 8)}.`);
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message ?? "Re-canonicalize failed");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const q = searchQuery.trim().toLowerCase();
 
   const filteredDupGroups = useMemo(() => {
