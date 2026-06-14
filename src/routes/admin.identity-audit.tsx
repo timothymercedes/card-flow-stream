@@ -7,12 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import {
   getIdentityAuditFn,
+  getIdentityActionLogFn,
   mergeIdentitiesFn,
   recanonicalizeIdentityFn,
   type IdentityAudit,
+  type IdentityActionLog,
   type DuplicateFingerprintGroup,
 } from "@/lib/identityHealth.functions";
-import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2 } from "lucide-react";
+import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2, ScrollText, FilterX } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity-audit")({
   head: () => ({ meta: [{ title: "Identity Audit — Admin" }] }),
