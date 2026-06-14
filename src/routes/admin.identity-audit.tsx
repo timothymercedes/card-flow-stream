@@ -5,8 +5,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { getIdentityAuditFn, type IdentityAudit } from "@/lib/identityHealth.functions";
-import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search } from "lucide-react";
+import {
+  getIdentityAuditFn,
+  mergeIdentitiesFn,
+  recanonicalizeIdentityFn,
+  type IdentityAudit,
+  type DuplicateFingerprintGroup,
+} from "@/lib/identityHealth.functions";
+import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity-audit")({
   head: () => ({ meta: [{ title: "Identity Audit — Admin" }] }),
@@ -24,7 +30,11 @@ function IdentityAuditPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const runAudit = useServerFn(getIdentityAuditFn);
+  const runMerge = useServerFn(mergeIdentitiesFn);
+  const runRecanon = useServerFn(recanonicalizeIdentityFn);
 
   useEffect(() => {
     if (!user) { setCheckingRole(false); return; }
