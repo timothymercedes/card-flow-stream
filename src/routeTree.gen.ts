@@ -85,6 +85,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
+import { Route as AdminIdentityIdRouteImport } from './routes/admin.identity.$id'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -486,6 +487,11 @@ const ApiPublicBetaRequestRoute = ApiPublicBetaRequestRouteImport.update({
   path: '/api/public/beta-request',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIdentityIdRoute = AdminIdentityIdRouteImport.update({
+  id: '/identity/$id',
+  path: '/identity/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -652,6 +658,7 @@ export interface FileRoutesByFullPath {
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
   '/trades/': typeof TradesIndexRoute
+  '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
@@ -744,6 +751,7 @@ export interface FileRoutesByTo {
   '/messages': typeof MessagesIndexRoute
   '/shows': typeof ShowsIndexRoute
   '/trades': typeof TradesIndexRoute
+  '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
@@ -839,6 +847,7 @@ export interface FileRoutesById {
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
   '/trades/': typeof TradesIndexRoute
+  '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
@@ -935,6 +944,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/shows/'
     | '/trades/'
+    | '/admin/identity/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
@@ -1027,6 +1037,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/shows'
     | '/trades'
+    | '/admin/identity/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
@@ -1121,6 +1132,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/shows/'
     | '/trades/'
+    | '/admin/identity/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
@@ -1761,6 +1773,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBetaRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/identity/$id': {
+      id: '/admin/identity/$id'
+      path: '/identity/$id'
+      fullPath: '/admin/identity/$id'
+      preLoaderRoute: typeof AdminIdentityIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -1883,6 +1902,7 @@ interface AdminRouteChildren {
   AdminPushSubscriptionsRoute: typeof AdminPushSubscriptionsRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
   AdminShippingHealthRoute: typeof AdminShippingHealthRoute
+  AdminIdentityIdRoute: typeof AdminIdentityIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1892,6 +1912,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPushSubscriptionsRoute: AdminPushSubscriptionsRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
   AdminShippingHealthRoute: AdminShippingHealthRoute,
+  AdminIdentityIdRoute: AdminIdentityIdRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

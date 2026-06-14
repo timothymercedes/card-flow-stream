@@ -247,6 +247,57 @@ const IDENTITY_LOG_ACTIONS = [
   "identity_recanonicalize_merge",
 ];
 
+export interface IdentityDetails {
+  identity: any;
+  counts: {
+    images: number;
+    priceObservations: number;
+    soldComps: number;
+    vaultCards: number;
+    wishlistItems: number;
+  };
+}
+
+export const getIdentityDetailsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string }) => {
+    const uuid = /^[0-9a-f-]{36}$/i;
+    if (!input?.id || !uuid.test(input.id)) throw new Error("Invalid identity id");
+    return { id: input.id };
+  })
+  .handler(async ({ data, context }): Promise<IdentityDetails> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: identity, error } = await supabaseAdmin
+      .from("card_identities")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    if (!identity) throw new Error("Identity not found");
+
+    const [images, priceObservations, soldComps, vaultCards, wishlistItems] = await Promise.all([
+      supabaseAdmin.from("card_images").select("id", { count: "exact", head: true }).eq("identity_id", data.id),
+      supabaseAdmin.from("price_observations").select("id", { count: "exact", head: true }).eq("identity_id", data.id),
+      supabaseAdmin.from("sold_comps").select("id", { count: "exact", head: true }).eq("identity_id", data.id),
+      supabaseAdmin.from("vault_cards").select("id", { count: "exact", head: true }).eq("master_identity_id", data.id),
+      supabaseAdmin.from("wishlist_items").select("id", { count: "exact", head: true }).eq("card_identity_id", data.id),
+    ]);
+
+    return {
+      identity,
+      counts: {
+        images: images.count ?? 0,
+        priceObservations: priceObservations.count ?? 0,
+        soldComps: soldComps.count ?? 0,
+        vaultCards: vaultCards.count ?? 0,
+        wishlistItems: wishlistItems.count ?? 0,
+      },
+    };
+  });
+
 export interface IdentityActionLogRow {
   id: string;
   action: string;
