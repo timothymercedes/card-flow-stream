@@ -241,3 +241,127 @@ export const recanonicalizeIdentityFn = createServerFn({ method: "POST" })
     return res as unknown as RecanonicalizeResult;
   });
 
+const IDENTITY_LOG_ACTIONS = [
+  "identity_merge",
+  "identity_recanonicalize",
+  "identity_recanonicalize_merge",
+];
+
+export interface IdentityActionLogRow {
+  id: string;
+  action: string;
+  admin_id: string;
+  admin_username: string | null;
+  target_id: string | null;
+  fingerprint: string | null;
+  identity_name: string | null;
+  detail: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface IdentityActionLog {
+  rows: IdentityActionLogRow[];
+  total_matched: number;
+  generated_at: string;
+}
+
+// Admin-only: list merge / re-canonicalize actions from the admin action log,
+// filterable by fingerprint, acting user, and time range. Read-only.
+export const getIdentityActionLogFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { fingerprint?: string; user?: string; from?: string; to?: string }) => ({
+    fingerprint: typeof input?.fingerprint === "string" ? input.fingerprint.trim().slice(0, 64) : "",
+    user: typeof input?.user === "string" ? input.user.trim().slice(0, 64) : "",
+    from: typeof input?.from === "string" && input.from ? input.from : null,
+    to: typeof input?.to === "string" && input.to ? input.to : null,
+  }))
+  .handler(async ({ data, context }): Promise<IdentityActionLog> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let query = supabaseAdmin
+      .from("admin_action_log")
+      .select("id, action, admin_id, target_id, before_state, after_state, reason, created_at")
+      .in("action", IDENTITY_LOG_ACTIONS)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (data.from) query = query.gte("created_at", data.from);
+    if (data.to) query = query.lte("created_at", data.to);
+
+    const { data: logs, error } = await query;
+    if (error) throw new Error(error.message);
+
+    const entries = (logs ?? []) as Array<{
+      id: string; action: string; admin_id: string; target_id: string | null;
+      before_state: any; after_state: any; reason: string | null; created_at: string;
+    }>;
+
+    // Enrich with current fingerprint/name of the (surviving) identity and the
+    // acting admin's username.
+    const targetIds = Array.from(new Set(entries.map((e) => e.target_id).filter(Boolean) as string[]));
+    const adminIds = Array.from(new Set(entries.map((e) => e.admin_id).filter(Boolean)));
+
+    const fpMap = new Map<string, { fingerprint: string | null; name: string | null }>();
+    if (targetIds.length) {
+      const { data: ids } = await supabaseAdmin
+        .from("card_identities").select("id, fingerprint, name").in("id", targetIds);
+      for (const row of (ids ?? []) as any[]) fpMap.set(row.id, { fingerprint: row.fingerprint, name: row.name });
+    }
+    const userMap = new Map<string, string | null>();
+    if (adminIds.length) {
+      const { data: profs } = await supabaseAdmin
+        .from("profiles").select("id, username").in("id", adminIds);
+      for (const p of (profs ?? []) as any[]) userMap.set(p.id, p.username ?? null);
+    }
+
+    const describe = (e: (typeof entries)[number]): string => {
+      const a = e.after_state ?? {};
+      if (e.action === "identity_merge") return `Merged ${a.merged ?? "?"} duplicate(s)`;
+      if (e.action === "identity_recanonicalize_merge") return "Re-canonicalized → merged into existing";
+      if (e.action === "identity_recanonicalize") return "Re-canonicalized fingerprint";
+      return e.action;
+    };
+
+    let rows: IdentityActionLogRow[] = entries.map((e) => {
+      const meta = e.target_id ? fpMap.get(e.target_id) : undefined;
+      // after_state may carry the fingerprint even if the survivor changed.
+      const stateFp = (e.after_state?.fingerprint as string | undefined) ?? null;
+      return {
+        id: e.id,
+        action: e.action,
+        admin_id: e.admin_id,
+        admin_username: userMap.get(e.admin_id) ?? null,
+        target_id: e.target_id,
+        fingerprint: meta?.fingerprint ?? stateFp,
+        identity_name: meta?.name ?? null,
+        detail: describe(e),
+        reason: e.reason,
+        created_at: e.created_at,
+      };
+    });
+
+    const total_matched_before = rows.length;
+
+    const fp = data.fingerprint.toLowerCase();
+    if (fp) {
+      rows = rows.filter(
+        (r) => (r.fingerprint ?? "").toLowerCase().includes(fp) || (r.target_id ?? "").toLowerCase().includes(fp),
+      );
+    }
+    const u = data.user.toLowerCase();
+    if (u) {
+      rows = rows.filter(
+        (r) => (r.admin_username ?? "").toLowerCase().includes(u) || r.admin_id.toLowerCase().includes(u),
+      );
+    }
+
+    return {
+      rows,
+      total_matched: fp || u ? rows.length : total_matched_before,
+      generated_at: new Date().toISOString(),
+    };
+  });
+
+
