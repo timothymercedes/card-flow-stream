@@ -76,6 +76,7 @@ import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as AdminPushSubscriptionsRouteImport } from './routes/admin.push-subscriptions'
 import { Route as AdminInsuranceClaimsRouteImport } from './routes/admin.insurance-claims'
+import { Route as AdminIdentityAuditRouteImport } from './routes/admin.identity-audit'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
@@ -438,6 +439,11 @@ const AdminInsuranceClaimsRoute = AdminInsuranceClaimsRouteImport.update({
   path: '/insurance-claims',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminIdentityAuditRoute = AdminIdentityAuditRouteImport.update({
+  id: '/identity-audit',
+  path: '/identity-audit',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCollectionWheelRoute = AdminCollectionWheelRouteImport.update({
   id: '/collection-wheel',
   path: '/collection-wheel',
@@ -610,6 +616,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
+  '/admin/identity-audit': typeof AdminIdentityAuditRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -701,6 +708,7 @@ export interface FileRoutesByTo {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
+  '/admin/identity-audit': typeof AdminIdentityAuditRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -795,6 +803,7 @@ export interface FileRoutesById {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
+  '/admin/identity-audit': typeof AdminIdentityAuditRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
@@ -890,6 +899,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/collection-wheel'
+    | '/admin/identity-audit'
     | '/admin/insurance-claims'
     | '/admin/push-subscriptions'
     | '/admin/recovery'
@@ -981,6 +991,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/collection-wheel'
+    | '/admin/identity-audit'
     | '/admin/insurance-claims'
     | '/admin/push-subscriptions'
     | '/admin/recovery'
@@ -1074,6 +1085,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/collection-wheel'
+    | '/admin/identity-audit'
     | '/admin/insurance-claims'
     | '/admin/push-subscriptions'
     | '/admin/recovery'
@@ -1686,6 +1698,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInsuranceClaimsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/identity-audit': {
+      id: '/admin/identity-audit'
+      path: '/identity-audit'
+      fullPath: '/admin/identity-audit'
+      preLoaderRoute: typeof AdminIdentityAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/collection-wheel': {
       id: '/admin/collection-wheel'
       path: '/collection-wheel'
@@ -1859,6 +1878,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
+  AdminIdentityAuditRoute: typeof AdminIdentityAuditRoute
   AdminInsuranceClaimsRoute: typeof AdminInsuranceClaimsRoute
   AdminPushSubscriptionsRoute: typeof AdminPushSubscriptionsRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
@@ -1867,6 +1887,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,
+  AdminIdentityAuditRoute: AdminIdentityAuditRoute,
   AdminInsuranceClaimsRoute: AdminInsuranceClaimsRoute,
   AdminPushSubscriptionsRoute: AdminPushSubscriptionsRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
