@@ -5,8 +5,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { getIdentityAuditFn, type IdentityAudit } from "@/lib/identityHealth.functions";
-import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search } from "lucide-react";
+import {
+  getIdentityAuditFn,
+  mergeIdentitiesFn,
+  recanonicalizeIdentityFn,
+  type IdentityAudit,
+  type DuplicateFingerprintGroup,
+} from "@/lib/identityHealth.functions";
+import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity-audit")({
   head: () => ({ meta: [{ title: "Identity Audit — Admin" }] }),
@@ -24,7 +30,11 @@ function IdentityAuditPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const runAudit = useServerFn(getIdentityAuditFn);
+  const runMerge = useServerFn(mergeIdentitiesFn);
+  const runRecanon = useServerFn(recanonicalizeIdentityFn);
 
   useEffect(() => {
     if (!user) { setCheckingRole(false); return; }
@@ -48,6 +58,47 @@ function IdentityAuditPage() {
       setError(e?.message ?? "Failed to run audit");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handleMerge(group: DuplicateFingerprintGroup, survivorId: string) {
+    if (busyId) return;
+    const victims = group.rows.map((r) => r.id).filter((id) => id !== survivorId);
+    if (victims.length === 0) return;
+    if (!confirm(`Merge ${victims.length} duplicate(s) into ${survivorId.slice(0, 8)}? References will be repointed and the duplicates deleted. This cannot be undone.`)) return;
+    setBusyId(group.fingerprint);
+    setError(null);
+    try {
+      const res = await runMerge({ data: { survivor: survivorId, victims } });
+      flash(`Merged ${res.merged} duplicate(s) into ${res.survivor.slice(0, 8)}.`);
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message ?? "Merge failed");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRecanon(id: string) {
+    if (busyId) return;
+    if (!confirm(`Recompute the canonical fingerprint for ${id.slice(0, 8)}? If another identity already matches, this one will be merged into it.`)) return;
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await runRecanon({ data: { id } });
+      flash(res.result === "merged"
+        ? `Merged into existing identity ${res.survivor?.slice(0, 8)}.`
+        : `Re-canonicalized ${id.slice(0, 8)}.`);
+      await refresh();
+    } catch (e: any) {
+      setError(e?.message ?? "Re-canonicalize failed");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -112,6 +163,12 @@ function IdentityAuditPage() {
           </div>
         )}
 
+        {toast && (
+          <div className="rounded-lg bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-500 ring-1 ring-emerald-500/30">
+            {toast}
+          </div>
+        )}
+
         {audit && (
           <div className="grid grid-cols-3 gap-2">
             <Stat label="Identities" value={audit.total_identities} />
@@ -151,19 +208,35 @@ function IdentityAuditPage() {
               <AlertTriangle className="h-4 w-4" /> Duplicate fingerprints ({visibleDupGroups.length}{q ? ` of ${dupGroups.length}` : ""})
             </h2>
             <div className="space-y-3">
-              {visibleDupGroups.map((g) => (
-                <div key={g.fingerprint} className="rounded-xl bg-card p-3 ring-1 ring-border/60">
-                  <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{g.fingerprint}</code>
-                    <span className="font-bold text-destructive">{g.copies} copies</span>
+              {visibleDupGroups.map((g) => {
+                const groupBusy = busyId === g.fingerprint;
+                return (
+                  <div key={g.fingerprint} className="rounded-xl bg-card p-3 ring-1 ring-border/60">
+                    <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{g.fingerprint}</code>
+                      <span className="font-bold text-destructive">{g.copies} copies</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {g.rows.map((r) => (
+                        <RowLine
+                          key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id}
+                          action={
+                            <button
+                              onClick={() => handleMerge(g, r.id)}
+                              disabled={!!busyId}
+                              title="Keep this row and merge the others into it"
+                              className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground active:scale-[0.98] disabled:opacity-40"
+                            >
+                              {groupBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitMerge className="h-3 w-3" />}
+                              Keep & merge
+                            </button>
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {g.rows.map((r) => (
-                      <RowLine key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -173,9 +246,22 @@ function IdentityAuditPage() {
             <h2 className="flex items-center gap-2 text-sm font-bold text-amber-500">
               <Languages className="h-4 w-4" /> Invalid language codes ({visibleBadLang.length}{q ? ` of ${badLang.length}` : ""})
             </h2>
-            <div className="rounded-xl bg-card p-3 ring-1 ring-border/60 space-y-1">
+            <div className="rounded-xl bg-card p-3 ring-1 ring-border/60 space-y-1.5">
               {visibleBadLang.map((r) => (
-                <RowLine key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} highlightLang />
+                <RowLine
+                  key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} highlightLang
+                  action={
+                    <button
+                      onClick={() => handleRecanon(r.id)}
+                      disabled={!!busyId}
+                      title="Recompute canonical fingerprint + language"
+                      className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-background active:scale-[0.98] disabled:opacity-40"
+                    >
+                      {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                      Re-canonicalize
+                    </button>
+                  }
+                />
               ))}
             </div>
           </section>
@@ -222,10 +308,10 @@ function Stat({ label, value, bad }: { label: string; value: number; bad?: boole
 }
 
 function RowLine({
-  category, name, set, number, language, id, highlightLang,
+  category, name, set, number, language, id, highlightLang, action,
 }: {
   category: string; name: string; set: string | null; number: string | null;
-  language: string | null; id: string; highlightLang?: boolean;
+  language: string | null; id: string; highlightLang?: boolean; action?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
@@ -237,6 +323,7 @@ function RowLine({
         lang: {language ?? "null"}
       </span>
       <code className="ml-auto font-mono text-[10px] text-muted-foreground">{id.slice(0, 8)}</code>
+      {action}
     </div>
   );
 }

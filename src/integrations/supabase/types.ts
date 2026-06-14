@@ -8444,6 +8444,10 @@ export type Database = {
     Functions: {
       _assert_owner: { Args: never; Returns: undefined }
       _buyer_signal_weight: { Args: { _kind: string }; Returns: number }
+      _merge_identity_refs: {
+        Args: { _survivor: string; _victim: string }
+        Returns: undefined
+      }
       accept_legal_document: {
         Args: {
           _document_type: string
@@ -8599,6 +8603,15 @@ export type Database = {
           verified_at: string
         }[]
       }
+      admin_merge_identities: {
+        Args: {
+          _actor: string
+          _reason?: string
+          _survivor: string
+          _victims: string[]
+        }
+        Returns: Json
+      }
       admin_override_trust: {
         Args: {
           _frozen: boolean
@@ -8635,6 +8648,16 @@ export type Database = {
           order_count: number
           refunded_cents: number
         }[]
+      }
+      admin_recanonicalize_identity: {
+        Args: {
+          _actor: string
+          _id: string
+          _new_fingerprint: string
+          _new_language: string
+          _reason?: string
+        }
+        Returns: Json
       }
       admin_remove_role: {
         Args: {
