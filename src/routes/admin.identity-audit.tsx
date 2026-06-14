@@ -133,6 +133,7 @@ function IdentityAuditPage() {
         ? `Merged into existing identity ${res.survivor?.slice(0, 8)}.`
         : `Re-canonicalized ${id.slice(0, 8)}.`);
       await refresh();
+      await loadLog();
     } catch (e: any) {
       setError(e?.message ?? "Re-canonicalize failed");
     } finally {
