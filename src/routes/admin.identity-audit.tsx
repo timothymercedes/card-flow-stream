@@ -1,16 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 import { getIdentityAuditFn, type IdentityAudit } from "@/lib/identityHealth.functions";
-import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages } from "lucide-react";
+import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity-audit")({
   head: () => ({ meta: [{ title: "Identity Audit — Admin" }] }),
   component: IdentityAuditPage,
 });
+
+type FilterTab = "all" | "duplicates" | "languages";
 
 function IdentityAuditPage() {
   const { user } = useAuth();
@@ -19,6 +22,8 @@ function IdentityAuditPage() {
   const [audit, setAudit] = useState<IdentityAudit | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterTab>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const runAudit = useServerFn(getIdentityAuditFn);
 
   useEffect(() => {
@@ -45,6 +50,26 @@ function IdentityAuditPage() {
       setLoading(false);
     }
   }
+
+  const q = searchQuery.trim().toLowerCase();
+
+  const filteredDupGroups = useMemo(() => {
+    const groups = audit?.duplicate_fingerprint_groups ?? [];
+    if (!q) return groups;
+    return groups.filter((g) => g.fingerprint.toLowerCase().includes(q));
+  }, [audit, q]);
+
+  const filteredBadLang = useMemo(() => {
+    const rows = audit?.invalid_language_rows ?? [];
+    if (!q) return rows;
+    return rows.filter((r) => r.fingerprint.toLowerCase().includes(q));
+  }, [audit, q]);
+
+  const showDups = filter === "all" || filter === "duplicates";
+  const showLang = filter === "all" || filter === "languages";
+
+  const visibleDupGroups = showDups ? filteredDupGroups : [];
+  const visibleBadLang = showLang ? filteredBadLang : [];
 
   if (!user) return <AppShell><div className="p-8 text-center text-sm">Sign in.</div></AppShell>;
   if (checkingRole) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
@@ -95,19 +120,38 @@ function IdentityAuditPage() {
           </div>
         )}
 
+        {audit && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by fingerprint…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex items-center gap-1 rounded-lg bg-muted p-1 ring-1 ring-border/60">
+              <FilterButton active={filter === "all"} onClick={() => setFilter("all")}>All</FilterButton>
+              <FilterButton active={filter === "duplicates"} onClick={() => setFilter("duplicates")}>Duplicates</FilterButton>
+              <FilterButton active={filter === "languages"} onClick={() => setFilter("languages")}>Languages</FilterButton>
+            </div>
+          </div>
+        )}
+
         {healthy && (
           <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-500 ring-1 ring-emerald-500/30">
             <CheckCircle2 className="h-5 w-5" /> All clear — no duplicate fingerprints or invalid language codes.
           </div>
         )}
 
-        {dupGroups.length > 0 && (
+        {visibleDupGroups.length > 0 && (
           <section className="space-y-2">
             <h2 className="flex items-center gap-2 text-sm font-bold text-destructive">
-              <AlertTriangle className="h-4 w-4" /> Duplicate fingerprints ({dupGroups.length})
+              <AlertTriangle className="h-4 w-4" /> Duplicate fingerprints ({visibleDupGroups.length}{q ? ` of ${dupGroups.length}` : ""})
             </h2>
             <div className="space-y-3">
-              {dupGroups.map((g) => (
+              {visibleDupGroups.map((g) => (
                 <div key={g.fingerprint} className="rounded-xl bg-card p-3 ring-1 ring-border/60">
                   <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
                     <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{g.fingerprint}</code>
@@ -124,17 +168,23 @@ function IdentityAuditPage() {
           </section>
         )}
 
-        {badLang.length > 0 && (
+        {visibleBadLang.length > 0 && (
           <section className="space-y-2">
             <h2 className="flex items-center gap-2 text-sm font-bold text-amber-500">
-              <Languages className="h-4 w-4" /> Invalid language codes ({badLang.length})
+              <Languages className="h-4 w-4" /> Invalid language codes ({visibleBadLang.length}{q ? ` of ${badLang.length}` : ""})
             </h2>
             <div className="rounded-xl bg-card p-3 ring-1 ring-border/60 space-y-1">
-              {badLang.map((r) => (
+              {visibleBadLang.map((r) => (
                 <RowLine key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} highlightLang />
               ))}
             </div>
           </section>
+        )}
+
+        {audit && visibleDupGroups.length === 0 && visibleBadLang.length === 0 && !healthy && (
+          <div className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground ring-1 ring-border/60 text-center">
+            No results match your search{filter !== "all" ? ` in the "${filter}" filter` : ""}.
+          </div>
         )}
 
         {audit && (
@@ -144,6 +194,21 @@ function IdentityAuditPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md px-3 py-1 text-[11px] font-bold transition-colors ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -175,3 +240,4 @@ function RowLine({
     </div>
   );
 }
+
