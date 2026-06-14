@@ -163,6 +163,12 @@ function IdentityAuditPage() {
           </div>
         )}
 
+        {toast && (
+          <div className="rounded-lg bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-500 ring-1 ring-emerald-500/30">
+            {toast}
+          </div>
+        )}
+
         {audit && (
           <div className="grid grid-cols-3 gap-2">
             <Stat label="Identities" value={audit.total_identities} />
