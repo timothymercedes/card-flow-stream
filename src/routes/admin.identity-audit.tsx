@@ -372,14 +372,33 @@ function IdentityAuditPage() {
             <div className="space-y-1.5">
               {log.rows.map((r) => (
                 <div key={r.id} className="rounded-lg bg-card p-2.5 ring-1 ring-border/60">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
                     <span className="font-semibold">{r.detail}</span>
-                    {r.identity_name && <span className="text-muted-foreground">· {r.identity_name}</span>}
+                    {r.identity_name && r.target_id ? (
+                      <Link
+                        to="/admin/identity/$id"
+                        params={{ id: r.target_id }}
+                        className="text-muted-foreground hover:text-primary hover:underline"
+                      >
+                        · {r.identity_name}
+                      </Link>
+                    ) : r.identity_name ? (
+                      <span className="text-muted-foreground">· {r.identity_name}</span>
+                    ) : null}
                     <span className="ml-auto text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
                     {r.fingerprint && <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{r.fingerprint}</code>}
-                    <span>by {r.admin_username ?? r.admin_id.slice(0, 8)}</span>
+                    <span>
+                      by{" "}
+                      {r.admin_username ? (
+                        <Link to="/@$username" params={{ username: r.admin_username }} className="hover:text-primary hover:underline">
+                          {r.admin_username}
+                        </Link>
+                      ) : (
+                        r.admin_id.slice(0, 8)
+                      )}
+                    </span>
                     {r.reason && <span className="italic">“{r.reason}”</span>}
                   </div>
                 </div>
