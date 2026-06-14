@@ -308,10 +308,10 @@ function Stat({ label, value, bad }: { label: string; value: number; bad?: boole
 }
 
 function RowLine({
-  category, name, set, number, language, id, highlightLang,
+  category, name, set, number, language, id, highlightLang, action,
 }: {
   category: string; name: string; set: string | null; number: string | null;
-  language: string | null; id: string; highlightLang?: boolean;
+  language: string | null; id: string; highlightLang?: boolean; action?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
@@ -323,6 +323,7 @@ function RowLine({
         lang: {language ?? "null"}
       </span>
       <code className="ml-auto font-mono text-[10px] text-muted-foreground">{id.slice(0, 8)}</code>
+      {action}
     </div>
   );
 }
