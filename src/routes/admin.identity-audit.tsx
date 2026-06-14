@@ -317,6 +317,77 @@ function IdentityAuditPage() {
             Generated {new Date(audit.generated_at).toLocaleString()}
           </p>
         )}
+
+        <section className="space-y-3 border-t border-border/60 pt-4">
+          <h2 className="flex items-center gap-2 text-sm font-bold">
+            <ScrollText className="h-4 w-4" /> Action log
+            <span className="font-normal text-muted-foreground">— merges &amp; re-canonicalizations</span>
+          </h2>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <Input placeholder="Fingerprint…" value={logFp} onChange={(e) => setLogFp(e.target.value)} />
+            <Input placeholder="User (username or id)…" value={logUser} onChange={(e) => setLogUser(e.target.value)} />
+            <label className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-muted-foreground">From</span>
+              <Input type="datetime-local" value={logFrom} onChange={(e) => setLogFrom(e.target.value)} />
+            </label>
+            <label className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-muted-foreground">To</span>
+              <Input type="datetime-local" value={logTo} onChange={(e) => setLogTo(e.target.value)} />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadLog}
+              disabled={logLoading}
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground active:scale-[0.98] disabled:opacity-50"
+            >
+              {logLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Apply filters
+            </button>
+            <button
+              onClick={() => { clearLogFilters(); }}
+              className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground active:scale-[0.98]"
+            >
+              <FilterX className="h-3.5 w-3.5" /> Clear
+            </button>
+            {log && (
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                {log.rows.length} shown · {log.total_matched} matched
+              </span>
+            )}
+          </div>
+
+          {logError && (
+            <div className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive ring-1 ring-destructive/30">{logError}</div>
+          )}
+
+          {log && log.rows.length === 0 && !logLoading && (
+            <div className="rounded-xl bg-muted/40 p-4 text-center text-sm text-muted-foreground ring-1 ring-border/60">
+              No actions match these filters.
+            </div>
+          )}
+
+          {log && log.rows.length > 0 && (
+            <div className="space-y-1.5">
+              {log.rows.map((r) => (
+                <div key={r.id} className="rounded-lg bg-card p-2.5 ring-1 ring-border/60">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                    <span className="font-semibold">{r.detail}</span>
+                    {r.identity_name && <span className="text-muted-foreground">· {r.identity_name}</span>}
+                    <span className="ml-auto text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+                    {r.fingerprint && <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{r.fingerprint}</code>}
+                    <span>by {r.admin_username ?? r.admin_id.slice(0, 8)}</span>
+                    {r.reason && <span className="italic">“{r.reason}”</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
       </div>
     </AppShell>
   );
