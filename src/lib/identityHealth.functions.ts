@@ -140,3 +140,104 @@ export const getIdentityAuditFn = createServerFn({ method: "POST" })
     };
   });
 
+async function assertAdmin(supabase: any, userId: string) {
+  const { data: isAdmin, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  } as never);
+  if (error) throw new Error(error.message);
+  if (!isAdmin) throw new Error("Forbidden");
+}
+
+export interface MergeResult {
+  survivor: string;
+  merged: number;
+}
+
+// Admin-only: merge a set of duplicate identities into one chosen survivor.
+// Repoints all references (images/prices/sold comps/vault/wishlist) and
+// consolidates provider keys + external ids onto the survivor.
+export const mergeIdentitiesFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { survivor: string; victims: string[]; reason?: string }) => {
+    const uuid = /^[0-9a-f-]{36}$/i;
+    if (!input?.survivor || !uuid.test(input.survivor)) throw new Error("Invalid survivor id");
+    if (!Array.isArray(input.victims) || input.victims.length === 0) throw new Error("No victims selected");
+    for (const v of input.victims) if (!uuid.test(v)) throw new Error("Invalid victim id");
+    return {
+      survivor: input.survivor,
+      victims: input.victims.filter((v) => v !== input.survivor),
+      reason: typeof input.reason === "string" ? input.reason.slice(0, 500) : null,
+    };
+  })
+  .handler(async ({ data, context }): Promise<MergeResult> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: res, error } = await supabaseAdmin.rpc("admin_merge_identities" as never, {
+      _actor: userId,
+      _survivor: data.survivor,
+      _victims: data.victims,
+      _reason: data.reason,
+    } as never);
+    if (error) throw new Error(error.message);
+    return res as unknown as MergeResult;
+  });
+
+export interface RecanonicalizeResult {
+  result: "updated" | "merged";
+  id?: string;
+  survivor?: string;
+}
+
+// Admin-only: recompute an identity's canonical fingerprint + language from its
+// own card fields. If a different identity already owns that fingerprint, this
+// one is merged into it instead of creating a duplicate.
+export const recanonicalizeIdentityFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { id: string; reason?: string }) => {
+    if (!input?.id || !/^[0-9a-f-]{36}$/i.test(input.id)) throw new Error("Invalid identity id");
+    return { id: input.id, reason: typeof input.reason === "string" ? input.reason.slice(0, 500) : null };
+  })
+  .handler(async ({ data, context }): Promise<RecanonicalizeResult> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { computeFingerprint, normalizeLangCode } = await import("@/lib/masterIdentity.server");
+
+    const { data: row, error: selErr } = await supabaseAdmin
+      .from("card_identities")
+      .select("category, name, set_name, set_code, number, year, manufacturer, player, team, grade, grading_company, variant, language")
+      .eq("id", data.id)
+      .single();
+    if (selErr) throw new Error(selErr.message);
+
+    const r = row as Record<string, any>;
+    const fingerprint = await computeFingerprint({
+      category: r.category,
+      name: r.name,
+      set_name: r.set_name,
+      set_code: r.set_code,
+      number: r.number,
+      year: r.year,
+      manufacturer: r.manufacturer,
+      player: r.player,
+      team: r.team,
+      grade: r.grade,
+      grading_company: r.grading_company,
+      variant: r.variant,
+      language: r.language,
+    });
+    const language = normalizeLangCode(r.language);
+
+    const { data: res, error } = await supabaseAdmin.rpc("admin_recanonicalize_identity" as never, {
+      _actor: userId,
+      _id: data.id,
+      _new_fingerprint: fingerprint,
+      _new_language: language,
+      _reason: data.reason,
+    } as never);
+    if (error) throw new Error(error.message);
+    return res as unknown as RecanonicalizeResult;
+  });
+
