@@ -208,19 +208,35 @@ function IdentityAuditPage() {
               <AlertTriangle className="h-4 w-4" /> Duplicate fingerprints ({visibleDupGroups.length}{q ? ` of ${dupGroups.length}` : ""})
             </h2>
             <div className="space-y-3">
-              {visibleDupGroups.map((g) => (
-                <div key={g.fingerprint} className="rounded-xl bg-card p-3 ring-1 ring-border/60">
-                  <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{g.fingerprint}</code>
-                    <span className="font-bold text-destructive">{g.copies} copies</span>
+              {visibleDupGroups.map((g) => {
+                const groupBusy = busyId === g.fingerprint;
+                return (
+                  <div key={g.fingerprint} className="rounded-xl bg-card p-3 ring-1 ring-border/60">
+                    <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{g.fingerprint}</code>
+                      <span className="font-bold text-destructive">{g.copies} copies</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {g.rows.map((r) => (
+                        <RowLine
+                          key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id}
+                          action={
+                            <button
+                              onClick={() => handleMerge(g, r.id)}
+                              disabled={!!busyId}
+                              title="Keep this row and merge the others into it"
+                              className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground active:scale-[0.98] disabled:opacity-40"
+                            >
+                              {groupBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <GitMerge className="h-3 w-3" />}
+                              Keep & merge
+                            </button>
+                          }
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {g.rows.map((r) => (
-                      <RowLine key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
@@ -230,9 +246,22 @@ function IdentityAuditPage() {
             <h2 className="flex items-center gap-2 text-sm font-bold text-amber-500">
               <Languages className="h-4 w-4" /> Invalid language codes ({visibleBadLang.length}{q ? ` of ${badLang.length}` : ""})
             </h2>
-            <div className="rounded-xl bg-card p-3 ring-1 ring-border/60 space-y-1">
+            <div className="rounded-xl bg-card p-3 ring-1 ring-border/60 space-y-1.5">
               {visibleBadLang.map((r) => (
-                <RowLine key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} highlightLang />
+                <RowLine
+                  key={r.id} category={r.category} name={r.name} set={r.set} number={r.number} language={r.language} id={r.id} highlightLang
+                  action={
+                    <button
+                      onClick={() => handleRecanon(r.id)}
+                      disabled={!!busyId}
+                      title="Recompute canonical fingerprint + language"
+                      className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-background active:scale-[0.98] disabled:opacity-40"
+                    >
+                      {busyId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                      Re-canonicalize
+                    </button>
+                  }
+                />
               ))}
             </div>
           </section>
