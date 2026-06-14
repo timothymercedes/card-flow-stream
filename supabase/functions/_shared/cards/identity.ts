@@ -57,6 +57,7 @@ export interface CardIdentityInput {
 export function normalizeLangCode(lang: string | null | undefined): string {
   const l = String(lang || "").trim().toLowerCase();
   if (!l) return "en";
+  if (/^(auto|und|unknown|none|n_a|na)$/.test(l)) return "en";
   if (/^(en|eng|english)$/.test(l)) return "en";
   if (/^(jp|ja|jpn|japanese)$/.test(l)) return "jp";
   if (/^(zh|cn|chi|chinese|zh-hans|zh-hant)$/.test(l)) return "zh";
