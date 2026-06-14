@@ -114,6 +114,7 @@ function IdentityAuditPage() {
       const res = await runMerge({ data: { survivor: survivorId, victims } });
       flash(`Merged ${res.merged} duplicate(s) into ${res.survivor.slice(0, 8)}.`);
       await refresh();
+      await loadLog();
     } catch (e: any) {
       setError(e?.message ?? "Merge failed");
     } finally {
