@@ -34,9 +34,17 @@ function IdentityAuditPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [log, setLog] = useState<IdentityActionLog | null>(null);
+  const [logLoading, setLogLoading] = useState(false);
+  const [logError, setLogError] = useState<string | null>(null);
+  const [logFp, setLogFp] = useState("");
+  const [logUser, setLogUser] = useState("");
+  const [logFrom, setLogFrom] = useState("");
+  const [logTo, setLogTo] = useState("");
   const runAudit = useServerFn(getIdentityAuditFn);
   const runMerge = useServerFn(mergeIdentitiesFn);
   const runRecanon = useServerFn(recanonicalizeIdentityFn);
+  const runLog = useServerFn(getIdentityActionLogFn);
 
   useEffect(() => {
     if (!user) { setCheckingRole(false); return; }
