@@ -18,8 +18,13 @@ import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowse
 import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
 import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
 import { ShareButton } from "@/components/ShareButton";
+import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
 
 export const Route = createFileRoute("/seller/$username")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...readIdentityLogFilters(search),
+    fromIdentityAudit: search.fromIdentityAudit === true || undefined,
+  }),
   head: ({ params }) => {
     const handle = params.username;
     const title = `@${handle} on PullBid Live — storefront, live shows & cards`;
@@ -56,6 +61,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 
 function PublicStore() {
   const { username } = Route.useParams();
+  const { fromIdentityAudit, ...auditFilters } = Route.useSearch();
   const nav = useNavigate();
   const { user, profile: myProfile } = useAuth();
   const [seller, setSeller] = useState<any>(null);

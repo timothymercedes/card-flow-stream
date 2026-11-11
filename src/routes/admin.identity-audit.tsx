@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { readIdentityLogFilters, identityLogShortcut, type IdentityLogFilters } from "@/lib/identityAuditFilters";
 import {
   getIdentityAuditFn,
   getIdentityActionLogFn,
@@ -17,13 +19,15 @@ import {
 import { Fingerprint, RefreshCw, AlertTriangle, CheckCircle2, Languages, Search, Wand2, GitMerge, Loader2, ScrollText, FilterX, Filter } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity-audit")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    logFp: typeof s.logFp === "string" ? s.logFp : undefined,
-    logUser: typeof s.logUser === "string" ? s.logUser : undefined,
-    logFrom: typeof s.logFrom === "string" ? s.logFrom : undefined,
-    logTo: typeof s.logTo === "string" ? s.logTo : undefined,
-  }),
-  head: () => ({ meta: [{ title: "Identity Audit — Admin" }] }),
+  validateSearch: readIdentityLogFilters,
+  head: () => ({ meta: [
+    { title: "Identity Audit — PullBid Live Admin" },
+    { name: "description", content: "Review identity health and filter the PullBid Live identity remediation action log." },
+    { property: "og:title", content: "Identity Audit — PullBid Live Admin" },
+    { property: "og:description", content: "Review duplicate fingerprints, invalid languages, and identity audit actions." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: IdentityAuditPage,
 });
 
@@ -61,7 +65,7 @@ function IdentityAuditPage() {
       const admin = (data || []).some((r: any) => r.role === "admin" || r.role === "owner");
       setIsAdmin(admin);
       setCheckingRole(false);
-      if (admin) { refresh(); loadLog(); }
+      if (admin) { refresh(); }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -79,16 +83,25 @@ function IdentityAuditPage() {
     }
   }
 
-  async function loadLog() {
+  useEffect(() => {
+    setLogFp(search.logFp ?? "");
+    setLogUser(search.logUser ?? "");
+    setLogFrom(search.logFrom ?? "");
+    setLogTo(search.logTo ?? "");
+    if (isAdmin) void loadLog(search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, search.logFp, search.logUser, search.logFrom, search.logTo]);
+
+  async function loadLog(filters: IdentityLogFilters = search) {
     setLogLoading(true);
     setLogError(null);
     try {
       const res = await runLog({
         data: {
-          fingerprint: logFp.trim(),
-          user: logUser.trim(),
-          from: logFrom ? new Date(logFrom).toISOString() : undefined,
-          to: logTo ? new Date(logTo).toISOString() : undefined,
+          fingerprint: filters.logFp?.trim() ?? "",
+          user: filters.logUser?.trim() ?? "",
+          from: filters.logFrom ? new Date(filters.logFrom).toISOString() : undefined,
+          to: filters.logTo ? new Date(filters.logTo).toISOString() : undefined,
         },
       });
       setLog(res);
@@ -104,7 +117,14 @@ function IdentityAuditPage() {
     setLogUser("");
     setLogFrom("");
     setLogTo("");
-    navigate({ to: "/admin/identity-audit", search: {} as any, replace: true });
+    if (!search.logFp && !search.logUser && !search.logFrom && !search.logTo) void loadLog({});
+    void navigate({ to: "/admin/identity-audit", search: {}, resetScroll: false });
+  }
+
+  function applyLogFilters() {
+    const next = { logFp: logFp.trim() || undefined, logUser: logUser.trim() || undefined, logFrom: logFrom || undefined, logTo: logTo || undefined };
+    if (Object.keys(next).every((key) => next[key as keyof IdentityLogFilters] === search[key as keyof IdentityLogFilters])) void loadLog(next);
+    void navigate({ to: "/admin/identity-audit", search: next, resetScroll: false });
   }
 
   function flash(msg: string) {
@@ -334,8 +354,8 @@ function IdentityAuditPage() {
           </h2>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <Input placeholder="Fingerprint…" value={logFp} onChange={(e) => setLogFp(e.target.value)} />
-            <Input placeholder="User (username or id)…" value={logUser} onChange={(e) => setLogUser(e.target.value)} />
+            <Input aria-label="Action log fingerprint" placeholder="Fingerprint…" value={logFp} onChange={(e) => setLogFp(e.target.value)} />
+            <Input aria-label="Action log user" placeholder="User (username or id)…" value={logUser} onChange={(e) => setLogUser(e.target.value)} />
             <label className="flex flex-col gap-0.5">
               <span className="text-[10px] text-muted-foreground">From</span>
               <Input type="datetime-local" value={logFrom} onChange={(e) => setLogFrom(e.target.value)} />
@@ -347,19 +367,20 @@ function IdentityAuditPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={loadLog}
+            <Button
+              size="sm"
+              onClick={applyLogFilters}
               disabled={logLoading}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground active:scale-[0.98] disabled:opacity-50"
             >
               {logLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Apply filters
-            </button>
-            <button
-              onClick={() => { clearLogFilters(); }}
-              className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground active:scale-[0.98]"
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={clearLogFilters}
             >
               <FilterX className="h-3.5 w-3.5" /> Clear
-            </button>
+            </Button>
             {log && (
               <span className="ml-auto text-[10px] text-muted-foreground">
                 {log.rows.length} shown · {log.total_matched} matched
@@ -387,7 +408,7 @@ function IdentityAuditPage() {
                       <Link
                         to="/admin/identity/$id"
                         params={{ id: r.target_id }}
-                        search={{ fromFp: r.fingerprint || undefined }}
+                        search={{ ...identityLogShortcut(search, "logFp", r.fingerprint || search.logFp || ""), fromFp: r.fingerprint || undefined }}
                         className="text-muted-foreground hover:text-primary hover:underline"
                       >
                         · {r.identity_name}
@@ -398,17 +419,26 @@ function IdentityAuditPage() {
                     <span className="ml-auto text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleString()}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
-                    {r.fingerprint && <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{r.fingerprint}</code>}
+                    {r.fingerprint && (
+                      <Button asChild variant="ghost" size="sm" className="h-auto max-w-full whitespace-normal px-1.5 py-0.5 text-[10px]" title="Filter log by this fingerprint" aria-label={`Filter log by fingerprint ${r.fingerprint}`}>
+                        <Link to="/admin/identity-audit" search={identityLogShortcut(search, "logFp", r.fingerprint)} resetScroll={false}>
+                          <Filter className="shrink-0" /><code className="break-all font-mono">{r.fingerprint}</code>
+                        </Link>
+                      </Button>
+                    )}
                     <span>
                       by{" "}
                       {r.admin_username ? (
-                        <Link to="/@$username" params={{ username: r.admin_username }} className="hover:text-primary hover:underline">
+                        <Link to="/seller/$username" params={{ username: r.admin_username }} search={{ ...identityLogShortcut(search, "logUser", r.admin_id), fromIdentityAudit: true }} className="hover:text-primary hover:underline">
                           {r.admin_username}
                         </Link>
                       ) : (
                         r.admin_id.slice(0, 8)
                       )}
                     </span>
+                    <Button asChild variant="ghost" size="icon" className="h-7 w-7" title="Filter log by this user" aria-label={`Filter log by user ${r.admin_username || r.admin_id}`}>
+                      <Link to="/admin/identity-audit" search={identityLogShortcut(search, "logUser", r.admin_id)} resetScroll={false}><Filter /></Link>
+                    </Button>
                     {r.reason && <span className="italic">“{r.reason}”</span>}
                   </div>
                 </div>

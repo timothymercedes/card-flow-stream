@@ -5,19 +5,28 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getIdentityDetailsFn, type IdentityDetails } from "@/lib/identityHealth.functions";
+import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
 import { ArrowLeft, Fingerprint, Image, Tag, Package, Heart, BarChart3, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity/$id")({
   validateSearch: (s: Record<string, unknown>) => ({
+    ...readIdentityLogFilters(s),
     fromFp: typeof s.fromFp === "string" ? s.fromFp : undefined,
   }),
-  head: () => ({ meta: [{ title: "Identity Inspector — Admin" }] }),
+  head: () => ({ meta: [
+    { title: "Identity Inspector — PullBid Live Admin" },
+    { name: "description", content: "Inspect a PullBid Live card identity and its linked collection and pricing records." },
+    { property: "og:title", content: "Identity Inspector — PullBid Live Admin" },
+    { property: "og:description", content: "Review canonical card identity details and related records." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: IdentityInspectorPage,
 });
 
 function IdentityInspectorPage() {
   const { id } = Route.useParams();
-  const { fromFp } = Route.useSearch();
+  const { fromFp, ...logFilters } = Route.useSearch();
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingRole, setCheckingRole] = useState(true);
@@ -68,7 +77,7 @@ function IdentityInspectorPage() {
         <div className="flex items-center gap-2">
           <Link
             to="/admin/identity-audit"
-            search={fromFp ? { logFp: fromFp } : undefined}
+            search={{ ...logFilters, logFp: fromFp || logFilters.logFp }}
             className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground ring-1 ring-border/60 active:scale-[0.98]"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back to audit
