@@ -9,15 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sparkles, ArrowLeft, ArrowLeftRight, ArrowRight, Repeat, Gift, Search } from "lucide-react";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/trades/discover")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    q: typeof s.q === "string" ? s.q : undefined,
-  }),
+  validateSearch: zodValidator(z.object({ q: z.string().optional() })),
   head: () => ({
     meta: [
       { title: "Trade Discovery — PullBid Live" },
       { name: "description", content: "Find collectors who own the cards you need and want what you have. Smart, mutual trade matches in one place." },
+      { property: "og:title", content: "Trade Discovery — PullBid Live" },
+      { property: "og:description", content: "Find collectors with mutually matching cards for trade." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: DiscoverPage,

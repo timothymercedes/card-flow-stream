@@ -18,8 +18,12 @@ import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowse
 import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
 import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
 import { ShareButton } from "@/components/ShareButton";
+import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/seller/$username")({
+  validateSearch: zodValidator(z.object({ logFp: z.string().optional(), logUser: z.string().optional(), logFrom: z.string().optional(), logTo: z.string().optional(), fromIdentityAudit: z.boolean().optional() })),
   head: ({ params }) => {
     const handle = params.username;
     const title = `@${handle} on PullBid Live — storefront, live shows & cards`;
@@ -56,6 +60,7 @@ function Stars({ n, size = 14 }: { n: number; size?: number }) {
 
 function PublicStore() {
   const { username } = Route.useParams();
+  const { fromIdentityAudit, ...auditFilters } = Route.useSearch();
   const nav = useNavigate();
   const { user, profile: myProfile } = useAuth();
   const [seller, setSeller] = useState<any>(null);
@@ -215,7 +220,11 @@ function PublicStore() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <Link to="/market" className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground"><ArrowLeft className="h-3.5 w-3.5" /> Back</Link>
+        {fromIdentityAudit ? (
+          <Link to="/admin/identity-audit" search={readIdentityLogFilters(auditFilters)} className="mb-3 inline-flex items-center gap-1 text-xs text-primary"><ArrowLeft className="h-3.5 w-3.5" /> Back to action log</Link>
+        ) : (
+          <Link to="/market" className="mb-3 inline-flex items-center gap-1 text-xs text-muted-foreground"><ArrowLeft className="h-3.5 w-3.5" /> Back</Link>
+        )}
 
         {liveStreamId && (
           <Link
