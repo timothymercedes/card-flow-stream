@@ -6,13 +6,12 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getIdentityDetailsFn, type IdentityDetails } from "@/lib/identityHealth.functions";
 import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { ArrowLeft, Fingerprint, Image, Tag, Package, Heart, BarChart3, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/admin/identity/$id")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    ...readIdentityLogFilters(s),
-    fromFp: typeof s.fromFp === "string" ? s.fromFp : undefined,
-  }),
+  validateSearch: zodValidator(z.object({ logFp: z.string().optional(), logUser: z.string().optional(), logFrom: z.string().optional(), logTo: z.string().optional(), fromFp: z.string().optional() })),
   head: () => ({ meta: [
     { title: "Identity Inspector — PullBid Live Admin" },
     { name: "description", content: "Inspect a PullBid Live card identity and its linked collection and pricing records." },

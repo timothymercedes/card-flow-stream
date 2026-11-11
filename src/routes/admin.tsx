@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
@@ -58,7 +58,8 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  return <><Admin /><Outlet /></>;
+  const matchRoute = useMatchRoute();
+  return <>{matchRoute({ to: "/admin", fuzzy: false }) && <Admin />}<Outlet /></>;
 }
 
 function Admin() {
