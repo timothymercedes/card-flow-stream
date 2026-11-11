@@ -1,6 +1,9 @@
 # Current work
 
-- [ ] Verify fresh password sign-in and signup, Google/Apple completion, and passkey registration/sign-in; repair reproducible authentication issues without changing existing users' passwords.
+- [x] Fresh password sign-in passed with a disposable confirmed account; signup submitted through the form, created a real unconfirmed account, and correctly showed the confirmation screen without a session. Test accounts were removed.
+- [x] Passkey registration and full sign-in passed with Chromium's virtual authenticator; challenges now persist across workers, expire after five minutes, and are consumed once. Real Face ID/Touch ID hardware remains untested.
+- [x] Google and Apple reach their real account prompts on primary, published, and preview domains. Fixed web OAuth return to the public origin and preserved the intended destination until session validation.
+- [ ] Complete Google/Apple account consent and return using the user's provider session, and click a delivered signup confirmation email: blocked by unavailable provider sessions and test mailbox access. No credentials requested, no account passwords changed, and email confirmation remains enabled.
 
 - [x] Check hosted authentication settings, login rendering, session redirect, and published OAuth handoff. Email/Google/Apple are enabled and email confirmation is required. Fresh password login, completed social login, and passkeys remain unverified without interactive user authentication.
 - [x] Check Cloudflare Calls session creation: provider returned 201. Cloudflare Stream inventory returned 403 authorization failure; its token-verification endpoint also reports invalid token.
