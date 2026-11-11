@@ -5,7 +5,7 @@
 - [x] Google and Apple reach their real account prompts on primary, published, and preview domains. Fixed web OAuth return to the public origin and preserved the intended destination until session validation.
 - [ ] Complete Google/Apple account consent and return using the user's provider session, and click a delivered signup confirmation email: blocked by unavailable provider sessions and test mailbox access. No credentials requested, no account passwords changed, and email confirmation remains enabled.
 
-- [x] Check hosted authentication settings, login rendering, session redirect, and published OAuth handoff. Email/Google/Apple are enabled and email confirmation is required. Fresh password login, completed social login, and passkeys remain unverified without interactive user authentication.
+- [x] Check hosted authentication settings, login rendering, session redirect, and published OAuth handoff. Email/Google/Apple are enabled and email confirmation is required; current completion results are recorded above.
 - [x] Check Cloudflare Calls session creation: provider returned 201. Cloudflare Stream inventory returned 403 authorization failure; its token-verification endpoint also reports invalid token.
 - [x] Check Stripe test/live connections and go-live status: both respond and go-live is complete. App's separate legacy Stripe credential responds in live mode.
 - [ ] Repair Stripe payment integration: current app uses legacy live PaymentIntents/PaymentElement, and managed webhooks target missing /api/public/payments/webhook in both preview and published app. Requires reviewed payment/security changes before transaction testing.
