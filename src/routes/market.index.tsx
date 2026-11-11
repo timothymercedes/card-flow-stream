@@ -10,11 +10,19 @@ import { useShuffleBucket, seededHash } from "@/lib/shuffle";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { MarketQuickView } from "@/components/MarketQuickView";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/market/")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    q: typeof s.q === "string" ? s.q : undefined,
-  }),
+  validateSearch: zodValidator(z.object({ q: z.string().optional() })),
+  head: () => ({ meta: [
+    { title: "Card Marketplace — PullBid Live" },
+    { name: "description", content: "Browse collectible cards, auctions, and offers on the PullBid Live marketplace." },
+    { property: "og:title", content: "Card Marketplace — PullBid Live" },
+    { property: "og:description", content: "Find collectible cards, auctions, and offers from collectors." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
   component: Market,
 });
 

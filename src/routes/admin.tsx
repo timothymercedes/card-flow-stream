@@ -49,7 +49,14 @@ const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders",
 
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
+  head: () => ({ meta: [
+    { title: "Admin — PullBid Live" },
+    { name: "description", content: "PullBid Live administration and platform health." },
+    { property: "og:title", content: "Admin — PullBid Live" },
+    { property: "og:description", content: "Manage PullBid Live moderation and platform health." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: zodValidator(z.object({
     tab: z.string().optional(),
     filter: z.string().optional(),

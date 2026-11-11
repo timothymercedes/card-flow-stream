@@ -40,16 +40,19 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { CardImageUnavailable } from "@/components/CardImageUnavailable";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/collection/missing")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    set: typeof s.set === "string" ? s.set : undefined,
-    category: typeof s.category === "string" ? s.category : undefined,
-  }),
+  validateSearch: zodValidator(z.object({ set: z.string().optional(), category: z.string().optional() })),
   head: () => ({
     meta: [
       { title: "Missing Cards Center — PullBid Live" },
       { name: "description", content: "Every card you still need across your sets — buy, trade, watch, or wishlist them in one place." },
+      { property: "og:title", content: "Missing Cards Center — PullBid Live" },
+      { property: "og:description", content: "Find the missing cards in your collection sets." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: MissingCenter,

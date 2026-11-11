@@ -19,16 +19,19 @@ import {
   ArrowLeftRight, Plus, Truck, CheckCircle2, XCircle, Star, Repeat, Send, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/trades/")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    to: typeof s.to === "string" ? s.to : undefined,
-    q: typeof s.q === "string" ? s.q : undefined,
-  }),
+  validateSearch: zodValidator(z.object({ to: z.string().optional(), q: z.string().optional() })),
   head: () => ({
     meta: [
       { title: "Trade Center — PullBid Live" },
       { name: "description", content: "Build trades from your vault, send offers, and track every swap from pending to completed." },
+      { property: "og:title", content: "Trade Center — PullBid Live" },
+      { property: "og:description", content: "Manage your card trade offers and swaps." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: TradesPage,

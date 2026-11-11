@@ -19,6 +19,14 @@ import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
+  head: () => ({ meta: [
+    { title: "Sign In — PullBid Live" },
+    { name: "description", content: "Sign in to your PullBid Live collector account." },
+    { property: "og:title", content: "Sign In — PullBid Live" },
+    { property: "og:description", content: "Access your PullBid Live collector account." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: zodValidator(z.object({ returnTo: z.string().optional(), mode: z.string().optional() })),
 });
 
