@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Verify fresh password sign-in and signup, Google/Apple completion, and passkey registration/sign-in; repair reproducible authentication issues without changing existing users' passwords.
+
 - [x] Check hosted authentication settings, login rendering, session redirect, and published OAuth handoff. Email/Google/Apple are enabled and email confirmation is required. Fresh password login, completed social login, and passkeys remain unverified without interactive user authentication.
 - [x] Check Cloudflare Calls session creation: provider returned 201. Cloudflare Stream inventory returned 403 authorization failure; its token-verification endpoint also reports invalid token.
 - [x] Check Stripe test/live connections and go-live status: both respond and go-live is complete. App's separate legacy Stripe credential responds in live mode.
