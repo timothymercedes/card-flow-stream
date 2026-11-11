@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getIdentityDetailsFn, type IdentityDetails } from "@/lib/identityHealth.functions";
-import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { ArrowLeft, Fingerprint, Image, Tag, Package, Heart, BarChart3, DollarSign } from "lucide-react";
