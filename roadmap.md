@@ -1,5 +1,8 @@
 # Current work
 
+- [ ] Check actual login behavior and hosted authentication settings.
+- [ ] Check Cloudflare live-video services and Stripe connections and checkout; avoid real charges.
+
 - [x] Finish identity action-log shortcuts and preserve filters across detail navigation; helper tests and apply/reload/clear checks pass.
 - [x] Verify signed-in home, marketplace, vault, collection, wishlist, Arena, and identity audit; check mobile Arena. No crashes observed.
 - [x] Apply the required package security update and confirm app health; app compilation and nine tests pass.
