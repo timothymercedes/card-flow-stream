@@ -23,7 +23,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Hunt rare pulls, bid live, and trade with collectors. Holographic auctions for sports cards, Pokémon, and TCGs — streamed in real time." },
       { property: "og:title", content: "PullBid Live — Live Card Auctions" },
       { property: "og:description", content: "Live auctions and drops for collectors. Pull, bid, vault." },
-      { property: "og:image", content: "/og.jpg" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
 });

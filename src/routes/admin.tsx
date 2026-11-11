@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,19 +50,23 @@ const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders",
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — PullBid Live" }] }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    tab: ADMIN_TABS.includes(search.tab as AdminTab) ? (search.tab as AdminTab) : undefined,
-    filter: search.filter === "issues" || search.filter === "all" ? (search.filter as "issues" | "all") : undefined,
-  }),
-  component: Admin,
+  validateSearch: zodValidator(z.object({
+    tab: z.string().optional(),
+    filter: z.string().optional(),
+  })),
+  component: AdminLayout,
 });
+
+function AdminLayout() {
+  return <><Admin /><Outlet /></>;
+}
 
 function Admin() {
   const { user } = useAuth();
   const search = Route.useSearch();
   const [myRoles, setMyRoles] = useState<Role[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
-  const [tab, setTab] = useState<AdminTab>(search.tab ?? "reports");
+  const [tab, setTab] = useState<AdminTab>(ADMIN_TABS.includes(search.tab as AdminTab) ? search.tab as AdminTab : "reports");
   const [openSupport, setOpenSupport] = useState(0);
   const [pendingVerifications, setPendingVerifications] = useState(0);
   const [disputes, setDisputes] = useState<any[]>([]);
@@ -72,11 +78,11 @@ function Admin() {
   const [roles, setRoles] = useState<{ user_id: string; role: Role; username?: string }[]>([]);
   const [roleForm, setRoleForm] = useState({ username: "", role: "moderator" as Role });
   const [orders, setOrders] = useState<any[]>([]);
-  const [orderFilter, setOrderFilter] = useState<"all" | "issues">(search.filter ?? "issues");
+  const [orderFilter, setOrderFilter] = useState<"all" | "issues">(search.filter === "all" ? "all" : "issues");
   const [orderSearch, setOrderSearch] = useState("");
 
-  useEffect(() => { if (search.tab) setTab(search.tab); }, [search.tab]);
-  useEffect(() => { if (search.filter) setOrderFilter(search.filter); }, [search.filter]);
+  useEffect(() => { if (ADMIN_TABS.includes(search.tab as AdminTab)) setTab(search.tab as AdminTab); }, [search.tab]);
+  useEffect(() => { if (search.filter === "all" || search.filter === "issues") setOrderFilter(search.filter); }, [search.filter]);
 
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<any[]>([]);

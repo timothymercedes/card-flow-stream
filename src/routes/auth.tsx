@@ -14,13 +14,12 @@ import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
 import { beginSocialSignIn } from "@/lib/socialAuthFlow";
 import { AuthPathBanner } from "@/components/AuthPathBanner";
+import { z } from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
-  validateSearch: (s: Record<string, unknown>) => ({
-    returnTo: typeof s.returnTo === "string" ? s.returnTo : undefined,
-    mode: s.mode === "signup" || s.mode === "signin" || s.mode === "forgot" ? s.mode : undefined,
-  }),
+  validateSearch: zodValidator(z.object({ returnTo: z.string().optional(), mode: z.string().optional() })),
 });
 
 /** Returns a same-origin path from a returnTo search param, or "/" if invalid. */
@@ -40,7 +39,7 @@ function Auth() {
   const search = Route.useSearch();
   const returnTo = safeReturnTo(search.returnTo);
   const { user } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(search.mode ?? "signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(search.mode === "signup" || search.mode === "forgot" ? search.mode : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
