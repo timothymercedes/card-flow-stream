@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794412207513,
+      "tag": "0000_durable_passkey_challenges",
+      "breakpoints": true
+    }
+  ]
+}

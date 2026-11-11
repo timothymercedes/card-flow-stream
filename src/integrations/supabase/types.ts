@@ -8164,6 +8164,36 @@ export type Database = {
         }
         Relationships: []
       }
+      webauthn_challenges: {
+        Row: {
+          challenge: string
+          expires_at: string
+          id: string
+          origin: string
+          purpose: string
+          rp_id: string
+          user_id: string | null
+        }
+        Insert: {
+          challenge: string
+          expires_at?: string
+          id?: string
+          origin: string
+          purpose: string
+          rp_id: string
+          user_id?: string | null
+        }
+        Update: {
+          challenge?: string
+          expires_at?: string
+          id?: string
+          origin?: string
+          purpose?: string
+          rp_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       webauthn_credentials: {
         Row: {
           counter: number

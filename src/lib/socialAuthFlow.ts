@@ -2,19 +2,15 @@ import { lovable } from "@/integrations/lovable";
 import { authDiagnostic } from "@/lib/authDiagnostics";
 import { isNative } from "@/lib/capacitor";
 import { loadNativeAuthRuntimeConfig, nativeAuthAvailable } from "@/lib/nativeAuth";
+import { OAUTH_RETURN_KEY, safeAuthReturnTo } from "@/lib/authFlow";
+import { supabase } from "@/integrations/supabase/client";
 
 type SocialProvider = "google" | "apple";
 
 const NATIVE_OAUTH_STATE_KEY = "pullbidlive.nativeOAuthState";
 
 function safeReturnTo(raw: string): string {
-  try {
-    const url = new URL(raw, window.location.origin);
-    if (url.origin !== window.location.origin) return "/";
-    return url.pathname + url.search + url.hash;
-  } catch {
-    return raw.startsWith("/") ? raw : "/";
-  }
+  return safeAuthReturnTo(raw, window.location.origin);
 }
 
 function nativeRedirectUri(returnTo: string): string {
@@ -26,7 +22,7 @@ function nativeRedirectUri(returnTo: string): string {
 export async function beginSocialSignIn(provider: SocialProvider, returnTo: string) {
   const isNativeShell = isNative();
   const normalizedReturnTo = safeReturnTo(returnTo);
-  const webRedirectUri = new URL(normalizedReturnTo, window.location.origin).toString();
+  const webRedirectUri = window.location.origin;
   authDiagnostic("auth-oauth", "start", {
     provider,
     isNativeShell,
@@ -88,13 +84,22 @@ export async function beginSocialSignIn(provider: SocialProvider, returnTo: stri
   }
 
 
+  window.sessionStorage.setItem(OAUTH_RETURN_KEY, normalizedReturnTo);
   const result = await lovable.auth.signInWithOAuth(provider, { redirect_uri: webRedirectUri });
   authDiagnostic("auth-oauth", "web broker result", {
     provider,
     redirected: (result as any)?.redirected,
     error: (result as any)?.error?.message,
   });
-  if (result.error) throw result.error;
+  if (result.error) {
+    window.sessionStorage.removeItem(OAUTH_RETURN_KEY);
+    throw result.error;
+  }
+  if (!result.redirected) {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) throw new Error("Sign-in did not complete. Please try again.");
+    window.sessionStorage.removeItem(OAUTH_RETURN_KEY);
+  }
   return { status: result.redirected ? "pending-redirect" as const : "completed" as const, returnTo: normalizedReturnTo };
 }
 
