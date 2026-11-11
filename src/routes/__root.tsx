@@ -1,6 +1,6 @@
 import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
@@ -16,6 +16,8 @@ import { BetaGate, BETA_MODE_ENABLED } from "@/components/BetaGate";
 import { BidAnnouncer } from "@/components/BidAnnouncer";
 import { AuthGateProvider } from "@/hooks/useAuthGate";
 import { CapacitorBootstrap } from "@/components/CapacitorBootstrap";
+import { supabase } from "@/integrations/supabase/client";
+import { OAUTH_RETURN_KEY, safeAuthReturnTo } from "@/lib/authFlow";
 
 
 function NotFoundComponent() {
@@ -75,6 +77,24 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  useEffect(() => {
+    // The broker lands on this public origin before its session is hydrated.
+    let cancelled = false;
+    const finishOAuth = async () => {
+      const destination = sessionStorage.getItem(OAUTH_RETURN_KEY);
+      if (!destination) return;
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelled || error || !data.user) return;
+      sessionStorage.removeItem(OAUTH_RETURN_KEY);
+      const path = safeAuthReturnTo(destination, window.location.origin);
+      if (window.location.pathname + window.location.search + window.location.hash !== path) window.location.replace(path);
+    };
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") setTimeout(() => { void finishOAuth(); }, 0);
+    });
+    void finishOAuth();
+    return () => { cancelled = true; data.subscription.unsubscribe(); };
+  }, []);
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
   }));

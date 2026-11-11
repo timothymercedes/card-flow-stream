@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -9,13 +8,15 @@ import { startPasskeyLogin, finishPasskeyLogin, checkUsernameAvailable } from "@
 import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { AgreementModal } from "@/components/AgreementModal";
-import { REQUIRED_LEGAL_VERSION, legalAcceptanceMetadata } from "@/lib/legal";
+import { legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
 import { beginSocialSignIn } from "@/lib/socialAuthFlow";
 import { AuthPathBanner } from "@/components/AuthPathBanner";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
+import { OAUTH_RETURN_KEY, safeAuthReturnTo, signupNextStep } from "@/lib/authFlow";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
@@ -32,14 +33,7 @@ export const Route = createFileRoute("/auth")({
 
 /** Returns a same-origin path from a returnTo search param, or "/" if invalid. */
 function safeReturnTo(raw?: string): string {
-  if (!raw) return "/";
-  try {
-    const u = new URL(raw, window.location.origin);
-    if (u.origin !== window.location.origin) return "/";
-    return u.pathname + u.search + u.hash;
-  } catch {
-    return raw.startsWith("/") ? raw : "/";
-  }
+  return safeAuthReturnTo(raw, typeof window === "undefined" ? "https://pullbidlive.com" : window.location.origin);
 }
 
 function Auth() {
@@ -61,6 +55,10 @@ function Auth() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaUnavailable, setCaptchaUnavailable] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const captchaVerified = useCallback((token: string) => { setCaptchaToken(token); setCaptchaUnavailable(false); }, []);
+  const captchaExpired = useCallback(() => setCaptchaToken(null), []);
+  const captchaFailed = useCallback(() => setCaptchaUnavailable(true), []);
 
   async function ensureCaptcha(action: string): Promise<boolean> {
     // If the challenge could not load/complete (e.g. domain not allowed or
@@ -84,7 +82,14 @@ function Auth() {
     return true;
   }
 
-  useEffect(() => { if (user) window.location.replace(returnTo); }, [user, returnTo]);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data, error }) => {
+      if (!cancelled && !error && data.user) window.location.replace(returnTo);
+    });
+    return () => { cancelled = true; };
+  }, [user, returnTo]);
 
   // Debounced uniqueness check
   useEffect(() => {
@@ -111,19 +116,21 @@ function Auth() {
   }
 
   async function passkeyLogin() {
+    setLoading(true);
     try {
+      if (!window.PublicKeyCredential) throw new Error("Passkeys aren't supported in this browser");
       const { options, challengeKey } = await startPasskeyLogin({ data: { username: username || undefined } });
       const cred = await startAuthentication({ optionsJSON: options as any });
       const res = await finishPasskeyLogin({ data: { response: cred, challengeKey } });
       const { error } = await supabase.auth.verifyOtp({
-        type: "magiclink", token_hash: res.hashed_token, email: res.email,
-      } as any);
+        type: "magiclink", token_hash: res.hashed_token,
+      });
       if (error) throw error;
       toast.success("Welcome back");
       window.location.replace(returnTo);
     } catch (e: any) {
       toast.error(e?.message || "Passkey sign-in failed");
-    }
+    } finally { setLoading(false); }
   }
 
   async function submit(e: React.FormEvent) {
@@ -163,17 +170,22 @@ function Auth() {
     }
     if (!(await ensureCaptcha("signin"))) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setCaptchaToken(null);
-    if (error) toast.error(error.message); else window.location.replace(returnTo);
-    setLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      setCaptchaToken(null);
+      if (error) throw error;
+      window.location.replace(returnTo);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Sign-in failed. Please try again.");
+    } finally { setLoading(false); }
   }
 
   async function completeSignup() {
     setLoading(true);
+    try {
     const acceptanceMeta = legalAcceptanceMetadata();
     const { data: signupData, error } = await supabase.auth.signUp({
-      email, password,
+      email: email.trim(), password,
       options: { emailRedirectTo: window.location.origin, data: { username, is_seller: isSeller, ...acceptanceMeta } },
     });
     if (error) {
@@ -196,17 +208,19 @@ function Auth() {
       setLoading(false);
       return;
     }
-    if (uid) {
-      await (supabase.rpc as any)("accept_required_legal_documents", {
-        _version: REQUIRED_LEGAL_VERSION,
-        _user_agent: navigator.userAgent.slice(0, 200),
-      });
-      await supabase.auth.updateUser({ data: acceptanceMeta });
-    }
     setLoading(false);
     setShowTerms(false);
+    setCaptchaToken(null);
+    if (signupNextStep(signupData.session) === "confirm-email") {
+      setConfirmationSent(true);
+      toast.success("Check your email to confirm your account.");
+      return;
+    }
     toast.success("Account created!");
     nav({ to: "/onboarding" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Signup failed. Please try again.");
+    } finally { setLoading(false); }
   }
 
   return (
@@ -215,7 +229,13 @@ function Auth() {
         <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_oklch(0.72_0.17_165/0.35)]" />
         <p className="mt-1 text-sm text-muted-foreground">{mode === "signin" ? "Welcome back" : "Create your account"}</p>
       </div>
-      <form onSubmit={submit} className="space-y-3">
+      {confirmationSent ? (
+        <section className="space-y-3 text-center" aria-live="polite">
+          <h1 className="text-xl font-semibold">Check your email</h1>
+          <p className="text-sm text-muted-foreground">Confirm your account using the link we sent before signing in.</p>
+          <Button onClick={() => { setConfirmationSent(false); setMode("signin"); }}>Back to sign in</Button>
+        </section>
+      ) : <form onSubmit={submit} className="space-y-3">
         {mode === "signup" && (
           <div>
             <input className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Username (unique)" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s+/g, ""))} required minLength={3} />
@@ -269,15 +289,16 @@ function Auth() {
         )}
         <Turnstile
           action={mode === "forgot" ? "password_reset" : mode}
-          onVerify={(t) => { setCaptchaToken(t); setCaptchaUnavailable(false); }}
-          onExpire={() => setCaptchaToken(null)}
-          onUnavailable={() => setCaptchaUnavailable(true)}
+          key={mode}
+          onVerify={captchaVerified}
+          onExpire={captchaExpired}
+          onUnavailable={captchaFailed}
           className="flex justify-center"
         />
 
-        <button disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-60">
+        <Button type="submit" disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="h-auto w-full py-3 text-sm font-bold">
           {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Buyer Terms & Sign Up"}
-        </button>
+        </Button>
         {mode === "signup" && (
           <p className="text-center text-[11px] text-muted-foreground">
             You'll be asked to review the{" "}
@@ -286,7 +307,7 @@ function Auth() {
             <a href="/legal/privacy" target="_blank" className="text-primary underline">Privacy Policy</a> before your account is created.
           </p>
         )}
-      </form>
+      </form>}
 
       <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
         <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
@@ -295,9 +316,9 @@ function Auth() {
       <AuthPathBanner />
 
       <div className="space-y-2">
-        <button type="button" disabled={loading} onClick={passkeyLogin} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/15 py-3 text-sm font-semibold text-primary border border-primary/30 disabled:opacity-60">
+        <Button type="button" variant="outline" disabled={loading} onClick={passkeyLogin} className="h-auto w-full py-3 text-sm font-semibold">
           <Fingerprint className="h-4 w-4" /> Sign in with Face ID / Passkey
-        </button>
+        </Button>
         <button type="button" disabled={loading} onClick={() => oauth("google")} className="flex w-full items-center justify-center gap-2 rounded-xl bg-card py-3 text-sm font-semibold border border-border disabled:opacity-60">
           <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continue with Google

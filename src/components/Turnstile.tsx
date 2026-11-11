@@ -72,8 +72,12 @@ export function Turnstile({ action, onVerify, onExpire, onUnavailable, className
   useEffect(() => {
     let cancelled = false;
     getTurnstileSiteKey()
-      .then((r) => { if (!cancelled) setSiteKey(r.siteKey || null); })
-      .catch(() => { if (!cancelled) setSiteKey(null); });
+      .then((r) => {
+        if (cancelled) return;
+        setSiteKey(r.siteKey || null);
+        if (!r.siteKey) onUnavailable?.();
+      })
+      .catch(() => { if (!cancelled) { setSiteKey(null); onUnavailable?.(); } });
     return () => { cancelled = true; };
   }, []);
 
