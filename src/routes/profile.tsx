@@ -24,7 +24,14 @@ import { ProfileCollectionGoals } from "@/components/ProfileCollectionGoals";
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
 const SMS_SAFE_MODE = true;
 
-export const Route = createFileRoute("/profile")({ component: Profile });
+export const Route = createFileRoute("/profile")({ component: Profile, head: () => ({ meta: [
+  { title: "Your Profile — PullBid Live" },
+  { name: "description", content: "Manage your collector profile and account sign-in options." },
+  { property: "og:title", content: "Your Profile — PullBid Live" },
+  { property: "og:description", content: "Manage your PullBid Live collector account." },
+  { property: "og:type", content: "website" },
+  { name: "twitter:card", content: "summary" },
+] }) });
 
 function Badge({ status, label }: { status: string; label: string }) {
   const map: Record<string, string> = {
@@ -473,9 +480,9 @@ function Profile() {
           <p className="text-[11px] text-muted-foreground">Add a passkey on this device so you can sign in with Face ID, Touch ID, or Windows Hello — no password.</p>
           <button onClick={async () => {
             try {
-              const opts = await startPasskeyRegistration({ data: { username: p.username } });
-              const att = await startRegistration({ optionsJSON: opts as any });
-              await finishPasskeyRegistration({ data: { response: att, label: navigator.userAgent.slice(0, 40) } });
+              const { options, challengeKey } = await startPasskeyRegistration({ data: { username: p.username } });
+              const att = await startRegistration({ optionsJSON: options });
+              await finishPasskeyRegistration({ data: { response: att, challengeKey, label: navigator.userAgent.slice(0, 40) } });
               toast.success("Passkey added — try it next time you sign in");
             } catch (e: any) { toast.error(e?.message || "Couldn't add passkey"); }
           }} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Add Passkey on this device</button>
