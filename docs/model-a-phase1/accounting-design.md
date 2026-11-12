@@ -1,5 +1,7 @@
 # Additive ledger and auction architecture proposal
 
+November 12 business-scope update: the ledger must serve all eight physical-goods categories, not only collectibles. `marketplace-compliance.md` defines category/fulfillment/payment-method review; `ledger-implementation-spec.md` defines the complete additive implementation contracts and remaining schema fixes. Original 12-table SQL remains undeployed and incomplete; no executable implementation is claimed.
+
 Candidate SQL creates 12 new model_a_* tables, no alteration/deletion of existing structures. No runtime handlers or feature flags are enabled. Service-only writes; seller reads only their own entries/allocations/jobs. Bank payout records are service-only until a narrow seller-safe projection is approved; provider inbox/attempts/journals remain browser-inaccessible. Each public table has explicit grants then RLS. No FK to auth.users. No new profile table.
 
 ## Posting contract (requires implementation and tests before use)

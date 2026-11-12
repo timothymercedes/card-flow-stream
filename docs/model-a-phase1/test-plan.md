@@ -41,4 +41,6 @@ Prerequisites: existing test Connect activated, test-only Express seller hosted 
 
 ## Production gate — not approved
 
+Expanded marketplace gate: test all eight category snapshots, mixed-seller/mixed-category allocations, physical-product tax classification and prohibited/review-pending category rejection. Reject Affirm for titled vehicles and B2B purchases; verify actual enabled-method country/category/amount restrictions before launch. Verify parcel/freight proof, and that unapproved pickup/vehicle handover cannot unlock earnings. Reject spoofed seller classification, category-changing-after-charge and cross-platform account mappings. Sealed journals reject late appended lines. New tests are specified here, not run or claimed passing.
+
 All security/caller/schema tests passed; reserve/holding terms confirmed; evidence shadow reconciliation balanced; account capability checks current; Stripe event consumers deployed before subscriptions; separate live pilot/cutover approval. No existing payment routing replaced, no old charge retransferred, no automatic release of $9.50 request. Marketplace smoke flow must pass before any deployment.
