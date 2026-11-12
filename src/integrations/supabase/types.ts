@@ -669,6 +669,7 @@ export type Database = {
           title: string
           trigger_word: string | null
           vault_card_id: string | null
+          visibility: string
           voice_trigger: string | null
           winner_id: string | null
           winning_bid: number | null
@@ -700,6 +701,7 @@ export type Database = {
           title: string
           trigger_word?: string | null
           vault_card_id?: string | null
+          visibility?: string
           voice_trigger?: string | null
           winner_id?: string | null
           winning_bid?: number | null
@@ -731,6 +733,7 @@ export type Database = {
           title?: string
           trigger_word?: string | null
           vault_card_id?: string | null
+          visibility?: string
           voice_trigger?: string | null
           winner_id?: string | null
           winning_bid?: number | null
@@ -9255,6 +9258,18 @@ export type Database = {
           id: string
           seller_status: string
           username: string
+        }[]
+      }
+      list_public_upcoming_queue: {
+        Args: { _stream_id: string }
+        Returns: {
+          description: string
+          id: string
+          image_url: string
+          position: number
+          starting_bid: number
+          stream_id: string
+          title: string
         }[]
       }
       lock_order_funds: {
