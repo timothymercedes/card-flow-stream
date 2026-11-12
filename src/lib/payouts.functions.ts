@@ -50,6 +50,8 @@ export const requestPayout = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ amountCents: z.number().int().min(100) }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    // Preview shares production balances: never enqueue a real withdrawal here.
+    if (import.meta.env.DEV) throw new Error("Seller withdrawals are disabled in preview. No payout was requested.");
     // DB trigger assert_payout_within_available_balance will throw if invalid
     const { data: row, error } = await supabaseAdmin
       .from("payout_requests")

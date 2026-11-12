@@ -10,3 +10,5 @@
 - Managed Stripe notifications use /api/public/payments/webhook with signed environment selection; sandbox notifications never mutate shared production orders.
 - Checkout verification uses admin-gated embedded sandbox sessions and server-verified account ownership on the return page; never infer payment success from URL flags.
 - Marketplace checkout uses embedded gateway sessions with explicit environment selection and database-derived totals; sandbox sessions omit seller transfers and never stamp production order payment fields.
+- Preview must reject seller withdrawal requests and live Connect account changes before side effects; all signed Stripe event processors ignore non-live events because preview shares production balances.
+- Marketplace payment regression checks run real sandbox Embedded Checkout through the cart, verify Stripe intents/charges and signed notifications, and clean up only their own unpaid fixtures.

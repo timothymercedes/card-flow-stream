@@ -340,6 +340,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
   const isFrozen = !!serverPayable?.frozen;
 
   async function requestPayout() {
+    if (import.meta.env.DEV) { toast.error("Seller withdrawals are disabled in preview. No payout was requested."); return; }
     if (hasInflightPayout) { toast.error("A payout is already in progress."); return; }
     if (isFrozen) { toast.error("Account is frozen. Contact support."); return; }
     if (displayPayable < MIN_PAYOUT) { toast.error(`Minimum payout is ${fmt(MIN_PAYOUT)}.`); return; }
@@ -362,6 +363,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
     <div className="space-y-3">
       {/* Hero: Available to withdraw */}
       <div className="rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 p-4">
+        {import.meta.env.DEV && <p role="status" className="mb-3 text-sm text-muted-foreground">Preview only — seller withdrawals are disabled. No funds will be moved.</p>}
         <p className="text-[11px] uppercase text-muted-foreground">Available to withdraw</p>
         <p className="text-3xl font-bold text-primary">{fmt(displayPayable)}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">
@@ -370,7 +372,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         </p>
         <button
           onClick={requestPayout}
-          disabled={submitting || hasInflightPayout || isFrozen || displayPayable < MIN_PAYOUT}
+          disabled={import.meta.env.DEV || submitting || hasInflightPayout || isFrozen || displayPayable < MIN_PAYOUT}
           className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}

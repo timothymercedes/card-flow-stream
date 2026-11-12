@@ -21,6 +21,13 @@ import { BackButton } from "@/components/BackButton";
 import { PayoutBreakdown } from "@/components/PayoutBreakdown";
 
 export const Route = createFileRoute("/payouts")({
+  head: () => ({ meta: [
+    { title: "Seller payouts — PullBid Live" },
+    { name: "description", content: "Review seller payment readiness and manage your PullBid Live payout account." },
+    { property: "og:title", content: "Seller payouts — PullBid Live" },
+    { property: "og:description", content: "Your seller payment account and payout history on PullBid Live." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   component: PayoutsPage,
   errorComponent: ({ error, reset }) => {
     console.error("payouts route error", error);
@@ -130,7 +137,8 @@ function PayoutsPage() {
   async function handleSync() {
     setBusy(true);
     try {
-      await sync();
+      const result = await sync();
+      if ("error" in result) throw new Error(result.error);
       await refresh();
       toast.success("Account status updated");
     } catch (e: any) {
@@ -157,6 +165,7 @@ function PayoutsPage() {
       <div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div>
       <div>
         <h1 className="text-3xl font-bold">Payouts</h1>
+        {import.meta.env.DEV && <p role="status" className="mt-2 text-sm text-muted-foreground">Preview only — live seller bank setup and withdrawals are disabled. No real funds will move.</p>}
         <p className="text-muted-foreground">Connect your Stripe account to receive payments from buyers.</p>
       </div>
 
