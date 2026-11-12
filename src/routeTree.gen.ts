@@ -43,6 +43,7 @@ import { Route as VaultRouteImport } from './routes/vault'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
+import { Route as AdminCheckoutTestRouteImport } from './routes/admin.checkout-test'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
 import { Route as AdminIdentityAuditRouteImport } from './routes/admin.identity-audit'
 import { Route as AdminInsuranceClaimsRouteImport } from './routes/admin.insurance-claims'
@@ -51,6 +52,7 @@ import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CollectionIndexRouteImport } from './routes/collection.index'
 import { Route as CollectionMissingRouteImport } from './routes/collection.missing'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
@@ -95,6 +97,7 @@ import { Route as ApiPublicHooksShippoTrackingRouteImport } from './routes/api/p
 import { Route as ApiPublicHooksShowRemindersRouteImport } from './routes/api/public/hooks/show-reminders'
 import { Route as ApiPublicHooksStripeReconciliationRouteImport } from './routes/api/public/hooks/stripe-reconciliation'
 import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/public/hooks/sync-tcgcsv'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -272,6 +275,11 @@ const DotwellKnownAssetlinksDotjsonRoute =
     path: '/.well-known/assetlinks.json',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminCheckoutTestRoute = AdminCheckoutTestRouteImport.update({
+  id: '/checkout-test',
+  path: '/checkout-test',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCollectionWheelRoute = AdminCollectionWheelRouteImport.update({
   id: '/collection-wheel',
   path: '/collection-wheel',
@@ -310,6 +318,11 @@ const AdminFinanceRoute = AdminFinanceRouteImport.update({
 const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   id: '/admin_/performance',
   path: '/admin/performance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionIndexRoute = CollectionIndexRouteImport.update({
@@ -544,6 +557,12 @@ const ApiPublicHooksSyncTcgcsvRoute =
     path: '/api/public/hooks/sync-tcgcsv',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe/webhook',
   path: '/api/public/stripe/webhook',
@@ -601,6 +620,7 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
@@ -609,6 +629,7 @@ export interface FileRoutesByFullPath {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
@@ -653,6 +674,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -691,6 +713,7 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
@@ -699,6 +722,7 @@ export interface FileRoutesByTo {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
@@ -743,6 +767,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -784,6 +809,7 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
   '/admin/insurance-claims': typeof AdminInsuranceClaimsRoute
@@ -792,6 +818,7 @@ export interface FileRoutesById {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
@@ -836,6 +863,7 @@ export interface FileRoutesById {
   '/api/public/hooks/show-reminders': typeof ApiPublicHooksShowRemindersRoute
   '/api/public/hooks/stripe-reconciliation': typeof ApiPublicHooksStripeReconciliationRoute
   '/api/public/hooks/sync-tcgcsv': typeof ApiPublicHooksSyncTcgcsvRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -878,6 +906,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
     | '/admin/insurance-claims'
@@ -886,6 +915,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
     | '/legal/account-deletion'
@@ -930,6 +960,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
+    | '/api/public/payments/webhook'
     | '/api/public/stripe/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -968,6 +999,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
     | '/admin/insurance-claims'
@@ -976,6 +1008,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
     | '/legal/account-deletion'
@@ -1020,6 +1053,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
+    | '/api/public/payments/webhook'
     | '/api/public/stripe/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1060,6 +1094,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
     | '/admin/insurance-claims'
@@ -1068,6 +1103,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin_/finance'
     | '/admin_/performance'
+    | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
     | '/legal/account-deletion'
@@ -1112,6 +1148,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/show-reminders'
     | '/api/public/hooks/stripe-reconciliation'
     | '/api/public/hooks/sync-tcgcsv'
+    | '/api/public/payments/webhook'
     | '/api/public/stripe/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1155,6 +1192,7 @@ export interface RootRouteChildren {
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   CommunitiesSlugRoute: typeof CommunitiesSlugRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
@@ -1192,6 +1230,7 @@ export interface RootRouteChildren {
   ApiPublicHooksShowRemindersRoute: typeof ApiPublicHooksShowRemindersRoute
   ApiPublicHooksStripeReconciliationRoute: typeof ApiPublicHooksStripeReconciliationRoute
   ApiPublicHooksSyncTcgcsvRoute: typeof ApiPublicHooksSyncTcgcsvRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1438,6 +1477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownAssetlinksDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/checkout-test': {
+      id: '/admin/checkout-test'
+      path: '/checkout-test'
+      fullPath: '/admin/checkout-test'
+      preLoaderRoute: typeof AdminCheckoutTestRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/collection-wheel': {
       id: '/admin/collection-wheel'
       path: '/collection-wheel'
@@ -1492,6 +1538,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/performance'
       fullPath: '/admin/performance'
       preLoaderRoute: typeof AdminPerformanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collection/': {
@@ -1802,6 +1855,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncTcgcsvRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe/webhook': {
       id: '/api/public/stripe/webhook'
       path: '/api/public/stripe/webhook'
@@ -1834,6 +1894,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminCheckoutTestRoute: typeof AdminCheckoutTestRoute
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
   AdminIdentityAuditRoute: typeof AdminIdentityAuditRoute
   AdminInsuranceClaimsRoute: typeof AdminInsuranceClaimsRoute
@@ -1844,6 +1905,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCheckoutTestRoute: AdminCheckoutTestRoute,
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,
   AdminIdentityAuditRoute: AdminIdentityAuditRoute,
   AdminInsuranceClaimsRoute: AdminInsuranceClaimsRoute,
@@ -1941,6 +2003,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   CommunitiesSlugRoute: CommunitiesSlugRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
@@ -1980,6 +2043,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksStripeReconciliationRoute:
     ApiPublicHooksStripeReconciliationRoute,
   ApiPublicHooksSyncTcgcsvRoute: ApiPublicHooksSyncTcgcsvRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
