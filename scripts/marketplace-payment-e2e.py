@@ -131,9 +131,14 @@ async def run_case(page, user_id, outcome):
             await expect(page.get_by_text("Test payment confirmed — no real money charged", exact=True)).to_be_visible(timeout=45000)
             await page.locator("main").screenshot(path=str(EVIDENCE / "success.png"))
         else:
-            await expect(frame.get_by_text(re.compile(r"Your card was declined", re.I)).first).to_be_visible(timeout=45000)
+            try:
+                await expect(frame.get_by_text(re.compile(r"declined", re.I)).first).to_be_visible(timeout=45000)
+            except AssertionError:
+                print("Stripe validation:", await frame.locator('[role=alert], [class*=error], [class*=Error]').all_text_contents())
+                print("Submit state:", await frame.get_by_role("button", name=re.compile("Pay|Processing")).all_text_contents())
+                raise
             # Only screenshot the error: never capture customer autofill or card fields.
-            await frame.get_by_text(re.compile(r"Your card was declined", re.I)).first.screenshot(path=str(EVIDENCE / "decline.png"))
+            await frame.get_by_text(re.compile(r"declined", re.I)).first.screenshot(path=str(EVIDENCE / "decline.png"))
             assert "/checkout/return" not in page.url
         sessions = stripe("checkout/sessions", {"limit": 100})["data"]
         matches = [s for s in sessions if s.get("metadata", {}).get("order_ids") == order_id]
