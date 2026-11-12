@@ -29,7 +29,7 @@ function Confirmation() {
     void (async () => {
       try {
         const result = await confirm({ data: { sessionId: session_id, environment: test ? "sandbox" : paymentEnvironment(import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN) } });
-        if (!cancelled) setMessage("error" in result ? result.error : result.status === "paid" ? (result.test ? "Test payment confirmed — no real money charged" : "Payment confirmed") : "Payment pending — check your orders shortly");
+        if (!cancelled) setMessage("error" in result ? result.error ?? "Unable to check payment" : result.status === "paid" ? (result.test ? "Test payment confirmed — no real money charged" : "Payment confirmed") : "Payment pending — check your orders shortly");
       } catch (error) { if (!cancelled) setMessage(error instanceof Error ? error.message : "Unable to check payment"); }
     })();
     return () => { cancelled = true; };
