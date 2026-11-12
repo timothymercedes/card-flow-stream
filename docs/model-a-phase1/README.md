@@ -4,6 +4,8 @@
 
 ## Prioritized implementation checklist
 
+**November 12 scope update:** PullBid Live is a multi-category physical-goods hybrid marketplace, not a card-only business. See `marketplace-compliance.md`, `security-completion-spec.md`, and `ledger-implementation-spec.md` for the updated business description, complete coupled implementation scope and acceptance gates. These are review specifications, not implemented or runtime-tested patches; existing SQL drafts remain incomplete and must not be applied alone.
+
 ### P0 — authorization and evidence
 - [x] Inventory all 261 public functions, including all 204 SECURITY DEFINER definitions, grants and hashes; identify 25 high-priority financial/delivery cases.
 - [x] Prepare bounded grant/authorization SQL proposal and companion table/caller hardening requirements.
@@ -37,6 +39,10 @@
 - Break reservation RPC itself stamps nonzero orders paid without Stripe. Other findings include public payout completion/recovery/eligibility RPCs, NULL ownership checks, anonymous auction rearming, and AI-authorized delivered timestamps.
 
 ## Files
+
+- `marketplace-compliance.md`: eight-category Stripe business description, restrictions and fulfillment/tax review.
+- `security-completion-spec.md`: coupled function, table and server-caller implementation specification.
+- `ledger-implementation-spec.md`: additive implementation contracts and multi-category accounting extensions.
 
 - `security-inventory.md`: exhaustive definer inventory and categorized findings.
 - `function-definitions.json`: full public-function evidence and ACL/definition hashes; no credentials.

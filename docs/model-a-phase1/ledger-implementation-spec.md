@@ -1,0 +1,31 @@
+# Additive ledger implementation — review specification
+
+Existing 12-table SQL is a design baseline only. No schema, worker, backfill, seller mapping or live feature enabled. The complete implementation release adds contracts below without deleting/overwriting old structures; run only after approval in an isolated database first.
+
+## Schema extensions to finalize
+
+- Immutable allocation snapshot: category/subcategory, fulfillment kind, tax classification, price/commission policy, product risk/approval version, shipping/cost allocation and original seller account/platform/environment. Use nullable additive fields for compatibility, then validate newly posted Model A allocations in posting operations. Preserve existing order-specific rates; the 5% example is not a new universal commission.
+- Composite account/platform/environment/currency scope throughout every journal, event, job, reversal and payout linkage; reject a seller mapping belonging to a different platform even if environment matches. Separate test customers, payment methods, sessions and seller accounts; no live fallback.
+- Fulfillment receipts support signed parcel/freight evidence and later approved pickup/vehicle proof. Stable seller-wide completion-count key and compensating correction link prevent duplicates; default unsupported/unreviewed fulfillment to ineligible. Record origin/evidence hash and privacy retention; no editable delivery authority.
+- Append-only policy/approval snapshots for category/payment method/limits, delivery basis, seller-wide category counting and approved reserve aging. Unapproved reserve deadlines/below-25 handling prevent execution rather than invent defaults.
+- Link losses to original allocation, accepted transfer and reversals; payout-to-transfer reconciliation many-to-many with source evidence. Service-only raw inbox/attempt payloads and narrowly projected seller statements; don't expose other sellers, sensitive underwriting or raw provider data.
+- Close append-only loopholes: disallow new lines appended to an already committed/posted journal, not only UPDATE/DELETE; service-only atomic posting must seal full journal once. Balanced lines alone do not prove correct allocations or authorized funds.
+
+## Transactional operation contracts
+
+1. **ingestVerifiedEvent**: verify signature, exact environment/account scope and payload; persist unique provider key/hash durably. Duplicate identical evidence returns existing result, conflicting evidence quarantines. Acknowledge after durable persistence; leases/retries/dead letters are observable.
+2. **settlePaymentGroup**: retrieve platform-owned paid charge, validate database-derived total/ownership/mode and allocations; record actual fees separately. One economic settlement journal per business key; free orders and legacy unsupported paid flags never create cash.
+3. **postJournal**: service-only full batch, sealed immutable journal/lines, balanced cents per currency, valid account combinations and evidence, same-key same-hash replay; conflicting key rejects. No browser posting.
+4. **recordFulfillment / recomputeEntitlement**: verified evidence only; reject duplicate/replayed/self-dealing/unreviewed count sources. Preserve 25=10%, 50=30%, 75=70%, 100=95% on verified-delivered cumulative net basis, subtract prior release/reservation/loss/debt once. Reserve is liability, not revenue. Aging and below-25 rules are blocked until approved.
+5. **reserveTransfer**: seller/account/currency lock with hold/capability/funds/approval checks; atomic reservation and durable disabled-by-default outbox. Exclude legacy destination, quarantined and unsettled allocations; split by source charge. Server can request, never choose its own amount as authority.
+6. **executeTransfer / reconcileAmbiguity**: test-only initially, environment-specific credentials, immutable amount/destination/source_charge/business key; stable Stripe idempotency and requery before ambiguous retries beyond key retention. Accepted transfer recorded exactly once; no fabricated completion. Live executor off until distinct cutover approval.
+7. **applyRefundDisputeReversal**: allocation-specific cumulative caps, freeze impacted entitlement; keep refund-pending/failed states distinct from success, original-charge-model-specific refund behavior, reversal insufficiency/recovery debt and won-dispute compensation. Never duplicate aggregate refunds across grouped orders.
+8. **recordBankPayout / cashReconcile**: verify connected-account scope and paid/failed/canceled evidence. Bank payout is not another seller earnings debit. Daily compare charge balances, fees, seller liabilities, reserved/accepted transfers and actual cash; isolate discrepancies without editing history.
+
+## Preserved auctions and legacy history
+
+Automatic auctions retain saved customer/payment method ownership, off-session consent, confirmation, decline/SCA recovery and UX. Future approved Model A charge drops destination/application-fee routing, adds transfer_group and immutable allocations, and delays transfer. Existing route remains unchanged now. Keep legacy refunds/reversals and saved methods on their verified owning platform; normalize metadata only in a reviewed nonduplicating migration. Preserve live seller ID and every old transaction; verified legacy destination money must never be transferred a second time.
+
+## Required validation
+
+Isolated schema/privilege execution, journal sealing, multi-category mixed carts, category/method rejection, parcel/freight/pickup/vehicle evidence gating, milestone boundaries, currency/account/mode mismatch, concurrent reservation, webhook replay/out-of-order, grouped partial loss, ambiguity after Stripe acceptance and bank failure. Existing shared-preview success/decline regression continues proving production orders remain unpaid/unchanged and no seller transfer. Approved dedicated sandbox ledger cases may show settled fake payments only in isolated test rows. No new tests or fake-money actions executed for this specification update.
