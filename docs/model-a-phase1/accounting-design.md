@@ -1,6 +1,6 @@
 # Additive ledger and auction architecture proposal
 
-Candidate SQL creates 13 new model_a_* tables, no alteration/deletion of existing structures. No runtime handlers or feature flags are enabled. Service-only writes; seller reads only their own entries/allocations/jobs. Bank payout records are service-only until a narrow seller-safe projection is approved; provider inbox/attempts/journals remain browser-inaccessible. Each public table has explicit grants then RLS. No FK to auth.users. No new profile table.
+Candidate SQL creates 12 new model_a_* tables, no alteration/deletion of existing structures. No runtime handlers or feature flags are enabled. Service-only writes; seller reads only their own entries/allocations/jobs. Bank payout records are service-only until a narrow seller-safe projection is approved; provider inbox/attempts/journals remain browser-inaccessible. Each public table has explicit grants then RLS. No FK to auth.users. No new profile table.
 
 ## Posting contract (requires implementation and tests before use)
 

@@ -1,6 +1,6 @@
 # Security hardening proposal — review only
 
-**Nothing applied.** The SQL candidate is outside migration folders. SQL syntax was parsed locally; its function bodies, privileges and marketplace compatibility have NOT been verified against an isolated database. Do not apply it alone.
+**Nothing applied.** The SQL candidate is outside migration folders. SQL syntax was parsed locally; all PL/pgSQL declarations parsed, but privileges, table resolution and marketplace compatibility have NOT been verified against an isolated database. Do not apply it alone.
 
 ## Priority 0 — prevent unauthorised authority
 

@@ -4,7 +4,7 @@
 
 - Full public function/grant/definition inventory; provider-account and complete scoped Stripe lists; default saved method attachment read; cash transaction sums.
 - Existing Vitest payment safety and confirmation suites: **12 tests passed**.
-- Candidate SQL parsed locally: security proposal 107 statements; additive schema 66 statements. Not executed on any database. Syntax parsing is not runtime/schema/PLpgSQL validation.
+- Candidate SQL parsed locally: security proposal 107 statements; additive schema 66 statements. All 24 security and two ledger PL/pgSQL declarations also parsed locally. Not executed on any database; parsing does not verify table resolution, grants, business semantics or runtime compatibility.
 - No checkout purchases, test seller creation, transfer/payout, exploit probes, production writes or new webhooks in this phase.
 
 ## Isolated database security gate — after explicit approval
