@@ -1,5 +1,8 @@
 # Current work
 
+- [ ] Verify isolated Stripe test seller payouts without real funds; fix preview payout safety.
+- [ ] Add and run repeatable marketplace success/decline end-to-end tests, checking orders, signed notifications, and seller transfers.
+
 - [x] Prepare managed email update: preserved account-email content/emerald buttons, converted daily buyer digest, retained idempotent outcome history, and removed the four legacy routes plus three infrastructure files without altering stored tables. All six auth previews and order preview return 200; unsigned requests return 401; compilation OK and 24 tests pass. No new real sends tested. Shipping, show-reminder, and push-notification fallback senders remain on their separate existing provider, unchanged. Not published.
 
 - [x] Real signup via the form returned HTTP 200 without a session, displayed Check your email, and the signup email was logged as sent to the user's Gmail test alias. The two older failures were placeholder-domain test addresses, not a sender outage; existing account unchanged.
