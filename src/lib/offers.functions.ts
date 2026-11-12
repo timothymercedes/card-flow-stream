@@ -682,9 +682,17 @@ export const buyerCounterBack = createServerFn({ method: "POST" })
     if (o.auction_queue.sold_to) throw new Error("Item already sold");
     const min = Number(o.auction_queue.min_offer || 0);
     if (min > 0 && data.newAmount < min) throw new Error(`Minimum offer is $${min}`);
+    // The counter-back must sit between the buyer's last offer and the seller's counter.
+    const lastBuyerAmount = Number(o.amount || 0);
+    const sellerCounter = Number(o.counter_amount || 0);
+    if (!(sellerCounter > 0)) throw new Error("No counter awaiting your response");
+    if (data.newAmount <= lastBuyerAmount || data.newAmount >= sellerCounter) {
+      throw new Error(`Counter must be between $${lastBuyerAmount.toFixed(2)} and $${sellerCounter.toFixed(2)}`);
+    }
 
     const stripe = await getStripeClient();
     const newCents = Math.round(data.newAmount * 100);
+    if (Math.abs(newCents / 100 - data.newAmount) > 1e-9) throw new Error("Use whole cents");
     const hours = data.expiresInHours ?? OFFER_TTL_HOURS;
     const newExpires = new Date(Date.now() + hours * 3600 * 1000).toISOString();
 

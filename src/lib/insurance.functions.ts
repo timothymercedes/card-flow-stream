@@ -15,11 +15,14 @@ export const quoteInsurance = createServerFn({ method: "POST" })
       providerCode: z.string().optional(),
     }).parse(d),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     let coverage = data.coverageCents ?? 0;
     if (!coverage && data.orderId) {
       const { data: order } = await supabaseAdmin
-        .from("orders").select("amount").eq("id", data.orderId).single();
+        .from("orders").select("amount, buyer_id, seller_id").eq("id", data.orderId).maybeSingle();
+      if (!order || (order.buyer_id !== context.userId && order.seller_id !== context.userId)) {
+        throw new Error("Order not found");
+      }
       coverage = Math.round(Number(order?.amount ?? 0) * 100);
     }
     if (!coverage) throw new Error("Coverage amount required");
