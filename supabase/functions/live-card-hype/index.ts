@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
     if (!apiKey) return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const ALLOWED_LANGS = ["English","Japanese","Korean","Chinese","French","German","Italian","Spanish","Portuguese","Dutch","Russian","Indonesian","Thai"];
-    const safeLanguage = ALLOWED_LANGS.find((l) => l.toLowerCase() === String(language ?? "").trim().toLowerCase()) ?? null;
+    const LANG_CODES: Record<string, string> = { en: "English", ja: "Japanese", jp: "Japanese", ko: "Korean", kr: "Korean", zh: "Chinese", fr: "French", de: "German", it: "Italian", es: "Spanish", pt: "Portuguese", nl: "Dutch", ru: "Russian", id: "Indonesian", th: "Thai" };
+    const langInput = String(language ?? "").trim().toLowerCase();
+    const safeLanguage = LANG_CODES[langInput] ?? ALLOWED_LANGS.find((l) => l.toLowerCase() === langInput) ?? null;
     const langHint = safeLanguage ? `\nThe seller indicated this is the ${safeLanguage} printing — note that in set_guess if relevant.` : "";
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
