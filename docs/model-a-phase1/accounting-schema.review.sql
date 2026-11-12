@@ -286,6 +286,7 @@ CREATE TABLE public.model_a_bank_payouts (
 GRANT SELECT ON public.model_a_bank_payouts TO authenticated;
 GRANT ALL ON public.model_a_bank_payouts TO service_role;
 ALTER TABLE public.model_a_bank_payouts ENABLE ROW LEVEL SECURITY;
+-- No browser policy: expose only a narrow verified status projection later.
 -- Payouts can aggregate many transfers; never count bank payout as a second seller earnings debit.
 
 CREATE OR REPLACE FUNCTION public.model_a_reject_journal_change()
