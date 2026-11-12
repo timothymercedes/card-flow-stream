@@ -1,64 +1,68 @@
-# Collection Books + Rewards Center — Master Build Plan
+# PullBid Live — Model A Stripe Connect review and migration plan
 
-Building on what already exists (`card_sets`, `vault_cards`, `card_identities`, `user_progression`, `achievements`, `user_achievements`, `crate_rewards`, `user_rewards`, XP/quest RPCs), this adds dedicated Collection pages and a connected Rewards Center. Shipped in phases so each is testable and reversible-by-design.
+## Scope and confirmed decisions
 
-## What exists vs. what's new
-- **Reuse:** set-completion math in `collection.functions.ts`, TCG normalizer in `tcgCategory.ts`, XP/level RPCs (`award_xp`, `bump_quest_progress`), achievements catalog.
-- **New:** a generic **rewards definition + ledger** system, set-completion + milestone rewards, a **PullBid Credits wallet**, a **Rewards Center** route, dedicated Collection sub-pages, and admin reward management.
+Read-only review completed November 12, 2026: source, database schemas/policies/functions, Stripe capabilities and live subscriptions. No production code, database, Stripe configuration or funds changed. Deployed legacy edge inventory and carrier provisioning remain unverified.
 
----
+Target: Separate Charges and Transfers; Embedded Checkout for marketplace; preserve automatic saved-payment auctions; hosted Express onboarding. Unlock only verified-delivered earnings. Reserve release terms await Stripe review; do not activate until approved. Preserve existing 5% commission/order-specific rates and fees unless separately approved; reserve is not commission.
 
-## Phase 1 — Dedicated Collection Book pages
-Break the in-place tabs into real routes (SSR-friendly, shareable, deep-linkable).
-```text
-/collection                  -> grid of all your Collection Books (per set, all TCGs)
-/collection/$category/$set   -> a single Book: header stats + sub-tabs
-   ├─ Overview   (count, %, completion reward CTA, progress)
-   ├─ Checklist  (full set checklist, owned vs missing marked)
-   └─ Missing    (missing list + Missing Card Finder)
-```
-- Add **Marvel / Wrestling / Star Wars** to `tcgCategory.ts` aliases + canonical keys (extensible for future TCGs).
-- Completion stays strict: `owned DISTINCT numbers ÷ official total`; never 100% unless all unique cards owned. Variants/reverse holos/promos collapse by canonical number.
+## Inspection findings and required changes
 
-## Phase 2 — Missing Card Finder (expanded)
-For each missing card, surface obtain-paths via one server fn aggregating:
-- Marketplace listings, Trade listings, Active auctions, Live shows featuring the card, Users who own it, and Wishlist matching ("add to wishlist").
-- Reuses existing `listings` / `trades` / `live_streams` / `wishlist_items` and links into `/market`, `/trades`, `/live`.
+- **Current destination charges:** marketplace Checkout, automatic auctions and tips use `transfer_data.destination` plus `application_fee_amount`. Sellers receive transfers immediately, before local delivery holds. New marketplace/auction charges must collect on the platform with later transfers. Keep promotions platform-only; decide tip scope separately.
+- **Split Stripe access:** managed Checkout uses gateway/dahlia; onboarding, auctions, tips, refunds, shipping charges and reconciliation retain legacy secret/acacia access. Verify both account identities and old objects before consolidation. Hosted Express onboarding exists, but account mapping lacks test/live separation. Add environment mappings, capability checks, race-safe creation and allowlisted onboarding URLs.
+- **Incomplete accounting:** order commissions, profile balances, audit/revenue records and holds exist, but no authoritative seller earnings ledger. Add balanced append-only journals and per-order cents allocations; grouped Checkout can disagree with order-specific rates. Keep actual processing fees, taxes, shipping, insurance, commission and reserve separately traceable.
+- **Conflicting eligibility:** first scan currently releases all remaining funds after 24 hours; delivery releases immediately. The balance view ignores milestones. Another function releases all delivered earnings, early undelivered earnings and owner/admin exceptions. Current trust schedule is under 26:10%, 26–50:25%, 51–75:40%, 76–100:50%, 101–199:75%, 200+:100%. Replace with one eligibility/reservation calculation and no role-based reserve bypass.
+- **Missing executor:** no explicit seller transfer/bank-payout executor found in app or retained edge source. A $9.50 request has been processing since May 22 without a transfer ID; resolve from evidence, not a manual completion flag.
+- **Retry/duplication risk:** Checkout and event/revenue uniqueness exist, but events are marked processed before work succeeds, failures can suppress retries, and some dedupe errors allow continued processing. Payout requests lack unique transfer constraints. Add durable event/job states, transactional journals and stable business-action/Stripe keys.
+- **Refund/dispute gaps:** current destination reversal flags cannot implement the new model. One-order cancellation can refund a whole grouped PaymentIntent; events copy aggregate refunds to every order. Disputes affect only the first order and won cases remain disputed. Add order-specific allocations, explicit reversals, pending/failed states and recovery debt.
+- **Incorrect Shippo verification:** current body-only HMAC/headers differ from documented `Shippo-Auth-Signature` with `t=...,v1=...` over `timestamp.body`. Add freshness, tracking/carrier binding, validation, event dedupe/order checks, environment isolation and retry on persistence failures. Seller edits/AI photos cannot authorize delivery releases.
 
-## Phase 3 — Rewards engine (data model)
-New tables (all with GRANTs + RLS; service_role full):
-- `reward_definitions` — admin-configurable catalog: `slug, type (set_completion|milestone|achievement|community|event), trigger_key, title, description, icon, credits, xp, badge_slug, title_slug, frame_slug, is_active, sort`.
-- `reward_claims` — per-user workflow ledger: `user_id, reward_def_id, status (in_progress|unlocked|ready_to_claim|claimed|expired), progress, target, unlocked_at, claimed_at, expires_at`. Unique `(user_id, reward_def_id)`.
-- `credit_wallets` + `credit_transactions` — PullBid Credits balance + immutable ledger (earn/spend, source-linked). Wallet read-only to owner; mutations only via SECURITY DEFINER RPC.
-- SECURITY DEFINER RPCs: `evaluate_set_rewards()` (compute unlock state from collection), `claim_reward(_def_slug)` (idempotent, one-time, grants credits+XP+badge atomically), `award_credits(...)`.
+### Security blockers — not intentional advisories
 
-## Phase 4 — Set completion + milestone rewards
-- Seed `reward_definitions` with a per-set completion reward template + collector milestones (1/5/10/25/50/100 sets completed) with progressively better credits/XP/badges/titles.
-- Collection Book Overview shows **CLAIM REWARD** when a set hits 100% (button appears once, claim-once enforced server-side).
+- Anonymous/authenticated grants permit privileged `SECURITY DEFINER` RPCs (`set_order_shipping_status`, `complete_payout`, `allocate_payout_to_orders`, `log_platform_revenue`) whose inspected bodies lack caller authorization. Potential fabricated delivery, payout/accounting writes bypass table RLS. Restrict to service operations or explicit authorized wrappers before rollout.
+- Protection triggers use execution-owner `current_user` bypasses inside privileged functions; seller update policies permit delivery-like state edits. Lock financial and verified-delivery fields to trusted operations.
+- Request checks do not atomically reserve against concurrent requests, locks and in-flight amounts. Payable calculations diverge and one omits completed payout deductions.
+- Trust recalculation references dispute/insurance enum labels absent from reported schema; correct and test before relying on it.
 
-## Phase 5 — Rewards Center route
-```text
-/rewards  (linked from More menu, Profile, Collection Books)
-   ├─ Available   (ready-to-claim: set completion, achievement, community, event)
-   ├─ In Progress (active progress w/ reward preview, e.g. Team Rocket 43/83 → badge+XP+credits)
-   ├─ Redeemed    (full history: name, earned date, claimed date, details)
-   └─ Achievements(completed / locked / progress)
-   + Credits wallet balance header + Collector Milestones strip
-```
+No exploit probes or financial writes were performed; urgent hardening needs a separately approved controlled change.
 
-## Phase 6 — Showcase / Profile integration
-- Surface earned badges, set-completion titles, collector rank, total rewards, milestone trophies on `/profile` and public `seller.$username` showcase.
+### Verified Stripe limitations
 
-## Phase 7 — Admin controls
-- `/admin` section to create/modify/disable rewards and change values/types **without code** (writes to `reward_definitions`). Gated by existing `user_roles` admin check.
+- **Live:** US platform cards/transfers active, payments/payouts enabled. Express seller timothymercedes has active transfers, enabled payouts and no currently due requirements. Seller payouts daily; platform payouts manual. This is not reserve-policy approval.
+- **Test:** no sellers, empty platform capabilities, incomplete setup. Earlier creation failed because Connect signup is required; no creation attempt in this review. Test Connect activation remains a prerequisite.
+- **Events:** live app subscribes only to subscription created/updated/deleted, Checkout completed and invoice payment failed. Missing payment failure, async settlement, refunds, disputes, account and transfer/payout events. Lovable's separate analytics endpoint does not feed app code; keep both endpoints. Event payloads use basil vs dahlia/acacia clients; audit compatibility.
+- Platform is liable for fees, refunds and chargebacks; reversals can fail on insufficient connected balance. US is supported; international flows require country/region/currency checks.
+- **Stripe is not escrow:** approve reserve duration, below-25 treatment, inactivity/closure and release deadlines before activation. Connected manual-payout limits (US two years, most countries 90 days) do not authorize indefinite platform holding. Normal balances are not segregated seller cash; funds segregation is private preview.
+- Physical cards cannot use full digital-product compliance handling. Existing state-table tax calculation does not establish filing/remittance compliance; validate facilitator obligations separately.
 
----
+## Delivery policy to implement after approval
 
-## Technical notes
-- All reward mutations go through SECURITY DEFINER RPCs (no client-side credit/claim writes) — prevents privilege/credit escalation. RLS: users read only their own claims/wallet; definitions are public-read, admin-write.
-- Credits wallet is built now but kept "earn-only" until spending features ship; ledger architecture supports future spend (featured listings, promotions, trade protection).
-- Reward evaluation is derived/idempotent so it can be re-run after vaulting/trading/buying without double-granting.
-- Each new public table ships CREATE → GRANT → RLS → POLICY in one migration.
+| Verified completed deliveries | Unlocked share of net delivered earnings |
+|---:|---:|
+| 0–24 | Proposed 0%; requires approval of below-threshold/time-based release terms |
+| 25–49 | 10% |
+| 50–74 | 30% |
+| 75–99 | 70% |
+| 100+ | 95% |
 
-## Suggested delivery order
-I'll start with **Phase 1 + 2** (dedicated pages + finder) since they're pure value with no payment surface, then do the **Phase 3 migration** (pause point — DB schema), then build Phases 4–7 on top. Confirm and I'll begin, or tell me to resequence.
+Basis proposed: net seller earnings after commission/costs, excluding platform fees/taxes. Apply tiers cumulatively to verified-delivered earnings, deducting prior transfers, reservations, losses, locks and debt once. Tier increases release only the difference. The 5% reserve is seller liability, not revenue; distinguish it from milestone holds. Confirm counting and release deadlines.
+
+## Phased migration
+
+1. **Prerequisites:** activate test Connect; reconcile legacy account/object ownership; confirm US-first scope, commission basis, delivery counting, below-25 treatment and Stripe-approved reserve deadlines. Verify deployed legacy endpoints/carrier setup. Separately approve urgent RPC hardening.
+2. **Additive schema, no switch:** environment-scoped accounts, payment/order allocations, seller journals, verified delivery receipts, transfer jobs/attempts/allocations, refunds/reversals and event inbox/outbox. Explicit grants/RLS, service-only writes, unique keys, integer cents/currency invariants. Keep old schema.
+3. **Shadow reconciliation:** rebuild from verified Stripe/delivery evidence only; quarantine missing charge links (one paid order, zero charge-linked orders currently). Tag legacy destination charges/transfers; never transfer them again. Resolve the $9.50 request from evidence.
+4. **Isolated tests:** retain production preview guards; dedicated test records, platform Checkout/automatic-auction charges, hosted test onboarding and verified-delivery accounting. Existing regression must still show shared production orders unpaid/unchanged.
+5. **Executor:** atomically reserve eligibility; link transfers via `source_transaction` to settled charges and `transfer_group` to payment groups. Split cross-charge requests. Stable keys, ambiguous-failure reconciliation. Track transfers separately from bank payouts using documented events; do not assume `transfer.failed` exists.
+6. **Loss lifecycle:** freeze new transfers; allocation-specific refunds/reversals; debt recovery and won-dispute reinstatement. Handle async failures, bank failures and disabled capabilities without duplicate credits.
+7. **Regression gate:** success/decline/auth/async settlement; boundaries 24/25/49/50/74/75/99/100; commission vs reserve; duplicate/out-of-order events; concurrency; crash after Stripe acceptance; grouped partial refunds; disputes won/lost; bank failure and insufficient-balance reversals. Isolated test funds only.
+8. **Separate live approval:** publish consumers before adding events; disabled-by-default Model A flag for new charges only, reviewed pilot. Preserve legacy refunds/reconciliation and both managed endpoints. Daily charge/journal/transfer/cash reconciliation. Rollback stops new jobs/routing; never deletes/resends accepted transactions.
+
+## Sources
+
+- https://docs.stripe.com/connect/separate-charges-and-transfers
+- https://docs.stripe.com/connect/hosted-onboarding
+- https://docs.stripe.com/connect/manual-payouts
+- https://docs.goshippo.com/docs/tracking/webhooksecurity/
+
+Approval covers phased work only; reserve activation and live cutover remain blocked until the named prerequisites are satisfied.
