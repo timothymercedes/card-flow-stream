@@ -47,6 +47,7 @@ export const createConnectOnboardingLink = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    if (import.meta.env.DEV) throw new Error("Seller bank setup is unavailable in preview; no live account was changed.");
     const stripe = getStripe();
 
     // Look up existing account
@@ -99,6 +100,7 @@ export const syncConnectAccountStatus = createServerFn({ method: "POST" })
     const { userId } = context;
 
     try {
+      if (import.meta.env.DEV) return { connected: false as const, error: "Live seller account sync is disabled in preview." };
       const stripe = getStripe();
 
       const { data: row } = await supabaseAdmin
@@ -744,6 +746,7 @@ export const createConnectLoginLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = context;
+    if (import.meta.env.DEV) throw new Error("Live seller dashboard access is disabled in preview.");
     const stripe = getStripe();
     const { data: row } = await supabaseAdmin
       .from("stripe_accounts")
@@ -767,6 +770,7 @@ export const createConnectUpdateLink = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    if (import.meta.env.DEV) throw new Error("Seller bank changes are disabled in preview; no live account was changed.");
     const stripe = getStripe();
     const { data: row } = await supabaseAdmin
       .from("stripe_accounts")
@@ -809,6 +813,7 @@ export const adminCreateConnectLoginLink = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    if (import.meta.env.DEV) throw new Error("Live seller dashboard access is disabled in preview.");
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")

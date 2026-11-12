@@ -2,6 +2,8 @@ import type Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export async function processStripeEvent(event: Stripe.Event): Promise<Response> {
+        // Also protect the retained legacy signed endpoint, not just managed webhooks.
+        if (event.livemode !== true) return Response.json({ received: true, test: true });
         // Idempotency guard: if we've already handled this Stripe event, ack and skip.
         // PK conflict on (provider, event_id) means this is a Stripe retry.
         {
