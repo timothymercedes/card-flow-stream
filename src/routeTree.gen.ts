@@ -55,7 +55,6 @@ import { Route as CollectionIndexRouteImport } from './routes/collection.index'
 import { Route as CollectionMissingRouteImport } from './routes/collection.missing'
 import { Route as CommunitiesIndexRouteImport } from './routes/communities.index'
 import { Route as CommunitiesSlugRouteImport } from './routes/communities.$slug'
-import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as LegalAccountDeletionRouteImport } from './routes/legal.account-deletion'
 import { Route as LegalBuyerTermsRouteImport } from './routes/legal.buyer-terms'
 import { Route as LegalCommunityGuidelinesRouteImport } from './routes/legal.community-guidelines'
@@ -85,7 +84,6 @@ import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/be
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
-import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 import { Route as ApiPublicHooksExpireOffersRouteImport } from './routes/api/public/hooks/expire-offers'
@@ -100,9 +98,7 @@ import { Route as ApiPublicHooksSyncTcgcsvRouteImport } from './routes/api/publi
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -336,11 +332,6 @@ const CommunitiesSlugRoute = CommunitiesSlugRouteImport.update({
   path: '/communities/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
-  id: '/email/unsubscribe',
-  path: '/email/unsubscribe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LegalAccountDeletionRoute = LegalAccountDeletionRouteImport.update({
   id: '/legal/account-deletion',
   path: '/legal/account-deletion',
@@ -488,11 +479,6 @@ const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
   path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
-  id: '/lovable/email/suppression',
-  path: '/lovable/email/suppression',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -573,22 +559,10 @@ const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
   path: '/lovable/email/auth/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const LovableEmailTransactionalPreviewRoute =
   LovableEmailTransactionalPreviewRouteImport.update({
     id: '/lovable/email/transactional/preview',
     path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const LovableEmailTransactionalSendRoute =
-  LovableEmailTransactionalSendRouteImport.update({
-    id: '/lovable/email/transactional/send',
-    path: '/lovable/email/transactional/send',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -637,7 +611,6 @@ export interface FileRoutesByFullPath {
   '/admin/performance': typeof AdminPerformanceRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -669,7 +642,6 @@ export interface FileRoutesByFullPath {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
@@ -684,9 +656,7 @@ export interface FileRoutesByFullPath {
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -731,7 +701,6 @@ export interface FileRoutesByTo {
   '/admin/performance': typeof AdminPerformanceRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -763,7 +732,6 @@ export interface FileRoutesByTo {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
@@ -778,9 +746,7 @@ export interface FileRoutesByTo {
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -828,7 +794,6 @@ export interface FileRoutesById {
   '/admin_/performance': typeof AdminPerformanceRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
-  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/legal/account-deletion': typeof LegalAccountDeletionRoute
   '/legal/buyer-terms': typeof LegalBuyerTermsRoute
   '/legal/community-guidelines': typeof LegalCommunityGuidelinesRoute
@@ -860,7 +825,6 @@ export interface FileRoutesById {
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
-  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
@@ -875,9 +839,7 @@ export interface FileRoutesById {
   '/api/public/stripe/webhook': typeof ApiPublicStripeWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
-  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -926,7 +888,6 @@ export interface FileRouteTypes {
     | '/admin/performance'
     | '/collection/missing'
     | '/communities/$slug'
-    | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -958,7 +919,6 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
-    | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
@@ -973,9 +933,7 @@ export interface FileRouteTypes {
     | '/api/public/stripe/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1020,7 +978,6 @@ export interface FileRouteTypes {
     | '/admin/performance'
     | '/collection/missing'
     | '/communities/$slug'
-    | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -1052,7 +1009,6 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
-    | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
@@ -1067,9 +1023,7 @@ export interface FileRouteTypes {
     | '/api/public/stripe/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -1116,7 +1070,6 @@ export interface FileRouteTypes {
     | '/admin_/performance'
     | '/collection/missing'
     | '/communities/$slug'
-    | '/email/unsubscribe'
     | '/legal/account-deletion'
     | '/legal/buyer-terms'
     | '/legal/community-guidelines'
@@ -1148,7 +1101,6 @@ export interface FileRouteTypes {
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
-    | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
@@ -1163,9 +1115,7 @@ export interface FileRouteTypes {
     | '/api/public/stripe/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
-    | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
-    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1206,7 +1156,6 @@ export interface RootRouteChildren {
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   CommunitiesSlugRoute: typeof CommunitiesSlugRoute
-  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
   LegalBuyerTermsRoute: typeof LegalBuyerTermsRoute
   LegalCommunityGuidelinesRoute: typeof LegalCommunityGuidelinesRoute
@@ -1233,7 +1182,6 @@ export interface RootRouteChildren {
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
-  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1247,9 +1195,7 @@ export interface RootRouteChildren {
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
-  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
-  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1576,13 +1522,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunitiesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/email/unsubscribe': {
-      id: '/email/unsubscribe'
-      path: '/email/unsubscribe'
-      fullPath: '/email/unsubscribe'
-      preLoaderRoute: typeof EmailUnsubscribeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/legal/account-deletion': {
       id: '/legal/account-deletion'
       path: '/legal/account-deletion'
@@ -1786,13 +1725,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/suppression': {
-      id: '/lovable/email/suppression'
-      path: '/lovable/email/suppression'
-      fullPath: '/lovable/email/suppression'
-      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/shows/$id/edit': {
       id: '/shows/$id/edit'
       path: '/edit'
@@ -1891,25 +1823,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/lovable/email/transactional/preview': {
       id: '/lovable/email/transactional/preview'
       path: '/lovable/email/transactional/preview'
       fullPath: '/lovable/email/transactional/preview'
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/transactional/send': {
-      id: '/lovable/email/transactional/send'
-      path: '/lovable/email/transactional/send'
-      fullPath: '/lovable/email/transactional/send'
-      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -2024,7 +1942,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
   CommunitiesSlugRoute: CommunitiesSlugRoute,
-  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,
   LegalBuyerTermsRoute: LegalBuyerTermsRoute,
   LegalCommunityGuidelinesRoute: LegalCommunityGuidelinesRoute,
@@ -2051,7 +1968,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
-  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
   ApiPublicHooksFinancialReconciliationRoute:
@@ -2067,9 +1983,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
-  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
-  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
