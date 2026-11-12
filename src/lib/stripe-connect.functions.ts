@@ -354,7 +354,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${buyerChargeTotal}`;
 
     const found = await stripe.customers.search({ query: `metadata['userId']:'${userId}'`, limit: 1 });
-    let customer = found.data[0];
+    let customer: import("stripe").default.Customer | undefined = found.data[0];
     if (!customer) {
       const { data: userInfo } = await context.supabase.auth.getUser();
       const email = userInfo.user?.email;

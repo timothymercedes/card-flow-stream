@@ -9,3 +9,4 @@
 - Deduplicate terminal email history by a deterministic event ID so signed webhook retries remain safe without changing retained table schemas.
 - Managed Stripe notifications use /api/public/payments/webhook with signed environment selection; sandbox notifications never mutate shared production orders.
 - Checkout verification uses admin-gated embedded sandbox sessions and server-verified account ownership on the return page; never infer payment success from URL flags.
+- Marketplace checkout uses embedded gateway sessions with explicit environment selection and database-derived totals; sandbox sessions omit seller transfers and never stamp production order payment fields.
