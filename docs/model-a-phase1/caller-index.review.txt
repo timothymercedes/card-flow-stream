@@ -1,0 +1,315 @@
+REVIEW-ONLY SOURCE CALLER INDEX. Includes read and write candidates; requires operation-level review.
+supabase/functions/seed-pokemon-cards/index.ts:23:    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+supabase/functions/seed-pokemon-cards/index.ts:24:    const { data: isOwner } = await supabase.rpc("has_role", { _user_id: user.id, _role: "owner" });
+src/server/push.server.ts:55:      .rpc("get_notify_targets", { _user_ids: userIds, _category: category });
+src/hooks/useSellerAgreementStatus.tsx:34:      .from("profiles")
+supabase/functions/scan-card/index.ts:316:  const { data: limit, error: rlErr } = await admin.rpc("rate_limit_card_scan", { _user_id: userId });
+src/routes/vault.tsx:1988:    if (!profile?.is_seller) await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
+src/hooks/useAuth.tsx:32:          const { data } = await supabase.from("profiles").select("*").eq("id", s.user.id).maybeSingle();
+src/routes/live.$id.tsx:947:      .from("profiles")
+src/routes/live.$id.tsx:1007:        .from("orders")
+src/routes/live.$id.tsx:1048:            .from("orders")
+src/routes/live.$id.tsx:1060:      .from("orders")
+src/routes/live.$id.tsx:1120:      .from("orders")
+src/routes/live.$id.tsx:2273:      .from("profiles")
+src/routes/live.$id.tsx:2339:      .from("orders")
+src/routes/live.$id.tsx:2387:      const { data: bidRes, error } = await supabase.rpc("place_live_bid" as any, {
+src/routes/live.$id.tsx:2685:    await supabase.from("profiles").update({ preferred_currency: c }).eq("id", user.id);
+src/routes/onboarding.tsx:35:      .from("profiles")
+src/routes/onboarding.tsx:46:    await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);
+src/hooks/useLegalStatus.tsx:32:      .from("profiles")
+src/routes/seller.insurance.tsx:21:    const { data: o } = await supabase.from("orders")
+src/routes/seller.insurance.tsx:28:    const { data: c } = await supabase.from("insurance_claims" as any)
+src/lib/trades.functions.ts:55:      supabaseAdmin.from("profiles").select("id, username, avatar_url").eq("id", data.toUser).single(),
+src/lib/trades.functions.ts:165:        ? supabaseAdmin.from("profiles").select("id, username, avatar_url").in("id", userIds)
+src/lib/trades.functions.ts:294:        await supabaseAdmin.rpc("grant_user_xp", {
+src/lib/trades.functions.ts:297:        await supabaseAdmin.rpc("unlock_achievement", { _user_id: uid, _slug: "first_trade" }).then(() => {}, () => {});
+src/lib/trades.functions.ts:302:          await supabaseAdmin.rpc("unlock_achievement", { _user_id: uid, _slug: "trade_master" }).then(() => {}, () => {});
+src/lib/trades.functions.ts:539:      .from("profiles")
+src/routes/seller.$username.tsx:152:      supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
+src/routes/index.tsx:103:        supabase.from("profiles").select("*", { count: "exact", head: true }),
+src/routes/feed.tsx:81:    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" } as any)
+src/routes/feed.tsx:129:    const { data } = await supabase.from("profiles").select("id,username,avatar_url").in("id", missing);
+src/lib/createOffer.functions.ts:104:    const { data: buyer } = await supabase.from("profiles").select("username").eq("id", userId).maybeSingle();
+src/routes/disputes.tsx:32:    const { data } = await supabase.from("disputes").select("*")
+src/routes/disputes.tsx:44:      const { data: o } = await supabase.from("orders").select("seller_id").eq("id", form.order_id).maybeSingle();
+src/routes/disputes.tsx:47:    const { error } = await supabase.from("disputes").insert({
+src/routes/market.$id.tsx:59:    supabase.from("orders").select("id", { count: "exact", head: true })
+src/routes/market.$id.tsx:71:    supabase.from("profiles")
+src/routes/market.$id.tsx:214:    const { error } = await supabase.from("orders").insert({
+src/lib/communities.functions.ts:64:      .from("profiles")
+src/lib/communities.functions.ts:182:      .from("profiles")
+src/lib/stripeWebhook.server.ts:30:                .from("stripe_accounts")
+src/lib/stripeWebhook.server.ts:124:                  .from("orders")
+src/lib/stripeWebhook.server.ts:134:                const { data: paid } = await supabaseAdmin.from("orders").select("buyer_id, stream_id").in("id", ids);
+src/lib/stripeWebhook.server.ts:150:                  await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/stripeWebhook.server.ts:157:                  await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/stripeWebhook.server.ts:165:                    .from("orders")
+src/lib/stripeWebhook.server.ts:171:                    await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/stripeWebhook.server.ts:179:                    await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/stripeWebhook.server.ts:190:                    await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/stripeWebhook.server.ts:217:                .from("orders")
+src/lib/stripeWebhook.server.ts:225:                await supabaseAdmin.from("orders").update({
+src/lib/stripeWebhook.server.ts:262:                  .from("orders")
+src/lib/stripeWebhook.server.ts:266:                  await supabaseAdmin.from("orders").update({
+src/lib/stripeWebhook.server.ts:293:                await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/stripeWebhook.server.ts:316:                  .from("orders")
+src/lib/stripeWebhook.server.ts:346:                  .from("disputes")
+src/lib/stripeWebhook.server.ts:353:                  .from("orders")
+src/lib/stripeWebhook.server.ts:380:                  await (supabaseAdmin as any).rpc("log_platform_revenue", {
+src/lib/arena.functions.ts:705:    let pq = supabaseAdmin.from("profiles").select("id, username, avatar_url").neq("id", userId).limit(20);
+src/lib/arena.functions.ts:741:      .from("profiles").select("id, username, avatar_url").eq("id", data.userId).maybeSingle();
+src/lib/arena.functions.ts:809:      .from("profiles").select("id, username, avatar_url").in("id", ids);
+src/lib/arena.functions.ts:1234:      supabaseAdmin.from("profiles").select("id, username, avatar_url").in("id", authorIds),
+src/lib/arena.functions.ts:1295:      ? await supabaseAdmin.from("profiles").select("id, username, avatar_url").in("id", ids)
+src/routes/sell.tsx:154:        .from("profiles")
+src/routes/sell.tsx:165:        .from("stripe_accounts" as any)
+src/routes/sell.tsx:288:      await supabase.from("profiles").update({ is_seller: true }).eq("id", user!.id);
+src/lib/address.ts:92:  const { error } = await supabase.from("profiles").update(payload).eq("id", userId);
+src/lib/buyerFeePreview.functions.ts:44:      .from("orders")
+src/lib/buyerFeePreview.functions.ts:56:        .from("profiles")
+src/lib/buyerFeePreview.functions.ts:61:        .from("profiles")
+src/lib/buyerFeePreview.functions.ts:72:        .from("orders")
+src/lib/buyer-risk.functions.ts:42:      .from("profiles")
+src/lib/buyer-risk.functions.ts:68:        .from("profiles")
+src/lib/buyer-risk.functions.ts:85:        .from("orders")
+src/lib/buyer-risk.functions.ts:91:        .from("disputes")
+src/routes/store.tsx:301:      supabase.from("orders").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
+src/routes/store.tsx:304:      supabase.from("profiles").select("stripe_onboarding_status, pwe_enabled, pwe_max_order_value, pwe_price_usd, pwe_stamp_price_usd, payout_hold, late_shipment_count, visibility_penalty_until, selling_restricted_until").eq("id", user.id).maybeSingle(),
+src/routes/store.tsx:314:      const { data: bp } = await supabase.from("profiles").select("id, username").in("id", buyerIds);
+src/routes/store.tsx:353:    const { error } = await supabase.from("orders").update({
+src/routes/store.tsx:363:    const { error } = await supabase.from("orders").update({
+src/routes/store.tsx:380:    const { error } = await supabase.from("orders").update({
+src/routes/store.tsx:390:    const { error } = await supabase.from("orders").update({ status: "delivered", delivered_at: new Date().toISOString() }).eq("id", o.id);
+src/routes/store.tsx:444:      await supabase.from("orders").update({
+src/routes/store.tsx:470:    const { error } = await supabase.from("profiles").update({
+src/routes/store.tsx:528:    supabase.from("profiles").select("id,username,full_name").in("id", ids).then(({ data }) => {
+src/lib/stripe-reconcile.server.ts:28:    .from("orders")
+src/lib/collection.functions.ts:462:        .from("profiles")
+src/routes/orders.tsx:58:    const { data } = await supabase.from("orders").select("*").eq("buyer_id", user.id).order("created_at", { ascending: false });
+src/routes/orders.tsx:114:      const { error } = await supabase.from("orders").update({
+src/routes/orders.tsx:142:    const { error } = await supabase.from("orders").update({ status: "delivered", delivered_at: new Date().toISOString() }).eq("id", o.id);
+src/routes/profile.tsx:77:    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => setP(data));
+src/routes/profile.tsx:145:      const { error } = await supabase.from("profiles").update({
+src/routes/profile.tsx:163:    const { error } = await supabase.from("profiles").update({
+src/routes/profile.tsx:175:        await supabase.from("profiles").update({ buyer_verified: true }).eq("id", user.id);
+src/routes/profile.tsx:207:    await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+src/routes/profile.tsx:729:    const { error } = await supabase.from("profiles").update({ shop_name: v }).eq("id", userId);
+src/lib/integrity.functions.ts:16:    const { data: rows, error } = await supabase.rpc(
+src/lib/integrity.functions.ts:41:    const { data: rows, error } = await supabase.rpc("admin_list_integrity_alerts" as any, {
+src/lib/integrity.functions.ts:54:    const { error } = await supabase.rpc("admin_resolve_integrity_alert" as any, {
+src/routes/status.tsx:45:        supabase.from("orders").select("payment_status", { count: "exact", head: true }).gte("created_at", since),
+src/routes/status.tsx:46:        supabase.from("payout_requests").select("status", { count: "exact", head: true }).gte("created_at", since),
+src/routes/cart.tsx:39:    const { data } = await supabase.from("orders")
+src/routes/cart.tsx:65:    supabase.from("profiles")
+src/routes/cart.tsx:108:    const { error } = await supabase.from("orders").delete().eq("id", orderId).eq("payment_status", "awaiting_payment");
+src/lib/insurance.functions.ts:22:        .from("orders").select("amount").eq("id", data.orderId).single();
+src/lib/insurance.functions.ts:46:      .from("orders").select("id, buyer_id, seller_id, amount, insurance_status").eq("id", data.orderId).single();
+src/lib/insurance.functions.ts:52:      await supabaseAdmin.from("orders").update({
+src/lib/insurance.functions.ts:62:    await supabaseAdmin.from("orders").update({
+src/lib/insurance.functions.ts:86:      .from("orders").select("id, seller_id, amount, insurance_status, label_url").eq("id", data.orderId).single();
+src/lib/insurance.functions.ts:96:    await supabaseAdmin.from("orders").update({
+src/lib/insurance.functions.ts:125:      .from("orders")
+src/lib/insurance.functions.ts:133:      .from("insurance_claims" as any)
+src/lib/insurance.functions.ts:159:      .from("orders").select("id, seller_id, insurance_status, insurance_provider, insurance_coverage_cents")
+src/lib/insurance.functions.ts:180:      .from("insurance_claims" as any)
+src/lib/insurance.functions.ts:227:      .from("insurance_claims" as any)
+src/lib/insurance.functions.ts:239:        .from("insurance_claims" as any)
+src/lib/insurance.functions.ts:273:      .from("insurance_claims" as any).update(update).eq("id", data.claimId);
+src/lib/insurance.functions.ts:279:        .from("insurance_claims" as any).select("claimant_user_id").eq("id", data.claimId).single();
+src/lib/insurance.functions.ts:282:          .from("insurance_claims" as any)
+src/routes/settings.tsx:94:      await supabase.from("profiles").update({ preferred_language: code }).eq("id", user.id);
+src/routes/settings.tsx:127:      await supabase.from("profiles").update({ a11y_settings: next }).eq("id", user.id);
+src/routes/showoff.tsx:50:    supabase.from("profiles").select("live_verified, verification_status").eq("id", user.id).maybeSingle()
+src/routes/showoff.tsx:63:    const { data } = await supabase.rpc("search_public_profiles", { _query: q.trim(), _limit: 8 });
+src/components/BuyerOrderPopover.tsx:51:        .from("orders")
+src/components/BuyerOrderPopover.tsx:58:        .from("profiles")
+src/components/AppShell.tsx:64:    supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle()
+src/components/AppShell.tsx:72:    supabase.from("orders").select("id", { count: "exact", head: true })
+src/components/AdminAlertBanner.tsx:46:      supabase.from("disputes").select("id", { count: "exact", head: true }).in("status", ["open", "investigating"]),
+src/components/AdminAlertBanner.tsx:47:      supabase.from("profiles").select("id", { count: "exact", head: true }).in("verification_status", ["pending", "reverify_required"]),
+src/components/AdminAlertBanner.tsx:49:      supabase.from("orders").select("id", { count: "exact", head: true })
+src/components/AdminAlertBanner.tsx:53:      supabase.from("orders").select("id", { count: "exact", head: true })
+src/components/AdminAlertBadge.tsx:16:      supabase.from("disputes").select("id", { count: "exact", head: true }).in("status", ["open", "investigating"]),
+src/components/AdminAlertBadge.tsx:17:      supabase.from("profiles").select("id", { count: "exact", head: true }).in("verification_status", ["pending", "reverify_required"]),
+src/lib/identityHealth.functions.ts:43:    const { data, error } = await supabase.rpc("admin_identity_health" as never);
+src/lib/identityHealth.functions.ts:83:    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+src/lib/identityHealth.functions.ts:144:  const { data: isAdmin, error } = await supabase.rpc("has_role", {
+src/lib/identityHealth.functions.ts:177:    const { data: res, error } = await supabaseAdmin.rpc("admin_merge_identities" as never, {
+src/lib/identityHealth.functions.ts:233:    const { data: res, error } = await supabaseAdmin.rpc("admin_recanonicalize_identity" as never, {
+src/lib/identityHealth.functions.ts:366:        .from("profiles").select("id, username").in("id", adminIds);
+src/components/AccountHoldBanner.tsx:29:      .from("account_holds" as any)
+src/components/A11yClassSync.tsx:39:        .from("profiles").select("a11y_settings").eq("id", data.user.id).maybeSingle();
+src/lib/moderation.functions.ts:64:  await (supabaseAdmin as any).rpc("log_account_event", {
+src/lib/moderation.functions.ts:95:        supabaseAdmin.from("profiles").select("*").eq("id", uid).maybeSingle(),
+src/lib/moderation.functions.ts:122:            .from("orders")
+src/lib/moderation.functions.ts:126:            .from("disputes")
+src/lib/moderation.functions.ts:134:            .from("payout_requests")
+src/lib/moderation.functions.ts:197:      .from("profiles")
+src/lib/moderation.functions.ts:306:      .from("disputes")
+src/lib/moderation.functions.ts:340:      .from("disputes")
+src/lib/moderation.functions.ts:361:      .from("disputes")
+src/lib/moderation.functions.ts:406:      .from("disputes")
+src/lib/moderation.functions.ts:433:        .from("orders")
+src/lib/moderation.functions.ts:608:        .from("profiles")
+src/lib/stripe-connect.functions.ts:55:      .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:78:      await supabaseAdmin.from("stripe_accounts").insert({
+src/lib/stripe-connect.functions.ts:107:        .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:119:        .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:154:      .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:189:      .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:206:      .from("orders")
+src/lib/stripe-connect.functions.ts:249:      .from("profiles")
+src/lib/stripe-connect.functions.ts:290:              .from("orders")
+src/lib/stripe-connect.functions.ts:414:        return supabaseAdmin.from("orders").update({
+src/lib/stripe-connect.functions.ts:455:        return supabaseAdmin.from("orders").update({
+src/lib/stripe-connect.functions.ts:529:      .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:538:      .from("profiles")
+src/lib/stripe-connect.functions.ts:649:      .from("profiles")
+src/lib/stripe-connect.functions.ts:752:      .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:776:      .from("stripe_accounts")
+src/lib/stripe-connect.functions.ts:826:      .from("stripe_accounts")
+src/lib/audit.functions.ts:18:    const { data: rows, error } = await supabase.rpc("admin_list_audit_logs", {
+src/routes/bookmarks.tsx:76:    const { error } = await supabase.from("profiles").update({
+src/lib/auctionCharge.functions.ts:43:    .from("orders")
+src/lib/auctionCharge.functions.ts:80:    .from("stripe_accounts")
+src/lib/auctionCharge.functions.ts:102:    .from("orders")
+src/lib/auctionCharge.functions.ts:187:    .from("profiles")
+src/lib/auctionCharge.functions.ts:203:      .from("orders")
+src/lib/auctionCharge.functions.ts:286:        .from("orders")
+src/lib/auctionCharge.functions.ts:294:      .from("orders")
+src/lib/passkeys.functions.ts:98:    const { data: row, error } = await supabaseAdmin.from("profiles")
+src/lib/streaks.functions.ts:53:    const { data, error } = await supabase.rpc("record_collection_activity", {
+src/lib/streaks.functions.ts:96:        .from("profiles")
+src/components/KOModal.tsx:74:        ? await supabase.from("profiles").select("id, username, avatar_url").in("id", sellerIds)
+src/lib/owner-finance.functions.ts:38:      supabase.rpc("admin_revenue_summary" as any, { _since: since }),
+src/lib/owner-finance.functions.ts:39:      supabase.rpc("compute_platform_available" as any),
+src/lib/owner-finance.functions.ts:40:      supabase.rpc("admin_shipping_margin" as any, { _since: since, _until: until }),
+src/lib/owner-finance.functions.ts:41:      supabase.rpc("admin_personal_sales_summary" as any, { _since: since, _until: until }),
+src/lib/owner-finance.functions.ts:103:    const { data: rows, error } = await supabase.rpc("admin_revenue_by_period" as any, {
+src/lib/owner-finance.functions.ts:120:    const { data: rows, error } = await supabase.rpc("admin_revenue_by_stream" as any, {
+src/lib/owner-finance.functions.ts:137:    const { data: rows, error } = await supabase.rpc("admin_revenue_by_seller" as any, {
+src/lib/owner-finance.functions.ts:155:      .from("orders")
+src/lib/owner-finance.functions.ts:175:      .from("platform_payouts" as any)
+src/lib/owner-finance.functions.ts:195:    const { data: row, error } = await supabase.rpc("request_platform_payout" as any, {
+src/lib/owner-finance.functions.ts:212:      .from("payout_requests")
+src/lib/owner-finance.functions.ts:237:      .from("orders")
+src/lib/offers.functions.ts:141:      .from("profiles")
+src/lib/offers.functions.ts:293:      .from("profiles")
+src/lib/offers.functions.ts:300:      .from("orders")
+src/lib/offers.functions.ts:551:      .from("profiles")
+src/lib/offers.functions.ts:557:      .from("orders")
+src/lib/order-actions.functions.ts:56:    .from("orders")
+src/lib/order-actions.functions.ts:66:    await supabaseAdmin.from("platform_revenue").insert({
+src/lib/order-actions.functions.ts:83:      .from("orders")
+src/lib/order-actions.functions.ts:114:      .from("orders")
+src/lib/order-actions.functions.ts:158:      .from("orders")
+src/components/HostPaymentLog.tsx:63:        .from("orders")
+src/components/HostPaymentLog.tsx:72:        const { data: profs } = await supabase.from("profiles").select("id,username").in("id", ids);
+src/components/HostPaymentLog.tsx:165:    const { error } = await supabase.from("orders").update({
+src/lib/shippo.functions.ts:105:      .from("orders")
+src/lib/shippo.functions.ts:113:      .from("profiles")
+src/lib/shippo.functions.ts:221:      .from("profiles")
+src/lib/shippo.functions.ts:233:        .from("profiles")
+src/lib/shippo.functions.ts:352:      .from("orders")
+src/lib/shippo.functions.ts:386:      await supabaseAdmin.rpc("record_shipping_adjustment" as any, {
+src/lib/shippo.functions.ts:401:      .from("orders")
+src/lib/shippo.functions.ts:446:      const { error: marginErr } = await supabaseAdmin.rpc(
+src/lib/shippo.functions.ts:468:            .from("orders")
+src/lib/shippo.functions.ts:483:          await supabaseAdmin.rpc("record_shipping_adjustment" as any, {
+src/lib/queueActions.functions.ts:33:    const { data: buyer } = await supabase.from("profiles").select("username").eq("id", userId).maybeSingle();
+src/lib/queueActions.functions.ts:37:      .from("orders")
+src/lib/queueActions.functions.ts:98:    const { data: buyer } = await supabase.from("profiles").select("username").eq("id", userId).maybeSingle();
+src/lib/platform-revenue.functions.ts:23:    const { data: rows, error } = await supabase.rpc("admin_revenue_summary" as any, { _since: since });
+src/lib/platform-revenue.functions.ts:87:    const { data: rows, error } = await supabase.rpc("admin_list_platform_revenue" as any, {
+src/lib/push.functions.ts:29:        .from("profiles").select("username").eq("id", sellerId).maybeSingle();
+src/lib/push.functions.ts:87:          .from("profiles").select("id, email").in("id", emailUserIds);
+src/lib/push.functions.ts:124:    const { data: isAdmin } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "admin" });
+src/lib/push.functions.ts:125:    const { data: isOwner } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "owner" });
+src/lib/push.functions.ts:148:    const { data: isAdmin } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "admin" });
+src/lib/push.functions.ts:149:    const { data: isOwner } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "owner" });
+src/lib/payouts.functions.ts:21:      .from("orders")
+src/lib/payouts.functions.ts:38:      .from("account_holds").select("id, reason").eq("user_id", userId).eq("status", "active");
+src/lib/payouts.functions.ts:57:      .from("payout_requests")
+src/lib/payouts.functions.ts:71:    const { data: role } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "admin" });
+src/lib/payouts.functions.ts:72:    const { data: ownerRole } = await supabaseAdmin.rpc("has_role" as any, { _user_id: userId, _role: "owner" });
+src/lib/payouts.functions.ts:76:      .from("orders")
+src/lib/payouts.functions.ts:103:      .from("seller_trust" as any)
+src/lib/payouts.functions.ts:131:          .from("seller_trust" as any)
+src/lib/payouts.functions.ts:141:          .from("payout_requests" as any)
+src/lib/payouts.functions.ts:146:          .from("account_holds" as any)
+src/lib/payouts.functions.ts:152:          .from("orders")
+src/lib/payouts.functions.ts:219:    const { data: role } = await supabaseAdmin.rpc("has_role" as any, { _user_id: adminId, _role: "admin" });
+src/lib/payouts.functions.ts:220:    const { data: ownerRole } = await supabaseAdmin.rpc("has_role" as any, { _user_id: adminId, _role: "owner" });
+src/lib/payouts.functions.ts:228:      .from("seller_trust" as any)
+src/components/PublicLanding.tsx:26:          supabase.from("profiles").select("*",{count:"exact",head:true}),
+src/routes/admin_.performance.tsx:52:        supabase.rpc("perf_summary", { _minutes: windowMin }),
+src/routes/admin_.performance.tsx:53:        supabase.rpc("perf_slow_routes", { _minutes: windowMin, _limit: 20 }),
+src/routes/admin_.performance.tsx:87:    const { error } = await supabase.rpc("purge_old_perf_data");
+src/routes/api/public/hooks/show-reminders.ts:67:    const { data } = await (supabaseAdmin as any).rpc("is_in_quiet_hours", { _user_id: uid });
+src/routes/api/public/hooks/show-reminders.ts:109:        .from("profiles").select("id, email").in("id", emailIds);
+src/routes/api/public/hooks/fraud-sweep.ts:21:          .from("orders")
+src/routes/api/public/hooks/fraud-sweep.ts:51:          .from("orders")
+src/routes/api/public/hooks/fraud-sweep.ts:58:          const { error } = await supabaseAdmin.rpc("set_order_shipping_status" as any, {
+src/routes/api/public/hooks/fraud-sweep.ts:89:            .from("account_holds")
+src/routes/api/public/hooks/fraud-sweep.ts:92:          await supabaseAdmin.from("account_holds").insert({
+src/routes/api/public/hooks/fraud-sweep.ts:103:        const { data: lateStats } = await supabaseAdmin.rpc(
+src/routes/api/public/hooks/shippo-tracking.ts:71:            .from("orders")
+src/routes/api/public/hooks/shippo-tracking.ts:83:          .from("orders").select("first_scan_at").eq("id", orderId).single();
+src/routes/api/public/hooks/shippo-tracking.ts:87:          const { error } = await supabaseAdmin.rpc("set_order_shipping_status" as any, {
+src/routes/api/public/hooks/financial-reconciliation.ts:12:        const { data, error } = await supabaseAdmin.rpc(
+src/components/MoreFromSeller.tsx:85:            .from("profiles")
+src/routes/api/public/hooks/shipping-reminders.ts:18:          .from("orders")
+src/routes/api/public/hooks/shipping-reminders.ts:41:              await supabaseAdmin.from("orders").update({
+src/routes/api/public/hooks/shipping-reminders.ts:67:              await supabaseAdmin.from("orders").update({ is_late_shipment: true } as any).eq("id", o.id);
+src/routes/api/public/hooks/shipping-reminders.ts:94:              await supabaseAdmin.from("orders").update({
+src/routes/admin.shipping-health.tsx:35:        .from("orders")
+src/components/DisputeThread.tsx:26:      .from("disputes")
+src/components/DisputeThread.tsx:57:    const { error } = await supabase.rpc("append_dispute_message", {
+src/components/DisputeThread.tsx:79:    const { error } = await supabase.from("disputes").update({ evidence_urls: next }).eq("id", disputeId);
+src/components/LiveMobileHostCard.tsx:43:          .from("profiles")
+src/routes/api/public/hooks/daily-buyer-digest.ts:52:          .from('orders')
+src/components/LanguageToggle.tsx:20:        await supabase.from("profiles").update({ preferred_language: code }).eq("id", data.user.id);
+src/components/LiveSellerDashboard.tsx:146:        supabase.from("orders").select("id, buyer_id, title, amount, payment_status, created_at").eq("stream_id", streamId).order("created_at", { ascending: false }),
+src/components/LiveSellerDashboard.tsx:182:        const { data: profs } = await supabase.from("profiles").select("id, username").in("id", buyerIds);
+src/components/LiveSellerDashboard.tsx:274:    const { data: prof } = await supabase.from("profiles").select("id, username").ilike("username", q).maybeSingle();
+src/components/CollabPanel.tsx:42:      const { data: verif } = await supabase.from("profiles").select("id, age_verified").in("id", ids);
+src/components/CollabPanel.tsx:150:    const { data: prof } = await supabase.from("profiles").select("username, avatar_url").eq("id", currentUserId).single();
+src/components/LanguageSync.tsx:19:        .from("profiles")
+src/components/PayoutBreakdown.tsx:38:        .from("hold_recoveries" as any)
+src/components/PayoutBreakdown.tsx:44:        .from("account_holds" as any)
+src/components/PreBidPanel.tsx:113:    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user!.id).maybeSingle();
+src/components/StudioChatDock.tsx:129:        .from("profiles")
+src/routes/admin.tsx:114:      supabase.from("disputes").select("*").order("created_at", { ascending: false }).limit(100),
+src/routes/admin.tsx:127:    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", list.map(r => r.user_id));
+src/routes/admin.tsx:136:    const { data: prof } = await supabase.from("profiles").select("id").eq("username", roleForm.username).maybeSingle();
+src/routes/admin.tsx:166:      .from("profiles")
+src/routes/admin.tsx:188:    let q = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(150);
+src/routes/admin.tsx:202:    const { data } = await supabase.from("profiles")
+src/routes/admin.tsx:210:    const { error } = await supabase.from("profiles").update({ live_verified: next }).eq("id", u.id);
+src/routes/admin.tsx:244:    const { error } = await supabase.from("disputes").update({
+src/routes/admin.tsx:292:    const { error } = await supabase.from("orders").update({
+src/routes/admin.tsx:304:    const { error } = await supabase.from("orders").update({ stream_id: null }).eq("id", o.id);
+src/routes/admin.tsx:312:    const { data: prof } = await supabase.from("profiles").select("username").eq("id", targetId).maybeSingle();
+src/routes/admin.tsx:653:                  const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+src/routes/admin.tsx:657:                  const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+src/routes/admin.tsx:661:                  const { data: prof } = await supabase.from("profiles").select("username").eq("id", uid).maybeSingle();
+src/routes/admin.tsx:782:    supabase.from("orders")
+src/components/SellerEarningsHub.tsx:204:      supabase.from("hold_recoveries" as any).select("*").eq("user_id", user.id)
+src/components/SellerEarningsHub.tsx:206:      supabase.from("account_holds" as any).select("id,balance_owed_cents")
+src/components/SellerEarningsHub.tsx:208:      supabase.from("payout_requests" as any)
+src/components/SellerEarningsHub.tsx:240:    supabase.from("profiles").select("id,username,full_name").in("id", ids).then(({ data }) => {
+src/components/SellerVerificationGate.tsx:45:        .from("stripe_accounts" as any)
+src/components/ShippingAddressForm.tsx:35:    supabase.from("profiles")
+src/components/StorefrontBrandingEditor.tsx:59:    const { error } = await (supabase.from("profiles") as any)
+src/components/UsernamePopover.tsx:64:        .from("profiles")
+src/components/StoryRail.tsx:80:    const { data } = await supabase.from("profiles").select("id,username,avatar_url").in("id", missing);
+src/components/SellerBadge.tsx:28:    supabase.from("profiles")
+src/components/SellerShippingQueue.tsx:57:      .from("orders")
+src/components/admin/UserLink.tsx:24:        .from("profiles")
+src/components/admin/UserLink.tsx:67:        .from("profiles")
+src/components/ViewerListModal.tsx:64:        const { data: profs } = await supabase.from("profiles").select("id, age_verified").in("id", ids);
+src/components/admin/HoldsAdmin.tsx:56:        .from("hold_recoveries" as any)
+src/components/admin/HoldsAdmin.tsx:63:        .from("seller_trust" as any)
+src/components/admin/HoldsAdmin.tsx:69:      let q = supabase.from("account_holds" as any).select("*").order("opened_at", { ascending: false }).limit(200);
+src/components/admin/SupportInbox.tsx:68:      const { data: profs } = await supabase.from("profiles").select("id, username").in("id", ids);
