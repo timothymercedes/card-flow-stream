@@ -68,8 +68,8 @@ Earlier November 12 evidence remains unchanged, not freshly re-queried: no $9.50
 
 Blocking release: test Connect activation, category/limit acceptance, reserve/evidence/counting terms, complete executable coupled security patch and isolated tests. **The updated package contains complete implementation specifications, not a finished or runtime-validated patch/ledger.** Those deliverables will be prepared under the approved next stage, without production deployment.
 
-## Technical details and review documents
+## Technical details
 
-Keep TanStack server handlers and gateway Stripe access with explicit environment selection; secrets stay server-side. Signed test events may update only isolated test accounting; retain existing non-live guards on shared production orders/balances. Use explicit grants then RLS for every additive public table, service-only authority and seller-safe read projections. No legacy destination retransfers or database overwrites.
+Use TanStack server handlers and gateway Stripe access with explicit environment selection; secrets stay server-side. Signed test events update isolated test accounting only. Explicit grants/RLS protect additive tables; seller projections exclude private provider data.
 
-Updated package: `docs/model-a-phase1/marketplace-compliance.md`, `security-completion-spec.md`, `ledger-implementation-spec.md`, plus updated checklist/manual steps/security/accounting/test documents. Both `.review.sql` candidates remain untouched and unexecuted. Previous Files exports are the original Phase 1 snapshot; this plan and repository documents are the updated proposal.
+Updated specifications are in `docs/model-a-phase1/`. Both SQL drafts remain untouched/unexecuted. Previous Files exports remain the original snapshot; this plan is the updated proposal.
