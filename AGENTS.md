@@ -14,3 +14,4 @@
 - Marketplace payment regression checks run real sandbox Embedded Checkout through the cart, verify Stripe intents/charges and signed notifications, and clean up only their own unpaid fixtures.
 - Target Model A uses Separate Charges and Transfers with environment-scoped seller accounting; keep the existing production charge model until an explicitly approved cutover, because legacy destination charges must never be transferred again.
 - Keep unapproved financial release candidates and tests outside application imports and migration directories so review preparation cannot alter production behavior.
+- Expose guest auction queues only through the read-only public projection RPC; preserve base-table policies so seller and transaction details remain protected.

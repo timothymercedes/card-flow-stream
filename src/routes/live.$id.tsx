@@ -121,9 +121,20 @@ import { LiveMobileHostCard } from "@/components/LiveMobileHostCard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { previewBuyerFee } from "@/lib/buyerFeePreview.functions";
 import { useServerFn } from "@tanstack/react-start";
+import { listPublicUpcomingQueue } from "@/lib/publicUpcomingQueue";
 
 
-export const Route = createFileRoute("/live/$id")({ component: LiveDetail });
+export const Route = createFileRoute("/live/$id")({
+  head: () => ({ meta: [
+    { title: "Live Shows & Upcoming Auctions | PullBid Live" },
+    { name: "description", content: "Watch PullBid Live shows and browse published upcoming auction items. Sign in to bid." },
+    { property: "og:title", content: "Live Shows & Upcoming Auctions | PullBid Live" },
+    { property: "og:description", content: "Watch live sellers and browse upcoming auctions on PullBid Live." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: LiveDetail,
+});
 
 function fmtRemaining(ms: number) {
   if (ms <= 0) return "00:00";
@@ -468,6 +479,13 @@ function LiveDetail() {
     if (!id) return;
     let alive = true;
     async function refresh() {
+      if (!user) {
+        try {
+          const rows = await listPublicUpcomingQueue(id);
+          if (alive) setPrebidCount(rows.length);
+        } catch { if (alive) setPrebidCount(0); }
+        return;
+      }
       const { count } = await supabase
         .from("auction_queue" as any)
         .select("id", { count: "exact", head: true })
@@ -476,6 +494,7 @@ function LiveDetail() {
       if (alive) setPrebidCount(count || 0);
     }
     refresh();
+    const poll = !user ? setInterval(refresh, 10000) : undefined;
     const ch = supabase
       .channel(`prebid-count-${id}`)
       .on(
@@ -486,9 +505,10 @@ function LiveDetail() {
       .subscribe();
     return () => {
       alive = false;
+      clearInterval(poll);
       supabase.removeChannel(ch);
     };
-  }, [id]);
+  }, [id, user?.id]);
 
   // 🆕 Host pre-B notifications — toast when a viewer places a pre-bid, buys
   // now, or makes an offer on any of this stream's queued items.

@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Verify read-only visitor upcoming queue, publication exclusions, and signed-in permissions without changing bidding settlement or payments.
+
 - [x] Updated review-only Model A plan for eight-category physical-goods marketplace, category/payment-method restrictions, coupled security table/caller specification and additive ledger implementation checklist. No executable caller/security/schema changes applied. Deployment, isolated implementation/tests, test Connect activation and Stripe reserve/category review await explicit approval.
 
 - [x] Approved isolated preparation: 261 function hashes unchanged, 314 caller references indexed; staged companion table guard and sealed journal/posting SQL candidates outside migrations/application. Fixed local journal trigger record-field error. 15 proposed policy tests, 12 existing safety tests and synthetic local PostgreSQL posting/replay/sealing/rollback checks passed. Production unchanged; candidates not release-ready.

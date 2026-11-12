@@ -19,6 +19,8 @@ import { buyNowQueueItem } from "@/lib/queueActions.functions";
 import { toast } from "sonner";
 import { X, Bookmark, Gavel, ListOrdered, Trophy, ShoppingCart, HandCoins } from "lucide-react";
 import { OfferDialog } from "@/components/OfferDialog";
+import { Button } from "@/components/ui/button";
+import { listPublicUpcomingQueue } from "@/lib/publicUpcomingQueue";
 
 type SaleType = "prebid" | "buynow" | "either" | "offer";
 
@@ -72,6 +74,16 @@ export function PreBidPanel({
     if (!streamId) return;
     let alive = true;
     async function refresh() {
+      if (!user) {
+        try {
+          const rows = await listPublicUpcomingQueue(streamId);
+          if (alive) {
+            setItems(rows.map((row) => ({ ...row, duration_seconds: 0, snipe_price: null, status: "queued", quantity: null, prebid_enabled: false, sale_type: null, buy_now_price: null, min_offer: null, sold_to: null })));
+            setPrebids([]);
+          }
+        } catch { if (alive) { setItems([]); setPrebids([]); } }
+        return;
+      }
       const [q, p] = await Promise.all([
         supabase.from("auction_queue" as any).select("*").eq("stream_id", streamId)
           .in("status", ["queued"]).is("sold_to", null).order("position", { ascending: true }),
@@ -83,13 +95,15 @@ export function PreBidPanel({
       setPrebids(((p.data as any[]) || []) as PreBid[]);
     }
     refresh();
+    // Visitors cannot subscribe to protected rows; refresh the safe projection.
+    const poll = !user ? setInterval(refresh, 10000) : undefined;
     const ch = supabase
       .channel(`prebid-${streamId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "auction_queue", filter: `stream_id=eq.${streamId}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "prebids" }, refresh)
       .subscribe();
-    return () => { alive = false; supabase.removeChannel(ch); };
-  }, [streamId]);
+    return () => { alive = false; clearInterval(poll); supabase.removeChannel(ch); };
+  }, [streamId, user?.id]);
 
   const topByItem = useMemo(() => {
     const map = new Map<string, PreBid>();
@@ -102,6 +116,7 @@ export function PreBidPanel({
 
   async function placeBid(item: QueueItem) {
     if (!requireAuth("place a pre-bid")) return;
+    if (!user) return;
     const raw = drafts[item.id];
     const amount = Number(raw);
     if (!amount || amount <= 0) return toast.error("Enter a bid amount");
@@ -110,10 +125,10 @@ export function PreBidPanel({
     const min = Math.max(effectiveStart, top ? top.amount + 1 : effectiveStart);
     if (amount < min) return toast.error(`Pre-bid must be at least $${min}`);
     setBusy(item.id);
-    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user!.id).maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).maybeSingle();
     const { error } = await supabase.from("prebids" as any).insert({
       queue_item_id: item.id,
-      bidder_id: user!.id,
+      bidder_id: user.id,
       bidder_username: (profile as any)?.username || null,
       amount,
     });
@@ -223,11 +238,13 @@ export function PreBidPanel({
                       </p>
                     )}
                     {it.description && <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{it.description}</p>}
+                    {!user && <p className="mt-1 text-xs font-semibold text-foreground">Starting price · ${Number(it.starting_bid).toFixed(2)}</p>}
                   </div>
                 </div>
 
                 {/* Action by sale type */}
-                {(st === "prebid" || st === "either") && (it.prebid_enabled ? (
+                {!user && <Button variant="outline" className="mt-3 w-full" onClick={() => requireAuth("bid")}>Sign in to bid</Button>}
+                {user && (st === "prebid" || st === "either") && (it.prebid_enabled ? (
                   <div className="mt-2 flex items-center gap-1.5">
                     <input
                       type="number" inputMode="decimal" min={min}
@@ -249,7 +266,7 @@ export function PreBidPanel({
                   </p>
                 ))}
 
-                {(st === "buynow" || st === "either") && bnPrice > 0 && (
+                {user && (st === "buynow" || st === "either") && bnPrice > 0 && (
                   <button
                     onClick={() => buyNow(it)} disabled={busy === it.id}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
@@ -259,7 +276,7 @@ export function PreBidPanel({
                   </button>
                 )}
 
-                {(st === "offer" || st === "either") && (
+                {user && (st === "offer" || st === "either") && (
                   <button
                     onClick={() => submitOffer(it)} disabled={busy === it.id}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-600 px-3 py-2 text-sm font-extrabold text-white shadow active:scale-[0.98] disabled:opacity-50"
