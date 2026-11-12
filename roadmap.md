@@ -1,6 +1,7 @@
 # Current work
 
-- [ ] Verify signup confirmation delivery to the user's Gmail test alias, then activation through the delivered link; preserve the existing confirmed account.
+- [x] Real signup via the form returned HTTP 200 without a session, displayed Check your email, and the signup email was logged as sent to the user's Gmail test alias. The two older failures were placeholder-domain test addresses, not a sender outage; existing account unchanged.
+- [ ] Finish activation through the delivered Gmail confirmation link: awaiting the user's inbox click, then verify email_confirmed_at and sign-in. No confirmation bypass used.
 
 - [x] Fresh password sign-in passed with a disposable confirmed account; signup submitted through the form, created a real unconfirmed account, and correctly showed the confirmation screen without a session. Test accounts were removed.
 - [x] Passkey registration and full sign-in passed with Chromium's virtual authenticator; challenges now persist across workers, expire after five minutes, and are consumed once. Real Face ID/Touch ID hardware remains untested.
