@@ -84,7 +84,6 @@ import { HypeBurst } from "@/components/HypeBurst";
 import { ComboBadge } from "@/components/ComboBadge";
 import { SupporterLeaderboard } from "@/components/SupporterLeaderboard";
 import { bumpCombo } from "@/lib/combo";
-import { awardXp, bumpQuest } from "@/lib/progression";
 import { TopSupporterBadge } from "@/components/TopSupporterBadge";
 import { AuctionQueuePanel } from "@/components/AuctionQueuePanel";
 import { PreBidPanel } from "@/components/PreBidPanel";
@@ -2407,8 +2406,7 @@ function LiveDetail() {
           if (r) setComboCount(r.combo_count);
         })
         .catch(() => {});
-      awardXp(2, "bid", id).catch(() => {});
-      bumpQuest("daily_bid", 1).catch(() => {});
+      // XP + daily quest progress are granted by the database when the bid is recorded.
       const extended = !!(bidRes as any)?.extended;
       const suddenDeathWin = !!(bidRes as any)?.sudden_death_win;
       const exts = Number(stream.snipe_extends || 0);
@@ -3243,11 +3241,8 @@ function LiveDetail() {
   // Track minutes streamed; called from pause / end paths.
   async function recordStreamMinutes() {
     try {
-      const startedAt = stream?.started_at ? new Date(stream.started_at).getTime() : 0;
-      if (!startedAt || !user) return;
-      const mins = Math.max(0, Math.floor((Date.now() - startedAt) / 60_000));
-      if (mins > 0)
-        await (supabase.rpc as any)("add_stream_minutes", { _user_id: user.id, _minutes: mins });
+      if (!stream?.started_at || !user) return;
+      await (supabase.rpc as any)("record_stream_minutes", { _stream_id: id });
     } catch {}
   }
   async function pauseLiveFor3h() {
