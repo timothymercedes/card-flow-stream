@@ -1,19 +1,10 @@
 # PullBid Live — Model A Stripe Connect review and migration plan
 
-## Scope and status
+## Scope and confirmed decisions
 
-Read-only inspection completed on November 12, 2026: current payment code, database columns, policies, function grants, triggers, balance calculations, retained edge-function source, Stripe platform/connected-account capabilities, and live webhook subscriptions.
+Read-only review completed November 12, 2026: source, database schemas/policies/functions, Stripe capabilities and live subscriptions. No production code, database, Stripe configuration or funds changed. Deployed legacy edge inventory and carrier provisioning remain unverified.
 
-**No production payment code, database schema/data, Stripe configuration, accounts, or funds were changed.** Only planning documents and standing requirements were updated. Repository code is not proof of the currently published deployment; deployed legacy edge-function inventory and actual carrier webhook provisioning still require verification.
-
-## Decisions confirmed
-
-- Use **Separate Charges and Transfers**: buyers pay the platform; sellers receive separately scheduled transfers after eligibility checks.
-- Use Stripe Embedded Checkout for marketplace purchases. Preserve saved-payment automatic charging for live auctions, but migrate its fund routing too.
-- Only verified-delivered earnings qualify. No early release from undelivered orders.
-- Seller onboarding remains Stripe-hosted Express onboarding.
-- Reserve release terms are deferred until Stripe review; do not activate the reserve-based payout policy until approved.
-- Existing commission is 5% in code; preserve existing order-specific rates and fee rules unless separately approved. Commission and reserve are distinct.
+Target: Separate Charges and Transfers; Embedded Checkout for marketplace; preserve automatic saved-payment auctions; hosted Express onboarding. Unlock only verified-delivered earnings. Reserve release terms await Stripe review; do not activate until approved. Preserve existing 5% commission/order-specific rates and fees unless separately approved; reserve is not commission.
 
 ## Inspection findings and required changes
 
@@ -58,14 +49,14 @@ Proposed basis: net seller earnings after the existing commission and approved s
 
 ## Phased migration
 
-1. **Prerequisites:** activate test Connect; confirm account identity for legacy objects, US-first scope, commission basis, delivery count/group semantics, below-25 treatment and Stripe-approved reserve deadlines. Verify deployed legacy endpoints and carrier provisioning. Review urgent RPC hardening as a separately controlled change.
-2. **Additive schema, no switch:** environment-scoped seller accounts, payment groups/order allocations, seller journals, verified delivery receipts, transfer jobs/attempts/allocations, refunds/reversals and event inbox/outbox. Explicit grants/RLS, service-only mutations, uniqueness and integer-cent/currency invariants. Keep old columns/tables.
-3. **Shadow reconciliation:** rebuild only from verified Stripe/delivery evidence; quarantine missing charge links. Current database has one paid order and no charge-linked orders. Tag legacy destination charges/transfers and never transfer them again. Resolve the $9.50 request from evidence.
-4. **Isolated test implementation:** keep production preview guards; use dedicated test records, platform Checkout/automatic-auction charges, hosted test onboarding, verified delivery and eligibility. Existing regression keeps asserting shared production orders stay unpaid/unchanged.
-5. **Transfer executor:** atomically reserve eligibility; link each transfer via `source_transaction` to settled source charges and `transfer_group` to payment groups. Split multi-charge requests; use stable keys and reconcile ambiguous failures. Transfer acceptance is not bank payout completion; track those separately using documented events, not an assumed `transfer.failed` event.
-6. **Loss lifecycle:** freeze new transfers on refunds/disputes; refund only relevant allocations; explicitly reverse transferred sums; journal recovery debt and won-dispute reinstatement; handle async failure, bank failure and disabled capabilities without double credits.
-7. **Regression gate:** success/decline/authentication/async settlement; boundaries 24/25/49/50/74/75/99/100; reserve distinct from commission; duplicate/out-of-order events; simultaneous requests; crash after Stripe acceptance; grouped partial refunds; disputes won/lost; bank failure; insufficient balances/reversal failure. Test money and isolated records only.
-8. **Separate live cutover approval:** publish verified consumers before adding events. Disabled-by-default feature flag enables Model A for new charges only through a reviewed pilot. Preserve per-model legacy refunds/reconciliation and both managed endpoints. Reconcile charges, journals, transfers and cash daily. Rollback stops new jobs/routing; never delete or resend accepted transactions.
+1. **Prerequisites:** activate test Connect; reconcile legacy account/object ownership; confirm US-first scope, commission basis, delivery counting, below-25 treatment and Stripe-approved reserve deadlines. Verify deployed legacy endpoints/carrier setup. Separately approve urgent RPC hardening.
+2. **Additive schema, no switch:** environment-scoped accounts, payment/order allocations, seller journals, verified delivery receipts, transfer jobs/attempts/allocations, refunds/reversals and event inbox/outbox. Explicit grants/RLS, service-only writes, unique keys, integer cents/currency invariants. Keep old schema.
+3. **Shadow reconciliation:** rebuild from verified Stripe/delivery evidence only; quarantine missing charge links (one paid order, zero charge-linked orders currently). Tag legacy destination charges/transfers; never transfer them again. Resolve the $9.50 request from evidence.
+4. **Isolated tests:** retain production preview guards; dedicated test records, platform Checkout/automatic-auction charges, hosted test onboarding and verified-delivery accounting. Existing regression must still show shared production orders unpaid/unchanged.
+5. **Executor:** atomically reserve eligibility; link transfers via `source_transaction` to settled charges and `transfer_group` to payment groups. Split cross-charge requests. Stable keys, ambiguous-failure reconciliation. Track transfers separately from bank payouts using documented events; do not assume `transfer.failed` exists.
+6. **Loss lifecycle:** freeze new transfers; allocation-specific refunds/reversals; debt recovery and won-dispute reinstatement. Handle async failures, bank failures and disabled capabilities without duplicate credits.
+7. **Regression gate:** success/decline/auth/async settlement; boundaries 24/25/49/50/74/75/99/100; commission vs reserve; duplicate/out-of-order events; concurrency; crash after Stripe acceptance; grouped partial refunds; disputes won/lost; bank failure and insufficient-balance reversals. Isolated test funds only.
+8. **Separate live approval:** publish consumers before adding events; disabled-by-default Model A flag for new charges only, reviewed pilot. Preserve legacy refunds/reconciliation and both managed endpoints. Daily charge/journal/transfer/cash reconciliation. Rollback stops new jobs/routing; never deletes/resends accepted transactions.
 
 ## Sources
 
