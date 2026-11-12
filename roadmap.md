@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Prepare Phase 1 review-only package: exhaustive privileged financial/delivery RPC inventory, undeployed security patch proposal, additive ledger schema, account/charge/transfer/$9.50 reconciliation evidence, test Connect manual steps, reserve approval requirements and regression plan. No production code/settings, balances, schema or payment writes; await explicit approval.
+
 - [x] Inspected Model A Stripe Connect migration: current destination charges bypass delivery holds; live platform and Express seller have active transfers, but test Connect remains unavailable. Found publicly executable privileged financial RPCs, inconsistent payout balances, incomplete Stripe subscriptions/retry handling, and incorrect Shippo HMAC verification. Prepared review and phased migration plan only; no production code, database, Stripe configuration, or funds changed. Reserve terms await Stripe review; unlock only verified-delivered earnings and preserve automatic auctions.
 
 - [ ] Resolve Stripe Connect test setup: on 2026-11-12, user-approved sandbox-only Express seller creation returned Stripe HTTP 400: Connect signup required. Follow-up account list is empty; no seller was created. No available Stripe MCP provides activation, and CLI credentials are not available through managed gateway connections. User must activate Connect in the existing Stripe test environment, then retry isolated seller creation. Do not switch to BYOK, replace connections, or change the live seller account.
