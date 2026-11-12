@@ -40,3 +40,4 @@
 - [ ] Complete transaction, live-stream, and battle execution checks: not exercised during the page/navigation smoke checks.
 
 Observed: audit reports one invalid language (`auto`) and zero duplicate groups; marketplace currently has zero active listings. No destructive data repairs or payment operations were performed.
+- [x] Review 49 open-read + 8 storage warnings (already dismissed earlier as intended-public; no active findings)

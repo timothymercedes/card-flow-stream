@@ -52,7 +52,15 @@ export function StoryRail() {
       .select("*")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
-    setStories((data as Story[]) || []);
+    const rows = (data as Story[]) || [];
+    // The stories bucket is private: swap stored URLs for short-lived signed links
+    // the viewer is allowed to open (storage rules check story visibility).
+    const paths = rows.map((r) => r.image_url.split("/stories/").pop()?.split("?")[0] || "");
+    const { data: signed } = paths.some(Boolean)
+      ? await supabase.storage.from("stories").createSignedUrls(paths.filter(Boolean), 3600)
+      : { data: [] as { path: string | null; signedUrl: string }[] };
+    const byPath = new Map((signed || []).map((x) => [x.path, x.signedUrl]));
+    setStories(rows.map((r, i) => ({ ...r, image_url: byPath.get(paths[i]) || r.image_url })));
   }
 
   async function loadReactions(ids: string[]) {
@@ -141,7 +149,8 @@ export function StoryRail() {
       const { data: pub } = supabase.storage.from("stories").getPublicUrl(path);
 
       try {
-        const { data: mod } = await supabase.functions.invoke("moderate-image", { body: { image_url: pub.publicUrl } });
+        const { data: modLink } = await supabase.storage.from("stories").createSignedUrl(path, 600);
+        const { data: mod } = await supabase.functions.invoke("moderate-image", { body: { image_url: modLink?.signedUrl ?? pub.publicUrl } });
         if (mod && (mod as any).allowed === false) {
           await supabase.storage.from("stories").remove([path]);
           toast.error(`Story blocked: ${(mod as any).reason || "inappropriate content"}`);
