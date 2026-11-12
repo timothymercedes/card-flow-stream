@@ -302,7 +302,12 @@ CREATE OR REPLACE FUNCTION public.model_a_check_journal_balance()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public,pg_temp AS $fn$
 DECLARE target_id uuid; total_debit numeric; total_credit numeric; line_count bigint;
 BEGIN
-  target_id := CASE WHEN TG_TABLE_NAME='model_a_ledger_journals' THEN NEW.id ELSE NEW.journal_id END;
+  -- A shared trigger record cannot reference a field absent on the other table.
+  IF TG_TABLE_NAME='model_a_ledger_journals' THEN
+    target_id := (to_jsonb(NEW)->>'id')::uuid;
+  ELSE
+    target_id := (to_jsonb(NEW)->>'journal_id')::uuid;
+  END IF;
   SELECT count(*),COALESCE(sum(debit_cents),0),COALESCE(sum(credit_cents),0)
   INTO line_count,total_debit,total_credit FROM public.model_a_ledger_entries WHERE journal_id=target_id;
   IF line_count<2 OR total_debit<>total_credit THEN RAISE EXCEPTION 'Journal must have balanced debit and credit lines'; END IF;

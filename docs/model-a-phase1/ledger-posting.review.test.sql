@@ -16,7 +16,8 @@ BEGIN
   IF NOT rejected THEN RAISE EXCEPTION 'Late line accepted'; END IF;
   rejected:=false;
   BEGIN
-    PERFORM public.model_a_post_journal('sandbox','acct_test','usd','fixture-sale','settlement','changed','[]');
+    PERFORM public.model_a_post_journal('sandbox','acct_test','usd','fixture-sale','settlement','changed',
+     '[{"account_code":"stripe_cash","debit_cents":100,"credit_cents":0},{"account_code":"platform_commission","debit_cents":0,"credit_cents":100}]');
   EXCEPTION WHEN OTHERS THEN rejected:=true; END;
   IF NOT rejected THEN RAISE EXCEPTION 'Conflicting replay accepted'; END IF;
   rejected:=false;
