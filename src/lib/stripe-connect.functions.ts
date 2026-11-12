@@ -177,6 +177,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
     const { userId } = context;
     const { createStripeClient, getStripeErrorMessage } = await import("@/lib/stripe.server");
     try {
+    if (import.meta.env.DEV && data.environment !== "sandbox") throw new Error("Only Stripe test mode is allowed in preview");
     const stripe = createStripeClient(data.environment);
     const returnUrl = new URL(data.returnUrl);
     const requestOrigin = new URL(getRequest().url).origin;
