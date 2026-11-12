@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Resolve Stripe Connect test setup using the existing managed test account; never replace the live integration or enable real withdrawals.
+
 - [x] Fixed preview payout safety: withdrawal handler and live Connect setup/sync/dashboard changes reject before side effects; retained legacy webhook processor ignores all non-live events. Preview withdrawal regression passed without creating requests or changing balances.
 - [x] Added scripts/marketplace-payment-e2e.py and ran real sandbox cart decline and success. Both verified Stripe intents and charges, signed notification retries, full unchanged order rows, unchanged seller balances/requests, and no Stripe transfers/payouts. Orders remained visible as unpaid; all temporary rows removed. All 36 unit tests pass; compilation OK.
 - [ ] Simulate completed seller payout in Stripe sandbox: blocked because this sandbox has no Connect capability (account creation returned 400). Existing seller account belongs to live mode and was only read, never modified. No payout executor exists in current app/server routes; an existing $9.50 request has been processing since May 22 with no transfer ID. Do not mark completed or move funds without isolated test Connect setup and a reviewed payout-execution design.
