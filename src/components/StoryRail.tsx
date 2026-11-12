@@ -149,7 +149,8 @@ export function StoryRail() {
       const { data: pub } = supabase.storage.from("stories").getPublicUrl(path);
 
       try {
-        const { data: mod } = await supabase.functions.invoke("moderate-image", { body: { image_url: pub.publicUrl } });
+        const { data: modLink } = await supabase.storage.from("stories").createSignedUrl(path, 600);
+        const { data: mod } = await supabase.functions.invoke("moderate-image", { body: { image_url: modLink?.signedUrl ?? pub.publicUrl } });
         if (mod && (mod as any).allowed === false) {
           await supabase.storage.from("stories").remove([path]);
           toast.error(`Story blocked: ${(mod as any).reason || "inappropriate content"}`);
