@@ -45,7 +45,7 @@ No exploit probes or financial writes were performed; urgent hardening needs a s
 | 75–99 | 70% |
 | 100+ | 95% |
 
-Proposed basis: net seller earnings after the existing commission and approved seller-borne costs, excluding platform fees/taxes. Apply the current tier cumulatively to verified-delivered earnings; subtract prior transfers, active reservations, refunds/reversals, locks and debt exactly once. Tier increases release the incremental difference, not the same earnings twice. At the top tier, retain 5% as seller reserve liability, not platform revenue. Before the top tier, distinguish milestone-held earnings from the 5% reserve. Confirm grouping/count semantics and reserve deadlines before implementation.
+Basis proposed: net seller earnings after commission/costs, excluding platform fees/taxes. Apply tiers cumulatively to verified-delivered earnings, deducting prior transfers, reservations, losses, locks and debt once. Tier increases release only the difference. The 5% reserve is seller liability, not revenue; distinguish it from milestone holds. Confirm counting and release deadlines.
 
 ## Phased migration
 
