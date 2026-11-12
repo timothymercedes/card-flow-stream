@@ -9,6 +9,25 @@ import { z } from "zod";
 import { mayPersistMarketplacePayment } from "./paymentConfirmation";
 import type { Database } from "@/integrations/supabase/types";
 
+const ALLOWED_CONNECT_ORIGINS = new Set([
+  "https://pullbidlive.com",
+  "https://www.pullbidlive.com",
+  "https://card-flow-stream.lovable.app",
+]);
+
+/** Stripe onboarding links may only send sellers back to this app's own pages. */
+function assertAppReturnUrls(data: { returnUrl: string; refreshUrl: string }) {
+  let requestOrigin: string | null = null;
+  try { requestOrigin = new URL(getRequest().url).origin; } catch { requestOrigin = null; }
+  for (const raw of [data.returnUrl, data.refreshUrl]) {
+    let u: URL;
+    try { u = new URL(raw); } catch { throw new Error("Invalid return address"); }
+    if (u.protocol !== "https:" && !(import.meta.env.DEV && u.protocol === "http:")) throw new Error("Invalid return address");
+    if (u.username || u.password) throw new Error("Invalid return address");
+    if (u.origin !== requestOrigin && !ALLOWED_CONNECT_ORIGINS.has(u.origin)) throw new Error("Invalid return address");
+  }
+}
+
 async function getOptionalUserIdFromRequest() {
   try {
     const request = getRequest();
@@ -47,6 +66,7 @@ export const createConnectOnboardingLink = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    assertAppReturnUrls(data);
     if (import.meta.env.DEV) throw new Error("Seller bank setup is unavailable in preview; no live account was changed.");
     const stripe = getStripe();
 
@@ -608,6 +628,7 @@ export const createStreamPromotionPaymentIntent = createServerFn({ method: "POST
       throw new Error("Minimum promotion is $1");
     }
     if (data.amountCents > 50000) throw new Error("Maximum promotion is $500");
+    if (!Number.isInteger(data.amountCents)) throw new Error("Invalid promotion amount");
     if (data.message && data.message.length > 140) throw new Error("Message too long");
     return data;
   })
@@ -770,6 +791,7 @@ export const createConnectUpdateLink = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { userId } = context;
+    assertAppReturnUrls(data);
     if (import.meta.env.DEV) throw new Error("Seller bank changes are disabled in preview; no live account was changed.");
     const stripe = getStripe();
     const { data: row } = await supabaseAdmin

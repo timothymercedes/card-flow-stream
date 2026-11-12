@@ -31,7 +31,8 @@ export const syncCollectorRewards = createServerFn({ method: "POST" })
 
     // Per-set completion reward progress (cap to keep writes bounded).
     for (const b of official.slice(0, 250)) {
-      await (supabase.rpc as any)("record_reward_progress", {
+      await (supabaseAdmin.rpc as any)("record_reward_progress_for", {
+        _user_id: userId,
         _def_slug: "set_completion",
         _progress: b.ownedDistinct,
         _target: b.knownTotal,
@@ -50,7 +51,8 @@ export const syncCollectorRewards = createServerFn({ method: "POST" })
       ["milestone_100_sets", 100],
     ] as const;
     for (const [slug, target] of milestones) {
-      await (supabase.rpc as any)("record_reward_progress", {
+      await (supabaseAdmin.rpc as any)("record_reward_progress_for", {
+        _user_id: userId,
         _def_slug: slug,
         _progress: Math.min(completed.length, target),
         _target: target,
@@ -219,7 +221,8 @@ export const claimReward = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: result, error } = await (supabase.rpc as any)("claim_reward", {
+    const { data: result, error } = await (supabaseAdmin.rpc as any)("claim_reward_for", {
+      _user_id: userId,
       _def_slug: data.slug,
       _context_key: contextKey,
       _context_label: data.contextLabel ?? null,

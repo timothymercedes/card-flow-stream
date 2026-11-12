@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail } from "@/server/email.server";
@@ -518,9 +519,9 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
           subject: `📦 Your order has shipped — ${order.title}`,
           html: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
             <h2>Your order is on its way!</h2>
-            <p><strong>${order.title}</strong></p>
-            <p>Carrier: ${carrier}<br/>Tracking: <strong>${tx.tracking_number}</strong></p>
-            ${tx.tracking_url_provider ? `<p><a href="${tx.tracking_url_provider}" style="background:#7c3aed;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;display:inline-block">Track Package</a></p>` : ""}
+            <p><strong>${escapeHtml(order.title)}</strong></p>
+            <p>Carrier: ${escapeHtml(carrier)}<br/>Tracking: <strong>${escapeHtml(tx.tracking_number)}</strong></p>
+            ${tx.tracking_url_provider && /^https:\/\//i.test(String(tx.tracking_url_provider)) ? `<p><a href="${escapeHtml(tx.tracking_url_provider)}" style="background:#7c3aed;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;display:inline-block">Track Package</a></p>` : ""}
             <p style="color:#666;font-size:12px">Thanks for shopping on PullBidLive.</p>
           </div>`,
         });

@@ -48,7 +48,7 @@ function requestHasBearer(req: Request) {
 }
 
 function isReceiveOnlyTracksRequest(path: string, method: string, body: string | undefined) {
-  if (method !== "POST" || !/\/sessions\/[^/]+\/tracks\/new$/.test(path)) return false;
+  if (method !== "POST" || !/^\/sessions\/[A-Za-z0-9_-]{1,128}\/tracks\/new$/.test(path)) return false;
   try {
     const parsed = JSON.parse(body || "{}");
     const tracks = Array.isArray(parsed?.tracks) ? parsed.tracks : [];
@@ -57,6 +57,12 @@ function isReceiveOnlyTracksRequest(path: string, method: string, body: string |
     return false;
   }
 }
+
+const ALLOWED_SFU_PATHS = [
+  /^\/sessions\/new$/,
+  /^\/sessions\/[A-Za-z0-9_-]{1,128}$/,
+  /^\/sessions\/[A-Za-z0-9_-]{1,128}\/(renegotiate|tracks\/new|tracks\/close)$/,
+];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -68,7 +74,7 @@ Deno.serve(async (req) => {
   const publicViewerRequest =
     !requestHasBearer(req) &&
     ((req.method === "POST" && path === "/sessions/new") ||
-      (req.method === "PUT" && /\/sessions\/[^/]+\/renegotiate$/.test(path)) ||
+      (req.method === "PUT" && /^\/sessions\/[A-Za-z0-9_-]{1,128}\/renegotiate$/.test(path)) ||
       isReceiveOnlyTracksRequest(path, req.method, body));
 
   const auth = publicViewerRequest ? null : await verifyUser(req);
@@ -138,6 +144,10 @@ Deno.serve(async (req) => {
         headers: { ...CORS, "content-type": "application/json" },
       },
     );
+  }
+  // Only forward known Cloudflare Calls session routes with strict session ids.
+  if (!ALLOWED_SFU_PATHS.some((re) => re.test(path))) {
+    return new Response(JSON.stringify({ error: "Unsupported route" }), { status: 404, headers: { ...CORS, "content-type": "application/json" } });
   }
   try {
     const upstream = await fetch(`${config.base}${path}`, {

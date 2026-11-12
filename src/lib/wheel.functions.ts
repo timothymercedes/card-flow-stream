@@ -100,7 +100,8 @@ export const spinCollectionWheel = createServerFn({ method: "POST" })
     }
 
     // 2. Mark the set completion claim as ready (defense-in-depth guard the RPC checks).
-    await (supabase.rpc as any)("record_reward_progress", {
+    await (supabaseAdmin.rpc as any)("record_reward_progress_for", {
+        _user_id: userId,
       _def_slug: "set_completion",
       _progress: book.ownedDistinct,
       _target: book.knownTotal,

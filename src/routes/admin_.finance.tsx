@@ -952,8 +952,10 @@ function downloadCsv(filename: string, rows: Record<string, any>[]) {
   const cols = Array.from(rows.reduce((s: Set<string>, r) => { Object.keys(r).forEach((k) => s.add(k)); return s; }, new Set<string>()));
   const esc = (v: any) => {
     if (v == null) return "";
-    const s = typeof v === "object" ? JSON.stringify(v) : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    let s = typeof v === "object" ? JSON.stringify(v) : String(v);
+    // Neutralize spreadsheet formulas (=, +, -, @, tab, CR) from user-controlled text.
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const csv = [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });

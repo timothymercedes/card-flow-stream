@@ -28,6 +28,20 @@ const readProviderJson = async (response: Response) => {
   }
 };
 
+// The caller may only query live inputs attached to their own OBS profile or streams.
+async function ownsLiveInput(userId: string, liveInputId: string): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || !/^[A-Za-z0-9_-]{1,128}$/.test(liveInputId)) return false;
+  const h = { apikey: key, Authorization: `Bearer ${key}` };
+  const id = encodeURIComponent(liveInputId);
+  const uid = encodeURIComponent(userId);
+  const a = await fetch(`${url}/rest/v1/obs_profiles?select=user_id&user_id=eq.${uid}&cf_live_input_id=eq.${id}&limit=1`, { headers: h });
+  if (a.ok && ((await a.json()) as unknown[]).length > 0) return true;
+  const b = await fetch(`${url}/rest/v1/live_stream_credentials?select=stream_id,live_streams!inner(seller_id)&cf_live_input_id=eq.${id}&live_streams.seller_id=eq.${uid}&limit=1`, { headers: h });
+  return b.ok && ((await b.json()) as unknown[]).length > 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -47,6 +61,9 @@ Deno.serve(async (req) => {
     const { live_input_id } = body;
     if (!live_input_id) {
       return json({ error: "live_input_id required" }, 400);
+    }
+    if (!(await ownsLiveInput(auth.userId, String(live_input_id)))) {
+      return json({ error: "Live input not found" }, 404);
     }
     const r = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${live_input_id}`,

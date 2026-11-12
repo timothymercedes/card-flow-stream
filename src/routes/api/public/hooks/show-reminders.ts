@@ -12,6 +12,7 @@
  * existing cron route convention (see refresh-vault-values.ts).
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendPushToUsers } from "@/server/push.server";
 import { sendEmail } from "@/server/email.server";
@@ -114,9 +115,9 @@ async function dispatchReminders(window: "24h" | "1h") {
         const r = await sendEmail({
           to: u.email,
           subject: `⏰ ${show.seller_username}'s show starts ${niceWhen}`,
-          html: `<p><strong>${show.seller_username}</strong> goes live ${niceWhen}.</p>
-                 <p style="font-size:16px"><em>${body}</em></p>
-                 <p><a href="${link}">View seller profile →</a></p>
+          html: `<p><strong>${escapeHtml(show.seller_username)}</strong> goes live ${escapeHtml(niceWhen)}.</p>
+                 <p style="font-size:16px"><em>${escapeHtml(body)}</em></p>
+                 <p><a href="${escapeHtml(link)}">View seller profile →</a></p>
                  <p style="color:#888;font-size:12px">You bookmarked this show. Manage reminders in the PullBidLive app.</p>`,
         });
         if ((r as any)?.ok) emailCount++;

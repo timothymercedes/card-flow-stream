@@ -84,7 +84,10 @@ export const propagateIdentityPrice = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    // Cross-owner price propagation is a privileged, admin-only operation.
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     const { identityId, marketPrice, source, verified } = data;
     if (marketPrice <= 0) return { updated: 0 };
 

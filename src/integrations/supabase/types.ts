@@ -3503,6 +3503,7 @@ export type Database = {
           listing_type: string
           max_collab_count: number
           min_bid_increment: number
+          minutes_credited: number
           mode: string
           pause_message: string | null
           pause_started_at: string | null
@@ -3611,6 +3612,7 @@ export type Database = {
           listing_type?: string
           max_collab_count?: number
           min_bid_increment?: number
+          minutes_credited?: number
           mode?: string
           pause_message?: string | null
           pause_started_at?: string | null
@@ -3719,6 +3721,7 @@ export type Database = {
           listing_type?: string
           max_collab_count?: number
           min_bid_increment?: number
+          minutes_credited?: number
           mode?: string
           pause_message?: string | null
           pause_started_at?: string | null
@@ -8963,6 +8966,23 @@ export type Database = {
           xp: number
         }[]
       }
+      claim_reward_for: {
+        Args: {
+          _context_key?: string
+          _context_label?: string
+          _def_slug: string
+          _user_id: string
+        }
+        Returns: {
+          badge_slug: string
+          credits: number
+          description: string
+          granted: boolean
+          new_balance: number
+          title: string
+          xp: number
+        }[]
+      }
       clear_hold_admin: {
         Args: { _hold_id: string; _notes?: string; _override?: boolean }
         Returns: {
@@ -9490,6 +9510,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_reward_progress_for: {
+        Args: {
+          _context_key?: string
+          _context_label?: string
+          _def_slug: string
+          _progress: number
+          _target: number
+          _user_id: string
+        }
+        Returns: undefined
+      }
       record_shipping_adjustment: {
         Args: {
           _cost_cents: number
@@ -9514,6 +9545,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_stream_minutes: { Args: { _stream_id: string }; Returns: number }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
       refresh_seller_shipping_analytics: { Args: never; Returns: undefined }
       register_shipping_scan: {
