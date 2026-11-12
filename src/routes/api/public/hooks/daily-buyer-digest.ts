@@ -1,30 +1,11 @@
-import * as React from 'react'
-import { render } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
-import { supabaseAdmin } from '@/integrations/supabase/client.server'
+import { sendTemplateEmail } from '@/lib/email-templates/send-email'
+import { EmailAPIError } from '@lovable.dev/email-js'
 import { TEMPLATES } from '@/lib/email-templates/registry'
 import { requireCronSecret } from '@/lib/cron-auth.server'
 
-// Daily buyer order digest cron route.
-// POSTed by pg_cron once per day; for each buyer who placed orders in the last 24h,
-// renders the daily-orders-digest template and enqueues it via pgmq (transactional_emails).
-// Idempotent per (buyer, day) via idempotency_key.
-
-const SITE_NAME = 'Pull Bid Live'
-const SENDER_DOMAIN = 'notify.pullbidlive.com'
-const FROM_DOMAIN = 'pullbidlive.com'
-
-function redactEmail(email: string): string {
-  const [l, d] = email.split('@')
-  if (!l || !d) return '***'
-  return `${l[0]}***@${d}`
-}
-
-function generateToken(): string {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-}
+// Existing daily per-buyer order recap; managed delivery handles transport.
+// Idempotent per (buyer, day).
 
 function fmtCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`
@@ -52,12 +33,13 @@ export const Route = createFileRoute('/api/public/hooks/daily-buyer-digest')({
       GET: async () =>
         Response.json({
           ok: true,
-          hint: 'POST to run. ?dry=1 = preview without enqueueing. ?hours=24 sets window.',
+          hint: 'POST to run. ?dry=1 = preview without sending. ?hours=24 sets window.',
         }),
 
       POST: async ({ request }) => {
         const unauthorized = requireCronSecret(request)
         if (unauthorized) return unauthorized
+        const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
         const url = new URL(request.url)
         const dryRun = url.searchParams.get('dry') === '1'
         const sinceHours = Math.max(
@@ -121,17 +103,6 @@ export const Route = createFileRoute('/api/public/hooks/daily-buyer-digest')({
             continue
           }
 
-          // Suppression check
-          const { data: suppressed } = await supabaseAdmin
-            .from('suppressed_emails')
-            .select('id')
-            .eq('email', email.toLowerCase())
-            .maybeSingle()
-          if (suppressed) {
-            skipped.push(`${buyerId}:suppressed`)
-            continue
-          }
-
           const lines = buyerOrders.map((o) => ({
             orderNumber: o.order_number ?? o.id.slice(0, 8),
             title: o.title ?? 'Order',
@@ -153,90 +124,37 @@ export const Route = createFileRoute('/api/public/hooks/daily-buyer-digest')({
             orders: lines,
           }
 
-          const resolvedSubject =
-            typeof entry.subject === 'function' ? entry.subject(templateData) : entry.subject
-
           if (dryRun) {
             sent++
             continue
           }
 
-          // Render template
-          let html: string
-          let plainText: string
-          try {
-            const el = React.createElement(entry.component as any, templateData)
-            html = await render(el)
-            plainText = await render(el, { plainText: true })
-          } catch (e) {
-            console.error('[daily-digest] render failed', buyerId, e)
-            skipped.push(`${buyerId}:render_failed`)
-            continue
-          }
-
           const messageId = crypto.randomUUID()
           const idempotencyKey = `daily-digest-${buyerId}-${dayKey}`
-
-          // Create / reuse unsubscribe token (one per email address)
-          const lowerEmail = email.toLowerCase()
-          let unsubscribeToken: string | null = null
-          const { data: existingTok } = await supabaseAdmin
-            .from('email_unsubscribe_tokens')
-            .select('token')
-            .eq('email', lowerEmail)
-            .is('used_at', null)
-            .maybeSingle()
-          if (existingTok?.token) {
-            unsubscribeToken = existingTok.token
-          } else {
-            const newTok = generateToken()
-            const { error: tokErr } = await supabaseAdmin
-              .from('email_unsubscribe_tokens')
-              .insert({ email: lowerEmail, token: newTok })
-            if (!tokErr) unsubscribeToken = newTok
+          let status: 'sent' | 'suppressed' | 'failed' = 'failed'
+          let errorMessage: string | null = null
+          try {
+            let result
+            try {
+              result = await sendTemplateEmail('daily-orders-digest', email, { templateData, idempotencyKey })
+            } catch (error) {
+              if (!(error instanceof EmailAPIError) || error.status !== 429) throw error
+              await new Promise(resolve => setTimeout(resolve, (error.retryAfterSeconds ?? 60) * 1000))
+              result = await sendTemplateEmail('daily-orders-digest', email, { templateData, idempotencyKey })
+            }
+            status = result.sent ? 'sent' : 'suppressed'
+            if (result.sent) sent++
+            else skipped.push(`${buyerId}:suppressed`)
+          } catch (error) {
+            errorMessage = error instanceof Error ? error.message : 'send_failed'
+            skipped.push(`${buyerId}:send_error`)
           }
-
-          // Log pending
-          await supabaseAdmin.from('email_send_log').insert({
-            message_id: messageId,
-            template_name: 'daily-orders-digest',
-            recipient_email: email,
-            status: 'pending',
+          const { error: logError } = await supabaseAdmin.from('email_send_log').insert({
+            message_id: messageId, template_name: 'daily-orders-digest', recipient_email: email,
+            status, error_message: errorMessage,
           })
+          if (logError) console.error('[daily-digest] history write failed', { code: logError.code, message: logError.message })
 
-          // Enqueue
-          const { error: enqErr } = await supabaseAdmin.rpc('enqueue_email' as any, {
-            queue_name: 'transactional_emails',
-            payload: {
-              message_id: messageId,
-              to: email,
-              from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-              sender_domain: SENDER_DOMAIN,
-              subject: resolvedSubject,
-              html,
-              text: plainText,
-              purpose: 'transactional',
-              label: 'daily-orders-digest',
-              idempotency_key: idempotencyKey,
-              unsubscribe_token: unsubscribeToken,
-              queued_at: new Date().toISOString(),
-            },
-          } as any)
-
-          if (enqErr) {
-            console.error('[daily-digest] enqueue failed', buyerId, enqErr)
-            await supabaseAdmin.from('email_send_log').insert({
-              message_id: messageId,
-              template_name: 'daily-orders-digest',
-              recipient_email: email,
-              status: 'failed',
-              error_message: 'enqueue_failed',
-            })
-            skipped.push(`${buyerId}:enqueue_error`)
-            continue
-          }
-          sent++
-          console.log('[daily-digest] enqueued', redactEmail(email), 'orders=', buyerOrders.length)
         }
 
         return Response.json({
