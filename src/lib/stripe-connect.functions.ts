@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import { quoteTax } from "@/lib/tax/taxProvider.server";
 import { z } from "zod";
+import { mayPersistMarketplacePayment } from "./paymentConfirmation";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getOptionalUserIdFromRequest() {
@@ -200,7 +201,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("id, amount, shipping_amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at, title")
+      .select("id, amount, shipping_amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at, title, insurance_fee_cents, insurance_paid_by")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
@@ -347,8 +348,9 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
     // Tax flows on TOP of buyerTotal and into application_fee_amount so the
     // marketplace receives the collected tax (facilitator model). Seller
     // payout is unaffected.
-    const buyerChargeTotal = fees.buyerTotal + totalShippingCents + totalTaxCents;
-    const applicationFeeWithTax = fees.applicationFee + totalShippingCents + totalTaxCents;
+    const insuranceCents = orderRows.reduce((sum, order) => sum + (order.insurance_paid_by === "buyer" ? order.insurance_fee_cents : 0), 0);
+    const buyerChargeTotal = fees.buyerTotal + totalShippingCents + totalTaxCents + insuranceCents;
+    const applicationFeeWithTax = fees.applicationFee + totalShippingCents + totalTaxCents + insuranceCents;
 
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${buyerChargeTotal}`;
@@ -403,7 +405,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
     // so the webhook can reconcile and payout dashboards stay accurate.
     const taxByOrder = new Map(orderTaxQuotes.map((t) => [t.orderId, t.quote]));
     const liveParts = (fees as any).liveParts as Array<any> | undefined;
-    if (data.environment === "live" && isLiveCheckout && liveParts?.length) {
+    if (mayPersistMarketplacePayment(data.environment) && isLiveCheckout && liveParts?.length) {
       await Promise.all(liveParts.map((part) => {
         const tq = taxByOrder.get(part.orderId);
         return supabaseAdmin.from("orders").update({
@@ -436,7 +438,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
           },
         }).eq("id", part.orderId);
       }));
-    } else if (data.environment === "live") {
+    } else if (mayPersistMarketplacePayment(data.environment)) {
       // Persist per-order tax even on non-live grouped checkouts.
       await Promise.all((orderRows as any[]).map((o) => {
         const tq = taxByOrder.get(o.id);
