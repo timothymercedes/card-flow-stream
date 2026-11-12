@@ -115,7 +115,8 @@ export const syncCompanions = createServerFn({ method: "POST" })
     });
 
     if (toCreate.length > 0) {
-      const { error: insErr } = await supabase.from("arena_companions").insert(toCreate);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error: insErr } = await supabaseAdmin.from("arena_companions").insert(toCreate);
       if (insErr) throw new Error(insErr.message);
     }
     return { created: toCreate.length };
@@ -352,7 +353,8 @@ export const awardCompanionXp = createServerFn({ method: "POST" })
       .from("arena_companions").select("id, xp").eq("id", data.companionId).eq("user_id", userId).maybeSingle();
     if (error || !c) throw new Error("Companion not found");
     const newXp = (c as any).xp + amt;
-    const { error: upErr } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upErr } = await supabaseAdmin
       .from("arena_companions").update({ xp: newXp, level: companionLevel(newXp) })
       .eq("id", data.companionId).eq("user_id", userId);
     if (upErr) throw new Error(upErr.message);
@@ -1033,7 +1035,8 @@ export const setCompanionVisual = createServerFn({ method: "POST" })
     const cosmetics = { ...((row.cosmetics as Record<string, any>) || {}) };
     cosmetics.visual_mode = data.mode;
     cosmetics.custom = data.custom;
-    const { error } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("arena_companions").update({ cosmetics })
       .eq("id", data.companionId).eq("user_id", userId);
     if (error) throw new Error(error.message);
