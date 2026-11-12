@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Inspect Model A Stripe Connect Separate Charges and Transfers, seller accounting, delivery verification, and account limitations; present a migration plan only. Production payment flow must remain unchanged until separately approved.
+
 - [ ] Resolve Stripe Connect test setup: on 2026-11-12, user-approved sandbox-only Express seller creation returned Stripe HTTP 400: Connect signup required. Follow-up account list is empty; no seller was created. No available Stripe MCP provides activation, and CLI credentials are not available through managed gateway connections. User must activate Connect in the existing Stripe test environment, then retry isolated seller creation. Do not switch to BYOK, replace connections, or change the live seller account.
 
 - [x] Fixed preview payout safety: withdrawal handler and live Connect setup/sync/dashboard changes reject before side effects; retained legacy webhook processor ignores all non-live events. Preview withdrawal regression passed without creating requests or changing balances.
