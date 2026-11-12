@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { escapeHtml } from "@/lib/escapeHtml";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -92,7 +93,7 @@ export const notifyGoingLive = createServerFn({ method: "POST" })
           const r = await sendEmail({
             to: u.email,
             subject: `🔴 ${sellerName} is live now on PullBidLive`,
-            html: `<p>${sellerName} just started: <strong>${body}</strong></p><p><a href="${link}">Tap to join the live show →</a></p><p style="color:#888;font-size:12px">You're receiving this because you bookmarked one of their shows. Manage your bookmarks in the app to stop these emails.</p>`,
+            html: `<p>${escapeHtml(sellerName)} just started: <strong>${escapeHtml(body)}</strong></p><p><a href="${escapeHtml(link)}">Tap to join the live show →</a></p><p style="color:#888;font-size:12px">You're receiving this because you bookmarked one of their shows. Manage your bookmarks in the app to stop these emails.</p>`,
           });
           if ((r as any)?.ok) emailsSent++;
         }));
