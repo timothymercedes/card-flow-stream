@@ -5,3 +5,5 @@
 - Use optional search schemas for optional navigation filters so existing links need no invented search values.
 - Store single-use passkey challenges in a service-only database table bound to origin, purpose, expiry, and registration owner; workers do not share memory.
 - Return web OAuth to the public origin and preserve the sanitized destination separately until the auth server validates the session.
+- Keep app email sends in their feature server handlers through the managed template helper; retained email tables are notification history, never send gates.
+- Deduplicate terminal email history by a deterministic event ID so signed webhook retries remain safe without changing retained table schemas.

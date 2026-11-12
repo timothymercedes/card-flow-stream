@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Prepare managed email update: preserve auth templates, convert daily buyer digest, retain outcome history, remove legacy scaffold files, and verify without publishing.
+
 - [x] Real signup via the form returned HTTP 200 without a session, displayed Check your email, and the signup email was logged as sent to the user's Gmail test alias. The two older failures were placeholder-domain test addresses, not a sender outage; existing account unchanged.
 - [ ] Finish activation through the delivered Gmail confirmation link: awaiting the user's inbox click, then verify email_confirmed_at and sign-in. No confirmation bypass used.
 
