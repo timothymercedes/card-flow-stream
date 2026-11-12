@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Gift, Check, UserPlus, Loader2, Trophy } from "lucide-react";
@@ -34,6 +34,7 @@ type Props = {
 export function ViewerGiveawayJoin({
   streamId, sellerId, userId, username, isFollower, isBuyer, onFollowed, floating = false,
 }: Props) {
+  const subscriptionId = useId();
   const [g, setG] = useState<Giveaway | null>(null);
   const [entryCount, setEntryCount] = useState(0);
   const [hasEntered, setHasEntered] = useState(false);
@@ -66,7 +67,7 @@ export function ViewerGiveawayJoin({
     }
     load();
     const ch = supabase
-      .channel(`viewer-giveaway-${streamId}`)
+      .channel(`viewer-giveaway-${streamId}-${subscriptionId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "giveaways", filter: `stream_id=eq.${streamId}` }, (p) => {
         const next = (p.new as any) || (p.old as any) || null;
         setG(next);
