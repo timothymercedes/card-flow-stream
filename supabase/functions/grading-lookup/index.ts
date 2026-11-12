@@ -92,6 +92,10 @@ Deno.serve(async (req) => {
 
     if (vault_card_id) {
       const admin = createClient(SUPABASE_URL, SR, { auth: { persistSession: false } });
+      const { data: owned } = await admin.from("vault_cards").select("id").eq("id", vault_card_id).eq("user_id", u.user.id).maybeSingle();
+      if (!owned) {
+        return new Response(JSON.stringify({ error: "Card not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
+      }
       await admin.from("graded_cards").upsert({
         vault_card_id, user_id: u.user.id,
         grader, cert_number: cert, grade: result.grade,
