@@ -1,5 +1,7 @@
 # Security hardening proposal — review only
 
+November 12 update: `security-completion-spec.md` specifies the complete coupled table, RPC, trigger and server-caller release scope for the expanded marketplace. This does not make the existing SQL release-ready; executable table/caller patches and isolated validation await approval.
+
 **Nothing applied.** The SQL candidate is outside migration folders. SQL syntax was parsed locally; all PL/pgSQL declarations parsed, but privileges, table resolution and marketplace compatibility have NOT been verified against an isolated database. Do not apply it alone.
 
 ## Priority 0 — prevent unauthorised authority
