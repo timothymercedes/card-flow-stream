@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Verify signup confirmation delivery to the user's Gmail test alias, then activation through the delivered link; preserve the existing confirmed account.
+
 - [x] Fresh password sign-in passed with a disposable confirmed account; signup submitted through the form, created a real unconfirmed account, and correctly showed the confirmation screen without a session. Test accounts were removed.
 - [x] Passkey registration and full sign-in passed with Chromium's virtual authenticator; challenges now persist across workers, expire after five minutes, and are consumed once. Real Face ID/Touch ID hardware remains untested.
 - [x] Google and Apple reach their real account prompts on primary, published, and preview domains. Fixed web OAuth return to the public origin and preserved the intended destination until session validation.
