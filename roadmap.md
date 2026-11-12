@@ -1,6 +1,6 @@
 # Current work
 
-- [ ] Resolve Stripe Connect test setup using the existing managed test account; never replace the live integration or enable real withdrawals.
+- [ ] Resolve Stripe Connect test setup: managed test account verified as acct_1TTHMDCqPFhfPudT; standard account with no capabilities. Go-live is complete but does not enable test Connect. Available managed tools/CLI have no platform-activation action and no Stripe MCP is available. User must open this existing test environment in Stripe and complete Connect platform setup; then recheck test account creation before implementing isolated payout simulation. Do not switch to BYOK, replace connections, or change the live seller account.
 
 - [x] Fixed preview payout safety: withdrawal handler and live Connect setup/sync/dashboard changes reject before side effects; retained legacy webhook processor ignores all non-live events. Preview withdrawal regression passed without creating requests or changing balances.
 - [x] Added scripts/marketplace-payment-e2e.py and ran real sandbox cart decline and success. Both verified Stripe intents and charges, signed notification retries, full unchanged order rows, unchanged seller balances/requests, and no Stripe transfers/payouts. Orders remained visible as unpaid; all temporary rows removed. All 36 unit tests pass; compilation OK.
