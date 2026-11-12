@@ -327,8 +327,25 @@ async function estimatePriceWithAI(q: {
   }
 }
 
+// Only signed-in users or trusted server jobs (service key) may use paid pricing lookups.
+async function isAuthorizedCaller(req: Request): Promise<boolean> {
+  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) return false;
+  const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (svc && token === svc) return true;
+  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false },
+  });
+  const { data, error } = await sb.auth.getUser(token);
+  return !error && !!data?.user;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (!(await isAuthorizedCaller(req))) {
+    return new Response(JSON.stringify({ error: "Sign in required" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
   const t0 = Date.now();
   try {
     const body = await req.json().catch(() => ({}));
