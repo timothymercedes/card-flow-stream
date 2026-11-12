@@ -84,6 +84,7 @@ import { Route as AdminIdentityIdRouteImport } from './routes/admin.identity.$id
 import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
@@ -482,6 +483,11 @@ const JoinCamStreamIdTokenRoute = JoinCamStreamIdTokenRouteImport.update({
   path: '/join-cam/$streamId/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   id: '/lovable/email/suppression',
   path: '/lovable/email/suppression',
@@ -662,6 +668,7 @@ export interface FileRoutesByFullPath {
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
@@ -755,6 +762,7 @@ export interface FileRoutesByTo {
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
@@ -851,6 +859,7 @@ export interface FileRoutesById {
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
@@ -948,6 +957,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
@@ -1041,6 +1051,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
@@ -1136,6 +1147,7 @@ export interface FileRouteTypes {
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
     | '/join-cam/$streamId/$token'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/shows/$id/edit'
     | '/api/public/hooks/daily-buyer-digest'
@@ -1220,6 +1232,7 @@ export interface RootRouteChildren {
   ApiPublicBetaRequestRoute: typeof ApiPublicBetaRequestRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
@@ -1766,6 +1779,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JoinCamStreamIdTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/suppression': {
       id: '/lovable/email/suppression'
       path: '/lovable/email/suppression'
@@ -2030,6 +2050,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBetaRequestRoute: ApiPublicBetaRequestRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
