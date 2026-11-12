@@ -6,6 +6,8 @@
 
 **November 12 scope update:** PullBid Live is a multi-category physical-goods hybrid marketplace, not a card-only business. See `marketplace-compliance.md`, `security-completion-spec.md`, and `ledger-implementation-spec.md` for the updated business description, complete coupled implementation scope and acceptance gates. These are review specifications, not implemented or runtime-tested patches; existing SQL drafts remain incomplete and must not be applied alone.
 
+**Subsequent approved preparation:** see `validation-update.md`. Added undeployed table-protection and sealed-journal posting candidates; 15 policy tests and 12 existing payment tests passed, and local synthetic journal tests passed. Corrected a runtime record-field issue in the accounting draft. Complete server-caller/root adaptations remain outstanding; nothing is deployment-ready or applied to the project database.
+
 ### P0 — authorization and evidence
 - [x] Inventory all 261 public functions, including all 204 SECURITY DEFINER definitions, grants and hashes; identify 25 high-priority financial/delivery cases.
 - [x] Prepare bounded grant/authorization SQL proposal and companion table/caller hardening requirements.
