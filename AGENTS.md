@@ -7,3 +7,5 @@
 - Return web OAuth to the public origin and preserve the sanitized destination separately until the auth server validates the session.
 - Keep app email sends in their feature server handlers through the managed template helper; retained email tables are notification history, never send gates.
 - Deduplicate terminal email history by a deterministic event ID so signed webhook retries remain safe without changing retained table schemas.
+- Managed Stripe notifications use /api/public/payments/webhook with signed environment selection; sandbox notifications never mutate shared production orders.
+- Checkout verification uses admin-gated embedded sandbox sessions and server-verified account ownership on the return page; never infer payment success from URL flags.
