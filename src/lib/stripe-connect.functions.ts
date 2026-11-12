@@ -5,6 +5,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
 import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import { quoteTax } from "@/lib/tax/taxProvider.server";
+import { z } from "zod";
+import { mayPersistMarketplacePayment } from "./paymentConfirmation";
 import type { Database } from "@/integrations/supabase/types";
 
 async function getOptionalUserIdFromRequest() {
@@ -163,19 +165,27 @@ export const getMyConnectStatus = createServerFn({ method: "GET" }).handler(asyn
  * Create a marketplace PaymentIntent for a buyer purchasing from a seller.
  * Splits Stripe processing fees ~50/50 via a buyer service fee, takes 5% platform fee.
  */
-export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
+export const createMarketplaceCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sellerId: string; subtotalCents?: number; orderId?: string; orderIds?: string[] }) => {
-    if (!data.sellerId) throw new Error("sellerId required");
-    return data;
-  })
+  .inputValidator((input: unknown) => z.object({
+    sellerId: z.string().uuid(), orderId: z.string().uuid().optional(),
+    orderIds: z.array(z.string().uuid()).min(1).max(50).optional(),
+    subtotalCents: z.number().int().nonnegative().optional(),
+    environment: z.enum(["sandbox", "live"]), returnUrl: z.string().url(),
+  }).parse(input))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    const stripe = getStripe();
+    const { createStripeClient, getStripeErrorMessage } = await import("@/lib/stripe.server");
+    try {
+    if (import.meta.env.DEV && data.environment !== "sandbox") throw new Error("Only Stripe test mode is allowed in preview");
+    const stripe = createStripeClient(data.environment);
+    const returnUrl = new URL(data.returnUrl);
+    const requestOrigin = new URL(getRequest().url).origin;
+    if (returnUrl.origin !== requestOrigin || returnUrl.pathname !== "/checkout/return") throw new Error("Invalid payment return address");
 
     const { data: sellerAcct } = await supabaseAdmin
       .from("stripe_accounts")
-      .select("stripe_account_id, charges_enabled")
+      .select("stripe_account_id, charges_enabled, country")
       .eq("seller_id", data.sellerId)
       .maybeSingle();
 
@@ -186,12 +196,13 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     const orderIds = data.orderIds && data.orderIds.length > 0
       ? data.orderIds
       : (data.orderId ? [data.orderId] : []);
+    if (new Set(orderIds).size !== orderIds.length) throw new Error("Duplicate orders");
     if (orderIds.length === 0) throw new Error("No orders to pay");
 
     // Authoritative: fetch the buyer's unpaid orders for this seller from DB.
     const { data: orderRows, error: orderErr } = await supabaseAdmin
       .from("orders")
-      .select("id, amount, shipping_amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at")
+      .select("id, amount, shipping_amount, buyer_id, seller_id, payment_status, listing_id, stream_id, commission_rate, created_at, title, insurance_fee_cents, insurance_paid_by")
       .in("id", orderIds);
     if (orderErr) throw new Error(orderErr.message);
     if (!orderRows || orderRows.length !== orderIds.length) {
@@ -223,6 +234,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         "buyer_can_purchase",
         { _user_id: userId, _amount_cents: orderTotalCents },
       );
+      if (canBuy == null) throw new Error("Unable to verify purchasing permissions");
       if (canBuy === false) {
         throw new Error("Your account is currently restricted from making purchases. Contact support.");
       }
@@ -337,18 +349,30 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     // Tax flows on TOP of buyerTotal and into application_fee_amount so the
     // marketplace receives the collected tax (facilitator model). Seller
     // payout is unaffected.
-    const buyerChargeTotal = fees.buyerTotal + totalShippingCents + totalTaxCents;
-    const applicationFeeWithTax = fees.applicationFee + totalShippingCents + totalTaxCents;
+    const insuranceCents = orderRows.reduce((sum, order) => sum + (order.insurance_paid_by === "buyer" ? order.insurance_fee_cents : 0), 0);
+    const buyerChargeTotal = fees.buyerTotal + totalShippingCents + totalTaxCents + insuranceCents;
+    const applicationFeeWithTax = fees.applicationFee + totalShippingCents + totalTaxCents + insuranceCents;
 
     // Idempotency key bound to (buyer, sorted order ids, amount) — safe to retry.
     const idemKey = `pi:${userId}:${[...orderIds].sort().join(",")}:${buyerChargeTotal}`;
 
-    const intent = await stripe.paymentIntents.create({
-      amount: buyerChargeTotal,
-      currency: "usd",
-      automatic_payment_methods: { enabled: true },
-      application_fee_amount: applicationFeeWithTax,
-      transfer_data: { destination: (sellerAcct as any).stripe_account_id },
+    const found = await stripe.customers.search({ query: `metadata['userId']:'${userId}'`, limit: 1 });
+    let customer: import("stripe").default.Customer | undefined = found.data[0];
+    if (!customer) {
+      const { data: userInfo } = await context.supabase.auth.getUser();
+      const email = userInfo.user?.email;
+      const matches = email ? await stripe.customers.list({ email, limit: 1 }) : null;
+      customer = matches?.data[0];
+      if (customer) customer = await stripe.customers.update(customer.id, { metadata: { ...customer.metadata, userId } });
+      else customer = await stripe.customers.create({ ...(email && { email }), metadata: { userId } });
+    }
+    const session = await stripe.checkout.sessions.create({
+      ui_mode: "embedded_page", mode: "payment", customer: customer.id,
+      return_url: data.returnUrl,
+      line_items: [{ price_data: { currency: "usd", product_data: { name: orderRows.map(o => o.title).join(", ").slice(0, 250) }, unit_amount: buyerChargeTotal }, quantity: 1 }],
+      payment_intent_data: {
+        description: orderRows.map(o => o.title).join(", ").slice(0, 250),
+        ...(data.environment === "live" ? { application_fee_amount: applicationFeeWithTax, transfer_data: { destination: (sellerAcct as any).stripe_account_id } } : {}),
       metadata: {
         buyer_id: userId,
         seller_id: data.sellerId,
@@ -373,17 +397,20 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
         tax_provider: orderTaxQuotes[0]?.quote.provider ?? "state_table",
         tax_jurisdiction: orderTaxQuotes[0]?.quote.jurisdiction ?? "",
       },
-    }, { idempotencyKey: idemKey });
+      },
+      metadata: { userId, buyer_id: userId, order_ids: orderIds.join(","), verification_only: String(data.environment === "sandbox") },
+    }, { idempotencyKey: `checkout:${data.environment}:${idemKey}` });
+    const intentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
 
     // Stamp the PI + computed commission/payout on every order in this group
     // so the webhook can reconcile and payout dashboards stay accurate.
     const taxByOrder = new Map(orderTaxQuotes.map((t) => [t.orderId, t.quote]));
     const liveParts = (fees as any).liveParts as Array<any> | undefined;
-    if (isLiveCheckout && liveParts?.length) {
+    if (mayPersistMarketplacePayment(data.environment) && isLiveCheckout && liveParts?.length) {
       await Promise.all(liveParts.map((part) => {
         const tq = taxByOrder.get(part.orderId);
         return supabaseAdmin.from("orders").update({
-          stripe_payment_intent_id: intent.id,
+          stripe_payment_intent_id: intentId,
           seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
           idempotency_key: idemKey,
           commission_rate: part.fees.commissionRate,
@@ -412,7 +439,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
           },
         }).eq("id", part.orderId);
       }));
-    } else {
+    } else if (mayPersistMarketplacePayment(data.environment)) {
       // Persist per-order tax even on non-live grouped checkouts.
       await Promise.all((orderRows as any[]).map((o) => {
         const tq = taxByOrder.get(o.id);
@@ -424,7 +451,7 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
           commissionRate: Number(o.commission_rate ?? fees.commissionRate),
         });
         return supabaseAdmin.from("orders").update({
-          stripe_payment_intent_id: intent.id,
+          stripe_payment_intent_id: intentId,
           seller_stripe_account_id: (sellerAcct as any).stripe_account_id,
           idempotency_key: idemKey,
           commission_rate: orderFees.commissionRate,
@@ -456,14 +483,16 @@ export const createMarketplacePaymentIntent = createServerFn({ method: "POST" })
     }
 
     return {
-      clientSecret: intent.client_secret,
-      paymentIntentId: intent.id,
+      clientSecret: session.client_secret,
+      sessionId: session.id,
+      test: data.environment === "sandbox",
       ...fees,
       taxCents: totalTaxCents,
       taxableSubtotalCents: totalTaxableCents,
       buyerTotal: buyerChargeTotal,
       applicationFee: applicationFeeWithTax,
     };
+    } catch (error) { return { error: getStripeErrorMessage(error) }; }
   });
 
 /**

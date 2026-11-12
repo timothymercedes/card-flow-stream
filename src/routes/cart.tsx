@@ -17,7 +17,11 @@ import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { calculateTaxCents, salesTaxRate } from "@/lib/salesTax";
 import { BUYER_PLATFORM_FEE_CENTS, INTL_PROCESSING_FEE_RATE } from "@/lib/marketplaceFeeRates";
 
-export const Route = createFileRoute("/cart")({ component: Cart });
+export const Route = createFileRoute("/cart")({ component: Cart, head: () => ({ meta: [
+  { title: "Your cart — PullBid Live" }, { name: "description", content: "Review and securely pay for your PullBid Live collectible orders." },
+  { property: "og:title", content: "Your cart — PullBid Live" }, { property: "og:description", content: "Your collectible orders and secure checkout." },
+  { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+] }) });
 
 function Cart() {
   const router = useRouter();

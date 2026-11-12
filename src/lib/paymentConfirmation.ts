@@ -7,3 +7,7 @@ export function paymentEnvironment(token: string | undefined): "sandbox" | "live
   if (token?.startsWith("pk_live_")) return "live";
   throw new Error("Complete Stripe go-live before accepting payments.");
 }
+
+export function mayPersistMarketplacePayment(environment: "sandbox" | "live"): boolean {
+  return environment === "live";
+}
