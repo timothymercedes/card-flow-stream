@@ -38,7 +38,7 @@ export function ProductCard({ p }: { p: BazaarProductRow }) {
   const price = lowestPriceCents(variants);
   const stock = variants.filter((v) => v.is_active).reduce((n, v) => n + v.quantity, 0);
   return (
-    <div className="overflow-hidden rounded-2xl bg-card ring-1 ring-border">
+    <Link to="/bazaar/products/$id" params={{ id: p.id }} className="block overflow-hidden rounded-2xl bg-card ring-1 ring-border transition hover:ring-primary/50">
       <div className="aspect-square bg-muted">
         {p.images[0] ? <BazaarImage src={p.images[0]} alt={p.title} loading="lazy" className="h-full w-full object-cover" /> : null}
       </div>
@@ -49,6 +49,6 @@ export function ProductCard({ p }: { p: BazaarProductRow }) {
           {variants.length > 1 ? `${variants.length} options · ` : ""}{stock > 0 ? `${stock} in stock` : "Out of stock"}
         </p>
       </div>
-    </div>
+    </Link>
   );
 }

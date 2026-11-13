@@ -20,3 +20,4 @@
 - Dedicated department shopping URLs use shared configuration and public projection reads, not separate inventories; category keys and collectible subcategories remain distinct.
 - Router factories own the per-request QueryClient and SSR query hydration, and the root uses that client; this keeps loader priming and component subscriptions consistent without cross-user caches.
 - PB Bazaar uses its own store/product/variant tables with database-enforced store review; never reuse Marketplace listings or PB Store products, so retail inventory and permissions stay isolated.
+- Bazaar shopping detail/cart reads use an anonymous safe-column server projection regardless of staff sessions; browser-local cart stores only identifiers, quantities and last-seen prices, so private catalogs and existing payment records stay isolated until account/order schema approval.
