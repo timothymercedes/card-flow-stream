@@ -9,6 +9,8 @@ const CardScanner = lazy(() =>
 import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
+import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
+import { validateProductDetails, type ProductDetails } from "@/lib/marketplaceDepartments";
 import { validateListingImage } from "@/lib/listingDisplay";
 import { toast } from "sonner";
 import {
@@ -53,7 +55,7 @@ import {
   type StudioCameraHandoff,
 } from "@/lib/studioCameraHandoff";
 
-export const Route = createFileRoute("/sell")({ component: Sell });
+export const Route = createFileRoute("/sell")({ component: Sell, head: () => ({ meta: [{ title: "Sell products — PullBid Live" }, { name: "description", content: "List products and collectibles on PullBid Live." }, { property: "og:title", content: "Sell products — PullBid Live" }, { property: "og:description", content: "List products and collectibles on PullBid Live." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }) });
 
 type Condition = "NM" | "LP" | "MP" | "Damaged";
 type ConditionPrices = { NM?: number; LP?: number; MP?: number; Damaged?: number };
@@ -140,6 +142,8 @@ function Sell() {
   const [weightOz, setWeightOz] = useState<string>("4");
   const [showShipAdvanced, setShowShipAdvanced] = useState(false);
   const [category, setCategory] = useState<string>("pokemon");
+  const [department, setDepartment] = useState("collectibles");
+  const [productDetails, setProductDetails] = useState<ProductDetails>({});
 
   // Load seller status
   useEffect(() => {
@@ -198,12 +202,12 @@ function Sell() {
 
   // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
   useEffect(() => {
-    if (!condPrices) return;
+    if (department !== "collectibles" || !condPrices) return;
     const base = Number(condPrices.NM) || 0;
     if (!base) return;
     setBuyNowPrice(String(priceFor(condition, base, condPrices)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [condition, condPrices]);
+  }, [condition, condPrices, department]);
 
   const gateSellerStatus = tutorial ? "approved" : sellerStatus;
   const gateStripeReady = tutorial ? true : stripeReady;
@@ -289,6 +293,7 @@ function Sell() {
   }
 
   async function startLive() {
+    if (!user) return toast.error("Sign in to start a live show");
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
     const isScheduled = !!scheduledFor;
@@ -382,7 +387,7 @@ function Sell() {
     const { data, error } = await supabase
       .from("live_streams")
       .insert({
-        seller_id: user!.id,
+        seller_id: user.id,
         title: streamTitle,
         category: streamCategory || null,
         stream_type: "auction",
@@ -499,11 +504,15 @@ function Sell() {
   }
 
   async function createListing() {
+    if (!user) return toast.error("Sign in to create a listing");
+    const detailsError = validateProductDetails(productDetails);
+    if (detailsError) return toast.error(detailsError);
+    if (department !== "collectibles" && !productDetails.condition) return toast.error("Select a product condition");
     if (!title.trim()) return toast.error("Add a title");
     if (!desc.trim()) return toast.error("Add a description");
     const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
-    const backErr = validateListingImage(backImageUrl, { field: "Back photo" });
+    const backErr = department === "collectibles" || backImageUrl ? validateListingImage(backImageUrl, { field: "Back photo" }) : null;
     if (backErr) return toast.error(backErr);
     if (!category) return toast.error("Pick a category");
     if (!enableBuyNow && !enableAuction && !enableOffers)
@@ -521,14 +530,18 @@ function Sell() {
     const primary = enableAuction ? "auction" : enableBuyNow ? "buy_now" : "offer";
 
     const { error } = await supabase.from("listings").insert({
-      seller_id: user!.id,
+      seller_id: user.id,
       title,
       description: desc,
       image_url: imageUrl || null,
       back_image_url: backImageUrl || null,
-      tcg_number: tcgNumber.trim() || null,
+      tcg_number: department === "collectibles" ? tcgNumber.trim() || null : null,
+      tcg_set: department === "collectibles" ? tcgSet.trim() || null : null,
+      tcg_year: department === "collectibles" ? tcgYear.trim() || null : null,
+      department,
+      product_details: productDetails,
       category,
-      condition,
+      condition: department === "collectibles" ? condition : null,
       listing_type: primary,
       is_auction: enableAuction,
       accepts_offers: enableOffers,
@@ -779,7 +792,7 @@ function Sell() {
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
               />
-              <div className="grid grid-cols-3 gap-2">
+              {department === "collectibles" && <div className="grid grid-cols-3 gap-2">
                 <input
                   className="rounded-xl bg-input px-3 py-3 text-xs outline-none"
                   placeholder="Set"
@@ -798,34 +811,21 @@ function Sell() {
                   value={tcgNumber}
                   onChange={(e) => setTcgNumber(e.target.value)}
                 />
-              </div>
+              </div>}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <ListingPhotoCapture
                   value={imageUrl}
                   onChange={setImageUrl}
-                  label="Front photo * (camera only)"
+                  label={department === "collectibles" ? "Front photo * (camera only)" : "Product photo * (camera only)"}
                 />
                 <ListingPhotoCapture
                   value={backImageUrl}
                   onChange={setBackImageUrl}
-                  label="Back photo * (camera only)"
+                  label={department === "collectibles" ? "Back photo * (camera only)" : "Additional photo (optional)"}
                 />
               </div>
-              <label className="block">
-                <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Category *</p>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none"
-                >
-                  {LISTING_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.emoji} {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div>
+              <MarketplaceProductDetails department={department} category={category} details={productDetails} onChange={(d,c,details) => { setDepartment(d); setCategory(c); setProductDetails(details); }} />
+              {department === "collectibles" && <div>
                 <p className="mb-1 text-[11px] font-semibold text-muted-foreground">
                   Condition (required)
                 </p>
@@ -841,7 +841,7 @@ function Sell() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </div>}
 
               <div>
                 <p className="mb-2 text-xs font-semibold text-muted-foreground">

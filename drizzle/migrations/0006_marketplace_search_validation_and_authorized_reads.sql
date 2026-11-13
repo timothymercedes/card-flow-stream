@@ -1,0 +1,5 @@
+CREATE POLICY "Administrators retain listing inspection" ON public.listings FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'owner'));
+ALTER TABLE public.listings ADD CONSTRAINT listings_department_valid CHECK (department IS NULL OR department IN ('automotive','electronics','tools','collectibles','fashion','home','sports_outdoors','gaming','business','music'));
+ALTER TABLE public.listings ADD CONSTRAINT listings_product_details_size CHECK (octet_length(product_details::text)<=6000);
+ALTER TABLE public.listings ADD CONSTRAINT listings_product_numeric_details CHECK ((NOT(product_details ? 'mileage') OR product_details->>'mileage'='' OR product_details->>'mileage' ~ '^\d+$') AND (NOT(product_details ? 'year') OR product_details->>'year'='' OR product_details->>'year' ~ '^\d+$'));
+CREATE INDEX IF NOT EXISTS listings_product_search_idx ON public.listings USING gin (to_tsvector('simple',coalesce(title,'')||' '||coalesce(description,'')||' '||product_details::text));

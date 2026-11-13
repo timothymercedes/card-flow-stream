@@ -101,8 +101,8 @@ export function MarketQuickView({
             ) : (
               <span className="text-xs text-muted-foreground">—</span>
             )}
-            {listing.condition && (
-              <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{listing.condition}</span>
+            {(listing.product_details?.condition || listing.condition) && (
+              <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{listing.product_details?.condition || listing.condition}</span>
             )}
           </div>
 

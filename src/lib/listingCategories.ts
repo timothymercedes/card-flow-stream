@@ -1,4 +1,5 @@
-// Shared category list for the marketplace. Add/remove as the catalog grows.
+import { MARKET_DEPARTMENTS } from './marketplaceDepartments';
+// Legacy collectible keys remain stable across scanner, Vault and live shows.
 export const LISTING_CATEGORIES = [
   { value: "pokemon", label: "Pokémon", emoji: "⚡" },
   { value: "one_piece", label: "One Piece", emoji: "🏴‍☠️" },
@@ -21,8 +22,8 @@ export const LISTING_CATEGORIES = [
 export type ListingCategory = (typeof LISTING_CATEGORIES)[number]["value"];
 
 export function categoryLabel(value: string | null | undefined) {
-  return LISTING_CATEGORIES.find((c) => c.value === value)?.label ?? null;
+  return LISTING_CATEGORIES.find((c) => c.value === value)?.label ?? MARKET_DEPARTMENTS.find(c => c.value === value)?.label ?? null;
 }
 export function categoryEmoji(value: string | null | undefined) {
-  return LISTING_CATEGORIES.find((c) => c.value === value)?.emoji ?? "✨";
+  return LISTING_CATEGORIES.find((c) => c.value === value)?.emoji ?? MARKET_DEPARTMENTS.find(c => c.value === value)?.emoji ?? "✨";
 }

@@ -3079,6 +3079,7 @@ export type Database = {
           current_bid: number | null
           custom_price: number | null
           custom_price_source: string | null
+          department: string | null
           description: string | null
           expires_at: string
           height_in: number | null
@@ -3101,6 +3102,7 @@ export type Database = {
           price_source_url: string | null
           price_updated_at: string | null
           pricing_details: Json
+          product_details: Json
           quantity: number
           recent_sales_avg: number | null
           reserve_price: number | null
@@ -3116,6 +3118,7 @@ export type Database = {
           title: string
           top_bidder_id: string | null
           vault_card_id: string | null
+          visibility: string
           weight_oz: number | null
           width_in: number | null
         }
@@ -3132,6 +3135,7 @@ export type Database = {
           current_bid?: number | null
           custom_price?: number | null
           custom_price_source?: string | null
+          department?: string | null
           description?: string | null
           expires_at?: string
           height_in?: number | null
@@ -3154,6 +3158,7 @@ export type Database = {
           price_source_url?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
+          product_details?: Json
           quantity?: number
           recent_sales_avg?: number | null
           reserve_price?: number | null
@@ -3169,6 +3174,7 @@ export type Database = {
           title: string
           top_bidder_id?: string | null
           vault_card_id?: string | null
+          visibility?: string
           weight_oz?: number | null
           width_in?: number | null
         }
@@ -3185,6 +3191,7 @@ export type Database = {
           current_bid?: number | null
           custom_price?: number | null
           custom_price_source?: string | null
+          department?: string | null
           description?: string | null
           expires_at?: string
           height_in?: number | null
@@ -3207,6 +3214,7 @@ export type Database = {
           price_source_url?: string | null
           price_updated_at?: string | null
           pricing_details?: Json
+          product_details?: Json
           quantity?: number
           recent_sales_avg?: number | null
           reserve_price?: number | null
@@ -3222,6 +3230,7 @@ export type Database = {
           title?: string
           top_bidder_id?: string | null
           vault_card_id?: string | null
+          visibility?: string
           weight_oz?: number | null
           width_in?: number | null
         }
@@ -9636,6 +9645,16 @@ export type Database = {
         }[]
       }
       run_platform_reconciliation: { Args: never; Returns: Json }
+      search_marketplace: {
+        Args: {
+          _department?: string
+          _filters?: Json
+          _limit?: number
+          _page?: number
+          _query?: string
+        }
+        Returns: Json
+      }
       search_public_profiles: {
         Args: { _limit?: number; _query: string }
         Returns: {
