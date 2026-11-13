@@ -40,6 +40,7 @@ const PRIMARY = [
   { to: "/", labelKey: "nav.home", icon: Home, mobile: true },
   { to: "/live", labelKey: "nav.live", icon: Radio, mobile: true },
   { to: "/market", labelKey: "nav.market", icon: Store, mobile: true },
+  { to: "/bazaar", labelKey: "nav.bazaar", icon: ShoppingBag, mobile: false },
   { to: "/vault", labelKey: "nav.vault", icon: Lock, mobile: true },
   { to: "/shop", labelKey: "nav.shop", icon: ShoppingBag, mobile: false },
   { to: "/feed", labelKey: "nav.feed", icon: Newspaper, mobile: false },
@@ -500,6 +501,7 @@ function PlatformSheet({
     {
       title: t("nav.explore", "Explore"),
       items: [
+        { to: "/bazaar", icon: ShoppingBag, label: t("nav.bazaar", "PB Bazaar") },
         { to: "/live", icon: Radio, label: t("nav.live", "Live") },
         { to: "/feed", icon: Newspaper, label: t("nav.feed", "Feed") },
         { to: "/messages", icon: MessageCircle, label: t("nav.chat", "Messages") },
