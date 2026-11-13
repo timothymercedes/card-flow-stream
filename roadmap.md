@@ -51,5 +51,5 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Review 49 open-read + 8 storage warnings (already dismissed earlier as intended-public; no active findings)
 
 - [x] PB Bazaar Phase 1: stores, applications, storefronts, /bazaar hub
-- [ ] PB Bazaar Phase 2: store dashboard (products, variants, photos), admin review screen
+- [x] PB Bazaar Phase 2: store dashboard (products, variants, photos, team), admin review screen
 - [ ] PB Bazaar Phase 3-4: product pages, cart and multi-store orders (payments need separate approval)
