@@ -4,7 +4,8 @@ import { useState } from "react";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { AppShell } from "@/components/AppShell";
-import { ShoppingBag, Store, Search, PlusCircle } from "lucide-react";
+import { ShoppingBag, ShoppingCart, Store, Search, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { BAZAAR_DEPARTMENTS, fetchActiveStores, fetchNewProducts } from "@/lib/bazaar";
 import { ProductCard, StoreCard, type BazaarProductRow, type BazaarStoreRow } from "@/components/bazaar/BazaarCards";
 
@@ -43,7 +44,7 @@ function BazaarHome() {
               <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">Shop verified stores & brands</h1>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">Independent businesses, official brands and PullBid retail — separate from the collector Marketplace.</p>
             </div>
-            <Link to="/bazaar/apply" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"><PlusCircle className="h-4 w-4" /> Open a store</Link>
+            <div className="flex flex-wrap gap-2"><Button asChild variant="outline"><Link to="/bazaar/cart"><ShoppingCart />Bazaar cart</Link></Button><Button asChild><Link to="/bazaar/apply"><PlusCircle />Open a store</Link></Button></div>
           </div>
           <label className="mt-4 flex items-center gap-2 rounded-xl bg-background px-3 py-2 ring-1 ring-border">
             <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
