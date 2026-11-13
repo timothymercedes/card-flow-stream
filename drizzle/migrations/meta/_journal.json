@@ -36,6 +36,13 @@
       "when": 1794526786857,
       "tag": "0004_public_upcoming_queue_projection",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794528210092,
+      "tag": "0005_marketplace_departments_and_public_search",
+      "breakpoints": true
     }
   ]
 }
