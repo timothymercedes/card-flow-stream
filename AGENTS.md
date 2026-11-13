@@ -18,4 +18,5 @@
 - Keep marketplace departments separate from legacy collectible category keys and store general attributes on shared listings; this preserves scanner/Vault compatibility and existing orders.
 - Public marketplace search uses a bounded safe-column projection shared by Marketplace, Discover and category shopping; this prevents seller-profile leakage and divergent publication rules.
 - Dedicated department shopping URLs use shared configuration and public projection reads, not separate inventories; category keys and collectible subcategories remain distinct.
-- Router factories own the per-request QueryClient and SSR query hydration, and the root uses that client; this keeps loader priming and component subscriptions consistent without cross-user caches.- PB Bazaar uses its own store/product/variant tables with database-enforced store review; never reuse Marketplace listings or PB Store products, so retail inventory and permissions stay isolated.
+- Router factories own the per-request QueryClient and SSR query hydration, and the root uses that client; this keeps loader priming and component subscriptions consistent without cross-user caches.
+- PB Bazaar uses its own store/product/variant tables with database-enforced store review; never reuse Marketplace listings or PB Store products, so retail inventory and permissions stay isolated.

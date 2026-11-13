@@ -64,6 +64,13 @@
       "when": 1794571685975,
       "tag": "0008_create_pb_bazaar_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794572174644,
+      "tag": "0009_bazaar_withdraw_application",
+      "breakpoints": true
     }
   ]
 }

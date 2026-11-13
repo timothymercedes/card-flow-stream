@@ -43,6 +43,7 @@ import { Route as VaultRouteImport } from './routes/vault'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
+import { Route as AdminBazaarRouteImport } from './routes/admin.bazaar'
 import { Route as AdminCheckoutTestRouteImport } from './routes/admin.checkout-test'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
 import { Route as AdminIdentityAuditRouteImport } from './routes/admin.identity-audit'
@@ -54,6 +55,7 @@ import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as BazaarIndexRouteImport } from './routes/bazaar.index'
 import { Route as BazaarApplyRouteImport } from './routes/bazaar.apply'
+import { Route as BazaarDashboardRouteImport } from './routes/bazaar.dashboard'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CollectionIndexRouteImport } from './routes/collection.index'
 import { Route as CollectionMissingRouteImport } from './routes/collection.missing'
@@ -279,6 +281,11 @@ const DotwellKnownAssetlinksDotjsonRoute =
     path: '/.well-known/assetlinks.json',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminBazaarRoute = AdminBazaarRouteImport.update({
+  id: '/bazaar',
+  path: '/bazaar',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCheckoutTestRoute = AdminCheckoutTestRouteImport.update({
   id: '/checkout-test',
   path: '/checkout-test',
@@ -332,6 +339,11 @@ const BazaarIndexRoute = BazaarIndexRouteImport.update({
 const BazaarApplyRoute = BazaarApplyRouteImport.update({
   id: '/bazaar/apply',
   path: '/bazaar/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BazaarDashboardRoute = BazaarDashboardRouteImport.update({
+  id: '/bazaar/dashboard',
+  path: '/bazaar/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
@@ -644,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
@@ -654,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
+  '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -741,6 +755,7 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
@@ -751,6 +766,7 @@ export interface FileRoutesByTo {
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
+  '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -841,6 +857,7 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
@@ -851,6 +868,7 @@ export interface FileRoutesById {
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
+  '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -942,6 +960,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/bazaar'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
@@ -952,6 +971,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/performance'
     | '/bazaar/apply'
+    | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1039,6 +1059,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/bazaar'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
@@ -1049,6 +1070,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/performance'
     | '/bazaar/apply'
+    | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1138,6 +1160,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/bazaar'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
@@ -1148,6 +1171,7 @@ export interface FileRouteTypes {
     | '/admin_/finance'
     | '/admin_/performance'
     | '/bazaar/apply'
+    | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1241,6 +1265,7 @@ export interface RootRouteChildren {
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   BazaarApplyRoute: typeof BazaarApplyRoute
+  BazaarDashboardRoute: typeof BazaarDashboardRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CommunitiesSlugRoute: typeof CommunitiesSlugRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
@@ -1529,6 +1554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotwellKnownAssetlinksDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/bazaar': {
+      id: '/admin/bazaar'
+      path: '/bazaar'
+      fullPath: '/admin/bazaar'
+      preLoaderRoute: typeof AdminBazaarRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/checkout-test': {
       id: '/admin/checkout-test'
       path: '/checkout-test'
@@ -1604,6 +1636,13 @@ declare module '@tanstack/react-router' {
       path: '/bazaar/apply'
       fullPath: '/bazaar/apply'
       preLoaderRoute: typeof BazaarApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bazaar/dashboard': {
+      id: '/bazaar/dashboard'
+      path: '/bazaar/dashboard'
+      fullPath: '/bazaar/dashboard'
+      preLoaderRoute: typeof BazaarDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout/return': {
@@ -1974,6 +2013,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBazaarRoute: typeof AdminBazaarRoute
   AdminCheckoutTestRoute: typeof AdminCheckoutTestRoute
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
   AdminIdentityAuditRoute: typeof AdminIdentityAuditRoute
@@ -1985,6 +2025,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBazaarRoute: AdminBazaarRoute,
   AdminCheckoutTestRoute: AdminCheckoutTestRoute,
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,
   AdminIdentityAuditRoute: AdminIdentityAuditRoute,
@@ -2084,6 +2125,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
   BazaarApplyRoute: BazaarApplyRoute,
+  BazaarDashboardRoute: BazaarDashboardRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CommunitiesSlugRoute: CommunitiesSlugRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,

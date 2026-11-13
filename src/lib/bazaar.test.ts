@@ -13,3 +13,17 @@ describe("bazaar helpers", () => {
     expect(lowestPriceCents([])).toBeNull();
   });
 });
+
+import { parseVariantOptions, dollarsToCents } from "./bazaar";
+describe("bazaar product inputs", () => {
+  it("parses option labels", () => {
+    expect(parseVariantOptions("Size: M, Color: Black")).toEqual({ Size: "M", Color: "Black" });
+    expect(parseVariantOptions("Large")).toEqual({ Option: "Large" });
+  });
+  it("converts prices to cents", () => {
+    expect(dollarsToCents("38")).toBe(3800);
+    expect(dollarsToCents("$19.99")).toBe(1999);
+    expect(dollarsToCents("-5")).toBeNull();
+    expect(dollarsToCents("1.999")).toBeNull();
+  });
+});

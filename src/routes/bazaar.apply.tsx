@@ -75,7 +75,7 @@ function ApplyPage() {
           <>
             {!!mine.data?.length && (
               <div className="rounded-2xl bg-card p-4 ring-1 ring-border">
-                <p className="mb-2 text-sm font-bold">Your stores</p>
+                <div className="mb-2 flex items-center justify-between"><p className="text-sm font-bold">Your stores</p><Link to="/bazaar/dashboard" className="text-sm font-semibold text-primary">Store dashboard</Link></div>
                 <ul className="space-y-2">{mine.data.map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="truncate">{s.name} <span className="text-muted-foreground">/{s.slug}</span></span>

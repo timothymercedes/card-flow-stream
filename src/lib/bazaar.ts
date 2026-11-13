@@ -55,3 +55,21 @@ export async function fetchStoreBySlug(slug: string) {
   if (pErr) throw pErr;
   return { store: data, products: products ?? [] };
 }
+
+/** Parse "Size: M, Color: Black" into { Size: "M", Color: "Black" }. Bare text becomes { Option: text }. */
+export function parseVariantOptions(label: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of label.split(",").map((p) => p.trim()).filter(Boolean)) {
+    const i = part.indexOf(":");
+    if (i > 0) out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+    else out.Option = part;
+  }
+  return out;
+}
+
+/** Convert a dollar string to whole cents; null when not a valid non-negative amount. */
+export function dollarsToCents(v: string): number | null {
+  const s = v.trim().replace(/^\$/, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+  return Math.round(Number(s) * 100);
+}
