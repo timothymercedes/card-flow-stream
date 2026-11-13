@@ -1,0 +1,2 @@
+CREATE POLICY "Owners withdraw unapproved stores" ON public.bazaar_stores FOR DELETE TO authenticated
+  USING ((owner_id = auth.uid() AND status IN ('draft','pending_review','rejected')) OR public.is_bazaar_admin(auth.uid()));
