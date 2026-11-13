@@ -1,5 +1,7 @@
 import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { QueryClient } from '@tanstack/react-query';
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query';
 
 function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
@@ -55,16 +57,18 @@ function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const getRouter = () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } } });
   const router = createRouter({
     routeTree,
-    context: {},
+    context: { queryClient },
     scrollRestoration: true,
     // Intent-based prefetch: hover / touchstart preloads the route + assets
     defaultPreload: "intent",
-    defaultPreloadStaleTime: 30_000,
+    defaultPreloadStaleTime: 0,
     defaultPreloadDelay: 50,
     defaultErrorComponent: DefaultErrorComponent,
   });
+  setupRouterSsrQueryIntegration({ router, queryClient, wrapQueryClient: false });
 
   return router;
 };
