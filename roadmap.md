@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Homepage department shopping and dedicated category pages: prepare placement/structure for approval, including Garden & Outdoors, category-scoped search, real activity sections and shared inventory; preview only, no publication or payment changes. Implementation awaits review of the plan.
+
 - [x] Approved marketplace additions implemented: ten department tabs plus All, paginated public search shared with Discover, department filters and URL state, general-product details in seller creation/edit, preserved legacy collectible keys/photos/condition fields. Additive listing fields and public/owner/admin read protections applied; payment/settlement code unchanged. Guest brand search/private exclusion/price filters/quick view and signed-in edit/readback passed using three temporary fixtures, removed afterward; mobile no overflow. 17 unit tests plus nine guest queue checks passed; compilation OK. Seller general-product fields and Discover/Vault/Live navigation checked. No fresh photo-upload creation, real auction, scanner capture or checkout executed; no app deployment.
 
 - [x] Visitor queue exposes only published upcoming item photos, titles, descriptions and starting prices through a safe read-only projection; guest sign-in prompt and unchanged signed-in access verified in-browser with temporary fixtures removed. Nine publication/privacy tests and twelve existing payment-safety tests passed. Fixed duplicate giveaway subscriptions blocking live-show rendering; payment and settlement code unchanged.
