@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
-import { Plus, Radio, Tag, Calendar, X } from "lucide-react";
+import { Plus, Radio, Tag, Calendar, X, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -72,6 +72,19 @@ export function SellMenu() {
                 <div className="min-w-0">
                   <p className="text-sm font-extrabold">Schedule Show</p>
                   <p className="text-[11px] text-white/85">Plan an upcoming live show with Pre-B items</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/bazaar/dashboard"
+                preload={false}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl bg-card p-3 text-left ring-1 ring-border"
+              >
+                <Store className="h-6 w-6 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold">Bazaar Store</p>
+                  <p className="text-[11px] text-muted-foreground">Open or manage your PB Bazaar store</p>
                 </div>
               </Link>
             </div>
