@@ -43,6 +43,7 @@ import { Route as VaultRouteImport } from './routes/vault'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
+import { Route as AdminBazaarRouteImport } from './routes/admin.bazaar'
 import { Route as AdminCheckoutTestRouteImport } from './routes/admin.checkout-test'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
 import { Route as AdminIdentityAuditRouteImport } from './routes/admin.identity-audit'
@@ -279,6 +280,11 @@ const DotwellKnownAssetlinksDotjsonRoute =
     path: '/.well-known/assetlinks.json',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminBazaarRoute = AdminBazaarRouteImport.update({
+  id: '/bazaar',
+  path: '/bazaar',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCheckoutTestRoute = AdminCheckoutTestRouteImport.update({
   id: '/checkout-test',
   path: '/checkout-test',
@@ -644,6 +650,7 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
@@ -741,6 +748,7 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
@@ -841,6 +849,7 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRoute
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
+  '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
   '/admin/identity-audit': typeof AdminIdentityAuditRoute
@@ -942,6 +951,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/bazaar'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
@@ -1039,6 +1049,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/bazaar'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
@@ -1138,6 +1149,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
+    | '/admin/bazaar'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
     | '/admin/identity-audit'
@@ -1528,6 +1540,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/.well-known/assetlinks.json'
       preLoaderRoute: typeof DotwellKnownAssetlinksDotjsonRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/bazaar': {
+      id: '/admin/bazaar'
+      path: '/bazaar'
+      fullPath: '/admin/bazaar'
+      preLoaderRoute: typeof AdminBazaarRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/checkout-test': {
       id: '/admin/checkout-test'
@@ -1974,6 +1993,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBazaarRoute: typeof AdminBazaarRoute
   AdminCheckoutTestRoute: typeof AdminCheckoutTestRoute
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
   AdminIdentityAuditRoute: typeof AdminIdentityAuditRoute
@@ -1985,6 +2005,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBazaarRoute: AdminBazaarRoute,
   AdminCheckoutTestRoute: AdminCheckoutTestRoute,
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,
   AdminIdentityAuditRoute: AdminIdentityAuditRoute,
