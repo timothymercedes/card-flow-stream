@@ -371,6 +371,11 @@ function Admin() {
                 <Fingerprint className="h-3.5 w-3.5" /> Identity Audit
               </Link>
             )}
+            {isAdmin && (
+              <Link to="/admin/bazaar" className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground ring-1 ring-border/60 active:scale-[0.98]">
+                <Store className="h-3.5 w-3.5" /> PB Bazaar
+              </Link>
+            )}
             <Link to="/admin/performance" className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-foreground shadow-[var(--shadow-primary)] active:scale-[0.98]">
               <Gauge className="h-3.5 w-3.5" /> Performance
             </Link>
