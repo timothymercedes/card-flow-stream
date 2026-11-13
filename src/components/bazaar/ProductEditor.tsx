@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,10 +44,10 @@ export function ProductEditor({ storeId, productId, open, onClose, onSaved }: { 
     const urls: string[] = [];
     for (const file of Array.from(files).slice(0, 10 - images.length)) {
       if (!file.type.startsWith("image/") || file.size > 8_000_000) { toast.error(`${file.name}: images up to 8MB only`); continue; }
-      const path = `${user.id}/bazaar/${storeId}/${crypto.randomUUID()}.${file.name.split(".").pop() || "jpg"}`;
-      const { error } = await supabase.storage.from("listing-images").upload(path, file, { contentType: file.type });
+      const path = `${storeId}/${user.id}/${crypto.randomUUID()}.${file.name.split(".").pop() || "jpg"}`;
+      const { error } = await supabase.storage.from("bazaar-media").upload(path, file, { contentType: file.type });
       if (error) { toast.error(error.message); continue; }
-      urls.push(supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl);
+      urls.push(path);
     }
     setImages((i) => [...i, ...urls]); setUploading(false);
   }
@@ -105,7 +106,7 @@ export function ProductEditor({ storeId, productId, open, onClose, onSaved }: { 
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {images.map((src, i) => (
                   <div key={src} className="relative overflow-hidden rounded-lg ring-1 ring-border">
-                    <img src={src} alt="" className="aspect-square w-full object-cover" />
+                    <BazaarImage src={src} alt="" className="aspect-square w-full object-cover" />
                     {i === 0 && <Star className="absolute left-1 top-1 h-4 w-4 fill-primary text-primary" aria-label="Main photo" />}
                     <div className="absolute inset-x-0 bottom-0 flex justify-between bg-background/80 p-0.5">
                       <button type="button" onClick={() => move(i, -1)} aria-label="Move left"><ArrowLeft className="h-3.5 w-3.5" /></button>

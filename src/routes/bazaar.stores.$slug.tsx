@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -42,11 +43,11 @@ function Storefront() {
             <div className="space-y-5">
               <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-border">
                 <div className="h-32 bg-gradient-to-r from-primary/30 to-muted sm:h-44">
-                  {store.cover_url && <img src={store.cover_url} alt="" className="h-full w-full object-cover" />}
+                  {store.cover_url && <BazaarImage src={store.cover_url} alt="" className="h-full w-full object-cover" />}
                 </div>
                 <div className="flex flex-wrap items-end gap-3 p-4">
                   <div className="-mt-12 flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-muted ring-4 ring-card">
-                    {store.logo_url ? <img src={store.logo_url} alt="" className="h-full w-full object-cover" /> : <Store className="h-8 w-8 text-muted-foreground" />}
+                    {store.logo_url ? <BazaarImage src={store.logo_url} alt="" className="h-full w-full object-cover" /> : <Store className="h-8 w-8 text-muted-foreground" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h1 className="text-2xl font-black">{store.name}</h1>
