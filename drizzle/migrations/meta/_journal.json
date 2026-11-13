@@ -85,6 +85,13 @@
       "when": 1794572731511,
       "tag": "0011_fix_bazaar_touch_and_guest_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794572789279,
+      "tag": "0012_scope_evidence_read_to_signed_in",
+      "breakpoints": true
     }
   ]
 }
