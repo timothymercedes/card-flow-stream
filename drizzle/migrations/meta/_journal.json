@@ -71,6 +71,13 @@
       "when": 1794572174644,
       "tag": "0009_bazaar_withdraw_application",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794572459800,
+      "tag": "0010_bazaar_private_media_and_stock",
+      "breakpoints": true
     }
   ]
 }
