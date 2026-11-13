@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate, useRouter } from '@tanstack/react-router';
 import { useSuspenseQuery, useQueryClient, useQueryErrorResetBoundary } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { zodValidator } from '@tanstack/zod-adapter';
 import { ArrowRight, Search, SlidersHorizontal, Radio, Tag, X } from 'lucide-react';
@@ -56,7 +56,7 @@ function CategoryShopping() {
   const {department:slug} = Route.useParams();
   const department = shoppingDepartment(slug);
   if (!department) return null;
-  return <DepartmentContent department={department}/>;
+  return <DepartmentContent key={department.value} department={department}/>;
 }
 
 function DepartmentContent({department}: {department:NonNullable<ReturnType<typeof shoppingDepartment>>}) {
@@ -67,6 +67,7 @@ function DepartmentContent({department}: {department:NonNullable<ReturnType<type
   const {data:overview} = useSuspenseQuery(categoryOverviewOptions(department.value));
   const [filtersOpen,setFiltersOpen] = useState(false);
   const [queryDraft,setQueryDraft] = useState(search.q ?? '');
+  useEffect(() => { setQueryDraft(search.q ?? ''); }, [search.q]);
   const update = (next:Partial<ShoppingSearch>) => navigate({search:prev=>({...prev,...next,page:next.page ?? 1}),resetScroll:false});
   const filters = search.filters ?? {};
   const page = Math.max(1,Math.floor(search.page ?? 1));
@@ -98,7 +99,7 @@ function DepartmentContent({department}: {department:NonNullable<ReturnType<type
           <Link to="/market" search={{q:queryDraft,department:'all'}} className="text-xs font-semibold text-primary">Global search</Link>
         </div>
         <nav aria-label="Subcategories" className="mt-3 flex gap-1 overflow-x-auto pb-1"><Link to="/marketplace/$department" params={{department:department.slug}} search={prev=>({...prev,subcategory:undefined,page:1})} resetScroll={false} className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-primary">All {department.label}</Link>{department.subcategories.map(s=><Link key={s.value} to="/marketplace/$department" params={{department:department.slug}} search={prev=>({...prev,subcategory:s.value,page:1})} resetScroll={false} className={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold ${search.subcategory===s.value?'bg-primary text-primary-foreground':'bg-muted text-muted-foreground'}`}>{s.label}</Link>)}</nav>
-        {department.value==='collectibles' && <div className="mt-3 flex flex-wrap gap-4 text-xs font-semibold text-primary"><Link to="/scan">Card scanner</Link><Link to="/vault">My Vault</Link><Link to="/collection">Collection books</Link></div>}
+        {department.value==='collectibles' && <div className="mt-3 flex flex-wrap gap-4 text-xs font-semibold text-primary"><Link to="/vault">Vault & card scanner</Link><Link to="/collection">Collection books</Link></div>}
       </header>
       {!active && <>
         <ProductSection title="Trending products · active bidding" items={overview.trending.items}/>
