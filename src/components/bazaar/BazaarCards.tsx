@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { BadgeCheck, Store } from "lucide-react";
 import { STORE_TYPE_LABEL, formatCents, lowestPriceCents, type BazaarStoreType } from "@/lib/bazaar";
 
@@ -20,7 +21,7 @@ export function StoreCard({ s }: { s: BazaarStoreRow }) {
     <Link to="/bazaar/stores/$slug" params={{ slug: s.slug }} className="flex w-56 shrink-0 flex-col gap-2 rounded-2xl bg-card p-3 ring-1 ring-border transition hover:ring-primary/50">
       <div className="flex items-center gap-2">
         <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-muted">
-          {s.logo_url ? <img src={s.logo_url} alt="" className="h-full w-full object-cover" /> : <Store className="h-5 w-5 text-muted-foreground" />}
+          {s.logo_url ? <BazaarImage src={s.logo_url} alt="" className="h-full w-full object-cover" /> : <Store className="h-5 w-5 text-muted-foreground" />}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">{s.name}</p>
@@ -39,7 +40,7 @@ export function ProductCard({ p }: { p: BazaarProductRow }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-card ring-1 ring-border">
       <div className="aspect-square bg-muted">
-        {p.images[0] ? <img src={p.images[0]} alt={p.title} loading="lazy" className="h-full w-full object-cover" /> : null}
+        {p.images[0] ? <BazaarImage src={p.images[0]} alt={p.title} loading="lazy" className="h-full w-full object-cover" /> : null}
       </div>
       <div className="space-y-1 p-3">
         <p className="line-clamp-2 text-sm font-semibold">{p.title}</p>

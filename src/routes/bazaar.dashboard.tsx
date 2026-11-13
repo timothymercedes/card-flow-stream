@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
@@ -94,7 +95,7 @@ function Dashboard() {
                     const stock = (p.bazaar_product_variants ?? []).reduce((n, v) => n + (v.is_active ? v.quantity : 0), 0);
                     return (
                       <li key={p.id}><button onClick={() => setEditing({ open: true, id: p.id })} className="flex w-full items-center gap-3 p-3 text-left hover:bg-muted/50">
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">{p.images[0] && <img src={p.images[0]} alt="" className="h-full w-full object-cover" />}</div>
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">{p.images[0] && <BazaarImage src={p.images[0]} alt="" className="h-full w-full object-cover" />}</div>
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{p.title}</p><p className="text-xs text-muted-foreground">{price !== null ? formatCents(price) : "No price"} · {stock} in stock</p></div>
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize">{p.status}</span>
                       </button></li>
@@ -120,10 +121,10 @@ function ProfileForm({ store, onSaved }: { store: StoreRow; onSaved: () => void 
   const [f, setF] = useState({ description: store.description ?? "", logo_url: store.logo_url ?? "", cover_url: store.cover_url ?? "", shipping_policy: store.shipping_policy ?? "", return_policy: store.return_policy ?? "", processing_days: String(store.processing_days ?? "") });
   async function up(file: File | undefined, key: "logo_url" | "cover_url") {
     if (!file || !user) return;
-    const path = `${user.id}/bazaar/${store.id}/${key}-${crypto.randomUUID()}.${file.name.split(".").pop() || "jpg"}`;
-    const { error } = await supabase.storage.from("listing-images").upload(path, file, { contentType: file.type });
+    const path = `${store.id}/${user.id}/${key}-${crypto.randomUUID()}.${file.name.split(".").pop() || "jpg"}`;
+    const { error } = await supabase.storage.from("bazaar-media").upload(path, file, { contentType: file.type });
     if (error) return toast.error(error.message);
-    setF((x) => ({ ...x, [key]: supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl }));
+    setF((x) => ({ ...x, [key]: path }));
   }
   async function save() {
     const { error } = await supabase.from("bazaar_stores").update({ description: f.description || null, logo_url: f.logo_url || null, cover_url: f.cover_url || null, shipping_policy: f.shipping_policy || null, return_policy: f.return_policy || null, processing_days: f.processing_days === "" ? null : Number(f.processing_days) }).eq("id", store.id);
@@ -133,8 +134,8 @@ function ProfileForm({ store, onSaved }: { store: StoreRow; onSaved: () => void 
   return (
     <div className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-border">
       <div className="flex flex-wrap gap-4">
-        <label className="text-sm font-semibold">Logo<input type="file" accept="image/*" className="mt-1 block text-xs" onChange={(e) => up(e.target.files?.[0], "logo_url")} />{f.logo_url && <img src={f.logo_url} alt="" className="mt-2 h-16 w-16 rounded-xl object-cover" />}</label>
-        <label className="text-sm font-semibold">Banner<input type="file" accept="image/*" className="mt-1 block text-xs" onChange={(e) => up(e.target.files?.[0], "cover_url")} />{f.cover_url && <img src={f.cover_url} alt="" className="mt-2 h-16 w-40 rounded-xl object-cover" />}</label>
+        <label className="text-sm font-semibold">Logo<input type="file" accept="image/*" className="mt-1 block text-xs" onChange={(e) => up(e.target.files?.[0], "logo_url")} />{f.logo_url && <BazaarImage src={f.logo_url} alt="" className="mt-2 h-16 w-16 rounded-xl object-cover" />}</label>
+        <label className="text-sm font-semibold">Banner<input type="file" accept="image/*" className="mt-1 block text-xs" onChange={(e) => up(e.target.files?.[0], "cover_url")} />{f.cover_url && <BazaarImage src={f.cover_url} alt="" className="mt-2 h-16 w-40 rounded-xl object-cover" />}</label>
       </div>
       <Textarea placeholder="Store description" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
       <Input placeholder="Shipping policy" value={f.shipping_policy} onChange={(e) => setF({ ...f, shipping_policy: e.target.value })} />
