@@ -202,12 +202,12 @@ function Sell() {
 
   // 🆕 Re-price the listing whenever the seller changes Condition (NM/LP/MP/Damaged).
   useEffect(() => {
-    if (!condPrices) return;
+    if (department !== "collectibles" || !condPrices) return;
     const base = Number(condPrices.NM) || 0;
     if (!base) return;
     setBuyNowPrice(String(priceFor(condition, base, condPrices)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [condition, condPrices]);
+  }, [condition, condPrices, department]);
 
   const gateSellerStatus = tutorial ? "approved" : sellerStatus;
   const gateStripeReady = tutorial ? true : stripeReady;
@@ -792,7 +792,7 @@ function Sell() {
                 value={desc}
                 onChange={(e) => setDesc(e.target.value)}
               />
-              <div className="grid grid-cols-3 gap-2">
+              {department === "collectibles" && <div className="grid grid-cols-3 gap-2">
                 <input
                   className="rounded-xl bg-input px-3 py-3 text-xs outline-none"
                   placeholder="Set"
@@ -811,7 +811,7 @@ function Sell() {
                   value={tcgNumber}
                   onChange={(e) => setTcgNumber(e.target.value)}
                 />
-              </div>
+              </div>}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <ListingPhotoCapture
                   value={imageUrl}
@@ -825,10 +825,6 @@ function Sell() {
                 />
               </div>
               <MarketplaceProductDetails department={department} category={category} details={productDetails} onChange={(d,c,details) => { setDepartment(d); setCategory(c); setProductDetails(details); }} />
-              {department === 'collectibles' && <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs text-muted-foreground">Set<input aria-label="Card set" value={tcgSet} onChange={e => setTcgSet(e.target.value)} className="mt-1 w-full rounded-lg bg-input p-2"/></label>
-                <label className="text-xs text-muted-foreground">Year<input aria-label="Card year" value={tcgYear} onChange={e => setTcgYear(e.target.value)} className="mt-1 w-full rounded-lg bg-input p-2"/></label>
-              </div>}
               {department === "collectibles" && <div>
                 <p className="mb-1 text-[11px] font-semibold text-muted-foreground">
                   Condition (required)

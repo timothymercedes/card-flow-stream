@@ -313,8 +313,7 @@ function ListingDetail() {
           )}
         </div>
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
-
-        {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
+        {listing.product_details && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">{Object.entries(listing.product_details).map(([key,value]) => <div key={key}><dt className="capitalize text-muted-foreground">{key.replaceAll('_',' ')}</dt><dd>{String(value)}</dd></div>)}</dl>}
 
         {!isSeller && ackHook.isIntl && (
           <div className="mt-3">

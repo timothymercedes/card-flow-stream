@@ -202,14 +202,14 @@ function MyListings() {
         </div>
 
         {(() => {
-          const missing = items.filter((l) => !l.condition);
+          const missing = items.filter((l) => !(l.product_details?.condition || l.condition));
           if (missing.length === 0) return null;
           return (
             <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
               <div className="flex-1">
                 <p className="font-bold text-amber-200">Condition required on {missing.length} listing{missing.length === 1 ? "" : "s"}</p>
-                <p className="mt-0.5 text-amber-200/80">All listings must show NM, LP, MP, or DMG. Tap Edit on each card to set it — buyers can't see listings without a condition.</p>
+                <p className="mt-0.5 text-amber-200/80">Add the appropriate product or collectible condition to each listing.</p>
                 <button
                   onClick={() => setEditing(missing[0])}
                   className="mt-2 rounded-full bg-amber-500 px-3 py-1 text-[11px] font-bold text-black"
