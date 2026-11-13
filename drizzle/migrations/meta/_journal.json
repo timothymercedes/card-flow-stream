@@ -78,6 +78,13 @@
       "when": 1794572459800,
       "tag": "0010_bazaar_private_media_and_stock",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794572731511,
+      "tag": "0011_fix_bazaar_touch_and_guest_storage",
+      "breakpoints": true
     }
   ]
 }
