@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -12,14 +12,17 @@ import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { MarketQuickView } from "@/components/MarketQuickView";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
+import { Button } from "@/components/ui/button";
+import { MARKET_DEPARTMENTS, filterFields, retainCommonFilters, GENERAL_CONDITIONS } from "@/lib/marketplaceDepartments";
+import { searchMarketplace } from "@/lib/marketplaceSearch";
 
 export const Route = createFileRoute("/market/")({
-  validateSearch: zodValidator(z.object({ q: z.string().optional() })),
+  validateSearch: zodValidator(z.object({ q: z.string().optional(), department: z.string().optional(), category: z.string().optional(), filters: z.record(z.string(), z.string()).optional(), sort: z.string().optional(), page: z.number().optional() })),
   head: () => ({ meta: [
-    { title: "Card Marketplace — PullBid Live" },
-    { name: "description", content: "Browse collectible cards, auctions, and offers on the PullBid Live marketplace." },
-    { property: "og:title", content: "Card Marketplace — PullBid Live" },
-    { property: "og:description", content: "Find collectible cards, auctions, and offers from collectors." },
+    { title: "Marketplace — PullBid Live" },
+    { name: "description", content: "Browse products, collectibles, auctions and offers across every PullBid Live department." },
+    { property: "og:title", content: "Marketplace — PullBid Live" },
+    { property: "og:description", content: "Find products and collectibles from PullBid Live sellers." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
@@ -45,28 +48,50 @@ function fmtRemain(iso: string | null) {
 function Market() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState(Route.useSearch().q ?? "");
-  const [sort, setSort] = useState<Sort>("shuffled");
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: '/market/' });
+  const q = search.q ?? '';
+  const department = MARKET_DEPARTMENTS.some(d => d.value === search.department) ? search.department ?? 'all' : 'all';
+  const filters = search.filters ?? {};
+  const page = Math.max(1, search.page ?? 1);
+  const [total, setTotal] = useState(0);
+  const [searchError, setSearchError] = useState('');
+  const update = (next: Partial<typeof search>) => navigate({ search: prev => ({ ...prev, ...next, page: next.page ?? 1 }), replace: true });
+  const setQ = (q: string) => update({ q });
+  const setCategory = (category: string) => update({ category });
+  const category = search.category ?? 'all';
+  const sort = (search.sort ?? 'shuffled') as Sort;
+  const setSort = (sort: Sort) => update({ sort });
+  const listingFilter = (filters.kind ?? 'all') as ListingFilter;
+  const setListingFilter = (kind: ListingFilter) => update({ filters: { ...filters, kind } });
   const [sortOpen, setSortOpen] = useState(false);
-  const [listingFilter, setListingFilter] = useState<ListingFilter>("all");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [category, setCategory] = useState<string>("all");
   const [catOpen, setCatOpen] = useState(false);
   const [quickView, setQuickView] = useState<any | null>(null);
   const seed = useShuffleBucket();
 
   async function loadMarket() {
-    const { data, error } = await supabase
-      .from("listings")
-      .select("*")
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false });
-    if (error) { console.error("[market] listings query failed", error); setLoading(false); return; }
-    setItems(((data || []) as any[]).filter(isPublicListingVisible));
-    setLoading(false);
+    setLoading(true);
+    try {
+      const result = await searchMarketplace(q, department, { ...filters, ...(category !== 'all' ? { category } : {}), sort }, page);
+      setItems(result.items);
+      setTotal(result.total);
+      setSearchError('');
+    } catch (error) { setSearchError(error instanceof Error ? error.message : 'Search unavailable'); }
+    finally { setLoading(false); }
   }
-  useEffect(() => { loadMarket(); }, []);
-
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const result = await searchMarketplace(q, department, { ...filters, ...(category !== 'all' ? { category } : {}), sort }, page);
+        if (active) { setItems(result.items); setTotal(result.total); setSearchError(''); }
+      } catch (error) { if (active) setSearchError(error instanceof Error ? error.message : 'Search unavailable'); }
+      finally { if (active) setLoading(false); }
+    }, 250);
+    return () => { active = false; clearTimeout(timer); };
+  }, [q, department, category, JSON.stringify(filters), sort, page]);
 
   // Realtime: new listings, bid bumps, and sold-outs reflect across the marketplace
   useRealtimeTable(
@@ -84,17 +109,7 @@ function Market() {
   }, [items]);
 
   const visible = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    let arr = items.filter((l) => {
-      if (category !== "all" && (l.category || "other") !== category) return false;
-      if (!term) return true;
-      return (
-        l.title?.toLowerCase().includes(term) ||
-        l.description?.toLowerCase().includes(term) ||
-        l.tcg_set?.toLowerCase().includes(term) ||
-        l.tcg_number?.toLowerCase().includes(term)
-      );
-    });
+    let arr = [...items];
     // Apply listing type filter
     switch (listingFilter) {
       case "auction":
@@ -164,10 +179,10 @@ function Market() {
             <WatchTutorial routePath="/market" label="How it works" />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Trading cards • Funko Pops • Anime figures • Memorabilia
+            Products • Collectibles • Auctions • Offers
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold">
-            <span className="rounded-full bg-card/80 px-2.5 py-1 ring-1 ring-border/60">{items.length} live listings</span>
+            <span className="rounded-full bg-card/80 px-2.5 py-1 ring-1 ring-border/60">{total} live listings</span>
             {trendingCount > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2.5 py-1 text-orange-500 ring-1 ring-orange-500/30">
                 <Flame className="h-3 w-3" /> {trendingCount} trending
@@ -189,7 +204,7 @@ function Market() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search Pikachu, Luffy, Funko #42…"
+                aria-label="Search marketplace" placeholder="Search products, brands, stores…"
                 className="w-full rounded-full bg-input/60 py-2 pl-9 pr-3 text-sm shadow-[var(--shadow-xs)] outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
@@ -281,6 +296,9 @@ function Market() {
             </div>
           </div>
 
+          <div role="tablist" aria-label="Marketplace departments" className="mt-2 flex gap-1 overflow-x-auto pb-1">
+            {[{ value: 'all', label: 'All' }, ...MARKET_DEPARTMENTS].map(d => <Button key={d.value} role="tab" aria-selected={department === d.value} size="sm" variant={department === d.value ? 'default' : 'ghost'} className="shrink-0 rounded-full text-xs" onClick={() => update({ department: d.value, category: 'all', filters: retainCommonFilters(filters) })}>{d.label}</Button>)}
+          </div>
           {/* Category dropdown */}
           <div className="relative mt-2">
             <button
@@ -307,7 +325,7 @@ function Market() {
                     <span className="text-[10px] text-muted-foreground">{items.length}</span>
                     {category === "all" && <Check className="h-3.5 w-3.5" />}
                   </button>
-                  {LISTING_CATEGORIES.map((c) => {
+                  {(department === "all" || department === "collectibles" ? LISTING_CATEGORIES : []).map((c) => {
                     const n = counts[c.value] || 0;
                     return (
                       <button
@@ -328,6 +346,18 @@ function Market() {
           </div>
         </div>
 
+        <div className="mb-3 flex flex-wrap items-end gap-2">
+          {['min_price', 'max_price', ...filterFields(department), ...(department === 'collectibles' ? ['set','number'] : [])].map(key => <label key={key} className="text-[11px] capitalize text-muted-foreground">{key.replaceAll('_',' ')}
+            <input aria-label={`Filter ${key.replaceAll('_',' ')}`} value={filters[key] ?? ''} type={['min_price','max_price','year','max_mileage'].includes(key) ? 'number' : 'text'} min="0" className="mt-1 block w-28 rounded-lg bg-input px-2 py-1.5 text-xs text-foreground" onChange={e => update({ filters: { ...filters, [key]: e.target.value } })}/>
+          </label>)}
+          <label className="text-[11px] text-muted-foreground">Condition
+            <select aria-label="Filter condition" value={filters.condition ?? ''} className="mt-1 block rounded-lg bg-input px-2 py-1.5 text-xs text-foreground" onChange={e => update({ filters: {...filters,condition:e.target.value} })}>
+              <option value="">All conditions</option>{(department === 'collectibles' ? ['NM','LP','MP','Damaged'] : department === 'all' ? [...GENERAL_CONDITIONS,'NM','LP','MP','Damaged'] : GENERAL_CONDITIONS).map(c => <option key={c}>{c}</option>)}
+            </select>
+          </label>
+          <Button variant="ghost" size="sm" onClick={() => update({ q:'', department:'all',category:'all',filters:{},sort:'shuffled' })}><X className="h-3 w-3"/> Clear</Button>
+        </div>
+        {searchError && <p role="alert" className="mb-3 text-sm text-destructive">{searchError} <Button variant="ghost" size="sm" onClick={loadMarket}>Retry</Button></p>}
         {loading && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -424,8 +454,8 @@ function Market() {
                     ) : (
                       <span className="text-[10px] text-muted-foreground">—</span>
                     )}
-                    {l.condition && (
-                      <span className="rounded bg-muted px-1 text-[9px] font-bold text-muted-foreground">{l.condition}</span>
+                    {(l.product_details?.condition || l.condition) && (
+                      <span className="rounded bg-muted px-1 text-[9px] font-bold text-muted-foreground">{l.product_details?.condition || l.condition}</span>
                     )}
                   </div>
                   {remain && (
@@ -437,6 +467,11 @@ function Market() {
               </button>
             );
           })}
+        </div>
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <Button variant="outline" disabled={page <= 1 || loading} onClick={() => update({ page: page - 1 })}>Previous</Button>
+          <span className="text-xs text-muted-foreground">Page {page} · {total} results</span>
+          <Button variant="outline" disabled={page * 40 >= total || loading} onClick={() => update({ page: page + 1 })}>Next</Button>
         </div>
       </div>
       <MarketQuickView
