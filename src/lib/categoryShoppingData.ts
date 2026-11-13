@@ -12,6 +12,7 @@ export type ShoppingListing = {
 export type ShoppingSearch = { q?: string; subcategory?: string; filters?: ProductDetails; sort?: string; page?: number };
 type Catalog = { items: ShoppingListing[]; total: number };
 type PublicShow = { id: string; title: string; thumbnail_url: string | null; category: string | null; status: string };
+export const PUBLIC_CATEGORY_SHOWS_PATH = 'live_streams?select=id,title,thumbnail_url,category,status&is_private=eq.false&is_demo=eq.false&status=in.(live,scheduled)&order=created_at.desc&limit=60';
 
 // Only the publishable browser configuration is used. All reads remain bounded
 // by the existing public search projection / public show policies, even signed in.
@@ -45,7 +46,7 @@ export const categoryOverviewOptions = (department: string) => queryOptions({
     const [recent, trending, shows] = await Promise.all([
       publicRead<Catalog>('rpc/search_marketplace', catalogRequest(department, { sort: 'newest' }, 12)),
       publicRead<Catalog>('rpc/search_marketplace', catalogRequest(department, { filters: { kind: 'trending' } }, 12)),
-      publicRead<PublicShow[]>('live_streams?select=id,title,thumbnail_url,category,status&is_private=eq.false&status=in.(live,scheduled)&order=created_at.desc&limit=60'),
+      publicRead<PublicShow[]>(PUBLIC_CATEGORY_SHOWS_PATH),
     ]);
     return { recent, trending, shows: shows.filter(s => departmentStreamsMatch(department, s.category)) };
   },

@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { SHOPPING_DEPARTMENTS, shoppingDepartment, subcategoryFilters, departmentStreamsMatch } from './categoryShoppingConfig';
-import { catalogRequest } from './categoryShoppingData';
+import { catalogRequest, PUBLIC_CATEGORY_SHOWS_PATH } from './categoryShoppingData';
 
 describe('homepage department shopping', () => {
+  it('excludes demo and private shows from real department activity', () => {
+    const query = new URLSearchParams(PUBLIC_CATEGORY_SHOWS_PATH.split('?')[1]);
+    expect(query.get('is_demo')).toBe('eq.false');
+    expect(query.get('is_private')).toBe('eq.false');
+  });
   it('includes eleven departments in the requested homepage order', () => {
     expect(SHOPPING_DEPARTMENTS.map(d => d.label)).toEqual(['Automotive','Electronics','Trading Cards & Collectibles','Fashion','Tools & Equipment','Home & Furniture','Sports & Outdoors','Gaming','Business & Industrial','Music & Entertainment','Garden & Outdoors']);
   });
