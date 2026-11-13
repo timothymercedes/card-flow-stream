@@ -47,6 +47,9 @@ Authenticated grants limited to operations allowed by each policy; service grant
 10. Administration: suppliers/import staging, moderation, promotions, disputes, reviews and operational alerts.
 
 ## Release gates and tests
+### CJdropshipping initial official-document evaluation
+The official [authentication guide](https://developers.cjdropshipping.com/en/api/api2/api/auth.html) documents API-key token exchange, 180-day token lifetimes, 24-hour caching and a 1-call/second limit. The [token guide](https://developers.cjdropshipping.com/en/api/start/token.html) requires server-only storage. The [product synchronization guide](https://developers.cjdropshipping.com/en/api/start/Products-Synchronization-Processing.html) describes category/catalog/details/variant retrieval followed by real-time inventory checks. These establish a viable catalog adapter candidate, not an activated integration or verified order/webhook contract. No credentials or supplier requests were used; forwarding, shipping quotes, webhook signatures, restrictions and account authorization remain unverified and gated.
+
 - Cart: variant identity survives reload; quantity cannot exceed verified stock; unavailable/depublished/suspended items blocked; changed price surfaced; two stores remain separate; no payment or order records written.
 - Detail: guest/private exclusion, signed-in public view, signed photos, gallery keyboard access, selection/SKU/price/stock and mobile no overflow.
 - Schema implementation awaits user review. Supplier integration awaits credentials, authorized content and official contract verification. Orders, refunds and payments await separate approval.
