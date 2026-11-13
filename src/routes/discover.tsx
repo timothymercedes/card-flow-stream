@@ -6,6 +6,7 @@ import { FollowButton } from "@/components/FollowButton";
 import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store, Radio, Zap } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { searchMarketplace } from "@/lib/marketplaceSearch";
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
@@ -17,7 +18,11 @@ export const Route = createFileRoute("/discover")({
   head: () => ({
     meta: [
       { title: "Discover Collectors — PullBid Live" },
-      { name: "description", content: "Search for collectors, sellers, live hosts, and cards on PullBid Live." },
+      { name: "description", content: "Search for collectors, sellers, live hosts and marketplace products on PullBid Live." },
+      { property: "og:title", content: "Discover Collectors — PullBid Live" },
+      { property: "og:description", content: "Find people, live shows and marketplace products on PullBid Live." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
 });
@@ -80,10 +85,7 @@ function DiscoverPage() {
       const like = `%${q}%`;
       const [{ data: users }, { data: cards }, { data: streamsByTitle }, { data: queueMatches }] = await Promise.all([
         (supabase.rpc as any)("search_users", { _query: q, _limit: 25 }),
-        supabase.from("listings")
-          .select("id,title,price,image_url")
-          .ilike("title", like)
-          .limit(20),
+        searchMarketplace(q,"all",{},1,20).then(result => ({ data: result.items })).catch(() => ({ data: [] })),
         supabase.from("live_streams")
           .select("id,title,thumbnail_url,seller_id,current_item")
           .eq("is_active", true)

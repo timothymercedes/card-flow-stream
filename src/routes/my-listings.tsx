@@ -8,9 +8,11 @@ import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingC
 import { Tag, Trash2, RefreshCw, Pencil, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDisplay";
+import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
+import { listingDepartment, validateProductDetails, type ProductDetails } from "@/lib/marketplaceDepartments";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
-export const Route = createFileRoute("/my-listings")({ component: MyListings });
+export const Route = createFileRoute("/my-listings")({ component: MyListings, head: () => ({ meta: [{title:"My inventory — PullBid Live"},{name:"description",content:"Manage your PullBid Live products and collectible listings."},{property:"og:title",content:"My inventory — PullBid Live"},{property:"og:description",content:"Manage your products and collectible listings."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
 const CONDITIONS = [
   { value: "NM", label: "NM", help: "Near Mint" },
@@ -32,6 +34,7 @@ type Listing = {
   reserve_price: number | null;
   category: string | null;
   condition: Condition | null;
+  department: string | null; product_details: ProductDetails; tcg_set: string | null; tcg_number: string | null; tcg_year: string | null;
 };
 
 function fmtRemain(iso: string) {
@@ -111,9 +114,13 @@ function MyListings() {
     const hasBids = editing.is_auction && (editing.current_bid ?? 0) > (editing.starting_bid ?? 0);
     const fixedPrice = Number(editing.price ?? 0);
     const startingBid = Number(editing.starting_bid ?? 0);
-    if (!editing.is_auction && fixedPrice <= 0) return toast.error("Set a Buy Now price greater than $0");
+    if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price greater than $0");
     if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid greater than $0");
-    if (!editing.condition) return toast.error("Select a condition (NM, LP, MP, or DMG)");
+    const department = listingDepartment(editing);
+    const detailError = validateProductDetails(editing.product_details ?? {});
+    if (detailError) return toast.error(detailError);
+    if (department !== "collectibles" && !editing.product_details?.condition) return toast.error("Select a product condition");
+    if (department === "collectibles" && !editing.condition) return toast.error("Select a condition (NM, LP, MP, or DMG)");
     const frontErr = validateListingImage(editing.image_url, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
     if (editing.back_image_url) {
@@ -126,7 +133,9 @@ function MyListings() {
       image_url: editing.image_url,
       back_image_url: editing.back_image_url,
       category: editing.category,
-      condition: editing.condition,
+      condition: department === "collectibles" ? editing.condition : null,
+      department, product_details: editing.product_details ?? {},
+      tcg_set: editing.tcg_set, tcg_number: editing.tcg_number, tcg_year: editing.tcg_year,
       price: !editing.is_auction && fixedPrice > 0 ? fixedPrice : null,
       buy_now_price: editing.buy_now_price != null ? Number(editing.buy_now_price) : null,
       reserve_price: editing.reserve_price != null ? Number(editing.reserve_price) : null,
@@ -247,9 +256,9 @@ function MyListings() {
                       {categoryEmoji(l.category)} {categoryLabel(l.category)}
                     </span>
                   )}
-                  {l.condition ? (
+                  {(l.product_details?.condition || l.condition) ? (
                     <span className="ml-1 inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                      {CONDITIONS.find((c) => c.value === l.condition)?.label ?? l.condition}
+                      {l.product_details?.condition || CONDITIONS.find((c) => c.value === l.condition)?.label || l.condition}
                     </span>
                   ) : (
                     <button
@@ -312,20 +321,9 @@ function MyListings() {
                 onChange={(url) => setEditing({ ...editing, back_image_url: url })}
                 label="Back photo"
               />
-              <label className="block text-[11px] text-muted-foreground">Category
-                <select
-                  value={editing.category ?? ""}
-                  onChange={(e) => setEditing({ ...editing, category: e.target.value })}
-                  className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm"
-                >
-                  <option value="">— Select —</option>
-                  {LISTING_CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="block text-[11px] text-muted-foreground">
+              <MarketplaceProductDetails department={listingDepartment(editing)} category={editing.category ?? 'pokemon'} details={editing.product_details ?? {}} onChange={(department,category,product_details) => setEditing({...editing,department,category,product_details})}/>
+              {listingDepartment(editing) === 'collectibles' && <div className="grid grid-cols-2 gap-2">{(['tcg_set','tcg_number','tcg_year'] as const).map(key => <label key={key} className="text-xs text-muted-foreground">{key.replace('tcg_','Card ')}<input aria-label={key} value={editing[key] ?? ''} className="mt-1 w-full rounded-lg bg-input p-2" onChange={e => setEditing({...editing,[key]:e.target.value})}/></label>)}</div>}
+              {listingDepartment(editing) === "collectibles" && <div className="block text-[11px] text-muted-foreground">
                 <span>Condition <span className="text-destructive">*</span></span>
                 <div className="mt-1 grid grid-cols-4 gap-1.5">
                   {CONDITIONS.map((c) => (
@@ -347,7 +345,7 @@ function MyListings() {
                 {!editing.condition && (
                   <p className="mt-1 text-[10px] text-amber-400">Required — pick NM, LP, MP, or DMG before saving.</p>
                 )}
-              </div>
+              </div>}
 
               <div>
                 <div className="text-[11px] text-muted-foreground mb-1">Sale type</div>

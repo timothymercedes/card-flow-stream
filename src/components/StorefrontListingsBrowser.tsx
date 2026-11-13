@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Package, Search } from "lucide-react";
+import { matchesProductSearch } from "@/lib/marketplaceDepartments";
 import { getListingPriceDisplay } from "@/lib/listingDisplay";
 
 type Listing = any;
@@ -23,7 +24,7 @@ export function StorefrontListingsBrowser({ listings }: { listings: Listing[] })
 
   const conditions = useMemo(() => {
     const set = new Set<string>();
-    listings.forEach((l) => l.condition && set.add(String(l.condition)));
+    listings.forEach((l) => (l.product_details?.condition || l.condition) && set.add(String(l.product_details?.condition || l.condition)));
     return Array.from(set).sort();
   }, [listings]);
 
@@ -34,15 +35,14 @@ export function StorefrontListingsBrowser({ listings }: { listings: Listing[] })
       if (kind === "buy_now" && !(l.listing_type === "buy_now" || l.buy_now_price != null)) return false;
       if (kind === "auction" && !l.is_auction) return false;
       if (kind === "offer" && !l.accepts_offers) return false;
-      if (condition !== "all" && l.condition !== condition) return false;
+      if (condition !== "all" && (l.product_details?.condition || l.condition) !== condition) return false;
       if (category !== "all" && l.category !== category) return false;
       if (maxP != null && !Number.isNaN(maxP)) {
         const p = Number(l.buy_now_price ?? l.price ?? l.current_bid ?? l.starting_bid ?? 0);
         if (p > maxP) return false;
       }
       if (ql) {
-        const hay = `${l.title ?? ""} ${l.tcg_set ?? ""} ${l.tcg_number ?? ""} ${l.category ?? ""}`.toLowerCase();
-        if (!hay.includes(ql)) return false;
+        if (!matchesProductSearch(l,ql)) return false;
       }
       return true;
     });
