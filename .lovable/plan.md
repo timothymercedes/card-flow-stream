@@ -8,6 +8,7 @@ Expand the existing Marketplace without redesigning the website. This is a propo
 - Marketplace already has a search box, category dropdown, listing-type filters and sorting. Its categories are currently collectible-focused, and search matches titles, descriptions, sets and card numbers.
 - The header search currently opens Discover. Discover already searches people/storefronts, live shows and listing titles. Keep that destination and layout; extend only its product matching through the shared search implementation.
 - Listings already share quantity, seller, price, offer and auction fields. Product details are card-oriented; dedicated vehicle, electronics and tool attributes are missing.
+- Seller creation currently requires front/back card photos; inventory editing is also card-oriented. Make these requirements department-aware, and persist existing set/year fields reliably so collectible filters have real data.
 - The inspected guest Marketplace has no active listings. Empty-state rendering is visible, but meaningful result tests will need isolated test listings.
 
 ## Proposed visible changes
@@ -47,6 +48,7 @@ Extend the existing filter control; do not create a new search page or sidebar l
 
 ### 4. Seller listing details on the same system
 - Extend the existing listing form, not a separate department-specific inventory or order system.
+- Extend the existing inventory edit form with the same details so sellers can update products after creation. General goods need product photos, not a mandatory card-back photo; retain existing card photo requirements for collectibles.
 - Let sellers select the department/subcategory and enter the relevant searchable details.
 - Keep card fields and scanner/Vault behavior for collectible listings; general products use general condition choices rather than card-only NM/LP/MP labels.
 - Keep existing fixed-price, Buy Now, offer and eligible auction settings. Do not broaden vehicle/industrial payment eligibility or shipping capabilities as part of this work; existing compliance and payment restrictions remain in force.
@@ -63,7 +65,7 @@ Extend the existing filter control; do not create a new search page or sidebar l
 
 ## Implementation sequence after approval
 1. Add shared department mapping and additive product-detail support; preserve existing listings and category keys.
-2. Extend the current seller listing form for department-relevant details without touching payment/settlement logic.
+2. Extend the current seller creation and inventory edit forms for department-relevant details without touching payment/settlement logic. Verify deployed fields/policies before any additive database change.
 3. Add the Marketplace tabs and relevant filters using its existing controls and listing grid.
 4. Extend shared product search and reuse it in the existing Marketplace and Discover product results.
 5. Verify permissions, navigation, legacy card compatibility and mobile/desktop presentation.

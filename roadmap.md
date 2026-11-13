@@ -1,6 +1,6 @@
 # Current work
 
-- [ ] Multi-category marketplace expansion: inspect current homepage/search and present approval plan only. Preserve design, homepage, navigation, Discover, live/scanner/Vault features and all payment behavior. Implement category tabs, shared universal search and department filters only after approval.
+- [ ] Multi-category marketplace expansion: homepage/search inspection completed and approval plan prepared. Preserve design, homepage, navigation, Discover layout, live/scanner/Vault features and all payment behavior. Category tabs, shared search, department filters and additive seller product details await approval; no application or database changes made.
 
 - [x] Visitor queue exposes only published upcoming item photos, titles, descriptions and starting prices through a safe read-only projection; guest sign-in prompt and unchanged signed-in access verified in-browser with temporary fixtures removed. Nine publication/privacy tests and twelve existing payment-safety tests passed. Fixed duplicate giveaway subscriptions blocking live-show rendering; payment and settlement code unchanged.
 
