@@ -54,6 +54,7 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] PB Bazaar Phase 2: store dashboard (products, variants, photos, team), admin review screen
 - [x] PB Bazaar approved shopping implemented: product detail/gallery/variants and separate browser-persistent multi-store cart. 18 targeted tests and compilation pass; real guest empty/unavailable checks pass; browser-only fixture interaction and desktop/mobile checks pass. Screenshots/report provided. No schema, policy, payment or publishing changes.
 - [ ] PB Bazaar real populated shopping and signed-in verification: blocked by zero approved products and beta gate; no live fixtures or access bypass authorized in this phase. Fixture checks are not a full hosted-data verification.
-- [ ] PB Bazaar account cart, parent/store orders and supplier fulfillment: proposed schema/permissions in docs/bazaar-roadmap.md await review before execution; cross-device cart persistence blocked on that approval.
+- [ ] PB Bazaar design refinement only: revise account/guest carts, order/supplier schema, atomic reservations, isolation, partial accounting, permissions, migration/rollback and test plans; no database execution, checkout, payments, supplier ordering or deployment authorized.
+- [ ] PB Bazaar account cart, parent/store orders and supplier fulfillment implementation: blocked on separate explicit database authorization and verified test/live isolation; design approval is not execution approval.
 - [ ] PB Bazaar later customer features and supplier Center: phased roadmap prepared; approved API access and separate schema review required before supplier integration.
 - [ ] Real iPhone/Android photo-picker test: scheduled for physical-device testing stage; requires devices and operator.
