@@ -20,7 +20,7 @@ import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { MoreFromSeller } from "@/components/MoreFromSeller";
 import { ShareButton } from "@/components/ShareButton";
 
-export const Route = createFileRoute("/market/$id")({ component: ListingDetail });
+export const Route = createFileRoute("/market/$id")({ component: ListingDetail, head: () => ({ meta: [{title:"Product details — PullBid Live"},{name:"description",content:"View product photos, details and available offers on PullBid Live."},{property:"og:title",content:"Product details — PullBid Live"},{property:"og:description",content:"View products and collectibles from PullBid Live sellers."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
 function fmtCountdown(ms: number) {
   if (ms <= 0) return "Ended";
@@ -284,7 +284,7 @@ function ListingDetail() {
   return (
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
       {ackHook.modal}
-      <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><div className="flex items-center gap-2"><BackButton to="/market" /><HeaderSearch className="flex-1" /></div></div>
+      <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-2 backdrop-blur"><div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div></div>
       <div className="relative aspect-square bg-muted">
         {listing.image_url ? <img src={listing.image_url} loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
         <Link to="/market" className="absolute left-3 top-3 rounded-full bg-black/50 p-2 backdrop-blur"><ArrowLeft className="h-4 w-4 text-white" /></Link>

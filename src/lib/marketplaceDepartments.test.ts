@@ -15,7 +15,7 @@ describe('shared marketplace departments', () => {
   it('searches product descriptions and brands', () => {
     expect(matchesProductSearch({description:'cordless drill',product_details:{brand:'Makita'}},'Makita')).toBe(true);
     expect(matchesProductSearch({description:'cordless drill'},'drill')).toBe(true);
-    expect(matchesProductSearch({description:'cordless drill'},'car')).toBe(false);
+    expect(matchesProductSearch({department:'tools',description:'cordless drill'},'automotive')).toBe(false);
   });
   it('searches categories and public storefront names', () => {
     expect(matchesProductSearch({department:'home'},'Furniture')).toBe(true);
