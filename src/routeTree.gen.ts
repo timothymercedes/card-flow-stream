@@ -52,6 +52,8 @@ import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
+import { Route as BazaarIndexRouteImport } from './routes/bazaar.index'
+import { Route as BazaarApplyRouteImport } from './routes/bazaar.apply'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CollectionIndexRouteImport } from './routes/collection.index'
 import { Route as CollectionMissingRouteImport } from './routes/collection.missing'
@@ -85,6 +87,7 @@ import { Route as TradesDiscoverRouteImport } from './routes/trades.discover'
 import { Route as AdminIdentityIdRouteImport } from './routes/admin.identity.$id'
 import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
+import { Route as BazaarStoresSlugRouteImport } from './routes/bazaar.stores.$slug'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
@@ -321,6 +324,16 @@ const AdminPerformanceRoute = AdminPerformanceRouteImport.update({
   path: '/admin/performance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BazaarIndexRoute = BazaarIndexRouteImport.update({
+  id: '/bazaar/',
+  path: '/bazaar/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BazaarApplyRoute = BazaarApplyRouteImport.update({
+  id: '/bazaar/apply',
+  path: '/bazaar/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
@@ -488,6 +501,11 @@ const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   path: '/api/public/beta-verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BazaarStoresSlugRoute = BazaarStoresSlugRouteImport.update({
+  id: '/bazaar/stores/$slug',
+  path: '/bazaar/stores/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JoinCamStreamIdTokenRoute = JoinCamStreamIdTokenRouteImport.update({
   id: '/join-cam/$streamId/$token',
   path: '/join-cam/$streamId/$token',
@@ -635,6 +653,7 @@ export interface FileRoutesByFullPath {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/bazaar/apply': typeof BazaarApplyRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -658,6 +677,7 @@ export interface FileRoutesByFullPath {
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
+  '/bazaar/': typeof BazaarIndexRoute
   '/collection/': typeof CollectionIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
@@ -668,6 +688,7 @@ export interface FileRoutesByFullPath {
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/bazaar/stores/$slug': typeof BazaarStoresSlugRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
@@ -729,6 +750,7 @@ export interface FileRoutesByTo {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
+  '/bazaar/apply': typeof BazaarApplyRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -752,6 +774,7 @@ export interface FileRoutesByTo {
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
+  '/bazaar': typeof BazaarIndexRoute
   '/collection': typeof CollectionIndexRoute
   '/communities': typeof CommunitiesIndexRoute
   '/live': typeof LiveIndexRoute
@@ -762,6 +785,7 @@ export interface FileRoutesByTo {
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/bazaar/stores/$slug': typeof BazaarStoresSlugRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
@@ -826,6 +850,7 @@ export interface FileRoutesById {
   '/admin/shipping-health': typeof AdminShippingHealthRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
+  '/bazaar/apply': typeof BazaarApplyRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -849,6 +874,7 @@ export interface FileRoutesById {
   '/store/$username': typeof StoreUsernameRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
+  '/bazaar/': typeof BazaarIndexRoute
   '/collection/': typeof CollectionIndexRoute
   '/communities/': typeof CommunitiesIndexRoute
   '/live/': typeof LiveIndexRoute
@@ -859,6 +885,7 @@ export interface FileRoutesById {
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/bazaar/stores/$slug': typeof BazaarStoresSlugRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
@@ -924,6 +951,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/bazaar/apply'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -947,6 +975,7 @@ export interface FileRouteTypes {
     | '/store/$username'
     | '/studio/$id'
     | '/trades/discover'
+    | '/bazaar/'
     | '/collection/'
     | '/communities/'
     | '/live/'
@@ -957,6 +986,7 @@ export interface FileRouteTypes {
     | '/admin/identity/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
+    | '/bazaar/stores/$slug'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
     | '/shows/$id/edit'
@@ -1018,6 +1048,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin/finance'
     | '/admin/performance'
+    | '/bazaar/apply'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1041,6 +1072,7 @@ export interface FileRouteTypes {
     | '/store/$username'
     | '/studio/$id'
     | '/trades/discover'
+    | '/bazaar'
     | '/collection'
     | '/communities'
     | '/live'
@@ -1051,6 +1083,7 @@ export interface FileRouteTypes {
     | '/admin/identity/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
+    | '/bazaar/stores/$slug'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
     | '/shows/$id/edit'
@@ -1114,6 +1147,7 @@ export interface FileRouteTypes {
     | '/admin/shipping-health'
     | '/admin_/finance'
     | '/admin_/performance'
+    | '/bazaar/apply'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1137,6 +1171,7 @@ export interface FileRouteTypes {
     | '/store/$username'
     | '/studio/$id'
     | '/trades/discover'
+    | '/bazaar/'
     | '/collection/'
     | '/communities/'
     | '/live/'
@@ -1147,6 +1182,7 @@ export interface FileRouteTypes {
     | '/admin/identity/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
+    | '/bazaar/stores/$slug'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
     | '/shows/$id/edit'
@@ -1204,6 +1240,7 @@ export interface RootRouteChildren {
   DotwellKnownAssetlinksDotjsonRoute: typeof DotwellKnownAssetlinksDotjsonRoute
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
+  BazaarApplyRoute: typeof BazaarApplyRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CommunitiesSlugRoute: typeof CommunitiesSlugRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
@@ -1224,6 +1261,7 @@ export interface RootRouteChildren {
   SellerShippingAnalyticsRoute: typeof SellerShippingAnalyticsRoute
   ShowsIdRoute: typeof ShowsIdRouteWithChildren
   StudioIdRoute: typeof StudioIdRoute
+  BazaarIndexRoute: typeof BazaarIndexRoute
   CommunitiesIndexRoute: typeof CommunitiesIndexRoute
   LiveIndexRoute: typeof LiveIndexRoute
   MarketIndexRoute: typeof MarketIndexRoute
@@ -1231,6 +1269,7 @@ export interface RootRouteChildren {
   ShowsIndexRoute: typeof ShowsIndexRoute
   ApiPublicBetaRequestRoute: typeof ApiPublicBetaRequestRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
+  BazaarStoresSlugRoute: typeof BazaarStoresSlugRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
@@ -1553,6 +1592,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPerformanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bazaar/': {
+      id: '/bazaar/'
+      path: '/bazaar'
+      fullPath: '/bazaar/'
+      preLoaderRoute: typeof BazaarIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bazaar/apply': {
+      id: '/bazaar/apply'
+      path: '/bazaar/apply'
+      fullPath: '/bazaar/apply'
+      preLoaderRoute: typeof BazaarApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout/return': {
       id: '/checkout/return'
       path: '/checkout/return'
@@ -1782,6 +1835,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/beta-verify'
       fullPath: '/api/public/beta-verify'
       preLoaderRoute: typeof ApiPublicBetaVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bazaar/stores/$slug': {
+      id: '/bazaar/stores/$slug'
+      path: '/bazaar/stores/$slug'
+      fullPath: '/bazaar/stores/$slug'
+      preLoaderRoute: typeof BazaarStoresSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join-cam/$streamId/$token': {
@@ -2023,6 +2083,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownAssetlinksDotjsonRoute: DotwellKnownAssetlinksDotjsonRoute,
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
+  BazaarApplyRoute: BazaarApplyRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CommunitiesSlugRoute: CommunitiesSlugRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,
@@ -2043,6 +2104,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellerShippingAnalyticsRoute: SellerShippingAnalyticsRoute,
   ShowsIdRoute: ShowsIdRouteWithChildren,
   StudioIdRoute: StudioIdRoute,
+  BazaarIndexRoute: BazaarIndexRoute,
   CommunitiesIndexRoute: CommunitiesIndexRoute,
   LiveIndexRoute: LiveIndexRoute,
   MarketIndexRoute: MarketIndexRoute,
@@ -2050,6 +2112,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShowsIndexRoute: ShowsIndexRoute,
   ApiPublicBetaRequestRoute: ApiPublicBetaRequestRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
+  BazaarStoresSlugRoute: BazaarStoresSlugRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,

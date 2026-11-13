@@ -40,6 +40,7 @@ const PRIMARY = [
   { to: "/", labelKey: "nav.home", icon: Home, mobile: true },
   { to: "/live", labelKey: "nav.live", icon: Radio, mobile: true },
   { to: "/market", labelKey: "nav.market", icon: Store, mobile: true },
+  { to: "/bazaar", labelKey: "nav.bazaar", icon: ShoppingBag, mobile: false },
   { to: "/vault", labelKey: "nav.vault", icon: Lock, mobile: true },
   { to: "/shop", labelKey: "nav.shop", icon: ShoppingBag, mobile: false },
   { to: "/feed", labelKey: "nav.feed", icon: Newspaper, mobile: false },
@@ -129,7 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
-                  {t(tab.labelKey)}
+                  {t(tab.labelKey as string, { defaultValue: (tab.labelKey as string) === "nav.bazaar" ? "Bazaar" : "" }) || t(tab.labelKey as string)}
                 </Link>
               );
             })}
@@ -331,14 +332,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={tab.to}
                 to={tab.to}
-                aria-label={t(tab.labelKey)}
+                aria-label={t(tab.labelKey as string, { defaultValue: (tab.labelKey as string) === "nav.bazaar" ? "Bazaar" : "" }) || t(tab.labelKey as string)}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors active:scale-95 ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
-                {t(tab.labelKey)}
+                {t(tab.labelKey as string, { defaultValue: (tab.labelKey as string) === "nav.bazaar" ? "Bazaar" : "" }) || t(tab.labelKey as string)}
               </Link>
             );
           })}
@@ -500,6 +501,7 @@ function PlatformSheet({
     {
       title: t("nav.explore", "Explore"),
       items: [
+        { to: "/bazaar", icon: ShoppingBag, label: t("nav.bazaar", "PB Bazaar") },
         { to: "/live", icon: Radio, label: t("nav.live", "Live") },
         { to: "/feed", icon: Newspaper, label: t("nav.feed", "Feed") },
         { to: "/messages", icon: MessageCircle, label: t("nav.chat", "Messages") },

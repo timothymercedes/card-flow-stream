@@ -876,6 +876,216 @@ export type Database = {
         }
         Relationships: []
       }
+      bazaar_product_variants: {
+        Row: {
+          compare_at_cents: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          options: Json
+          price_cents: number
+          product_id: string
+          quantity: number
+          sku: string | null
+          updated_at: string
+        }
+        Insert: {
+          compare_at_cents?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          options?: Json
+          price_cents: number
+          product_id: string
+          quantity?: number
+          sku?: string | null
+          updated_at?: string
+        }
+        Update: {
+          compare_at_cents?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          options?: Json
+          price_cents?: number
+          product_id?: string
+          quantity?: number
+          sku?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_products: {
+        Row: {
+          brand: string | null
+          condition: string
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          images: string[]
+          model: string | null
+          published_at: string | null
+          specifications: Json
+          status: string
+          store_id: string
+          subcategory: string | null
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          brand?: string | null
+          condition?: string
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          images?: string[]
+          model?: string | null
+          published_at?: string | null
+          specifications?: Json
+          status?: string
+          store_id: string
+          subcategory?: string | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          brand?: string | null
+          condition?: string
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          images?: string[]
+          model?: string | null
+          published_at?: string | null
+          specifications?: Json
+          status?: string
+          store_id?: string
+          subcategory?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_store_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_store_members_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_stores: {
+        Row: {
+          application_notes: string | null
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          owner_id: string
+          processing_days: number | null
+          published_at: string | null
+          return_policy: string | null
+          review_notes: string | null
+          shipping_policy: string | null
+          slug: string
+          status: string
+          store_type: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          application_notes?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          processing_days?: number | null
+          published_at?: string | null
+          return_policy?: string | null
+          review_notes?: string | null
+          shipping_policy?: string | null
+          slug: string
+          status?: string
+          store_type?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          application_notes?: string | null
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          processing_days?: number | null
+          published_at?: string | null
+          return_policy?: string | null
+          review_notes?: string | null
+          shipping_policy?: string | null
+          slug?: string
+          status?: string
+          store_type?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
       beta_access_requests: {
         Row: {
           created_at: string
@@ -8882,6 +9092,11 @@ export type Database = {
           new_xp: number
         }[]
       }
+      bazaar_store_is_active: { Args: { _store: string }; Returns: boolean }
+      bazaar_store_role_in: {
+        Args: { _roles: string[]; _store: string; _uid: string }
+        Returns: boolean
+      }
       bump_combo_streak: {
         Args: { _stream_id: string }
         Returns: {
@@ -9239,6 +9454,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_bazaar_admin: { Args: { _uid: string }; Returns: boolean }
       is_bid_blocked: {
         Args: { _stream_id: string; _user_id: string }
         Returns: boolean
