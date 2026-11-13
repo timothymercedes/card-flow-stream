@@ -293,6 +293,7 @@ function Sell() {
   }
 
   async function startLive() {
+    if (!user) return toast.error("Sign in to start a live show");
     if (!streamTitle.trim()) return toast.error("Add a title");
     if (!tcgTags.length) return toast.error("Pick at least one TCG tag");
     const isScheduled = !!scheduledFor;

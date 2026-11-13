@@ -15,3 +15,5 @@
 - Target Model A uses Separate Charges and Transfers with environment-scoped seller accounting; keep the existing production charge model until an explicitly approved cutover, because legacy destination charges must never be transferred again.
 - Keep unapproved financial release candidates and tests outside application imports and migration directories so review preparation cannot alter production behavior.
 - Expose guest auction queues only through the read-only public projection RPC; preserve base-table policies so seller and transaction details remain protected.
+- Keep marketplace departments separate from legacy collectible category keys and store general attributes on shared listings; this preserves scanner/Vault compatibility and existing orders.
+- Public marketplace search uses a bounded safe-column projection shared by Marketplace and Discover; this prevents seller-profile leakage and divergent publication rules.
