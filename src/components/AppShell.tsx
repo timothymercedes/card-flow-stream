@@ -130,7 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
-                  {t(tab.labelKey)}
+                  {t(tab.labelKey, tab.labelKey === "nav.bazaar" ? "Bazaar" : undefined)}
                 </Link>
               );
             })}
@@ -332,14 +332,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={tab.to}
                 to={tab.to}
-                aria-label={t(tab.labelKey)}
+                aria-label={t(tab.labelKey, tab.labelKey === "nav.bazaar" ? "Bazaar" : undefined)}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors active:scale-95 ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
-                {t(tab.labelKey)}
+                {t(tab.labelKey, tab.labelKey === "nav.bazaar" ? "Bazaar" : undefined)}
               </Link>
             );
           })}
