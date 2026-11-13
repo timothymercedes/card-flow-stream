@@ -1,5 +1,6 @@
 import { MARKET_DEPARTMENTS, GENERAL_CONDITIONS, detailFields, type ProductDetails } from '@/lib/marketplaceDepartments';
 import { LISTING_CATEGORIES } from '@/lib/listingCategories';
+import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
 
 export function MarketplaceProductDetails({ department, category, details, onChange }: {
   department: string; category: string; details: ProductDetails;
@@ -15,6 +16,11 @@ export function MarketplaceProductDetails({ department, category, details, onCha
     {department === 'collectibles' && <label className="block text-xs text-muted-foreground">Category
       <select aria-label="Product category" className={fieldClass} value={category} onChange={e => onChange(department,e.target.value,details)}>
         {LISTING_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+      </select>
+    </label>}
+    {department !== 'collectibles' && <label className="block text-xs text-muted-foreground">Subcategory
+      <select aria-label="Product subcategory" className={fieldClass} value={details.type ?? ''} onChange={e => onChange(department,category,{...details,type:e.target.value})}>
+        <option value="">Select subcategory</option>{SHOPPING_DEPARTMENTS.find(d => d.value === department)?.subcategories.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
       </select>
     </label>}
     {department !== 'collectibles' && <label className="block text-xs text-muted-foreground">Product condition

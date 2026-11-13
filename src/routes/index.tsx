@@ -14,15 +14,16 @@ import PublicLanding from "@/components/PublicLanding";
 import { isTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { StoryRail } from "@/components/StoryRail";
+import { DepartmentNavigation } from '@/components/DepartmentNavigation';
 
 export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "PullBid Live — Live card auctions, drops & vault" },
-      { name: "description", content: "Hunt rare pulls, bid live, and trade with collectors. Holographic auctions for sports cards, Pokémon, and TCGs — streamed in real time." },
-      { property: "og:title", content: "PullBid Live — Live Card Auctions" },
-      { property: "og:description", content: "Live auctions and drops for collectors. Pull, bid, vault." },
+      { title: "PullBid Live — Live Auctions & Marketplace Shopping" },
+      { name: "description", content: "Shop products and collectibles across PullBid Live departments, discover sellers and watch live auctions." },
+      { property: "og:title", content: "PullBid Live — Live Auctions & Marketplace Shopping" },
+      { property: "og:description", content: "Explore category shopping, live auctions and collectible discoveries on PullBid Live." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -115,6 +116,7 @@ function Home() {
   return (
     <AppShell>
     <div className="mx-auto w-full max-w-7xl">
+      <DepartmentNavigation />
       {/* HERO */}
       <header className="relative overflow-hidden">
         <img

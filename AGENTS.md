@@ -16,4 +16,6 @@
 - Keep unapproved financial release candidates and tests outside application imports and migration directories so review preparation cannot alter production behavior.
 - Expose guest auction queues only through the read-only public projection RPC; preserve base-table policies so seller and transaction details remain protected.
 - Keep marketplace departments separate from legacy collectible category keys and store general attributes on shared listings; this preserves scanner/Vault compatibility and existing orders.
-- Public marketplace search uses a bounded safe-column projection shared by Marketplace and Discover; this prevents seller-profile leakage and divergent publication rules.
+- Public marketplace search uses a bounded safe-column projection shared by Marketplace, Discover and category shopping; this prevents seller-profile leakage and divergent publication rules.
+- Dedicated department shopping URLs use shared configuration and public projection reads, not separate inventories; category keys and collectible subcategories remain distinct.
+- Router factories own the per-request QueryClient and SSR query hydration, and the root uses that client; this keeps loader priming and component subscriptions consistent without cross-user caches.

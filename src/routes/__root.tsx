@@ -1,4 +1,4 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, Link } from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, HeadContent, Scripts, Link } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import appCss from "../styles.css?url";
@@ -32,7 +32,7 @@ function NotFoundComponent() {
   );
 }
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -43,8 +43,6 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "Pull Bid Live — Live Card Auctions" },
       { property: "og:description", content: "Live trading card auctions, social feed, and personal vault." },
       { name: "twitter:description", content: "Live trading card auctions, social feed, and personal vault." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0981a193-31b5-4ac9-a0c6-686e770b64b0/id-preview-db3571db--c81c8301-d89c-4830-8ab7-06f678968bc1.lovable.app-1777903855105.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0981a193-31b5-4ac9-a0c6-686e770b64b0/id-preview-db3571db--c81c8301-d89c-4830-8ab7-06f678968bc1.lovable.app-1777903855105.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       ...(BETA_MODE_ENABLED
@@ -77,6 +75,7 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
   useEffect(() => {
     // The broker lands on this public origin before its session is hydrated.
     let cancelled = false;
@@ -95,9 +94,6 @@ function RootComponent() {
     void finishOAuth();
     return () => { cancelled = true; data.subscription.unsubscribe(); };
   }, []);
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
-  }));
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
