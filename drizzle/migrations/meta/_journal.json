@@ -43,6 +43,13 @@
       "when": 1794528210092,
       "tag": "0005_marketplace_departments_and_public_search",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794528505243,
+      "tag": "0006_marketplace_search_validation_and_authorized_reads",
+      "breakpoints": true
     }
   ]
 }
