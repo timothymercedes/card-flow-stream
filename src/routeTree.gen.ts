@@ -55,6 +55,7 @@ import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as BazaarIndexRouteImport } from './routes/bazaar.index'
 import { Route as BazaarApplyRouteImport } from './routes/bazaar.apply'
+import { Route as BazaarDashboardRouteImport } from './routes/bazaar.dashboard'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CollectionIndexRouteImport } from './routes/collection.index'
 import { Route as CollectionMissingRouteImport } from './routes/collection.missing'
@@ -338,6 +339,11 @@ const BazaarIndexRoute = BazaarIndexRouteImport.update({
 const BazaarApplyRoute = BazaarApplyRouteImport.update({
   id: '/bazaar/apply',
   path: '/bazaar/apply',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BazaarDashboardRoute = BazaarDashboardRouteImport.update({
+  id: '/bazaar/dashboard',
+  path: '/bazaar/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
@@ -661,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
+  '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -759,6 +766,7 @@ export interface FileRoutesByTo {
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
+  '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -860,6 +868,7 @@ export interface FileRoutesById {
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
+  '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
   '/communities/$slug': typeof CommunitiesSlugRoute
@@ -962,6 +971,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/performance'
     | '/bazaar/apply'
+    | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1060,6 +1070,7 @@ export interface FileRouteTypes {
     | '/admin/finance'
     | '/admin/performance'
     | '/bazaar/apply'
+    | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1160,6 +1171,7 @@ export interface FileRouteTypes {
     | '/admin_/finance'
     | '/admin_/performance'
     | '/bazaar/apply'
+    | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
     | '/communities/$slug'
@@ -1253,6 +1265,7 @@ export interface RootRouteChildren {
   AdminFinanceRoute: typeof AdminFinanceRoute
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   BazaarApplyRoute: typeof BazaarApplyRoute
+  BazaarDashboardRoute: typeof BazaarDashboardRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CommunitiesSlugRoute: typeof CommunitiesSlugRoute
   LegalAccountDeletionRoute: typeof LegalAccountDeletionRoute
@@ -1623,6 +1636,13 @@ declare module '@tanstack/react-router' {
       path: '/bazaar/apply'
       fullPath: '/bazaar/apply'
       preLoaderRoute: typeof BazaarApplyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bazaar/dashboard': {
+      id: '/bazaar/dashboard'
+      path: '/bazaar/dashboard'
+      fullPath: '/bazaar/dashboard'
+      preLoaderRoute: typeof BazaarDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout/return': {
@@ -2105,6 +2125,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminFinanceRoute: AdminFinanceRoute,
   AdminPerformanceRoute: AdminPerformanceRoute,
   BazaarApplyRoute: BazaarApplyRoute,
+  BazaarDashboardRoute: BazaarDashboardRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CommunitiesSlugRoute: CommunitiesSlugRoute,
   LegalAccountDeletionRoute: LegalAccountDeletionRoute,
