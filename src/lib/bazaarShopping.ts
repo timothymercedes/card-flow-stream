@@ -1,6 +1,7 @@
-export type ShoppingVariant = { id: string; sku: string | null; options: unknown; price_cents: number; compare_at_cents: number | null; quantity: number; is_active: boolean };
+import type { Json } from "@/integrations/supabase/types";
+export type ShoppingVariant = { id: string; sku: string | null; options: Json; price_cents: number; compare_at_cents: number | null; quantity: number; is_active: boolean };
 export type ShoppingStore = { id: string; slug: string; name: string; store_type: string; verification_status: string; logo_url: string | null; shipping_policy: string | null; return_policy: string | null; processing_days: number | null };
-export type ShoppingProduct = { id: string; title: string; description: string | null; department: string | null; brand: string | null; model: string | null; condition: string; specifications: unknown; images: string[]; bazaar_stores: ShoppingStore; bazaar_product_variants: ShoppingVariant[] };
+export type ShoppingProduct = { id: string; title: string; description: string | null; department: string | null; brand: string | null; model: string | null; condition: string; specifications: Json; images: string[]; bazaar_stores: ShoppingStore; bazaar_product_variants: ShoppingVariant[] };
 export type CartItem = { productId: string; variantId: string; quantity: number; seenPrice: number };
 export type CheckedCartItem = { item: CartItem; product: ShoppingProduct | null; variant: ShoppingVariant | null; issue: "unavailable" | "stock" | "price" | null };
 export const BAZAAR_CART_KEY = "pbl-bazaar-cart-v1";
