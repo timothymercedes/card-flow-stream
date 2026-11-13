@@ -69,6 +69,7 @@ import { Route as LiveIndexRouteImport } from './routes/live.index'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MarketIndexRouteImport } from './routes/market.index'
 import { Route as MarketIdRouteImport } from './routes/market.$id'
+import { Route as MarketplaceDepartmentRouteImport } from './routes/marketplace.$department'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
@@ -407,6 +408,11 @@ const MarketIdRoute = MarketIdRouteImport.update({
   path: '/market/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketplaceDepartmentRoute = MarketplaceDepartmentRouteImport.update({
+  id: '/marketplace/$department',
+  path: '/marketplace/$department',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessagesIndexRoute = MessagesIndexRouteImport.update({
   id: '/messages/',
   path: '/messages/',
@@ -642,6 +648,7 @@ export interface FileRoutesByFullPath {
   '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
+  '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -735,6 +742,7 @@ export interface FileRoutesByTo {
   '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
+  '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -831,6 +839,7 @@ export interface FileRoutesById {
   '/legal/tos': typeof LegalTosRoute
   '/live/$id': typeof LiveIdRoute
   '/market/$id': typeof MarketIdRoute
+  '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -928,6 +937,7 @@ export interface FileRouteTypes {
     | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
+    | '/marketplace/$department'
     | '/messages/$userId'
     | '/seller/$username'
     | '/seller/insurance'
@@ -1021,6 +1031,7 @@ export interface FileRouteTypes {
     | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
+    | '/marketplace/$department'
     | '/messages/$userId'
     | '/seller/$username'
     | '/seller/insurance'
@@ -1116,6 +1127,7 @@ export interface FileRouteTypes {
     | '/legal/tos'
     | '/live/$id'
     | '/market/$id'
+    | '/marketplace/$department'
     | '/messages/$userId'
     | '/seller/$username'
     | '/seller/insurance'
@@ -1204,6 +1216,7 @@ export interface RootRouteChildren {
   LegalTosRoute: typeof LegalTosRoute
   LiveIdRoute: typeof LiveIdRoute
   MarketIdRoute: typeof MarketIdRoute
+  MarketplaceDepartmentRoute: typeof MarketplaceDepartmentRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
   SellerInsuranceRoute: typeof SellerInsuranceRoute
@@ -1659,6 +1672,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketplace/$department': {
+      id: '/marketplace/$department'
+      path: '/marketplace/$department'
+      fullPath: '/marketplace/$department'
+      preLoaderRoute: typeof MarketplaceDepartmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messages/': {
       id: '/messages/'
       path: '/messages'
@@ -2015,6 +2035,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalTosRoute: LegalTosRoute,
   LiveIdRoute: LiveIdRoute,
   MarketIdRoute: MarketIdRoute,
+  MarketplaceDepartmentRoute: MarketplaceDepartmentRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
   SellerUsernameRoute: SellerUsernameRoute,
   SellerInsuranceRoute: SellerInsuranceRoute,
