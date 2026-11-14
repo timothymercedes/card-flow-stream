@@ -26,7 +26,7 @@ function VehicleReview() {
     return (data ?? []).some(r => ['owner', 'admin', 'moderator'].includes(String(r.role)));
   } });
   const list = useQuery({ queryKey: ['admin-vehicles'], enabled: !!role.data, queryFn: async () => {
-    const { data, error } = await supabase.from('listings').select('id, title, description, product_details, is_active, created_at').eq('department', 'automotive').order('created_at', { ascending: false }).limit(200);
+    const { data, error } = await supabase.from('listings').select('id, title, description, product_details, auction_status, created_at').eq('department', 'automotive').order('created_at', { ascending: false }).limit(200);
     if (error) throw error;
     return (data ?? []).map(l => ({ ...l, flags: reviewVehicle({ ...l, product_details: l.product_details as Record<string, string> }) }));
   } });
@@ -41,7 +41,7 @@ function VehicleReview() {
     {list.isError && <p role="alert" className="text-sm text-destructive">Couldn't load vehicle listings.</p>}
     {list.data && !rows.length && <p className="text-sm text-muted-foreground">No vehicle listings {onlyFlagged ? 'need attention' : 'yet'}.</p>}
     {rows.map(r => <div key={r.id} className="rounded-xl border border-border p-3">
-      <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate font-semibold">{r.title}</p><p className="text-xs text-muted-foreground">{r.is_active ? 'Active' : 'Inactive'} · {new Date(r.created_at).toLocaleDateString()} · VIN shown: {(r.product_details as Record<string,string>)?.vin_masked || 'none'}</p></div>
+      <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate font-semibold">{r.title}</p><p className="text-xs text-muted-foreground">{r.auction_status} · {new Date(r.created_at).toLocaleDateString()} · VIN shown: {(r.product_details as Record<string,string>)?.vin_masked || 'none'}</p></div>
       <Link to="/market/$id" params={{ id: r.id }} className="shrink-0 text-sm font-semibold text-primary">Open</Link></div>
       {r.flags.length ? <ul className="mt-2 space-y-1">{r.flags.map((f, i) => <li key={i} className={`text-xs ${f.level === 'block' ? 'text-destructive' : 'text-muted-foreground'}`}>{f.level === 'block' ? '⛔' : '⚠️'} {f.text}</li>)}</ul> : <p className="mt-2 text-xs text-muted-foreground">✓ No issues found</p>}
     </div>)}
