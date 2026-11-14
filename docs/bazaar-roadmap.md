@@ -13,26 +13,10 @@ Completed: store applications, admin approval, merchant catalog, stock and varia
 - Shipping shows each store's actual policy and processing days, not fabricated rates or delivery dates. Supplier estimates await authorized supplier mappings.
 - Recently viewed/saved items, follows, comparisons, alerts and Q&A are subsequent customer-experience work, not silently bundled into this delivery.
 
-## Proposed schema — NOT executed
-All IDs UUID; user IDs plain UUID, not foreign keys to managed auth. Money is integer cents with explicit currency. New tables use explicit grants followed by RLS and narrow policies.
+## Revised schema — design refinement only, NOT executed
+The authoritative design is [PB Bazaar revised schema review](bazaar-schema-review.md): 20 proposed tables, guest-to-account merge protocol, server validation, atomic inventory lifecycle, partial supplier/financial outcomes, complete relationship/index/permission dictionary, migration/rollback and isolated test plans. It supersedes the former 13-table sketch.
 
-| Table | Key fields and relationships | Permission proposal |
-|---|---|---|
-| bazaar_carts | id, customer_id, currency, updated_at; one open cart/customer/currency | Customer reads/writes own cart; no merchant/guest access |
-| bazaar_cart_items | cart_id, product_id, variant_id, quantity; unique cart/variant | Customer owns parent cart; validate published product, active store and positive stock; do not trust stored totals |
-| bazaar_customer_orders | id, customer_id, currency, lifecycle, immutable totals/address snapshots, idempotency_key | Customer reads own; trusted order service writes; no direct client settlement |
-| bazaar_store_orders | parent_order_id, store_id, lifecycle, shipping snapshots, store totals | Customer reads via own parent; owning store and fulfillment staff read their portion only |
-| bazaar_order_items | store_order_id, product_id, variant_id, immutable SKU/options/price snapshots, quantity | Same parent/store scope; no merchant access to other stores' lines |
-| bazaar_suppliers | provider_key, approved status, non-secret config | Platform admin only; credentials stored server-side outside table |
-| bazaar_supplier_product_links | supplier_id, product_id/variant_id, external IDs, cost currency, last_sync | Platform admin/service only; supplier costs never public |
-| bazaar_fulfillments | store_order_id, supplier_id nullable, origin type, status, external_order_id | Customer reads safe tracking projection; relevant store fulfillment staff read only own |
-| bazaar_fulfillment_items | fulfillment_id, order_item_id, quantity | Service writes; validate same store and total quantities against purchased amount |
-| bazaar_shipments | fulfillment_id, carrier, tracking, status, delivered_at | Safe customer/store read; authenticated signed webhook service writes |
-| bazaar_order_requests | order_item_id, customer_id, type(cancel/return), quantity, status | Customer creates own requests; relevant store reviews, service enforces workflow |
-| bazaar_inventory_reservations | variant_id, order_item_id, quantity, expires_at, status | Service only; atomic row locks prevent overselling when checkout is separately approved |
-| bazaar_supplier_events | supplier_id, unique event_key, payload hash, status, retries | Admin/service only; webhook idempotency and redacted audit history |
-
-Authenticated grants limited to operations allowed by each policy; service grants only for required operations. Anonymous users receive no cart/order/supplier access. Merchant permissions are derived from existing store membership, never client claims. Order totals, ownership and supplier assignments are validated server-side. Customers receive public tracking DTOs, not supplier credentials, costs or other customers' addresses.
+Design approval is not authorization for a shared-backend migration. Account cart/order/reservation/supplier code remains disconnected; checkout, payments, refunds, Stripe, payouts, supplier ordering and production deployment remain off. Preserve current product pages, browser cart, approval/team/media rules and separate Marketplace/PB Store inventory.
 
 ## Ten-phase sequence
 1. Shopping: current approved detail/gallery/variants; later search refinements, saved/recent items, follows, comparison, notifications and moderated Q&A. Propose owner-only preference tables and public moderated Q&A before implementation.
@@ -52,5 +36,5 @@ The official [authentication guide](https://developers.cjdropshipping.com/en/api
 
 - Cart: variant identity survives reload; quantity cannot exceed verified stock; unavailable/depublished/suspended items blocked; changed price surfaced; two stores remain separate; no payment or order records written.
 - Detail: guest/private exclusion, signed-in public view, signed photos, gallery keyboard access, selection/SKU/price/stock and mobile no overflow.
-- Schema implementation awaits user review. Supplier integration awaits credentials, authorized content and official contract verification. Orders, refunds and payments await separate approval.
+- Revised design awaits review; database execution requires separate explicit authorization and verified target/isolation. Supplier integration awaits authorized access/content and official contract verification. Orders, refunds and payments await separate approval.
 - Schedule actual iPhone/Android photo-picker uploads, cancellation, large file handling and readback for a later physical-device stage; browser viewport simulation is not a phone picker test.
