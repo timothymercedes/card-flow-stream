@@ -507,7 +507,7 @@ function PublicStore() {
         <nav aria-label="Store sections" className="mb-3 flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-border pb-1 text-xs">
 
           {([["shop", `Shop (${listings.length})`], ["live", "Live Shows"], ["reviews", `Reviews (${reviews.length})`], ["sold", `Sold (${soldOrders.length})`], ["about", "About"]] as const).map(([t, label]) => (
-            <Button variant="ghost" aria-current={tab === t ? "page" : undefined} key={t} onClick={(e) => { setTab(t); e.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" }); }} className={`h-11 shrink-0 rounded-none border-b-2 px-3 py-2 text-xs ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+            <Button variant="ghost" aria-current={tab === t ? "page" : undefined} key={t} onClick={(e) => { setTab(t); const button = e.currentTarget; const rail = button.parentElement; if (rail) { const buttonBounds = button.getBoundingClientRect(); const railBounds = rail.getBoundingClientRect(); if (buttonBounds.left < railBounds.left) rail.scrollLeft -= railBounds.left - buttonBounds.left; else if (buttonBounds.right > railBounds.right) rail.scrollLeft += buttonBounds.right - railBounds.right; } }} className={`h-11 shrink-0 rounded-none border-b-2 px-3 py-2 text-xs ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
               {label}
             </Button>
           ))}
