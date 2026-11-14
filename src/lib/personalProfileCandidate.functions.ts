@@ -54,11 +54,11 @@ export const controlPersonalPost = createServerFn({ method: 'POST' }).middleware
     if (data.action === 'delete') {
       const media = checked(await supabase.from('personal_social_media').select('object_path').eq('post_id', data.id).eq('user_id', userId));
       if (media.length) checked(await supabase.storage.from('personal-profile-media').remove(media.map(m => m.object_path)));
-      checked(await supabase.from('personal_social_posts').delete().eq('id', data.id).eq('user_id', userId));
+      checked(await supabase.from('personal_social_posts').delete().eq('id', data.id).eq('user_id', userId).select('id'));
     } else if (data.action === 'react') {
-      if (data.value) checked(await supabase.from('personal_social_reactions').upsert({ post_id: data.id, user_id: userId }));
-      else checked(await supabase.from('personal_social_reactions').delete().eq('post_id', data.id).eq('user_id', userId));
-    } else checked(await supabase.from('personal_social_posts').update(data.action === 'pin' ? { pinned: data.value ?? false } : { allow_comments: data.value ?? false }).eq('id', data.id).eq('user_id', userId));
+      if (data.value) checked(await supabase.from('personal_social_reactions').upsert({ post_id: data.id, user_id: userId }).select('post_id'));
+      else checked(await supabase.from('personal_social_reactions').delete().eq('post_id', data.id).eq('user_id', userId).select('post_id'));
+    } else checked(await supabase.from('personal_social_posts').update(data.action === 'pin' ? { pinned: data.value ?? false } : { allow_comments: data.value ?? false }).eq('id', data.id).eq('user_id', userId).select('id'));
     return { ok: true };
   });
 export const changePersonalComment = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
@@ -66,9 +66,9 @@ export const changePersonalComment = createServerFn({ method: 'POST' }).middlewa
   .handler(async ({ data, context }) => {
     assertIsolatedCandidate(process.env['SUPABASE_URL'], getRequest());
     const { supabase, userId } = context;
-    if (data.remove && data.id) checked(await supabase.from('personal_social_comments').delete().eq('id', data.id).eq('post_id', data.post_id));
-    else if (data.content && data.id) checked(await supabase.from('personal_social_comments').update({ content: data.content }).eq('id', data.id).eq('post_id', data.post_id).eq('user_id', userId));
-    else if (data.content) checked(await supabase.from('personal_social_comments').insert({ post_id: data.post_id, content: data.content, user_id: userId }));
+    if (data.remove && data.id) checked(await supabase.from('personal_social_comments').delete().eq('id', data.id).eq('post_id', data.post_id).select('id'));
+    else if (data.content && data.id) checked(await supabase.from('personal_social_comments').update({ content: data.content }).eq('id', data.id).eq('post_id', data.post_id).eq('user_id', userId).select('id'));
+    else if (data.content) checked(await supabase.from('personal_social_comments').insert({ post_id: data.post_id, content: data.content, user_id: userId }).select('id'));
     else throw new Error('Comment text required.');
     return { ok: true };
   });
@@ -83,6 +83,6 @@ export const removePersonalMedia = createServerFn({ method: 'POST' }).middleware
     assertIsolatedCandidate(process.env['SUPABASE_URL'], getRequest());
     const item = checked(await context.supabase.from('personal_social_media').select('id,object_path').eq('id', data.id).eq('user_id', context.userId).single());
     checked(await context.supabase.storage.from('personal-profile-media').remove([item.object_path]));
-    checked(await context.supabase.from('personal_social_media').delete().eq('id', item.id).eq('user_id', context.userId));
+    checked(await context.supabase.from('personal_social_media').delete().eq('id', item.id).eq('user_id', context.userId).select('id'));
     return { ok: true };
   });
