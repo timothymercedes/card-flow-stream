@@ -81,6 +81,7 @@ import { Route as MarketplaceDepartmentRouteImport } from './routes/marketplace.
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as PreviewPersonalProfileRouteImport } from './routes/preview.personal-profile'
+import { Route as PreviewVaultPrivacyRouteImport } from './routes/preview.vault-privacy'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as SellerInsuranceRouteImport } from './routes/seller.insurance'
 import { Route as SellerShippingRouteImport } from './routes/seller.shipping'
@@ -479,6 +480,11 @@ const PreviewPersonalProfileRoute = PreviewPersonalProfileRouteImport.update({
   path: '/preview/personal-profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewVaultPrivacyRoute = PreviewVaultPrivacyRouteImport.update({
+  id: '/preview/vault-privacy',
+  path: '/preview/vault-privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerUsernameRoute = SellerUsernameRouteImport.update({
   id: '/seller/$username',
   path: '/seller/$username',
@@ -724,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
+  '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
@@ -829,6 +836,7 @@ export interface FileRoutesByTo {
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
+  '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
@@ -937,6 +945,7 @@ export interface FileRoutesById {
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
+  '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
@@ -1046,6 +1055,7 @@ export interface FileRouteTypes {
     | '/marketplace/$department'
     | '/messages/$userId'
     | '/preview/personal-profile'
+    | '/preview/vault-privacy'
     | '/seller/$username'
     | '/seller/insurance'
     | '/seller/shipping'
@@ -1151,6 +1161,7 @@ export interface FileRouteTypes {
     | '/marketplace/$department'
     | '/messages/$userId'
     | '/preview/personal-profile'
+    | '/preview/vault-privacy'
     | '/seller/$username'
     | '/seller/insurance'
     | '/seller/shipping'
@@ -1258,6 +1269,7 @@ export interface FileRouteTypes {
     | '/marketplace/$department'
     | '/messages/$userId'
     | '/preview/personal-profile'
+    | '/preview/vault-privacy'
     | '/seller/$username'
     | '/seller/insurance'
     | '/seller/shipping'
@@ -1356,6 +1368,7 @@ export interface RootRouteChildren {
   MarketplaceDepartmentRoute: typeof MarketplaceDepartmentRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   PreviewPersonalProfileRoute: typeof PreviewPersonalProfileRoute
+  PreviewVaultPrivacyRoute: typeof PreviewVaultPrivacyRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
   SellerInsuranceRoute: typeof SellerInsuranceRoute
   SellerShippingRoute: typeof SellerShippingRoute
@@ -1897,6 +1910,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewPersonalProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/vault-privacy': {
+      id: '/preview/vault-privacy'
+      path: '/preview/vault-privacy'
+      fullPath: '/preview/vault-privacy'
+      preLoaderRoute: typeof PreviewVaultPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/$username': {
       id: '/seller/$username'
       path: '/seller/$username'
@@ -2265,6 +2285,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketplaceDepartmentRoute: MarketplaceDepartmentRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
   PreviewPersonalProfileRoute: PreviewPersonalProfileRoute,
+  PreviewVaultPrivacyRoute: PreviewVaultPrivacyRoute,
   SellerUsernameRoute: SellerUsernameRoute,
   SellerInsuranceRoute: SellerInsuranceRoute,
   SellerShippingRoute: SellerShippingRoute,
