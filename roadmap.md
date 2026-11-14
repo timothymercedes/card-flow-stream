@@ -1,6 +1,7 @@
 # Current work
 
-- [x] Prepare controlled Phase 1 stabilization plan for A01–A07 only; list candidate files, database/permission gates, desktop/mobile regressions and rollback. No production/application/database changes authorized or performed by this planning request.
+- [x] Prepare controlled Phase 1 stabilization plan for A01–A07 only; list candidate files, database/permission gates, desktop/mobile regressions and rollback. Production and shared database remain unchanged.
+- [x] Partial preview stabilization edits were made before explicit implementation approval: unavailable listing states, honest empty/error counts, demo/private live exclusion, Garden browse filter and scanner intent with explicit camera consent. 32 targeted tests and preview compilation passed. Browser checks passed for unavailable listings, Garden URL filtering, guest scanner return and signed-in scanner entry/permission-denial/ordinary Vault; no page errors. Signed-in checks used the existing beta form. Live phone overflow remains; no renewal, guest projection or seller Garden database change was made. These preview edits require user review, not automatic publication.
 - [ ] Implement Phase 1 A01–A07: blocked on explicit plan approval; public projections, listing renewal enforcement and Garden constraint changes require separately scoped database approval. Later category/Bazaar phases remain separate.
 
 - [x] Prepare category redesign approval concepts: desktop full-screen Categories menu, mobile photographic departments, and optional interest selection; eleven existing department URLs retained, collectible signature identity and separate PB Store/Bazaar preserved. No application or database changes.
