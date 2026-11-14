@@ -13,7 +13,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
-import { PersonalProfilePreviewBar } from "@/components/PersonalProfilePreviewBar";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator,
@@ -110,7 +109,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <a href="#main-content" className="skip-link">{t("common.skipToContent", "Skip to content")}</a>
       {!tutorial && <AccountHoldBanner />}
       {!tutorial && <AdminAlertBanner />}
-      {!tutorial && <PersonalProfilePreviewBar />}
 
       {/* ========== Header ========== */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
