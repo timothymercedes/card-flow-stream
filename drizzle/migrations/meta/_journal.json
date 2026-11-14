@@ -134,6 +134,13 @@
       "when": 1794670678900,
       "tag": "0018_personal_profile_owner_candidate",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794671201994,
+      "tag": "0019_personal_candidate_exact_media_binding",
+      "breakpoints": true
     }
   ]
 }
