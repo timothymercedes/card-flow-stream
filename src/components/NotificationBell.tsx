@@ -4,6 +4,8 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { usePersonalProfileLinks } from "@/hooks/usePersonalProfileLinks";
+import { socialNotificationLink } from "@/lib/personalProfileLinks";
 
 type Notif = { id: string; type: string; body: string; link: string | null; read: boolean; created_at: string };
 
@@ -11,6 +13,7 @@ export function NotificationBell() {
   const { user } = useAuth();
   const [items, setItems] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
+  const personalLinks = usePersonalProfileLinks();
 
   async function load() {
     if (!user) return;
@@ -81,8 +84,9 @@ export function NotificationBell() {
                     <p className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
                   </div>
                 );
-                return n.link
-                  ? <Link key={n.id} to={n.link as any} onClick={() => openItem(n)}>{inner}</Link>
+                const href = socialNotificationLink(n.type, n.link, personalLinks);
+                return href
+                  ? <Link key={n.id} to={href as any} onClick={() => openItem(n)}>{inner}</Link>
                   : <button key={n.id} onClick={() => openItem(n)} className="w-full text-left">{inner}</button>;
               })}
             </div>
