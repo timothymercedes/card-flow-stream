@@ -58,3 +58,6 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [ ] PB Bazaar account cart, parent/store orders and supplier fulfillment implementation: blocked on separate explicit database authorization and verified test/live isolation; design approval is not execution approval.
 - [ ] PB Bazaar later customer features and supplier Center: phased roadmap prepared; approved API access and separate schema review required before supplier integration.
 - [ ] Real iPhone/Android photo-picker test: scheduled for physical-device testing stage; requires devices and operator.
+- [x] PB Bazaar supplier Phase S1: suppliers, pricing rules, per-item approval, SOLD OUT/stale blocking, delivery windows, admin Suppliers screen
+- [ ] Live supplier connections (blocked: official API approval; Wish application pending)
+- [ ] Bazaar checkout/payments/supplier ordering (blocked: separate authorization)
