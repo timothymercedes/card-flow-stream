@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { adminReleasePayout } from "@/lib/payouts.functions";
+import { getShippingHealth } from "@/lib/adminShippingHealth.functions";
+import { FinancialAdminGate } from "@/components/admin/FinancialAdminGate";
 
 export const Route = createFileRoute("/admin/shipping-health")({
   head: () => ({ meta: [{ title: "Shipping health — Admin" }] }),
-  component: Page,
+  component: () => <FinancialAdminGate><Page /></FinancialAdminGate>,
 });
 
 function Page() {
@@ -19,36 +20,10 @@ function Page() {
   const [analytics, setAnalytics] = useState<any[]>([]);
   const release = useServerFn(adminReleasePayout);
 
+  const load = useServerFn(getShippingHealth);
   useEffect(() => {
-    (async () => {
-      const { data: f } = await supabase
-        .from("fraud_flags")
-        .select("id, user_id, flag_type, severity, details, created_at")
-        .in("flag_type", ["label_never_scanned", "suspicious_seller_late_rate", "late_shipment", "missed_shipping_deadline_auto_cancel"])
-        .is("resolved_at", null)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setFlagged(f ?? []);
-
-      const cutoff = new Date(Date.now() - 48 * 3_600_000).toISOString();
-      const { data: s } = await supabase
-        .from("orders")
-        .select("id, title, seller_id, label_purchased_at, tracking_number, carrier")
-        .eq("shipping_status", "label_created")
-        .is("first_scan_at", null)
-        .lt("label_purchased_at", cutoff)
-        .order("label_purchased_at", { ascending: true })
-        .limit(100);
-      setStale(s ?? []);
-
-      const { data: a } = await supabase
-        .from("mv_seller_shipping_analytics" as any)
-        .select("*")
-        .gte("total_orders", 5)
-        .order("late_pct", { ascending: false })
-        .limit(20);
-      setAnalytics((a as any[]) ?? []);
-    })();
+    load().then((r) => { setFlagged(r.flagged); setStale(r.stale); setAnalytics(r.analytics); })
+      .catch((e: any) => toast.error(e?.message || "Could not load"));
   }, []);
 
   async function handleRelease(orderId: string) {

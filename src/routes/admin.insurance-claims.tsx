@@ -5,9 +5,13 @@ import { AppShell } from "@/components/AppShell";
 import { adminListClaims, adminDecideClaim, getEvidenceSignedUrl } from "@/lib/insurance.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { FinancialAdminGate } from "@/components/admin/FinancialAdminGate";
 import { Shield, AlertTriangle, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/admin/insurance-claims")({ component: AdminInsuranceClaims });
+export const Route = createFileRoute("/admin/insurance-claims")({
+  head: () => ({ meta: [{ title: "Insurance claims — Admin" }] }),
+  component: () => <FinancialAdminGate><AdminInsuranceClaims /></FinancialAdminGate>,
+});
 
 function AdminInsuranceClaims() {
   const list = useServerFn(adminListClaims);
