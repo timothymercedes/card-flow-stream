@@ -1,5 +1,8 @@
 # Current work
 
+- [x] Prepare controlled Phase 1 stabilization plan for A01–A07 only; list candidate files, database/permission gates, desktop/mobile regressions and rollback. No production/application/database changes authorized or performed by this planning request.
+- [ ] Implement Phase 1 A01–A07: blocked on explicit plan approval; public projections, listing renewal enforcement and Garden constraint changes require separately scoped database approval. Later category/Bazaar phases remain separate.
+
 - [x] Prepare category redesign approval concepts: desktop full-screen Categories menu, mobile photographic departments, and optional interest selection; eleven existing department URLs retained, collectible signature identity and separate PB Store/Bazaar preserved. No application or database changes.
 - [x] Implement approved preview category presentation: full-screen Categories menu, original optimized photo cards, homepage rail, eleven department covers, separate Bazaar photo filters, optional onboarding/settings interests using existing owner-scoped profile storage. All eleven public pages, menu search, Escape/focus, subcategory/search reload and phone overflow checks passed; 18 targeted tests passed. No schema, payment or deployment changes.
 - [x] Verify signed-in saved interests: existing beta password accepted through the normal form, three interests saved and read back through Settings; homepage reordered correctly, signed-in Garden navigation and phone menu passed. Original account interests restored and checked through UI. Beta gate unchanged. Added clearance beneath the interest form so mobile navigation and notification prompts cannot cover Save.
