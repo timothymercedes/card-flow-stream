@@ -1,5 +1,7 @@
 # Current work
 
+- [ ] Revise selected PB Shield administration concept: simple overview, ten separate sections, role-scoped navigation, Owner & Founder safeguard review, grouped moderation workflow, attention counts and notification design. Return complete visual/navigation/permission proposal only; no production functionality or database changes.
+
 - [x] Reviewed new social timeline and Owner/Admin Control Center briefs, current admin screen/roles/registration functions/notification policies and existing social schema. Prepared three separate administration logo concepts and dashboard/login branding, design only; public logo unchanged.
 - [x] Prepared social desktop/mobile timeline, example post and management-menu concept board. Existing public logo must be retained during implementation; generated board header is an illustrative stand-in, not an approved logo replacement, and owner view must hide Follow. Reviewed privacy dependencies in administration/social design report.
 - [ ] Administration and social implementation: awaits separate design/permission/schema approval. No social or administration application changes authorized; shared migrations and publication remain separate gates.
