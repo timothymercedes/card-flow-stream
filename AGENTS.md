@@ -35,3 +35,4 @@
 - Personal profiles live at /@username (prefix route); owner status comes only from the verified session, with a safe fallback to the account username/name until the owner first saves, so a missing social identity row never locks the owner out.
 - Seller storefront tabs are commerce-only (Shop, Live Shows, Reviews, Sold, About); social posts and Vault cards live on the personal profile/Vault, and owner controls hide in Preview as Buyer.
 - Phone navigation uses a constrained search grid with named icon shortcuts, and storefront controls wrap independently from identity text; this prevents narrow-screen clipping without changing menu destinations.
+- Vehicle listings save only a masked VIN in public product details; full VINs need a private, consent-gated store because listing details are publicly readable.
