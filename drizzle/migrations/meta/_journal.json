@@ -120,6 +120,13 @@
       "when": 1794623883312,
       "tag": "0016_bazaar_supplier_phase_s1",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794662517571,
+      "tag": "0017_social_parent_visibility_safeguards",
+      "breakpoints": true
     }
   ]
 }
