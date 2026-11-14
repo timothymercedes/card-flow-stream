@@ -117,7 +117,7 @@ function MyListings() {
     if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price greater than $0");
     if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid greater than $0");
     const department = listingDepartment(editing);
-    const detailError = validateProductDetails(editing.product_details ?? {});
+    const detailError = validateProductDetails(editing.product_details ?? {}, listingDepartment(editing));
     if (detailError) return toast.error(detailError);
     if (department !== "collectibles" && !editing.product_details?.condition) return toast.error("Select a product condition");
     if (department === "collectibles" && !editing.condition) return toast.error("Select a condition (NM, LP, MP, or DMG)");
