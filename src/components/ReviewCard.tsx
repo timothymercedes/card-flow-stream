@@ -13,6 +13,7 @@ import { Star, BadgeCheck, Radio, Flag, MessageSquare, Loader2 } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UsernamePopover } from "@/components/UsernamePopover";
+import { useAuthGate } from "@/hooks/useAuthGate";
 
 export type ReviewRow = {
   id: string;
@@ -66,6 +67,7 @@ export function ReviewCard({
   const canBuyerReply = !!currentUserId && currentUserId === review.buyer_id && !!localSellerResp && !review.buyer_response;
 
   async function submitResponse(role: "seller" | "buyer") {
+    if (!requireAuth("respond to reviews")) return;
     if (!body.trim() || !currentUserId) return;
     setSubmitting(true);
     const { error } = await supabase.from("review_responses").insert({
@@ -82,7 +84,9 @@ export function ReviewCard({
     setShowRespond(false);
   }
 
+  const { requireAuth } = useAuthGate();
   async function reportReview() {
+    if (!requireAuth("report reviews")) return;
     if (!currentUserId) { toast.error("Sign in to report"); return; }
     const reason = window.prompt("Why are you reporting this review?\n(spam, harassment, false claim, off-topic, other)");
     if (!reason) return;

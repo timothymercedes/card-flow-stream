@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MoreVertical, Ban, UserX, Undo2 } from "lucide-react";
+import { useAuthGate } from "@/hooks/useAuthGate";
 
 type Props = {
   targetUserId: string;
@@ -37,7 +38,9 @@ export function UserActionsMenu({ targetUserId, targetUsername, meId, isStreamSt
 
   if (!meId || meId === targetUserId) return null;
 
+  const { requireAuth } = useAuthGate();
   async function block() {
+    if (!requireAuth("block users")) return;
     setBusy(true);
     const { error } = await supabase.from("user_blocks").insert({ blocker_id: meId!, blocked_id: targetUserId });
     setBusy(false);

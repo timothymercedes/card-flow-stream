@@ -7,6 +7,7 @@ import { MASCOTS, TOURS } from "@/lib/tours";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRealtimeChannel } from "@/lib/realtime";
+import { useAuthGate } from "@/hooks/useAuthGate";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Escalation = { suggested: boolean; category?: TicketCategory; reason?: string; priority?: "low" | "normal" | "high" | "urgent" };
@@ -143,7 +144,9 @@ export function HelpBubble() {
     setMode("escalate");
   }
 
+  const { requireAuth } = useAuthGate();
   async function submitTicket() {
+    if (!requireAuth("contact support")) return;
     if (!me) return toast.error("Sign in first");
     if (!escSubject.trim()) return toast.error("Add a subject");
     if (!escDetails.trim()) return toast.error("Add some details");
