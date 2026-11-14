@@ -35,6 +35,8 @@ function ShowOff() {
   const [tagged, setTagged] = useState<{ id: string; username: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
+  const [streamsLoading, setStreamsLoading] = useState(false);
+  const [streamsError, setStreamsError] = useState(false);
   // category is selected inline via TCG tag chips below — no separate popup
   const [tcgTags, setTcgTags] = useState<TcgTag[]>([]);
   const { triggerOnce } = useTour();
@@ -42,6 +44,8 @@ function ShowOff() {
 
   useEffect(() => {
     if (tutorial) {
+      setStreamsLoading(false);
+      setStreamsError(false);
       setVerified(true);
       setStreams([{ id: "demo-flex", seller_id: user?.id ?? "tour-demo-user", title: "Flex Live: PSA reveal room", thumbnail_url: null, is_private: false }]);
       return;
@@ -54,7 +58,8 @@ function ShowOff() {
       });
     supabase.from("live_streams").select("id, seller_id, title, thumbnail_url, is_private")
       .eq("status", "live").eq('is_demo',false).eq('is_private',false).eq("mode", "show_off").order("created_at", { ascending: false })
-      .then(({ data }) => setStreams((data as any[]) || []));
+      .then(({ data, error }) => {setStreams((data as any[]) || []);setStreamsError(!!error);setStreamsLoading(false);});
+    setStreamsLoading(true);
   }, [user, tutorial]);
 
   async function searchUsers(q: string) {
@@ -300,7 +305,8 @@ function ShowOff() {
         </div>
 
         <h2 className="mb-2 text-sm font-bold">Live now</h2>
-        {streams.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No Flex Lives right now.</p>}
+        {streamsLoading && <p role="status" className="py-8 text-center text-xs text-muted-foreground">Checking Flex Lives…</p>}
+        {!streamsLoading && streams.length === 0 && <p role={streamsError ? 'alert' : undefined} className="py-8 text-center text-xs text-muted-foreground">{streamsError ? 'Flex Lives are unavailable right now.' : 'No Flex Lives right now.'}</p>}
         <div className="grid grid-cols-2 gap-3">
           {streams.map((s) => (
             <Link key={s.id} to="/live/$id" params={{ id: s.id }}>
