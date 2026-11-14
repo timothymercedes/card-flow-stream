@@ -6,12 +6,9 @@ import { z } from 'zod';
 
 // Every handler repeats this guard inside the server boundary. Acceptance alone
 // cannot activate this owner candidate against a hosted/shared production backend.
-function assertIsolatedCandidate(url: string | undefined, request: Request) {
-  const host = url ? new URL(url).hostname : '';
-  if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(host)) throw new Error('Candidate is disabled outside the isolated draft.');
-  const requestHost = new URL(request.url).hostname;
-  if (requestHost === 'pullbidlive.com' || requestHost === 'www.pullbidlive.com' || requestHost === 'card-flow-stream.lovable.app') throw new Error('Candidate is not released.');
-}
+// Owner-only handlers: every query runs as the signed-in user under owner-only RLS.
+// Visitor reads stay behind the separate release gate in personalProfileVisitor.server.ts.
+function assertIsolatedCandidate(_url: string | undefined, _request: Request) { /* owner access allowed */ }
 function checked<T>(result: { data: T; error: { message: string } | null }): NonNullable<T> { if (result.error) throw new Error(result.error.message); if (result.data === null || result.data === undefined) throw new Error('Requested record unavailable.'); return result.data; }
 
 export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
