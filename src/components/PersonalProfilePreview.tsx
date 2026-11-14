@@ -1,132 +1,94 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { Camera, Pencil, Settings, ArrowUpRight, ImagePlus, Video, Gem, Sparkles, MessageCircle, Repeat2, Share2, Lock, MoreHorizontal, Pin, Trash2, Send } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { Camera, Pencil, Settings, ArrowUpRight, ImagePlus, Video, Gem, Sparkles, MessageCircle, Repeat2, Share2, Lock, MoreHorizontal, Pin, Trash2, Send, FlaskConical } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { PERSONAL_PROFILE_TABS, canReadPersonalTimeline, personalDraftKey, type PersonalProfileTab } from '@/lib/personalProfilePreview';
-import cityCover from '@/assets/departments/garden_outdoors.webp';
-import collectionCover from '@/assets/departments/collectibles.webp';
-import gamingCover from '@/assets/departments/gaming.webp';
-type Draft = { name: string; bio: string; location: string; avatar?: string; cover?: string; text?: string };
-type Story = { id: string; caption: string; image_url: string | null; created_at: string; visibility: string; allow_comments: boolean };
+import { PERSONAL_PROFILE_TABS, type PersonalProfileTab } from '@/lib/personalProfilePreview';
+import { AUDIENCE_LABEL, DEMO_PROFILE, DEMO_VIEWERS, visiblePosts, showcaseCards, type DemoAudience, type DemoPhoto, type DemoPost, type DemoViewer } from '@/lib/personalProfileDemo';
+import outdoors from '@/assets/departments/garden_outdoors.webp';
+import collectibles from '@/assets/departments/collectibles.webp';
+import gaming from '@/assets/departments/gaming.webp';
+import detail from '@/assets/departments/collectibles-detail.webp';
+import music from '@/assets/departments/music.webp';
+const PHOTOS: Record<DemoPhoto, string> = { outdoors, collectibles, gaming, detail, music };
 
 export function PersonalProfilePreview({ account, initialVisitor = false, routeLabel }: { account: ReactNode; initialVisitor?: boolean; routeLabel?: string }) {
-  const { user, profile, loading } = useAuth();
   const [tab, setTab] = useState<PersonalProfileTab>('Posts');
   const [accountOpen, setAccountOpen] = useState(false);
-  const [visitor, setVisitor] = useState(initialVisitor);
-  const [draft, setDraft] = useState<Draft>({ name: '', bio: '', location: '' });
+  const [viewer, setViewer] = useState<DemoViewer>(initialVisitor ? 'guest' : 'owner');
+  const [draft, setDraft] = useState({ name: DEMO_PROFILE.name, bio: DEMO_PROFILE.bio, location: DEMO_PROFILE.location });
   const [dialog, setDialog] = useState<string | null>(null);
-  const [story, setStory] = useState<Story | null>(null);
+  const [story, setStory] = useState<DemoPost | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
-  const [localStories, setLocalStories] = useState<Story[]>([]);
+  const [local, setLocal] = useState<DemoPost[]>([]);
   const [pinned, setPinned] = useState<string | null>(null);
   const [hidden, setHidden] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
-  const [localReactions, setLocalReactions] = useState<Record<string, boolean>>({});
-  const [uploadError, setUploadError] = useState('');
-  const ownerId = user?.id;
+  const [audience, setAudience] = useState<DemoAudience>('only_me');
+  const [liked, setLiked] = useState<Record<string, boolean>>({});
   useEffect(() => {
-    const font = document.createElement('link');
-    font.rel = 'stylesheet';
+    const font = document.createElement('link'); font.rel = 'stylesheet';
     font.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap';
-    document.head.appendChild(font);
-    return () => font.remove();
+    document.head.appendChild(font); return () => font.remove();
   }, []);
-  useEffect(() => {
-    setLocalStories([]); setHidden([]); setPinned(null); setLocalReactions({});
-    setDraft({ name: '', bio: '', location: '' });
-    if (!ownerId) return;
-    try { const value = sessionStorage.getItem(personalDraftKey(ownerId)); if (value) setDraft(JSON.parse(value)); } catch { /* tab-local draft unavailable */ }
-  }, [ownerId]);
-  const query = useQuery({
-    queryKey: ['personal-profile-owner-preview', ownerId],
-    enabled: !!ownerId && !visitor,
-    retry: false,
-    queryFn: async () => {
-      if (!ownerId || !canReadPersonalTimeline(user?.id, ownerId)) throw new Error('Owner access required');
-      const [posts, cards, followers, following] = await Promise.all([
-        supabase.from('posts').select('id,caption,image_url,created_at,visibility,allow_comments').eq('user_id', ownerId).order('created_at', { ascending: false }).limit(40),
-        supabase.from('vault_cards').select('id,name,image_url,visibility').eq('user_id', ownerId).order('created_at', { ascending: false }).limit(9),
-        supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followee_id', ownerId),
-        supabase.from('follows').select('followee_id', { count: 'exact', head: true }).eq('follower_id', ownerId),
-      ]);
-      if (posts.error || cards.error || followers.error || following.error) throw new Error('Your profile could not be loaded. Please retry.');
-      return { posts: posts.data, cards: cards.data, followers: followers.count, following: following.count };
-    },
-  });
-  function saveDraft(value: Draft) {
-    setDraft(value);
-    if (ownerId) try { sessionStorage.setItem(personalDraftKey(ownerId), JSON.stringify(value)); } catch { /* in-memory preview remains */ }
-  }
-  async function selectImage(file: File | undefined, target: 'avatar' | 'cover') {
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) { setUploadError('Choose a JPEG, PNG or WebP image under 4 MB.'); return; }
-    const value = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(); reader.onerror = reject; reader.readAsDataURL(file); });
-    saveDraft({ ...draft, [target]: value }); setUploadError('');
-  }
-  if (accountOpen) return <><div className="personal-profile-theme personal-review"><strong className="personal-preview-label">PREVIEW DESIGN · ACCOUNT PANEL</strong><Button variant="outline" onClick={() => setAccountOpen(false)}>← Personal profile</Button></div>{account}</>;
-  if (loading) return <AppShell><div className="personal-profile-theme personal-review"><strong className="personal-preview-label">PREVIEW DESIGN</strong><span>Loading your profile…</span></div></AppShell>;
-  const posts = visitor ? [] : [...localStories, ...(query.data?.posts ?? [])].filter(p => !hidden.includes(p.id)).sort((a, b) => a.id === pinned ? -1 : b.id === pinned ? 1 : 0);
-  const cards = visitor ? [] : query.data?.cards ?? [];
-  const images = posts.filter(p => p.image_url);
-  const name = draft.name || profile?.username || 'Your profile';
-  function open(title: string, selected?: Story) { setDialog(title); setStory(selected ?? null); setCaption(selected?.caption ?? draft.text ?? ''); }
-  function submitStory() {
+  const owner = viewer === 'owner';
+  if (accountOpen) return <><div className="personal-profile-theme personal-review"><strong className="personal-preview-label">PREVIEW DESIGN · ACCOUNT SETTINGS (unchanged)</strong><Button variant="outline" onClick={() => setAccountOpen(false)}>← Personal profile</Button></div>{account}</>;
+  const posts = visiblePosts(viewer, [...local, ...visiblePosts('owner')]).filter(p => !hidden.includes(p.id)).sort((a, b) => a.id === pinned ? -1 : b.id === pinned ? 1 : 0);
+  const cards = showcaseCards(viewer);
+  const images = posts.flatMap(p => p.photos.map((ph, i) => ({ key: `${p.id}-${i}`, src: PHOTOS[ph] })));
+  const open = (t: string, s?: DemoPost) => { setDialog(t); setStory(s ?? null); setCaption(s?.caption ?? ''); setAudience(s?.audience ?? 'only_me'); };
+  const submit = () => {
     if (!caption.trim()) return;
-    if (story) setLocalStories(prev => [{ ...story, id: `draft-${Date.now()}`, caption: caption.trim() }, ...prev]);
-    else setLocalStories(prev => [{ id: `draft-${Date.now()}`, caption: caption.trim(), image_url: null, created_at: new Date().toISOString(), visibility: 'only_me', allow_comments: true }, ...prev]);
-    setDialog(null); saveDraft({ ...draft, text: '' });
-  }
-  return <AppShell><div className="personal-profile-theme" data-profile-component="PersonalProfilePreview">
-    <div className="personal-review"><div><strong className="personal-preview-label">PREVIEW DESIGN</strong>{routeLabel && <code data-preview-route>{routeLabel}</code>}<span>{visitor ? 'Visitor simulation · No other account is opened' : 'Personal profile · Browser-only drafts'}</span></div><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
+    setLocal(v => [{ id: `draft-${Date.now()}`, kind: 'story', caption: caption.trim(), photos: [], audience, date: new Date().toISOString().slice(0, 10), appreciations: 0, comments: 0 }, ...v]);
+    setDialog(null);
+  };
+  const viewerLabel = DEMO_VIEWERS.find(v => v.id === viewer)!.label;
+  return <AppShell><div className="personal-profile-theme" data-profile-component="PersonalProfilePreview" data-demo-viewer={viewer}>
+    <div className="personal-review"><div><strong className="personal-preview-label">PREVIEW DESIGN</strong><strong className="personal-preview-label"><FlaskConical className="inline size-3" /> DEMONSTRATION DATA</strong>{routeLabel && <code data-preview-route>{routeLabel}</code>}<span>{owner ? 'Owner view · demo profile, no customer data' : `SIMULATED ${viewerLabel.toUpperCase()} VIEW · not real visitor access`}</span></div>
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Simulate viewer">{DEMO_VIEWERS.map(v => <Button key={v.id} size="sm" variant={viewer === v.id ? 'default' : 'outline'} aria-pressed={viewer === v.id} onClick={() => setViewer(v.id)}>{v.label}</Button>)}</div></div>
     <main className="personal-page">
       <section className="personal-masthead">
         <div className="personal-identity">
-          <div className="personal-portrait">{draft.avatar || profile?.avatar_url ? <img src={draft.avatar || profile?.avatar_url || ''} alt={name} /> : <span>{name.slice(0, 1).toUpperCase()}</span>}{!visitor && <Button size="icon" title="Change profile photo" aria-label="Change profile photo" onClick={() => open('Profile photo')}><Camera /></Button>}</div>
-          <div className="personal-name"><h1>{name}<em>.</em></h1><p>@{profile?.username}</p></div>
-          <p className="personal-bio">{draft.bio || 'Your stories. Your discoveries. Your world.'}{draft.location && <><br /><span>{draft.location}</span></>}</p>
-          {!visitor && <div className="personal-counts"><Button variant="ghost" onClick={() => open('Followers')}><strong>{query.data?.followers ?? '—'}</strong><span>Followers</span></Button><Button variant="ghost" onClick={() => open('Following')}><strong>{query.data?.following ?? '—'}</strong><span>Following</span></Button></div>}
-          <div className="personal-identity-actions">{!visitor ? <><Button onClick={() => open('Edit personal profile')}><Pencil />Edit profile</Button><Button variant="outline" aria-label="Private account tools" title="Private account tools" onClick={() => setAccountOpen(true)}><Settings /></Button></> : <Button variant="outline" disabled><Lock />Visitor preview</Button>}<Button variant="outline" title="Share profile" aria-label="Share profile" onClick={() => open('Share profile')}><Share2 /></Button></div>
+          <div className="personal-portrait"><span>{draft.name.slice(0, 1)}</span>{owner && <Button size="icon" aria-label="Change profile photo" onClick={() => open('Profile photo')}><Camera /></Button>}</div>
+          <div className="personal-name"><h1>{draft.name}<em>.</em></h1><p>@{DEMO_PROFILE.username} · demo</p></div>
+          <p className="personal-bio">{draft.bio}{draft.location && <><br /><span>{draft.location}</span></>}</p>
+          <div className="personal-counts"><Button variant="ghost" onClick={() => open('Followers')}><strong>{DEMO_PROFILE.followers.toLocaleString()}</strong><span>Followers</span></Button><Button variant="ghost" onClick={() => open('Following')}><strong>{DEMO_PROFILE.following}</strong><span>Following</span></Button></div>
+          <div className="personal-identity-actions">{owner ? <><Button onClick={() => open('Edit personal profile')}><Pencil />Edit profile</Button><Button variant="outline" aria-label="Account settings" title="Account settings" onClick={() => setAccountOpen(true)}><Settings /></Button></> : <Button variant="outline" onClick={() => open('Follow')}>Follow</Button>}<Button variant="outline" aria-label="Share profile" onClick={() => open('Share profile')}><Share2 /></Button></div>
         </div>
-        <div className="personal-cover"><img src={draft.cover || cityCover} alt="Personal cover preview" /><img src={collectionCover} alt="Collectible cover preview" /><img src={gamingCover} alt="Gaming cover preview" /><div className="personal-cover-caption"><span>PERSONAL JOURNAL / 01</span><h2>Stories worth keeping.</h2></div>{!visitor && <Button variant="outline" size="icon" aria-label="Change cover" title="Change cover" onClick={() => open('Cover photos')}><Camera /></Button>}</div>
+        <div className="personal-cover"><img src={outdoors} alt="Demo cover: outdoors" /><img src={collectibles} alt="Demo cover: collection" /><img src={gaming} alt="Demo cover: arcade" /><div className="personal-cover-caption"><span>PERSONAL JOURNAL / 01</span><h2>Stories worth keeping.</h2></div>{owner && <Button variant="outline" size="icon" aria-label="Change cover" onClick={() => open('Cover photos')}><Camera /></Button>}</div>
       </section>
       <nav className="personal-tabs" aria-label="Personal profile sections">{PERSONAL_PROFILE_TABS.map((t, i) => <Button key={t} variant="ghost" aria-pressed={tab === t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}><span>0{i + 1}</span>{t}</Button>)}</nav>
       <div className="personal-body"><section className="personal-timeline">
         {tab === 'Posts' && <>
-          {!visitor && <div className="personal-composer"><Button variant="ghost" className="personal-prompt" onClick={() => open('Create a story')}>What’s your latest story?</Button><Button variant="ghost" size="icon" title="Add photos" aria-label="Add photos" onClick={() => open('Photo story')}><ImagePlus /></Button><Button variant="ghost" size="icon" title="Add video" aria-label="Add video" onClick={() => open('Video story')}><Video /></Button><Button variant="ghost" size="icon" title="Share collectible" aria-label="Share collectible" onClick={() => open('Collectible story')}><Gem /></Button></div>}
-          <div className="personal-section-heading"><h2>The latest chapter.</h2><span>Newest first ↓</span></div>
-          {visitor ? <div className="personal-empty"><Lock /><h3>Public timeline unavailable</h3><p>Visitor content remains unavailable until the privacy review is approved.</p></div> : !user ? <div className="personal-empty"><Lock /><h3>Your personal journal.</h3><p>Sign in to view your own stories and collectibles. No account data is shown here.</p><Button asChild><Link to="/auth">Sign in</Link></Button></div> : query.isError ? <div className="personal-empty"><p>Your timeline couldn’t be loaded.</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div> : query.isPending ? <p className="py-10 text-muted-foreground">Loading your stories…</p> : <div className="personal-post-grid">
-            {posts.map((p, index) => <article key={p.id} className={`personal-post ${p.image_url ? 'photo-story' : 'note-story'} ${index === 0 ? 'lead-story' : ''}`}>
-              <div className="personal-post-meta"><span>{pinned === p.id && <Pin size={13} />}{p.id.startsWith('draft-') ? 'Browser draft · Only you' : `Your story · ${p.visibility}`}</span><Button variant="ghost" size="icon" aria-label="Manage story" onClick={() => open('Manage story', p)}><MoreHorizontal /></Button></div>
-              <p className="personal-author">@{profile?.username} <span>{new Date(p.created_at).toLocaleDateString()}</span></p>
-              <p className="personal-story-caption">{p.caption}</p>{p.image_url && <Button variant="ghost" className="personal-story-media" onClick={() => setPhoto(p.image_url)}><img src={p.image_url} alt="Your story photograph" /></Button>}
-              <div className="personal-post-actions"><Button variant="ghost" onClick={() => { setStory(p); setLocalReactions(v => ({ ...v, [p.id]: !v[p.id] })); }} title="Preview appreciation" aria-pressed={!!localReactions[p.id]}><Sparkles />{localReactions[p.id] ? 'Appreciated · Draft' : 'Appreciate'}</Button><Button variant="ghost" title="Comments" onClick={() => open('Conversation', p)}><MessageCircle /></Button><Button variant="ghost" title="Repost" onClick={() => open('Repost story', p)}><Repeat2 /></Button><Button variant="ghost" title="Share" onClick={() => open('Share story', p)}><Share2 /></Button></div>
+          {owner && <div className="personal-composer"><Button variant="ghost" className="personal-prompt" onClick={() => open('Create a story')}>What’s your latest story?</Button><Button variant="ghost" size="icon" aria-label="Add photos" onClick={() => open('Photo story')}><ImagePlus /></Button><Button variant="ghost" size="icon" aria-label="Add video" onClick={() => open('Video story')}><Video /></Button><Button variant="ghost" size="icon" aria-label="Share collectible" onClick={() => open('Collectible story')}><Gem /></Button></div>}
+          <div className="personal-section-heading"><h2>The latest chapter.</h2><span>{posts.length} visible to {owner ? 'you' : viewerLabel.toLowerCase()}</span></div>
+          <div className="personal-post-grid">
+            {posts.map((p, i) => <article key={p.id} className={`personal-post ${p.photos.length ? 'photo-story' : 'note-story'} ${i === 0 ? 'lead-story' : ''}`}>
+              <div className="personal-post-meta"><span>{pinned === p.id && <Pin size={13} />}{p.kind === 'video' ? 'Video · ' : p.kind === 'collectible' ? 'Collectible · ' : ''}<Lock className="inline size-3" /> {AUDIENCE_LABEL[p.audience]}{p.id.startsWith('draft-') && ' · draft'}</span>{owner && <Button variant="ghost" size="icon" aria-label="Manage story" onClick={() => open('Manage story', p)}><MoreHorizontal /></Button>}</div>
+              <p className="personal-author">@{DEMO_PROFILE.username} <span>{new Date(p.date).toLocaleDateString()}</span></p>
+              <p className="personal-story-caption">{p.caption}</p>
+              {p.photos.length > 0 && <div className={p.photos.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>{p.photos.map((ph, j) => <Button key={j} variant="ghost" className="personal-story-media" onClick={() => setPhoto(PHOTOS[ph])}><img src={PHOTOS[ph]} alt="Demo story photo" /></Button>)}</div>}
+              <div className="personal-post-actions"><Button variant="ghost" aria-pressed={!!liked[p.id]} disabled={viewer === 'guest'} onClick={() => setLiked(v => ({ ...v, [p.id]: !v[p.id] }))}><Sparkles />{p.appreciations + (liked[p.id] ? 1 : 0)}</Button><Button variant="ghost" disabled={viewer === 'guest'} onClick={() => open('Conversation', p)}><MessageCircle />{p.comments}</Button><Button variant="ghost" aria-label="Repost" disabled={p.audience !== 'public' || viewer === 'guest'} onClick={() => open('Repost story', p)}><Repeat2 /></Button><Button variant="ghost" aria-label="Share" disabled={p.audience !== 'public'} onClick={() => open('Share story', p)}><Share2 /></Button></div>
             </article>)}
-            {cards[0] && <article className="personal-post personal-collectible"><span className="personal-eyebrow">FROM YOUR COLLECTION · OWNER ONLY</span>{cards[0].image_url && <img src={cards[0].image_url} alt={cards[0].name} />}<h3>{cards[0].name}</h3><Button variant="link" asChild><Link to="/vault">Open your Vault <ArrowUpRight /></Link></Button></article>}
-            {!posts.length && <div className="personal-empty"><Sparkles /><h3>A new chapter starts here.</h3><p>No stories yet.</p><Button variant="outline" onClick={() => open('Create a story')}>Create a browser draft</Button></div>}
-          </div>}
+            {!posts.length && <div className="personal-empty"><Lock /><h3>Nothing shared with this viewer.</h3></div>}
+          </div>
         </>}
-        {tab === 'About' && <section className="personal-about"><h2>The person behind the pulls.</h2><p>{draft.bio || 'Add your personal story with Edit profile.'}</p>{draft.location && <p>{draft.location}</p>}<p>@{profile?.username}</p></section>}
-        {tab === 'Photos' && <><h2>Life through a lens.</h2><div className="personal-gallery">{images.map(p => <Button variant="ghost" key={p.id} onClick={() => setPhoto(p.image_url)}><img src={p.image_url || ''} alt="Your story photo" /></Button>)}</div>{!images.length && <p className="py-10 text-muted-foreground">{visitor ? 'Public photos are not available yet.' : 'No story photos yet.'}</p>}</>}
-        {tab === 'Videos' && <><h2>Moving moments.</h2><div className="personal-empty"><Video /><p>Video stories are not connected yet.</p></div></>}
-        {tab === 'Collectibles' && <><h2>Chosen to share.</h2><div className="personal-gallery">{cards.map(c => <article key={c.id}>{c.image_url && <img src={c.image_url} alt={c.name} />}<h3>{c.name}</h3><span className="text-xs text-muted-foreground">Owner only · {c.visibility}</span></article>)}</div>{!cards.length && <p className="py-10 text-muted-foreground">No collectible highlights available.</p>}</>}
-        {tab === 'Activity' && <><h2>Recent chapters.</h2>{posts.map(p => <p key={p.id} className="personal-activity">{p.id.startsWith('draft-') ? 'Drafted a story' : 'Shared a story'} · {new Date(p.created_at).toLocaleDateString()}</p>)}{!posts.length && <p className="py-10 text-muted-foreground">No activity available.</p>}</>}
-      </section><aside className="personal-aside"><span className="personal-eyebrow">THE PERSON BEHIND THE PULLS</span><h3>Curiosity is the collection.</h3><p>{draft.bio || 'A place for the things and moments that matter to you.'}</p><div className="personal-separate-links">{profile?.username && <Button variant="link" asChild><Link to="/seller/$username" params={{ username: profile.username }}>Seller storefront <ArrowUpRight /></Link></Button>}<Button variant="link" asChild><Link to="/vault">Personal Vault <ArrowUpRight /></Link></Button></div>{!visitor && <Button variant="outline" onClick={() => setAccountOpen(true)}><Settings />Account & security</Button>}</aside></div>
+        {tab === 'About' && <section className="personal-about"><h2>The person behind the pulls.</h2><p>{draft.bio}</p>{draft.location && <p>{draft.location}</p>}<p className="text-sm text-muted-foreground">Email, phone, address and payment details are never shown on a personal profile.</p></section>}
+        {tab === 'Photos' && <><h2>Life through a lens.</h2><div className="personal-gallery">{images.map(im => <Button variant="ghost" key={im.key} onClick={() => setPhoto(im.src)}><img src={im.src} alt="Demo gallery photo" /></Button>)}</div>{!images.length && <p className="py-10 text-muted-foreground">No photos shared with this viewer.</p>}</>}
+        {tab === 'Videos' && <><h2>Moving moments.</h2><div className="personal-gallery">{posts.filter(p => p.kind === 'video').map(p => <article key={p.id}><img src={PHOTOS[p.photos[0]]} alt="Demo video thumbnail" /><h3><Video className="inline size-4" /> {p.caption}</h3></article>)}</div></>}
+        {tab === 'Collectibles' && <><h2>Showcase.</h2><p className="text-sm text-muted-foreground">Only cards the owner explicitly shared appear here. Private cards are never shown — not even in this owner preview.</p><div className="personal-gallery">{cards.map(c => <article key={c.id}><img src={PHOTOS[c.photo]} alt={c.name} /><h3>{c.name}</h3><span className="text-xs text-muted-foreground">{c.set} · {AUDIENCE_LABEL[c.audience]}</span></article>)}</div>{!cards.length && <p className="py-10 text-muted-foreground">No collectibles shared with this viewer.</p>}</>}
+        {tab === 'Activity' && <><h2>Recent chapters.</h2>{posts.map(p => <p key={p.id} className="personal-activity">{p.kind === 'collectible' ? 'Shared a collectible' : 'Shared a story'} · {new Date(p.date).toLocaleDateString()}</p>)}</>}
+      </section><aside className="personal-aside"><span className="personal-eyebrow">SEPARATE DESTINATIONS</span><h3>Curiosity is the collection.</h3><p>Your profile is for stories. Shopping and private collection management live in their own places.</p><div className="personal-separate-links"><Button variant="link" asChild><Link to="/marketplace">Seller storefront (commerce) <ArrowUpRight /></Link></Button><Button variant="link" asChild><Link to="/vault">Collector Vault (private) <ArrowUpRight /></Link></Button></div>{owner && <Button variant="outline" onClick={() => setAccountOpen(true)}><Settings />Account & security</Button>}</aside></div>
     </main>
-    <Dialog open={!!dialog} onOpenChange={v => { if (!v) setDialog(null); }}><DialogContent className="personal-profile-theme personal-dialog"><DialogTitle>{dialog}</DialogTitle><DialogDescription>Preview only. Nothing here changes your account or the database.</DialogDescription>
-      {dialog === 'Edit personal profile' && <><label>Display name<Input value={draft.name} placeholder={profile?.username} onChange={e => saveDraft({ ...draft, name: e.target.value })} /></label><label>Bio<Textarea value={draft.bio} onChange={e => saveDraft({ ...draft, bio: e.target.value })} /></label><label>Optional personal location<Input value={draft.location} onChange={e => saveDraft({ ...draft, location: e.target.value })} /></label><Button onClick={() => setDialog(null)}>Keep browser draft</Button></>}
-      {(dialog === 'Profile photo' || dialog === 'Cover photos') && <><label>Select a browser-only photo<Input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { void selectImage(e.target.files?.[0], dialog === 'Profile photo' ? 'avatar' : 'cover'); }} /></label>{uploadError && <p className="text-destructive">{uploadError}</p>}<Button variant="outline" onClick={() => saveDraft({ ...draft, [dialog === 'Profile photo' ? 'avatar' : 'cover']: undefined })}>Reset draft photo</Button></>}
-      {(dialog === 'Create a story' || dialog === 'Edit story') && <><label>Your story<Textarea value={caption} onChange={e => { setCaption(e.target.value); saveDraft({ ...draft, text: e.target.value }); }} /></label><p className="text-sm text-muted-foreground"><Lock className="inline size-4" />Only you · Browser draft</p><Button disabled={!caption.trim()} onClick={submitStory}><Send />Keep browser draft</Button></>}
-      {dialog === 'Manage story' && story && <><Button variant="outline" onClick={() => setDialog('Edit story')}><Pencil />Edit as browser draft</Button><Button variant="outline" onClick={() => { setPinned(story.id); setDialog(null); }}><Pin />Pin in this preview</Button><Button variant="outline" onClick={() => setDialog('Story privacy')}><Lock />Privacy</Button><Button variant="outline" onClick={() => { setHidden(v => [...v, story.id]); setDialog(null); }}><Trash2 />Hide in this preview</Button><Button variant="link" asChild><Link to="/feed">Manage existing posts in Feed <ArrowUpRight /></Link></Button></>}
-      {!['Edit personal profile', 'Profile photo', 'Cover photos', 'Create a story', 'Edit story', 'Manage story'].includes(dialog ?? '') && <p className="text-sm text-muted-foreground">{dialog === 'Followers' ? `${query.data?.followers ?? '—'} followers.` : dialog === 'Following' ? `${query.data?.following ?? '—'} following.` : 'This feature remains inactive pending the separately approved social privacy and media work.'}</p>}
+    <Dialog open={!!dialog} onOpenChange={v => { if (!v) setDialog(null); }}><DialogContent className="personal-profile-theme personal-dialog"><DialogTitle>{dialog}</DialogTitle><DialogDescription>Demonstration only. Nothing here changes any account or saved data.</DialogDescription>
+      {dialog === 'Edit personal profile' && <><label>Display name<Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>Bio<Textarea value={draft.bio} onChange={e => setDraft({ ...draft, bio: e.target.value })} /></label><label>Location<Input value={draft.location} onChange={e => setDraft({ ...draft, location: e.target.value })} /></label><Button onClick={() => setDialog(null)}>Done</Button></>}
+      {(dialog === 'Create a story' || dialog === 'Edit story') && <><label>Your story<Textarea value={caption} onChange={e => setCaption(e.target.value)} /></label><label>Who can see this<select className="w-full rounded-md border bg-background p-2" value={audience} onChange={e => setAudience(e.target.value as DemoAudience)}>{Object.entries(AUDIENCE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label><Button disabled={!caption.trim()} onClick={submit}><Send />Add demo story</Button></>}
+      {dialog === 'Manage story' && story && <><Button variant="outline" onClick={() => setDialog('Edit story')}><Pencil />Edit</Button><Button variant="outline" onClick={() => { setPinned(story.id); setDialog(null); }}><Pin />Pin to top</Button><Button variant="outline" onClick={() => { setHidden(v => [...v, story.id]); setDialog(null); }}><Trash2 />Remove from demo</Button></>}
+      {!['Edit personal profile', 'Create a story', 'Edit story', 'Manage story'].includes(dialog ?? '') && <p className="text-sm text-muted-foreground">This action is shown for design review and stays inactive until privacy safeguards are approved.</p>}
     </DialogContent></Dialog>
-    <Dialog open={!!photo} onOpenChange={v => { if (!v) setPhoto(null); }}><DialogContent className="personal-profile-theme personal-dialog"><DialogTitle>Story photograph</DialogTitle><DialogDescription>Owner-only photo preview</DialogDescription>{photo && <img src={photo} alt="Expanded story photograph" className="max-h-[65vh] w-full object-contain" />}</DialogContent></Dialog>
+    <Dialog open={!!photo} onOpenChange={v => { if (!v) setPhoto(null); }}><DialogContent className="personal-profile-theme personal-dialog"><DialogTitle>Photo</DialogTitle><DialogDescription>Demonstration photo</DialogDescription>{photo && <img src={photo} alt="Expanded demo photo" className="max-h-[65vh] w-full object-contain" />}</DialogContent></Dialog>
   </div></AppShell>;
 }
