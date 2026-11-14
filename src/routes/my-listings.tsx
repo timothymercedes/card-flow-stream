@@ -7,6 +7,7 @@ import { ListingImageUpload } from "@/components/ListingImageUpload";
 import { LISTING_CATEGORIES, categoryEmoji, categoryLabel } from "@/lib/listingCategories";
 import { Tag, Trash2, RefreshCw, Pencil, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { confirmOffPlatform } from "@/lib/offPlatformGuard";
 import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDisplay";
 import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
 import { listingDepartment, validateProductDetails, type ProductDetails } from "@/lib/marketplaceDepartments";
@@ -119,6 +120,7 @@ function MyListings() {
     const department = listingDepartment(editing);
     const detailError = validateProductDetails(editing.product_details ?? {}, listingDepartment(editing));
     if (detailError) return toast.error(detailError);
+    if (!confirmOffPlatform(editing.title, editing.description)) return;
     if (department !== "collectibles" && !editing.product_details?.condition) return toast.error("Select a product condition");
     if (department === "collectibles" && !editing.condition) return toast.error("Select a condition (NM, LP, MP, or DMG)");
     const frontErr = validateListingImage(editing.image_url, { field: "Front photo" });

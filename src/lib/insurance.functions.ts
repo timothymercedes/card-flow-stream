@@ -213,8 +213,8 @@ export const submitClaim = createServerFn({ method: "POST" })
 // ---------- Admin: list claims ----------
 async function assertAdmin(userId: string) {
   const { data } = await supabaseAdmin
-    .from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-  if (!data) throw new Error("Admin only");
+    .from("user_roles").select("role").eq("user_id", userId).in("role", ["owner", "admin"]);
+  if (!(data ?? []).length) throw new Error("Admin only");
 }
 
 export const adminListClaims = createServerFn({ method: "GET" })
@@ -313,9 +313,9 @@ export const getEvidenceSignedUrl = createServerFn({ method: "POST" })
       .eq("file_path", data.filePath)
       .maybeSingle();
     const isAdmin = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId).eq("role", "admin").maybeSingle();
+      .from("user_roles").select("role").eq("user_id", context.userId).in("role", ["owner", "admin"]);
     const canRead =
-      !!isAdmin.data ||
+      (isAdmin.data ?? []).length > 0 ||
       (row as any)?.uploaded_by === context.userId ||
       (row as any)?.claim?.claimant_user_id === context.userId;
     if (!canRead) throw new Error("Forbidden");
