@@ -47,7 +47,7 @@ export function PersonalProfileCandidate({ username }: { username?: string }) {
     const extension = mime[file.type as keyof typeof mime];
     if (!extension || file.size > 20 * 1024 * 1024 || (slot !== 'post' && !file.type.startsWith('image/'))) throw new Error('Choose a JPG, PNG, WebP, MP4 or WebM file up to 20 MB.');
     const binding = await prepare({ data: { post_id, slot, kind: file.type.startsWith('video/') ? 'video' : 'image', extension } });
-    const result = await supabase.storage.from('personal-profile-media').upload(binding.object_path, file, { contentType: file.type, cacheControl: '0', upsert: false });
+    const result = await supabase.storage.from('personal-profile-media').upload(binding.object_path, await file.arrayBuffer(), { contentType: file.type, cacheControl: '0', upsert: false });
     if (result.error) { await removeMedia({ data: { id: binding.id } }); throw result.error; }
   };
   const media = model?.media ?? [];
