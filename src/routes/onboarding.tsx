@@ -2,20 +2,20 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { TutorialOnboarding } from "@/components/tutorials/TutorialOnboarding";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { DepartmentInterestPicker } from '@/components/DepartmentInterestPicker';
+import { Button } from '@/components/ui/button';
+import logo from '@/assets/logo.png';
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Pick your interests — PullBid Live" }] }),
+  head: () => ({ meta: [{ title: "Pick your interests — PullBid Live" }, {name:'description',content:'Choose optional shopping interests across collectibles and PullBid Live departments.'}, {property:'og:title',content:'Your interests — PullBid Live'}, {property:'og:description',content:'Personalize your discoveries while keeping every department available.'}, {property:'og:type',content:'website'}, {name:'twitter:card',content:'summary_large_image'}] }),
   component: Onboarding,
 });
 
 function Onboarding() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
-  const [picked, setPicked] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<"interests" | "videos">("interests");
 
@@ -23,27 +23,12 @@ function Onboarding() {
     if (!loading && !user) nav({ to: "/auth" });
   }, [loading, user, nav]);
 
-  function toggle(v: string) {
-    setPicked((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v]));
-  }
-
-  async function save() {
-    if (!user) return;
-    if (picked.length === 0) return toast.error("Pick at least one — you can change later");
-    setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ interests: picked, onboarding_completed: true })
-      .eq("id", user.id);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Personalized for you 🎯");
-    setStep("videos");
-  }
-
   async function skip() {
-    if (!user) return;
-    await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);
+    if (!user || saving) return;
+    setSaving(true);
+    const {error} = await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);
+    setSaving(false);
+    if (error) {toast.error('Please try again.'); return;}
     nav({ to: "/" });
   }
 
@@ -51,56 +36,20 @@ function Onboarding() {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background px-4 py-6">
         <TutorialOnboarding role="buyer" onDone={() => nav({ to: "/" })} />
-        <button
+        <Button
           onClick={() => nav({ to: "/" })}
           className="mt-4 w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
         >
           Enter PullBidLive
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background px-4 py-6">
-      <div className="mb-4 text-center">
-        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15">
-          <Sparkles className="h-6 w-6 text-primary" />
-        </div>
-        <h1 className="text-xl font-bold">What do you collect?</h1>
-        <p className="mt-1 text-xs text-muted-foreground">Pick a few — we'll show you streams & posts you'll love.</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {LISTING_CATEGORIES.map((c) => {
-          const active = picked.includes(c.value);
-          return (
-            <button
-              key={c.value}
-              onClick={() => toggle(c.value)}
-              className={`flex items-center gap-2 rounded-xl border-2 p-3 text-left text-sm transition ${
-                active ? "border-primary bg-primary/10" : "border-border bg-card"
-              }`}
-            >
-              <span className="text-xl">{c.emoji}</span>
-              <span className="font-medium">{c.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-auto pt-6">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
-        >
-          {saving ? "Saving..." : `Continue (${picked.length})`}
-        </button>
-        <button onClick={skip} className="mt-2 w-full py-2 text-xs text-muted-foreground">
-          Skip for now
-        </button>
-      </div>
+    <div className="mx-auto min-h-dvh max-w-6xl bg-background px-4 py-6 sm:px-8">
+      <div className="mb-8 flex items-center gap-2"><img src={logo} alt="" width={36} height={36}/><span className="font-bold">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></span></div>
+      {user && <DepartmentInterestPicker onboarding onDone={() => setStep('videos')} onSkip={() => void skip()}/>}
     </div>
   );
 }

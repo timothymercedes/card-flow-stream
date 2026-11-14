@@ -34,6 +34,7 @@ import { useRealtimeChannel } from "@/lib/realtime";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SignOutDialog } from "@/components/SignOutDialog";
 import logo from "@/assets/logo.png";
+import { CategoryMenu } from '@/components/CategoryMenu';
 
 // Primary nav — shown on desktop top bar AND in mobile bottom bar (trimmed)
 const PRIMARY = [
@@ -114,7 +115,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           {/* Desktop nav links */}
-          <nav aria-label={t("nav.primary", "Primary")} className="ml-2 hidden flex-1 items-center gap-1 lg:flex">
+          <nav aria-label={t("nav.primary", "Primary")} className="ml-2 hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
+            <CategoryMenu />
             {desktopNav.map((tab) => {
               const active = isActive(tab.to);
               const Icon = tab.icon;
@@ -123,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={tab.to}
                   to={tab.to}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1.5 text-sm font-medium transition-colors ${
                     active
                       ? "bg-primary/15 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -249,6 +251,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Second row — back + search + Flex (mobile/tablet only) */}
         <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 pb-2 sm:px-4 lg:hidden">
           <BackButton />
+          <CategoryMenu className="px-2 text-xs" />
           <HeaderSearch className="min-w-0 flex-1" />
           {isSeller && (
             <Link

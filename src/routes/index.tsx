@@ -15,6 +15,7 @@ import { isTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { StoryRail } from "@/components/StoryRail";
 import { DepartmentNavigation } from '@/components/DepartmentNavigation';
+import { prioritizeInterestListings } from '@/lib/departmentInterests';
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -64,7 +65,7 @@ function Home() {
   // Shuffle every 5 min via bucket; slice for display.
   const streams = useMemo(() => shuffleBy(streamsAll, bucket).slice(0, 6), [streamsAll, bucket]);
   const showOffStreams = useMemo(() => shuffleBy(showOffAll, bucket + 1).slice(0, 6), [showOffAll, bucket]);
-  const listings = useMemo(() => shuffleBy(listingsAll, bucket + 2).slice(0, 4), [listingsAll, bucket]);
+  const listings = useMemo(() => prioritizeInterestListings(shuffleBy(listingsAll, bucket + 2), interests).slice(0, 4), [listingsAll, bucket, interests.join(',')]);
   const posts = useMemo(() => shuffleBy(postsAll, bucket + 3).slice(0, 4), [postsAll, bucket]);
   const vault = useMemo(() => shuffleBy(vaultAll, bucket + 4).slice(0, 4), [vaultAll, bucket]);
 
@@ -85,7 +86,6 @@ function Home() {
       setShowOffAll(showData || []);
 
       let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
-      if (interests.length > 0) lQ = lQ.in("category", interests);
       const { data: lData } = await lQ;
       if ((lData?.length || 0) === 0 && interests.length > 0) {
         const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
