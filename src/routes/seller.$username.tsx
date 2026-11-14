@@ -232,24 +232,24 @@ function PublicStore() {
     <AppShell>
       <div className="px-4 py-4">
         {user?.id === seller.id && buyerView && (
-          <div className="sticky top-14 z-20 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-primary p-3 text-primary-foreground shadow-lg">
-            <strong className="text-sm">Previewing as Buyer — this is how shoppers see your store</strong>
-            <Button variant="secondary" size="sm" onClick={() => setBuyerView(false)}>Return to Owner View</Button>
+          <div className="mb-4 grid min-w-0 gap-3 rounded-lg bg-primary p-3 text-primary-foreground shadow-lg sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <strong className="min-w-0 text-sm">Previewing as Buyer — this is how shoppers see your store</strong>
+            <Button variant="secondary" className="min-h-11 whitespace-normal sm:min-h-9" onClick={() => setBuyerView(false)}>Return to Owner View</Button>
           </div>
         )}
         {user?.id === seller.id && !buyerView && (
           <div className="mb-4 space-y-3 rounded-xl border border-primary bg-primary/10 p-4" data-profile-component="PublicStore">
             <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-primary">OWNER VIEW · YOUR STORE</strong><span className="text-xs text-muted-foreground">Only you see these controls.</span></div>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setCustomizeOpen(true)}><Paintbrush /> Customize Store</Button>
-              <Button variant="outline" onClick={() => setBuyerView(true)}><Eye /> Preview as Buyer</Button>
-              <Button asChild variant="outline"><Link to="/store">Seller Hub</Link></Button>
-              <Button asChild variant="ghost"><Link to="/@{$username}" params={{ username: seller.username }}>My Personal Profile</Link></Button>
+            <div className="grid min-w-0 gap-2 sm:flex sm:flex-wrap">
+              <Button className="h-auto min-h-11 whitespace-normal" onClick={() => setCustomizeOpen(true)}><Paintbrush /> Customize Store</Button>
+              <Button className="h-auto min-h-11 whitespace-normal" variant="outline" onClick={() => setBuyerView(true)}><Eye /> Preview as Buyer</Button>
+              <Button className="h-auto min-h-11 whitespace-normal" asChild variant="outline"><Link to="/store">Seller Hub</Link></Button>
+              <Button className="h-auto min-h-11 whitespace-normal" asChild variant="ghost"><Link to="/@{$username}" params={{ username: seller.username }}>My Personal Profile</Link></Button>
             </div>
           </div>
         )}
         <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto overscroll-contain p-4 sm:p-6 [&>button:last-child]:h-11 [&>button:last-child]:w-11 [&>button:last-child]:flex [&>button:last-child]:items-center [&>button:last-child]:justify-center">
             <DialogTitle>Customize your store</DialogTitle>
             <DialogDescription>Changes apply only to your own store. Use Preview as Buyer to check how it looks.</DialogDescription>
             <StorefrontBrandingEditor />
@@ -284,7 +284,8 @@ function PublicStore() {
 
         <div className="mb-4 rounded-2xl bg-card p-4" style={seller.accent_color ? { boxShadow: `inset 0 2px 0 0 ${seller.accent_color}` } : undefined}>
 
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:flex">
+            <div className="shrink-0">
             <UserAvatar
               username={seller.username}
               avatarUrl={seller.avatar_url}
@@ -293,10 +294,11 @@ function PublicStore() {
               size="lg"
               noLink={!liveStreamId}
             />
+            </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
+            <div className="col-span-2 min-w-0 sm:flex-1">
+              <div className="grid min-w-0 gap-3 sm:flex sm:flex-wrap sm:items-start sm:justify-between">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                   <p className="truncate text-lg font-bold">@{seller.username}</p>
                   {sellerCompleted >= 100 && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary"><BadgeCheck className="h-3 w-3" /> Verified Seller</span>
@@ -305,15 +307,15 @@ function PublicStore() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-500"><BadgeCheck className="h-3 w-3" /> Verified Buyer</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 [&>button]:min-h-11 [&>button]:min-w-11">
                   {user && seller.id !== user.id && (
                     <>
-                      <button
+                      <Button size="sm"
                         onClick={toggleFollow}
                         className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${isFollowing ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"}`}
                       >
                         {isFollowing ? <><UserCheck className="h-3 w-3" /> Following</> : <><UserPlus className="h-3 w-3" /> Follow</>}
-                      </button>
+                      </Button>
                       {isFollowing && user && (
                         <FollowNotificationPrefs
                           userId={user.id}
@@ -322,30 +324,30 @@ function PublicStore() {
                           onChange={setFollowPrefs}
                         />
                       )}
-                      <button
+                      <Button size="sm" variant="outline"
                         onClick={startMessage}
                         className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold ring-1 ring-border"
                       >
                         <MessageCircle className="h-3 w-3" /> Message
-                      </button>
-                      <button
+                      </Button>
+                      <Button size="sm" variant="outline"
                         onClick={() => nav({ to: "/trades", search: { to: seller.id } })}
                         className="inline-flex items-center gap-1 rounded-full bg-card px-3 py-1 text-[11px] font-bold ring-1 ring-border"
                       >
                         <ArrowLeftRight className="h-3 w-3" /> Trade
-                      </button>
+                      </Button>
                     </>
                   )}
                   <ShareButton
                     entity={{ kind: "storefront", username: seller.username, displayName: seller.display_name, avatar: seller.avatar_url }}
                     variant="icon"
-                    className="!h-7 !w-7 ring-1 ring-border"
+                    className="!h-11 !w-11 shrink-0 ring-1 ring-border"
                   />
                   <ReportDialog targetType="user" targetId={seller.id} targetLabel={`@${seller.username}`} />
                 </div>
               </div>
 
-              <div className="mt-1 flex items-center gap-3 text-[11px] text-muted-foreground">
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground [&>button]:min-h-11">
                 <button
                   onClick={async () => {
                     setListOpen("followers");
@@ -372,7 +374,7 @@ function PublicStore() {
                 </button>
               </div>
 
-              <div className="mt-1 flex items-center gap-2 text-xs">
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                 <Stars n={stats.avg} size={12} />
                 <span className="text-muted-foreground">{stats.count ? `${stats.avg.toFixed(1)} · ${stats.count} review${stats.count === 1 ? "" : "s"}` : "No reviews yet"}</span>
               </div>
@@ -502,14 +504,14 @@ function PublicStore() {
         )}
 
 
-        <div className="mb-3 flex gap-2 overflow-x-auto border-b border-border text-xs">
+        <nav aria-label="Store sections" className="mb-3 flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-border pb-1 text-xs">
 
           {([["shop", `Shop (${listings.length})`], ["live", "Live Shows"], ["reviews", `Reviews (${reviews.length})`], ["sold", `Sold (${soldOrders.length})`], ["about", "About"]] as const).map(([t, label]) => (
-            <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+            <Button variant="ghost" aria-current={tab === t ? "page" : undefined} key={t} onClick={(e) => { setTab(t); const button = e.currentTarget; const rail = button.parentElement; if (rail) { const buttonBounds = button.getBoundingClientRect(); const railBounds = rail.getBoundingClientRect(); if (buttonBounds.left < railBounds.left) rail.scrollLeft -= railBounds.left - buttonBounds.left; else if (buttonBounds.right > railBounds.right) rail.scrollLeft += buttonBounds.right - railBounds.right; } }} className={`h-11 shrink-0 rounded-none border-b-2 px-3 py-2 text-xs ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
               {label}
-            </button>
+            </Button>
           ))}
-        </div>
+        </nav>
 
         {tab === "shop" && <StorefrontListingsBrowser listings={listings} />}
         {tab === "live" && seller?.id && (

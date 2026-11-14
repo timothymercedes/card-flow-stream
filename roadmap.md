@@ -1,5 +1,7 @@
 # Current work
 
+- [x] Check updated phone navigation/storefront with the real owner session; corrected squeezed search, clipped actions, tap targets and customization fit. Browser checks passed at 320/360/390/430px plus desktop, all five commerce tabs, owner/buyer toggling, account-to-personal-profile navigation and Explore scrolling; 21 existing regression tests passed, no runtime errors. No publishing or data changes.
+
 - [x] Implement isolated owner-only candidate persistence/media and preserve demo/account settings; 71 API assertions, 60 unit regressions and local owner photo/video flows passed.
 - [ ] Finish full release candidate: visitor/storage alias cutover, legacy integrations, media validation, identity migration, rollback rehearsal and hosted user review remain blockers detailed in docs/personal-profile-release/README.md.
 - [ ] Reconcile recovered older privacy migrations and private-media alias/storage cutover; keep visitor access fail-closed until full safeguards and role tests pass.
