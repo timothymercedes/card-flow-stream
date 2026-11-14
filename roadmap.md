@@ -1,5 +1,8 @@
 # Current work
 
+- [x] Prepare category redesign approval concepts: desktop full-screen Categories menu, mobile photographic departments, and optional interest selection; eleven existing department URLs retained, collectible signature identity and separate PB Store/Bazaar preserved. No application or database changes.
+- [ ] Implement category redesign and interest personalization: blocked on design approval; account preference persistence and any shared-database changes need separate scoped review. Existing production audit fixes are not automatically authorized by design approval.
+
 - [x] Added homepage department navigation and eleven dedicated category shopping pages in preview, scoped search/subcategories/filters, global search and shared inventory. Visitor navigation, all department metadata, search/reload/global search and mobile overflow checks passed; compilation OK. No publishing or payment changes in this task. Category activity excludes demo shows; no fabricated trending searches.
 - [ ] Complete Garden seller listing support: blocked by explicit approval for a shared database constraint change; Garden browsing is available but seller writes remain disabled.
 - [ ] Verify department shopping signed in: restored session reaches the existing beta-access gate; a beta-approved account or invite is required. Visitor checks passed, but listing-to-purchase flows remain untested with current empty published inventory.
