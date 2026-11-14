@@ -1,5 +1,5 @@
 import type { Json } from "@/integrations/supabase/types";
-export type ShoppingVariant = { id: string; sku: string | null; options: Json; price_cents: number; compare_at_cents: number | null; quantity: number; is_active: boolean };
+export type ShoppingVariant = { id: string; sku: string | null; options: Json; price_cents: number; compare_at_cents: number | null; quantity: number; is_active: boolean; available?: boolean; reason?: "sold_out" | "unavailable" | "unverified" | null; delivery_min_days?: number | null; delivery_max_days?: number | null };
 export type ShoppingStore = { id: string; slug: string; name: string; store_type: string; verification_status: string; logo_url: string | null; shipping_policy: string | null; return_policy: string | null; processing_days: number | null };
 export type ShoppingProduct = { id: string; title: string; description: string | null; department: string | null; brand: string | null; model: string | null; condition: string; specifications: Json; images: string[]; bazaar_stores: ShoppingStore; bazaar_product_variants: ShoppingVariant[] };
 export type CartItem = { productId: string; variantId: string; quantity: number; seenPrice: number };
@@ -11,7 +11,7 @@ export function variantLabel(options: unknown): string {
   return Object.entries(options).filter(([, v]) => typeof v === "string").map(([k, v]) => `${k}: ${v}`).join(" · ") || "Standard";
 }
 export function buyable(v: ShoppingVariant): boolean {
-  return v.is_active && Number.isInteger(v.quantity) && v.quantity > 0;
+  return v.available !== false && v.is_active && Number.isInteger(v.quantity) && v.quantity > 0;
 }
 export function parseCart(value: string | null): CartItem[] {
   try {

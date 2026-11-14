@@ -113,6 +113,13 @@
       "when": 1794623085247,
       "tag": "0015_bazaar_media_staff_only_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794623883312,
+      "tag": "0016_bazaar_supplier_phase_s1",
+      "breakpoints": true
     }
   ]
 }

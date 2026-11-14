@@ -22,8 +22,14 @@ export const getBazaarShoppingProducts = createServerFn({ method: "POST" })
       } },
     });
     const { data: products, error } = await client.from("bazaar_products")
-      .select("id,title,description,department,brand,model,condition,specifications,images,bazaar_stores!inner(id,slug,name,store_type,verification_status,logo_url,shipping_policy,return_policy,processing_days),bazaar_product_variants(id,sku,options,price_cents,compare_at_cents,quantity,is_active)")
+      .select("id,title,description,department,brand,model,condition,specifications,images,bazaar_stores!inner(id,slug,name,store_type,verification_status,logo_url,shipping_policy,return_policy,processing_days)")
       .in("id", [...new Set(data.ids)]).eq("status", "published").eq("bazaar_stores.status", "active").limit(100);
     if (error) throw new Error("Couldn't verify product availability. Please try again.");
-    return (products ?? []).map((p) => ({ ...p, bazaar_product_variants: p.bazaar_product_variants.filter((v) => v.is_active && v.quantity > 0) }));
+    const ids = (products ?? []).map((p) => p.id);
+    const { data: variants, error: vErr } = ids.length ? await client.rpc("bazaar_public_variant_availability", { _product_ids: ids }) : { data: [], error: null };
+    if (vErr) throw new Error("Couldn't verify product availability. Please try again.");
+    // Sold-out options stay visible; unavailable/discontinued ones are hidden. No supplier data is ever returned.
+    return (products ?? []).map((p) => ({ ...p, bazaar_product_variants: (variants ?? [])
+      .filter((v) => v.product_id === p.id && v.reason !== "unavailable")
+      .map((v) => ({ id: v.id, sku: v.sku, options: v.options, price_cents: v.price_cents, compare_at_cents: v.compare_at_cents, quantity: v.quantity, is_active: true, available: v.available, reason: v.reason as ShoppingProduct["bazaar_product_variants"][number]["reason"], delivery_min_days: v.delivery_min_days, delivery_max_days: v.delivery_max_days })) }));
   });
