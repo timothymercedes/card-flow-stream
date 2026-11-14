@@ -6,7 +6,7 @@ import { TutorialOnboarding } from "@/components/tutorials/TutorialOnboarding";
 import { toast } from "sonner";
 import { DepartmentInterestPicker } from '@/components/DepartmentInterestPicker';
 import { Button } from '@/components/ui/button';
-import logo from '@/assets/logo.png';
+import { AppShell } from '@/components/AppShell';
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Pick your interests — PullBid Live" }, {name:'description',content:'Choose optional shopping interests across collectibles and PullBid Live departments.'}, {property:'og:title',content:'Your interests — PullBid Live'}, {property:'og:description',content:'Personalize your discoveries while keeping every department available.'}, {property:'og:type',content:'website'}, {name:'twitter:card',content:'summary_large_image'}] }),
@@ -34,7 +34,7 @@ function Onboarding() {
 
   if (step === "videos") {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col bg-background px-4 py-6">
+      <AppShell><div className="mx-auto flex max-w-md flex-col bg-background px-4 py-6">
         <TutorialOnboarding role="buyer" onDone={() => nav({ to: "/" })} />
         <Button
           onClick={() => nav({ to: "/" })}
@@ -42,14 +42,13 @@ function Onboarding() {
         >
           Enter PullBidLive
         </Button>
-      </div>
+      </div></AppShell>
     );
   }
 
   return (
-    <div className="mx-auto min-h-dvh max-w-6xl bg-background px-4 py-6 sm:px-8">
-      <div className="mb-8 flex items-center gap-2"><img src={logo} alt="" width={36} height={36}/><span className="font-bold">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></span></div>
+    <AppShell><div className="mx-auto max-w-6xl bg-background px-4 py-6 sm:px-8">
       {user && <DepartmentInterestPicker onboarding onDone={() => setStep('videos')} onSkip={() => void skip()}/>}
-    </div>
+    </div></AppShell>
   );
 }
