@@ -12,14 +12,16 @@ function assertIsolatedCandidate(url: string | undefined, request: Request) {
   const requestHost = new URL(request.url).hostname;
   if (requestHost === 'pullbidlive.com' || requestHost === 'www.pullbidlive.com' || requestHost === 'card-flow-stream.lovable.app') throw new Error('Candidate is not released.');
 }
-function checked<T>(result: { data: T; error: { message: string } | null }): T { if (result.error) throw new Error(result.error.message); return result.data; }
+function checked<T>(result: { data: T; error: { message: string } | null }): NonNullable<T> { if (result.error) throw new Error(result.error.message); if (result.data === null || result.data === undefined) throw new Error('Requested record unavailable.'); return result.data; }
 
 export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth])
   .inputValidator((input: { username?: string }) => z.object({ username: z.string().max(40).optional() }).parse(input))
   .handler(async ({ data, context }) => {
     assertIsolatedCandidate(process.env['SUPABASE_URL'], getRequest());
     const { supabase, userId } = context;
-    const identity = checked(await supabase.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', userId).maybeSingle());
+    const identityResult = await supabase.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', userId).maybeSingle();
+    if (identityResult.error) throw new Error(identityResult.error.message);
+    const identity = identityResult.data;
     // No lookup of another person's private identity; no browser audience filtering.
     if (data.username && data.username !== identity?.username) return { unavailable: true as const, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [] };
     const posts = checked(await supabase.from('personal_social_posts').select('id,caption,audience,allow_comments,pinned,collectible_id,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(100));
