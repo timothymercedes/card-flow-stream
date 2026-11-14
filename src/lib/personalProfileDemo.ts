@@ -33,5 +33,10 @@ export const DEMO_CARDS: DemoCard[] = [
   { id: 'c5', name: 'Demo Grail (private)', set: 'Demo Vault', audience: 'only_me', photo: 'grading' },
 ];
 export function visiblePosts(viewer: DemoViewer, posts = DEMO_POSTS) { return posts.filter(p => demoCanSee(viewer, p.audience)); }
+export function editDemoPost(posts: DemoPost[], id: string, caption: string, audience: DemoAudience): DemoPost[] {
+  return posts.map(p => p.id === id ? { ...p, caption: caption.trim(), audience } : p);
+}
+export function demoCanInteract(viewer: DemoViewer, post: DemoPost) { return viewer !== 'guest' && demoCanSee(viewer, post.audience); }
+export function demoCanRepost(viewer: DemoViewer, post: DemoPost) { return demoCanInteract(viewer, post) && post.audience === 'public'; }
 /** Showcase never includes private cards, even for the owner — only explicitly shared cards appear. */
 export function showcaseCards(viewer: DemoViewer, cards = DEMO_CARDS) { return cards.filter(c => c.audience !== 'only_me' && demoCanSee(viewer, c.audience)).slice(0, 9); }
