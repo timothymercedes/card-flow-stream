@@ -19,6 +19,7 @@ import { Star, Truck, MessageCircle, Store, Radio, Flag, BadgeCheck } from "luci
 import { UserAvatar } from "@/components/UserAvatar";
 import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
+import { usePersonalProfileLinks } from "@/hooks/usePersonalProfileLinks";
 
 type Stats = {
   completed_sales?: number;
@@ -50,6 +51,7 @@ export function UsernamePopover({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const personalLinks = usePersonalProfileLinks();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [liveId, setLiveId] = useState<string | null>(null);
