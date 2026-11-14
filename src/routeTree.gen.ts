@@ -80,6 +80,7 @@ import { Route as MarketIdRouteImport } from './routes/market.$id'
 import { Route as MarketplaceDepartmentRouteImport } from './routes/marketplace.$department'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
+import { Route as PreviewPersonalProfileRouteImport } from './routes/preview.personal-profile'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as SellerInsuranceRouteImport } from './routes/seller.insurance'
 import { Route as SellerShippingRouteImport } from './routes/seller.shipping'
@@ -473,6 +474,11 @@ const MessagesUserIdRoute = MessagesUserIdRouteImport.update({
   path: '/messages/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewPersonalProfileRoute = PreviewPersonalProfileRouteImport.update({
+  id: '/preview/personal-profile',
+  path: '/preview/personal-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerUsernameRoute = SellerUsernameRouteImport.update({
   id: '/seller/$username',
   path: '/seller/$username',
@@ -717,6 +723,7 @@ export interface FileRoutesByFullPath {
   '/market/$id': typeof MarketIdRoute
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
+  '/preview/personal-profile': typeof PreviewPersonalProfileRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
@@ -821,6 +828,7 @@ export interface FileRoutesByTo {
   '/market/$id': typeof MarketIdRoute
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
+  '/preview/personal-profile': typeof PreviewPersonalProfileRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
@@ -928,6 +936,7 @@ export interface FileRoutesById {
   '/market/$id': typeof MarketIdRoute
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
+  '/preview/personal-profile': typeof PreviewPersonalProfileRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
   '/seller/shipping': typeof SellerShippingRoute
@@ -1036,6 +1045,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/marketplace/$department'
     | '/messages/$userId'
+    | '/preview/personal-profile'
     | '/seller/$username'
     | '/seller/insurance'
     | '/seller/shipping'
@@ -1140,6 +1150,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/marketplace/$department'
     | '/messages/$userId'
+    | '/preview/personal-profile'
     | '/seller/$username'
     | '/seller/insurance'
     | '/seller/shipping'
@@ -1246,6 +1257,7 @@ export interface FileRouteTypes {
     | '/market/$id'
     | '/marketplace/$department'
     | '/messages/$userId'
+    | '/preview/personal-profile'
     | '/seller/$username'
     | '/seller/insurance'
     | '/seller/shipping'
@@ -1343,6 +1355,7 @@ export interface RootRouteChildren {
   MarketIdRoute: typeof MarketIdRoute
   MarketplaceDepartmentRoute: typeof MarketplaceDepartmentRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
+  PreviewPersonalProfileRoute: typeof PreviewPersonalProfileRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
   SellerInsuranceRoute: typeof SellerInsuranceRoute
   SellerShippingRoute: typeof SellerShippingRoute
@@ -1877,6 +1890,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/personal-profile': {
+      id: '/preview/personal-profile'
+      path: '/preview/personal-profile'
+      fullPath: '/preview/personal-profile'
+      preLoaderRoute: typeof PreviewPersonalProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/$username': {
       id: '/seller/$username'
       path: '/seller/$username'
@@ -2244,6 +2264,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketIdRoute: MarketIdRoute,
   MarketplaceDepartmentRoute: MarketplaceDepartmentRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
+  PreviewPersonalProfileRoute: PreviewPersonalProfileRoute,
   SellerUsernameRoute: SellerUsernameRoute,
   SellerInsuranceRoute: SellerInsuranceRoute,
   SellerShippingRoute: SellerShippingRoute,

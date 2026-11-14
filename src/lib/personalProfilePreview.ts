@@ -16,3 +16,8 @@ export function personalPreviewEnabled(development: boolean, hostname = '') {
     || (labels.length === 1 && /^project--[0-9a-f-]{36}-dev$/.test(first));
 }
 export function personalDraftKey(ownerId: string) { return `personal-profile-preview:${ownerId}`; }
+export const PERSONAL_PROFILE_PREVIEW_PATH = '/preview/personal-profile';
+export type PersonalPreviewView = 'owner' | 'visitor';
+export function parsePersonalPreviewView(value: unknown): PersonalPreviewView | undefined {
+  return value === 'visitor' || value === 'owner' ? value : undefined;
+}

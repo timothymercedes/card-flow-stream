@@ -226,7 +226,7 @@ function PublicStore() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        {designPreview && user?.id === seller.id && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-primary bg-primary/10 p-4" data-profile-component="PublicStore"><div><strong className="text-primary">SELLER STOREFRONT</strong><p className="text-sm text-muted-foreground">Your personal profile is a separate page.</p></div><Button asChild><Link to="/profile">Open PREVIEW DESIGN <ArrowLeft className="rotate-180" /></Link></Button></div>}
+        {designPreview && user?.id === seller.id && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-primary bg-primary/10 p-4" data-profile-component="PublicStore"><div><strong className="text-primary">SELLER STOREFRONT</strong><p className="text-sm text-muted-foreground">Your personal profile is a separate page.</p></div><Button asChild><Link to="/preview/personal-profile" search={{ view: undefined }}>Open PREVIEW DESIGN <ArrowLeft className="rotate-180" /></Link></Button></div>}
         {fromIdentityAudit ? (
           <Link to="/admin/identity-audit" search={readIdentityLogFilters(auditFilters)} className="mb-3 inline-flex items-center gap-1 text-xs text-primary"><ArrowLeft className="h-3.5 w-3.5" /> Back to action log</Link>
         ) : (

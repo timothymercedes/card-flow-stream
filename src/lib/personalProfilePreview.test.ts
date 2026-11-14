@@ -29,3 +29,12 @@ describe('preview profile approval boundaries', () => {
     expect(personalDraftKey('one')).not.toBe(personalDraftKey('two'));
   });
 });
+import { parsePersonalPreviewView } from './personalProfilePreview';
+describe('direct preview address', () => {
+  it('opens visitor view only when explicitly requested', () => {
+    expect(parsePersonalPreviewView('visitor')).toBe('visitor');
+    expect(parsePersonalPreviewView('owner')).toBe('owner');
+    expect(parsePersonalPreviewView('admin')).toBeUndefined();
+    expect(parsePersonalPreviewView(undefined)).toBeUndefined();
+  });
+});

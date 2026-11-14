@@ -16,11 +16,11 @@ import gamingCover from '@/assets/departments/gaming.webp';
 type Draft = { name: string; bio: string; location: string; avatar?: string; cover?: string; text?: string };
 type Story = { id: string; caption: string; image_url: string | null; created_at: string; visibility: string; allow_comments: boolean };
 
-export function PersonalProfilePreview({ account }: { account: ReactNode }) {
+export function PersonalProfilePreview({ account, initialVisitor = false, routeLabel }: { account: ReactNode; initialVisitor?: boolean; routeLabel?: string }) {
   const { user, profile, loading } = useAuth();
   const [tab, setTab] = useState<PersonalProfileTab>('Posts');
   const [accountOpen, setAccountOpen] = useState(false);
-  const [visitor, setVisitor] = useState(false);
+  const [visitor, setVisitor] = useState(initialVisitor);
   const [draft, setDraft] = useState<Draft>({ name: '', bio: '', location: '' });
   const [dialog, setDialog] = useState<string | null>(null);
   const [story, setStory] = useState<Story | null>(null);
@@ -85,7 +85,7 @@ export function PersonalProfilePreview({ account }: { account: ReactNode }) {
     setDialog(null); saveDraft({ ...draft, text: '' });
   }
   return <AppShell><div className="personal-profile-theme" data-profile-component="PersonalProfilePreview">
-    <div className="personal-review"><div><strong className="personal-preview-label">PREVIEW DESIGN</strong><span>{visitor ? 'Visitor simulation · No other account is opened' : 'Personal profile · Browser-only drafts'}</span></div><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
+    <div className="personal-review"><div><strong className="personal-preview-label">PREVIEW DESIGN</strong>{routeLabel && <code data-preview-route>{routeLabel}</code>}<span>{visitor ? 'Visitor simulation · No other account is opened' : 'Personal profile · Browser-only drafts'}</span></div><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
     <main className="personal-page">
       <section className="personal-masthead">
         <div className="personal-identity">
