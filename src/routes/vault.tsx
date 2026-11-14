@@ -2050,6 +2050,7 @@ function Vault() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">My Vault</h1>
             <p className="text-xs text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""} · scan, value, list</p>
+            {profile?.username && <Link to="/@{$username}" params={{ username: profile.username }} className="text-[11px] font-semibold text-primary">← My Personal Profile</Link>}
           </div>
           <div className="flex gap-2">
             <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
