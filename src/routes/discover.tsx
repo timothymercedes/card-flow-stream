@@ -54,6 +54,7 @@ type LiveHit = {
 };
 
 function DiscoverPage() {
+  const personalLinks = usePersonalProfileLinks();
   const initialQ = (Route.useSearch() as any).q ?? "";
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
