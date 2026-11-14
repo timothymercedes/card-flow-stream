@@ -22,7 +22,7 @@ export function DepartmentInterestPicker({onDone, onSkip, onboarding = false}: {
     toast.success('Interests saved');
     if (onDone) onDone(); else window.location.reload();
   }
-  return <section className="space-y-5">
+  return <section className="space-y-5 pb-44 lg:pb-0">
     <div><h1 className="text-2xl font-bold">What are you into?</h1><p className="mt-2 text-sm text-muted-foreground">Choose your interests. You can change these anytime.</p></div>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{orderedDepartments().map(d => <label key={d.value} className={`group relative min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 bg-card focus-within:ring-2 focus-within:ring-ring ${picked.includes(d.value) ? 'border-primary' : 'border-border'}`}>
       <DepartmentPhoto value={d.value} className="aspect-[16/10] w-full"/>
