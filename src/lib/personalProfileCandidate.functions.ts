@@ -16,11 +16,17 @@ export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middlewa
   .handler(async ({ data, context }) => {
     assertIsolatedCandidate(process.env['SUPABASE_URL'], getRequest());
     const { supabase, userId } = context;
+    // Ownership comes only from the verified session (userId), never from the browser-supplied username.
     const identityResult = await supabase.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', userId).maybeSingle();
     if (identityResult.error) throw new Error(identityResult.error.message);
-    const identity = identityResult.data;
-    // No lookup of another person's private identity; no browser audience filtering.
-    if (data.username && data.username !== identity?.username) return { unavailable: true as const, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [] };
+    const profileResult = await supabase.from('profiles').select('username,full_name').eq('id', userId).maybeSingle();
+    if (profileResult.error) throw new Error(profileResult.error.message);
+    const platformName = (profileResult.data?.username ?? '').toLowerCase();
+    // Fallback: first visit before any social identity row exists. Safe fields only; privacy defaults to Only Me.
+    const identity = identityResult.data ?? (profileResult.data ? { user_id: userId, username: platformName.replace(/[^a-z0-9_.]/g, '').slice(0, 40), display_name: (profileResult.data.full_name || profileResult.data.username || 'Collector').slice(0, 100), bio: '', audience: 'only_me' } : null);
+    const requested = data.username?.replace(/^@/, '').toLowerCase();
+    const ownsRequested = !requested || requested === identity?.username?.toLowerCase() || (!!platformName && requested === platformName);
+    if (!ownsRequested) return { unavailable: true as const, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [] };
     const posts = checked(await supabase.from('personal_social_posts').select('id,caption,audience,allow_comments,pinned,collectible_id,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(100));
     const media = checked(await supabase.from('personal_social_media').select('id,post_id,object_path,kind,slot,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500));
     const ids = posts.map(p => p.id);
