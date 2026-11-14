@@ -2,7 +2,7 @@ import { SHOPPING_DEPARTMENTS } from './categoryShoppingConfig';
 import { LISTING_CATEGORIES } from './listingCategories';
 import { listingDepartment } from './marketplaceDepartments';
 
-export function interestDepartments(interests: readonly string[] = []) {
+export function interestDepartments(interests: readonly string[] = []): string[] {
   const keys = new Set(interests.map(value => LISTING_CATEGORIES.some(c => c.value === value) ? 'collectibles' : value));
   return SHOPPING_DEPARTMENTS.filter(d => keys.has(d.value)).map(d => d.value);
 }
@@ -22,5 +22,5 @@ export function prioritizeInterestListings<T extends {department?: string | null
 
 // Keep specific collectible preferences from existing accounts when department selections change.
 export function mergeDepartmentInterests(previous: readonly string[], selected: readonly string[]) {
-  return [...new Set([...selected, ...previous.filter(value => LISTING_CATEGORIES.some(c => c.value === value))])];
+  return [...new Set([...selected, ...previous.filter(value => selected.includes('collectibles') && LISTING_CATEGORIES.some(c => c.value === value))])];
 }

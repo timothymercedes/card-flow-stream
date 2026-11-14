@@ -14,7 +14,8 @@ describe('department interest rules', () => {
     expect(interestDepartments(['electronics','gaming'])).toEqual(['electronics','gaming']);
   });
   it('preserves existing collectible preferences when editing department interests', () => {
-    expect(mergeDepartmentInterests(['pokemon','electronics'],['gaming'])).toEqual(['gaming','pokemon']);
+    expect(mergeDepartmentInterests(['pokemon','electronics'],['collectibles','gaming'])).toEqual(['collectibles','gaming','pokemon']);
+    expect(mergeDepartmentInterests(['pokemon'],[])).toEqual([]);
     expect(interestDepartments(['sports'])).toEqual(['collectibles']);
   });
   it('reorders matching products without hiding other departments', () => {
