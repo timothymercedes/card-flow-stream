@@ -9,7 +9,8 @@ export const loadPersonalVisitor = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const request = getRequest();
     const s = await import('./personalProfileVisitor.server');
-    s.assertIsolatedPersonalProfile(request);
+    // A closed gate looks exactly like a private or missing profile.
+    try { s.assertIsolatedPersonalProfile(request); } catch { return s.UNAVAILABLE; }
     const db = await s.admin();
     return s.loadVisitorProfile(db, await s.optionalViewer(db, request), data.username, data.cursor);
   });
