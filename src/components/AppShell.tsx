@@ -35,6 +35,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/co
 import { SignOutDialog } from "@/components/SignOutDialog";
 import logo from "@/assets/logo.png";
 import { CategoryMenu } from '@/components/CategoryMenu';
+import { AdministrationLegacyShell } from '@/components/admin/AdministrationLegacyShell';
 
 // Primary nav — shown on desktop top bar AND in mobile bottom bar (trimmed)
 const PRIMARY = [
@@ -96,6 +97,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     ...PRIMARY,
     ...(isSeller ? [{ to: "/store", labelKey: "nav.sellerHub", icon: Package }] : []),
   ];
+
+  if (loc.pathname === '/admin' || loc.pathname.startsWith('/admin/')) {
+    return <AdministrationLegacyShell>{children}</AdministrationLegacyShell>;
+  }
 
   return (
     <div className="flex min-h-dvh w-full flex-col bg-background">

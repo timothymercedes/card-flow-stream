@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { AdministrationBrand, AdministrationFavicon } from '@/components/admin/AdministrationBrand';
 import { useAuth } from '@/hooks/useAuth';
 import { LockKeyhole, ArrowLeft } from 'lucide-react';
+import { AuthForm } from './auth';
 
 export const Route = createFileRoute('/admin-login')({
   head: () => ({ meta: [
@@ -15,6 +16,7 @@ export const Route = createFileRoute('/admin-login')({
 });
 function AdministrationLogin() {
   const { user } = useAuth();
+  if (!user) return <main id="main-content" className="administration-theme administration-login min-h-dvh"><AuthForm administration /><div className="pb-6 text-center"><Button asChild variant="link"><Link to="/">Public website</Link></Button></div></main>;
   return <main id="main-content" className="administration-theme administration-login flex min-h-dvh items-center justify-center p-6">
     <AdministrationFavicon />
     <div className="w-full max-w-sm"><AdministrationBrand large /><div className="my-8 border-y border-border py-5 text-center"><LockKeyhole className="mx-auto mb-3 h-5 w-5 text-primary" /><h1 className="text-xl font-semibold">Authorized Personnel Only</h1><p className="mt-3 text-sm text-muted-foreground">Owner & Admin Control Center</p></div>
