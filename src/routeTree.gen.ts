@@ -81,6 +81,7 @@ import { Route as MarketplaceDepartmentRouteImport } from './routes/marketplace.
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as PreviewPersonalProfileRouteImport } from './routes/preview.personal-profile'
+import { Route as PreviewPersonalProfileCandidateRouteImport } from './routes/preview.personal-profile-candidate'
 import { Route as PreviewVaultPrivacyRouteImport } from './routes/preview.vault-privacy'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as SellerInsuranceRouteImport } from './routes/seller.insurance'
@@ -480,6 +481,12 @@ const PreviewPersonalProfileRoute = PreviewPersonalProfileRouteImport.update({
   path: '/preview/personal-profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewPersonalProfileCandidateRoute =
+  PreviewPersonalProfileCandidateRouteImport.update({
+    id: '/preview/personal-profile-candidate',
+    path: '/preview/personal-profile-candidate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PreviewVaultPrivacyRoute = PreviewVaultPrivacyRouteImport.update({
   id: '/preview/vault-privacy',
   path: '/preview/vault-privacy',
@@ -730,6 +737,7 @@ export interface FileRoutesByFullPath {
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
+  '/preview/personal-profile-candidate': typeof PreviewPersonalProfileCandidateRoute
   '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -836,6 +844,7 @@ export interface FileRoutesByTo {
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
+  '/preview/personal-profile-candidate': typeof PreviewPersonalProfileCandidateRoute
   '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -945,6 +954,7 @@ export interface FileRoutesById {
   '/marketplace/$department': typeof MarketplaceDepartmentRoute
   '/messages/$userId': typeof MessagesUserIdRoute
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
+  '/preview/personal-profile-candidate': typeof PreviewPersonalProfileCandidateRoute
   '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -1055,6 +1065,7 @@ export interface FileRouteTypes {
     | '/marketplace/$department'
     | '/messages/$userId'
     | '/preview/personal-profile'
+    | '/preview/personal-profile-candidate'
     | '/preview/vault-privacy'
     | '/seller/$username'
     | '/seller/insurance'
@@ -1161,6 +1172,7 @@ export interface FileRouteTypes {
     | '/marketplace/$department'
     | '/messages/$userId'
     | '/preview/personal-profile'
+    | '/preview/personal-profile-candidate'
     | '/preview/vault-privacy'
     | '/seller/$username'
     | '/seller/insurance'
@@ -1269,6 +1281,7 @@ export interface FileRouteTypes {
     | '/marketplace/$department'
     | '/messages/$userId'
     | '/preview/personal-profile'
+    | '/preview/personal-profile-candidate'
     | '/preview/vault-privacy'
     | '/seller/$username'
     | '/seller/insurance'
@@ -1368,6 +1381,7 @@ export interface RootRouteChildren {
   MarketplaceDepartmentRoute: typeof MarketplaceDepartmentRoute
   MessagesUserIdRoute: typeof MessagesUserIdRoute
   PreviewPersonalProfileRoute: typeof PreviewPersonalProfileRoute
+  PreviewPersonalProfileCandidateRoute: typeof PreviewPersonalProfileCandidateRoute
   PreviewVaultPrivacyRoute: typeof PreviewVaultPrivacyRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
   SellerInsuranceRoute: typeof SellerInsuranceRoute
@@ -1910,6 +1924,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewPersonalProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/personal-profile-candidate': {
+      id: '/preview/personal-profile-candidate'
+      path: '/preview/personal-profile-candidate'
+      fullPath: '/preview/personal-profile-candidate'
+      preLoaderRoute: typeof PreviewPersonalProfileCandidateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/preview/vault-privacy': {
       id: '/preview/vault-privacy'
       path: '/preview/vault-privacy'
@@ -2285,6 +2306,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketplaceDepartmentRoute: MarketplaceDepartmentRoute,
   MessagesUserIdRoute: MessagesUserIdRoute,
   PreviewPersonalProfileRoute: PreviewPersonalProfileRoute,
+  PreviewPersonalProfileCandidateRoute: PreviewPersonalProfileCandidateRoute,
   PreviewVaultPrivacyRoute: PreviewVaultPrivacyRoute,
   SellerUsernameRoute: SellerUsernameRoute,
   SellerInsuranceRoute: SellerInsuranceRoute,
