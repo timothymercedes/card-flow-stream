@@ -127,6 +127,13 @@
       "when": 1794662517571,
       "tag": "0017_social_parent_visibility_safeguards",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794670678900,
+      "tag": "0018_personal_profile_owner_candidate",
+      "breakpoints": true
     }
   ]
 }

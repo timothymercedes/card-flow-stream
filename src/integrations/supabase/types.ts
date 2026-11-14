@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       account_audit_log: {
@@ -5311,6 +5306,170 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      personal_social_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_social_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "personal_social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_social_identities: {
+        Row: {
+          audience: string
+          bio: string
+          created_at: string
+          display_name: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          audience?: string
+          bio?: string
+          created_at?: string
+          display_name: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          audience?: string
+          bio?: string
+          created_at?: string
+          display_name?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      personal_social_media: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          object_path: string
+          post_id: string | null
+          slot: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          object_path: string
+          post_id?: string | null
+          slot: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          object_path?: string
+          post_id?: string | null
+          slot?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_social_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "personal_social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_social_posts: {
+        Row: {
+          allow_comments: boolean
+          audience: string
+          caption: string
+          collectible_id: string | null
+          created_at: string
+          id: string
+          pinned: boolean
+          user_id: string
+        }
+        Insert: {
+          allow_comments?: boolean
+          audience?: string
+          caption: string
+          collectible_id?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          user_id: string
+        }
+        Update: {
+          allow_comments?: boolean
+          audience?: string
+          caption?: string
+          collectible_id?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_social_posts_collectible_id_fkey"
+            columns: ["collectible_id"]
+            isOneToOne: false
+            referencedRelation: "vault_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_social_reactions: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_social_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "personal_social_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_payouts: {
         Row: {
@@ -10754,3 +10913,4 @@ export const Constants = {
     },
   },
 } as const
+
