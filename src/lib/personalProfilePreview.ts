@@ -6,6 +6,7 @@ export function canReadPersonalTimeline(viewerId: string | undefined, ownerId: s
 export function personalPreviewEnabled(development: boolean, hostname = '') {
   if (development) return true;
   const host = hostname.toLowerCase();
+  if (/^[a-z0-9-]+\.(?:lovableproject\.com|lovableproject-dev\.com)$/.test(host)) return true;
   const suffix = ['.lovable.app', '.gpt-eng.com', '.gptengineer.run'].find(value => host.endsWith(value));
   if (!suffix) return false;
   const labels = host.slice(0, -suffix.length).split('.');

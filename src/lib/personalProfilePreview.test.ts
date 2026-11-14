@@ -15,6 +15,11 @@ describe('preview profile approval boundaries', () => {
       expect(personalPreviewEnabled(false, host)).toBe(false);
     }
   });
+  it('shows the redesign inside embedded live preview hosts', () => {
+    expect(personalPreviewEnabled(false, 'c81c8301-d89c-4830-8ab7-06f678968bc1.lovableproject.com')).toBe(true);
+    expect(personalPreviewEnabled(false, 'c81c8301-d89c-4830-8ab7-06f678968bc1.lovableproject-dev.com')).toBe(true);
+    expect(personalPreviewEnabled(false, 'example.lovableproject.com.evil.com')).toBe(false);
+  });
   it('reads the existing timeline only for its owner until privacy approval', () => {
     expect(canReadPersonalTimeline('owner', 'owner')).toBe(true);
     expect(canReadPersonalTimeline('visitor', 'owner')).toBe(false);
