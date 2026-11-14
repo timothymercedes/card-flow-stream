@@ -249,6 +249,11 @@ function AccountProfile() {
     <AppShell>
       <div className="mx-auto w-full max-w-5xl px-4 py-6 space-y-5">
         <LiveNowPill />
+        {p.username && (
+          <Link to="/@{$username}" params={{ username: p.username }} className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+            ← Back to My Personal Profile
+          </Link>
+        )}
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/20 via-accent/10 to-card p-5 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-4">
             <label className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-full bg-primary ring-2 ring-border/60 shadow-[var(--shadow-md)]">

@@ -13,7 +13,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
-import { PersonalProfilePreviewBar } from "@/components/PersonalProfilePreviewBar";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator,
@@ -94,8 +93,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const mobileTabs = PRIMARY.filter((t) => t.mobile);
 
   // Desktop nav: all primary + seller hub when applicable
-  const desktopNav = [
-    ...PRIMARY,
+  const DESKTOP_VISIBLE = ["/", "/live", "/market", "/bazaar", "/vault"];
+  const desktopNav = PRIMARY.filter((t) => DESKTOP_VISIBLE.includes(t.to));
+  const desktopMore = [
+    ...PRIMARY.filter((t) => !DESKTOP_VISIBLE.includes(t.to)),
     ...(isSeller ? [{ to: "/store", labelKey: "nav.sellerHub", icon: Package }] : []),
   ];
 
@@ -108,7 +109,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <a href="#main-content" className="skip-link">{t("common.skipToContent", "Skip to content")}</a>
       {!tutorial && <AccountHoldBanner />}
       {!tutorial && <AdminAlertBanner />}
-      {!tutorial && <PersonalProfilePreviewBar />}
 
       {/* ========== Header ========== */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
@@ -122,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           {/* Desktop nav links */}
-          <nav aria-label={t("nav.primary", "Primary")} className="ml-2 hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex">
+          <nav aria-label={t("nav.primary", "Primary")} className="ml-2 hidden min-w-0 flex-1 flex-nowrap items-center gap-1 lg:flex">
             <CategoryMenu />
             {desktopNav.map((tab) => {
               const active = isActive(tab.to);
@@ -143,6 +143,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            {desktopMore.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                  {t("nav.more", "More")} <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-52">
+                  {desktopMore.map((tab) => { const Icon = tab.icon; return (
+                    <DropdownMenuItem key={tab.to} asChild>
+                      <Link to={tab.to}><Icon className="mr-2 h-4 w-4" />{t(tab.labelKey as string)}</Link>
+                    </DropdownMenuItem>
+                  ); })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
 
           {/* Spacer for mobile/tablet */}
