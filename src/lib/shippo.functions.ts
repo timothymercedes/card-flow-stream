@@ -180,7 +180,7 @@ const PRESET_PARCEL: Record<string, { weightOz: number; lengthIn: number; widthI
 const EstimateInput = z.object({
   sellerId: z.preprocess(
     (value) => (typeof value === "string" && value.trim().length > 0 ? value : undefined),
-    z.string().uuid().optional(),
+    z.guid().optional(),
   ),
   presetKey: z.enum(["stamp", "pwe", "bubble", "small_box"]).optional(),
   weightOz: z.number().min(0.1).max(1500).optional(),

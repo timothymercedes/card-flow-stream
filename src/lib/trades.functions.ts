@@ -338,7 +338,7 @@ export const rateTrade = createServerFn({ method: "POST" })
 
 // ---------- reputation ----------
 export const getTraderReputation = createServerFn({ method: "GET" })
-  .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
+  .inputValidator((input) => z.object({ userId: z.guid() }).parse(input))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: ratings }, { count: completed }] = await Promise.all([

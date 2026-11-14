@@ -207,7 +207,7 @@ export const adminOverrideTrustFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     z
       .object({
-        userId: z.string().uuid(),
+        userId: z.guid(),
         instantPct: z.number().int().min(0).max(100).nullable().optional(),
         frozen: z.boolean().optional(),
         reason: z.string().trim().min(3).max(500),

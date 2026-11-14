@@ -57,7 +57,7 @@ export const getBuyerRiskQueueFn = createServerFn({ method: "POST" })
 
 export const getBuyerRiskDetailFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
+  .inputValidator((d) => z.object({ userId: z.guid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
 
@@ -116,7 +116,7 @@ export const getBuyerRiskDetailFn = createServerFn({ method: "POST" })
   });
 
 const ApplyInput = z.object({
-  userId: z.string().uuid(),
+  userId: z.guid(),
   kind: z.enum(["purchase_block", "bid_limit", "require_verification", "frozen"]),
   reason: z.string().min(3).max(500),
   centsLimit: z.number().int().min(0).max(10_000_000).nullable().optional(),
