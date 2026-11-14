@@ -93,3 +93,7 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] PB Bazaar supplier Phase S1: suppliers, pricing rules, per-item approval, SOLD OUT/stale blocking, delivery windows, admin Suppliers screen
 - [ ] Live supplier connections (blocked: official API approval; Wish application pending)
 - [ ] Bazaar checkout/payments/supplier ordering (blocked: separate authorization)
+
+## Stage 1 personal profile (preview)
+- [x] Demo-data profile with owner + 4 simulated viewers at /preview/personal-profile; /profile is account settings only
+- [ ] Stages 2-4: planning only, awaiting approval
