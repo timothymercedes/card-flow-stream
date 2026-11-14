@@ -62,10 +62,7 @@ export function StudioChatDock({ streamId }: { streamId: string }) {
       .then(({ data }) => { if (active && data) setHostId((data as any).seller_id); });
 
     async function loadMods() {
-      const { data } = await supabase
-        .from("stream_moderators")
-        .select("mod_user_id")
-        .eq("stream_id", streamId);
+      const { data } = await (supabase.rpc as any)("list_stream_moderators", { _stream_id: streamId });
       if (active) setModIds(new Set((data || []).map((m: any) => m.mod_user_id)));
     }
     loadMods();

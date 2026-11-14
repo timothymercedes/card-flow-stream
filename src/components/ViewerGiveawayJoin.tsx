@@ -52,10 +52,7 @@ export function ViewerGiveawayJoin({
       if (cancelled) return;
       setG((data as any) || null);
       if (data) {
-        const { count } = await supabase
-          .from("giveaway_entries")
-          .select("*", { count: "exact", head: true })
-          .eq("giveaway_id", (data as any).id);
+        const { data: count } = await (supabase.rpc as any)("giveaway_entry_count", { _giveaway_id: (data as any).id });
         if (!cancelled) setEntryCount(count || 0);
         if (userId) {
           const { data: mine } = await supabase
@@ -72,8 +69,8 @@ export function ViewerGiveawayJoin({
         const next = (p.new as any) || (p.old as any) || null;
         setG(next);
         if (next?.id) {
-          supabase.from("giveaway_entries").select("*", { count: "exact", head: true })
-            .eq("giveaway_id", next.id).then(({ count }) => setEntryCount(count || 0));
+          (supabase.rpc as any)("giveaway_entry_count", { _giveaway_id: next.id })
+            .then(({ data: count }: any) => setEntryCount(count || 0));
         }
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "giveaway_entries" }, (p) => {
