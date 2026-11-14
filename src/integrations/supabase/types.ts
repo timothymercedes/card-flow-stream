@@ -9644,16 +9644,7 @@ export type Database = {
         Returns: undefined
       }
       create_giveaway_order: { Args: { _giveaway_id: string }; Returns: string }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
-      email_queue_dispatch: { Args: never; Returns: undefined }
       enforce_late_shipments: { Args: never; Returns: Json }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       extend_flex_live_session: {
         Args: { _stream_id: string }
         Returns: string
@@ -9942,15 +9933,6 @@ export type Database = {
           prev_status: string
         }[]
       }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
-      }
       notify_user: {
         Args: {
           _body: string
@@ -10043,14 +10025,6 @@ export type Database = {
       purge_old_notifications: { Args: never; Returns: number }
       purge_old_perf_data: { Args: never; Returns: number }
       rate_limit_card_scan: { Args: { _user_id: string }; Returns: Json }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
-        }[]
-      }
       rearm_next_round: { Args: { _stream_id: string }; Returns: Json }
       recalc_seller_trust: {
         Args: { _user_id: string }
