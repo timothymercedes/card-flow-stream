@@ -59,7 +59,8 @@ function Home() {
   const [postsAll, setPostsAll] = useState<any[]>([]);
   const [listingsAll, setListingsAll] = useState<any[]>([]);
   const [vaultAll, setVaultAll] = useState<any[]>([]);
-  const [stats, setStats] = useState({ live: 0, collectors: 0, listings: 0 });
+  const [stats, setStats] = useState<{live:number|null;collectors:number|null;listings:number|null}>({ live: null, collectors: null, listings: null });
+  const [vaultReadFailed,setVaultReadFailed] = useState(false);
   const bucket = useShuffleBucket();
 
   // Shuffle every 5 min via bucket; slice for display.
@@ -72,16 +73,16 @@ function Home() {
   const [rtTick, setRtTick] = useState(0);
   useEffect(() => {
     const load = async () => {
-      let sQ = supabase.from("live_streams").select("*").eq("status", "live").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
+      let sQ = supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
       if (interests.length > 0) sQ = sQ.in("category", interests);
       const { data: sData } = await sQ;
       if ((sData?.length || 0) === 0 && interests.length > 0) {
-        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
+        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
         setStreamsAll(fallback || []);
       } else setStreamsAll(sData || []);
 
       const { data: showData } = await supabase.from("live_streams")
-        .select("*").eq("status", "live").eq("stream_type", "show_off").eq("is_private", false)
+        .select("*").eq("status", "live").eq('is_demo',false).eq("stream_type", "show_off").eq("is_private", false)
         .order("created_at", { ascending: false }).limit(40);
       setShowOffAll(showData || []);
 
@@ -97,14 +98,14 @@ function Home() {
         .select("*, profiles:user_id(id, username)")
         .eq("visibility", "public")
         .order("created_at", { ascending: false }).limit(60)
-        .then(({ data }) => setVaultAll(data || []));
+        .then(({ data,error }) => {setVaultAll(data || []);setVaultReadFailed(!!error);});
 
       const [{ count: liveCount }, { count: collectorCount }, { count: listingCount }] = await Promise.all([
-        supabase.from("live_streams").select("*", { count: "exact", head: true }).eq("status", "live"),
+        supabase.from("live_streams").select("*", { count: "exact", head: true }).eq("status", "live").eq('is_demo',false).eq('is_private',false),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("listings").select("*", { count: "exact", head: true }),
       ]);
-      setStats({ live: liveCount || 0, collectors: collectorCount || 0, listings: listingCount || 0 });
+      setStats({ live: liveCount, collectors: collectorCount, listings: listingCount });
     };
     load();
   }, [interests.join(","), rtTick]);
@@ -134,7 +135,7 @@ function Home() {
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-background/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur">
                 <span className="h-1.5 w-1.5 rounded-full bg-live live-pulse" />
-                {stats.live > 0 ? t("home.tagline_live_now", { count: stats.live }) : t("home.tagline_default")}
+                {stats.live !== null && stats.live > 0 ? t("home.tagline_live_now", { count: stats.live }) : t("home.tagline_default")}
               </div>
               <h1 className="text-3xl font-black leading-tight tracking-tight lg:text-5xl">
                 {t("home.headline_part_1")} <span className="holo-text">{t("home.headline_part_2")}</span>
@@ -261,7 +262,7 @@ function Home() {
 
       <Section title={t("home.section_market")} to="/market">
         <div className="grid grid-cols-2 gap-3 px-4">
-          {listings.length === 0 && <EmptyMini text={t("home.empty_listings")} />}
+          {listings.length === 0 && <EmptyMini text="No active listings available. Sellers can review their expired inventory in My Listings." />}
           {listings.map((l) => {
             const display = getListingPriceDisplay(l, true);
             return (
@@ -299,7 +300,7 @@ function Home() {
 
       <Section title={t("home.section_vault")} to="/discover" viewLabel={t("home.section_vault_view")}>
         <div className="grid grid-cols-2 gap-3 px-4">
-          {vault.length === 0 && <EmptyMini text={t("home.empty_vault")} />}
+          {vault.length === 0 && <EmptyMini text={vaultReadFailed ? 'Public collections are unavailable right now.' : t("home.empty_vault")} />}
           {vault.map((v) => {
             const username = v.profiles?.username;
             return (
@@ -334,10 +335,10 @@ function Home() {
 }
 
 
-function InlineStat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
+function InlineStat({ value, label, accent }: { value: number|null; label: string; accent?: boolean }) {
   return (
     <div className="flex flex-1 items-baseline justify-center gap-1.5">
-      <span className={`text-sm font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value.toLocaleString()}</span>
+      <span aria-label={value === null ? `${label} unavailable` : undefined} className={`text-sm font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value?.toLocaleString() ?? '—'}</span>
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
     </div>
   );

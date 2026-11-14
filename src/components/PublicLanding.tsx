@@ -14,22 +14,22 @@ import logo from "@/assets/logo.png";
 export default function PublicLanding() {
   const [streams, setStreams] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
-  const [stats, setStats] = useState({ live: 0, collectors: 0, listings: 0 });
+  const [stats, setStats] = useState<{live:number|null;collectors:number|null;listings:number|null}>({ live: null, collectors: null, listings: null });
 
   useEffect(() => {
     (async () => {
       const [{ data: s }, { data: l }, [{ count: live }, { count: coll }, { count: ll }]] = await Promise.all([
-        supabase.from("live_streams").select("id,title,thumbnail_url,current_bid,category").eq("status","live").order("created_at",{ascending:false}).limit(6),
+        supabase.from("live_streams").select("id,title,thumbnail_url,current_bid,category").eq("status","live").eq('is_demo',false).eq('is_private',false).order("created_at",{ascending:false}).limit(6),
         supabase.from("listings").select("id,title,image_url,price,category").order("created_at",{ascending:false}).limit(8),
         Promise.all([
-          supabase.from("live_streams").select("*",{count:"exact",head:true}).eq("status","live"),
+          supabase.from("live_streams").select("*",{count:"exact",head:true}).eq("status","live").eq('is_demo',false).eq('is_private',false),
           supabase.from("profiles").select("*",{count:"exact",head:true}),
           supabase.from("listings").select("*",{count:"exact",head:true}),
         ]),
       ]);
       setStreams(s || []);
       setListings(l || []);
-      setStats({ live: live||0, collectors: coll||0, listings: ll||0 });
+      setStats({ live, collectors:coll, listings:ll });
     })();
   }, []);
 
@@ -85,7 +85,8 @@ export default function PublicLanding() {
         subtitle="Join scheduled drops or jump into a Flex Live show. Bidding, chat, and payment all in one place."
       >
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {(streams.length ? streams : Array.from({length:4})).slice(0,4).map((s: any, i) => (
+          {streams.length === 0 && <p className="col-span-2 py-6 text-sm text-muted-foreground">No public live broadcasts right now.</p>}
+          {streams.slice(0,4).map((s: any, i) => (
             <div key={s?.id || i} className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border">
               {s?.thumbnail_url
                 ? <img src={s.thumbnail_url} alt={s.title} className="h-full w-full object-cover" />
@@ -107,7 +108,8 @@ export default function PublicLanding() {
         subtitle="Buy now, make offers, or save to your vault — all gated behind beta until launch."
       >
         <div className="-mx-2 flex gap-3 overflow-x-auto px-2 pb-2">
-          {(listings.length ? listings : Array.from({length:6})).map((l: any, i) => (
+          {listings.length === 0 && <p className="py-6 text-sm text-muted-foreground">No active listings available.</p>}
+          {listings.map((l: any, i) => (
             <div key={l?.id || i} className="w-44 flex-shrink-0 overflow-hidden rounded-xl bg-card ring-1 ring-border">
               <div className="card-foil-edge aspect-square bg-muted">
                 {l?.image_url
@@ -116,7 +118,7 @@ export default function PublicLanding() {
               </div>
               <div className="p-2.5">
                 <p className="line-clamp-1 text-xs font-semibold">{l?.title || "Featured card"}</p>
-                <p className="mt-1 text-xs font-bold text-primary">${Number(l?.price || (i+1)*15).toFixed(2)}</p>
+                <p className="mt-1 text-xs font-bold text-primary">${Number(l?.price ?? 0).toFixed(2)}</p>
               </div>
             </div>
           ))}
@@ -269,10 +271,10 @@ function Section({ eyebrow, title, subtitle, children }: { eyebrow?: string; tit
   );
 }
 
-function Stat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
+function Stat({ value, label, accent }: { value: number|null; label: string; accent?: boolean }) {
   return (
     <div className="rounded-xl border border-border bg-card/60 p-3 text-center backdrop-blur">
-      <div className={`text-xl font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value.toLocaleString()}</div>
+      <div className={`text-xl font-black tabular-nums ${accent ? "text-primary" : ""}`}>{value?.toLocaleString() ?? '—'}</div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
