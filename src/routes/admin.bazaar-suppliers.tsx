@@ -98,7 +98,6 @@ function SuppliersAdmin() {
     }
     if (job) await supabase.from("bazaar_supplier_sync_jobs").update({ status: made ? "succeeded" : "failed", items_seen: samples.length, items_changed: made, finished_at: new Date().toISOString() }).eq("id", job.id);
     toast.success(`${made} demo items added for review`); refresh();
-    setTimeout(() => void qc.fetchQuery({ queryKey: ["bazaar-sup", "links"] }).then(() => undefined), 0);
   }
 
   return <AppShell><div className="mx-auto w-full max-w-5xl space-y-5 px-3 py-4 sm:px-4">
