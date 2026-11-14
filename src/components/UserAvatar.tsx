@@ -90,8 +90,8 @@ export function UserAvatar({
   if (personalLinks) {
     return (
       <Link
-        to="/preview/personal-profile-candidate"
-        search={{ username }}
+        to="/@{$username}"
+        params={{ username }}
         aria-label={ariaLabel || `Open @${username}'s personal profile`}
         className="inline-flex"
       >

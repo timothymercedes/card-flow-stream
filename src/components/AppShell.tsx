@@ -3,7 +3,7 @@ import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
   Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown, Swords,
-  ArrowLeftRight, BookOpen, Heart, Users, Trophy,
+  ArrowLeftRight, BookOpen, Heart, Users, Trophy, UserCircle,
 } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -183,6 +183,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onNavigate={() => setAccountOpen(false)}
                   email={user?.email ?? null}
                   signedIn={!!user}
+                  username={profile?.username ?? null}
+                  isSeller={isSeller}
                   onSignOut={() => { setAccountOpen(false); setSignOutOpen(true); }}
                 />
               </SheetContent>
@@ -207,24 +209,38 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {user?.email || t("nav.account", "Account")}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {profile?.username && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/@{$username}" params={{ username: profile.username }}><UserCircle className="mr-2 h-4 w-4" />{t("nav.personalProfile", "My Personal Profile")}</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
-                  <Link to="/profile"><User className="mr-2 h-4 w-4" />{t("nav.profile", "Profile")}</Link>
+                  <Link to="/profile"><User className="mr-2 h-4 w-4" />{t("nav.accountSettings", "Account Settings")}</Link>
                 </DropdownMenuItem>
+                {isSeller && profile?.username && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/seller/$username" params={{ username: profile.username }}><Store className="mr-2 h-4 w-4" />{t("nav.myStore", "My Store")}</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
-                  <Link to="/orders"><Package className="mr-2 h-4 w-4" />{t("nav.orders", "Orders")}</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/payouts"><TrendingUp className="mr-2 h-4 w-4" />{t("nav.sales", "Sales")}</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings"><Bell className="mr-2 h-4 w-4" />{t("nav.notifications", "Notifications")}</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/payouts"><Wallet className="mr-2 h-4 w-4" />{t("nav.wallet", "Wallet")}</Link>
+                  <Link to="/vault"><Lock className="mr-2 h-4 w-4" />{t("nav.myVault", "My Vault")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/settings"><Settings className="mr-2 h-4 w-4" />{t("nav.settings", "Settings")}</Link>
+                  <Link to="/orders"><Package className="mr-2 h-4 w-4" />{t("nav.myOrders", "My Purchases & Orders")}</Link>
+                </DropdownMenuItem>
+                {isSeller && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/store"><BarChart3 className="mr-2 h-4 w-4" />{t("nav.sellerHub", "Seller Hub")}</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/payouts"><Wallet className="mr-2 h-4 w-4" />{t("nav.salesWallet", "Sales & Wallet")}</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem asChild>
+                  <Link to="/settings"><Bell className="mr-2 h-4 w-4" />{t("nav.notifications", "Notifications")}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Help")}</Link>
@@ -426,11 +442,15 @@ function AccountSheet({
   email,
   signedIn,
   onSignOut,
+  username,
+  isSeller,
 }: {
   onNavigate: () => void;
   email: string | null;
   signedIn: boolean;
   onSignOut: () => void;
+  username: string | null;
+  isSeller: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -438,17 +458,21 @@ function AccountSheet({
     {
       title: t("nav.account", "Account"),
       items: [
-        { to: "/profile", icon: User, label: t("nav.profile", "Profile") },
-        { to: "/orders", icon: Package, label: t("nav.orders", "Orders") },
-        { to: "/payouts", icon: TrendingUp, label: t("nav.sales", "Sales") },
+        ...(username ? [{ to: `/@${username}`, icon: UserCircle, label: t("nav.personalProfile", "My Personal Profile") }] : []),
+        { to: "/profile", icon: User, label: t("nav.accountSettings", "Account Settings") },
+        ...(isSeller && username ? [{ to: `/seller/${username}`, icon: Store, label: t("nav.myStore", "My Store") }] : []),
+        { to: "/vault", icon: Lock, label: t("nav.myVault", "My Vault") },
+        { to: "/orders", icon: Package, label: t("nav.myOrders", "My Purchases & Orders") },
+        ...(isSeller ? [
+          { to: "/store", icon: BarChart3, label: t("nav.sellerHub", "Seller Hub") },
+          { to: "/payouts", icon: Wallet, label: t("nav.salesWallet", "Sales & Wallet") },
+        ] : []),
         { to: "/settings", icon: Bell, label: t("nav.notifications", "Notifications") },
-        { to: "/payouts", icon: Wallet, label: t("nav.wallet", "Wallet") },
       ],
     },
     {
       title: t("nav.support", "Support"),
       items: [
-        { to: "/settings", icon: Settings, label: t("nav.settings", "Settings") },
         { to: "/support", icon: MessageCircleHeart, label: t("nav.help", "Help") },
         { onClick: () => { openFeedback(); onNavigate(); }, icon: MessageCircleHeart, label: t("nav.feedback", "Send feedback") },
         ...(signedIn ? [{ onClick: () => { onSignOut(); onNavigate(); }, icon: LogOut, label: t("nav.signOut", "Sign out") }] : []),

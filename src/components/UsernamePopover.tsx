@@ -194,8 +194,8 @@ export function UsernamePopover({
               </Link>
               {personalLinks && (
                 <Link
-                  to="/preview/personal-profile-candidate"
-                  search={{ username: profile.username }}
+                  to="/@{$username}"
+                  params={{ username: profile.username }}
                   onClick={() => setOpen(false)}
                   className="col-span-2 inline-flex items-center justify-center gap-1 rounded-lg bg-card px-2 py-1.5 text-[11px] font-bold ring-1 ring-border"
                 >

@@ -34,7 +34,7 @@ export const Route = createFileRoute("/profile")({ component: Profile, head: () 
 ] , links: import.meta.env.DEV ? [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap' }] : [] }) });
 
 function Profile() {
-  // Account settings stay on /profile; the new personal profile lives at /preview/personal-profile.
+  // Account settings stay on /profile; the personal profile lives at /@username.
   return <AccountProfile />;
 }
 
@@ -297,7 +297,15 @@ function AccountProfile() {
         {/* Quick action bar — own profile shortcuts */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {p.username && (
-            <Link to="/seller/$username" params={{ username: p.username }} className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground">
+            <Link to="/@{$username}" params={{ username: p.username }} className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground">
+              <User className="h-3.5 w-3.5" /> My Personal Profile
+            </Link>
+          )}
+          <Link to="/vault" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+            <Lock className="h-3.5 w-3.5" /> My Vault
+          </Link>
+          {p.username && (
+            <Link to="/seller/$username" params={{ username: p.username }} className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
               <ExternalLink className="h-3.5 w-3.5" /> View Storefront
             </Link>
           )}
@@ -408,7 +416,7 @@ function AccountProfile() {
               {listRows.length === 0 && <p className="py-8 text-center text-xs text-muted-foreground">No users yet.</p>}
               <div className="space-y-2">
                 {listRows.map((u: any) => (
-                  <Link key={u.id} to="/seller/$username" params={{ username: u.username }} onClick={() => setListOpen(null)} className="flex items-center gap-2 rounded-lg bg-muted p-2 hover:bg-muted/70">
+                  <Link key={u.id} to="/@{$username}" params={{ username: u.username }} onClick={() => setListOpen(null)} className="flex items-center gap-2 rounded-lg bg-muted p-2 hover:bg-muted/70">
                     <div className="h-8 w-8 overflow-hidden rounded-full bg-card">
                       {u.avatar_url ? <img src={u.avatar_url} className="h-full w-full object-cover" alt="" /> : <div className="flex h-full w-full items-center justify-center text-xs font-bold">{u.username[0]?.toUpperCase()}</div>}
                     </div>
