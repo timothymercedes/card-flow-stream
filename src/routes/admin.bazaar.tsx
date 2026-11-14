@@ -50,7 +50,7 @@ function BazaarAdmin() {
     if (!isValidStoreSlug(pb.slug)) return toast.error("Invalid store link");
     const { error } = await supabase.from("bazaar_stores").insert({ owner_id: user!.id, name: pb.name.trim(), slug: pb.slug, description: pb.description || null, store_type: "pb_owned", status: "active", verification_status: "verified" });
     if (error) return toast.error(error.code === "23505" ? "Store link taken" : error.message);
-    toast.success("PB store created"); setPb({ name: "", slug: "", description: "" }); qc.invalidateQueries({ queryKey: ["bazaar"] });
+    toast.success("Retail partner store created"); setPb({ name: "", slug: "", description: "" }); qc.invalidateQueries({ queryKey: ["bazaar"] });
   }
 
   return (
@@ -90,7 +90,7 @@ function BazaarAdmin() {
               ))}</ul>
             )}
             <form onSubmit={createPb} className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-border">
-              <p className="flex items-center gap-1.5 font-bold"><Store className="h-4 w-4" /> Create a PB-owned store</p>
+              <p className="flex items-center gap-1.5 font-bold"><Store className="h-4 w-4" /> Create a Retail Partner Store</p>
               <Input required placeholder="Store name" value={pb.name} onChange={(e) => setPb((p) => ({ ...p, name: e.target.value, slug: slugifyStoreName(e.target.value) }))} />
               <Input required placeholder="store-link" value={pb.slug} onChange={(e) => setPb((p) => ({ ...p, slug: e.target.value.toLowerCase() }))} />
               <Textarea placeholder="Description" value={pb.description} onChange={(e) => setPb((p) => ({ ...p, description: e.target.value }))} />

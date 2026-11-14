@@ -577,7 +577,7 @@ function AccountProfile() {
               </Link>
               <Link to="/store" className="flex items-center gap-3 rounded-xl bg-card p-4">
                 <StoreIcon className="h-5 w-5 text-primary" />
-                <div className="flex-1"><p className="text-sm font-semibold">My PB Store</p><p className="text-xs text-muted-foreground">Items you've sold</p></div>
+                <div className="flex-1"><p className="text-sm font-semibold">Seller Hub</p><p className="text-xs text-muted-foreground">Manage your shop, sales &amp; orders</p></div>
               </Link>
               <Link to="/payouts" className="flex items-center gap-3 rounded-xl bg-card p-4">
                 <Banknote className="h-5 w-5 text-primary" />

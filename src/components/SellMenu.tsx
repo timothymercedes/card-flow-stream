@@ -76,15 +76,15 @@ export function SellMenu() {
               </Link>
 
               <Link
-                to="/bazaar/dashboard"
+                to="/store"
                 preload={false}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl bg-card p-3 text-left ring-1 ring-border"
               >
                 <Store className="h-6 w-6 shrink-0 text-primary" />
                 <div className="min-w-0">
-                  <p className="text-sm font-extrabold">Bazaar Store</p>
-                  <p className="text-[11px] text-muted-foreground">Open or manage your PB Bazaar store</p>
+                  <p className="text-sm font-extrabold">Seller Hub</p>
+                  <p className="text-[11px] text-muted-foreground">Manage your marketplace shop, orders & sales</p>
                 </div>
               </Link>
             </div>

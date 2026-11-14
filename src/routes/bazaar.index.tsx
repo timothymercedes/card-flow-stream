@@ -56,7 +56,7 @@ function BazaarHome() {
             <button className={pill(!type)} onClick={() => nav({ search: (p) => ({ ...p, type: undefined }) })}>All stores</button>
             <button className={pill(type === "brand")} onClick={() => nav({ search: (p) => ({ ...p, type: "brand" }) })}>Official brands</button>
             <button className={pill(type === "independent")} onClick={() => nav({ search: (p) => ({ ...p, type: "independent" }) })}>Independent</button>
-            <button className={pill(type === "pb_owned")} onClick={() => nav({ search: (p) => ({ ...p, type: "pb_owned" }) })}>PB Official</button>
+            <button className={pill(type === "pb_owned")} onClick={() => nav({ search: (p) => ({ ...p, type: "pb_owned" }) })}>Partner Stores</button>
           </div>
         </section>
 
