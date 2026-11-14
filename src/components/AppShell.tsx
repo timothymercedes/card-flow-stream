@@ -5,7 +5,7 @@ import {
   Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown, Swords,
   ArrowLeftRight, BookOpen, Heart, Users, Trophy, UserCircle,
 } from "lucide-react";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
@@ -51,6 +51,16 @@ const PRIMARY = [
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const set = () => document.documentElement.style.setProperty("--app-header-h", `${el.getBoundingClientRect().bottom}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const loc = useLocation();
   const nav = useNavigate();
   const { user, profile, signOut } = useAuth();
