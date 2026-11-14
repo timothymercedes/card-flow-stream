@@ -71,9 +71,8 @@ export function PersonalProfilePreview({ account }: { account: ReactNode }) {
     const value = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(); reader.onerror = reject; reader.readAsDataURL(file); });
     saveDraft({ ...draft, [target]: value }); setUploadError('');
   }
-  if (accountOpen) return <><div className="personal-profile-back"><Button variant="outline" onClick={() => setAccountOpen(false)}>← Personal profile</Button></div>{account}</>;
-  if (loading) return <AppShell><p className="p-10 text-center text-muted-foreground">Loading your profile…</p></AppShell>;
-  if (!user) return <AppShell><section className="mx-auto max-w-lg px-6 py-20 text-center"><h1 className="text-3xl">Your personal profile</h1><p className="my-5 text-muted-foreground">Sign in to open your personal timeline.</p><Button asChild><Link to="/auth">Sign in</Link></Button></section></AppShell>;
+  if (accountOpen) return <><div className="personal-profile-theme personal-review"><strong className="personal-preview-label">PREVIEW DESIGN · ACCOUNT PANEL</strong><Button variant="outline" onClick={() => setAccountOpen(false)}>← Personal profile</Button></div>{account}</>;
+  if (loading) return <AppShell><div className="personal-profile-theme personal-review"><strong className="personal-preview-label">PREVIEW DESIGN</strong><span>Loading your profile…</span></div></AppShell>;
   const posts = visitor ? [] : [...localStories, ...(query.data?.posts ?? [])].filter(p => !hidden.includes(p.id)).sort((a, b) => a.id === pinned ? -1 : b.id === pinned ? 1 : 0);
   const cards = visitor ? [] : query.data?.cards ?? [];
   const images = posts.filter(p => p.image_url);
@@ -85,8 +84,8 @@ export function PersonalProfilePreview({ account }: { account: ReactNode }) {
     else setLocalStories(prev => [{ id: `draft-${Date.now()}`, caption: caption.trim(), image_url: null, created_at: new Date().toISOString(), visibility: 'only_me', allow_comments: true }, ...prev]);
     setDialog(null); saveDraft({ ...draft, text: '' });
   }
-  return <AppShell><div className="personal-profile-theme">
-    <div className="personal-review"><span>{visitor ? 'Visitor simulation · No other account is opened' : 'Preview only · Draft changes stay in this browser tab'}</span><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
+  return <AppShell><div className="personal-profile-theme" data-profile-component="PersonalProfilePreview">
+    <div className="personal-review"><div><strong className="personal-preview-label">PREVIEW DESIGN</strong><span>{visitor ? 'Visitor simulation · No other account is opened' : 'Personal profile · Browser-only drafts'}</span></div><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
     <main className="personal-page">
       <section className="personal-masthead">
         <div className="personal-identity">
@@ -103,7 +102,7 @@ export function PersonalProfilePreview({ account }: { account: ReactNode }) {
         {tab === 'Posts' && <>
           {!visitor && <div className="personal-composer"><Button variant="ghost" className="personal-prompt" onClick={() => open('Create a story')}>What’s your latest story?</Button><Button variant="ghost" size="icon" title="Add photos" aria-label="Add photos" onClick={() => open('Photo story')}><ImagePlus /></Button><Button variant="ghost" size="icon" title="Add video" aria-label="Add video" onClick={() => open('Video story')}><Video /></Button><Button variant="ghost" size="icon" title="Share collectible" aria-label="Share collectible" onClick={() => open('Collectible story')}><Gem /></Button></div>}
           <div className="personal-section-heading"><h2>The latest chapter.</h2><span>Newest first ↓</span></div>
-          {visitor ? <div className="personal-empty"><Lock /><h3>Public timeline unavailable</h3><p>Visitor content remains unavailable until the privacy review is approved.</p></div> : query.isError ? <div className="personal-empty"><p>Your timeline couldn’t be loaded.</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div> : query.isPending ? <p className="py-10 text-muted-foreground">Loading your stories…</p> : <div className="personal-post-grid">
+          {visitor ? <div className="personal-empty"><Lock /><h3>Public timeline unavailable</h3><p>Visitor content remains unavailable until the privacy review is approved.</p></div> : !user ? <div className="personal-empty"><Lock /><h3>Your personal journal.</h3><p>Sign in to view your own stories and collectibles. No account data is shown here.</p><Button asChild><Link to="/auth">Sign in</Link></Button></div> : query.isError ? <div className="personal-empty"><p>Your timeline couldn’t be loaded.</p><Button variant="outline" onClick={() => query.refetch()}>Retry</Button></div> : query.isPending ? <p className="py-10 text-muted-foreground">Loading your stories…</p> : <div className="personal-post-grid">
             {posts.map((p, index) => <article key={p.id} className={`personal-post ${p.image_url ? 'photo-story' : 'note-story'} ${index === 0 ? 'lead-story' : ''}`}>
               <div className="personal-post-meta"><span>{pinned === p.id && <Pin size={13} />}{p.id.startsWith('draft-') ? 'Browser draft · Only you' : `Your story · ${p.visibility}`}</span><Button variant="ghost" size="icon" aria-label="Manage story" onClick={() => open('Manage story', p)}><MoreHorizontal /></Button></div>
               <p className="personal-author">@{profile?.username} <span>{new Date(p.created_at).toLocaleDateString()}</span></p>

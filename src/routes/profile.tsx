@@ -36,10 +36,11 @@ export const Route = createFileRoute("/profile")({ component: Profile, head: () 
 ] , links: import.meta.env.DEV ? [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap' }] : [] }) });
 
 function Profile() {
-  const [preview, setPreview] = useState(import.meta.env.DEV);
+  const [preview, setPreview] = useState<boolean | null>(import.meta.env.DEV ? true : null);
   useEffect(() => {
     setPreview(personalPreviewEnabled(import.meta.env.DEV, window.location.hostname));
   }, []);
+  if (preview === null) return <AppShell><p className="p-10 text-center text-muted-foreground">Opening your profile…</p></AppShell>;
   return preview
     ? <PersonalProfilePreview account={<AccountProfile />} />
     : <AccountProfile />;
