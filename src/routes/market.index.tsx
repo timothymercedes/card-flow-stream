@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Search, Sparkles, Flame, Clock, Tag, ChevronDown, Check, X, SlidersHorizontal, ArrowLeftRight } from "lucide-react";
@@ -13,7 +13,7 @@ import { MarketQuickView } from "@/components/MarketQuickView";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Button } from "@/components/ui/button";
-import { MARKET_DEPARTMENTS, filterFields, retainCommonFilters, GENERAL_CONDITIONS } from "@/lib/marketplaceDepartments";
+import { filterFields, retainCommonFilters, GENERAL_CONDITIONS } from "@/lib/marketplaceDepartments";
 import { searchMarketplace } from "@/lib/marketplaceSearch";
 import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
 
@@ -57,6 +57,7 @@ function Market() {
   const page = Math.max(1, search.page ?? 1);
   const [total, setTotal] = useState(0);
   const [searchError, setSearchError] = useState('');
+  const readVersion = useRef(0);
   const update = (next: Partial<typeof search>) => navigate({ search: prev => ({ ...prev, ...next, page: next.page ?? 1 }), replace: true });
   const setQ = (q: string) => update({ q });
   const setCategory = (category: string) => update({ category });
@@ -72,24 +73,27 @@ function Market() {
   const seed = useShuffleBucket();
 
   async function loadMarket() {
+    const version = ++readVersion.current;
     setLoading(true);
     try {
       const result = await searchMarketplace(q, department, { ...filters, ...(category !== 'all' ? { category } : {}), sort }, page);
+      if (version !== readVersion.current) return;
       setItems(result.items);
       setTotal(result.total);
       setSearchError('');
-    } catch (error) { setSearchError(error instanceof Error ? error.message : 'Search unavailable'); }
-    finally { setLoading(false); }
+    } catch (error) { if (version === readVersion.current) {setItems([]);setTotal(0);setSearchError(error instanceof Error ? error.message : 'Search unavailable');} }
+    finally { if (version === readVersion.current) setLoading(false); }
   }
   useEffect(() => {
     let active = true;
+    const version = ++readVersion.current;
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
         const result = await searchMarketplace(q, department, { ...filters, ...(category !== 'all' ? { category } : {}), sort }, page);
-        if (active) { setItems(result.items); setTotal(result.total); setSearchError(''); }
-      } catch (error) { if (active) setSearchError(error instanceof Error ? error.message : 'Search unavailable'); }
-      finally { if (active) setLoading(false); }
+        if (active && version === readVersion.current) { setItems(result.items); setTotal(result.total); setSearchError(''); }
+      } catch (error) { if (active && version === readVersion.current) {setItems([]);setTotal(0);setSearchError(error instanceof Error ? error.message : 'Search unavailable');} }
+      finally { if (active && version === readVersion.current) setLoading(false); }
     }, 250);
     return () => { active = false; clearTimeout(timer); };
   }, [q, department, category, JSON.stringify(filters), sort, page]);
