@@ -1,0 +1,181 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794412207513,
+      "tag": "0000_durable_passkey_challenges",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794509765363,
+      "tag": "0001_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794510024893,
+      "tag": "0002_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794524552639,
+      "tag": "0003_tighten_selected_public_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794526786857,
+      "tag": "0004_public_upcoming_queue_projection",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794528210092,
+      "tag": "0005_marketplace_departments_and_public_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794528505243,
+      "tag": "0006_marketplace_search_validation_and_authorized_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794528555581,
+      "tag": "0007_marketplace_literal_search_and_collectible_aliases",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794571685975,
+      "tag": "0008_create_pb_bazaar_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794572174644,
+      "tag": "0009_bazaar_withdraw_application",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794572459800,
+      "tag": "0010_bazaar_private_media_and_stock",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794572731511,
+      "tag": "0011_fix_bazaar_touch_and_guest_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794572789279,
+      "tag": "0012_scope_evidence_read_to_signed_in",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794620889221,
+      "tag": "0013_scope_selected_collector_membership_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794622805476,
+      "tag": "0014_scope_live_show_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794623085247,
+      "tag": "0015_bazaar_media_staff_only_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794623883312,
+      "tag": "0016_bazaar_supplier_phase_s1",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794662517571,
+      "tag": "0017_social_parent_visibility_safeguards",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794663160827,
+      "tag": "0018_draft_social_audiences_and_parent_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794663178593,
+      "tag": "0019_draft_private_vault_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794663198879,
+      "tag": "0020_draft_social_api_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794663266075,
+      "tag": "0021_draft_exact_media_and_post_image_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794663454063,
+      "tag": "0022_draft_owner_insert_returning_privacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794663650201,
+      "tag": "0023_draft_profile_owner_api_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794663720774,
+      "tag": "0024_draft_shared_reference_revocation",
+      "breakpoints": true
+    }
+  ]
+}

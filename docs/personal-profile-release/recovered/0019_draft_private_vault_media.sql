@@ -1,0 +1,11 @@
+CREATE FUNCTION public.social_vault_card_has_path(_card uuid,_path text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT 1 FROM public.vault_cards c WHERE c.id=_card AND (c.image_url LIKE '%/vault-images/'||_path OR c.back_image_url LIKE '%/vault-images/'||_path OR c.original_image_url LIKE '%/vault-images/'||_path OR c.ai_image_url LIKE '%/vault-images/'||_path OR EXISTS(SELECT 1 FROM jsonb_array_elements(c.image_gallery) v WHERE v->>'url' LIKE '%/vault-images/'||_path))) $$;
+REVOKE ALL ON FUNCTION public.social_vault_card_has_path(uuid,text) FROM PUBLIC;
+CREATE FUNCTION public.social_vault_media_visible(_path text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT 1 FROM public.vault_cards c WHERE public.social_vault_card_has_path(c.id,_path) AND public.social_vault_card_visible(c.id)) AND NOT EXISTS(SELECT 1 FROM public.vault_cards c WHERE public.social_vault_card_has_path(c.id,_path) AND NOT public.social_vault_card_visible(c.id)) $$;
+REVOKE ALL ON FUNCTION public.social_vault_media_visible(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.social_vault_media_visible(text) TO anon,authenticated,service_role;
+DROP POLICY IF EXISTS "Public read for vault-images" ON storage.objects;
+DROP POLICY IF EXISTS "Vault images respect vault visibility" ON storage.objects;
+CREATE POLICY "Vault media card authorization" ON storage.objects FOR SELECT TO anon,authenticated USING(bucket_id='vault-images' AND public.social_vault_media_visible(name));
+CREATE POLICY "Vault media restrictive authorization" ON storage.objects AS RESTRICTIVE FOR SELECT TO anon,authenticated USING(bucket_id<>'vault-images' OR public.social_vault_media_visible(name));
+CREATE POLICY "Card image privacy restriction" ON public.card_images AS RESTRICTIVE FOR SELECT TO anon,authenticated USING(url NOT LIKE '%/vault-images/%' OR public.social_vault_media_visible(split_part(url,'/vault-images/',2)));
+COMMENT ON FUNCTION public.social_vault_media_visible(text) IS 'DRAFT ONLY, separate production approval required: orphan photos and paths shared with inaccessible cards fail closed; private bucket required.';
