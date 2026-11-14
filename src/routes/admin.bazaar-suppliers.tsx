@@ -62,9 +62,11 @@ function SuppliersAdmin() {
   }
   async function recalcAll() { for (const l of links.data ?? []) await reprice(l); toast.success("Prices recalculated"); }
   async function approve(link: NonNullable<typeof links.data>[number]) {
-    if (link.below_floor && !confirm("This price is below the profit floor. Approve anyway?")) return;
-    if (fail((await supabase.from("bazaar_supplier_product_links").update({ review_status: "approved", reviewed_by: user!.id, reviewed_at: new Date().toISOString() }).eq("id", link.id)).error)) return;
-    if (fail((await supabase.from("bazaar_products").update({ status: "published" }).eq("id", link.product_id)).error)) { await supabase.from("bazaar_supplier_product_links").update({ review_status: "pending" }).eq("id", link.id); refresh(); return; }
+    const siblings = (links.data ?? []).filter((x) => x.product_id === link.product_id);
+    if (siblings.some((x) => x.computed_price_cents == null)) return toast.error("Calculate a price for every option of this product first.");
+    if (siblings.some((x) => x.below_floor) && !confirm("At least one option is priced below the profit floor. Approve all options anyway?")) return;
+    if (fail((await supabase.from("bazaar_supplier_product_links").update({ review_status: "approved", reviewed_by: user!.id, reviewed_at: new Date().toISOString() }).eq("product_id", link.product_id).neq("review_status", "rejected")).error)) return;
+    if (fail((await supabase.from("bazaar_products").update({ status: "published" }).eq("id", link.product_id)).error)) { await supabase.from("bazaar_supplier_product_links").update({ review_status: "pending" }).eq("product_id", link.product_id).eq("review_status", "approved"); refresh(); return; }
     toast.success("Approved and published"); refresh();
   }
   async function reject(link: NonNullable<typeof links.data>[number]) {
@@ -93,7 +95,7 @@ function SuppliersAdmin() {
       if (fail(error) || !prod) break;
       const { data: v } = await supabase.from("bazaar_product_variants").insert({ product_id: prod.id, price_cents: cost * 2, quantity: 5 }).select("id").single();
       if (!v) break;
-      await supabase.from("bazaar_supplier_product_links").insert({ supplier_id: supplierId, product_id: prod.id, variant_id: v.id, supplier_item_ref: `demo-${crypto.randomUUID().slice(0, 8)}`, supplier_cost_cents: cost, supplier_stock: 5, sync_status: "ok", last_synced_at: new Date().toISOString() });
+      await supabase.from("bazaar_supplier_product_links").insert({ supplier_id: supplierId, product_id: prod.id, variant_id: v.id, supplier_item_ref: `demo-${crypto.randomUUID().slice(0, 8)}`, supplier_cost_cents: cost, supplier_stock: 5, sync_status: "ok", last_synced_at: new Date().toISOString(), ...(() => { const r = (rules.data ?? []).find((x) => x.scope === "default"); if (!r) return {}; const res = computePrice(cost, r); return { computed_price_cents: res.priceCents, margin_cents: res.profitCents, below_floor: res.belowFloor }; })() });
       made++;
     }
     if (job) await supabase.from("bazaar_supplier_sync_jobs").update({ status: made ? "succeeded" : "failed", items_seen: samples.length, items_changed: made, finished_at: new Date().toISOString() }).eq("id", job.id);
@@ -154,7 +156,8 @@ function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete,
       <label>Confirmed stock<div className="flex gap-1"><Input type="number" value={stock} onChange={(e) => setStock(e.target.value)} /><Button size="sm" variant="outline" onClick={() => onStock(Math.max(0, parseInt(stock) || 0))}>Confirm</Button></div></label>
     </div>
     <div className="flex flex-wrap gap-2">
-      {l.review_status !== "approved" && <Button size="sm" onClick={onApprove} disabled={l.computed_price_cents == null}>Approve & publish</Button>}
+      {l.computed_price_cents == null && <Button size="sm" variant="outline" onClick={() => onReprice({})}>Calculate price</Button>}
+      {l.bazaar_suppliers?.is_demo ? <span className="self-center text-xs font-semibold text-muted-foreground">Demo item — can't be published</span> : l.review_status !== "approved" && <Button size="sm" onClick={onApprove} disabled={l.computed_price_cents == null}>Approve & publish (all options)</Button>}
       {l.review_status !== "rejected" && <Button size="sm" variant="outline" onClick={onReject}>Reject</Button>}
       {l.sync_status !== "discontinued" && <Button size="sm" variant="outline" onClick={onDiscontinue}>Mark discontinued</Button>}
       <Button size="sm" variant="destructive" onClick={onDelete}>Delete permanently</Button>
@@ -163,7 +166,8 @@ function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete,
 }
 
 function RuleEditor({ rule, onSaved }: { rule: Rule; onSaved: () => void }) {
-  const fields = [["markup_percent", "Markup %"], ["markup_fixed_cents", "Fixed markup (¢)"], ["min_profit_cents", "Min profit (¢)"], ["min_margin_percent", "Min margin %"], ["shipping_cost_cents", "Shipping cost (¢)"], ["fee_percent", "Payment fee %"], ["fee_fixed_cents", "Payment fee fixed (¢)"], ["other_cost_cents", "Other costs (¢)"], ["round_to_cents", "Round up to (¢)"]] as const;
+  const fields = [["markup_percent", "Markup %"], ["markup_fixed_cents", "Fixed markup ($)"], ["min_profit_cents", "Minimum profit ($)"], ["min_margin_percent", "Minimum margin %"], ["shipping_cost_cents", "Your shipping cost ($)"], ["fee_percent", "Payment fee %"], ["fee_fixed_cents", "Payment fee per order ($)"], ["other_cost_cents", "Other costs per item ($)"], ["round_to_cents", "Round price up to nearest ($)"]] as const;
+  const isMoney = (k: string) => k.endsWith("_cents");
   const [f, setF] = useState<PricingRule>(() => Object.fromEntries(fields.map(([k]) => [k, Number(rule[k])])) as PricingRule);
   const [sample, setSample] = useState(1000);
   const preview = computePrice(sample, f);
@@ -173,8 +177,8 @@ function RuleEditor({ rule, onSaved }: { rule: Rule; onSaved: () => void }) {
   }
   return <section className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-border">
     <h2 className="font-bold">Default pricing rule</h2>
-    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">{fields.map(([k, label]) => <label key={k}>{label}<Input type="number" step="any" value={f[k]} onChange={(e) => setF({ ...f, [k]: Number(e.target.value) })} /></label>)}</div>
-    <div className="rounded-xl bg-muted p-3 text-sm"><label className="text-xs">Preview supplier cost (¢)<Input type="number" value={sample} onChange={(e) => setSample(Math.max(0, Math.round(+e.target.value)))} /></label><p className="mt-2">Price {formatCents(preview.priceCents)} · profit {formatCents(preview.profitCents)} · margin {preview.marginPercent}% · floor {formatCents(preview.floorCents)}</p></div>
+    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">{fields.map(([k, label]) => <label key={k}>{label}<Input type="number" step="any" value={isMoney(k) ? f[k] / 100 : f[k]} onChange={(e) => setF({ ...f, [k]: isMoney(k) ? Math.round(Number(e.target.value) * 100) : Number(e.target.value) })} /></label>)}</div>
+    <div className="rounded-xl bg-muted p-3 text-sm"><label className="text-xs">Try a supplier cost ($)<Input type="number" step="0.01" value={sample / 100} onChange={(e) => setSample(Math.max(0, Math.round(+e.target.value * 100)))} /></label><p className="mt-2">Price {formatCents(preview.priceCents)} · profit {formatCents(preview.profitCents)} · margin {preview.marginPercent}% · lowest allowed price {formatCents(preview.floorCents)}</p><p className="mt-1 text-xs text-muted-foreground">Profit is after supplier cost, your shipping cost, payment fees and other costs.</p></div>
     <Button size="sm" onClick={save}>Save rule</Button>
   </section>;
 }
