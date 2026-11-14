@@ -9,6 +9,8 @@
 - A06 presentation: Garden browse filter and search survive reload; Garden seller writes remain disabled.
 
 ## Checks
+November 14 continuation: homepage Live/Flex sections now distinguish pending, read errors and empty results, offer Retry, and ignore obsolete responses after navigation/filter changes. Garden search/reload/error recovery, Live error/retry and desktop/mobile layout, signed-in scanner consent/denial/false intent and demo labels rechecked successfully. 50 focused tests pass including six administration access tests. No Phase 1 database-dependent work was executed.
+
 44 targeted unit tests passed: stabilization, auth return, category shopping, department validation, payment confirmation and preview payment isolation. Preview compilation OK. Guest Garden/search/reload, injected search-error/retry, Live read-error/retry, desktop/phone sizing, signed-in scanner/denial/false intent, signed-in Live and Flex demo exclusion, retained demo label and existing administration screen verified. Browser reported no uncaught page errors.
 
 Injected failures were local browser response substitutions, not backend changes. No inventory/account/order writes or broadcast starts were performed.

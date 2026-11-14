@@ -17,6 +17,7 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { OAUTH_RETURN_KEY, safeAuthReturnTo, signupNextStep } from "@/lib/authFlow";
 import { Button } from "@/components/ui/button";
+import { AdministrationBrand, AdministrationFavicon } from '@/components/admin/AdministrationBrand';
 
 export const Route = createFileRoute("/auth")({
   component: Auth,
@@ -37,11 +38,15 @@ function safeReturnTo(raw?: string): string {
 }
 
 function Auth() {
-  const nav = useNavigate();
   const search = Route.useSearch();
-  const returnTo = safeReturnTo(search.returnTo);
+  return <AuthForm returnToInput={search.returnTo} modeInput={search.mode} />;
+}
+
+export function AuthForm({ administration = false, returnToInput, modeInput }: { administration?: boolean; returnToInput?: string; modeInput?: string }) {
+  const nav = useNavigate();
+  const returnTo = administration ? '/admin-control' : safeReturnTo(returnToInput);
   const { user } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(search.mode === "signup" || search.mode === "forgot" ? search.mode : "signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(!administration && modeInput === "signup" ? "signup" : modeInput === "forgot" ? "forgot" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -224,10 +229,11 @@ function Auth() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-background px-6">
+    <div className={`${administration ? 'administration-theme administration-login' : ''} mx-auto flex min-h-screen w-full max-w-md flex-col justify-center bg-background px-6 py-8`}>
+      {administration && <AdministrationFavicon />}
       <div className="mb-8 text-center">
-        <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_oklch(0.72_0.17_165/0.35)]" />
-        <p className="mt-1 text-sm text-muted-foreground">{mode === "signin" ? "Welcome back" : "Create your account"}</p>
+        {administration ? <><AdministrationBrand large /><h1 className="mt-6 text-xl font-semibold">Authorized Personnel Only</h1></> : <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_oklch(0.72_0.17_165/0.35)]" />}
+        <p className="mt-3 text-sm text-muted-foreground">{administration ? 'Owner & Admin Control Center' : mode === "signin" ? "Welcome back" : "Create your account"}</p>
       </div>
       {confirmationSent ? (
         <section className="space-y-3 text-center" aria-live="polite">
@@ -246,9 +252,9 @@ function Auth() {
             )}
           </div>
         )}
-        <input type="email" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input type="email" aria-label="Email" autoComplete="email" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         {mode !== "forgot" && (
-          <input type="password" className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+          <input type="password" aria-label="Password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} className="w-full rounded-xl bg-input px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
         )}
         {mode === "signup" && (
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -313,7 +319,7 @@ function Auth() {
         <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
       </div>
 
-      <AuthPathBanner />
+      {!administration && <AuthPathBanner />}
 
       <div className="space-y-2">
         <Button type="button" variant="outline" disabled={loading} onClick={passkeyLogin} className="h-auto w-full py-3 text-sm font-semibold">
@@ -329,10 +335,10 @@ function Auth() {
         </button>
       </div>
 
-      <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="mt-4 text-center text-sm text-muted-foreground">
+      {!administration && <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="mt-4 text-center text-sm text-muted-foreground">
         {mode === "signin" ? "Need an account? " : "Have an account? "}
         <span className="font-semibold text-primary">{mode === "signin" ? "Sign Up" : "Sign In"}</span>
-      </button>
+      </button>}
       {mode === "signin" && (
         <button onClick={() => setMode("forgot")} className="mt-2 text-center text-xs text-muted-foreground hover:text-primary">
           Forgot password?

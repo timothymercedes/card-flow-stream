@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtusernameRouteImport } from './routes/@$username'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminControlRouteImport } from './routes/admin-control'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as ArenaRouteImport } from './routes/arena'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookmarksRouteImport } from './routes/bookmarks'
@@ -125,6 +127,16 @@ const AtusernameRoute = AtusernameRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminControlRoute = AdminControlRouteImport.update({
+  id: '/admin-control',
+  path: '/admin-control',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArenaRoute = ArenaRouteImport.update({
@@ -643,6 +655,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-control': typeof AdminControlRoute
+  '/admin-login': typeof AdminLoginRoute
   '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -747,6 +761,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-control': typeof AdminControlRoute
+  '/admin-login': typeof AdminLoginRoute
   '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -850,6 +866,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/@$username': typeof AtusernameRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-control': typeof AdminControlRoute
+  '/admin-login': typeof AdminLoginRoute
   '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -956,6 +974,8 @@ export interface FileRouteTypes {
     | '/'
     | '/@$username'
     | '/admin'
+    | '/admin-control'
+    | '/admin-login'
     | '/arena'
     | '/auth'
     | '/bookmarks'
@@ -1060,6 +1080,8 @@ export interface FileRouteTypes {
     | '/'
     | '/@$username'
     | '/admin'
+    | '/admin-control'
+    | '/admin-login'
     | '/arena'
     | '/auth'
     | '/bookmarks'
@@ -1162,6 +1184,8 @@ export interface FileRouteTypes {
     | '/'
     | '/@$username'
     | '/admin'
+    | '/admin-control'
+    | '/admin-login'
     | '/arena'
     | '/auth'
     | '/bookmarks'
@@ -1267,6 +1291,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtusernameRoute: typeof AtusernameRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AdminControlRoute: typeof AdminControlRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   ArenaRoute: typeof ArenaRoute
   AuthRoute: typeof AuthRoute
   BookmarksRoute: typeof BookmarksRoute
@@ -1373,6 +1399,20 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-control': {
+      id: '/admin-control'
+      path: '/admin-control'
+      fullPath: '/admin-control'
+      preLoaderRoute: typeof AdminControlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/arena': {
@@ -2151,6 +2191,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtusernameRoute: AtusernameRoute,
   AdminRoute: AdminRouteWithChildren,
+  AdminControlRoute: AdminControlRoute,
+  AdminLoginRoute: AdminLoginRoute,
   ArenaRoute: ArenaRoute,
   AuthRoute: AuthRoute,
   BookmarksRoute: BookmarksRoute,
