@@ -1,13 +1,14 @@
 # Current work
 
-- [ ] Build isolated real-account Personal Profile candidate with locked visuals, caller-authorized persistence and no demo fallback; preserve account management and demo preview.
-- [ ] Reconcile unavailable older privacy migrations and private-media alias/storage cutover; keep visitor access fail-closed until full safeguards and role tests pass.
-- [ ] Prepare exact change inventory, rollback rehearsal and honest readiness report; Stages 2–4 remain planning-only, no acceptance, publication or live changes.
+- [x] Implement isolated owner-only candidate persistence/media and preserve demo/account settings; 71 API assertions, 60 unit regressions and local owner photo/video flows passed.
+- [ ] Finish full release candidate: visitor/storage alias cutover, legacy integrations, media validation, identity migration, rollback rehearsal and hosted user review remain blockers detailed in docs/personal-profile-release/README.md.
+- [ ] Reconcile recovered older privacy migrations and private-media alias/storage cutover; keep visitor access fail-closed until full safeguards and role tests pass.
+- [x] Prepare exact change inventory and honest readiness report (docs/personal-profile-release); rollback procedure documented but execution remains blocked; Stages 2–4 remain planning-only, no acceptance, publication or live changes.
 
 - [x] Refine Personal Profile demonstration cover and timeline with original collector showcase, grading, pack-opening and community photography; preserve approved layout, six tabs and simulated audiences, with no customer-data or production changes.
 
 - [x] Record official Personal Profile visual-design approval (November 14, 2026): Mosaic + Atelier + Signal desktop/mobile and Owner/Visitor designs are the approved reference. Visual approval only; completed working implementation requires separate final approval before production release. No authorization for deployment, production migrations/privacy/storage changes, premature visitor timelines, or either customization studio.
-- [ ] Prepare complete privacy deployment review package in isolated draft `drft_01m7d5j71ve3z8jzt36100ef94`: exact candidate SQL/policies, integration updates, backup/rollback, image-security matrix and production checklist; no acceptance or production changes. Old draft exact-file recovery remains required.
+- [ ] Prepare complete privacy deployment review package in isolated draft `drft_01m7d5j71ve3z8jzt36100ef94`: exact candidate SQL/policies, integration updates, backup/rollback, image-security matrix and production checklist; no acceptance or production changes. Exact files recovered; baseline-aware reconciliation remains required.
 - [x] Implement approved browser-only individual/bulk Vault privacy and show selection preview; 13 tests and desktop/mobile example flow passed. Actual connected signed-out browser navigated via preview bar to /preview/vault-privacy and back to PersonalProfilePreview with PREVIEW DESIGN. Two read-only live checks returned unchanged 34 unique/private cards and matching ID/privacy fingerprints; no writes or publishing.
 
 - [x] Verify actual connected preview: live-preview tab inspection returned /preview/personal-profile on the embedded lovableproject.com origin, PersonalProfilePreview mounted, PREVIEW DESIGN label and persistent preview navigation visible. Tab was signed out; personal authenticated data and user's desktop/mobile visual approval remain separate checks. No publication.

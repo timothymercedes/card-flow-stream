@@ -1,0 +1,17 @@
+surface,known consumer,status
+Vault,src/routes/vault.tsx,raw image writer/read conversion and alias test outstanding
+Profile,src/components/PersonalProfileCandidate.tsx,owner-only candidate tested; visitors locked
+Feed and stories,src/components/StoryRail.tsx,legacy post/media projection outstanding
+Seller storefront,src/routes/seller.$username.tsx,public collectible/photo projection outstanding
+Trades,src/lib/trades.functions.ts,participant reference/media authorization outstanding
+Collections,src/lib/collection.functions.ts,owner/public reference image delivery outstanding
+Wishlist,src/lib/wishlist.functions.ts,reference preview authorization outstanding
+Marketplace publication,src/routes/sell.tsx,approved publication image copy/media ownership outstanding
+Live host/cohost/mod,src/components/AuctionQueuePanel.tsx,show-specific permission and media projection outstanding
+Live show,src/routes/live.$id.tsx,queue/media lifecycle regression outstanding
+Orders,src/routes/orders.tsx,transaction-authorized historical media outstanding; financial behavior unchanged
+Host logs,src/components/HostPaymentLog.tsx,transaction media delivery outstanding; financial behavior unchanged
+Arena,src/lib/arena.functions.ts and src/lib/arenaFighter.server.ts,reference/cosmetic media ownership outstanding
+Image generation,supabase/functions/generate-card-image/index.ts,legacy writer canonical binding outstanding
+Search notifications avatars,existing cross-platform links,unified personal destination update outstanding
+PB Store and PB Bazaar,existing separate catalogs,remain separate; full private image rollout regression outstanding
