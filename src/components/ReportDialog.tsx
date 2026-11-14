@@ -9,12 +9,20 @@ type TargetType = "user" | "order" | "message" | "stream" | "post" | "listing";
 
 const CATEGORIES: Record<TargetType, { value: string; label: string }[]> = {
   user: [
+    { value: "off_platform_payment", label: "Asked me to pay outside PullBid" },
+    { value: "checkout_bypass", label: "Asked to bypass checkout" },
+    { value: "move_platform", label: "Tried to move the sale to another app" },
+    { value: "suspicious_pickup", label: "Suspicious Local Pickup arrangement" },
     { value: "harassment", label: "Harassment / abuse" },
     { value: "scam", label: "Scam / fraud" },
     { value: "impersonation", label: "Impersonation" },
     { value: "other", label: "Other" },
   ],
   order: [
+    { value: "off_platform_payment", label: "Asked me to pay outside PullBid" },
+    { value: "checkout_bypass", label: "Asked to bypass checkout" },
+    { value: "move_platform", label: "Tried to move the sale to another app" },
+    { value: "suspicious_pickup", label: "Suspicious Local Pickup arrangement" },
     { value: "not_received", label: "Item not received" },
     { value: "not_as_described", label: "Not as described" },
     { value: "damaged", label: "Arrived damaged" },
@@ -22,12 +30,20 @@ const CATEGORIES: Record<TargetType, { value: string; label: string }[]> = {
     { value: "other", label: "Other" },
   ],
   message: [
+    { value: "off_platform_payment", label: "Asked me to pay outside PullBid" },
+    { value: "checkout_bypass", label: "Asked to bypass checkout" },
+    { value: "move_platform", label: "Tried to move the sale to another app" },
+    { value: "suspicious_pickup", label: "Suspicious Local Pickup arrangement" },
     { value: "harassment", label: "Harassment / threats" },
     { value: "spam", label: "Spam" },
     { value: "scam", label: "Scam attempt" },
     { value: "other", label: "Other" },
   ],
   stream: [
+    { value: "off_platform_payment", label: "Asked me to pay outside PullBid" },
+    { value: "checkout_bypass", label: "Asked to bypass checkout" },
+    { value: "move_platform", label: "Tried to move the sale to another app" },
+    { value: "suspicious_pickup", label: "Suspicious Local Pickup arrangement" },
     { value: "inappropriate", label: "Inappropriate content" },
     { value: "scam", label: "Scam" },
     { value: "other", label: "Other" },
@@ -38,6 +54,10 @@ const CATEGORIES: Record<TargetType, { value: string; label: string }[]> = {
     { value: "other", label: "Other" },
   ],
   listing: [
+    { value: "off_platform_payment", label: "Asked me to pay outside PullBid" },
+    { value: "checkout_bypass", label: "Asked to bypass checkout" },
+    { value: "move_platform", label: "Tried to move the sale to another app" },
+    { value: "suspicious_pickup", label: "Suspicious Local Pickup arrangement" },
     { value: "fake", label: "Counterfeit" },
     { value: "misleading", label: "Misleading" },
     { value: "prohibited", label: "Prohibited item" },
