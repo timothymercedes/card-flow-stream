@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Grid2X2, Search, ShoppingBag, Store } from 'lucide-react';
+import { ArrowRight, Home, Grid2X2, Search, ShoppingBag, Store } from 'lucide-react';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DepartmentPhoto } from '@/components/DepartmentPhoto';
@@ -23,7 +23,7 @@ export function CategoryMenu({className = '', compact = false}: {className?: str
     <DialogContent className="category-menu flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 motion-reduce:animate-none">
       <div className="shrink-0 border-b border-border px-4 pb-4 pt-5 sm:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-4 flex items-center gap-2 pr-10"><img src={logo} alt="" width={32} height={32}/><span className="text-sm font-bold">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></span></div>
+          <div className="mb-4 flex items-center gap-3 pr-12"><Link to="/" onClick={close} aria-label="PullBid Live home" className="flex min-h-11 items-center gap-2"><img src={logo} alt="" width={32} height={32}/><span className="text-sm font-bold">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></span></Link><Link to="/" onClick={close} className="ml-auto inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-semibold text-primary hover:bg-muted"><Home className="h-4 w-4" aria-hidden/>Home</Link></div>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><DialogTitle className="text-2xl font-bold sm:text-3xl">Categories</DialogTitle><DialogDescription className="mt-1">Find your next great discovery</DialogDescription></div>
             <div className="relative w-full sm:w-80"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden/><input aria-label="Search departments" placeholder="Search departments…" value={query} onChange={e => setQuery(e.target.value)} className="h-11 w-full rounded-lg border border-input bg-muted pl-10 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>
