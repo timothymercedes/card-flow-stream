@@ -4894,6 +4894,7 @@ function LiveDetail() {
           <div className="flex items-center gap-2 rounded-lg bg-black/40 px-3 py-1.5 backdrop-blur">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{stream.title}</p>
+              {stream.is_demo && <p className="text-xs font-semibold text-primary">Demo show · not a real broadcast</p>}
               <div className="mt-1">
                 <LiveMobileHostCard sellerId={stream.seller_id} showTrustBadges />
               </div>

@@ -13,6 +13,7 @@ import { useRealtimeChannel } from "@/lib/realtime";
 import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { InternationalBadge } from "@/components/InternationalBadge";
+import { Button } from '@/components/ui/button';
 
 export const Route = createFileRoute("/live/")({ component: LiveList,head:()=>({meta:[{title:'Live Auctions — PullBid Live'},{name:'description',content:'Discover public live auctions and upcoming shows on PullBid Live.'},{property:'og:title',content:'Live Auctions — PullBid Live'},{property:'og:description',content:'Browse live auctions and upcoming shows without demo activity counted as real broadcasts.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}) });
 
@@ -55,6 +56,8 @@ function LiveList() {
   const { user, profile } = useAuth();
   const [tab, setTab] = useState<"live" | "scheduled">("live");
   const [streams, setStreams] = useState<Stream[]>([]);
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [liveError, setLiveError] = useState(false);
   const [viewerCounts, setViewerCounts] = useState<Record<string, number>>({});
   const [shows, setShows] = useState<Show[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -71,11 +74,14 @@ function LiveList() {
   const [shareTarget, setShareTarget] = useState<Stream | null>(null);
 
   async function load() {
-    const [{ data: s }, { data: sh }] = await Promise.all([
+    setLiveLoading(true);
+    const [{ data: s, error: streamError }, { data: sh }] = await Promise.all([
       supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).neq("mode", "show_off").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("scheduled_shows").select("*").gte("scheduled_for", new Date().toISOString()).order("scheduled_for", { ascending: true }),
     ]);
     setStreams((s as Stream[]) || []);
+    setLiveError(!!streamError);
+    setLiveLoading(false);
     setShows((sh as Show[]) || []);
 
     // Viewer counts: presence rows seen in last 90s
@@ -166,7 +172,7 @@ function LiveList() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">Live</h1>
             <p className="text-xs text-muted-foreground">
-              {streams.length} streaming now • {shows.length} upcoming
+              {liveLoading ? 'Checking live shows…' : liveError ? 'Live shows unavailable' : `${streams.length} streaming now`} • {shows.length} upcoming
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -195,8 +201,9 @@ function LiveList() {
               <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
                 <Filter className="h-3 w-3" /> Pick what you're into
               </div>
-              <div className="flex flex-col gap-2 lg:flex-row">
+              <div className="grid min-w-0 gap-2 lg:grid-cols-2">
                 <select
+                  aria-label="Live category"
                   value={catFilter}
                   onChange={(e) => setCatFilter(e.target.value)}
                   className={`w-full rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${catFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
@@ -206,11 +213,12 @@ function LiveList() {
                     <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
                   ))}
                 </select>
-                <div className="flex gap-1.5">
+                <div className="grid min-w-0 grid-cols-2 gap-1.5">
                   <select
+                    aria-label="Stream type"
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${typeFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
+                    className={`min-w-0 flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${typeFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
                   >
                     <option value="all">All types</option>
                     {STREAM_TYPES.map((s) => (
@@ -218,9 +226,10 @@ function LiveList() {
                     ))}
                   </select>
                   <select
+                    aria-label="Trading card game"
                     value={tcgFilter}
                     onChange={(e) => setTcgFilter(e.target.value)}
-                    className={`flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${tcgFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
+                    className={`min-w-0 flex-1 rounded-full px-3 py-1.5 text-[11px] font-bold ring-1 ring-border/60 outline-none focus-visible:ring-2 focus-visible:ring-ring/40 ${tcgFilter !== "all" ? "bg-primary text-primary-foreground" : "bg-card/60"}`}
                   >
                     <option value="all">All TCGs</option>
                     {TCG_TAGS.map((t) => (
@@ -243,7 +252,9 @@ function LiveList() {
               </div>
             </div>
 
-            {filteredStreams.length === 0 && (
+            {liveLoading && <p role="status" className="py-12 text-center text-sm text-muted-foreground">Checking live shows…</p>}
+            {!liveLoading && liveError && <div role="alert" className="py-12 text-center text-sm text-muted-foreground">Live shows are unavailable right now. <Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div>}
+            {!liveLoading && !liveError && filteredStreams.length === 0 && (
               <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
                 <Radio className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm font-semibold">

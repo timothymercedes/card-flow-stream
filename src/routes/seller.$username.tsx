@@ -78,6 +78,7 @@ function PublicStore() {
   const [posts, setPosts] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
   const [vaultCards, setVaultCards] = useState<any[]>([]);
+  const [vaultReadFailed, setVaultReadFailed] = useState(false);
   const [sellerStats, setSellerStats] = useState<any>(null);
   const [liveStreamId, setLiveStreamId] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -169,6 +170,7 @@ function PublicStore() {
     setPosts(ps.data || []);
     setStories(st.data || []);
     setVaultCards(vc.data || []);
+    setVaultReadFailed(!!vc.error);
     const { data: ss } = await (supabase.rpc as any)("get_seller_stats", { _seller_id: prof.id });
     setSellerStats(Array.isArray(ss) ? ss[0] : ss);
     const { data: live } = await supabase
@@ -471,7 +473,7 @@ function PublicStore() {
 
           {(["listings", "vault", "sold", "posts", "reviews"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
-              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
+              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? vaultReadFailed ? 'Vault' : `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
             </button>
           ))}
         </div>
@@ -529,7 +531,7 @@ function PublicStore() {
         )}
         {tab === "vault" && (
           <>
-            {vaultCards.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No public vault cards.</p>}
+            {vaultCards.length === 0 && <p role={vaultReadFailed ? 'status' : undefined} className="py-12 text-center text-xs text-muted-foreground">{vaultReadFailed ? 'Public Vault is unavailable right now.' : 'No public vault cards.'}</p>}
             <div className="grid grid-cols-2 gap-3">
               {vaultCards.map((v) => (
                 <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
