@@ -19,6 +19,8 @@ import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
 import { CollectorShowcase } from "@/components/CollectorShowcase";
 import { ProfileRewardsShowcase } from "@/components/ProfileRewardsShowcase";
 import { ProfileCollectionGoals } from "@/components/ProfileCollectionGoals";
+import { PersonalProfilePreview } from '@/components/PersonalProfilePreview';
+import { personalPreviewEnabled } from '@/lib/personalProfilePreview';
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -31,7 +33,13 @@ export const Route = createFileRoute("/profile")({ component: Profile, head: () 
   { property: "og:description", content: "Manage your PullBid Live collector account." },
   { property: "og:type", content: "website" },
   { name: "twitter:card", content: "summary" },
-] }) });
+] , links: import.meta.env.DEV ? [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap' }] : [] }) });
+
+function Profile() {
+  return personalPreviewEnabled(import.meta.env.DEV)
+    ? <PersonalProfilePreview account={<AccountProfile />} />
+    : <AccountProfile />;
+}
 
 function Badge({ status, label }: { status: string; label: string }) {
   const map: Record<string, string> = {
@@ -44,7 +52,7 @@ function Badge({ status, label }: { status: string; label: string }) {
   return <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${map[status] || map.none}`}>{label}: {status}</span>;
 }
 
-function Profile() {
+function AccountProfile() {
   const { user, profile, signOut } = useAuth();
   const nav = useNavigate();
   const [p, setP] = useState<any>(null);
@@ -144,7 +152,7 @@ function Profile() {
     if (SMS_SAFE_MODE) {
       const { error } = await supabase.from("profiles").update({
         phone_verified: true, phone_verified_at: new Date().toISOString(),
-      }).eq("id", user!.id);
+      }).eq("id", user?.id ?? "");
       setOtpLoading(false);
       if (error) return toast.error(error.message);
       setP({ ...p, phone_verified: true });
@@ -538,7 +546,7 @@ function Profile() {
 
         <div className="space-y-2">
           {p.seller_status === "approved" && sellerAgreementAccepted && !p.shop_name && (
-            <ShopNameClaim userId={user!.id} onClaimed={(name) => setP((x: any) => ({ ...x, shop_name: name }))} />
+            <ShopNameClaim userId={user.id} onClaimed={(name) => setP((x: any) => ({ ...x, shop_name: name }))} />
           )}
           {p.seller_status === "approved" && sellerAgreementAccepted && p.shop_name && (
             <>
@@ -579,7 +587,7 @@ function Profile() {
             <LifeBuoy className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">Help & Support</p><p className="text-xs text-muted-foreground">FAQs and contact our team</p></div>
           </Link>
-          <PushToggle userId={user!.id} />
+          <PushToggle userId={user.id} />
           <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">Disputes & Reports</p><p className="text-xs text-muted-foreground">File or track a dispute</p></div>
