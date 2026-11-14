@@ -98,5 +98,6 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 
 ## Stage 1 personal profile (preview)
 - [x] Demo-data profile with owner + 4 simulated viewers at /preview/personal-profile; /profile is account settings only
-- [ ] Finish functional demonstration controls and audience tests while locking the final approved visual reference; document real-feature and production-security blockers separately.
+- [x] Finish functional demonstration controls and audience tests while locking the final approved visual reference; 15 unit checks and browser edit/composer/comment/audience/tab/cover/follow/repost tests passed. Videos remain explicitly labeled storyboards, with no upload/playback or persisted customer activity.
+- [ ] Prepare and implement the real-account Personal Profile release candidate without deployment: existing profile identity/media, posts/comments/reactions/activity, owner controls, audience enforcement, private Vault media, consistent profile links, integration inventory, security tests and migration/rollback readiness report. Shared database/storage/permission changes remain separately gated; no fictional production data, account-settings replacement or visual redesign.
 - [ ] Stages 2-4: planning only, awaiting approval
