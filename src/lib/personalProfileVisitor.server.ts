@@ -1,14 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveViewerTier, allowedAudiences, projectForTier, canSeeIdentity, pageBounds, PUBLIC_MEDIA_SLOTS, canSee, type ViewerTier } from './personalProfileAudience';
 
-const RELEASED_HOSTS = ['pullbidlive.com', 'www.pullbidlive.com', 'card-flow-stream.lovable.app'];
-/** Same isolation rule as the owner candidate: only an isolated backend and
- * never a published domain. Visitor access stays off on the shared database. */
+import { visitorGateDecision, RELEASE_ENV } from './personalProfileRelease';
+/** Server-only gate: default OFF; when ON every request still passes the full audience checks. */
 export function assertIsolatedPersonalProfile(request: Request) {
-  const url = process.env['SUPABASE_URL'];
-  const host = url ? new URL(url).hostname : '';
-  if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(host)) throw new Error('Personal profile visitors are disabled outside the isolated test environment.');
-  if (RELEASED_HOSTS.includes(new URL(request.url).hostname)) throw new Error('Personal profile is not released.');
+  const d = visitorGateDecision({ releaseFlag: process.env[RELEASE_ENV], backendUrl: process.env['SUPABASE_URL'], requestUrl: request.url });
+  if (!d.allowed) throw new Error(d.reason);
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin = SupabaseClient<any>;
