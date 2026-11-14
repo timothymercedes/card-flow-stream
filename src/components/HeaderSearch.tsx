@@ -19,7 +19,7 @@ export function HeaderSearch({ className = "" }: { className?: string }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search cards, users, hosts, stores…"
-          className="w-full rounded-full border border-border bg-card py-2 pl-9 pr-3 text-sm outline-none focus:border-primary"
+          className="h-11 min-w-0 w-full rounded-full border border-border bg-card py-2 pl-9 pr-3 text-base outline-none focus:border-primary sm:text-sm"
           aria-label="Search"
         />
       </div>

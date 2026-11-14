@@ -9,7 +9,7 @@ import { departmentDisplayLabel } from '@/lib/departmentPhotography';
 import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/logo.png';
 
-export function CategoryMenu({className = ''}: {className?: string}) {
+export function CategoryMenu({className = '', compact = false}: {className?: string; compact?: boolean}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const {profile} = useAuth();
@@ -19,7 +19,7 @@ export function CategoryMenu({className = ''}: {className?: string}) {
   const signature = matches.find(d => d.value === 'collectibles');
   function close() {setOpen(false);}
   return <Dialog open={open} onOpenChange={value => {setOpen(value); if (!value) setQuery('');}}>
-    <DialogTrigger asChild><Button variant="ghost" className={`h-10 shrink-0 text-primary ${className}`}><Grid2X2 aria-hidden/>Categories</Button></DialogTrigger>
+    <DialogTrigger asChild><Button variant="ghost" aria-label="Categories" className={`h-10 shrink-0 text-primary ${className}`}><Grid2X2 aria-hidden/><span className={compact ? 'sr-only sm:not-sr-only' : ''}>Categories</span></Button></DialogTrigger>
     <DialogContent className="category-menu flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 motion-reduce:animate-none">
       <div className="shrink-0 border-b border-border px-4 pb-4 pt-5 sm:px-8">
         <div className="mx-auto max-w-7xl">

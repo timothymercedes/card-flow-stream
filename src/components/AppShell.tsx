@@ -33,6 +33,7 @@ import { useTutorialMode } from "@/lib/tutorialMode";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SignOutDialog } from "@/components/SignOutDialog";
+import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 import { CategoryMenu } from '@/components/CategoryMenu';
 import { AdministrationLegacyShell } from '@/components/admin/AdministrationLegacyShell';
@@ -113,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ========== Header ========== */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
         {/* Top row — logo + (desktop nav) + actions */}
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 sm:flex sm:px-4 sm:py-2.5">
           <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="PullBid Live home">
             <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 object-contain" />
             <div className="hidden whitespace-nowrap text-sm font-bold tracking-wide sm:block">
@@ -160,7 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Spacer for mobile/tablet */}
-          <div className="flex-1 lg:hidden" />
+          <div className="hidden flex-1 sm:block lg:hidden" />
 
           {/* Right cluster */}
           <div className="flex shrink-0 items-center gap-1">
@@ -181,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
               <SheetTrigger
                 aria-label={t("nav.account", "Account")}
-                className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
+                className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border hover:bg-accent lg:hidden"
               >
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="" aria-hidden="true" className="h-full w-full object-cover" />
@@ -189,7 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <User className="h-4 w-4" aria-hidden="true" />
                 )}
               </SheetTrigger>
-              <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
+              <SheetContent side="right" className="w-[90vw] max-w-sm overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center">
                 <SheetHeader>
                   <SheetTitle>{t("nav.account", "Account")}</SheetTitle>
                 </SheetHeader>
@@ -272,7 +273,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             {/* Platform features — opens sheet from the bottom "More" tab (mobile) */}
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-              <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto">
+              <SheetContent side="right" className="w-[90vw] max-w-sm overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center">
                 <SheetHeader>
                   <SheetTitle>{t("nav.explore", "Explore")}</SheetTitle>
                 </SheetHeader>
@@ -286,30 +287,31 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Second row — back + search + Flex (mobile/tablet only) */}
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 pb-2 sm:px-4 lg:hidden">
-          <BackButton />
-          <CategoryMenu className="px-2 text-xs" />
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 pb-2 sm:flex sm:px-4 lg:hidden">
+          <div className="flex shrink-0 items-center gap-1 [&>button]:h-11 [&>button]:w-11"><BackButton /><CategoryMenu compact className="h-11 w-11 px-0 text-xs sm:w-auto sm:px-2" /></div>
           <HeaderSearch className="min-w-0 flex-1" />
+          <div className="flex shrink-0 items-center gap-1">
           {isSeller && (
             <Link
               to="/my-listings"
               aria-label="My Store"
               title="My Store"
-              className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-primary/15 px-2.5 text-primary ring-1 ring-primary/30"
+              className="flex h-11 w-11 shrink-0 items-center justify-center gap-1 rounded-full bg-primary/15 text-primary ring-1 ring-primary/30 sm:w-auto sm:px-2.5"
             >
               <Package className="h-3.5 w-3.5" aria-hidden="true" />
-              <span className="text-xs font-semibold">My Store</span>
+              <span className="sr-only text-xs font-semibold sm:not-sr-only">My Store</span>
             </Link>
           )}
           <Link
             to="/showoff"
             aria-label={t("nav.flexLive")}
             title={t("nav.flexLive")}
-            className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-2.5 text-white shadow-sm"
+            className="flex h-11 w-11 shrink-0 items-center justify-center gap-1 rounded-full bg-[image:var(--gradient-flex)] text-primary-foreground shadow-sm sm:w-auto sm:px-2.5"
           >
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="text-xs font-semibold">{t("nav.flexLive")}</span>
+            <span className="sr-only text-xs font-semibold sm:not-sr-only">{t("nav.flexLive")}</span>
           </Link>
+          </div>
         </div>
 
         {/* Desktop search row */}
@@ -383,15 +385,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setMoreOpen(true)}
             aria-label={t("nav.more", "More")}
-            className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground"
+            className="flex h-auto min-h-12 flex-col items-center justify-center gap-0.5 rounded-none py-2 text-[10px] font-medium text-muted-foreground"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
             {t("nav.more", "More")}
-          </button>
+          </Button>
         </div>
       </nav>
       <SignOutDialog
@@ -422,9 +425,9 @@ function SheetMenu({ sections, onNavigate }: { sections: MenuSection[]; onNaviga
             {s.items.map((it, i) => {
               const Icon = it.icon;
               const inner = (
-                <span className="flex items-center gap-3 px-3 py-3 text-sm">
-                  <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  <span className="flex-1">{it.label}</span>
+                <span className="flex min-h-11 min-w-0 items-center gap-3 px-3 py-3 text-sm">
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 whitespace-normal break-words">{it.label}</span>
                   {typeof it.badge === "number" && (
                     <span className="rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
                       {it.badge}
@@ -438,9 +441,9 @@ function SheetMenu({ sections, onNavigate }: { sections: MenuSection[]; onNaviga
                   {inner}
                 </Link>
               ) : (
-                <button key={`${it.label}-${i}`} onClick={it.onClick} className={cls}>
+                <Button variant="ghost" key={`${it.label}-${i}`} onClick={it.onClick} className={`${cls} h-auto justify-start rounded-none p-0`}>
                   {inner}
-                </button>
+                </Button>
               );
             })}
           </div>
