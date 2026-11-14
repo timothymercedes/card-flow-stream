@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +33,7 @@ const STORY_REACTIONS = [
 
 export function StoryRail() {
   const { user, profile } = useAuth();
+  const { requireAuth } = useAuthGate();
   const [stories, setStories] = useState<Story[]>([]);
   const [active, setActive] = useState<{ group: Story[]; index: number } | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -187,7 +189,7 @@ export function StoryRail() {
   }
 
   async function reactStory(story: Story, key: string) {
-    if (!user) return toast.error("Sign in to react");
+    if (!user) { requireAuth("react"); return; }
     const cur = reactions[story.id];
     if (cur?.mine === key) {
       await (supabase as any).from("story_reactions").delete().eq("story_id", story.id).eq("user_id", user.id);
