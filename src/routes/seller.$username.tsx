@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
@@ -68,6 +69,7 @@ function PublicStore() {
   const { fromIdentityAudit, ...auditFilters } = Route.useSearch();
   const nav = useNavigate();
   const { user, profile: myProfile } = useAuth();
+  const { requireAuth } = useAuthGate();
   const [designPreview, setDesignPreview] = useState(false);
   useEffect(() => { setDesignPreview(personalPreviewEnabled(import.meta.env.DEV, window.location.hostname)); }, []);
   const [seller, setSeller] = useState<any>(null);
@@ -108,7 +110,7 @@ function PublicStore() {
   }, [user, seller]);
 
   async function toggleFollow() {
-    if (!user || !myProfile) { toast.error("Sign in to follow"); return; }
+    if (!user || !myProfile) { requireAuth("follow this store"); return; }
     if (!seller || seller.id === user.id) return;
     if (isFollowing) {
       await supabase.from("follows").delete().eq("follower_id", user.id).eq("followee_id", seller.id);

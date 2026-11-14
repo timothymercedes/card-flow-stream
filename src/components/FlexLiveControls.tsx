@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAuthGate } from "@/hooks/useAuthGate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Wand2, Smile, X, Megaphone, Rocket } from "lucide-react";
@@ -30,6 +31,7 @@ export function FlexLiveControls({
   onShoutout?: () => void;
   onBoost?: () => void;
 }) {
+  const { requireAuth } = useAuthGate();
   const [showFilters, setShowFilters] = useState(false);
   const [floats, setFloats] = useState<FloatingReaction[]>([]);
   const vibe = weeklyVibe();
@@ -54,7 +56,7 @@ export function FlexLiveControls({
   }, [streamId]);
 
   async function react(emoji: string) {
-    if (!userId) return toast.error("Sign in to react");
+    if (!userId) { requireAuth("react"); return; }
     await supabase.from("stream_reactions").insert({
       stream_id: streamId, user_id: userId, username: username || "viewer", emoji,
     });

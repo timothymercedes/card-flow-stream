@@ -24,8 +24,9 @@ export function AuthGateModal({
   action?: string | null;
 }) {
   // Lock body scroll while open
+  const compact = typeof window !== "undefined" && /^\/(live|shows)\//.test(window.location.pathname);
   useEffect(() => {
-    if (!open) return;
+    if (!open || compact) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
@@ -44,9 +45,8 @@ export function AuthGateModal({
     }
   }
 
-  const subtitle = action
-    ? `Sign in to ${action}, follow collectors, and join live auctions.`
-    : "Bid in live auctions, follow collectors, and save your favorite cards.";
+  const subtitle = (action ? `Sign in to ${action}. ` : "") +
+    "Explore the community, collect your favorites, shop collectibles, connect with sellers, and participate in live shows. Create your free account to unlock the full PullBid Live experience.";
 
   const authHref = `/auth?returnTo=${encodeURIComponent(returnTo)}`;
 
@@ -55,12 +55,16 @@ export function AuthGateModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="authgate-title"
-      className="fixed inset-0 z-[500] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
+      className={compact
+        ? "pointer-events-none fixed inset-x-0 bottom-0 z-[500] flex justify-center p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+        : "fixed inset-0 z-[500] flex items-end justify-center bg-background/70 backdrop-blur-sm sm:items-center"}
+      onClick={compact ? undefined : onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-3xl"
+        className={compact
+          ? "pointer-events-auto max-h-[45dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl"
+          : "w-full max-w-sm rounded-t-3xl border border-border bg-card p-6 shadow-2xl sm:rounded-3xl"}
       >
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -115,7 +119,7 @@ export function AuthGateModal({
             onClick={onClose}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground hover:opacity-90"
           >
-            <Mail className="h-4 w-4" /> Sign up with email
+            <Mail className="h-4 w-4" /> Create Account
           </Link>
 
           <Link
@@ -124,7 +128,7 @@ export function AuthGateModal({
             onClick={onClose}
             className="block w-full pt-2 text-center text-xs text-muted-foreground hover:text-foreground"
           >
-            Already have an account? <span className="font-semibold text-primary">Log in</span>
+            Already have an account? <span className="font-semibold text-primary">Sign In</span>
           </Link>
         </div>
 
@@ -132,7 +136,7 @@ export function AuthGateModal({
           onClick={onClose}
           className="mt-4 block w-full text-center text-[11px] text-muted-foreground hover:text-foreground"
         >
-          Continue browsing as guest
+          Continue Browsing
         </button>
 
         <p className="mt-4 text-center text-[10px] leading-relaxed text-muted-foreground">
