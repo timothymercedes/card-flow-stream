@@ -18,12 +18,12 @@ export function CategoryMenu({className = '', compact = false}: {className?: str
   const matches = departments.filter(d => `${departmentDisplayLabel(d)} ${d.description} ${d.subcategories.map(s => s.label).join(' ')}`.toLowerCase().includes(term));
   const signature = matches.find(d => d.value === 'collectibles');
   function close() {setOpen(false);}
-  return <Dialog open={open} onOpenChange={value => {setOpen(value); if (!value) setQuery('');}}>
+  return <Dialog modal={false} open={open} onOpenChange={value => {setOpen(value); if (!value) setQuery('');}}>
     <DialogTrigger asChild><Button variant="ghost" aria-label="Categories" className={`h-10 shrink-0 text-primary ${className}`}><Grid2X2 aria-hidden/><span className={compact ? 'sr-only sm:not-sr-only' : ''}>Categories</span></Button></DialogTrigger>
-    <DialogContent className="category-menu flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 motion-reduce:animate-none">
+    <DialogContent className="category-menu !left-0 !top-[var(--app-header-h,0px)] !translate-x-0 !translate-y-0 flex h-[calc(100dvh-var(--app-header-h,0px))] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 motion-reduce:animate-none">
       <div className="shrink-0 border-b border-border px-4 pb-4 pt-5 sm:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-4 flex items-center gap-3 pr-12"><Link to="/" onClick={close} aria-label="PullBid Live home" className="flex min-h-11 items-center gap-2"><img src={logo} alt="" width={32} height={32}/><span className="text-sm font-bold">PULL<span className="text-primary">BID</span> <span className="text-live">LIVE</span></span></Link><Link to="/" onClick={close} className="ml-auto inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-sm font-semibold text-primary hover:bg-muted"><Home className="h-4 w-4" aria-hidden/>Home</Link></div>
+          
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><DialogTitle className="text-2xl font-bold sm:text-3xl">Categories</DialogTitle><DialogDescription className="mt-1">Find your next great discovery</DialogDescription></div>
             <div className="relative w-full sm:w-80"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden/><input aria-label="Search departments" placeholder="Search departments…" value={query} onChange={e => setQuery(e.target.value)} className="h-11 w-full rounded-lg border border-input bg-muted pl-10 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>

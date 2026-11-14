@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { TutorialLibrary } from "@/components/tutorials/TutorialLibrary";
@@ -43,10 +44,8 @@ function TutorialsPage() {
   }, [id, route]);
 
   return (
+    <AppShell>
     <main className="flex min-h-[calc(100vh-4rem)] flex-col bg-background">
-      <div className="sticky top-0 z-30 mx-auto w-full max-w-md border-b border-border bg-background/95 px-4 py-2 backdrop-blur">
-        <div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div>
-      </div>
       <h1 className="sr-only">Tutorials</h1>
       <TutorialLibrary onBack={() => navigate({ to: "/" })} />
       {auto && (
@@ -56,5 +55,6 @@ function TutorialsPage() {
         />
       )}
     </main>
+    </AppShell>
   );
 }

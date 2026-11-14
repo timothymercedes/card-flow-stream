@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -159,10 +160,10 @@ function PayoutsPage() {
   const ready = status?.charges_enabled && status?.payouts_enabled;
 
   return (
+    <AppShell>
     <SellerAgreementGate>
     <SellerVerificationGate>
     <div className="container max-w-2xl py-8 space-y-6">
-      <div className="flex items-center gap-2"><BackButton /><HeaderSearch className="flex-1" /></div>
       <div>
         <h1 className="text-3xl font-bold">Payouts</h1>
         {import.meta.env.DEV && <p role="status" className="mt-2 text-sm text-muted-foreground">Preview only — live seller bank setup and withdrawals are disabled. No real funds will move.</p>}
@@ -261,6 +262,7 @@ function PayoutsPage() {
     </div>
     </SellerVerificationGate>
     </SellerAgreementGate>
+    </AppShell>
   );
 }
 
