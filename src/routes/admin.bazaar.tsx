@@ -57,6 +57,7 @@ function BazaarAdmin() {
     <AppShell>
       <div className="mx-auto w-full max-w-5xl space-y-5 px-3 py-4 sm:px-4">
         <h1 className="flex items-center gap-2 text-2xl font-black"><ShieldCheck className="h-6 w-6 text-primary" /> PB Bazaar review</h1>
+        <Link to="/admin/bazaar-suppliers" className="inline-block text-sm font-semibold text-primary">Suppliers, imports & pricing →</Link>
         {!user ? <p className="text-sm">Sign in as an admin.</p> : role.isLoading ? <p className="text-sm text-muted-foreground">Checking access…</p> : !role.data ? (
           <p role="alert" className="text-sm text-destructive">Admins only.</p>
         ) : (
