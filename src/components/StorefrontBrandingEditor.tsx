@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ACCENT_PRESETS = ["#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6", "#ef4444", "#8b5cf6", "#14b8a6"];
 
@@ -75,7 +76,7 @@ export function StorefrontBrandingEditor() {
   }
 
   return (
-    <div className="rounded-xl bg-card p-4 space-y-5">
+    <div className="min-w-0 space-y-5 py-2 [&_input:not([type=color]):not([type=file])]:min-h-11 [&_input:not([type=color]):not([type=file])]:min-w-0 [&_input:not([type=color]):not([type=file])]:w-full [&_input:not([type=color]):not([type=file])]:text-base [&_textarea]:text-base sm:[&_input]:text-sm sm:[&_textarea]:text-sm">
       <div>
         <p className="text-sm font-bold">Storefront branding</p>
         <p className="text-xs text-muted-foreground">Customize your public store at /store/{p?.username || "username"}.</p>
@@ -92,15 +93,15 @@ export function StorefrontBrandingEditor() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-xs font-bold hover:bg-muted/70">
+          <label className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-xs font-bold hover:bg-muted/70 focus-within:ring-2 focus-within:ring-ring">
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             Upload image
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadBanner(e.target.files[0])} />
+            <input type="file" aria-label="Upload banner image" accept="image/*" className="sr-only" onChange={(e) => e.target.files?.[0] && uploadBanner(e.target.files[0])} />
           </label>
           {bannerUrl && (
-            <button type="button" onClick={() => setBannerUrl("")} className="rounded-lg bg-muted px-3 py-1.5 text-xs font-bold">
+            <Button variant="secondary" type="button" onClick={() => setBannerUrl("")} className="min-h-11">
               Remove
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -109,6 +110,7 @@ export function StorefrontBrandingEditor() {
       <div className="space-y-1">
         <label className="text-xs font-bold">PB Store bio</label>
         <textarea
+          aria-label="Store bio"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           maxLength={280}
@@ -124,12 +126,13 @@ export function StorefrontBrandingEditor() {
         <label className="text-xs font-bold">Accent color</label>
         <div className="flex flex-wrap items-center gap-2">
           {ACCENT_PRESETS.map((c) => (
-            <button
+            <Button variant="ghost"
               key={c}
               type="button"
               onClick={() => setAccent(c)}
               style={{ background: c }}
-              className={`h-8 w-8 rounded-full ring-2 ${accent === c ? "ring-foreground" : "ring-transparent"}`}
+              className={`h-11 w-11 shrink-0 rounded-full p-0 ring-2 ${accent === c ? "ring-foreground" : "ring-transparent"}`}
+              aria-pressed={accent === c}
               aria-label={c}
             />
           ))}
@@ -137,7 +140,8 @@ export function StorefrontBrandingEditor() {
             type="color"
             value={accent}
             onChange={(e) => setAccent(e.target.value)}
-            className="h-8 w-12 cursor-pointer rounded bg-transparent"
+            aria-label="Custom accent color"
+            className="h-11 w-12 cursor-pointer rounded bg-transparent"
           />
         </div>
       </div>
@@ -149,6 +153,7 @@ export function StorefrontBrandingEditor() {
           {(["website", "instagram", "twitter", "tiktok", "youtube"] as (keyof Social)[]).map((k) => (
             <input
               key={k}
+              aria-label={`${k} link`}
               value={social[k] || ""}
               onChange={(e) => setSocialField(k, e.target.value)}
               placeholder={k === "website" ? "https://yoursite.com" : `${k} URL or handle`}
@@ -195,9 +200,9 @@ export function StorefrontBrandingEditor() {
       </div>
 
       <div className="flex justify-end">
-        <button onClick={save} disabled={busy} className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:opacity-40">
+        <Button onClick={save} disabled={busy} className="min-h-11 w-full sm:w-auto">
           {busy ? "Saving…" : "Save storefront"}
-        </button>
+        </Button>
       </div>
     </div>
   );

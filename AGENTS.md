@@ -34,3 +34,4 @@
 - Personal Profile visitors read only through the server projection and /api/personal-media authorization, which re-derive tier (owner/close friend/follower/member/guest/blocked both ways) per request; base tables keep owner-only RLS and both paths refuse non-isolated backends and released domains.
 - Personal profiles live at /@username (prefix route); owner status comes only from the verified session, with a safe fallback to the account username/name until the owner first saves, so a missing social identity row never locks the owner out.
 - Seller storefront tabs are commerce-only (Shop, Live Shows, Reviews, Sold, About); social posts and Vault cards live on the personal profile/Vault, and owner controls hide in Preview as Buyer.
+- Phone navigation uses a constrained search grid with named icon shortcuts, and storefront controls wrap independently from identity text; this prevents narrow-screen clipping without changing menu destinations.
