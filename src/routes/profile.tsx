@@ -19,8 +19,6 @@ import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
 import { CollectorShowcase } from "@/components/CollectorShowcase";
 import { ProfileRewardsShowcase } from "@/components/ProfileRewardsShowcase";
 import { ProfileCollectionGoals } from "@/components/ProfileCollectionGoals";
-import { PersonalProfilePreview } from '@/components/PersonalProfilePreview';
-import { personalPreviewEnabled } from '@/lib/personalProfilePreview';
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
@@ -36,14 +34,8 @@ export const Route = createFileRoute("/profile")({ component: Profile, head: () 
 ] , links: import.meta.env.DEV ? [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap' }] : [] }) });
 
 function Profile() {
-  const [preview, setPreview] = useState<boolean | null>(import.meta.env.DEV ? true : null);
-  useEffect(() => {
-    setPreview(personalPreviewEnabled(import.meta.env.DEV, window.location.hostname));
-  }, []);
-  if (preview === null) return <AppShell><p className="p-10 text-center text-muted-foreground">Opening your profile…</p></AppShell>;
-  return preview
-    ? <PersonalProfilePreview account={<AccountProfile />} />
-    : <AccountProfile />;
+  // Account settings stay on /profile; the new personal profile lives at /preview/personal-profile.
+  return <AccountProfile />;
 }
 
 function Badge({ status, label }: { status: string; label: string }) {
