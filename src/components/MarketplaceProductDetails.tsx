@@ -1,5 +1,6 @@
 import { MARKET_DEPARTMENTS, GENERAL_CONDITIONS, detailFields, type ProductDetails } from '@/lib/marketplaceDepartments';
 import { LISTING_CATEGORIES } from '@/lib/listingCategories';
+import { VehicleDetailsFields } from '@/components/VehicleDetailsFields';
 import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
 
 export function MarketplaceProductDetails({ department, category, details, onChange }: {
@@ -29,9 +30,10 @@ export function MarketplaceProductDetails({ department, category, details, onCha
       </select>
     </label>}
     <div className="grid grid-cols-2 gap-3">
-      {detailFields(department).map(key => <label key={key} className="block text-xs capitalize text-muted-foreground">{key.replaceAll('_',' ')}
+      {detailFields(department).filter(k => !(department === 'automotive' && k === 'mileage')).map(key => <label key={key} className="block text-xs capitalize text-muted-foreground">{key.replaceAll('_',' ')}
         <input aria-label={`Product ${key.replaceAll('_',' ')}`} maxLength={200} type={['year','mileage'].includes(key) ? 'number' : 'text'} min="0" className={fieldClass} value={details[key] ?? ''} onChange={e => onChange(department,category,{...details,[key]:e.target.value})}/>
       </label>)}
     </div>
+    {department === 'automotive' && <VehicleDetailsFields details={details} fieldClass={fieldClass} onChange={d => onChange(department, category, d)} />}
   </div>;
 }

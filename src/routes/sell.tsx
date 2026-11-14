@@ -916,7 +916,7 @@ function Sell() {
               </div>
 
               <div className="space-y-2 rounded-xl bg-muted/30 p-3">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Shipping (auto-quoted from carriers)</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{department === 'automotive' ? 'Package shipping (not used for vehicles — see transport estimate above)' : 'Shipping (auto-quoted from carriers)'}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-[10px] uppercase text-muted-foreground">
                     Package
