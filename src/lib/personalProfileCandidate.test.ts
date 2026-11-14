@@ -10,5 +10,5 @@ describe('real-account candidate boundaries', () => {
   it('permits exact owner binding', () => expect(isCandidateObjectPath('owner','owner/photo.jpg')).toBe(true));
   it('rejects private account columns on social identity by stripping them', () => expect(candidateIdentity.parse({username:'collector',display_name:'Collector',bio:'',audience:'only_me',phone:'private'})).not.toHaveProperty('phone'));
   it('video requires a post not a cover', () => expect(candidateMedia.safeParse({post_id:null,slot:'cover0',kind:'video',extension:'mp4'}).success).toBe(false));
-  it('post links stay separate from commerce and account management', () => expect(candidatePostLink('collector','p1')).toBe('/preview/personal-profile-candidate?username=collector#post-p1'));
+  it('post links stay separate from commerce and account management', () => expect(candidatePostLink('collector','p1')).toBe('/@collector#post-p1'));
 });
