@@ -19,6 +19,7 @@ import { Star, Truck, MessageCircle, Store, Radio, Flag, BadgeCheck } from "luci
 import { UserAvatar } from "@/components/UserAvatar";
 import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
+import { usePersonalProfileLinks } from "@/hooks/usePersonalProfileLinks";
 
 type Stats = {
   completed_sales?: number;
@@ -50,6 +51,7 @@ export function UsernamePopover({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const personalLinks = usePersonalProfileLinks();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [liveId, setLiveId] = useState<string | null>(null);
@@ -190,6 +192,16 @@ export function UsernamePopover({
               >
                 <Store className="h-3 w-3" /> View PB Store
               </Link>
+              {personalLinks && (
+                <Link
+                  to="/preview/personal-profile-candidate"
+                  search={{ username: profile.username }}
+                  onClick={() => setOpen(false)}
+                  className="col-span-2 inline-flex items-center justify-center gap-1 rounded-lg bg-card px-2 py-1.5 text-[11px] font-bold ring-1 ring-border"
+                >
+                  Personal profile
+                </Link>
+              )}
               <Link
                 to="/messages/$userId"
                 params={{ userId: profile.id }}
