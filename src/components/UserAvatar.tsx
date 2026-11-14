@@ -12,6 +12,7 @@
  */
 import { Link } from "@tanstack/react-router";
 import { User } from "lucide-react";
+import { usePersonalProfileLinks } from "@/hooks/usePersonalProfileLinks";
 
 type Size = "xs" | "sm" | "md" | "lg";
 
@@ -36,6 +37,7 @@ export function UserAvatar({
   noLink?: boolean;
   ariaLabel?: string;
 }) {
+  const personalLinks = usePersonalProfileLinks();
   const px = SIZE_PX[size];
   const initial = (username || "?").trim().charAt(0).toUpperCase();
 
@@ -77,6 +79,20 @@ export function UserAvatar({
         to="/live/$id"
         params={{ id: liveStreamId }}
         aria-label={ariaLabel || `Join @${username}'s live stream`}
+        className="inline-flex"
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  // Social avatar → personal profile (preview); commercial surfaces use SellerBadge.
+  if (personalLinks) {
+    return (
+      <Link
+        to="/preview/personal-profile-candidate"
+        search={{ username }}
+        aria-label={ariaLabel || `Open @${username}'s personal profile`}
         className="inline-flex"
       >
         {inner}
