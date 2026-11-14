@@ -1,10 +1,12 @@
+import { AppShell } from "@/components/AppShell";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { ReactNode } from "react";
 
 export function LegalLayout({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
   return (
-    <div className="mx-auto min-h-screen max-w-2xl bg-background px-5 pb-24 pt-4">
+    <AppShell>
+    <div className="mx-auto max-w-2xl bg-background px-5 pb-24 pt-4">
       <Link to="/profile" className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground">
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </Link>
@@ -14,5 +16,6 @@ export function LegalLayout({ title, updated, children }: { title: string; updat
         {children}
       </div>
     </div>
+    </AppShell>
   );
 }

@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -34,9 +35,9 @@ function Confirmation() {
     })();
     return () => { cancelled = true; };
   }, [user, session_id, test, confirm]);
-  return <main className="mx-auto max-w-lg px-6 py-16 space-y-6">
+  return <AppShell><main className="mx-auto max-w-lg px-6 py-16 space-y-6">
     <h1 className="text-2xl font-bold">Payment confirmation</h1>
     <p role="status" className="text-muted-foreground">{!session_id ? "No payment information found." : loading ? "Checking your account…" : !user ? "Sign in to verify your payment." : message}</p>
     <Button asChild><Link to={user ? "/orders" : "/auth"}> {user ? "View orders" : "Sign in"}</Link></Button>
-  </main>;
+  </main></AppShell>;
 }

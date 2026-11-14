@@ -163,7 +163,7 @@ function PayoutsPage() {
     <AppShell>
     <SellerAgreementGate>
     <SellerVerificationGate>
-    <div className="container max-w-2xl py-8 space-y-6">
+    <div className="mx-auto w-full max-w-2xl px-4 py-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Payouts</h1>
         {import.meta.env.DEV && <p role="status" className="mt-2 text-sm text-muted-foreground">Preview only — live seller bank setup and withdrawals are disabled. No real funds will move.</p>}
