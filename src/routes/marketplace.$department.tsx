@@ -14,6 +14,7 @@ import { categoryCatalogOptions, categoryOverviewOptions, inventoryBrands, type 
 import { filterFields, GENERAL_CONDITIONS } from '@/lib/marketplaceDepartments';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { DepartmentPhoto } from '@/components/DepartmentPhoto';
+import { VEHICLE_TYPES, TRANSMISSIONS, TITLE_STATUSES, MILEAGE_PRESETS } from '@/lib/vehicleListing';
 import { departmentDisplayLabel } from '@/lib/departmentPhotography';
 
 const schema = z.object({ q: z.string().optional(), subcategory: z.string().optional(), filters: z.record(z.string(),z.string()).optional(), sort: z.string().optional(), page: z.number().optional() });
@@ -83,6 +84,10 @@ function DepartmentContent({department}: {department:NonNullable<ReturnType<type
   const controls = <div className="space-y-4">
     <label className="block text-xs text-muted-foreground">Listing type<select aria-label="Listing type" className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground" value={filters.kind ?? ''} onChange={e=>update({filters:{...filters,kind:e.target.value}})}><option value="">All listings</option><option value="auction">Auction</option><option value="buy_now">Buy now</option><option value="make_offer">Make offer</option><option value="trending">Active bidding</option></select></label>
     {['min_price','max_price',...filterFields(department.value),...(department.value === 'collectibles'?['set','number']:[])].map(key=><label key={key} className="block text-xs capitalize text-muted-foreground">{key.replaceAll('_',' ')}<input aria-label={`Filter ${key.replaceAll('_',' ')}`} value={filters[key]??''} type={['min_price','max_price','year','max_mileage'].includes(key)?'number':'text'} min="0" className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground" onChange={e=>update({filters:{...filters,[key]:e.target.value}})}/></label>)}
+    {department.value === 'automotive' && <div className="space-y-4" aria-label="Vehicle filters">
+      {([['vehicle_type','Vehicle type',VEHICLE_TYPES],['transmission','Transmission',TRANSMISSIONS],['title_status','Title status',TITLE_STATUSES]] as const).map(([key,label,opts])=><label key={key} className="block text-xs text-muted-foreground">{label}<select aria-label={label} className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground" value={filters[key]??''} onChange={e=>update({filters:{...filters,[key]:e.target.value}})}><option value="">Any</option>{opts.map(o=><option key={o}>{o}</option>)}</select></label>)}
+      <label className="block text-xs text-muted-foreground">Mileage<select aria-label="Mileage preset" className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground" value={filters.max_mileage??''} onChange={e=>update({filters:{...filters,max_mileage:e.target.value}})}><option value="">Any mileage</option>{MILEAGE_PRESETS.map(m=><option key={m} value={String(m)}>Under {m.toLocaleString()} mi</option>)}</select></label>
+    </div>}
     <label className="block text-xs text-muted-foreground">Condition<select aria-label="Condition" className="mt-1 w-full rounded-lg bg-input px-3 py-2 text-sm text-foreground" value={filters.condition??''} onChange={e=>update({filters:{...filters,condition:e.target.value}})}><option value="">All conditions</option>{(department.value==='collectibles'?['NM','LP','MP','Damaged']:GENERAL_CONDITIONS).map(c=><option key={c}>{c}</option>)}</select></label>
     <Button variant="ghost" onClick={()=>update({q:undefined,subcategory:undefined,filters:{},sort:'newest'})}><X className="h-4 w-4"/>Clear filters</Button>
   </div>;

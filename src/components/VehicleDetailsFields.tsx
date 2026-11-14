@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ODOMETER_STATUSES, TITLE_STATUSES, decodeVin, isValidVin, maskVin, estimateVehicleTransport } from '@/lib/vehicleListing';
+import { ODOMETER_STATUSES, VEHICLE_TYPES, TRANSMISSIONS, TITLE_STATUSES, decodeVin, isValidVin, maskVin, estimateVehicleTransport } from '@/lib/vehicleListing';
 import type { ProductDetails } from '@/lib/marketplaceDepartments';
 
 export function VehicleDetailsFields({ details, onChange, fieldClass }: { details: ProductDetails; onChange: (d: ProductDetails) => void; fieldClass: string }) {
@@ -37,6 +37,16 @@ export function VehicleDetailsFields({ details, onChange, fieldClass }: { detail
       <label className="block text-xs text-muted-foreground">Title status
         <select aria-label="Title status" className={fieldClass} value={details.title_status ?? ''} onChange={e => onChange({ ...details, title_status: e.target.value })}>
           <option value="">Select</option>{TITLE_STATUSES.map(s => <option key={s}>{s}</option>)}
+        </select>
+      </label>
+      <label className="block text-xs text-muted-foreground">Vehicle type
+        <select aria-label="Vehicle type" className={fieldClass} value={details.vehicle_type ?? ''} onChange={e => onChange({ ...details, vehicle_type: e.target.value })}>
+          <option value="">Select</option>{VEHICLE_TYPES.map(s => <option key={s}>{s}</option>)}
+        </select>
+      </label>
+      <label className="block text-xs text-muted-foreground">Transmission
+        <select aria-label="Transmission" className={fieldClass} value={details.transmission ?? ''} onChange={e => onChange({ ...details, transmission: e.target.value })}>
+          <option value="">Select</option>{TRANSMISSIONS.map(s => <option key={s}>{s}</option>)}
         </select>
       </label>
       <label className="block text-xs text-muted-foreground">Trim
