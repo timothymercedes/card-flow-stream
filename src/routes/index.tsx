@@ -16,6 +16,7 @@ import { useRealtimeChannel } from "@/lib/realtime";
 import { StoryRail } from "@/components/StoryRail";
 import { DepartmentNavigation } from '@/components/DepartmentNavigation';
 import { prioritizeInterestListings } from '@/lib/departmentInterests';
+import { Button } from '@/components/ui/button';
 
 export const Route = createFileRoute("/")({
   component: Home,
