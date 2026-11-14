@@ -12,7 +12,6 @@ import { legalAcceptanceMetadata } from "@/lib/legal";
 import { Turnstile } from "@/components/Turnstile";
 import { verifyTurnstile } from "@/lib/turnstile.functions";
 import { beginSocialSignIn } from "@/lib/socialAuthFlow";
-import { AuthPathBanner } from "@/components/AuthPathBanner";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { OAUTH_RETURN_KEY, safeAuthReturnTo, signupNextStep } from "@/lib/authFlow";
@@ -319,7 +318,6 @@ export function AuthForm({ administration = false, returnToInput, modeInput }: {
         <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
       </div>
 
-      {!administration && <AuthPathBanner />}
 
       <div className="space-y-2">
         <Button type="button" variant="outline" disabled={loading} onClick={passkeyLogin} className="h-auto w-full py-3 text-sm font-semibold">

@@ -60,7 +60,7 @@ function PayoutsPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      navigate({ to: "/auth" });
+      navigate({ to: "/auth", search: { returnTo: "/payouts" } as any, replace: true });
       return;
     }
     refresh();

@@ -176,8 +176,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Right cluster */}
           <div className="flex shrink-0 items-center gap-1">
             <SellMenu />
-            {!tutorial && <NotificationBell />}
-            {!tutorial && <XPBadge />}
+            {!tutorial && user && <NotificationBell />}
+            {!tutorial && user && <XPBadge />}
             {/* Desktop-only quick actions */}
             <Link to="/cart" aria-label={t("nav.cart", "Cart")} className="relative hidden h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex">
               <ShoppingBag className="h-4 w-4" aria-hidden="true" />
@@ -189,6 +189,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
             {/* Account menu — mobile opens a sheet, desktop opens a dropdown.
                 Trigger is the user's avatar/profile icon (replaces old hamburger). */}
+            {!user && !tutorial ? (
+              <div className="flex items-center gap-1">
+                <Button asChild variant="ghost" size="sm" className="h-11 px-2 sm:h-9 sm:px-3"><Link to="/auth" search={{ returnTo: loc.href, mode: "signin" } as any}>{t("auth.signIn", "Sign In")}</Link></Button>
+                <Button asChild size="sm" className="hidden h-9 sm:inline-flex"><Link to="/auth" search={{ returnTo: loc.href } as any}>{t("auth.createAccount", "Create Account")}</Link></Button>
+              </div>
+            ) : (<>
             <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
               <SheetTrigger
                 aria-label={t("nav.account", "Account")}
@@ -280,6 +286,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            </>)}
 
             {/* Platform features — opens sheet from the bottom "More" tab (mobile) */}
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
