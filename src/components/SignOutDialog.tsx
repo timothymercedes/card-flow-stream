@@ -13,12 +13,13 @@ interface SignOutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void | Promise<void>;
+  className?: string;
 }
 
-export function SignOutDialog({ open, onOpenChange, onConfirm }: SignOutDialogProps) {
+export function SignOutDialog({ open, onOpenChange, onConfirm, className }: SignOutDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-sm sm:max-w-md">
+      <AlertDialogContent className={`max-w-sm sm:max-w-md ${className ?? ''}`}>
         <AlertDialogHeader>
           <AlertDialogTitle>Sign Out?</AlertDialogTitle>
           <AlertDialogDescription>

@@ -12,7 +12,7 @@ export function AdministrationSignOut() {
   const { signOut } = useAuth();
   const client = useQueryClient();
   const navigate = useNavigate();
-  return <><Button variant="ghost" onClick={() => setOpen(true)}><LogOut className="h-4 w-4" />Sign out</Button><SignOutDialog open={open} onOpenChange={setOpen} onConfirm={async () => {
+  return <><Button variant="ghost" onClick={() => setOpen(true)}><LogOut className="h-4 w-4" />Sign out</Button><SignOutDialog className="administration-theme" open={open} onOpenChange={setOpen} onConfirm={async () => {
     try {
       await client.cancelQueries();
       client.clear();
