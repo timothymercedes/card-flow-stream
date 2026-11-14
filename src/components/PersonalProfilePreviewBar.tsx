@@ -16,6 +16,7 @@ export function PersonalProfilePreviewBar() {
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="secondary" size="sm"><Link to="/preview/personal-profile" search={{ view: undefined }} aria-current={loc.pathname === PERSONAL_PROFILE_PREVIEW_PATH ? 'page' : undefined}>Open new profile →</Link></Button>
           <Button asChild variant="secondary" size="sm"><Link to="/preview/vault-privacy">Vault privacy preview →</Link></Button>
+          <Button asChild variant="secondary" size="sm"><Link to="/preview/personal-profile-candidate" search={{ username: undefined }}>Real-account candidate →</Link></Button>
         </div>
       </div>
     </div>
