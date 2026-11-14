@@ -54,6 +54,7 @@ import { Route as AdminInsuranceClaimsRouteImport } from './routes/admin.insuran
 import { Route as AdminPushSubscriptionsRouteImport } from './routes/admin.push-subscriptions'
 import { Route as AdminRecoveryRouteImport } from './routes/admin.recovery'
 import { Route as AdminShippingHealthRouteImport } from './routes/admin.shipping-health'
+import { Route as AdminVehiclesRouteImport } from './routes/admin.vehicles'
 import { Route as AdminFinanceRouteImport } from './routes/admin_.finance'
 import { Route as AdminPerformanceRouteImport } from './routes/admin_.performance'
 import { Route as BazaarIndexRouteImport } from './routes/bazaar.index'
@@ -344,6 +345,11 @@ const AdminRecoveryRoute = AdminRecoveryRouteImport.update({
 const AdminShippingHealthRoute = AdminShippingHealthRouteImport.update({
   id: '/shipping-health',
   path: '/shipping-health',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVehiclesRoute = AdminVehiclesRouteImport.update({
+  id: '/vehicles',
+  path: '/vehicles',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminFinanceRoute = AdminFinanceRouteImport.update({
@@ -723,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
+  '/admin/vehicles': typeof AdminVehiclesRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
@@ -831,6 +838,7 @@ export interface FileRoutesByTo {
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
+  '/admin/vehicles': typeof AdminVehiclesRoute
   '/admin/finance': typeof AdminFinanceRoute
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
@@ -942,6 +950,7 @@ export interface FileRoutesById {
   '/admin/push-subscriptions': typeof AdminPushSubscriptionsRoute
   '/admin/recovery': typeof AdminRecoveryRoute
   '/admin/shipping-health': typeof AdminShippingHealthRoute
+  '/admin/vehicles': typeof AdminVehiclesRoute
   '/admin_/finance': typeof AdminFinanceRoute
   '/admin_/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
@@ -1054,6 +1063,7 @@ export interface FileRouteTypes {
     | '/admin/push-subscriptions'
     | '/admin/recovery'
     | '/admin/shipping-health'
+    | '/admin/vehicles'
     | '/admin/finance'
     | '/admin/performance'
     | '/bazaar/apply'
@@ -1162,6 +1172,7 @@ export interface FileRouteTypes {
     | '/admin/push-subscriptions'
     | '/admin/recovery'
     | '/admin/shipping-health'
+    | '/admin/vehicles'
     | '/admin/finance'
     | '/admin/performance'
     | '/bazaar/apply'
@@ -1272,6 +1283,7 @@ export interface FileRouteTypes {
     | '/admin/push-subscriptions'
     | '/admin/recovery'
     | '/admin/shipping-health'
+    | '/admin/vehicles'
     | '/admin_/finance'
     | '/admin_/performance'
     | '/bazaar/apply'
@@ -1749,6 +1761,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminShippingHealthRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/vehicles': {
+      id: '/admin/vehicles'
+      path: '/vehicles'
+      fullPath: '/admin/vehicles'
+      preLoaderRoute: typeof AdminVehiclesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin_/finance': {
       id: '/admin_/finance'
       path: '/admin/finance'
@@ -2203,6 +2222,7 @@ interface AdminRouteChildren {
   AdminPushSubscriptionsRoute: typeof AdminPushSubscriptionsRoute
   AdminRecoveryRoute: typeof AdminRecoveryRoute
   AdminShippingHealthRoute: typeof AdminShippingHealthRoute
+  AdminVehiclesRoute: typeof AdminVehiclesRoute
   AdminIdentityIdRoute: typeof AdminIdentityIdRoute
 }
 
@@ -2216,6 +2236,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPushSubscriptionsRoute: AdminPushSubscriptionsRoute,
   AdminRecoveryRoute: AdminRecoveryRoute,
   AdminShippingHealthRoute: AdminShippingHealthRoute,
+  AdminVehiclesRoute: AdminVehiclesRoute,
   AdminIdentityIdRoute: AdminIdentityIdRoute,
 }
 

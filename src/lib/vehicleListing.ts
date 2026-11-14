@@ -8,6 +8,9 @@ export const ODOMETER_STATUSES = [
   { value: 'unknown', label: 'Unknown' },
 ] as const;
 export const TITLE_STATUSES = ['Clean', 'Rebuilt', 'Salvage', 'Missing'];
+export const VEHICLE_TYPES = ['Car', 'SUV', 'Pickup Truck', 'Van', 'Motorcycle', 'RV / Motorhome', 'Trailer', 'Other'];
+export const TRANSMISSIONS = ['Automatic', 'Manual', 'CVT', 'Other'];
+export const MILEAGE_PRESETS = [25000, 50000, 75000, 100000, 150000];
 
 export function normalizeVin(vin: string) { return vin.toUpperCase().replace(/[^A-Z0-9]/g, ''); }
 export function isValidVin(vin: string) { return /^[A-HJ-NPR-Z0-9]{17}$/.test(normalizeVin(vin)); }
