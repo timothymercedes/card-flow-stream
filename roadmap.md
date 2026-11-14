@@ -98,4 +98,5 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 
 ## Stage 1 personal profile (preview)
 - [x] Demo-data profile with owner + 4 simulated viewers at /preview/personal-profile; /profile is account settings only
+- [ ] Finish functional demonstration controls and audience tests while locking the final approved visual reference; document real-feature and production-security blockers separately.
 - [ ] Stages 2-4: planning only, awaiting approval
