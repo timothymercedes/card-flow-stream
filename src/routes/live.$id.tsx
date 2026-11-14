@@ -2074,7 +2074,7 @@ function LiveDetail() {
       audience?: "public" | "mods_only" | "host_mods";
     } = {},
   ) {
-    if (!profile && !isSystem) return toast.error("Sign in to chat");
+    if (!profile && !isSystem) { requireAuth("chat"); return; }
     if (!isSystem && needsAcceptance)
       return toast.error("Accept the required agreements before chatting");
     if (!content.trim()) return;
