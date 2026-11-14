@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { PersonalProfileCandidate } from '@/components/PersonalProfileCandidate';
-import { personalPreviewEnabled } from '@/lib/personalProfilePreview';
 
 export const Route = createFileRoute('/preview/personal-profile-candidate')({
   validateSearch: (search: Record<string, unknown>) => ({ username: typeof search.username === 'string' ? search.username : undefined }),
@@ -17,7 +16,7 @@ export const Route = createFileRoute('/preview/personal-profile-candidate')({
 });
 function CandidatePage() {
   const { username } = Route.useSearch();
-  const [allowed,setAllowed] = useState(false);
-  useEffect(() => setAllowed(personalPreviewEnabled(import.meta.env.DEV,window.location.hostname)),[]);
-  return allowed ? <PersonalProfileCandidate key={username ?? 'owner'} username={username} /> : <p className="p-10">Unreleased preview only.</p>;
+  const [ready,setReady] = useState(false);
+  useEffect(() => setReady(true),[]);
+  return ready ? <PersonalProfileCandidate key={username ?? 'owner'} username={username} /> : <p className="p-10">Opening personal profile…</p>;
 }
