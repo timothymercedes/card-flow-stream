@@ -108,8 +108,7 @@ function Vault() {
   useEffect(() => {
     if (!user || !scannerIntent) return;
     setScanning(true);
-    void nav({to:'/vault',search:{scan:undefined},replace:true});
-  }, [user?.id,scannerIntent,nav]);
+  }, [user?.id,scannerIntent]);
   const [editing, setEditing] = useState<Card | null>(null);
   const [selling, setSelling] = useState<Card | null>(null);
   const [actionFor, setActionFor] = useState<Card | null>(null);
@@ -2935,7 +2934,7 @@ function Vault() {
             requireCameraConsent
             onResult={onScanResult}
             onResults={async (rs) => { for (const r of rs) await onScanResult(r as any); }}
-            onClose={() => setScanning(false)}
+            onClose={() => {setScanning(false);void nav({to:'/vault',search:{scan:undefined},replace:true});}}
             onAction={(action, r) => {
               if (action === "inventory" || action === "draft") {
                 onScanResult(r as any);
