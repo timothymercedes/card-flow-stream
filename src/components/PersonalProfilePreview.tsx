@@ -33,6 +33,13 @@ export function PersonalProfilePreview({ account }: { account: ReactNode }) {
   const [uploadError, setUploadError] = useState('');
   const ownerId = user?.id;
   useEffect(() => {
+    const font = document.createElement('link');
+    font.rel = 'stylesheet';
+    font.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(font);
+    return () => font.remove();
+  }, []);
+  useEffect(() => {
     setLocalStories([]); setHidden([]); setPinned(null); setLocalReactions({});
     setDraft({ name: '', bio: '', location: '' });
     if (!ownerId) return;
@@ -79,7 +86,7 @@ export function PersonalProfilePreview({ account }: { account: ReactNode }) {
     setDialog(null); saveDraft({ ...draft, text: '' });
   }
   return <AppShell><div className="personal-profile-theme">
-    <div className="personal-review"><span>Preview only · Draft changes stay in this browser tab</span><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
+    <div className="personal-review"><span>{visitor ? 'Visitor simulation · No other account is opened' : 'Preview only · Draft changes stay in this browser tab'}</span><Button variant="outline" size="sm" onClick={() => setVisitor(v => !v)}>{visitor ? 'Owner view' : 'Visitor view'}</Button></div>
     <main className="personal-page">
       <section className="personal-masthead">
         <div className="personal-identity">
