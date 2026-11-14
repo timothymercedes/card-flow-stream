@@ -108,7 +108,7 @@ export function StorefrontBrandingEditor() {
 
       {/* Bio */}
       <div className="space-y-1">
-        <label className="text-xs font-bold">PB Store bio</label>
+        <label className="text-xs font-bold">Storefront bio</label>
         <textarea
           aria-label="Store bio"
           value={bio}

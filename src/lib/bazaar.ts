@@ -5,7 +5,7 @@ export type BazaarStoreType = "independent" | "brand" | "pb_owned";
 export const STORE_TYPE_LABEL: Record<BazaarStoreType, string> = {
   independent: "Independent",
   brand: "Official Brand",
-  pb_owned: "PB Official",
+  pb_owned: "Retail Partner Store",
 };
 
 export const BAZAAR_DEPARTMENTS = [
