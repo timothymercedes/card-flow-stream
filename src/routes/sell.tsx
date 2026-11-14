@@ -505,7 +505,7 @@ function Sell() {
 
   async function createListing() {
     if (!user) return toast.error("Sign in to create a listing");
-    const detailsError = validateProductDetails(productDetails);
+    const detailsError = validateProductDetails(productDetails, department);
     if (detailsError) return toast.error(detailsError);
     if (department !== "collectibles" && !productDetails.condition) return toast.error("Select a product condition");
     if (!title.trim()) return toast.error("Add a title");

@@ -1,3 +1,4 @@
+import { validateVehicleDetails } from './vehicleListing';
 export const MARKET_DEPARTMENTS = [
   { value: 'automotive', label: 'Automotive', emoji: '🚘' },
   { value: 'electronics', label: 'Electronics', emoji: '💻' },
@@ -35,10 +36,11 @@ export function matchesProductSearch(listing: Record<string, unknown>, query: st
     listing.storefront_name, listing.storefront_username, MARKET_DEPARTMENTS.find(d => d.value === department)?.label,
     ...Object.values((listing.product_details ?? {}) as ProductDetails)].join(' ').toLowerCase().includes(query.toLowerCase().trim());
 }
-export function validateProductDetails(details: ProductDetails) {
+export function validateProductDetails(details: ProductDetails, department?: string) {
   for (const [key, value] of Object.entries(details)) {
     if (value.length > 200) return `${key.replaceAll('_', ' ')} must be at most 200 characters`;
     if (['year','mileage'].includes(key) && value && (!/^\d+$/.test(value) || Number(value) < 0)) return `Enter a valid ${key}`;
   }
+  if (department === 'automotive') return validateVehicleDetails(details);
   return null;
 }
