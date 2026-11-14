@@ -885,3 +885,69 @@ body.kb-open [data-bottom-nav] {
   background: radial-gradient(closest-side, rgba(0,0,0,0.45), transparent);
   pointer-events: none;
 }
+
+/* Preview-only personal journal; tokens remain scoped to this experience. */
+.personal-profile-theme {
+  --background: oklch(0.2 0.008 175);
+  --foreground: oklch(0.96 0.008 165);
+  --card: oklch(0.26 0.009 175);
+  --card-foreground: var(--foreground);
+  --primary: oklch(0.86 0.12 163);
+  --primary-foreground: oklch(0.2 0.008 175);
+  --muted: oklch(0.29 0.025 163);
+  --muted-foreground: oklch(0.76 0.02 165);
+  --border: oklch(0.39 0.019 170);
+  --input: var(--border);
+  --accent: oklch(0.34 0.029 163);
+  --accent-foreground: var(--foreground);
+  --ring: var(--primary);
+  --personal-rose: oklch(0.8 0.09 355);
+  --shadow-primary: none;
+  --radius: 0.375rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: 0;
+}
+.personal-profile-theme h1, .personal-profile-theme h2, .personal-profile-theme h3 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; letter-spacing: 0; }
+.personal-profile-theme button { border-radius: 4px; }
+.personal-review { display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px solid var(--border); padding:12px 28px; font-size:11px; color:var(--muted-foreground); }
+.personal-page { max-width:1160px; margin:auto; padding:40px 28px 100px; }
+.personal-masthead { display:grid; grid-template-columns:290px minmax(0,1fr); gap:40px; margin-bottom:32px; }
+.personal-identity { border-left:3px solid var(--primary); padding-left:23px; display:flex; flex-direction:column; align-items:flex-start; gap:16px; justify-content:center; min-width:0; }
+.personal-portrait { position:relative; width:90px; height:112px; }
+.personal-portrait > img { width:100%;height:100%;object-fit:cover; border-radius:2px; }
+.personal-portrait > span { display:grid;place-items:center; width:100%;height:100%; background:var(--muted);color:var(--primary);font-size:38px; }
+.personal-portrait button { position:absolute; bottom:-7px;right:-9px;width:30px;height:30px; }
+.personal-name { min-width:0;max-width:100%; }.personal-name h1 { font-size:44px; line-height:1.08; overflow-wrap:anywhere; }
+.personal-name em { color:var(--primary);font-style:normal; }.personal-name > p { font-size:12px; color:var(--primary);margin-top:5px;overflow-wrap:anywhere; }
+.personal-bio { color:var(--muted-foreground);font-size:13px;line-height:1.7;overflow-wrap:anywhere; }
+.personal-counts { display:flex;gap:18px; }.personal-counts button { display:flex;flex-direction:column;height:auto;padding:0;align-items:flex-start;gap:2px; }
+.personal-counts strong { font-size:22px; }.personal-counts span { font-size:11px;color:var(--muted-foreground); }
+.personal-identity-actions { display:flex;gap:7px;flex-wrap:wrap; }.personal-identity-actions button { font-size:12px; }
+.personal-cover { position:relative; display:grid;grid-template-columns:1.4fr 1fr; grid-template-rows:1fr 1fr; gap:7px;height:390px;overflow:hidden; }
+.personal-cover > img { width:100%;height:100%;object-fit:cover;min-height:0; }.personal-cover > img:first-child { grid-row:span 2; }
+.personal-cover > button { position:absolute;right:12px;top:12px;background:var(--background); }
+.personal-cover-caption { position:absolute;left:20px;bottom:20px;background:var(--background);padding:15px 20px;border-left:2px solid var(--personal-rose); }
+.personal-cover-caption span { color:var(--primary);font-size:9px; }.personal-cover-caption h2 { font-size:33px;line-height:1.05;max-width:220px;margin-top:8px; }
+.personal-tabs { display:flex;gap:10px;overflow:auto;scrollbar-width:none;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:26px; }
+.personal-tabs button { border-left:1px solid var(--border);border-radius:0;min-height:44px;color:var(--muted-foreground);gap:9px; }
+.personal-tabs button.active { border-left:3px solid var(--primary);background:var(--muted);color:var(--primary); }.personal-tabs button > span { font-size:10px; }
+.personal-body { display:grid;grid-template-columns:minmax(0,1fr) 205px;gap:34px; }.personal-timeline { min-width:0; }
+.personal-composer { display:flex;gap:4px;align-items:center; border-bottom:1px solid var(--border);padding-bottom:22px;margin-bottom:28px; }.personal-prompt { flex:1;min-width:0;justify-content:flex-start;padding-left:0;font-size:14px;color:var(--muted-foreground);white-space:normal; }.personal-composer > button:not(.personal-prompt) { color:var(--primary); }
+.personal-section-heading { display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:23px; }.personal-section-heading h2 { font-size:31px; }.personal-section-heading > span { color:var(--muted-foreground);font-size:10px;white-space:nowrap; }
+.personal-post-grid { display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:23px;align-items:start; }
+.personal-post { min-width:0;overflow:hidden;border:1px solid var(--border);border-radius:6px;background:var(--card);transition:transform .2s; }.personal-post:hover { transform:translateY(-2px); }.personal-post.lead-story { border-top:2px solid var(--primary);grid-row:span 2; }.personal-post:nth-child(2) { margin-top:55px; }
+.personal-post-meta { display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 13px;gap:5px; }.personal-post-meta > span { display:flex;align-items:center;gap:6px;color:var(--primary);font-size:10px; }.personal-post-meta button { height:28px;width:28px; }
+.personal-author { padding:14px 16px 0;font-size:12px;font-weight:700;overflow-wrap:anywhere; }.personal-author span { display:block;color:var(--muted-foreground);font-size:10px;font-weight:400;margin-top:4px; }
+.personal-story-caption { padding:15px 16px 20px;font-size:14px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere; }.note-story .personal-story-caption { font-family:'DM Serif Display',Georgia,serif;font-size:27px;line-height:1.25; }
+.personal-story-media { width:100%;height:auto;padding:0 7px 7px;border-radius:0; }.personal-story-media img { width:100%;aspect-ratio:4/3;object-fit:cover; }
+.personal-post-actions { display:flex;justify-content:space-between;gap:0;border-top:1px solid var(--border);padding:5px 7px; }.personal-post-actions button { font-size:10px;padding:7px 5px;min-width:0;gap:5px; }.personal-post-actions button[aria-pressed=true] { color:var(--primary); }
+.personal-collectible { padding:20px;background:var(--muted); }.personal-collectible > img { margin:22px auto;max-width:100%;height:190px;object-fit:contain;transform:rotate(-5deg); }.personal-collectible h3 { font-size:26px;overflow-wrap:anywhere; }.personal-eyebrow { color:var(--primary);font-size:9px; }
+.personal-aside { border-left:1px solid var(--border);padding-left:25px; }.personal-aside h3 { font-size:26px;margin:13px 0;line-height:1.2; }.personal-aside > p { color:var(--muted-foreground);font-size:12px;line-height:1.8;overflow-wrap:anywhere; }.personal-separate-links { display:flex;flex-direction:column;align-items:flex-start;padding:22px 0;margin:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border); }.personal-separate-links a { padding-left:0;white-space:normal; }
+.personal-empty { grid-column:1/-1;padding:38px 0;border-block:1px solid var(--border); }.personal-empty > svg { color:var(--primary);margin-bottom:17px; }.personal-empty h3 { font-size:28px;margin-bottom:10px; }.personal-empty p { font-size:13px;color:var(--muted-foreground);margin-bottom:20px; }.personal-about h2,.personal-timeline > h2 { font-size:33px; }.personal-about p { margin-top:20px;line-height:1.8;overflow-wrap:anywhere; }
+.personal-gallery { display:grid;grid-template-columns:1.3fr 1fr;gap:13px;margin-top:25px; }.personal-gallery img { width:100%;height:200px;object-fit:cover; }.personal-gallery button { height:auto;padding:0; }.personal-gallery > :first-child { grid-row:span 2; }.personal-gallery > :first-child img { height:300px; }.personal-gallery article { min-width:0; }.personal-gallery h3 { margin-top:10px;overflow-wrap:anywhere; }.personal-activity { border-bottom:1px solid var(--border);padding:17px 0;font-size:13px;color:var(--muted-foreground); }
+.personal-dialog { width:calc(100% - 32px);max-height:85dvh;overflow:auto;border-radius:6px; }.personal-dialog label { font-size:12px;display:grid;gap:8px; }.personal-dialog input,.personal-dialog textarea { color:var(--foreground);background:var(--background);border-color:var(--border); }.personal-dialog h2 { font-size:28px; }.personal-profile-back { padding:12px 24px;background:var(--background); }
+@media(max-width:1000px) and (min-width:761px) { .personal-masthead { grid-template-columns:240px 1fr;gap:25px; }.personal-body { grid-template-columns:minmax(0,1fr); }.personal-aside { display:none; } }
+@media(max-width:760px) { .personal-review { padding:10px 16px;font-size:10px; }.personal-page { padding:23px 16px 105px; }.personal-masthead { grid-template-columns:1fr;gap:22px; }.personal-identity { display:grid;grid-template-columns:65px minmax(0,1fr);padding-left:15px;gap:13px; }.personal-portrait { width:65px;height:84px; }.personal-name h1 { font-size:32px; }.personal-name > p { font-size:11px; }.personal-bio,.personal-counts,.personal-identity-actions { grid-column:1/-1; }.personal-identity-actions { flex-wrap:wrap; }.personal-cover { height:225px;gap:5px; }.personal-cover-caption { left:12px;bottom:12px;padding:10px 13px; }.personal-cover-caption h2 { font-size:27px;max-width:170px; }.personal-tabs { gap:5px;margin-bottom:20px; }.personal-tabs button { padding-inline:12px;font-size:12px; }.personal-tabs button > span { display:none; }.personal-body { display:block; }.personal-aside { display:none; }.personal-composer { gap:0;margin-bottom:23px;padding-bottom:19px; }.personal-prompt { font-size:12px; }.personal-composer > button:not(.personal-prompt) { width:30px; }.personal-section-heading h2 { font-size:28px; }.personal-post-grid { display:flex;flex-direction:column;gap:23px; }.personal-post-grid > * { width:100%;margin-top:0!important; }.personal-post-grid > :nth-child(even) { width:93%;margin-left:auto; }.personal-story-caption { font-size:13px; }.personal-post-actions button { min-height:40px; }.personal-empty { width:100%; }.personal-gallery { gap:8px; }.personal-gallery img { height:160px; }.personal-gallery > :first-child img { height:230px; }.personal-timeline > h2 { font-size:29px; } }
+@media(prefers-reduced-motion:reduce) { .personal-post { transition:none; }.personal-post:hover { transform:none; } }
