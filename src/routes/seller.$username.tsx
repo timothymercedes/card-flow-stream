@@ -22,6 +22,9 @@ import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { StorefrontBrandingEditor } from "@/components/StorefrontBrandingEditor";
+import { Paintbrush, Eye } from "lucide-react";
 import { personalPreviewEnabled } from '@/lib/personalProfilePreview';
 
 export const Route = createFileRoute("/seller/$username")({
@@ -78,7 +81,9 @@ function PublicStore() {
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
-  const [tab, setTab] = useState<"listings" | "sold" | "reviews" | "posts" | "vault">("listings");
+  const [tab, setTab] = useState<"shop" | "live" | "reviews" | "sold" | "about">("shop");
+  const [buyerView, setBuyerView] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
   const [vaultCards, setVaultCards] = useState<any[]>([]);
@@ -226,7 +231,31 @@ function PublicStore() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        {user?.id === seller.id && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-primary bg-primary/10 p-4" data-profile-component="PublicStore"><div><strong className="text-primary">SELLER STOREFRONT</strong><p className="text-sm text-muted-foreground">Your personal profile and Seller Hub are separate pages.</p></div><Button asChild><Link to="/@{$username}" params={{ username: seller.username }}>My Personal Profile <ArrowLeft className="rotate-180" /></Link></Button><Button asChild variant="outline"><Link to="/store">Seller Hub</Link></Button></div>}
+        {user?.id === seller.id && buyerView && (
+          <div className="sticky top-14 z-20 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-primary p-3 text-primary-foreground shadow-lg">
+            <strong className="text-sm">Previewing as Buyer — this is how shoppers see your store</strong>
+            <Button variant="secondary" size="sm" onClick={() => setBuyerView(false)}>Return to Owner View</Button>
+          </div>
+        )}
+        {user?.id === seller.id && !buyerView && (
+          <div className="mb-4 space-y-3 rounded-xl border border-primary bg-primary/10 p-4" data-profile-component="PublicStore">
+            <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-primary">OWNER VIEW · YOUR STORE</strong><span className="text-xs text-muted-foreground">Only you see these controls.</span></div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setCustomizeOpen(true)}><Paintbrush /> Customize Store</Button>
+              <Button variant="outline" onClick={() => setBuyerView(true)}><Eye /> Preview as Buyer</Button>
+              <Button asChild variant="outline"><Link to="/store">Seller Hub</Link></Button>
+              <Button asChild variant="ghost"><Link to="/@{$username}" params={{ username: seller.username }}>My Personal Profile</Link></Button>
+            </div>
+          </div>
+        )}
+        <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogTitle>Customize your store</DialogTitle>
+            <DialogDescription>Changes apply only to your own store. Use Preview as Buyer to check how it looks.</DialogDescription>
+            <StorefrontBrandingEditor />
+            <Button variant="outline" onClick={() => { setCustomizeOpen(false); setBuyerView(true); }}><Eye /> Preview as Buyer</Button>
+          </DialogContent>
+        </Dialog>
         {fromIdentityAudit ? (
           <Link to="/admin/identity-audit" search={readIdentityLogFilters(auditFilters)} className="mb-3 inline-flex items-center gap-1 text-xs text-primary"><ArrowLeft className="h-3.5 w-3.5" /> Back to action log</Link>
         ) : (
@@ -472,19 +501,30 @@ function PublicStore() {
           </div>
         )}
 
-        {seller?.id && <UpcomingShowsSection sellerId={seller.id} />}
 
         <div className="mb-3 flex gap-2 overflow-x-auto border-b border-border text-xs">
 
-          {(["listings", "vault", "sold", "posts", "reviews"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 capitalize ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
-              {t === "sold" ? `Sold (${soldOrders.length})` : t === "reviews" ? `Reviews (${reviews.length})` : t === "posts" ? `Posts (${posts.length + stories.length})` : t === "vault" ? vaultReadFailed ? 'Vault' : `Vault (${vaultCards.length})` : `Listings (${listings.length})`}
+          {([["shop", `Shop (${listings.length})`], ["live", "Live Shows"], ["reviews", `Reviews (${reviews.length})`], ["sold", `Sold (${soldOrders.length})`], ["about", "About"]] as const).map(([t, label]) => (
+            <button key={t} onClick={() => setTab(t)} className={`whitespace-nowrap border-b-2 px-3 py-2 ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
+              {label}
             </button>
           ))}
         </div>
 
-        {tab === "listings" && <StorefrontListingsBrowser listings={listings} />}
-
+        {tab === "shop" && <StorefrontListingsBrowser listings={listings} />}
+        {tab === "live" && seller?.id && (
+          <>
+            {liveStreamId && <Link to="/live/$id" params={{ id: liveStreamId }} className="mb-3 block rounded-xl bg-card p-3 text-sm font-bold text-live">● Live now — join the show</Link>}
+            <UpcomingShowsSection sellerId={seller.id} />
+          </>
+        )}
+        {tab === "about" && (
+          <div className="space-y-3 rounded-2xl bg-card p-4 text-sm">
+            <h2 className="font-bold">About @{seller.username}</h2>
+            {seller.bio ? <p className="whitespace-pre-wrap">{seller.bio}</p> : <p className="text-muted-foreground">This seller hasn't added a store description yet.</p>}
+            <p className="text-xs text-muted-foreground">{sellerCompleted} completed sales · member since {new Date(seller.created_at).toLocaleDateString()}</p>
+          </div>
+        )}
 
         {tab === "sold" && (
           <>
@@ -506,53 +546,6 @@ function PublicStore() {
           </>
         )}
 
-        {tab === "posts" && (
-          <>
-            {posts.length === 0 && stories.length === 0 && <p className="py-12 text-center text-xs text-muted-foreground">No posts or stories yet.</p>}
-            {stories.length > 0 && (
-              <div className="mb-3">
-                <p className="mb-2 text-[10px] font-bold uppercase text-muted-foreground">Active stories</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {stories.map((s: any) => (
-                    <div key={s.id} className="aspect-[3/4] overflow-hidden rounded-lg bg-muted">
-                      {s.image_url && <img src={s.image_url} className="h-full w-full object-cover" alt="" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {posts.length > 0 && (
-              <div className="space-y-2">
-                {posts.map((p: any) => (
-                  <div key={p.id} className="rounded-xl bg-card p-3">
-                    <p className="text-xs">{p.caption}</p>
-                    {p.image_url && <img src={p.image_url} className="mt-2 max-h-64 w-full rounded-lg object-cover" alt="" />}
-                    <p className="mt-1 text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-        {tab === "vault" && (
-          <>
-            {vaultCards.length === 0 && <p role={vaultReadFailed ? 'status' : undefined} className="py-12 text-center text-xs text-muted-foreground">{vaultReadFailed ? 'Public Vault is unavailable right now.' : 'No public vault cards.'}</p>}
-            <div className="grid grid-cols-2 gap-3">
-              {vaultCards.map((v) => (
-                <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
-                  <div className="aspect-square overflow-hidden bg-muted">
-                    {v.image_url ? <img src={v.image_url} alt={v.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center"><Package className="h-8 w-8 text-muted-foreground" /></div>}
-                  </div>
-                  <div className="p-2">
-                    <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
-                    {v.category && <p className="text-[10px] text-muted-foreground">{v.category}</p>}
-                    {Number(v.estimated_value) > 0 && <p className="text-[11px] font-bold text-primary">${Number(v.estimated_value).toFixed(2)}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
         {tab === "reviews" && seller && (
           <SellerReviewsPanel sellerId={seller.id} currentUserId={user?.id ?? null} />
         )}
