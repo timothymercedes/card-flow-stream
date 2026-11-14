@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { PERSONAL_PROFILE_TABS, type PersonalProfileTab } from '@/lib/personalProfilePreview';
 import { AUDIENCE_LABEL, DEMO_PROFILE, DEMO_VIEWERS, visiblePosts, showcaseCards, type DemoAudience, type DemoPhoto, type DemoPost, type DemoViewer } from '@/lib/personalProfileDemo';
-import outdoors from '@/assets/departments/garden_outdoors.webp';
-import collectibles from '@/assets/departments/collectibles.webp';
-import gaming from '@/assets/departments/gaming.webp';
-import detail from '@/assets/departments/collectibles-detail.webp';
-import music from '@/assets/departments/music.webp';
-const PHOTOS: Record<DemoPhoto, string> = { outdoors, collectibles, gaming, detail, music };
+import showcase from '@/assets/profile-demo/collector-showcase.jpg';
+import grading from '@/assets/profile-demo/grading-desk.jpg';
+import packs from '@/assets/profile-demo/pack-opening.jpg';
+import community from '@/assets/profile-demo/community-meetup.jpg';
+const PHOTOS: Record<DemoPhoto, string> = { showcase, grading, packs, community };
+const PHOTO_LABELS: Record<DemoPhoto, string> = { showcase: 'Demonstration trading-card display with fantasy and sports slabs', grading: 'Demonstration collector inspecting a card before grading', packs: 'Demonstration foil trading-card pack opening', community: 'Demonstration collectors comparing binders at a community meetup' };
 
 export function PersonalProfilePreview({ account, initialVisitor = false, routeLabel }: { account: ReactNode; initialVisitor?: boolean; routeLabel?: string }) {
   const [tab, setTab] = useState<PersonalProfileTab>('Posts');
@@ -45,7 +45,7 @@ export function PersonalProfilePreview({ account, initialVisitor = false, routeL
     setLocal(v => [{ id: `draft-${Date.now()}`, kind: 'story', caption: caption.trim(), photos: [], audience, date: new Date().toISOString().slice(0, 10), appreciations: 0, comments: 0 }, ...v]);
     setDialog(null);
   };
-  const viewerLabel = DEMO_VIEWERS.find(v => v.id === viewer)!.label;
+  const viewerLabel = DEMO_VIEWERS.find(v => v.id === viewer)?.label ?? 'Owner';
   return <AppShell><div className="personal-profile-theme" data-profile-component="PersonalProfilePreview" data-demo-viewer={viewer}>
     <div className="personal-review"><div><strong className="personal-preview-label">PREVIEW DESIGN</strong><strong className="personal-preview-label"><FlaskConical className="inline size-3" /> DEMONSTRATION DATA</strong>{routeLabel && <code data-preview-route>{routeLabel}</code>}<span>{owner ? 'Owner view · demo profile, no customer data' : `SIMULATED ${viewerLabel.toUpperCase()} VIEW · not real visitor access`}</span></div>
       <div className="flex flex-wrap gap-1" role="group" aria-label="Simulate viewer">{DEMO_VIEWERS.map(v => <Button key={v.id} size="sm" variant={viewer === v.id ? 'default' : 'outline'} aria-pressed={viewer === v.id} onClick={() => setViewer(v.id)}>{v.label}</Button>)}</div></div>
@@ -58,7 +58,7 @@ export function PersonalProfilePreview({ account, initialVisitor = false, routeL
           <div className="personal-counts"><Button variant="ghost" onClick={() => open('Followers')}><strong>{DEMO_PROFILE.followers.toLocaleString()}</strong><span>Followers</span></Button><Button variant="ghost" onClick={() => open('Following')}><strong>{DEMO_PROFILE.following}</strong><span>Following</span></Button></div>
           <div className="personal-identity-actions">{owner ? <><Button onClick={() => open('Edit personal profile')}><Pencil />Edit profile</Button><Button variant="outline" aria-label="Account settings" title="Account settings" onClick={() => setAccountOpen(true)}><Settings /></Button></> : <Button variant="outline" onClick={() => open('Follow')}>Follow</Button>}<Button variant="outline" aria-label="Share profile" onClick={() => open('Share profile')}><Share2 /></Button></div>
         </div>
-        <div className="personal-cover"><img src={outdoors} alt="Demo cover: outdoors" /><img src={collectibles} alt="Demo cover: collection" /><img src={gaming} alt="Demo cover: arcade" /><div className="personal-cover-caption"><span>PERSONAL JOURNAL / 01</span><h2>Stories worth keeping.</h2></div>{owner && <Button variant="outline" size="icon" aria-label="Change cover" onClick={() => open('Cover photos')}><Camera /></Button>}</div>
+        <div className="personal-cover"><img src={showcase} alt={PHOTO_LABELS.showcase} width={1536} height={1024} /><img src={grading} alt={PHOTO_LABELS.grading} width={1024} height={1024} /><img src={packs} alt={PHOTO_LABELS.packs} width={1024} height={1024} /><div className="personal-cover-caption"><span>COLLECTOR JOURNAL / 01</span><h2>Stories worth keeping.</h2></div>{owner && <Button variant="outline" size="icon" aria-label="Change cover" onClick={() => open('Cover photos')}><Camera /></Button>}</div>
       </section>
       <nav className="personal-tabs" aria-label="Personal profile sections">{PERSONAL_PROFILE_TABS.map((t, i) => <Button key={t} variant="ghost" aria-pressed={tab === t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}><span>0{i + 1}</span>{t}</Button>)}</nav>
       <div className="personal-body"><section className="personal-timeline">
@@ -66,11 +66,12 @@ export function PersonalProfilePreview({ account, initialVisitor = false, routeL
           {owner && <div className="personal-composer"><Button variant="ghost" className="personal-prompt" onClick={() => open('Create a story')}>What’s your latest story?</Button><Button variant="ghost" size="icon" aria-label="Add photos" onClick={() => open('Photo story')}><ImagePlus /></Button><Button variant="ghost" size="icon" aria-label="Add video" onClick={() => open('Video story')}><Video /></Button><Button variant="ghost" size="icon" aria-label="Share collectible" onClick={() => open('Collectible story')}><Gem /></Button></div>}
           <div className="personal-section-heading"><h2>The latest chapter.</h2><span>{posts.length} visible to {owner ? 'you' : viewerLabel.toLowerCase()}</span></div>
           <div className="personal-post-grid">
-            {posts.map((p, i) => <article key={p.id} className={`personal-post ${p.photos.length ? 'photo-story' : 'note-story'} ${i === 0 ? 'lead-story' : ''}`}>
+            {posts.map((p, i) => <article key={p.id} className={`personal-post ${p.photos.length ? 'photo-story' : 'note-story'} ${p.kind === 'collectible' ? 'collectible-story' : ''} ${i === 0 ? 'lead-story' : ''}`}>
               <div className="personal-post-meta"><span>{pinned === p.id && <Pin size={13} />}{p.kind === 'video' ? 'Video · ' : p.kind === 'collectible' ? 'Collectible · ' : ''}<Lock className="inline size-3" /> {AUDIENCE_LABEL[p.audience]}{p.id.startsWith('draft-') && ' · draft'}</span>{owner && <Button variant="ghost" size="icon" aria-label="Manage story" onClick={() => open('Manage story', p)}><MoreHorizontal /></Button>}</div>
               <p className="personal-author">@{DEMO_PROFILE.username} <span>{new Date(p.date).toLocaleDateString()}</span></p>
               <p className="personal-story-caption">{p.caption}</p>
-              {p.photos.length > 0 && <div className={p.photos.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>{p.photos.map((ph, j) => <Button key={j} variant="ghost" className="personal-story-media" onClick={() => setPhoto(PHOTOS[ph])}><img src={PHOTOS[ph]} alt="Demo story photo" /></Button>)}</div>}
+              {p.collectible && <div className="personal-collectible-heading"><span className="personal-eyebrow"><Gem className="inline size-3" /> COLLECTOR SPOTLIGHT</span><h3>{p.collectible.name}</h3><p>{p.collectible.series}</p><span className="personal-collectible-finish">{p.collectible.finish}</span></div>}
+              {p.photos.length > 0 && <div className={p.photos.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>{p.photos.map((ph, j) => <Button key={j} variant="ghost" className="personal-story-media" onClick={() => setPhoto(PHOTOS[ph])}><img src={PHOTOS[ph]} alt={PHOTO_LABELS[ph]} loading="lazy" width={ph === 'showcase' ? 1536 : 1024} height={1024} /></Button>)}</div>}
               <div className="personal-post-actions"><Button variant="ghost" aria-pressed={!!liked[p.id]} disabled={viewer === 'guest'} onClick={() => setLiked(v => ({ ...v, [p.id]: !v[p.id] }))}><Sparkles />{p.appreciations + (liked[p.id] ? 1 : 0)}</Button><Button variant="ghost" disabled={viewer === 'guest'} onClick={() => open('Conversation', p)}><MessageCircle />{p.comments}</Button><Button variant="ghost" aria-label="Repost" disabled={p.audience !== 'public' || viewer === 'guest'} onClick={() => open('Repost story', p)}><Repeat2 /></Button><Button variant="ghost" aria-label="Share" disabled={p.audience !== 'public'} onClick={() => open('Share story', p)}><Share2 /></Button></div>
             </article>)}
             {!posts.length && <div className="personal-empty"><Lock /><h3>Nothing shared with this viewer.</h3></div>}

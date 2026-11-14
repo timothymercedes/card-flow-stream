@@ -1,5 +1,7 @@
 # Current work
 
+- [x] Refine Personal Profile demonstration cover and timeline with original collector showcase, grading, pack-opening and community photography; preserve approved layout, six tabs and simulated audiences, with no customer-data or production changes.
+
 - [x] Record official Personal Profile visual-design approval (November 14, 2026): Mosaic + Atelier + Signal desktop/mobile and Owner/Visitor designs are the approved reference. Visual approval only; completed working implementation requires separate final approval before production release. No authorization for deployment, production migrations/privacy/storage changes, premature visitor timelines, or either customization studio.
 - [ ] Prepare complete privacy deployment review package in isolated draft `drft_01m7d5j71ve3z8jzt36100ef94`: exact candidate SQL/policies, integration updates, backup/rollback, image-security matrix and production checklist; no acceptance or production changes. Old draft exact-file recovery remains required.
 - [x] Implement approved browser-only individual/bulk Vault privacy and show selection preview; 13 tests and desktop/mobile example flow passed. Actual connected signed-out browser navigated via preview bar to /preview/vault-privacy and back to PersonalProfilePreview with PREVIEW DESIGN. Two read-only live checks returned unchanged 34 unique/private cards and matching ID/privacy fingerprints; no writes or publishing.
