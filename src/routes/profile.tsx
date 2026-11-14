@@ -36,7 +36,11 @@ export const Route = createFileRoute("/profile")({ component: Profile, head: () 
 ] , links: import.meta.env.DEV ? [{ rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap' }] : [] }) });
 
 function Profile() {
-  return personalPreviewEnabled(import.meta.env.DEV)
+  const [preview, setPreview] = useState(import.meta.env.DEV);
+  useEffect(() => {
+    setPreview(personalPreviewEnabled(import.meta.env.DEV, window.location.hostname));
+  }, []);
+  return preview
     ? <PersonalProfilePreview account={<AccountProfile />} />
     : <AccountProfile />;
 }
