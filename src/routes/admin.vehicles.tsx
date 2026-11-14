@@ -19,7 +19,7 @@ export const Route = createFileRoute('/admin/vehicles')({
 });
 
 function VehicleReview() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [onlyFlagged, setOnlyFlagged] = useState(true);
   const role = useQuery({ queryKey: ['admin-vehicles-role', user?.id], enabled: !!user, queryFn: async () => {
     const { data } = await supabase.from('user_roles').select('role').eq('user_id', user!.id);
@@ -30,8 +30,10 @@ function VehicleReview() {
     if (error) throw error;
     return (data ?? []).map(l => ({ ...l, flags: reviewVehicle({ ...l, product_details: l.product_details as Record<string, string> }) }));
   } });
-  if (!user || role.isLoading) return <AppShell><p className="p-6 text-sm text-muted-foreground">Checking access…</p></AppShell>;
-  if (!role.data) return <AppShell><p className="p-6 text-sm">This page is for administrators only.</p></AppShell>;
+  if (authLoading) return <AppShell><p className="p-6 text-sm text-muted-foreground">Checking access…</p></AppShell>;
+  if (!user) return <AppShell><div className="p-8 text-center"><h1 className="text-lg font-bold">Sign in required</h1><p className="mt-1 text-sm text-muted-foreground">Please sign in with an administrator account to review vehicle listings.</p><Link to="/auth" className="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Sign in</Link></div></AppShell>;
+  if (role.isLoading) return <AppShell><p className="p-6 text-sm text-muted-foreground">Verifying permissions…</p></AppShell>;
+  if (!role.data) return <AppShell><div className="p-8 text-center"><h1 className="text-lg font-bold">Access denied</h1><p className="mt-1 text-sm text-muted-foreground">This review queue is restricted to authorized administrators.</p><Link to="/" className="mt-4 inline-block text-sm text-primary">Go home</Link></div></AppShell>;
   const rows = (list.data ?? []).filter(r => !onlyFlagged || r.flags.length);
   return <AppShell><div className="mx-auto max-w-4xl space-y-4 p-4">
     <div className="flex items-center gap-2"><Car className="h-5 w-5 text-primary"/><h1 className="text-xl font-bold">Vehicle listing review</h1></div>
