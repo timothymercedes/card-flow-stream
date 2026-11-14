@@ -319,7 +319,7 @@ export function AuthForm({ administration = false, returnToInput, modeInput }: {
         <div className="h-px flex-1 bg-border" /> OR <div className="h-px flex-1 bg-border" />
       </div>
 
-      <AuthPathBanner />
+      {!administration && <AuthPathBanner />}
 
       <div className="space-y-2">
         <Button type="button" variant="outline" disabled={loading} onClick={passkeyLogin} className="h-auto w-full py-3 text-sm font-semibold">

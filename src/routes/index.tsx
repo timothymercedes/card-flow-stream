@@ -61,6 +61,8 @@ function Home() {
   const [vaultAll, setVaultAll] = useState<any[]>([]);
   const [stats, setStats] = useState<{live:number|null;collectors:number|null;listings:number|null}>({ live: null, collectors: null, listings: null });
   const [vaultReadFailed,setVaultReadFailed] = useState(false);
+  const [liveReadState, setLiveReadState] = useState<'pending' | 'ready' | 'error'>('pending');
+  const [flexReadState, setFlexReadState] = useState<'pending' | 'ready' | 'error'>('pending');
   const bucket = useShuffleBucket();
 
   // Shuffle every 5 min via bucket; slice for display.
@@ -72,42 +74,54 @@ function Home() {
 
   const [rtTick, setRtTick] = useState(0);
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLiveReadState('pending');
+      setFlexReadState('pending');
       let sQ = supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
       if (interests.length > 0) sQ = sQ.in("category", interests);
-      const { data: sData } = await sQ;
-      if ((sData?.length || 0) === 0 && interests.length > 0) {
-        const { data: fallback } = await supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
+      const { data: sData, error: sError } = await sQ;
+      if (cancelled) return;
+      setLiveReadState(sError ? 'error' : 'ready');
+      if (!sError && (sData?.length || 0) === 0 && interests.length > 0) {
+        const { data: fallback, error: fallbackError } = await supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).order("promotion_score", { ascending: false }).order("created_at", { ascending: false }).limit(40);
+        if (cancelled) return;
+        setLiveReadState(fallbackError ? 'error' : 'ready');
         setStreamsAll(fallback || []);
       } else setStreamsAll(sData || []);
 
-      const { data: showData } = await supabase.from("live_streams")
+      const { data: showData, error: showError } = await supabase.from("live_streams")
         .select("*").eq("status", "live").eq('is_demo',false).eq("stream_type", "show_off").eq("is_private", false)
         .order("created_at", { ascending: false }).limit(40);
+      if (cancelled) return;
       setShowOffAll(showData || []);
+      setFlexReadState(showError ? 'error' : 'ready');
 
       let lQ = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
       const { data: lData } = await lQ;
+      if (cancelled) return;
       if ((lData?.length || 0) === 0 && interests.length > 0) {
         const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
+        if (cancelled) return;
         setListingsAll((fb || []).filter(isPublicListingVisible));
       } else setListingsAll((lData || []).filter(isPublicListingVisible));
 
-      supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(40).then(({ data }) => setPostsAll(data || []));
+      supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(40).then(({ data }) => { if (!cancelled) setPostsAll(data || []); });
       supabase.from("vault_cards")
         .select("*, profiles:user_id(id, username)")
         .eq("visibility", "public")
         .order("created_at", { ascending: false }).limit(60)
-        .then(({ data,error }) => {setVaultAll(data || []);setVaultReadFailed(!!error);});
+        .then(({ data,error }) => {if (!cancelled) {setVaultAll(data || []);setVaultReadFailed(!!error);}});
 
       const [{ count: liveCount }, { count: collectorCount }, { count: listingCount }] = await Promise.all([
         supabase.from("live_streams").select("*", { count: "exact", head: true }).eq("status", "live").eq('is_demo',false).eq('is_private',false),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("listings").select("*", { count: "exact", head: true }),
       ]);
-      setStats({ live: liveCount, collectors: collectorCount, listings: listingCount });
+      if (!cancelled) setStats({ live: liveCount, collectors: collectorCount, listings: listingCount });
     };
     load();
+    return () => { cancelled = true; };
   }, [interests.join(","), rtTick]);
   useRealtimeChannel({ name: "home-discover" }, (ch) => ch
     .on("postgres_changes" as any, { event: "*", schema: "public", table: "live_streams" } as any, () => setRtTick((n) => n + 1))
@@ -217,8 +231,8 @@ function Home() {
 
         {liveTab === "auctions" ? (
           <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-            {streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
-            {streams.map((s) => (
+            {liveReadState === 'pending' ? <EmptyMini text="Loading live shows…" /> : liveReadState === 'error' ? <div role="alert" className="py-4 text-sm text-muted-foreground">Live shows are unavailable. <Button variant="link" onClick={() => setRtTick(tick => tick + 1)}>Retry</Button></div> : streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
+            {liveReadState === 'ready' && streams.map((s) => (
               <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
                 <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
                   {s.thumbnail_url
@@ -237,8 +251,8 @@ function Home() {
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-            {showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
-            {showOffStreams.map((s) => (
+            {flexReadState === 'pending' ? <EmptyMini text="Loading Flex Live…" /> : flexReadState === 'error' ? <div role="alert" className="py-4 text-sm text-muted-foreground">Flex Live is unavailable. <Button variant="link" onClick={() => setRtTick(tick => tick + 1)}>Retry</Button></div> : showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
+            {flexReadState === 'ready' && showOffStreams.map((s) => (
               <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
                   {s.thumbnail_url
