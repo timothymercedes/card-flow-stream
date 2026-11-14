@@ -201,7 +201,7 @@ function LiveList() {
               <div className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
                 <Filter className="h-3 w-3" /> Pick what you're into
               </div>
-              <div className="flex flex-col gap-2 lg:flex-row">
+              <div className="grid min-w-0 gap-2 lg:grid-cols-2">
                 <select
                   aria-label="Live category"
                   value={catFilter}
@@ -213,7 +213,7 @@ function LiveList() {
                     <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
                   ))}
                 </select>
-                <div className="flex min-w-0 gap-1.5 lg:flex-1">
+                <div className="grid min-w-0 grid-cols-2 gap-1.5">
                   <select
                     aria-label="Stream type"
                     value={typeFilter}
