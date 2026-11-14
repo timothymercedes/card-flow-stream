@@ -1,5 +1,6 @@
 import { useEffect, useState, type ImgHTMLAttributes } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { signPublicBazaarMedia } from "@/lib/bazaarMedia.functions";
 
 const cache = new Map<string, Promise<string | null>>();
 
@@ -8,7 +9,7 @@ export function resolveBazaarMedia(value: string): Promise<string | null> {
   if (/^https?:\/\//.test(value)) return Promise.resolve(value);
   let p = cache.get(value);
   if (!p) {
-    p = supabase.storage.from("bazaar-media").createSignedUrl(value, 3600).then(({ data }) => data?.signedUrl ?? null);
+    p = supabase.storage.from("bazaar-media").createSignedUrl(value, 3600).then(async ({ data }) => data?.signedUrl ?? (await signPublicBazaarMedia({ data: { path: value } }).catch(() => null)));
     cache.set(value, p);
     setTimeout(() => cache.delete(value), 50 * 60 * 1000);
   }
