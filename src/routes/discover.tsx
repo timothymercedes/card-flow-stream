@@ -7,6 +7,7 @@ import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store, Radio, Zap } fro
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { searchMarketplace } from "@/lib/marketplaceSearch";
+import { usePersonalProfileLinks } from "@/hooks/usePersonalProfileLinks";
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
@@ -53,6 +54,7 @@ type LiveHit = {
 };
 
 function DiscoverPage() {
+  const personalLinks = usePersonalProfileLinks();
   const initialQ = (Route.useSearch() as any).q ?? "";
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
@@ -144,7 +146,8 @@ function DiscoverPage() {
 
   function openProfile(username: string) {
     saveRecent(username);
-    navigate({ to: "/seller/$username", params: { username } });
+    if (personalLinks) navigate({ to: "/preview/personal-profile-candidate", search: { username } });
+    else navigate({ to: "/seller/$username", params: { username } });
   }
 
   const showResults = query.trim().length > 0;
