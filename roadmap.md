@@ -1,5 +1,9 @@
 # Current work
 
+- [ ] Build isolated real-account Personal Profile candidate with locked visuals, caller-authorized persistence and no demo fallback; preserve account management and demo preview.
+- [ ] Reconcile unavailable older privacy migrations and private-media alias/storage cutover; keep visitor access fail-closed until full safeguards and role tests pass.
+- [ ] Prepare exact change inventory, rollback rehearsal and honest readiness report; Stages 2–4 remain planning-only, no acceptance, publication or live changes.
+
 - [x] Refine Personal Profile demonstration cover and timeline with original collector showcase, grading, pack-opening and community photography; preserve approved layout, six tabs and simulated audiences, with no customer-data or production changes.
 
 - [x] Record official Personal Profile visual-design approval (November 14, 2026): Mosaic + Atelier + Signal desktop/mobile and Owner/Visitor designs are the approved reference. Visual approval only; completed working implementation requires separate final approval before production release. No authorization for deployment, production migrations/privacy/storage changes, premature visitor timelines, or either customization studio.
