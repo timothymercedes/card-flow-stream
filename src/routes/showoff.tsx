@@ -11,7 +11,7 @@ import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
 
 export const Route = createFileRoute("/showoff")({
-  head: () => ({ meta: [{ title: "Flex Live — PullBid Live" }] }),
+  head: () => ({ meta: [{ title: "Flex Live — PullBid Live" },{name:'description',content:'Discover public Flex Live collecting shows on PullBid Live.'},{property:'og:title',content:'Flex Live — PullBid Live'},{property:'og:description',content:'Public collecting shows and community broadcasts.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}] }),
   component: ShowOff,
 });
 
@@ -53,7 +53,7 @@ function ShowOff() {
         setVerified(!!d.live_verified || d.verification_status === "approved");
       });
     supabase.from("live_streams").select("id, seller_id, title, thumbnail_url, is_private")
-      .eq("status", "live").eq("mode", "show_off").order("created_at", { ascending: false })
+      .eq("status", "live").eq('is_demo',false).eq('is_private',false).eq("mode", "show_off").order("created_at", { ascending: false })
       .then(({ data }) => setStreams((data as any[]) || []));
   }, [user, tutorial]);
 

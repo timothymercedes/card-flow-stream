@@ -14,7 +14,7 @@ import { ShareLiveModal } from "@/components/ShareLiveModal";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { InternationalBadge } from "@/components/InternationalBadge";
 
-export const Route = createFileRoute("/live/")({ component: LiveList });
+export const Route = createFileRoute("/live/")({ component: LiveList,head:()=>({meta:[{title:'Live Auctions — PullBid Live'},{name:'description',content:'Discover public live auctions and upcoming shows on PullBid Live.'},{property:'og:title',content:'Live Auctions — PullBid Live'},{property:'og:description',content:'Browse live auctions and upcoming shows without demo activity counted as real broadcasts.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}) });
 
 type Stream = { id: string; title: string; thumbnail_url: string | null; current_bid: number; ends_at: string | null; category: string | null; seller_id: string; stream_type?: string | null; tcg_tags?: string[] | null; ships_internationally?: boolean | null };
 type Show = {
@@ -72,7 +72,7 @@ function LiveList() {
 
   async function load() {
     const [{ data: s }, { data: sh }] = await Promise.all([
-      supabase.from("live_streams").select("*").eq("status", "live").neq("mode", "show_off").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }),
+      supabase.from("live_streams").select("*").eq("status", "live").eq('is_demo',false).eq('is_private',false).neq("mode", "show_off").order("promotion_score", { ascending: false }).order("created_at", { ascending: false }),
       supabase.from("scheduled_shows").select("*").gte("scheduled_for", new Date().toISOString()).order("scheduled_for", { ascending: true }),
     ]);
     setStreams((s as Stream[]) || []);

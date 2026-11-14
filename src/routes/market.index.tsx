@@ -298,7 +298,7 @@ function Market() {
           </div>
 
           <div role="tablist" aria-label="Marketplace departments" className="mt-2 flex gap-1 overflow-x-auto pb-1">
-            {[{ value: 'all', label: 'All' }, ...MARKET_DEPARTMENTS].map(d => <Button key={d.value} role="tab" aria-selected={department === d.value} size="sm" variant={department === d.value ? 'default' : 'ghost'} className="shrink-0 rounded-full text-xs" onClick={() => update({ department: d.value, category: 'all', filters: retainCommonFilters(filters) })}>{d.label}</Button>)}
+            {[{ value: 'all', label: 'All' }, ...SHOPPING_DEPARTMENTS].map(d => <Button key={d.value} role="tab" aria-selected={department === d.value} size="sm" variant={department === d.value ? 'default' : 'ghost'} className="shrink-0 rounded-full text-xs" onClick={() => update({ department: d.value, category: 'all', filters: retainCommonFilters(filters) })}>{d.label}</Button>)}
           </div>
           {/* Category dropdown */}
           <div className="relative mt-2">
