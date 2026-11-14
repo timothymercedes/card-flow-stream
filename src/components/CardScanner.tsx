@@ -20,6 +20,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from '@/components/ui/button';
 import { supabase } from "@/integrations/supabase/client";
 import { ManualCardFinder, type FinderCard } from "@/components/ManualCardFinder";
 import { categoryToGameId } from "@/lib/scannerGame";
