@@ -21,6 +21,8 @@ import { ShareButton } from "@/components/ShareButton";
 import { readIdentityLogFilters } from "@/lib/identityAuditFilters";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
+import { Button } from '@/components/ui/button';
+import { personalPreviewEnabled } from '@/lib/personalProfilePreview';
 
 export const Route = createFileRoute("/seller/$username")({
   validateSearch: zodValidator(z.object({ logFp: z.string().optional(), logUser: z.string().optional(), logFrom: z.string().optional(), logTo: z.string().optional(), fromIdentityAudit: z.boolean().optional() })),
@@ -63,6 +65,8 @@ function PublicStore() {
   const { fromIdentityAudit, ...auditFilters } = Route.useSearch();
   const nav = useNavigate();
   const { user, profile: myProfile } = useAuth();
+  const [designPreview, setDesignPreview] = useState(false);
+  useEffect(() => { setDesignPreview(personalPreviewEnabled(import.meta.env.DEV, window.location.hostname)); }, []);
   const [seller, setSeller] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [soldOrders, setSoldOrders] = useState<any[]>([]);
@@ -222,6 +226,7 @@ function PublicStore() {
   return (
     <AppShell>
       <div className="px-4 py-4">
+        {designPreview && user?.id === seller.id && <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border border-primary bg-primary/10 p-4" data-profile-component="PublicStore"><div><strong className="text-primary">SELLER STOREFRONT</strong><p className="text-sm text-muted-foreground">Your personal profile is a separate page.</p></div><Button asChild><Link to="/profile">Open PREVIEW DESIGN <ArrowLeft className="rotate-180" /></Link></Button></div>}
         {fromIdentityAudit ? (
           <Link to="/admin/identity-audit" search={readIdentityLogFilters(auditFilters)} className="mb-3 inline-flex items-center gap-1 text-xs text-primary"><ArrowLeft className="h-3.5 w-3.5" /> Back to action log</Link>
         ) : (
