@@ -92,6 +92,13 @@
       "when": 1794572789279,
       "tag": "0012_scope_evidence_read_to_signed_in",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794620889221,
+      "tag": "0013_scope_selected_collector_membership_reads",
+      "breakpoints": true
     }
   ]
 }
