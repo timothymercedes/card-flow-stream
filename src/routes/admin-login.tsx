@@ -4,6 +4,7 @@ import { AdministrationBrand, AdministrationFavicon } from '@/components/admin/A
 import { useAuth } from '@/hooks/useAuth';
 import { LockKeyhole, ArrowLeft } from 'lucide-react';
 import { AuthForm } from './auth';
+import { AdministrationSignOut } from '@/components/admin/AdministrationSignOut';
 
 export const Route = createFileRoute('/admin-login')({
   head: () => ({ meta: [
@@ -15,12 +16,14 @@ export const Route = createFileRoute('/admin-login')({
   ] }), component: AdministrationLogin,
 });
 function AdministrationLogin() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <main id="main-content" className="administration-theme administration-login grid min-h-dvh place-content-center p-6"><AdministrationFavicon /><AdministrationBrand large /><p role="status" className="mt-6 text-center text-sm text-muted-foreground">Checking sign-in…</p></main>;
   if (!user) return <main id="main-content" className="administration-theme administration-login min-h-dvh"><AuthForm administration /><div className="pb-6 text-center"><Button asChild variant="link"><Link to="/">Public website</Link></Button></div></main>;
   return <main id="main-content" className="administration-theme administration-login flex min-h-dvh items-center justify-center p-6">
     <AdministrationFavicon />
     <div className="w-full max-w-sm"><AdministrationBrand large /><div className="my-8 border-y border-border py-5 text-center"><LockKeyhole className="mx-auto mb-3 h-5 w-5 text-primary" /><h1 className="text-xl font-semibold">Authorized Personnel Only</h1><p className="mt-3 text-sm text-muted-foreground">Owner & Admin Control Center</p></div>
-      <Button asChild className="h-12 w-full">{user ? <Link to="/admin-control">Continue to control center</Link> : <Link to="/auth" search={{ returnTo: '/admin-control', mode: 'signin' }}>Sign in securely</Link>}</Button>
+      <Button asChild className="h-12 w-full"><Link to="/admin-control">Continue to control center</Link></Button>
+      <div className="mt-3 flex justify-center"><AdministrationSignOut /></div>
       <Button asChild variant="link" className="mt-4 w-full"><Link to="/"><ArrowLeft className="h-4 w-4" />Public website</Link></Button>
     </div>
   </main>;
