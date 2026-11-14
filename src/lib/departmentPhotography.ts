@@ -9,10 +9,12 @@ import sports from '@/assets/departments/sports_outdoors.webp';
 import business from '@/assets/departments/business.webp';
 import music from '@/assets/departments/music.webp';
 import garden from '@/assets/departments/garden_outdoors.webp';
+import beauty from '@/assets/departments/beauty.webp';
+import footwear from '@/assets/departments/footwear.webp';
 
 export const departmentPhotography: Record<string, string> = {
   collectibles, automotive, electronics, fashion, home, gaming, tools,
-  sports_outdoors: sports, business, music, garden_outdoors: garden,
+  sports_outdoors: sports, business, music, garden_outdoors: garden, beauty, footwear,
 };
 export function departmentDisplayLabel(department: {value: string; label: string}) {
   return department.value === 'home' ? 'Home & Living' : department.label;

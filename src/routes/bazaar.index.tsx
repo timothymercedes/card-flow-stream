@@ -34,7 +34,7 @@ function BazaarHome() {
   const storeList = ((stores.data ?? []) as BazaarStoreRow[]).filter((s) => (!type || s.store_type === type) && (!term || s.name.toLowerCase().includes(term)));
   const productList = ((products.data ?? []) as unknown as BazaarProductRow[]).filter((p) => !term || p.title.toLowerCase().includes(term) || (p.brand ?? "").toLowerCase().includes(term));
   const pill = (active: boolean) => `shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${active ? "bg-primary text-primary-foreground ring-primary" : "bg-card text-muted-foreground ring-border hover:text-foreground"}`;
-  const photoKey: Record<string,string> = {Fashion:'fashion',Footwear:'fashion',Electronics:'electronics',Home:'home',Beauty:'fashion',Tools:'tools',Automotive:'automotive','Sports & Outdoors':'sports_outdoors','Toys & Hobbies':'collectibles',Collectibles:'collectibles'};
+  const photoKey: Record<string,string> = {Fashion:'fashion',Footwear:'footwear',Electronics:'electronics',Home:'home',Beauty:'beauty',Tools:'tools',Automotive:'automotive','Sports & Outdoors':'sports_outdoors','Toys & Hobbies':'collectibles',Collectibles:'collectibles'};
 
   return (
     <AppShell>

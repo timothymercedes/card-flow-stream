@@ -32,8 +32,8 @@ export const Route = createFileRoute('/marketplace/$department')({
   },
   head: ({params}) => {
     const department = shoppingDepartment(params.department);
-    const title = department ? `${department.label} — PullBid Live Marketplace` : 'Department unavailable — PullBid Live';
-    const description = department ? `Shop ${department.label.toLowerCase()} on PullBid Live. ${department.description}` : 'Explore PullBid Live marketplace departments.';
+    const title = department ? `${departmentDisplayLabel(department)} — PullBid Live Marketplace` : 'Department unavailable — PullBid Live';
+    const description = department ? `Shop ${departmentDisplayLabel(department).toLowerCase()} on PullBid Live. ${department.description}` : 'Explore PullBid Live marketplace departments.';
     return {meta:[{title},{name:'description',content:description},{property:'og:title',content:title},{property:'og:description',content:description},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]};
   },
   component: CategoryShopping,
