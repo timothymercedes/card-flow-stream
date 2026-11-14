@@ -522,7 +522,7 @@ function PublicStore() {
           <div className="space-y-3 rounded-2xl bg-card p-4 text-sm">
             <h2 className="font-bold">About @{seller.username}</h2>
             {seller.bio ? <p className="whitespace-pre-wrap">{seller.bio}</p> : <p className="text-muted-foreground">This seller hasn't added a store description yet.</p>}
-            <p className="text-xs text-muted-foreground">{sellerCompleted} completed sales · member since {new Date(seller.created_at).toLocaleDateString()}</p>
+            <p className="text-xs text-muted-foreground">{sellerCompleted} completed sales{seller.created_at ? ` · member since ${new Date(seller.created_at).toLocaleDateString()}` : ""}</p>
           </div>
         )}
 
