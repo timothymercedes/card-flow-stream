@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { confirmOffPlatform } from "@/lib/offPlatformGuard";
 import { ReportDialog } from "@/components/ReportDialog";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { useRealtimeChannel } from "@/lib/realtime";
@@ -95,6 +96,7 @@ function ChatThread() {
     if (!input.trim() || !user || !profile || sending) return;
     if (!accepted) return toast.error("Send a message request first");
     const content = input.trim();
+    if (!confirmOffPlatform(content)) return;
     setInput("");
     setSending(true);
     // Optimistic bubble for instant feedback on slow mobile networks.

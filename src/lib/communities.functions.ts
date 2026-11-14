@@ -3,6 +3,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { detectOffPlatform } from "@/lib/offPlatform";
+const OFF_PLATFORM_ERR = "For buyer and seller protection, payments must stay on PullBid Live.";
 
 // Public: list all communities. Annotated with whether the (optional) caller is a member.
 export const listCommunities = createServerFn({ method: "GET" }).handler(async () => {
@@ -120,6 +122,7 @@ export const createPost = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    if (detectOffPlatform(data.body).risk === "high") throw new Error(OFF_PLATFORM_ERR);
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("community_posts")
@@ -196,6 +199,7 @@ export const addComment = createServerFn({ method: "POST" })
     z.object({ postId: z.string().uuid(), body: z.string().min(1).max(2000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
+    if (detectOffPlatform(data.body).risk === "high") throw new Error(OFF_PLATFORM_ERR);
     const { supabase, userId } = context;
     const { data: row, error } = await supabase
       .from("community_comments")

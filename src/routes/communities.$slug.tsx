@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Users, Heart, MessageCircle, Trash2, ArrowLeft, Check, Send, Swords } from "lucide-react";
 import { toast } from "sonner";
+import { confirmOffPlatform } from "@/lib/offPlatformGuard";
 import { CommunityChallenges } from "@/components/CommunityChallenges";
 import { arenaCategoryFor, arenaCategoryMeta } from "@/lib/arenaCategories";
 
@@ -73,7 +74,7 @@ function CommunityDetailPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   const postMut = useMutation({
-    mutationFn: () => post({ data: { communityId: community!.id, body: body.trim() } }),
+    mutationFn: async () => { if (!confirmOffPlatform(body)) throw new Error("Post not sent"); return post({ data: { communityId: community!.id, body: body.trim() } }); },
     onSuccess: () => { setBody(""); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -231,7 +232,7 @@ function Comments({ postId, canInteract }: { postId: string; canInteract: boolea
   const [text, setText] = useState("");
   const q = useQuery({ queryKey: ["comments", postId], queryFn: () => list({ data: { postId } }) });
   const addMut = useMutation({
-    mutationFn: () => add({ data: { postId, body: text.trim() } }),
+    mutationFn: async () => { if (!confirmOffPlatform(text)) throw new Error("Comment not sent"); return add({ data: { postId, body: text.trim() } }); },
     onSuccess: () => { setText(""); qc.invalidateQueries({ queryKey: ["comments", postId] }); qc.invalidateQueries({ queryKey: ["community-feed"] }); },
     onError: (e: Error) => toast.error(e.message),
   });

@@ -13,6 +13,7 @@ import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetail
 import { validateProductDetails, type ProductDetails } from "@/lib/marketplaceDepartments";
 import { validateListingImage } from "@/lib/listingDisplay";
 import { toast } from "sonner";
+import { confirmOffPlatform } from "@/lib/offPlatformGuard";
 import {
   Camera,
   Radio,
@@ -511,6 +512,7 @@ function Sell() {
     if (department !== "collectibles" && !productDetails.condition) return toast.error("Select a product condition");
     if (!title.trim()) return toast.error("Add a title");
     if (!desc.trim()) return toast.error("Add a description");
+    if (!confirmOffPlatform(title, desc)) return;
     const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
     if (frontErr) return toast.error(frontErr);
     const backErr = department === "collectibles" || backImageUrl ? validateListingImage(backImageUrl, { field: "Back photo" }) : null;

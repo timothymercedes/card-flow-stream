@@ -58,6 +58,7 @@ import {
   SwitchCamera,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmOffPlatform } from "@/lib/offPlatformGuard";
 import { CardScanner } from "@/components/CardScanner";
 import { CardSpotlight } from "@/components/CardSpotlight";
 import { HlsPlayer, type HlsVideoMetrics } from "@/components/HlsPlayer";
@@ -2078,6 +2079,7 @@ function LiveDetail() {
     if (!isSystem && needsAcceptance)
       return toast.error("Accept the required agreements before chatting");
     if (!content.trim()) return;
+    if (!isSystem && !confirmOffPlatform(content)) return;
     await supabase.from("chat_messages").insert({
       stream_id: id,
       user_id: profile?.id || user?.id,
