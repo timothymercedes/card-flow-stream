@@ -3,7 +3,68 @@
 Status: design and read-only inspection only. No new routes, roles, database changes, sends, favicon replacements or deployment.
 
 ## Branding approval
-Three original raster logo concepts: PB shield, command brackets and institutional seal. Each uses the existing silver/gold PB heritage with emerald security detail and PULLBID LIVE ADMINISTRATION. The dashboard/login approval board shows graphite navigation, bright working surfaces, gold hierarchy and emerald status accents. Authorized Personnel Only appears on navigation and sign-in. Values are intentionally unloaded, never invented platform statistics.
+PB Shield is the selected logo direction. The revised overview and moderation/notification boards use silver/gold PB heritage, graphite navigation, bright working surfaces and emerald status accents. Authorized Personnel Only appears on navigation and sign-in. Values are intentionally unloaded, never invented platform statistics. This selection does not approve implementation or permission changes.
+
+## Complete navigation structure
+One central portal, not a single screen containing every tool. Overview is always the first sidebar item; every section has Administration / Overview / Section breadcrumbs and a Back to Overview link. Mobile uses a labeled menu sheet with the same authorized sections. Remember filters within each section and retain return-to-list context after opening a case.
+
+| Section | Contents, kept out of Overview |
+|---|---|
+| Overview | Four important statistics, unresolved/critical/escalated attention counts, a short recent-alert preview; no settings or full case tables |
+| Members | Searchable members, account dossier, registrations, assigned account actions |
+| Administrators | Owner-managed invites, active/suspended access, permission groups, access/activity review |
+| Live Control | Genuine broadcasts, viewer freshness, auctions, stream diagnostics and scoped moderation |
+| Reports & Disputes | Reports / Disputes / Appeals tabs, grouped review queue, assignments, evidence and decisions |
+| Stores | Marketplace sellers / PB Store / PB Bazaar tabs; reuse approvals, never merge catalogs or orders |
+| Finance | Scoped transaction/accounting reports, period filters and definitions; no new money movement |
+| Notifications | Own alerts, All / Critical / Assigned filters, acknowledgment, delivery preferences |
+| System Settings | Authorized platform configuration, integrations status, advanced controls inside subpages; never secret values |
+| Audit Logs | Permission-scoped immutable action history, actor/resource/time filters |
+
+Overview adapts to role: only permitted metrics/alerts are fetched and shown. Unavailable is an em dash with freshness/error status, not a fake zero. Critical uses red and clear text/icon, not color alone. The full report list appears only after Open review queue.
+
+## Verified Owner & Founder account
+Read-only hosted account inspection on November 14, 2026 found exactly one account matching timothymercedes@gmail.com, with verified email and existing owner and admin roles. No role was assigned or changed. Bind future Owner & Founder designation to that verified authenticated account ID and protected owner role, not an editable email/profile field or browser comparison. Email is an identification input for the controlled setup review, not a continuing privilege condition.
+
+Owner has authority across all sections and owner-controlled administrator/settings operations; other administrators cannot demote, suspend, revoke group access from, delete, or otherwise indirectly disable the owner account. Existing role RPCs prohibit removing the owner role; additional indirect membership/account paths require explicit companion protection before launch. Account email changes must not remove ownership. No browser-accessible bootstrap or owner-assignment endpoint. Keep server revalidation, recent secure authentication for sensitive actions and recovery review; highest authority never includes access to passwords/tokens or bypassing payment publication gates.
+
+## Proposed permission matrix
+Legend: Full = permitted operations after sensitive-action checks; Scoped = only explicitly granted resources/capabilities; Own = own alerts/preferences. Owner-authorized active membership is required for all non-owner groups; existing customer/seller/moderator role alone is not portal authorization.
+
+| Section / capability | Owner | Platform admin | Moderator | Support | Finance |
+|---|---|---|---|---|---|
+| Overview | Full | Scoped | Scoped | Scoped | Scoped |
+| Members / account data | Full | Scoped | Case-related safe fields | Assigned support safe fields | Accounting-related safe fields |
+| Administrator access/permissions | Full | No grant/revoke authority | None | None | None |
+| Live Control | Full | Scoped | Authorized investigation/moderation | Case read if granted | None |
+| Reports & Disputes | Full | Scoped | Authorized moderation cases | Assigned support/dispute cases | Financial case projection if granted |
+| Warn / temporary restriction | Full | Explicit capability | Explicit capability | Escalation only by default | Escalation only |
+| Suspend / remove content | Full | Explicit high-impact capability | Explicit high-impact capability | None by default | None |
+| Reporter identity | Exceptional need-to-know capability with logged reason | Same; not default | Same; not default | None by default | None |
+| Stores | Full | Scoped | Report-linked read | Assigned support read | Scoped accounting read |
+| Finance | Full authority; existing release gates apply | Explicit read scope | None | No broad financial access | Scoped read-only first release |
+| Notifications | Own plus authorized operational oversight | Own | Own | Own | Own |
+| System Settings | Full | Explicit non-security configuration | None | None | None |
+| Audit Logs | Full | Scoped | Own/case-related | Own/case-related | Finance-scoped |
+
+Server handlers and database permissions enforce this matrix independently of sidebar visibility. No inherited finance/refund/transfer authority merely from access to a dispute screen. Suspension/revocation removes access promptly and prevents cached sensitive responses from being reused.
+
+## Moderation workflow and notifications
+1. Validate report subject, reason and evidence; rate-limit abuse without refusing urgent reports solely because a subject already has a case. Preserve each submission and reporter privately.
+2. Route all existing intake sources to one review surface. Group by division + subject type + canonical subject ID + compatible incident; never merge unrelated null IDs or equate report count with guilt. Legacy and newer report tables remain traceable.
+3. Create New case with Low / Normal / High / Critical operational priority. Priority is distinct from audit severity. Sort Critical first, then escalation/age. Credible fraud, critical threats and serious safety signals immediately enter Escalated review and alert authorized recipients, not automatic punishment.
+4. Notify eligible on-duty reviewers; if none are configured, notify Owner as fallback. Deduplicate case/event/recipient/channel deliveries. In-app attention is durable; email/push require preferences/consent and respect managed suppression. No promised numeric response deadline until an operational policy is agreed.
+5. Assign eligible staff; acknowledge alert, review protected evidence and put case Under Review. Use atomic assignment/status transitions to prevent competing staff overwrites. Internal notes and reporter identity never enter subject/reporter-facing outcome responses.
+6. Reviewer selects warn, temporary restriction, suspension, per-content removal or escalation according to permission. Confirmation shows target, scope, duration, reason, impact and appeal path. Recheck current permission and recent secure authentication before commit. Preserve evidence before removal; link action and outcome to case.
+7. Resolve only after action outcome is verified, or Dismiss with documented reason. Failed action remains open for attention. Record decision, before/after values, actor/time and reason atomically; record external action pending/failure without claiming completion. Resolved and Dismissed are terminal; reopening requires explicit authorized reason and clears obsolete resolution metadata while preserving history.
+8. Send privacy-safe decision notice and offer appeal tied to decision. Suspended users must retain a narrow authenticated appeal/support path without recovering ordinary account powers. Assign appeal to a different reviewer where feasible, escalate owner-sensitive decisions appropriately and track uphold/modify/overturn with audited restoration.
+
+Unresolved counts represent grouped cases in New / Under Review / Escalated, not raw duplicate reports. Critical count is unresolved Critical cases; escalated count is unresolved Escalated cases. These overlap and must not be summed as a total. Counts and alert previews are permission scoped. Reading or acknowledging an alert does not resolve the case. Bell unread count is separate from unresolved queue counts.
+
+## Reuse findings and gaps
+Current public ReportDialog writes user_reports; newer moderation queue reads moderation_reports. A unified UI without a bridge could miss submitted reports. Deployed columns confirm separate schemas, severity and assignment fields. Existing evidence/audit/support tools can be adapted, not rebuilt.
+
+Reviewed code gaps: assignment/priority controls are missing; status updates lack strict transition enforcement; staff full-row report reads expose reporter IDs; internal versus public outcome notes are not separated; evidence signing must validate linked case permission rather than accept any path; action/log writes must become atomic and check errors. Buyer restrictions are not proof of posting/selling/chat/stream enforcement. Generic ban-appeal support is not yet a decision-linked appeal workflow. These require scoped design/schema/permission approval, not cosmetic fixes.
 
 These are JPG concept assets, not editable vectors or production-sized transparent icons. After selection, refine one actual candidate, derive compact favicon and sidebar/email variants and inspect at small sizes. Do not replace public logo/favicon or customer emails. Administration favicon must be scoped to administration routes and restore public identity on exit.
 
