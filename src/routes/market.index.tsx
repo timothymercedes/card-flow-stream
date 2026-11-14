@@ -15,6 +15,7 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { Button } from "@/components/ui/button";
 import { MARKET_DEPARTMENTS, filterFields, retainCommonFilters, GENERAL_CONDITIONS } from "@/lib/marketplaceDepartments";
 import { searchMarketplace } from "@/lib/marketplaceSearch";
+import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
 
 export const Route = createFileRoute("/market/")({
   validateSearch: zodValidator(z.object({ q: z.string().optional(), department: z.string().optional(), category: z.string().optional(), filters: z.record(z.string(), z.string()).optional(), sort: z.string().optional(), page: z.number().optional() })),
@@ -51,7 +52,7 @@ function Market() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: '/market/' });
   const q = search.q ?? '';
-  const department = MARKET_DEPARTMENTS.some(d => d.value === search.department) ? search.department ?? 'all' : 'all';
+  const department = SHOPPING_DEPARTMENTS.some(d => d.value === search.department) ? search.department ?? 'all' : 'all';
   const filters = search.filters ?? {};
   const page = Math.max(1, search.page ?? 1);
   const [total, setTotal] = useState(0);
@@ -372,11 +373,11 @@ function Market() {
           </div>
         )}
 
-        {!loading && visible.length === 0 && (
+        {!loading && !searchError && visible.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
             <Tag className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm font-semibold">No listings match</p>
-            <p className="mt-1 text-xs text-muted-foreground">Try another category or clear your search.</p>
+            <p className="text-sm font-semibold">{q || department !== 'all' || category !== 'all' || Object.entries(filters).some(([k,v])=>k !== 'sort' && v && v !== 'all') ? 'No listings match' : 'No active listings available'}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{q || department !== 'all' || category !== 'all' ? 'Try another department or clear your search.' : 'Listings appear here when sellers publish or renew available inventory.'}</p>
           </div>
         )}
 
