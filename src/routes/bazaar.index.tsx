@@ -8,6 +8,7 @@ import { ShoppingBag, ShoppingCart, Store, Search, PlusCircle } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { BAZAAR_DEPARTMENTS, fetchActiveStores, fetchNewProducts } from "@/lib/bazaar";
 import { ProductCard, StoreCard, type BazaarProductRow, type BazaarStoreRow } from "@/components/bazaar/BazaarCards";
+import { DepartmentPhoto } from '@/components/DepartmentPhoto';
 
 export const Route = createFileRoute("/bazaar/")({
   validateSearch: zodValidator(z.object({ dept: z.string().optional(), type: z.enum(["independent", "brand", "pb_owned"]).optional() })),
@@ -33,6 +34,7 @@ function BazaarHome() {
   const storeList = ((stores.data ?? []) as BazaarStoreRow[]).filter((s) => (!type || s.store_type === type) && (!term || s.name.toLowerCase().includes(term)));
   const productList = ((products.data ?? []) as unknown as BazaarProductRow[]).filter((p) => !term || p.title.toLowerCase().includes(term) || (p.brand ?? "").toLowerCase().includes(term));
   const pill = (active: boolean) => `shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${active ? "bg-primary text-primary-foreground ring-primary" : "bg-card text-muted-foreground ring-border hover:text-foreground"}`;
+  const photoKey: Record<string,string> = {Fashion:'fashion',Footwear:'footwear',Electronics:'electronics',Home:'home',Beauty:'beauty',Tools:'tools',Automotive:'automotive','Sports & Outdoors':'sports_outdoors','Toys & Hobbies':'collectibles',Collectibles:'collectibles'};
 
   return (
     <AppShell>
@@ -73,9 +75,9 @@ function BazaarHome() {
 
         <section>
           <h2 className="mb-2 text-lg font-extrabold">Shop by department</h2>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <button className={pill(!dept)} onClick={() => nav({ search: (p) => ({ ...p, dept: undefined }) })}>All</button>
-            {BAZAAR_DEPARTMENTS.map((d) => <button key={d} className={pill(dept === d)} onClick={() => nav({ search: (p) => ({ ...p, dept: d }) })}>{d}</button>)}
+          <div className="flex gap-3 overflow-x-auto py-2">
+            <Button variant="outline" className="h-auto min-h-11 w-28 shrink-0 whitespace-normal" onClick={() => nav({ search: (p) => ({ ...p, dept: undefined }) })}>All Bazaar departments</Button>
+            {BAZAAR_DEPARTMENTS.map((d) => <Button variant="ghost" aria-pressed={dept === d} key={d} className={`h-auto w-36 shrink-0 flex-col gap-0 overflow-hidden border p-0 text-left ${dept === d ? 'border-primary text-primary' : 'border-border text-foreground'}`} onClick={() => nav({ search: (p) => ({ ...p, dept: d }) })}><DepartmentPhoto value={photoKey[d]} className="aspect-[16/10] w-full"/><span className="block min-h-14 w-full whitespace-normal p-3 text-xs font-semibold">{d}</span></Button>)}
           </div>
         </section>
 

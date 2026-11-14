@@ -13,6 +13,8 @@ import { shoppingDepartment } from '@/lib/categoryShoppingConfig';
 import { categoryCatalogOptions, categoryOverviewOptions, inventoryBrands, type ShoppingSearch, type ShoppingListing } from '@/lib/categoryShoppingData';
 import { filterFields, GENERAL_CONDITIONS } from '@/lib/marketplaceDepartments';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { DepartmentPhoto } from '@/components/DepartmentPhoto';
+import { departmentDisplayLabel } from '@/lib/departmentPhotography';
 
 const schema = z.object({ q: z.string().optional(), subcategory: z.string().optional(), filters: z.record(z.string(),z.string()).optional(), sort: z.string().optional(), page: z.number().optional() });
 
@@ -30,8 +32,8 @@ export const Route = createFileRoute('/marketplace/$department')({
   },
   head: ({params}) => {
     const department = shoppingDepartment(params.department);
-    const title = department ? `${department.label} — PullBid Live Marketplace` : 'Department unavailable — PullBid Live';
-    const description = department ? `Shop ${department.label.toLowerCase()} on PullBid Live. ${department.description}` : 'Explore PullBid Live marketplace departments.';
+    const title = department ? `${departmentDisplayLabel(department)} — PullBid Live Marketplace` : 'Department unavailable — PullBid Live';
+    const description = department ? `Shop ${departmentDisplayLabel(department).toLowerCase()} on PullBid Live. ${department.description}` : 'Explore PullBid Live marketplace departments.';
     return {meta:[{title},{name:'description',content:description},{property:'og:title',content:title},{property:'og:description',content:description},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]};
   },
   component: CategoryShopping,
@@ -89,8 +91,7 @@ function DepartmentContent({department}: {department:NonNullable<ReturnType<type
     <div className="px-4 lg:px-8">
       <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 py-4 text-xs text-muted-foreground"><Link to="/">Home</Link><span>/</span><Link to="/market">Marketplace</Link><span>/</span><span className="text-foreground">{department.label}</span></nav>
       <header className="border-b border-border/60 pb-5">
-        <div className="flex items-center gap-3"><span className="text-3xl" aria-hidden>{department.emoji}</span><h1 className="min-w-0 text-2xl font-bold sm:text-3xl">{department.label}</h1></div>
-        <p className="mt-2 text-sm text-muted-foreground">{department.description}</p>
+        <div className="relative flex min-h-52 flex-col justify-end overflow-hidden rounded-lg p-5 sm:min-h-64 sm:p-8"><DepartmentPhoto value={department.value} eager className="absolute inset-0 h-full w-full"/><div className="category-photo-shade absolute inset-0"/><div className="relative max-w-xl">{department.value === 'collectibles' && <p className="mb-2 text-xs font-bold text-primary">SIGNATURE DEPARTMENT</p>}<h1 className="text-2xl font-bold sm:text-3xl">{departmentDisplayLabel(department)}</h1><p className="mt-2 text-sm text-foreground">{department.description}</p></div></div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <form className="flex min-w-0 flex-1 gap-2" onSubmit={e=>{e.preventDefault();void update({q:queryDraft});}}>
             <div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground"/><input aria-label={`Search ${department.label}`} placeholder={`Search ${department.label.toLowerCase()}…`} value={queryDraft} onChange={e=>setQueryDraft(e.target.value)} className="h-10 w-full rounded-full bg-input pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"/></div>

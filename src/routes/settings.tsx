@@ -13,13 +13,14 @@ import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { StorefrontBrandingEditor } from "@/components/StorefrontBrandingEditor";
 import { DeleteAccountSection } from "@/components/DeleteAccountSection";
 import { useTour } from "@/components/MascotGuide";
+import { DepartmentInterestPicker } from '@/components/DepartmentInterestPicker';
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — PullBid Live" }] }),
+  head: () => ({ meta: [{ title: "Settings — PullBid Live" }, {name:'description',content:'Manage your PullBid Live account, shopping interests and accessibility preferences.'}, {property:'og:title',content:'Account settings — PullBid Live'}, {property:'og:description',content:'Manage your account and discovery preferences.'}, {property:'og:type',content:'website'}, {name:'twitter:card',content:'summary_large_image'}] }),
   component: SettingsPage,
 });
 
-type Section = "account" | "shipping" | "notifications" | "language" | "privacy" | "payment" | "accessibility" | "seller" | "tutorials";
+type Section = "account" | "shipping" | "notifications" | "language" | "privacy" | "payment" | "accessibility" | "seller" | "tutorials" | "interests";
 
 function SettingsPage() {
   const { user, profile } = useAuth();
@@ -39,6 +40,7 @@ function SettingsPage() {
 
   const sections: { key: Section; label: string; icon: any }[] = [
     { key: "account", label: t("settings.account"), icon: UserIcon },
+    { key: "interests", label: 'Interests', icon: Sparkles },
     { key: "shipping", label: t("settings.shipping", "Shipping"), icon: MapPin },
     { key: "language", label: t("settings.language"), icon: Globe },
     { key: "accessibility", label: t("settings.accessibility"), icon: A11yIcon },
@@ -68,6 +70,7 @@ function SettingsPage() {
         </div>
 
         {section === "language" && <LanguageSection />}
+        {section === "interests" && profile && <DepartmentInterestPicker key={profile.id}/>}
         {section === "accessibility" && <AccessibilitySection />}
         {section === "seller" && profile?.is_seller && <SellerSection />}
         {section === "account" && <AccountSection />}
