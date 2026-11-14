@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AtusernameRouteImport } from './routes/@$username'
+import { Route as AtChar123usernameChar125RouteImport } from './routes/@{$username}'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminControlRouteImport } from './routes/admin-control'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
@@ -123,11 +123,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AtusernameRoute = AtusernameRouteImport.update({
-  id: '/@$username',
-  path: '/@$username',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AtChar123usernameChar125Route =
+  AtChar123usernameChar125RouteImport.update({
+    id: '/@{$username}',
+    path: '/@{$username}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -678,7 +679,7 @@ const LovableEmailTransactionalPreviewRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/@$username': typeof AtusernameRoute
+  '/@{$username}': typeof AtChar123usernameChar125Route
   '/admin': typeof AdminRouteWithChildren
   '/admin-control': typeof AdminControlRoute
   '/admin-login': typeof AdminLoginRoute
@@ -788,7 +789,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/@$username': typeof AtusernameRoute
+  '/@{$username}': typeof AtChar123usernameChar125Route
   '/admin': typeof AdminRouteWithChildren
   '/admin-control': typeof AdminControlRoute
   '/admin-login': typeof AdminLoginRoute
@@ -897,7 +898,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/@$username': typeof AtusernameRoute
+  '/@{$username}': typeof AtChar123usernameChar125Route
   '/admin': typeof AdminRouteWithChildren
   '/admin-control': typeof AdminControlRoute
   '/admin-login': typeof AdminLoginRoute
@@ -1009,7 +1010,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/@$username'
+    | '/@{$username}'
     | '/admin'
     | '/admin-control'
     | '/admin-login'
@@ -1119,7 +1120,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/@$username'
+    | '/@{$username}'
     | '/admin'
     | '/admin-control'
     | '/admin-login'
@@ -1227,7 +1228,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/@$username'
+    | '/@{$username}'
     | '/admin'
     | '/admin-control'
     | '/admin-login'
@@ -1338,7 +1339,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AtusernameRoute: typeof AtusernameRoute
+  AtChar123usernameChar125Route: typeof AtChar123usernameChar125Route
   AdminRoute: typeof AdminRouteWithChildren
   AdminControlRoute: typeof AdminControlRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -1440,11 +1441,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/@$username': {
-      id: '/@$username'
-      path: '/@$username'
-      fullPath: '/@$username'
-      preLoaderRoute: typeof AtusernameRouteImport
+    '/@{$username}': {
+      id: '/@{$username}'
+      path: '/@{$username}'
+      fullPath: '/@{$username}'
+      preLoaderRoute: typeof AtChar123usernameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -2270,7 +2271,7 @@ const ShowsIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AtusernameRoute: AtusernameRoute,
+  AtChar123usernameChar125Route: AtChar123usernameChar125Route,
   AdminRoute: AdminRouteWithChildren,
   AdminControlRoute: AdminControlRoute,
   AdminLoginRoute: AdminLoginRoute,
